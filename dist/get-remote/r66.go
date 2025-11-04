@@ -23,12 +23,13 @@ type r66Client struct {
 	r66Session *r66.Session
 }
 
-func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, addr string, insecure bool) error {
+func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string, insecure bool) error {
 	var err error
 	var partnerCreds []api.OutCred
 	var accountCreds []api.OutCred
+	var realAddr string
 
-	restPath, urlErr := url.JoinPath(addr, "/api/partners", partner.Name, "credentials")
+	restPath, urlErr := url.JoinPath(restAddr, "/api/partners", partner.Name, "credentials")
 	if urlErr != nil {
 		return fmt.Errorf("failed to build URL: %w", urlErr)
 	}
@@ -37,7 +38,7 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 		return fmt.Errorf("could not get partner %s credentials: %w", partner.Name, err)
 	}
 
-	restPath, err = url.JoinPath(addr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
+	restPath, err = url.JoinPath(restAddr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
 	if err != nil {
 		return fmt.Errorf("failed to build URL: %w", err)
 	}
@@ -51,18 +52,22 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 		return fmt.Errorf("failed to parse R66 partner protocol configuration: %w", err)
 	}
 
-	/*
-		addr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
-			utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
-	*/
+	restPath, err = url.JoinPath(restAddr, "/api/override/addresses")
+	if err != nil {
+		return fmt.Errorf("failed to build URL: %w", err)
+	}
 
-	conn, dialErr := net.Dial("tcp", partner.Address)
+	if realAddr, err = getRealAddress(partner.Address, restPath, insecure); err != nil {
+		return fmt.Errorf("could not get address for partner %s: %w", partner.Name, err)
+	}
+
+	conn, dialErr := net.Dial("tcp", realAddr)
 	if dialErr != nil {
 		return fmt.Errorf("failed to connect to the R66 partner: %w", dialErr)
 	}
 
 	if partner.Protocol == string(gwr66.R66TLS) || (partnerConf.IsTLS != nil && *partnerConf.IsTLS) {
-		tlsConf := getTLSConf(addr, 0, partnerCreds, accountCreds, nil)
+		tlsConf := getTLSConf(partner.Address, 0, partnerCreds, accountCreds, nil)
 		conn = tls.Client(conn, tlsConf)
 	}
 

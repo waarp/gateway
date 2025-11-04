@@ -14,7 +14,6 @@ import (
 const (
 	exitLockFile    = 1
 	exitNoEnv       = 2
-	exitNoLogger    = 3
 	exitNoEnvVar    = 4
 	exitBadListFile = 5
 )
@@ -38,13 +37,6 @@ func main() {
 		os.Exit(exitNoEnv)
 	}
 
-	// setup logger
-	log, err := newLogger(files.logFile())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(exitNoLogger)
-	}
-
 	// lock/unlock
 	l := lock{files.lockFile()}
 	if l.isLocked() {
@@ -54,7 +46,7 @@ func main() {
 
 	// parse file
 	if !pathExists(files.listFile()) {
-		log.Printf("No file get-files.list found.\n")
+		fmt.Printf("No file get-files.list found.\n")
 
 		return
 	}

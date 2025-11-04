@@ -25,13 +25,14 @@ type sftpClient struct {
 	sftpClient *sftp.Client
 }
 
-func (sc *sftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, addr string, insecure bool,
+func (sc *sftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string, insecure bool,
 ) error {
 	var err error
 	var partnerCreds []api.OutCred
 	var accountCreds []api.OutCred
+	var realAddr string
 
-	restPath, urlErr := url.JoinPath(addr, "/api/partners", partner.Name, "credentials")
+	restPath, urlErr := url.JoinPath(restAddr, "/api/partners", partner.Name, "credentials")
 	if urlErr != nil {
 		return fmt.Errorf("failed to build URL: %w", urlErr)
 	}
@@ -40,7 +41,7 @@ func (sc *sftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAcc
 		return fmt.Errorf("could not get partner %s credentials: %w", partner.Name, err)
 	}
 
-	restPath, urlErr = url.JoinPath(addr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
+	restPath, urlErr = url.JoinPath(restAddr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
 	if urlErr != nil {
 		return fmt.Errorf("failed to build URL: %w", urlErr)
 	}
@@ -49,7 +50,16 @@ func (sc *sftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAcc
 		return fmt.Errorf("could not get account %s credentials: %w", account.Login, err)
 	}
 
-	if netErr := sc.openSSHConn(partner, account, partnerCreds, accountCreds); netErr != nil {
+	restPath, err = url.JoinPath(restAddr, "/api/override/addresses")
+	if err != nil {
+		return fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	if realAddr, err = getRealAddress(partner.Address, restPath, insecure); err != nil {
+		return fmt.Errorf("could not get address for partner %s: %w", partner.Name, err)
+	}
+
+	if netErr := sc.openSSHConn(realAddr, account, partnerCreds, accountCreds); netErr != nil {
 		return netErr
 	}
 
@@ -99,7 +109,7 @@ func (sc *sftpClient) makeSSHClientConfig(account *api.OutRemoteAccount, remoteA
 	return sshConf, nil
 }
 
-func (sc *sftpClient) openSSHConn(partner *api.OutPartner, account *api.OutRemoteAccount, remoteAgentCreds,
+func (sc *sftpClient) openSSHConn(realAddr string, account *api.OutRemoteAccount, remoteAgentCreds,
 	remoteAccountCreds []api.OutCred,
 ) error {
 	sshClientConf, confErr := sc.makeSSHClientConfig(account, remoteAgentCreds, remoteAccountCreds)
@@ -107,17 +117,12 @@ func (sc *sftpClient) openSSHConn(partner *api.OutPartner, account *api.OutRemot
 		return confErr
 	}
 
-	/*
-		addr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
-			utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
-	*/
-
-	conn, dialErr := net.Dial("tcp", partner.Address)
+	conn, dialErr := net.Dial("tcp", realAddr)
 	if dialErr != nil {
 		return fmt.Errorf("failed to connect to the SFTP partner: %w", dialErr)
 	}
 
-	sshConn, chans, reqs, sshErr := ssh.NewClientConn(conn, partner.Address, sshClientConf)
+	sshConn, chans, reqs, sshErr := ssh.NewClientConn(conn, realAddr, sshClientConf)
 	if sshErr != nil {
 		return fmt.Errorf("failed to start the SSH session: %w", sshErr)
 	}

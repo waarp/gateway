@@ -21,12 +21,13 @@ type ftpClient struct {
 	ftpClient *goftp.Client
 }
 
-func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, addr string, insecure bool) error {
+func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string, insecure bool) error {
 	var err error
 	var partnerCreds []api.OutCred
 	var accountCreds []api.OutCred
+	var realAddr string
 
-	restPath, urlErr := url.JoinPath(addr, "/api/partners", partner.Name, "credentials")
+	restPath, urlErr := url.JoinPath(restAddr, "/api/partners", partner.Name, "credentials")
 	if urlErr != nil {
 		return fmt.Errorf("failed to build URL: %w", urlErr)
 	}
@@ -35,7 +36,7 @@ func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 		return fmt.Errorf("could not get partner %s credentials: %w", partner.Name, urlErr)
 	}
 
-	restPath, err = url.JoinPath(addr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
+	restPath, err = url.JoinPath(restAddr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
 	if err != nil {
 		return fmt.Errorf("failed to build URL: %w", err)
 	}
@@ -52,14 +53,18 @@ func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 		}
 	} else {
 		if err = utils.JSONConvert(partner.ProtoConfig, &partnerConf); err != nil {
-			return fmt.Errorf("failed to parse FTP partner protocol configuration: %w", err)
+			return fmt.Errorf("failed to parse FTPS partner protocol configuration: %w", err)
 		}
 	}
 
-	/*
-		addr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
-			utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
-	*/
+	restPath, err = url.JoinPath(restAddr, "/api/override/addresses")
+	if err != nil {
+		return fmt.Errorf("failed to build URL: %w", err)
+	}
+
+	if realAddr, err = getRealAddress(partner.Address, restPath, insecure); err != nil {
+		return fmt.Errorf("could not get address for partner %s: %w", partner.Name, err)
+	}
 
 	var accountPassword string
 
@@ -78,7 +83,7 @@ func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 
 	if partner.Protocol == gwftp.FTPS {
 		tlsMode = goftp.TLSExplicit
-		tlsConfig = getTLSConf(addr, partnerConf.MinTLSVersion, partnerCreds, accountCreds, nil)
+		tlsConfig = getTLSConf(realAddr, partnerConf.MinTLSVersion, partnerCreds, accountCreds, nil)
 
 		if partnerConf.UseImplicitTLS {
 			tlsMode = goftp.TLSImplicit
@@ -104,7 +109,10 @@ func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 }
 
 func (fc *ftpClient) List(rule *api.OutRule, pattern string) ([]string, error) {
-	fileInfos, listErr := fc.ftpClient.ReadDir(path.Dir(path.Join(rule.RemoteDir, pattern)))
+	dirPattern := path.Dir(pattern)
+	filePattern := path.Base(pattern)
+
+	fileInfos, listErr := fc.ftpClient.ReadDir(path.Join(rule.RemoteDir, dirPattern))
 	if listErr != nil {
 		return nil, fmt.Errorf("failed to list files: %w", listErr)
 	}
@@ -112,13 +120,13 @@ func (fc *ftpClient) List(rule *api.OutRule, pattern string) ([]string, error) {
 	res := []string{}
 
 	for _, fi := range fileInfos {
-		ok, err := path.Match(pattern, fi.Name())
+		ok, err := path.Match(filePattern, fi.Name())
 		if err != nil {
 			return nil, fmt.Errorf("bad pattern: %w", err)
 		}
 
 		if ok {
-			res = append(res, fi.Name())
+			res = append(res, path.Join(dirPattern, fi.Name()))
 		}
 	}
 

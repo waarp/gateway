@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"net"
 	"slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -13,8 +14,9 @@ import (
 func getTLSConf(host string, tlsVersion protoutils.TLSVersion, partnerCreds, accountCreds []api.OutCred,
 	authorities []api.OutAuthority,
 ) *tls.Config {
+	servName, _, _ := net.SplitHostPort(host)
 	conf := &tls.Config{
-		ServerName: host,
+		ServerName: servName,
 		MinVersion: tlsVersion.TLS(),
 	}
 

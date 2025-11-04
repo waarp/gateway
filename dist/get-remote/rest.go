@@ -149,6 +149,22 @@ func getCreds(credNames []string, addr string, insecure bool) ([]api.OutCred, er
 	return res, nil
 }
 
+func getRealAddress(targetAddr, addr string, insecure bool) (string, error) {
+	var apiOverride map[string]string
+
+	if err := get(&apiOverride, addr, insecure); err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
+	overrideAddr, ok := apiOverride[targetAddr]
+	if !ok || overrideAddr == "" {
+		return targetAddr, nil
+	}
+
+	return overrideAddr, nil
+}
+
 func unmarshalBody(body io.Reader, object any) error {
 	decoder := json.NewDecoder(body)
 	decoder.UseNumber()
