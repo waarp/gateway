@@ -26,6 +26,7 @@ linters:
     - noinlineerr
     - noctx
     - wsl
+    - wsl_v5
     - gocyclo
 
   # All available settings of specific linters.

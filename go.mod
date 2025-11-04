@@ -17,6 +17,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.27.0
 	github.com/fclairamb/go-log v0.6.0
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.6.0
 	github.com/gorilla/mux v1.8.1

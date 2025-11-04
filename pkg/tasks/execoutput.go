@@ -30,8 +30,8 @@ func getNewFileName(output string) string {
 	lines := strings.Split(strings.TrimSpace(output), lineSeparator)
 	lastLine := lines[len(lines)-1]
 
-	if strings.HasPrefix(lastLine, "NEWFILENAME:") {
-		return strings.TrimPrefix(lastLine, "NEWFILENAME:")
+	if filename, ok := strings.CutPrefix(lastLine, "NEWFILENAME:"); ok {
+		return filename
 	}
 
 	return ""
@@ -41,21 +41,20 @@ func getNewFileName(output string) string {
 func (e *execOutputTask) Run(parent context.Context, params map[string]string,
 	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
-	output, cmdErr := runExec(parent, transCtx, params)
+	output, runErr := runExec(parent, logger, transCtx, params)
 	msg := ""
-
 	if output != nil {
 		msg = output.String()
 	}
 
-	if cmdErr != nil {
+	if runErr != nil {
 		if newPath := getNewFileName(msg); newPath != "" {
 			transCtx.Transfer.LocalPath = newPath
 			transCtx.Transfer.RemotePath = path.Join(path.Dir(
 				transCtx.Transfer.RemotePath), path.Base(newPath))
 		}
 
-		return cmdErr
+		return runErr
 	}
 
 	scanner := bufio.NewScanner(output)

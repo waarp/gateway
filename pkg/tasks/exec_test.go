@@ -217,7 +217,7 @@ func TestExecRun(t *testing.T) {
 				err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, ErrCommandTimeout)
+					So(err, ShouldBeError, ErrExecTimeout)
 				})
 			})
 		})
