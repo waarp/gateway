@@ -45,6 +45,18 @@ func ImportData(db *database.DB, r *os.File, targets []string, dry, reset bool) 
 	}
 
 	if err := db.Transaction(func(ses *database.Session) error {
+		if utils.ContainsOneOf(targets, "authorities", "all") {
+			if err := importAuthorities(logger, ses, data.Authorities, reset); err != nil {
+				return err
+			}
+		}
+
+		if utils.ContainsOneOf(targets, "clouds", "all") {
+			if err := importCloud(logger, ses, data.Clouds, reset); err != nil {
+				return err
+			}
+		}
+
 		if utils.ContainsOneOf(targets, "clients", "all") {
 			if err := importClients(logger, ses, data.Clients, reset); err != nil {
 				return err
@@ -69,6 +81,12 @@ func ImportData(db *database.DB, r *os.File, targets []string, dry, reset bool) 
 			}
 		}
 
+		if utils.ContainsOneOf(targets, "email", "all") {
+			if err := importEmailConf(logger, ses, data.EmailConfig, reset); err != nil {
+				return err
+			}
+		}
+
 		if utils.ContainsOneOf(targets, "rules", "all") {
 			if err := importRules(logger, ses, data.Rules, reset); err != nil {
 				return err
@@ -81,32 +99,8 @@ func ImportData(db *database.DB, r *os.File, targets []string, dry, reset bool) 
 			}
 		}
 
-		if utils.ContainsOneOf(targets, "clouds", "all") {
-			if err := importCloud(logger, ses, data.Clouds, reset); err != nil {
-				return err
-			}
-		}
-
 		if utils.ContainsOneOf(targets, "snmp", "all") {
 			if err := importSNMPConfig(logger, ses, data.SNMPConfig, reset); err != nil {
-				return err
-			}
-		}
-
-		if utils.ContainsOneOf(targets, "authorities", "all") {
-			if err := importAuthorities(logger, ses, data.Authorities, reset); err != nil {
-				return err
-			}
-		}
-
-		if utils.ContainsOneOf(targets, "keys", "all") {
-			if err := importCryptoKeys(logger, ses, data.CryptoKeys, reset); err != nil {
-				return err
-			}
-		}
-
-		if utils.ContainsOneOf(targets, "email", "all") {
-			if err := importEmailConf(logger, ses, data.EmailConfig, reset); err != nil {
 				return err
 			}
 		}

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`498` Correction de l'ordre d'import des éléments des fichiers d'import.
+  Les éléments d'un fichier d'import référençant d'autres éléments du même fichier
+  sont désormais correctement importés *après* les éléments qu'ils référencent.
+
 * :release:`0.13.2 <2025-10-16>`
 * :bug:`496` Correction d'une régression de la v0.13 faisant que les champs du
   fichier d'import était devenu sensibles à la casse (majuscule ou minuscule).
