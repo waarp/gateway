@@ -184,8 +184,13 @@ func parseTaskForm(db database.Access, r *http.Request) (*model.Task, error) {
 
 func insertTask(db database.Access, task *model.Task) error {
 	return db.Transaction(func(db *database.Session) error {
-		if err := deleteTask(db, task); err != nil {
-			return err
+		if err := db.DeleteAll(task).
+			Where("rule_id=?", task.RuleID).
+			Where("chain=?", task.Chain).
+			Where("rank=?", task.Rank).
+			Run(); err != nil {
+			return common.NewErrorWith(http.StatusInternalServerError,
+				"failed to delete task", err)
 		}
 
 		if err := db.Insert(task).Run(); err != nil {

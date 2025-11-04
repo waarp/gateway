@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`500` Correction d'un bug de l'interface Web empêchant la modification
+  des tâches de règles.
 * :bug:`500` Consulter ou modifier les *overrides* de configuration (via REST ou
   CLI) sans avoir configuré de fichier d'override renvoie désormais une erreur
   au lieu de simplement ignorer la requête.
