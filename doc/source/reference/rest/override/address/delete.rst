@@ -10,6 +10,7 @@ Supprimer une indirection
    :statuscode 204: L'indirection a été supprimée avec succès
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: L'indirection demandée n'existe pas
+   :statuscode 501: L'instance Gateway n'a pas de fichier d'override configuré
 
    **Exemple de requête**
 

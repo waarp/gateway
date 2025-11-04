@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`500` Consulter ou modifier les *overrides* de configuration (via REST ou
+  CLI) sans avoir configuré de fichier d'override renvoie désormais une erreur
+  au lieu de simplement ignorer la requête.
 * :bug:`498` Correction de l'ordre d'import des éléments des fichiers d'import.
   Les éléments d'un fichier d'import référençant d'autres éléments du même fichier
   sont désormais correctement importés *après* les éléments qu'ils référencent.

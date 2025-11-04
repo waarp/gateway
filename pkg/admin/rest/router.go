@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -39,12 +40,19 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router) {
 	makePartnerHandlers(mkHandler)
 	makeRemoteAccountHandlers(mkHandler)
 	makeClientHandlers(mkHandler)
-	makeOverrideHandlers(mkHandler)
 	makeCloudHandlers(mkHandler)
 	makeAuthoritiesHandlers(mkHandler)
 	makeSNMPHandlers(mkHandler)
 	makeKeysHandlers(mkHandler)
 	makeEmailHanddlers(mkHandler)
+
+	if conf.LocalOverrides != nil {
+		makeOverrideHandlers(mkHandler)
+	} else {
+		router.PathPrefix("/override").HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "local overrides are not enabled on this instance", http.StatusNotImplemented)
+		})
+	}
 }
 
 func makeUserHandlers(mkHandler HandlerFactory) {

@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	errIndirectionWithPort = errors.New("an address with port must redirect to another address with port")
-	errIndirectionNoPort   = errors.New("an address without port must redirect to another address without port")
+	ErrNoOverrideFile      = errors.New("no override file configured")
+	ErrIndirectionWithPort = errors.New("an address with port must redirect to another address with port")
+	ErrIndirectionNoPort   = errors.New("an address without port must redirect to another address without port")
 )
 
 // addressOverride is a struct defining a local list of address indirections
@@ -87,11 +88,11 @@ func checkIndirectionConsistency(target, redirect string) error {
 	if targetHasPort != redirectHasPort {
 		if targetHasPort {
 			return fmt.Errorf("address %q is missing a port number: %w",
-				redirect, errIndirectionWithPort)
+				redirect, ErrIndirectionWithPort)
 		}
 
 		return fmt.Errorf("address %q should not have a port number: %w",
-			redirect, errIndirectionNoPort)
+			redirect, ErrIndirectionNoPort)
 	}
 
 	return nil
