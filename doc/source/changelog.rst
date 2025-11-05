@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.13.3 <2025-11-05>`
 * :bug:`500` Correction d'un bug de l'interface Web empêchant la modification
   des tâches de règles.
 * :bug:`500` Consulter ou modifier les *overrides* de configuration (via REST ou
