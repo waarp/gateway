@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -97,7 +98,7 @@ func TestExecMoveRun(t *testing.T) {
 
 		args := map[string]string{
 			"path":  scriptPath,
-			"args":  srcFile + " " + dstFile,
+			"args":  fmt.Sprintf("%q %q", srcFile, dstFile),
 			"delay": "0",
 		}
 
@@ -151,7 +152,7 @@ func TestExecMoveRun(t *testing.T) {
 				err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, ErrCommandTimeout)
+					So(err, ShouldBeError, ErrExecTimeout)
 				})
 			})
 		})

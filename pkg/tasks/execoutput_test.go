@@ -94,7 +94,7 @@ func TestExecOutputRun(t *testing.T) {
 			args := map[string]string{
 				"path":  scriptFile,
 				"args":  scriptFile,
-				"delay": "1000",
+				"delay": "100000",
 			}
 
 			Convey("Given that the command succeeds", func() {
@@ -151,7 +151,7 @@ func TestExecOutputRun(t *testing.T) {
 					err := exec.Run(context.Background(), args, nil, logger, transCtx)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, ErrCommandTimeout)
+						So(err, ShouldBeError, ErrExecTimeout)
 					})
 				})
 			})

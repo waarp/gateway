@@ -10,7 +10,6 @@ import (
 var (
 	ErrTransferInterrupted = newError(types.TeStopped, "transfer interrupted")
 	ErrBadTaskArguments    = errors.New("bad arguments for tasks")
-	ErrCommandTimeout      = errors.New("an external command timed out")
 )
 
 type Error struct {
