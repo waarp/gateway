@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
@@ -24,7 +22,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	tasknames "code.waarp.fr/apps/gateway/gateway/pkg/tasks"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 

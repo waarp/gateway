@@ -4,6 +4,11 @@ Override de configuration
 Le contenu du :ref:`fichier d'override de configuration <reference-conf-override>`
 peut être modifié via les handlers se trouvant en dessous du chemin ``/api/override``.
 
+.. important::
+   Pour fonctionner, l'instance doit impérativement avoir un fichier d'override,
+   qui doit être créé en fournissant un nom d'instance dans :doc:`la commande de
+   démarrage</reference/cli/server/server>` de Gateway.
+
 .. attention::
    Étant donné que chaque fichier de *override* est spécifique à une
    instance particulière de Waarp Gateway, il est nécessaire que les requête faites

@@ -10,6 +10,7 @@ Lister les indirections
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de la requête sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
+   :statuscode 501: L'instance Gateway n'a pas de fichier d'override configuré
 
    :resjson string <targetAddress>: Ajoute une indirection sur l'adresse
       <targetAddress> (la clé JSON). L'adresse définie en clé JSON est donc l'adresse

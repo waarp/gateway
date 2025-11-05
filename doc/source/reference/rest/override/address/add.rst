@@ -20,6 +20,7 @@ Ajouter une indirection
    :statuscode 201: La (les) indirection(s) ont été ajoutée(s) avec succès
    :statuscode 400: Un ou plusieurs des paramètres de la requête sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
+   :statuscode 501: L'instance Gateway n'a pas de fichier d'override configuré
 
    **Exemple de requête**
 

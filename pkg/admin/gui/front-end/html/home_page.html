@@ -7,7 +7,7 @@
 <h2>{{ index .tab "title" }}</h2>
 <hr style="border-top: 1px solid #ababab;">
 
-{{ if or (contains .myPermission.Servers "r") (contains .myPermission.Partners "r") (contains .myPermission.Administration "r") }}
+{{ if or (contains .myPermission.Servers "r") (contains .myPermission.Partners "r") }}
   <section id="connection">
     <h4>{{ index .tab "connection_settings" }}</h4>
     <div class="row g-3 mb-4">
@@ -20,8 +20,6 @@
           </div>
         </a>
       </div>
-    {{ end }}
-    {{ if contains .myPermission.Servers "r" }}
       <div class="col-sm-4">
         <a href="local_client_management" class="text-decoration-none text-dark">
           <div class="card text-center p-3">
@@ -41,24 +39,14 @@
         </a>
       </div>
     {{ end }}
-    {{ if contains .myPermission.Administration "r" }}
-      <div class="col-sm-4">
-        <a href="cloud_instance_management" class="text-decoration-none text-dark">
-          <div class="card text-center p-3">
-            <i class="bi bi-cloud-fill fs-2"></i>
-            <div>{{ index .tab "cloud_instance_management" }}</div>
-          </div>
-        </a>
-      </div>
-    {{ end }}
     </div>
   </section>
 {{ end }}
 
+{{ if contains .myPermission.Rules "r" }}
 <section id="treatment">
   <h4>{{ index .tab "treatment_settings" }}</h4>
   <div class="row g-3 mb-4">
-  {{ if contains .myPermission.Rules "r" }}
     <div class="col-sm-4">
       <a href="transfer_rules_management" class="text-decoration-none text-dark">
         <div class="card text-center p-3">
@@ -67,7 +55,6 @@
         </div>
       </a>
     </div>
-    {{ end }}
     <div class="col-sm-4">
       <a href="cryptographic_key_management" class="text-decoration-none text-dark">
         <div class="card text-center p-3">
@@ -94,11 +81,11 @@
     </div>
   </div>
 </section>
+{{ end }}
 
 <section id="monitoring">
   <h4>{{ index .tab "monitoring" }}</h4>
   <div class="row g-3 mb-4">
-  {{ if contains .myPermission.Administration "r" }}
     <div class="col-sm-4">
       <a href="status_services" class="text-decoration-none text-dark">
         <div class="card text-center p-3">
@@ -107,7 +94,6 @@
         </div>
       </a>
     </div>
-  {{ end }}
   {{ if contains .myPermission.Transfers "r" }}
     <div class="col-sm-4">
       <a href="transfer_monitoring" class="text-decoration-none text-dark">
@@ -118,14 +104,6 @@
       </a>
     </div>
   {{ end }}
-    <div class="col-sm-4">
-      <a href="snmp_management" class="text-decoration-none text-dark">
-        <div class="card text-center p-3">
-          <i class="bi bi-diagram-3-fill fs-2"></i>
-          <div>{{ index .tab "snmp_management" }}</div>
-        </div>
-      </a>
-    </div>
   </div>
 </section>
 
@@ -140,11 +118,28 @@
         </div>
       </a>
     </div>
+    {{ if contains .myPermission.Administration "r" }}
     <div class="col-sm-4">
       <a href="managing_authentication_authorities" class="text-decoration-none text-dark">
         <div class="card text-center p-3">
           <i class="bi bi-shield-lock-fill fs-2"></i>
           <div>{{ index .tab "managing_authentication_authorities" }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-4">
+      <a href="cloud_instance_management" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-cloud-fill fs-2"></i>
+          <div>{{ index .tab "cloud_instance_management" }}</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-4">
+      <a href="snmp_management" class="text-decoration-none text-dark">
+        <div class="card text-center p-3">
+          <i class="bi bi-diagram-3-fill fs-2"></i>
+          <div>{{ index .tab "snmp_management" }}</div>
         </div>
       </a>
     </div>
@@ -157,6 +152,7 @@
       </a>
     </div>
   </div>
+  {{ end }}
 </section>
 {{ end }}
 

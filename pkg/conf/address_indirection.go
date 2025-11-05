@@ -3,13 +3,15 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"strings"
 )
 
 var (
-	errIndirectionWithPort = errors.New("an address with port must redirect to another address with port")
-	errIndirectionNoPort   = errors.New("an address without port must redirect to another address without port")
+	ErrNoOverrideFile      = errors.New("no override file configured")
+	ErrIndirectionWithPort = errors.New("an address with port must redirect to another address with port")
+	ErrIndirectionNoPort   = errors.New("an address without port must redirect to another address without port")
 )
 
 // addressOverride is a struct defining a local list of address indirections
@@ -87,11 +89,11 @@ func checkIndirectionConsistency(target, redirect string) error {
 	if targetHasPort != redirectHasPort {
 		if targetHasPort {
 			return fmt.Errorf("address %q is missing a port number: %w",
-				redirect, errIndirectionWithPort)
+				redirect, ErrIndirectionWithPort)
 		}
 
 		return fmt.Errorf("address %q should not have a port number: %w",
-			redirect, errIndirectionNoPort)
+			redirect, ErrIndirectionNoPort)
 	}
 
 	return nil
@@ -169,12 +171,7 @@ func GetAllIndirections() map[string]string {
 	LocalOverrides.overrideLock.RLock()
 	defer LocalOverrides.overrideLock.RUnlock()
 
-	newMap := map[string]string{}
-	for k, v := range LocalOverrides.ListenAddresses.addressMap {
-		newMap[k] = v
-	}
-
-	return newMap
+	return maps.Clone(LocalOverrides.ListenAddresses.addressMap)
 }
 
 // AddIndirection adds the given address indirection to the global LocalOverrides
