@@ -218,7 +218,7 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to parse server configuration"}
 	}
 
-	userContent, contErr := internal.MakeUserContent(s.logger, ctx.TransInfo)
+	userContent, contErr := internal.MakeUserContent(s.logger, ctx.Transfer.TransferInfo)
 	if contErr != nil {
 		return nil, internal.ToR66Error(contErr)
 	}
@@ -250,12 +250,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
 
-	transInfo, dbErr := hist.GetTransferInfo(s.db)
-	if dbErr != nil {
-		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
-	}
-
-	userContent, err := internal.MakeUserContent(s.logger, transInfo)
+	userContent, err := internal.MakeUserContent(s.logger, hist.TransferInfo)
 	if err != nil {
 		return nil, internal.ToR66Error(err)
 	}

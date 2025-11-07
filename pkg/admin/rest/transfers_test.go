@@ -124,10 +124,7 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].RemainingTries, ShouldEqual, 5)
 						So(transfers[0].NextRetryDelay, ShouldEqual, 90)
 						So(transfers[0].RetryIncrementFactor, ShouldEqual, 1.5)
-
-						info, err := transfers[0].GetTransferInfo(db)
-						So(err, ShouldBeNil)
-						So(info, shouldEqualJSON, map[string]any{
+						So(transfers[0].TransferInfo, shouldEqualJSON, map[string]any{
 							"key1":         "val1",
 							"key2":         2,
 							"key3":         true,
@@ -191,14 +188,11 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
 						So(transfers[0].ErrCode, ShouldBeZeroValue)
 						So(transfers[0].ErrDetails, ShouldBeZeroValue)
-
-						info, err := transfers[0].GetTransferInfo(db)
-						So(err, ShouldBeNil)
-						So(info, shouldEqualJSON, map[string]any{
+						So(transfers[0].TransferInfo, shouldEqualJSON, map[string]any{
 							"key1":         "val1",
 							"key2":         2,
 							"key3":         true,
-							model.FollowID: info[model.FollowID],
+							model.FollowID: json.Number(transfers[0].RemoteTransferID),
 						})
 					})
 				})
@@ -366,11 +360,9 @@ func TestGetTransfer(t *testing.T) {
 				NextRetry:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 				NextRetryDelay:       90,
 				RetryIncrementFactor: 1.5,
+				TransferInfo:         map[string]any{"key1": "val1", "key2": 2},
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
-
-			infos := map[string]any{"key1": "val1", "key2": 2}
-			So(trans.SetTransferInfo(db, infos), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := utils.FormatInt(trans.ID)
@@ -828,6 +820,9 @@ func TestPauseTransfer(t *testing.T) {
 							Progress:         10,
 							TaskNumber:       0,
 							NextRetry:        trans.Start.Local(),
+							TransferInfo: map[string]any{
+								model.FollowID: json.Number(trans.RemoteTransferID),
+							},
 						})
 					})
 				})
@@ -922,6 +917,9 @@ func TestCancelTransfer(t *testing.T) {
 							Step:             trans.Step,
 							Progress:         trans.Progress,
 							TaskNumber:       trans.TaskNumber,
+							TransferInfo: map[string]any{
+								model.FollowID: json.Number(trans.RemoteTransferID),
+							},
 						})
 					})
 				})
@@ -1139,6 +1137,9 @@ func TestCancelTransfers(t *testing.T) {
 							Step:             types.StepNone,
 							Progress:         0,
 							TaskNumber:       0,
+							TransferInfo: map[string]any{
+								model.FollowID: json.Number(transPlan.RemoteTransferID),
+							},
 						}
 
 						var hist model.HistoryEntries

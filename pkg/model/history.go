@@ -39,6 +39,7 @@ type HistoryEntry struct {
 	TaskNumber       int8                    `xorm:"task_number"`
 	ErrCode          types.TransferErrorCode `xorm:"error_code"`
 	ErrDetails       string                  `xorm:"error_details"`
+	TransferInfo     map[string]any          `xorm:"-"`
 }
 
 func (*HistoryEntry) TableName() string   { return TableHistory }
@@ -196,13 +197,29 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, e
 	return trans, nil
 }
 
-// GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (h *HistoryEntry) GetTransferInfo(db database.ReadAccess) (map[string]any, error) {
-	return getTransferInfo(db, h)
+func (h *HistoryEntry) afterWrite(db database.Access) error {
+	return setTransferInfo(db, h, h.TransferInfo)
 }
 
-// SetTransferInfo replaces all the TransferInfo in the database of the given
-// history entry by those given in the map parameter.
-func (h *HistoryEntry) SetTransferInfo(db database.Access, info map[string]any) error {
-	return setTransferInfo(db, h, info)
+func (h *HistoryEntry) AfterInsert(db database.Access) error {
+	if h.TransferInfo == nil {
+		h.TransferInfo = map[string]any{}
+	}
+
+	return h.afterWrite(db)
+}
+
+func (h *HistoryEntry) AfterUpdate(db database.Access) error {
+	return h.afterWrite(db)
+}
+
+func (h *HistoryEntry) AfterRead(db database.ReadAccess) error {
+	infos, err := getTransferInfo(db, h)
+	if err != nil {
+		return err
+	}
+
+	h.TransferInfo = infos
+
+	return nil
 }

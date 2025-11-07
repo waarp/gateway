@@ -13,8 +13,6 @@ import (
 // transfer.
 type TransferContext struct {
 	Transfer  *Transfer
-	TransInfo map[string]any
-	// FileInfo  map[string]any
 	Rule      *Rule
 	PreTasks  Tasks
 	PostTasks Tasks
@@ -44,7 +42,6 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 ) (*TransferContext, error) {
 	transCtx := &TransferContext{
 		Transfer:      trans,
-		TransInfo:     map[string]any{},
 		Paths:         &conf.GlobalConfig.Paths,
 		Client:        &Client{},
 		Rule:          &Rule{},
@@ -79,13 +76,6 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		logger.Errorf("Failed to retrieve transfer error-tasks: %v", err)
 
 		return nil, fmt.Errorf("failed to retrieve transfer error-tasks: %w", err)
-	}
-
-	var err error
-	if transCtx.TransInfo, err = transCtx.Transfer.GetTransferInfo(db); err != nil {
-		logger.Errorf("Failed to retrieve the transfer info: %v", err)
-
-		return nil, fmt.Errorf("failed to retrieve the transfer info: %w", err)
 	}
 
 	return makeAgentContext(db, logger, transCtx)

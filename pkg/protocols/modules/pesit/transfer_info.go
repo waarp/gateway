@@ -33,7 +33,7 @@ type valueTypes interface {
 }
 
 func setPesitInfo[T valueTypes, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {
-	valAny, hasKey := pip.TransCtx.TransInfo[key]
+	valAny, hasKey := pip.TransCtx.Transfer.TransferInfo[key]
 	if !hasKey {
 		return nil
 	}
@@ -125,12 +125,12 @@ func setFreetext(pip *pipeline.Pipeline, key string, f interface {
 
 func setTransInfo[T valueTypes](pip *pipeline.Pipeline, key string, val T) {
 	if !reflect.ValueOf(val).IsZero() {
-		pip.TransCtx.TransInfo[key] = val
+		pip.TransCtx.Transfer.TransferInfo[key] = val
 	}
 }
 
 func isMultiArticles(pip *pipeline.Pipeline) ([]int64, bool) {
-	vals, err := utils.GetAs[[]int64](pip.TransCtx.TransInfo, articlesLengthsKey)
+	vals, err := utils.GetAs[[]int64](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
 	if err != nil {
 		return nil, false
 	}

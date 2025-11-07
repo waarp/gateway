@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,6 +23,8 @@ func (t *testClientPipeline) Run() error {
 
 	return nil
 }
+
+func (t *testClientPipeline) Interrupt(context.Context) error { return nil }
 
 func TestTransferRun(t *testing.T) {
 	replaceArg := func(tb testing.TB, args map[string]string, key, value string) {
@@ -72,14 +74,12 @@ func TestTransferRun(t *testing.T) {
 		ClientID:        utils.NewNullInt64(client.ID),
 		RuleID:          pull.ID,
 		SrcFilename:     "/old/test/file",
+		TransferInfo:    map[string]any{"foo": "bar", "baz": true},
 	}
 	require.NoError(t, db.Insert(oldTransfer).Run())
 
 	transCtx := &model.TransferContext{
-		Transfer: oldTransfer,
-		TransInfo: map[string]any{
-			"foo": "bar", "baz": true,
-		},
+		Transfer:      oldTransfer,
 		Rule:          pull,
 		RemoteAgent:   partner,
 		RemoteAccount: account,
@@ -122,19 +122,13 @@ func TestTransferRun(t *testing.T) {
 			assert.EqualValues(t, 5, transfer.RemainingTries)
 			assert.EqualValues(t, 90, transfer.NextRetryDelay)
 			assert.EqualValues(t, 1.5, transfer.RetryIncrementFactor)
-
-			transInfo, infoErr := transfer.GetTransferInfo(db)
-			require.NoError(t, infoErr)
-			assert.JSONEq(t,
-				fmt.Sprintf(`{
-					"foo":          "bar",
-					"baz":          "qux",
-					"real":         true,
-					"delay":        10,
-					%q: 12345
-				}`, model.FollowID),
-				testhelpers.MustMarshalJSON(t, transInfo),
-			)
+			assert.Equal(t, map[string]any{
+				"foo":          "bar",
+				"baz":          "qux",
+				"real":         true,
+				"delay":        json.Number("10"),
+				model.FollowID: json.Number("12345"),
+			}, transfer.TransferInfo)
 		})
 
 		t.Run("Partner does not exist", func(t *testing.T) {

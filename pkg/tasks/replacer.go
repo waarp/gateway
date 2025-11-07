@@ -131,7 +131,7 @@ func (r replacersMap) addInfo(c *model.TransferContext) {
 	// for name, val := range c.FileInfo {
 	// 	r[fmt.Sprintf("#FI_%s#", name)] = replaceInfo(val)
 	// }
-	for name, val := range c.TransInfo {
+	for name, val := range c.Transfer.TransferInfo {
 		r[fmt.Sprintf("#TI_%s#", name)] = replaceInfo(val)
 	}
 }

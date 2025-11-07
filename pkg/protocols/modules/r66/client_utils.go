@@ -135,7 +135,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 		return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer ID", err)
 	}
 
-	userContent, tErr := internal.MakeUserContent(c.pip.Logger, c.pip.TransCtx.TransInfo)
+	userContent, tErr := internal.MakeUserContent(c.pip.Logger, c.pip.TransCtx.Transfer.TransferInfo)
 	if tErr != nil {
 		return tErr
 	}

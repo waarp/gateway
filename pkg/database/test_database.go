@@ -88,6 +88,7 @@ func initTestDBConf() {
 	case PostgreSQL:
 		config.Type = PostgreSQL
 		config.User = "postgres"
+		config.Password = "postgres"
 		config.Name = "waarp_gateway_test"
 		config.Address = "localhost:5432"
 	case MySQL:

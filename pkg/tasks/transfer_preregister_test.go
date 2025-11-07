@@ -58,9 +58,11 @@ func TestTransferPreregister(t *testing.T) {
 
 	runner := TransferPreregister{}
 	transCtx := &model.TransferContext{
-		TransInfo: map[string]any{
-			oldKey: oldVal,
-			updKey: origUpdVal,
+		Transfer: &model.Transfer{
+			TransferInfo: map[string]any{
+				oldKey: oldVal,
+				updKey: origUpdVal,
+			},
 		},
 	}
 
@@ -78,8 +80,6 @@ func TestTransferPreregister(t *testing.T) {
 
 	var check model.Transfer
 	require.NoError(t, db.Get(&check, "rule_id=?", rule.ID).Run())
-	checkInfo, infErr := check.GetTransferInfo(db)
-	require.NoError(t, infErr)
 
 	if rule.IsSend {
 		assert.Equal(t, file, check.SrcFilename)
@@ -91,7 +91,7 @@ func TestTransferPreregister(t *testing.T) {
 	assert.Equal(t, rule.ID, check.RuleID)
 	assert.Equal(t, account.ID, check.LocalAccountID.Int64)
 	assert.WithinDuration(t, dueDate, check.Start, time.Second)
-	assert.Subset(t, checkInfo, map[string]any{
+	assert.Subset(t, check.TransferInfo, map[string]any{
 		oldKey: oldVal,
 		updKey: newUpdVal,
 		newKey: newVal,

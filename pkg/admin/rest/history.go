@@ -19,7 +19,7 @@ import (
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
-func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, error) {
+func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 	var stop api.Nullable[time.Time]
 	if !hist.Stop.IsZero() {
 		stop = asNullable(hist.Stop)
@@ -31,11 +31,6 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 	if hist.IsSend {
 		dst = path.Base(hist.RemotePath)
 		src = hist.LocalPath
-	}
-
-	info, infoErr := hist.GetTransferInfo(db)
-	if infoErr != nil {
-		return nil, fmt.Errorf("failed to retrieve transfer info: %w", infoErr)
 	}
 
 	return &api.OutHistory{
@@ -52,7 +47,7 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 		Rule:           hist.Rule,
 		Start:          hist.Start.Local(),
 		Stop:           stop,
-		TransferInfo:   info,
+		TransferInfo:   hist.TransferInfo,
 		Status:         hist.Status,
 		ErrorCode:      hist.ErrCode,
 		ErrorMsg:       hist.ErrDetails,
@@ -61,24 +56,19 @@ func FromHistory(db *database.DB, hist *model.HistoryEntry) (*api.OutHistory, er
 		TaskNumber:     hist.TaskNumber,
 		SourceFilename: utils.NormalizePath(src),
 		DestFilename:   utils.NormalizePath(dst),
-	}, nil
+	}
 }
 
 // FromHistories transforms the given list of database history entries into its
 // JSON equivalent.
-func FromHistories(db *database.DB, hs []*model.HistoryEntry) ([]*api.OutHistory, error) {
+func FromHistories(hs []*model.HistoryEntry) []*api.OutHistory {
 	outHist := make([]*api.OutHistory, len(hs))
 
 	for i := range hs {
-		jHist, err := FromHistory(db, hs[i])
-		if err != nil {
-			return nil, err
-		}
-
-		outHist[i] = jHist
+		outHist[i] = FromHistory(hs[i])
 	}
 
-	return outHist, nil
+	return outHist
 }
 
 //nolint:dupl // duplicated code is about a different type
@@ -162,10 +152,7 @@ func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		hist, err := FromHistory(db, result)
-		if handleError(w, logger, err) {
-			return
-		}
+		hist := FromHistory(result)
 
 		handleError(w, logger, writeJSON(w, hist))
 	}
@@ -208,10 +195,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		hist, convErr := FromHistories(db, results)
-		if handleError(w, logger, convErr) {
-			return
-		}
+		hist := FromHistories(results)
 
 		resp := map[string][]*api.OutHistory{"history": hist}
 		handleError(w, logger, writeJSON(w, resp))

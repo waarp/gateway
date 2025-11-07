@@ -68,11 +68,12 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 		RemainingTries:       jTrans.NbOfAttempts,
 		NextRetryDelay:       jTrans.FirstRetryDelay,
 		RetryIncrementFactor: jTrans.RetryIncrementFactor,
+		TransferInfo:         jTrans.TransferInfo,
 	}, nil
 }
 
 // DBTransferToREST transforms the given database transfer into its JSON equivalent.
-func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*api.OutTransfer, error) {
+func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
 	src := path.Base(trans.RemotePath)
 	dst := trans.LocalPath
 
@@ -84,11 +85,6 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 	var stop api.Nullable[time.Time]
 	if !trans.Stop.IsZero() {
 		stop = asNullable(trans.Stop)
-	}
-
-	info, iErr := trans.GetTransferInfo(db)
-	if iErr != nil {
-		return nil, fmt.Errorf("failed to retrieve transfer info: %w", iErr)
 	}
 
 	return &api.OutTransfer{
@@ -118,30 +114,25 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		NextAttempt:          trans.NextRetry,
 		NextRetryDelay:       trans.NextRetryDelay,
 		RetryIncrementFactor: trans.RetryIncrementFactor,
+		TransferInfo:         trans.TransferInfo,
 
-		TransferInfo: info,
 		TrueFilepath: trans.LocalPath,
 		SourcePath:   src,
 		DestPath:     dst,
 		StartDate:    trans.Start,
-	}, nil
+	}
 }
 
 // DBTransfersToREST transforms the given list of database transfers into its
 // JSON equivalent.
-func DBTransfersToREST(db *database.DB, models []*model.NormalizedTransferView) ([]*api.OutTransfer, error) {
+func DBTransfersToREST(models []*model.NormalizedTransferView) []*api.OutTransfer {
 	jsonArray := make([]*api.OutTransfer, len(models))
 
 	for i, trans := range models {
-		jsonObj, err := DBTransferToREST(db, trans)
-		if err != nil {
-			return nil, err
-		}
-
-		jsonArray[i] = jsonObj
+		jsonArray[i] = DBTransferToREST(trans)
 	}
 
-	return jsonArray, nil
+	return jsonArray
 }
 
 //nolint:dupl // dupicated code is about a different type
@@ -204,10 +195,6 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := trans.SetTransferInfo(db, jsonTrans.TransferInfo); handleError(w, logger, err) {
-			return
-		}
-
 		w.Header().Set("Location", location(r.URL, utils.FormatInt(trans.ID)))
 		w.WriteHeader(http.StatusCreated)
 	}
@@ -220,11 +207,7 @@ func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		json, err := DBTransferToREST(db, result)
-		if handleError(w, logger, err) {
-			return
-		}
-
+		json := DBTransferToREST(result)
 		handleError(w, logger, writeJSON(w, json))
 	}
 }
@@ -243,11 +226,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		json, convErr := DBTransfersToREST(db, transfers)
-		if handleError(w, logger, convErr) {
-			return
-		}
-
+		json := DBTransfersToREST(transfers)
 		resp := map[string][]*api.OutTransfer{"transfers": json}
 		handleError(w, logger, writeJSON(w, resp))
 	}
@@ -367,41 +346,12 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbTransView, getErr := getDBTransView(r, db)
+		dbTrans, getErr := getDBTransView(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if !dbTransView.IsTransfer {
-			handleError(w, logger, badRequest("cannot resume completed transfers"))
-
-			return
-		}
-
-		if dbTransView.IsServer {
-			handleError(w, logger, badRequest("only the client can restart a transfer"))
-
-			return
-		}
-
-		if dbTransView.Status != types.StatusPaused && dbTransView.Status != types.StatusInterrupted &&
-			dbTransView.Status != types.StatusError {
-			handleError(w, logger, badRequest("cannot resume an already running transfer"))
-
-			return
-		}
-
-		var dbTrans model.Transfer
-		if err := db.Get(&dbTrans, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
-			return
-		}
-
-		dbTrans.NextRetry = time.Now()
-		dbTrans.Status = types.StatusPlanned
-		dbTrans.ErrCode = types.TeOk
-		dbTrans.ErrDetails = ""
-
-		if err := db.Update(&dbTrans).Run(); handleError(w, logger, err) {
+		if err := dbTrans.Resume(db, time.Now()); handleError(w, logger, err) {
 			return
 		}
 
@@ -454,7 +404,8 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 
 		for i := 0; ; i += batchSize {
 			var transfers model.Transfers
-			if err := ses.Select(&transfers).Limit(batchSize, i).Run(); err != nil {
+			if err := ses.Select(&transfers).In("status", statuses...).
+				Limit(batchSize, i).Run(); err != nil {
 				logger.Errorf("Failed to retrieve transfers: %v", err)
 
 				return fmt.Errorf("failed to retrieve transfers: %w", err)

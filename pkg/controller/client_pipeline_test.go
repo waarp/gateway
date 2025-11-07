@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"path"
 	"testing"
 	"time"
@@ -68,6 +69,9 @@ func TestClientPipelineRun(t *testing.T) {
 						Step:             0,
 						Progress:         trans.Progress,
 						TaskNumber:       0,
+						TransferInfo: map[string]any{
+							model.FollowID: json.Number(trans.RemoteTransferID),
+						},
 					})
 				})
 			})

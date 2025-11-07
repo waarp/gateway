@@ -34,9 +34,9 @@ func TestExportHistory(t *testing.T) {
 			Step:             types.StepNone,
 			Progress:         321,
 			TaskNumber:       10,
+			TransferInfo:     map[string]interface{}{"key": "val"},
 		}
 		So(db.Insert(hist1).Run(), ShouldBeNil)
-		So(hist1.SetTransferInfo(db, map[string]interface{}{"key": "val"}), ShouldBeNil)
 
 		hist2 := &model.HistoryEntry{
 			ID:               2,

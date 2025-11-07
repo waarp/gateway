@@ -53,7 +53,7 @@ func (t *serverTransfer) updTransInfo(info *r66.UpdateInfo) error {
 		}
 
 		if fID := info.FileInfo.SystemData.FollowID; fID != 0 {
-			t.pip.TransCtx.TransInfo[model.FollowID] = fID
+			t.pip.TransCtx.Transfer.TransferInfo[model.FollowID] = fID
 		}
 	}
 
@@ -70,12 +70,12 @@ func (t *serverTransfer) runPreTask() (*r66.UpdateInfo, error) {
 	}
 
 	if t.pip.TransCtx.Rule.IsSend {
-		followID, idErr := utils.GetAsNum[int](t.pip.TransCtx.TransInfo, model.FollowID)
+		followID, idErr := utils.GetAs[int](t.pip.TransCtx.Transfer.TransferInfo, model.FollowID)
 		if idErr != nil && !errors.Is(idErr, utils.ErrKeyNotFound) {
 			return nil, internal.ToR66Error(idErr)
 		}
 
-		userContent, contErr := internal.MakeUserContent(t.pip.Logger, t.pip.TransCtx.TransInfo)
+		userContent, contErr := internal.MakeUserContent(t.pip.Logger, t.pip.TransCtx.Transfer.TransferInfo)
 		if contErr != nil {
 			return nil, internal.ToR66Error(contErr)
 		}

@@ -4,6 +4,7 @@ package pipelinetest
 
 import (
 	"context"
+	"encoding/json"
 	"path"
 	"strings"
 	"time"
@@ -83,10 +84,7 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 			Server:     locAg,
 			LocAccount: locAcc,
 		},
-		transData: &transData{
-			transferInfo: map[string]any{},
-			// fileInfo:     map[string]any{},
-		},
+		transData:     &transData{},
 		ServerService: testServer,
 		ClientService: client,
 		protoFeatures: &feat,
@@ -320,7 +318,7 @@ func (s *SelfContext) CheckClientTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
-	s.checkClientTransferOK(c, s.transData, s.DB, &actual)
+	s.checkClientTransferOK(c, s.transData, &actual)
 }
 
 func (s *SelfContext) getClientRemoteDir() string {
@@ -334,16 +332,21 @@ func (s *SelfContext) getClientRemoteDir() string {
 }
 
 func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEntry) {
-	remoteID := s.transData.ClientTrans.RemoteTransferID
+	remoteID := s.ClientTrans.RemoteTransferID
 	if !s.protoFeatures.TransID {
 		remoteID = actual.RemoteTransferID
+	}
+
+	transInfo := map[string]any{model.FollowID: json.Number(actual.RemoteTransferID)}
+	if s.protoFeatures.TransferInfo {
+		transInfo = s.ClientTrans.TransferInfo
 	}
 
 	progress := int64(len(s.fileContent))
 	filename := path.Join(s.getClientRemoteDir(), s.ClientTrans.SrcFilename)
 
 	s.serverData.checkServerTransferOK(c, remoteID, filename, progress, s.testData,
-		actual, s.transData)
+		actual, transInfo)
 }
 
 // CheckServerTransferOK checks if the server transfer history entry has
@@ -369,7 +372,7 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(results, convey.ShouldHaveLength, 2) //nolint:mnd // necessary here
 
-		s.checkClientTransferOK(c, s.transData, s.DB, results[0])
+		s.checkClientTransferOK(c, s.transData, results[0])
 		s.checkServerTransferOK(c, results[1])
 	})
 
@@ -556,8 +559,8 @@ func (s *SelfContext) waitForListDeletion() {
 }
 
 func (s *SelfContext) AddTransferInfo(c convey.C, name string, val any) {
-	s.transferInfo[name] = val
-	c.So(s.ClientTrans.SetTransferInfo(s.DB, s.transferInfo), convey.ShouldBeNil)
+	s.ClientTrans.TransferInfo[name] = val
+	c.So(s.ClientTrans.UpdateInfo(s.DB), convey.ShouldBeNil)
 }
 
 /*
@@ -576,8 +579,7 @@ func (s *SelfContext) GetTransferContext(c convey.C) *model.TransferContext {
 	c.So(err, convey.ShouldBeNil)
 
 	return &model.TransferContext{
-		Transfer:           s.transData.ClientTrans,
-		TransInfo:          s.transData.transferInfo,
+		Transfer:           s.ClientTrans,
 		Rule:               s.ClientRule,
 		Client:             s.Client,
 		RemoteAgent:        s.Partner,

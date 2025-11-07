@@ -4,7 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -106,5 +109,82 @@ func TestNormalizedTransferCreateView(t *testing.T) {
 				So(norm[2].IsTransfer, ShouldBeFalse)
 			})
 		})
+	})
+}
+
+func TestNormalizedTransferResume(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+
+	rule := Rule{Name: "rule", IsSend: true}
+	require.NoError(t, db.Insert(&rule).Run())
+
+	client := Client{Name: "client", Protocol: testProtocol}
+	require.NoError(t, db.Insert(&client).Run())
+
+	partner := RemoteAgent{Name: "partner", Protocol: testProtocol, Address: types.Addr("localhost", 0)}
+	require.NoError(t, db.Insert(&partner).Run())
+
+	remAccount := RemoteAccount{RemoteAgentID: partner.ID, Login: "toto"}
+	require.NoError(t, db.Insert(&remAccount).Run())
+
+	server := LocalAgent{Name: "server", Protocol: testProtocol, Address: types.Addr("localhost", 0)}
+	require.NoError(t, db.Insert(&server).Run())
+
+	locAccount := LocalAccount{LocalAgentID: server.ID, Login: "toto"}
+	require.NoError(t, db.Insert(&locAccount).Run())
+
+	t.Run("Nominal case", func(t *testing.T) {
+		t.Parallel()
+
+		trans := &Transfer{
+			RuleID:          rule.ID,
+			ClientID:        utils.NewNullInt64(client.ID),
+			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			SrcFilename:     "file.txt",
+			Status:          types.StatusError,
+			ErrCode:         types.TeUnknown,
+			ErrDetails:      "test error",
+		}
+		require.NoError(t, db.Insert(trans).Run())
+
+		var original NormalizedTransferView
+		require.NoError(t, db.Get(&original, "id=?", trans.ID).Run())
+
+		actual := utils.Clone(&original)
+		when := time.Now()
+		require.NoError(t, actual.Resume(db, when))
+
+		assert.Equal(t, types.StatusPlanned, actual.Status)
+		assert.Equal(t, when, actual.NextRetry)
+		assert.Equal(t, types.TeOk, actual.ErrCode)
+		assert.Empty(t, actual.ErrDetails)
+	})
+
+	t.Run("Done transfer", func(t *testing.T) {
+		t.Parallel()
+
+		hist := &HistoryEntry{
+			ID:               1000,
+			RemoteTransferID: "123456",
+			IsServer:         true,
+			IsSend:           false,
+			Rule:             "default",
+			Account:          "tutu",
+			Agent:            "server",
+			Protocol:         testProtocol,
+			DestFilename:     "file.txt",
+			Status:           types.StatusDone,
+			Start:            time.Date(2025, 1, 1, 1, 0, 0, 0, time.UTC),
+			Stop:             time.Date(2025, 1, 1, 2, 0, 0, 0, time.UTC),
+		}
+		require.NoError(t, db.Insert(hist).Run())
+
+		var original NormalizedTransferView
+		require.NoError(t, db.Get(&original, "id=?", hist.ID).Run())
+
+		actual := utils.Clone(&original)
+		when := time.Now()
+		require.ErrorIs(t, actual.Resume(db, when), ErrResumeDone)
+		assert.Equal(t, &original, actual)
 	})
 }

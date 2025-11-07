@@ -73,7 +73,6 @@ func getExecTransCtx(tb testing.TB) *model.TransferContext {
 
 	return &model.TransferContext{
 		Transfer:           transfer,
-		TransInfo:          map[string]any{},
 		Rule:               rule,
 		PreTasks:           model.Tasks{},
 		PostTasks:          model.Tasks{},

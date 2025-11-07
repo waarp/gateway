@@ -496,11 +496,9 @@ func TestTransOnHold(t *testing.T) {
 			SrcFilename:    ctx.TransferPull.SrcFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,
+			TransferInfo:   map[string]any{internal.UserContent: "R66 user content sample"},
 		}
 		require.NoError(t, db.Insert(serverPullTrans).Run())
-
-		servUserContent := map[string]any{internal.UserContent: "R66 user content sample"}
-		require.NoError(t, serverPullTrans.SetTransferInfo(db, servUserContent))
 
 		pip := ctx.PullPipeline(t)
 
@@ -510,12 +508,11 @@ func TestTransOnHold(t *testing.T) {
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
 				ctx.CheckPullTransferOK(t)
 
-				hist := &model.HistoryEntry{ID: ctx.TransferPull.ID}
-				infoCheck, infoErr := hist.GetTransferInfo(db)
-				require.NoError(t, infoErr)
+				var hist model.HistoryEntry
+				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Run())
 
-				assert.Subset(t, infoCheck, servUserContent)
-				assert.Subset(t, infoCheck, map[string]any{
+				assert.Subset(t, hist.TransferInfo, serverPullTrans.TransferInfo)
+				assert.Subset(t, hist.TransferInfo, map[string]any{
 					model.FollowID: json.Number(serverPullTrans.RemoteTransferID),
 				})
 			})

@@ -142,7 +142,7 @@ func (t *TransferTask) ValidateDB(db database.ReadAccess, args map[string]string
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
-func (t *TransferTask) Run(_ context.Context, args map[string]string,
+func (t *TransferTask) Run(ctx context.Context, args map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := t.parseArgs(db, args); err != nil {
@@ -151,9 +151,40 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		return err
 	}
 
+	trans, err := t.makeTransfer(db, transCtx)
+	if err != nil {
+		logger.Errorf("Failed to create transfer: %v", err)
+
+		return err
+	}
+
+	if !t.Synchronous {
+		logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
+			trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
+
+		return nil
+	}
+
+	return t.runSynchronousTransfer(ctx, db, logger, trans)
+}
+
+func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferContext,
+) (*model.Transfer, error) {
+	if t.Synchronous {
+		trans, err := model.GetTransferFromParentID(db, transCtx.Transfer.ID)
+		if err == nil {
+			trans.Status = types.StatusRunning
+
+			return trans, nil
+		} else if !database.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to retrieve transfer: %w", err)
+		}
+	}
+
 	transferInfo := map[string]any{}
 	if t.CopyInfo {
-		transferInfo = transCtx.TransInfo
+		maps.Copy(transferInfo, transCtx.Transfer.TransferInfo)
+		delete(transferInfo, model.SyncTransferID)
 	}
 
 	maps.Copy(transferInfo, t.Info)
@@ -172,34 +203,19 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		RemainingTries:       int8(t.NbOfAttempts),
 		NextRetryDelay:       int32(t.FirstRetryDelay.Seconds()),
 		RetryIncrementFactor: float32(t.RetryIncrementFactor),
+		TransferInfo:         transferInfo,
 	}
 
 	if t.Synchronous {
 		trans.Status = types.StatusRunning
+		transferInfo[model.SyncTransferID] = transCtx.Transfer.ID
 	}
 
-	if err := db.Transaction(func(ses *database.Session) error {
-		if err := ses.Insert(trans).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer: %w", err)
-		}
-
-		if err := trans.SetTransferInfo(ses, transferInfo); err != nil {
-			return fmt.Errorf("failed to set transfer info: %w", err)
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("failed to create transfer: %w", err)
+	if err := db.Insert(trans).Run(); err != nil {
+		return nil, fmt.Errorf("failed to insert transfer: %w", err)
 	}
 
-	if !t.Synchronous {
-		logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
-			trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
-
-		return nil
-	}
-
-	return nil
+	return trans, nil
 }
 
 func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
@@ -228,7 +244,7 @@ func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
 	select {
 	case err := <-result:
 		if err != nil {
-			return fmt.Errorf("failed to run the client transfer pipeline: %w", pipErr)
+			return fmt.Errorf("failed to run the client transfer pipeline: %w", err)
 		}
 
 		return nil

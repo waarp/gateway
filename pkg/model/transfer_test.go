@@ -2,14 +2,18 @@ package model
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -265,6 +269,9 @@ func TestTransferToHistory(t *testing.T) {
 						Start:            trans.Start,
 						Stop:             end,
 						Status:           trans.Status,
+						TransferInfo: map[string]any{
+							FollowID: json.Number(trans.RemoteTransferID),
+						},
 					}
 
 					So(hist, ShouldResemble, expected)
@@ -325,5 +332,166 @@ func TestTransferToHistory(t *testing.T) {
 				})
 			}
 		})
+	})
+}
+
+func TestTransferInfo(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+
+	rule := Rule{Name: "rule", IsSend: true}
+	require.NoError(t, db.Insert(&rule).Run())
+
+	server := LocalAgent{Name: "server", Protocol: testProtocol, Address: types.Addr("localhost", 0)}
+	require.NoError(t, db.Insert(&server).Run())
+
+	account := LocalAccount{LocalAgentID: server.ID, Login: "toto"}
+	require.NoError(t, db.Insert(&account).Run())
+
+	transferInfo := map[string]any{
+		"key1": "value1",
+		"key2": 2,
+		"key3": true,
+	}
+
+	trans := &Transfer{
+		RuleID:         rule.ID,
+		LocalAccountID: utils.NewNullInt64(account.ID),
+		SrcFilename:    "file.txt",
+		TransferInfo:   transferInfo,
+	}
+	require.NoError(t, db.Insert(trans).Run())
+
+	t.Run("After write", func(t *testing.T) {
+		var infos TransferInfoList
+		require.NoError(t, db.Select(&infos).OrderBy("name", true).Run())
+		require.Len(t, infos, len(transferInfo))
+
+		asJSON := utils.MustJSON
+
+		assert.Equal(t, FollowID, infos[0].Name)
+		assert.Equal(t, trans.RemoteTransferID, infos[0].Value)
+		assert.Equal(t, "key1", infos[1].Name)
+		assert.Equal(t, asJSON(transferInfo["key1"]), infos[1].Value)
+		assert.Equal(t, "key2", infos[2].Name)
+		assert.Equal(t, asJSON(transferInfo["key2"]), infos[2].Value)
+		assert.Equal(t, "key3", infos[3].Name)
+		assert.Equal(t, asJSON(transferInfo["key3"]), infos[3].Value)
+	})
+
+	expected := map[string]any{
+		FollowID: json.Number(trans.RemoteTransferID),
+		"key1":   "value1",
+		"key2":   json.Number("2"),
+		"key3":   true,
+	}
+
+	t.Run("After read", func(t *testing.T) {
+		var check Transfer
+		require.NoError(t, db.Get(&check, "id=?", trans.ID).Run())
+		assert.Equal(t, expected, check.TransferInfo)
+	})
+
+	t.Run("After read normalized", func(t *testing.T) {
+		var check NormalizedTransferView
+		require.NoError(t, db.Get(&check, "id=?", trans.ID).Run())
+		assert.Equal(t, expected, check.TransferInfo)
+	})
+}
+
+func TestTransferResume(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+
+	rule := Rule{Name: "rule", IsSend: true}
+	require.NoError(t, db.Insert(&rule).Run())
+
+	client := Client{Name: "client", Protocol: testProtocol}
+	require.NoError(t, db.Insert(&client).Run())
+
+	partner := RemoteAgent{Name: "partner", Protocol: testProtocol, Address: types.Addr("localhost", 0)}
+	require.NoError(t, db.Insert(&partner).Run())
+
+	remAccount := RemoteAccount{RemoteAgentID: partner.ID, Login: "toto"}
+	require.NoError(t, db.Insert(&remAccount).Run())
+
+	server := LocalAgent{Name: "server", Protocol: testProtocol, Address: types.Addr("localhost", 0)}
+	require.NoError(t, db.Insert(&server).Run())
+
+	locAccount := LocalAccount{LocalAgentID: server.ID, Login: "toto"}
+	require.NoError(t, db.Insert(&locAccount).Run())
+
+	t.Run("Nominal case", func(t *testing.T) {
+		t.Parallel()
+
+		original := &Transfer{
+			RuleID:          rule.ID,
+			ClientID:        utils.NewNullInt64(client.ID),
+			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			SrcFilename:     "file.txt",
+			Status:          types.StatusError,
+			ErrCode:         types.TeUnknown,
+			ErrDetails:      "test error",
+		}
+		require.NoError(t, db.Insert(original).Run())
+
+		actual := utils.Clone(original)
+		when := time.Now()
+		require.NoError(t, actual.Resume(db, when))
+
+		assert.Equal(t, types.StatusPlanned, actual.Status)
+		assert.Equal(t, when, actual.NextRetry)
+		assert.Equal(t, types.TeOk, actual.ErrCode)
+		assert.Empty(t, actual.ErrDetails)
+	})
+
+	t.Run("Running transfer", func(t *testing.T) {
+		t.Parallel()
+
+		expected := &Transfer{
+			RuleID:          rule.ID,
+			ClientID:        utils.NewNullInt64(client.ID),
+			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			SrcFilename:     "file.txt",
+			Status:          types.StatusRunning,
+		}
+		require.NoError(t, db.Insert(expected).Run())
+
+		actual := utils.Clone(expected)
+		require.ErrorIs(t, actual.Resume(db, time.Now()), ErrResumeRunning)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Server transfer", func(t *testing.T) {
+		t.Parallel()
+
+		expected := &Transfer{
+			RuleID:         rule.ID,
+			LocalAccountID: utils.NewNullInt64(locAccount.ID),
+			SrcFilename:    "file.txt",
+			Status:         types.StatusPaused,
+		}
+		require.NoError(t, db.Insert(expected).Run())
+
+		actual := utils.Clone(expected)
+		require.ErrorIs(t, actual.Resume(db, time.Now()), ErrResumeServer)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("Sync transfer", func(t *testing.T) {
+		t.Parallel()
+
+		expected := &Transfer{
+			RuleID:          rule.ID,
+			ClientID:        utils.NewNullInt64(client.ID),
+			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			SrcFilename:     "file.txt",
+			Status:          types.StatusPaused,
+			TransferInfo:    map[string]any{SyncTransferID: 123},
+		}
+		require.NoError(t, db.Insert(expected).Run())
+
+		actual := utils.Clone(expected)
+		targetErr := &ResumeSyncError{}
+		require.ErrorAs(t, actual.Resume(db, time.Now()), &targetErr)
+		assert.Equal(t, expected, actual)
 	})
 }
