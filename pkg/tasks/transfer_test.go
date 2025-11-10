@@ -16,12 +16,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-type testClientPipeline bool
+type testClientPipeline struct {
+	done bool
+	err  error
+}
 
 func (t *testClientPipeline) Run() error {
-	*t = true
+	t.done = true
 
-	return nil
+	return t.err
 }
 
 func (t *testClientPipeline) Interrupt(context.Context) error { return nil }
@@ -69,20 +72,23 @@ func TestTransferRun(t *testing.T) {
 	}
 	require.NoError(t, db.Insert(account).Run())
 
-	oldTransfer := &model.Transfer{
-		RemoteAccountID: utils.NewNullInt64(account.ID),
-		ClientID:        utils.NewNullInt64(client.ID),
-		RuleID:          pull.ID,
-		SrcFilename:     "/old/test/file",
-		TransferInfo:    map[string]any{"foo": "bar", "baz": true},
-	}
-	require.NoError(t, db.Insert(oldTransfer).Run())
+	transCtx := func(tb testing.TB) *model.TransferContext {
+		parentTransfer := &model.Transfer{
+			RemoteAccountID: utils.NewNullInt64(account.ID),
+			ClientID:        utils.NewNullInt64(client.ID),
+			RuleID:          pull.ID,
+			SrcFilename:     "/old/test/file",
+			TransferInfo:    map[string]any{"foo": "bar", "baz": true},
+			TaskNumber:      2,
+		}
+		require.NoError(t, db.Insert(parentTransfer).Run())
 
-	transCtx := &model.TransferContext{
-		Transfer:      oldTransfer,
-		Rule:          pull,
-		RemoteAgent:   partner,
-		RemoteAccount: account,
+		return &model.TransferContext{
+			Transfer:      parentTransfer,
+			Rule:          pull,
+			RemoteAgent:   partner,
+			RemoteAccount: account,
+		}
 	}
 
 	t.Run("Send transfer", func(t *testing.T) {
@@ -109,7 +115,7 @@ func TestTransferRun(t *testing.T) {
 		}
 
 		t.Run("Valid task", func(t *testing.T) {
-			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
 			require.NoError(t, err)
 
 			var transfer model.Transfer
@@ -134,35 +140,35 @@ func TestTransferRun(t *testing.T) {
 		t.Run("Partner does not exist", func(t *testing.T) {
 			replaceArg(t, args, "to", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
 			assert.ErrorIs(t, err, ErrTransferPartnerNotFound)
 		})
 
 		t.Run("Account does not exist", func(t *testing.T) {
 			replaceArg(t, args, "as", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
 			assert.ErrorIs(t, err, ErrTransferAccountNotFound)
 		})
 
 		t.Run("Rule does not exist", func(t *testing.T) {
 			replaceArg(t, args, "rule", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
 			assert.ErrorIs(t, err, ErrTransferRuleNotFound)
 		})
 
 		t.Run("Client does not exist", func(t *testing.T) {
 			replaceArg(t, args, "using", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
 			assert.ErrorIs(t, err, ErrTransferClientNotFound)
 		})
 
 		t.Run("With default client", func(t *testing.T) {
 			delete(args, "using")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
 			require.NoError(t, err)
 		})
 
@@ -174,10 +180,41 @@ func TestTransferRun(t *testing.T) {
 				return &check, nil
 			}
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx)
+			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
 			require.NoError(t, err)
 
-			assert.True(t, bool(check))
+			assert.True(t, check.done)
+		})
+
+		t.Run("Synchronous with resume", func(t *testing.T) {
+			args["synchronous"] = "true"
+
+			var transID int64
+			ctx := transCtx(t)
+
+			check := testClientPipeline{err: assert.AnError}
+			NewClientPipeline = func(db *database.DB, trans *model.Transfer) (ClientPipeline, error) {
+				transID = trans.ID
+
+				return &check, nil
+			}
+
+			err := runner.Run(context.Background(), args, db, logger, ctx)
+			require.ErrorIs(t, err, assert.AnError)
+
+			assert.True(t, check.done)
+
+			check2 := testClientPipeline{}
+			NewClientPipeline = func(db *database.DB, trans *model.Transfer) (ClientPipeline, error) {
+				require.Equal(t, transID, trans.ID)
+
+				return &check2, nil
+			}
+
+			err = runner.Run(context.Background(), args, db, logger, ctx)
+			require.NoError(t, err)
+
+			assert.True(t, check2.done)
 		})
 	})
 
@@ -194,7 +231,7 @@ func TestTransferRun(t *testing.T) {
 		}
 
 		t.Run("Valid task", func(t *testing.T) {
-			err := trans.Run(context.Background(), args, db, logger, transCtx)
+			err := trans.Run(context.Background(), args, db, logger, transCtx(t))
 			require.NoError(t, err)
 
 			var transfer model.Transfer
@@ -208,7 +245,7 @@ func TestTransferRun(t *testing.T) {
 		t.Run("Partner does not exist", func(t *testing.T) {
 			replaceArg(t, args, "from", "toto")
 
-			err := trans.Run(context.Background(), args, db, logger, transCtx)
+			err := trans.Run(context.Background(), args, db, logger, transCtx(t))
 			assert.ErrorIs(t, err, ErrTransferPartnerNotFound)
 		})
 	})

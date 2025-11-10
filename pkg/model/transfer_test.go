@@ -485,7 +485,7 @@ func TestTransferResume(t *testing.T) {
 			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
 			SrcFilename:     "file.txt",
 			Status:          types.StatusPaused,
-			TransferInfo:    map[string]any{SyncTransferID: 123},
+			TransferInfo:    map[string]any{SyncTransferID: 123, SyncTransferRank: 2},
 		}
 		require.NoError(t, db.Insert(expected).Run())
 

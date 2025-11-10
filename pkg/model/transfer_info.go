@@ -23,7 +23,8 @@ const (
 	// follow ID.
 	FollowID = "__followID__"
 
-	SyncTransferID = "__syncTransferID__"
+	SyncTransferID   = "__syncTransferID__"
+	SyncTransferRank = "__syncTransferRank__"
 )
 
 type transferInfoOwner interface {

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"path"
 	"path/filepath"
 	"strings"
@@ -445,12 +446,16 @@ func (t *Transfer) clearRetryParameters() {
 	t.RetryIncrementFactor = 0
 }
 
-func GetTransferFromParentID(db database.ReadAccess, parentID int64) (*Transfer, error) {
-	str := utils.FormatInt(parentID)
+func GetTransferFromParentID(db database.ReadAccess, parent *Transfer) (*Transfer, error) {
+	id := utils.FormatInt(parent.ID)
+	rank := utils.FormatInt(parent.TaskNumber)
 
 	var transfer Transfer
-	if err := db.Get(&transfer, "id=(SELECT transfer_id FROM transfer_info WHERE name=? AND value=?)",
-		SyncTransferID, str).Run(); err != nil {
+	if err := db.Get(&transfer,
+		"id=(SELECT transfer_id FROM transfer_info WHERE name=? AND value=? AND "+
+			"transfer_id IN (SELECT transfer_id FROM transfer_info WHERE name=? AND value=?))",
+		SyncTransferID, id, SyncTransferRank, rank).
+		Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve transfer: %w", err)
 	}
 
@@ -490,4 +495,12 @@ func (t *Transfer) Resume(db database.Access, when time.Time) error {
 	}
 
 	return nil
+}
+
+func (t *Transfer) CopyInfo() map[string]any {
+	clone := maps.Clone(t.TransferInfo)
+	delete(clone, SyncTransferID)
+	delete(clone, SyncTransferRank)
+
+	return clone
 }

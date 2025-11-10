@@ -171,20 +171,26 @@ func (t *TransferTask) Run(ctx context.Context, args map[string]string,
 func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferContext,
 ) (*model.Transfer, error) {
 	if t.Synchronous {
-		trans, err := model.GetTransferFromParentID(db, transCtx.Transfer.ID)
-		if err == nil {
+		trans, dbErr := model.GetTransferFromParentID(db, transCtx.Transfer)
+		if dbErr == nil {
 			trans.Status = types.StatusRunning
+			trans.ErrCode = types.TeOk
+			trans.ErrDetails = ""
+			trans.NextRetry = time.Now()
+
+			if err := db.Update(trans).Run(); err != nil {
+				return nil, fmt.Errorf("failed to update transfer: %w", err)
+			}
 
 			return trans, nil
-		} else if !database.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to retrieve transfer: %w", err)
+		} else if !database.IsNotFound(dbErr) {
+			return nil, fmt.Errorf("failed to retrieve transfer: %w", dbErr)
 		}
 	}
 
 	transferInfo := map[string]any{}
 	if t.CopyInfo {
-		maps.Copy(transferInfo, transCtx.Transfer.TransferInfo)
-		delete(transferInfo, model.SyncTransferID)
+		transferInfo = transCtx.Transfer.CopyInfo()
 	}
 
 	maps.Copy(transferInfo, t.Info)
@@ -209,6 +215,7 @@ func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferCon
 	if t.Synchronous {
 		trans.Status = types.StatusRunning
 		transferInfo[model.SyncTransferID] = transCtx.Transfer.ID
+		transferInfo[model.SyncTransferRank] = transCtx.Transfer.TaskNumber
 	}
 
 	if err := db.Insert(trans).Run(); err != nil {

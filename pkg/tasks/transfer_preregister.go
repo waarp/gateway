@@ -96,8 +96,7 @@ func (t *TransferPreregister) Run(_ context.Context, args map[string]string,
 
 	transferInfo := map[string]any{}
 	if t.CopyInfo {
-		transferInfo = transCtx.Transfer.TransferInfo
-		delete(transferInfo, model.SyncTransferID)
+		transferInfo = transCtx.Transfer.CopyInfo()
 	}
 
 	maps.Copy(transferInfo, t.Info)
