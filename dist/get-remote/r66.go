@@ -23,7 +23,9 @@ type r66Client struct {
 	r66Session *r66.Session
 }
 
-func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string, insecure bool) error {
+func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string,
+	insecure bool,
+) error {
 	var err error
 	var partnerCreds []api.OutCred
 	var accountCreds []api.OutCred
@@ -113,15 +115,19 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 		partnerLogin = partnerConf.ServerLogin
 	}
 
-	loginOK := utils.ConstantEqual(partnerLogin, authent.Login)
-	pwdErr := bcrypt.CompareHashAndPassword([]byte(partnerPassword), authent.Password)
+	return validateServerAuthent(partnerLogin, authent.Login, []byte(partnerPassword), authent.Password)
+}
+
+func validateServerAuthent(partnerLogin, networkLogin string, partnerPassword, networkPassword []byte) error {
+	loginOK := utils.ConstantEqual(partnerLogin, networkLogin)
+	pwdErr := bcrypt.CompareHashAndPassword(partnerPassword, networkPassword)
 
 	if !loginOK {
-		return fmt.Errorf("server %s authentication failed: %w", partner.Name, errWrongLogin)
+		return fmt.Errorf("server %s authentication failed: %w", partnerLogin, errWrongLogin)
 	}
 
 	if pwdErr != nil {
-		return fmt.Errorf("server %s authentication failed: wrong password: %w", partner.Name, pwdErr)
+		return fmt.Errorf("server %s authentication failed: wrong password: %w", partnerLogin, pwdErr)
 	}
 
 	return nil

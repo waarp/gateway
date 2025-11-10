@@ -21,6 +21,8 @@ const (
 	jsonIndent  = "    "
 )
 
+var errNotImplemented = errors.New("HTTP Not Implemented")
+
 func getHTTPClient(insecure bool) *http.Client {
 	//nolint:forcetypeassert //type assertion will always succeed
 	customTransport := &http.Transport{}
@@ -91,6 +93,8 @@ func get(target any, path string, insecure bool) error {
 		return unmarshalBody(resp.Body, target)
 	case http.StatusNotFound:
 		return getResponseErrorMessage(resp)
+	case http.StatusNotImplemented:
+		return fmt.Errorf("%w: %w", getResponseErrorMessage(resp), errNotImplemented)
 	default:
 		return fmt.Errorf("unexpected response (%s): %w", resp.Status,
 			getResponseErrorMessage(resp))
@@ -153,7 +157,11 @@ func getRealAddress(targetAddr, addr string, insecure bool) (string, error) {
 	var apiOverride map[string]string
 
 	if err := get(&apiOverride, addr, insecure); err != nil {
-		fmt.Println(err)
+		if errors.Is(err, errNotImplemented) {
+			// If no override return targetAddr
+			return targetAddr, nil
+		}
+
 		return "", err
 	}
 

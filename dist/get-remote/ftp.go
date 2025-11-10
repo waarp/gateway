@@ -21,7 +21,9 @@ type ftpClient struct {
 	ftpClient *goftp.Client
 }
 
-func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string, insecure bool) error {
+func (fc *ftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string,
+	insecure bool,
+) error {
 	var err error
 	var partnerCreds []api.OutCred
 	var accountCreds []api.OutCred

@@ -33,7 +33,6 @@ func main() {
 	// find out env
 	files, err := getPaths()
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(exitNoEnv)
 	}
 

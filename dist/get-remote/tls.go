@@ -14,6 +14,7 @@ import (
 func getTLSConf(host string, tlsVersion protoutils.TLSVersion, partnerCreds, accountCreds []api.OutCred,
 	authorities []api.OutAuthority,
 ) *tls.Config {
+	//nolint:errcheck //gateway gives host as a splitable host port
 	servName, _, _ := net.SplitHostPort(host)
 	conf := &tls.Config{
 		ServerName: servName,
