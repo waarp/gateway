@@ -18,15 +18,31 @@ func (*RemAccArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func displayRemoteAccount(w io.Writer, account *api.OutRemoteAccount) {
+func displayRemoteAccounts(w io.Writer, accounts []*api.OutRemoteAccount) error {
+	Style0.Printf(w, "=== Accounts of partner %q ===", Partner)
+
+	for _, account := range accounts {
+		if err := displayRemoteAccount(w, account); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayRemoteAccount(w io.Writer, account *api.OutRemoteAccount) error {
 	Style1.Printf(w, "Account %q", account.Login)
 	Style22.PrintL(w, "Credentials", withDefault(join(account.Credentials), none))
 	displayAuthorizedRules(w, account.AuthorizedRules)
+
+	return nil
 }
 
 // ######################## GET ##########################
 
 type RemAccGet struct {
+	OutputFormat
+
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
@@ -41,9 +57,7 @@ func (r *RemAccGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayRemoteAccount(w, account)
-
-	return nil
+	return outputObject(w, account, &r.OutputFormat, displayRemoteAccount)
 }
 
 // ######################## ADD ##########################
@@ -122,6 +136,7 @@ func (r *RemAccUpdate) execute(w io.Writer) error {
 //nolint:lll // struct tags for command line arguments can be long
 type RemAccList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
@@ -139,14 +154,10 @@ func (r *RemAccList) execute(w io.Writer) error {
 	}
 
 	if accounts := body["remoteAccounts"]; len(accounts) > 0 {
-		Style0.Printf(w, "=== Accounts of partner %q ===", Partner)
-
-		for _, account := range accounts {
-			displayRemoteAccount(w, account)
-		}
-	} else {
-		fmt.Fprintf(w, "Partner %q has no accounts.\n", Partner)
+		return outputObject(w, accounts, &r.OutputFormat, displayRemoteAccounts)
 	}
+
+	fmt.Fprintf(w, "Partner %q has no accounts.\n", Partner)
 
 	return nil
 }

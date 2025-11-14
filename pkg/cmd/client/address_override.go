@@ -7,8 +7,16 @@ import (
 	"slices"
 )
 
-func displayAddressOverride(w io.Writer, target, redirect string) {
-	Style1.Printf(w, "Address %q redirects to %q", target, redirect)
+func displayAddressOverrides(w io.Writer, list map[string]string) error {
+	Style0.Printf(w, "=== Address indirections ===")
+
+	redirects := slices.Sorted(maps.Keys(list))
+
+	for _, redirect := range redirects {
+		Style1.Printf(w, "Address %q redirects to %q", redirect, list[redirect])
+	}
+
+	return nil
 }
 
 type OverrideAddressSet struct {
@@ -31,7 +39,9 @@ func (o *OverrideAddressSet) execute(w io.Writer) error {
 	return nil
 }
 
-type OverrideAddressList struct{}
+type OverrideAddressList struct {
+	OutputFormat
+}
 
 func (o *OverrideAddressList) Execute([]string) error { return execute(o) }
 func (o *OverrideAddressList) execute(w io.Writer) error {
@@ -43,16 +53,10 @@ func (o *OverrideAddressList) execute(w io.Writer) error {
 	}
 
 	if len(overrides) != 0 {
-		Style0.Printf(w, "=== Address indirections ===")
-
-		redirects := slices.Sorted(maps.Keys(overrides))
-
-		for _, redirect := range redirects {
-			displayAddressOverride(w, redirect, overrides[redirect])
-		}
-	} else {
-		fmt.Fprintln(w, "No overrides found.")
+		return outputObject(w, overrides, &o.OutputFormat, displayAddressOverrides)
 	}
+
+	fmt.Fprintln(w, "No overrides found.")
 
 	return nil
 }

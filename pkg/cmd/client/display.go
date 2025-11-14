@@ -18,10 +18,10 @@ import (
 //nolint:gochecknoglobals //basically constants, but can't be made constants
 var (
 	Style0    = &style{color: color.OpReverse, bulletPrefix: ""}
-	Style1    = &style{color: color.HiMagenta, bulletPrefix: "‣"}
-	Style22   = &style{color: color.HiCyan, bulletPrefix: "  •"}
-	Style333  = &style{color: color.Bold, bulletPrefix: "    ⁃"}
-	Style4444 = &style{color: color.FgDefault, bulletPrefix: "      $"}
+	Style1    = &style{color: color.HiMagenta, bulletPrefix: "-"}
+	Style22   = &style{color: color.HiCyan, bulletPrefix: "  -"}
+	Style333  = &style{color: color.Bold, bulletPrefix: "    -"}
+	Style4444 = &style{color: color.FgDefault, bulletPrefix: "      -"}
 
 	noPerm        = color.Gray.Render("---")
 	empty         = color.Gray.Render("<empty>")
@@ -52,12 +52,7 @@ func (s *style) sprintf(format string, args ...any) string {
 func (s *style) sprint(text string) string {
 	text = strings.ReplaceAll(text, color.ResetSet, color.StartSet+s.color.Code()+"m")
 	text = strings.ReplaceAll(text, color.StartSet, color.StartSet+"0;")
-
-	if strings.HasSuffix(text, ":") {
-		text = s.color.Render(strings.TrimSuffix(text, ":")) + ":"
-	} else {
-		text = s.color.Render(text)
-	}
+	text = s.color.Render(text)
 
 	return color.Sprintf("%s%s", s.bulletPrefix, text)
 }
@@ -153,7 +148,7 @@ func displayAuthorizedRules(w io.Writer, auth api.AuthorizedRules) {
 }
 
 func displayRuleAccess(w io.Writer, access api.RuleAccess) {
-	if len(access.LocalServers) == 0 && len(access.RemotePartners) == 0 &&
+	if len(access.Servers) == 0 && len(access.Partners) == 0 &&
 		len(access.LocalAccounts) == 0 && len(access.RemoteAccounts) == 0 {
 		Style22.PrintL(w, "Rule access", unrestricted)
 
@@ -168,8 +163,8 @@ func displayRuleAccess(w io.Writer, access api.RuleAccess) {
 	}
 
 	Style22.Printf(w, "Rule access:")
-	Style333.PrintL(w, "Local servers", targets(access.LocalServers))
-	Style333.PrintL(w, "Remote partners", targets(access.RemotePartners))
+	Style333.PrintL(w, "Local servers", targets(access.Servers))
+	Style333.PrintL(w, "Remote partners", targets(access.Partners))
 	Style333.PrintL(w, "Local accounts", subTargets(access.LocalAccounts))
 	Style333.PrintL(w, "Remote accounts", subTargets(access.RemoteAccounts))
 }

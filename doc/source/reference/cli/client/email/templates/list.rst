@@ -29,6 +29,14 @@ Affiche la liste des templates d'email remplissant les critères ci-dessous.
 
    - par nom (``name+`` & ``name-``)
 
+.. option:: --format=<FORMAT>
+
+   Spécifie le format du retour de la commande. Les valeurs acceptées sont :
+   ``human``, ``json`` et ``yaml``. Par défaut, le format sera le format pour
+   humain (``human``).
+
+|
+
 **Exemple**
 
 .. code-block:: shell

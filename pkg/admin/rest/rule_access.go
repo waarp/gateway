@@ -216,8 +216,8 @@ func makeRuleAccess(db *database.DB, rule *model.Rule) (*api.RuleAccess, error) 
 	}
 
 	return &api.RuleAccess{
-		LocalServers:   servers,
-		RemotePartners: partners,
+		Servers:        servers,
+		Partners:       partners,
 		LocalAccounts:  locAccounts,
 		RemoteAccounts: remAccounts,
 	}, nil

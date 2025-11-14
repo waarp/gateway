@@ -18,6 +18,8 @@ func NewNullable[T any](value T) Nullable[T] {
 	}
 }
 
+func (n Nullable[T]) IsZero() bool { return !n.Valid }
+
 func (n *Nullable[T]) UnmarshalJSON(bytes []byte) error {
 	var val *T
 	if err := json.Unmarshal(bytes, &val); err != nil {

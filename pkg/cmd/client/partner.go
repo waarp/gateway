@@ -19,7 +19,18 @@ func (*PartnerArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func displayPartner(w io.Writer, partner *api.OutPartner) {
+func displayPartners(w io.Writer, partners []*api.OutPartner) error {
+	Style0.Printf(w, "=== Partners ===")
+	for _, partner := range partners {
+		if err := displayPartner(w, partner); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayPartner(w io.Writer, partner *api.OutPartner) error {
 	Style1.Printf(w, "Partner %q", partner.Name)
 	Style22.PrintL(w, "Protocol", partner.Protocol)
 	Style22.PrintL(w, "Address", partner.Address)
@@ -28,6 +39,8 @@ func displayPartner(w io.Writer, partner *api.OutPartner) {
 
 	displayProtoConfig(w, partner.ProtoConfig)
 	displayAuthorizedRules(w, partner.AuthorizedRules)
+
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -58,6 +71,7 @@ func (p *PartnerAdd) execute(w io.Writer) error {
 //nolint:lll // struct tags for command line arguments can be long
 type PartnerList struct {
 	ListOptions
+
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+"`
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
@@ -74,14 +88,10 @@ func (p *PartnerList) execute(w io.Writer) error {
 	}
 
 	if partners := body["partners"]; len(partners) > 0 {
-		Style0.Printf(w, "=== Partners ===")
-
-		for _, partner := range partners {
-			displayPartner(w, partner)
-		}
-	} else {
-		fmt.Fprintln(w, "No partners found.")
+		return outputObject(w, partners, &p.OutputFormat, displayPartners)
 	}
+
+	fmt.Fprintln(w, "No partners found.")
 
 	return nil
 }
@@ -89,6 +99,8 @@ func (p *PartnerList) execute(w io.Writer) error {
 // ######################## GET ##########################
 
 type PartnerGet struct {
+	OutputFormat
+
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes"`
@@ -103,9 +115,7 @@ func (p *PartnerGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayPartner(w, partner)
-
-	return nil
+	return outputObject(w, partner, &p.OutputFormat, displayPartner)
 }
 
 // ######################## DELETE ##########################

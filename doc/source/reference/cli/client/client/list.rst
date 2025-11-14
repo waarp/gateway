@@ -31,6 +31,12 @@ Affiche une liste de tous les clients remplissant les critères ci-dessous.
 
    - par nom d'utilisateur (``name+``, ``name-``, ``protocol+`` & ``protocol-``)
 
+.. option:: --format=<FORMAT>
+
+   Spécifie le format du retour de la commande. Les valeurs acceptées sont :
+   ``human``, ``json`` et ``yaml``. Par défaut, le format sera le format pour
+   humain (``human``).
+
 |
 
 **Exemple**

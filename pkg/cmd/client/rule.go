@@ -19,7 +19,19 @@ func checkRuleDir(direction string) error {
 	return nil
 }
 
-func displayRule(w io.Writer, rule *api.OutRule) {
+func displayRules(w io.Writer, rules []*api.OutRule) error {
+	Style0.Printf(w, "=== Rules ===")
+
+	for _, rule := range rules {
+		if err := displayRule(w, rule); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayRule(w io.Writer, rule *api.OutRule) error {
 	Style1.Printf(w, "Rule %q (%s)", rule.Name, direction(rule.IsSend))
 	Style22.Option(w, "Comment", rule.Comment)
 	Style22.PrintL(w, "Path", rule.Path)
@@ -31,6 +43,8 @@ func displayRule(w io.Writer, rule *api.OutRule) {
 	displayTaskChain(w, "Post tasks", rule.PostTasks)
 	displayTaskChain(w, "Error tasks", rule.ErrorTasks)
 	displayRuleAccess(w, rule.Authorized)
+
+	return nil
 }
 
 func warnRuleInPathDeprecated(w io.Writer) {
@@ -52,6 +66,8 @@ func warnRuleWorkPathDeprecated(w io.Writer) {
 
 //nolint:lll // struct tags for command line arguments can be long
 type RuleGet struct {
+	OutputFormat
+
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
 		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
@@ -71,9 +87,7 @@ func (r *RuleGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayRule(w, rule)
-
-	return nil
+	return outputObject(w, rule, &r.OutputFormat, displayRule)
 }
 
 // ######################## ADD ##########################
@@ -157,6 +171,7 @@ func (r *RuleDelete) execute(w io.Writer) error {
 //nolint:lll // struct tags for command line arguments can be long
 type RuleList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
@@ -174,14 +189,10 @@ func (r *RuleList) execute(w io.Writer) error {
 	}
 
 	if rules := body["rules"]; len(rules) > 0 {
-		Style0.Printf(w, "=== Rules ===")
-
-		for _, rule := range rules {
-			displayRule(w, rule)
-		}
-	} else {
-		fmt.Fprintln(w, "No rules found.")
+		return outputObject(w, rules, &r.OutputFormat, displayRules)
 	}
+
+	fmt.Fprintln(w, "No rules found.")
 
 	return nil
 }

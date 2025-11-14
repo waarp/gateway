@@ -31,6 +31,14 @@ Affiche une liste de tous les utilisateurs remplissant les critères ci-dessous.
 
    - par nom d'utilisateur (``username+`` & ``username-``)
 
+.. option:: --format=<FORMAT>
+
+   Spécifie le format du retour de la commande. Les valeurs acceptées sont :
+   ``human``, ``json`` et ``yaml``. Par défaut, le format sera le format pour
+   humain (``human``).
+
+|
+
 **Exemple**
 
 .. code-block:: shell

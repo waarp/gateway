@@ -351,8 +351,8 @@ func TestGetRule(t *testing.T) {
 							var rule OutRule
 
 							So(json.Unmarshal(w.Body.Bytes(), &rule), ShouldBeNil)
-							So(rule.Authorized.LocalServers, ShouldResemble, []string{serv1.Name})
-							So(rule.Authorized.RemotePartners, ShouldResemble, []string{part1.Name})
+							So(rule.Authorized.Servers, ShouldResemble, []string{serv1.Name})
+							So(rule.Authorized.Partners, ShouldResemble, []string{part1.Name})
 							So(rule.Authorized.LocalAccounts, ShouldResemble, map[string][]string{
 								serv1.Name: {serv1acc1.Login, serv1acc2.Login},
 								serv2.Name: {serv2acc1.Login},

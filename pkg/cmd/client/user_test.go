@@ -24,7 +24,6 @@ func TestUserGet(t *testing.T) {
 	)
 
 	t.Run(`Testing the user "get" command`, func(t *testing.T) {
-		w := newTestOutput()
 		command := &UserGet{}
 
 		expected := &expectedRequest{
@@ -51,19 +50,67 @@ func TestUserGet(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
+				w := newTestOutput()
 				require.NoError(t, executeCommand(t, w, command, username),
 					"Then is should not return an error")
 
 				assert.Equal(t,
 					expectedOutput(t, result.body,
-						`‣User "{{.username}}"`,
-						`  •Permissions:`,
-						`    ⁃Transfers: {{.perms.transfers}}`,
-						`    ⁃Servers: {{.perms.servers}}`,
-						`    ⁃Partners: {{.perms.partners}}`,
-						`    ⁃Rules: {{.perms.rules}}`,
-						`    ⁃Users: {{.perms.users}}`,
-						`    ⁃Administration: {{.perms.administration}}`,
+						`-User "{{.username}}"`,
+						`  -Permissions:`,
+						`    -Transfers: {{.perms.transfers}}`,
+						`    -Servers: {{.perms.servers}}`,
+						`    -Partners: {{.perms.partners}}`,
+						`    -Rules: {{.perms.rules}}`,
+						`    -Users: {{.perms.users}}`,
+						`    -Administration: {{.perms.administration}}`,
+					),
+					w.String(),
+					"Then it should display the user's info",
+				)
+			})
+
+			t.Run("When executing the command with YAML output", func(t *testing.T) {
+				w := newTestOutput()
+				require.NoError(t, executeCommand(t, w, command, username,
+					"--format", "yaml"),
+					"Then is should not return an error")
+
+				assert.Equal(t,
+					expectedOutput(t, result.body,
+						`username: {{.username}}`,
+						`perms:`,
+						`  transfers: {{.perms.transfers}}`,
+						`  servers: {{.perms.servers}}`,
+						`  partners: {{.perms.partners}}`,
+						`  rules: {{.perms.rules}}`,
+						`  users: {{.perms.users}}`,
+						`  administration: {{.perms.administration}}`,
+					),
+					w.String(),
+					"Then it should display the user's info",
+				)
+			})
+
+			t.Run("When executing the command with JSON output", func(t *testing.T) {
+				w := newTestOutput()
+				require.NoError(t, executeCommand(t, w, command, username,
+					"--format", "json"),
+					"Then is should not return an error")
+
+				assert.Equal(t,
+					expectedOutput(t, result.body,
+						`{`,
+						`  "username": "{{.username}}",`,
+						`  "perms": {`,
+						`    "transfers": "{{.perms.transfers}}",`,
+						`    "servers": "{{.perms.servers}}",`,
+						`    "partners": "{{.perms.partners}}",`,
+						`    "rules": "{{.perms.rules}}",`,
+						`    "users": "{{.perms.users}}",`,
+						`    "administration": "{{.perms.administration}}"`,
+						`  }`,
+						`}`,
 					),
 					w.String(),
 					"Then it should display the user's info",
@@ -257,7 +304,6 @@ func TestUserList(t *testing.T) {
 	)
 
 	t.Run(`Testing the user "list" command`, func(t *testing.T) {
-		w := newTestOutput()
 		command := &UserList{}
 
 		expected := &expectedRequest{
@@ -284,6 +330,7 @@ func TestUserList(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
+				w := newTestOutput()
 				require.NoError(t, executeCommand(t, w, command,
 					"--limit", limit, "--offset", offset, "--sort", sort,
 				),
@@ -293,25 +340,83 @@ func TestUserList(t *testing.T) {
 					expectedOutput(t, result.body,
 						`=== Users ===`,
 						`{{- with (index .users 0)}}`,
-						`‣User "{{.username}}"`,
-						`  •Permissions:`,
-						`    ⁃Transfers: ---`,
-						`    ⁃Servers: ---`,
-						`    ⁃Partners: ---`,
-						`    ⁃Rules: ---`,
-						`    ⁃Users: ---`,
-						`    ⁃Administration: ---`,
+						`-User "{{.username}}"`,
+						`  -Permissions:`,
+						`    -Transfers: ---`,
+						`    -Servers: ---`,
+						`    -Partners: ---`,
+						`    -Rules: ---`,
+						`    -Users: ---`,
+						`    -Administration: ---`,
 						`{{- end }}`,
 						`{{- with (index .users 1) }}`,
-						`‣User "{{.username}}"`,
-						`  •Permissions:`,
-						`    ⁃Transfers: ---`,
-						`    ⁃Servers: ---`,
-						`    ⁃Partners: ---`,
-						`    ⁃Rules: ---`,
-						`    ⁃Users: ---`,
-						`    ⁃Administration: ---`,
+						`-User "{{.username}}"`,
+						`  -Permissions:`,
+						`    -Transfers: ---`,
+						`    -Servers: ---`,
+						`    -Partners: ---`,
+						`    -Rules: ---`,
+						`    -Users: ---`,
+						`    -Administration: ---`,
 						`{{- end }}`,
+					),
+					w.String(),
+					"Then it should display the users",
+				)
+			})
+
+			t.Run("When executing the command with YAML output", func(t *testing.T) {
+				w := newTestOutput()
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort,
+					"--format", "yaml",
+				),
+					"Then it should not return an error")
+
+				assert.Equal(t,
+					expectedOutput(t, result.body,
+						`{{range .users -}}`,
+						`- username: {{.username}}`,
+						`  perms:`,
+						`    transfers: ""`,
+						`    servers: ""`,
+						`    partners: ""`,
+						`    rules: ""`,
+						`    users: ""`,
+						`    administration: ""`,
+						`{{end -}}`,
+					),
+					w.String(),
+					"Then it should display the users",
+				)
+			})
+
+			t.Run("When executing the command with JSON output", func(t *testing.T) {
+				w := newTestOutput()
+				require.NoError(t, executeCommand(t, w, command,
+					"--limit", limit, "--offset", offset, "--sort", sort,
+					"--format", "json",
+				),
+					"Then it should not return an error")
+
+				assert.Equal(t,
+					expectedOutput(t, result.body,
+						`[`,
+						`  {{- range $index, $user := .users}}`,
+						`  {{- if $index}},{{end}}`,
+						`  {`,
+						`    "username": "{{$user.username}}",`,
+						`    "perms": {`,
+						`      "transfers": "",`,
+						`      "servers": "",`,
+						`      "partners": "",`,
+						`      "rules": "",`,
+						`      "users": "",`,
+						`      "administration": ""`,
+						`    }`,
+						`  }`,
+						`  {{- end}}`,
+						`]`,
 					),
 					w.String(),
 					"Then it should display the users",

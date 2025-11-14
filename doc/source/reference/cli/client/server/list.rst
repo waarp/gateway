@@ -36,6 +36,14 @@ Affiche les informations des serveurs remplissant les critères ci-dessous.
    paramètre. Ce paramètre peut être répété plusieurs fois pour filtrer
    plusieurs protocoles en même temps.
 
+.. option:: --format=<FORMAT>
+
+   Spécifie le format du retour de la commande. Les valeurs acceptées sont :
+   ``human``, ``json`` et ``yaml``. Par défaut, le format sera le format pour
+   humain (``human``).
+
+|
+
 
 **Exemple**
 

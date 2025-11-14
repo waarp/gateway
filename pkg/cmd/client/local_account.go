@@ -19,11 +19,25 @@ func (*LocAccArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func displayLocalAccount(w io.Writer, account *api.OutLocalAccount) {
+func displayLocalAccounts(w io.Writer, accounts []*api.OutLocalAccount) error {
+	Style0.Printf(w, "=== Accounts of server %q ===", Server)
+
+	for _, account := range accounts {
+		if err := displayLocalAccount(w, account); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayLocalAccount(w io.Writer, account *api.OutLocalAccount) error {
 	Style1.Printf(w, "Account %q", account.Login)
 	Style22.Option(w, "Authorized IP addresses", join(account.IPAddresses))
 	Style22.PrintL(w, "Credentials", withDefault(join(account.Credentials), none))
 	displayAuthorizedRules(w, account.AuthorizedRules)
+
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -51,6 +65,8 @@ func (l *LocAccAdd) execute(w io.Writer) error {
 // ######################## GET ##########################
 
 type LocAccGet struct {
+	OutputFormat
+
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
@@ -65,9 +81,7 @@ func (l *LocAccGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayLocalAccount(w, account)
-
-	return nil
+	return outputObject(w, account, &l.OutputFormat, displayLocalAccount)
 }
 
 // ######################## UPDATE ##########################
@@ -131,6 +145,7 @@ func (l *LocAccDelete) execute(w io.Writer) error {
 //nolint:lll // struct tags for command line arguments can be long
 type LocAccList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
@@ -148,14 +163,10 @@ func (l *LocAccList) execute(w io.Writer) error {
 	}
 
 	if accounts := body["localAccounts"]; len(accounts) > 0 {
-		Style0.Printf(w, "=== Accounts of server %q ===", Server)
-
-		for _, account := range accounts {
-			displayLocalAccount(w, account)
-		}
-	} else {
-		fmt.Fprintf(w, "Server %q has no accounts.\n", Server)
+		return outputObject(w, accounts, &l.OutputFormat, displayLocalAccounts)
 	}
+
+	fmt.Fprintf(w, "Server %q has no accounts.\n", Server)
 
 	return nil
 }

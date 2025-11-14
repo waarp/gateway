@@ -20,7 +20,18 @@ func transferRole(isServer bool) string {
 	return utils.If[string](isServer, roleServer, roleClient)
 }
 
-func displayTransfer(w io.Writer, trans *api.OutTransfer) {
+func displayTransfers(w io.Writer, transfers []*api.OutTransfer) error {
+	Style0.Printf(w, "=== Transfers ===")
+	for _, transfer := range transfers {
+		if err := displayTransfer(w, transfer); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayTransfer(w io.Writer, trans *api.OutTransfer) error {
 	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", Style1.bulletPrefix,
 		Style1.color.Sprintf("Transfer %d", trans.ID),
 		direction(trans.IsSend), transferRole(trans.IsServer),
@@ -77,6 +88,8 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	}
 
 	displayTransferInfo(w, trans.TransferInfo)
+
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -131,6 +144,8 @@ func (t *TransferAdd) execute(w io.Writer) error {
 // ######################## GET ##########################
 
 type TransferGet struct {
+	OutputFormat
+
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
@@ -145,9 +160,7 @@ func (t *TransferGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayTransfer(w, trans)
-
-	return nil
+	return outputObject(w, trans, &t.OutputFormat, displayTransfer)
 }
 
 // ######################## LIST ##########################
@@ -212,14 +225,10 @@ func (t *TransferList) execute(w io.Writer) error {
 	}
 
 	if transfers := body["transfers"]; len(transfers) > 0 {
-		Style0.Printf(w, "=== Transfers ===")
-
-		for _, transfer := range transfers {
-			displayTransfer(w, transfer)
-		}
-	} else {
-		fmt.Fprintln(w, "No transfers found.")
+		return outputObject(w, transfers, &t.OutputFormat, displayTransfers)
 	}
+
+	fmt.Fprintln(w, "No transfers found.")
 
 	return nil
 }

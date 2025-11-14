@@ -133,9 +133,7 @@ func isPermMode(c rune) bool {
 func parsePerms(str string) (*api.Perms, error) {
 	var perms api.Perms
 
-	groups := strings.Split(str, ",")
-
-	for _, grp := range groups {
+	for grp := range strings.SplitSeq(str, ",") {
 		if grp == "" {
 			continue
 		}
@@ -163,6 +161,8 @@ func parsePerms(str string) (*api.Perms, error) {
 }
 
 type ListOptions struct {
+	OutputFormat
+
 	Limit  uint `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
 	Offset uint `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
 }

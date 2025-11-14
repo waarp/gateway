@@ -24,7 +24,19 @@ func coloredEnabled(enabled bool) string {
 	)
 }
 
-func displayClient(w io.Writer, client *api.OutClient) {
+func displayClients(w io.Writer, clients []*api.OutClient) error {
+	Style0.Printf(w, "=== Clients ===")
+
+	for _, client := range clients {
+		if err := displayClient(w, client); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayClient(w io.Writer, client *api.OutClient) error {
 	Style1.Printf(w, "Client %q [%s]", client.Name, coloredEnabled(client.Enabled))
 	Style22.PrintL(w, "Protocol", client.Protocol)
 	Style22.PrintL(w, "Local address", withDefault(client.LocalAddress, unspecified))
@@ -36,6 +48,8 @@ func displayClient(w io.Writer, client *api.OutClient) {
 			(time.Duration(client.FirstRetryDelay) * time.Second).String())
 		Style22.PrintL(w, "Transfers retry increment factor", client.RetryIncrementFactor)
 	}
+
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -89,14 +103,10 @@ func (c *ClientList) execute(w io.Writer) error {
 	}
 
 	if clients := body["clients"]; len(clients) > 0 {
-		Style0.Printf(w, "=== Clients ===")
-
-		for _, client := range clients {
-			displayClient(w, client)
-		}
-	} else {
-		fmt.Fprintln(w, "No clients found.")
+		return outputObject(w, clients, &c.OutputFormat, displayClients)
 	}
+
+	fmt.Fprintln(w, "No clients found.")
 
 	return nil
 }
@@ -104,6 +114,8 @@ func (c *ClientList) execute(w io.Writer) error {
 // ######################## GET ##########################
 
 type ClientGet struct {
+	OutputFormat
+
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The client's name"`
 	} `positional-args:"yes"`
@@ -118,9 +130,7 @@ func (c *ClientGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayClient(w, &client)
-
-	return nil
+	return outputObject(w, &client, &c.OutputFormat, displayClient)
 }
 
 // ######################## UPDATE ##########################

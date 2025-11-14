@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`446` Toutes les sous-commandes ``get`` et ``list`` du client terminal
+  ont désormais une option ``--format`` permettant de spécifier le format du
+  retour de la commande. Les format acceptés pour l'heure sont JSON et YAML.
+  En conséquence, l'option ``--raw`` qui existait sur ces commandes a été
+  retirée car désormais redondante.
 * :feature:`497` Ajout d'une option ``synchronous`` à la tâche *TRANSFER*
   permettant d'exécuter des transferts de façon synchrone. Voir la :ref:`documentation
   <reference-tasks-transfer>` de la tâche *TRANSFER* pour plus de détails.

@@ -10,9 +10,18 @@ import (
 
 const cloudsAPIPath = "/api/clouds"
 
-type cloudObject = api.GetCloudRespObject
+func displayClouds(w io.Writer, clouds []*api.GetCloudRespObject) error {
+	Style0.Printf(w, "=== Cloud instances ===")
+	for _, cloud := range clouds {
+		if err := displayCloud(w, cloud); err != nil {
+			return err
+		}
+	}
 
-func displayCloud(w io.Writer, cloud *cloudObject) {
+	return nil
+}
+
+func displayCloud(w io.Writer, cloud *api.GetCloudRespObject) error {
 	Style1.Printf(w, "Cloud instance %q (%s)", cloud.Name, cloud.Type)
 	Style22.PrintL(w, "Key", withDefault(cloud.Key, none))
 
@@ -22,9 +31,13 @@ func displayCloud(w io.Writer, cloud *cloudObject) {
 		Style22.Printf(w, "Options:")
 		displayMap(w, Style333, cloud.Options)
 	}
+
+	return nil
 }
 
 type CloudGet struct {
+	OutputFormat
+
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The name of the cloud instance"`
 	} `positional-args:"yes"`
@@ -34,14 +47,12 @@ func (c *CloudGet) Execute([]string) error { return execute(c) }
 func (c *CloudGet) execute(w io.Writer) error {
 	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
 
-	cloud := &cloudObject{}
+	cloud := &api.GetCloudRespObject{}
 	if err := get(cloud); err != nil {
 		return err
 	}
 
-	displayCloud(w, cloud)
-
-	return nil
+	return outputObject(w, cloud, &c.OutputFormat, displayCloud)
 }
 
 //nolint:lll //tags can be long for flags
@@ -119,6 +130,7 @@ func (c *CloudUpdate) execute(w io.Writer) error {
 //nolint:lll //tags can be long for flags
 type CloudList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"The property to sort by." choice:"name+" choice:"name-" choice:"type+" choice:"type-" default:"name+"`
 }
 
@@ -128,20 +140,16 @@ func (c *CloudList) execute(w io.Writer) error {
 
 	listURL(&c.ListOptions, c.SortBy)
 
-	body := map[string][]*cloudObject{}
+	body := map[string][]*api.GetCloudRespObject{}
 	if err := list(&body); err != nil {
 		return err
 	}
 
 	if clouds := body["clouds"]; clouds != nil {
-		Style0.Printf(w, "=== Cloud instances ===")
-
-		for _, cloud := range clouds {
-			displayCloud(w, cloud)
-		}
-	} else {
-		fmt.Fprintf(w, "No cloud instances found.\n")
+		return outputObject(w, clouds, &c.OutputFormat, displayClouds)
 	}
+
+	fmt.Fprintf(w, "No cloud instances found.\n")
 
 	return nil
 }
