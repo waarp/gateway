@@ -33,7 +33,7 @@ type client struct {
 	state   utils.State
 	logger  *log.Logger
 	sshConf ssh.Config
-	dialer  *protoutils.TraceDialer
+	conns   *protoutils.ConnPool[*clientConn]
 }
 
 func (c *client) State() (utils.StateCode, string) {
@@ -65,27 +65,27 @@ func (c *client) start() error {
 		return fmt.Errorf("failed to parse the SFTP client's proto config: %w", err)
 	}
 
-	c.dialer = &protoutils.TraceDialer{Dialer: &net.Dialer{Timeout: clientDialTimeout}}
 	c.sshConf = ssh.Config{
 		KeyExchanges: clientConf.KeyExchanges,
 		Ciphers:      clientConf.Ciphers,
 		MACs:         clientConf.MACs,
 	}
 
+	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{Timeout: clientDialTimeout}}
 	if c.client.LocalAddress.IsSet() {
 		var err error
-
-		c.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", c.client.LocalAddress.String())
-		if err != nil {
+		if dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", c.client.LocalAddress.String()); err != nil {
 			return fmt.Errorf("failed to parse the SFTP client's local address: %w", err)
 		}
 	}
+
+	c.conns = protoutils.NewConnPool[*clientConn](dialer, c.newClientConn)
 
 	return nil
 }
 
 func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
-	return newTransferClient(pip, c.dialer, &c.sshConf)
+	return newTransferClient(pip, c.conns), nil
 }
 
 func (c *client) Stop(ctx context.Context) error {

@@ -64,7 +64,7 @@ func TestTLS(t *testing.T) {
 					r66Cli.ses.Close()
 				}
 
-				r66Cli.conns.Done(r66Cli.pip.TransCtx.RemoteAgent.Address.String())
+				r66Cli.conns.CloseConn(r66Cli.pip)
 			})
 
 			r66conn, tErr := r66Cli.connect()
@@ -165,7 +165,7 @@ func TestTLS(t *testing.T) {
 
 				SoMsg("Then it should return an error", connErr, ShouldNotBeNil)
 				SoMsg("And it should be a bad certificate error",
-					connErr.Code(), ShouldEqual, types.TeConnection)
+					connErr.Code(), ShouldEqual, types.TeBadAuthentication)
 				So(connErr.Details(), ShouldContainSubstring, "tls: failed to verify certificate")
 			})
 		})
@@ -242,7 +242,7 @@ func TestTLS(t *testing.T) {
 
 					SoMsg("Then it should return an error", connErr, ShouldNotBeNil)
 					SoMsg("And it should be a bad certificate error",
-						connErr.Code(), ShouldEqual, types.TeConnection)
+						connErr.Code(), ShouldEqual, types.TeBadAuthentication)
 					So(connErr.Details(), ShouldContainSubstring, "tls: failed to verify certificate")
 				})
 			})

@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`504` Ajout du multiplexing pour SFTP côté client. Les transferts SFTP
+  simultané avec un même partenaire prendront place au sein de la même session
+  au lieu d'être chacun dans des sessions séparées. Cela devrait engendrer
+  un gain de performance notable pour SFTP, notamment lorsqu'un grand nombre de
+  transferts sont exécutés en même temps.
 * :feature:`446` Toutes les sous-commandes ``get`` et ``list`` du client terminal
   ont désormais une option ``--format`` permettant de spécifier le format du
   retour de la commande. Les format acceptés pour l'heure sont JSON et YAML.

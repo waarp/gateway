@@ -55,6 +55,11 @@ func toSFTPErr(err *pipeline.Error) error {
 const stopTimeout = 5 * time.Second
 
 func fromSFTPErr(origErr error, defaults types.TransferErrorCode, pip *pipeline.Pipeline) *pipeline.Error {
+	var pErr *pipeline.Error
+	if errors.As(origErr, &pErr) {
+		return pErr
+	}
+
 	if err := checkTransferErrorString(origErr.Error(), pip); err != nil {
 		return err
 	}

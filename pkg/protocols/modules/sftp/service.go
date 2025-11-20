@@ -68,7 +68,6 @@ func (s *service) start() error {
 		shutdown: make(chan struct{}),
 	}
 
-	s.listener.handlerMaker = s.listener.makeHandlers
 	go s.listener.listen()
 
 	return nil

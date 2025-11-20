@@ -44,7 +44,7 @@ func TestAddressIndirection(t *testing.T) {
 
 				defer func() {
 					cli.ses.Close()
-					cli.conns.Done(fakeAddr)
+					cli.conns.CloseConnFor(ctx.RemAccount)
 
 					cont, cancel := context.WithTimeout(context.Background(), time.Second)
 					defer cancel()
@@ -53,7 +53,7 @@ func TestAddressIndirection(t *testing.T) {
 				}()
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.conns.Exists(realAddr), ShouldBeTrue)
+					So(cli.conns.Exists(ctx.RemAccount), ShouldBeTrue)
 				})
 			})
 		})

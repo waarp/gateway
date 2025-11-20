@@ -28,8 +28,6 @@ type sshListener struct {
 
 	tracer   func() pipeline.Trace
 	shutdown chan struct{}
-
-	handlerMaker func(*model.LocalAccount) sftp.Handlers
 }
 
 func (l *sshListener) listen() {
@@ -125,7 +123,7 @@ func (l *sshListener) handleSession(sesWg *sync.WaitGroup,
 
 	go acceptRequests(requests, l.Logger)
 
-	server := sftp.NewRequestServer(channel, l.handlerMaker(acc))
+	server := sftp.NewRequestServer(channel, l.makeHandlers(acc))
 
 	if err := server.Serve(); err != nil && !errors.Is(err, io.EOF) {
 		l.Logger.Warningf("An error occurred while serving SFTP requests: %v", err)
@@ -168,7 +166,8 @@ func (l *sshListener) makeFileReader(acc *model.LocalAccount) internal.ReaderAtF
 		l.Logger.Infof("Download of file %q requested by %q using rule %q",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, l.tracer)
+		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule,
+			model.UnknownSize, l.tracer)
 		if err != nil {
 			return nil, err
 		}
@@ -201,7 +200,12 @@ func (l *sshListener) makeFileWriter(acc *model.LocalAccount) internal.WriterAtF
 		l.Logger.Infof("Upload of file %q requested by %q using rule %q",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, l.tracer)
+		size := model.UnknownSize
+		if attrs := r.Attributes(); attrs != nil && r.AttrFlags().Size {
+			size = int64(r.Attributes().Size)
+		}
+
+		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, size, l.tracer)
 		if err != nil {
 			return nil, err
 		}

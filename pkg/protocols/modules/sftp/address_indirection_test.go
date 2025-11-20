@@ -4,15 +4,13 @@ import (
 	"net"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/ssh"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestAddressIndirection(t *testing.T) {
@@ -50,19 +48,19 @@ func TestAddressIndirection(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
-				cli, err := newTransferClient(pip.Pip, dialer, &ssh.Config{})
-				So(err, ShouldBeNil)
+				sftpClient := ctx.ClientService.(*client)
+				conns := protoutils.NewConnPool[*clientConn](dialer, sftpClient.newClientConn)
+				cli := newTransferClient(pip.Pip, conns)
 
 				So(cli.Request(), ShouldBeNil)
 
 				defer func() {
 					_ = cli.sftpFile.Close()
-					_ = cli.sftpClient.Close()
-					_ = cli.sshClient.Close()
+					cli.conns.CloseConnFor(ctx.RemAccount)
 				}()
 
 				Convey("Then it should have connected to the server", func() {
-					So(cli.sshClient.RemoteAddr().String(), ShouldEqual, realAddr)
+					So(cli.sftpSession.ssh.RemoteAddr().String(), ShouldEqual, realAddr)
 				})
 			})
 		})

@@ -69,3 +69,16 @@ Les algorithmes suivants sont acceptés pour la *hostkey* du serveur :
 - ``ssh-rsa``
 - ``ssh-dss``
 - ``ssh-ed25519``
+
+
+Multiplexing
+============
+
+Waarp Gateway supporte le multiplexing pour les transferts SFTP.
+
+Côté client, si plusieurs transferts vers le même partenaire (et avec le même
+compte) sont exécutés en même temps, ils seront tous exécuté au sein de la même
+session pour de meilleures performances.
+
+De même, côté serveur, il est possible d'exécuter plusieurs transferts SFTP en
+parallèle au sein de la même session.

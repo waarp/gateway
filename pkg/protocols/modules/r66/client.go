@@ -2,7 +2,6 @@ package r66
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 
 	"code.waarp.fr/lib/log"
@@ -16,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -27,7 +27,7 @@ type Client struct {
 
 	logger       *log.Logger
 	clientConfig *tlsClientConfig
-	conns        *internal.ConnPool
+	conns        *r66ConnPool
 	state        utils.State
 }
 
@@ -57,10 +57,12 @@ func (c *Client) start() error {
 		return fmt.Errorf("failed to parse the R66 client's config: %w", err)
 	}
 
-	connPool, err := internal.NewConnPool(c.cli)
-	if err != nil {
-		return fmt.Errorf("failed to initialize the R66 client's connection pool: %w", err)
+	dialer, dErr := makeDialer(c.cli)
+	if dErr != nil {
+		return dErr
 	}
+
+	connPool := protoutils.NewConnPool[*clientConn](dialer, c.dialClientConn)
 
 	if c.disableConnGrace {
 		connPool.SetGracePeriod(0)
@@ -75,7 +77,8 @@ func (c *Client) start() error {
 func (c *Client) State() (utils.StateCode, string) { return c.state.Get() }
 
 func (c *Client) Stop(ctx context.Context) error {
-	defer c.conns.ForceClose()
+	//nolint:errcheck //we don't care about the error here
+	defer c.conns.Stop()
 
 	if err := pipeline.List.StopAllFromClient(ctx, c.cli.ID); err != nil {
 		c.state.Set(utils.StateError, fmt.Sprintf("failed to stop transfers: %v", err))
@@ -106,19 +109,6 @@ func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 
 		return nil, pipeline.NewErrorWith(types.TeInternal,
 			"failed to parse R66 partner proto config", err)
-	}
-
-	var tlsConf *tls.Config
-
-	if c.cli.Protocol == R66TLS {
-		var err error
-
-		tlsConf, err = makeClientTLSConfig(pip, &partConf, c.clientConfig)
-		if err != nil {
-			pip.Logger.Errorf("Failed to parse R66 TLS config: %v", err)
-
-			return nil, pipeline.NewErrorWith(types.TeInternal, "invalid R66 TLS config", err)
-		}
 	}
 
 	var blockSize uint32 = 65536
@@ -175,7 +165,6 @@ func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 		checkBlockHash: checkBlockHash,
 		serverLogin:    partnerLogin,
 		serverPassword: partnerPassword,
-		tlsConfig:      tlsConf,
 		ses:            nil,
 	}, nil
 }
@@ -213,9 +202,9 @@ func (c *Client) GetConnection(partner *model.RemoteAgent, account *model.Remote
 		return nil, connErr
 	}
 
-	return conn, nil
+	return conn.Client, nil
 }
 
-func (c *Client) ReturnConnection(partner *model.RemoteAgent) {
-	c.conns.Done(partner.Address.String())
+func (c *Client) ReturnConnection(account *model.RemoteAccount) {
+	c.conns.CloseConnFor(account)
 }

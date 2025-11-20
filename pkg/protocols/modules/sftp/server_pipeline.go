@@ -41,11 +41,15 @@ func mkServerTransfer(db *database.DB, filepath string, account *model.LocalAcco
 
 // initPipeline initializes the pipeline.
 func initPipeline(db *database.DB, logger *log.Logger, filepath string,
-	account *model.LocalAccount, rule *model.Rule, setTrace func() pipeline.Trace,
+	account *model.LocalAccount, rule *model.Rule, size int64, setTrace func() pipeline.Trace,
 ) (*serverPipeline, error) {
 	trans, tErr := mkServerTransfer(db, filepath, account, rule)
 	if tErr != nil {
 		return nil, tErr
+	}
+
+	if !rule.IsSend {
+		trans.Filesize = size
 	}
 
 	pip, pErr := pipeline.NewServerPipeline(db, logger, trans, snmp.GlobalService)
@@ -73,9 +77,9 @@ func initPipeline(db *database.DB, logger *log.Logger, filepath string,
 // newServerPipeline creates a new serverPipeline, executes the transfer's
 // pre-tasks, and returns the pipeline.
 func newServerPipeline(db *database.DB, logger *log.Logger, filepath string,
-	account *model.LocalAccount, rule *model.Rule, setTrace func() pipeline.Trace,
+	account *model.LocalAccount, rule *model.Rule, size int64, setTrace func() pipeline.Trace,
 ) (*serverPipeline, error) {
-	servPip, pErr := initPipeline(db, logger, filepath, account, rule, setTrace)
+	servPip, pErr := initPipeline(db, logger, filepath, account, rule, size, setTrace)
 	if pErr != nil {
 		return nil, pErr
 	}
