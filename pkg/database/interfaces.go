@@ -119,6 +119,12 @@ type DeletionHook interface {
 	BeforeDelete(db Access) error
 }
 
+// DeletionCallback is an interface which adds a function which will be run after
+// deleting an entry.
+type DeletionCallback interface {
+	AfterDelete(db Access) error
+}
+
 // WriteHook is an interface which adds a function which will be run before
 // inserting or updating an entry.
 type WriteHook interface {
