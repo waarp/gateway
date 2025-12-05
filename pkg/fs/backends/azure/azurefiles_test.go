@@ -1,4 +1,4 @@
-package s3
+package azure
 
 import (
 	"testing"
@@ -9,16 +9,18 @@ import (
 )
 
 // A quick test to check that the most common operations are working properly.
-func TestS3(t *testing.T) {
-	const bucket = "waarp-gateway-tests"
+func TestAzureFiles(t *testing.T) {
+	t.Parallel()
+
+	const shareName = "gwfiles"
 
 	opts := map[string]string{
-		"env_auth": "true",
-		"bucket":   bucket,
+		"env_auth":   "true",
+		"share_name": shareName,
 	}
 
-	s3VFS, fsErr := newVFS("s3", "", "", "", opts)
+	filesVFS, fsErr := newFilesVFS("azfiles", "", "", opts)
 	require.NoError(t, fsErr)
 
-	backtest.TestVFS(t, s3VFS)
+	backtest.TestVFS(t, filesVFS)
 }
