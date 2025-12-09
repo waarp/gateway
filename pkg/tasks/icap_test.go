@@ -54,7 +54,7 @@ func TestIcapTaskReqModRun(t *testing.T) {
 		task := &icapTask{}
 		params := map[string]string{
 			"uploadURL": icapAddr,
-			"timeout":   "5h",
+			"timeout":   "5m",
 		}
 
 		require.NoError(t, task.Run(t.Context(), params, db, logger, transCtx, nil))

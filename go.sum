@@ -13,6 +13,8 @@ code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 h1
 code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362/go.mod h1:9ox2QkeHD920voiwFU0S8h3Qp/pD67mW/czd7wZaxJI=
 code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7 h1:sCOGpisvQskRdr4OaDEg7yX0AxH8TcQesSvVfQzXyXQ=
 code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7/go.mod h1:PBTOX+UoynADfrbEowCU5KwdwA0z0tljVcneR1VFt6I=
+code.waarp.fr/lib/icap v1.0.0 h1:2XmosGoL3qccS2w/l/6bl20hBsJHssmcxC9+tamYh2E=
+code.waarp.fr/lib/icap v1.0.0/go.mod h1:AT/euHPwfpCvGU13BYrw1baGt0xLTFLD06JdY9UjZ/o=
 code.waarp.fr/lib/log v1.4.0 h1:fN66ID8em014nu6iTROxPNT7PdkLmtX6NMCqvYRi/Pw=
 code.waarp.fr/lib/log v1.4.0/go.mod h1:0lJDvvPJceiWDs7edfU0ybMLFM9CRU1n0zIJDknlFps=
 code.waarp.fr/lib/migration v1.4.0 h1:Fhw5UXpqSQ1vtkjIjqAkxSzyh06FSsmevs0Zz9KBGPc=
@@ -214,8 +216,6 @@ github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFP
 github.com/ebitengine/purego v0.8.4 h1:CF7LEKg5FFOsASUj0+QwaXf8Ht6TlFxg09+S9wz0omw=
 github.com/ebitengine/purego v0.8.4/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/edsrzf/mmap-go v1.0.0/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaBNrHW5M=
-github.com/egirna/icap v0.3.2 h1:XuQyttngl7qdhb/dBrDDdFlwVi7uxiR4Tn1Bn+c7WZg=
-github.com/egirna/icap v0.3.2/go.mod h1:T2t2LrvnaXlEqdX+5iUM6S516uIP9TIexi9KRyM3RuM=
 github.com/emersion/go-message v0.18.2 h1:rl55SQdjd9oJcIoQNhubD2Acs1E6IzlZISRTK7x/Lpg=
 github.com/emersion/go-message v0.18.2/go.mod h1:XpJyL70LwRvq2a8rVbHXikPgKj8+aI0kGdHlg16ibYA=
 github.com/emersion/go-vcard v0.0.0-20241024213814-c9703dde27ff h1:4N8wnS3f1hNHSmFD5zgFkWCyA4L1kCDkImPAtK7D6tg=
@@ -252,6 +252,8 @@ github.com/go-darwin/apfs v0.0.0-20211011131704-f84b94dbf348 h1:JnrjqG5iR07/8k7N
 github.com/go-darwin/apfs v0.0.0-20211011131704-f84b94dbf348/go.mod h1:Czxo/d1g948LtrALAZdL04TL/HnkopquAjxYUuI02bo=
 github.com/go-git/go-billy/v5 v5.6.2 h1:6Q86EsPXMa7c3YZ3aLAQsMA0VlWmy43r6FHqa/UNbRM=
 github.com/go-git/go-billy/v5 v5.6.2/go.mod h1:rcFC2rAsp/erv7CMz9GczHcuD0D32fWzH+MJAU+jaUU=
+github.com/go-icap/icap v0.0.0-20151011115316-ca4fad4ebb28 h1:A5Ks5k2Y1Y3/ibkMrBwcn2+qzgWUCxHZsGatPyCVExc=
+github.com/go-icap/icap v0.0.0-20151011115316-ca4fad4ebb28/go.mod h1:CtySfVdYEiotF1PcVuY0qvLnk02XbSatTR1WJfnIjSk=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.9.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.10.0/go.mod h1:xUsJbQ/Fp4kEt7AFgCuvyX4a71u8h9jB8tj/ORgOZ7o=
@@ -641,8 +643,6 @@ github.com/panjf2000/ants/v2 v2.11.3/go.mod h1:8u92CYMUc6gyvTIw8Ru7Mt7+/ESnJahz5
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
-github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 h1:onHthvaw9LFnH4t2DcNVpwGmV9E1BkGknEliJkfwQj0=
-github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58/go.mod h1:DXv8WO4yhMYhSNPKjeNKa5WY9YCIEBRbNzFFPJbWO6Y=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pengsrc/go-shared v0.2.1-0.20190131101655-1999055a4a14 h1:XeOYlK9W1uCmhjJSsY78Mcuh7MVkNjTzmHx1yBzizSU=
 github.com/pengsrc/go-shared v0.2.1-0.20190131101655-1999055a4a14/go.mod h1:jVblp62SafmidSkvWrXyxAme3gaTfEtWwRPGz5cpvHg=
@@ -760,8 +760,6 @@ github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9
 github.com/smartystreets/goconvey v1.8.1 h1:qGjIddxOk4grTu9JPOU31tVfq3cNdBlNa5sSznIX1xY=
 github.com/smartystreets/goconvey v1.8.1/go.mod h1:+/u4qLyY6x1jReYOp7GOM2FSt8aP9CzCZL03bI28W60=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
-github.com/solidwall/icap-client v0.0.0-20250630122835-d3ca1e8c4269 h1:hdcfOUUvlV4vF7iK44cH0SvDYYNahSkzksmQAFM9uts=
-github.com/solidwall/icap-client v0.0.0-20250630122835-d3ca1e8c4269/go.mod h1:ybYyUQEUbT9RDH5IDu8qbzol0m/3K0W06Y/5E1RJS+0=
 github.com/sony/gobreaker v0.4.1/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJOjmxWY=
 github.com/sony/gobreaker v1.0.0 h1:feX5fGGXSl3dYd4aHZItw+FpHLvvoaqkawKjVNiFMNQ=
 github.com/sony/gobreaker v1.0.0/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJOjmxWY=

@@ -8,8 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/egirna/icap"
-	ic "github.com/solidwall/icap-client"
+	"github.com/go-icap/icap"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,11 +62,11 @@ func makeReqModServer(tb testing.TB, expReq *testIcapReqModRequest,
 
 	handler := func(w icap.ResponseWriter, r *icap.Request) {
 		switch r.Method {
-		case ic.MethodOPTIONS: // OPTIONS
-			w.Header().Set(ic.PreviewHeader, strconv.Itoa(previewLen))
-			w.Header().Set(ic.TransferPreviewHeader, "*")
+		case "OPTIONS":
+			w.Header().Set("Preview", strconv.Itoa(previewLen))
+			w.Header().Set("Transfer-Preview", "*")
 			w.WriteHeader(http.StatusOK, nil, false)
-		case ic.MethodREQMOD: // TRANSFER
+		case "REQMOD":
 			require.NotNil(tb, r.Request, "missing HTTP request")
 
 			for head, val := range expReq.icapHeaders {
@@ -118,11 +117,11 @@ func makeRespModServer(tb testing.TB, expReq *testIcapRespModRequest,
 
 	handler := func(w icap.ResponseWriter, r *icap.Request) {
 		switch r.Method {
-		case ic.MethodOPTIONS: // OPTIONS
-			w.Header().Set(ic.PreviewHeader, strconv.Itoa(previewLen))
-			w.Header().Set(ic.TransferPreviewHeader, "*")
+		case "OPTIONS":
+			w.Header().Set("Preview", strconv.Itoa(previewLen))
+			w.Header().Set("Transfer-Preview", "*")
 			w.WriteHeader(http.StatusOK, nil, true)
-		case ic.MethodRESPMOD: // TRANSFER
+		case "RESPMOD":
 			require.NotNil(tb, r.Response, "missing HTTP request")
 
 			for head, val := range expReq.icapHeaders {

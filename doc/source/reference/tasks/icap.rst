@@ -7,25 +7,12 @@ Le traitement ``ICAP`` upload le fichier de transfert vers un serveur ICAP pour
 être traité. Dans le cas où le transfert est un envoi, la méthode Icap ``REQMOD``
 sera utilisée. Dans le cas d'une réception, la methode ``RESPMOD`` sera utilisée.
 
-.. warning::
-   L'implémentation actuelle de ICAP n'est pas complète, et souffre donc de 2
-   sévères limitations :
-
-   1) Le fichier est lu intégralement en mémoire avant d'être écrit dans la
-   requête ICAP. Cela signifie que les fichiers de transfert de taille importante
-   **ne peuvent pas, et ne doivent pas** être traités via cette tâche, au risque
-   de causer un crash de la gateway pour cause de manque de mémoire. En règle
-   générale, il est fortement déconseillé d'utiliser le traitement ICAP sur des
-   fichiers de plus de quelques mégaoctets.
-   2) Le client ICAP actuel ne supporte pas TLS. Les requêtes ICAP seront donc
-   toujours envoyées en clair.
-
-   Nous travaillons à résoudre ces deux limitations dans un futur proche.
-
 Les arguments de ce traitement sont:
 
 * ``uploadURL`` (*string*) - L'URL complète de la requête ICAP. Cela inclue
   l'hôte, le port, ainsi que le chemin.
+* ``useTLS`` (*bool*) - Indique si la connexion au serveur doit se faire en TLS.
+  Par défaut, la connexion sera en clair.
 * ``timeout`` (*string*) - Le temps de timeout de la requête. Les unités de temps
   acceptées sont: ``ms`` (millisecondes), ``s`` (secondes), ``m`` (minutes),
   et ``h`` (heures).

@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -9,14 +10,14 @@ import (
 	"path"
 	"strings"
 
+	"code.waarp.fr/lib/icap"
 	"code.waarp.fr/lib/log"
-	"github.com/pbnjay/memory"
-	ic "github.com/solidwall/icap-client"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -25,9 +26,9 @@ var (
 	ErrIcapMissingErrorMovePath   = errors.New("ICAP error move path is missing")
 	ErrIcapFileRefused            = errors.New("ICAP server refused file extension")
 	ErrIcapUnexpectedResponseCode = errors.New("ICAP server returned an unexpected response code")
-	ErrIcapFileTooBig             = errors.New("file is too voluminous for ICAP task (see documentation)")
 	ErrIcapInvalidErrorAction     = fmt.Errorf("invalid ICAP error action (must be %q or %q)",
 		IcapOnErrorDelete, IcapOnErrorMove)
+	ErrIcapTimeout = errors.New("ICAP request timed out")
 )
 
 const (
@@ -37,16 +38,17 @@ const (
 
 type icapTask struct {
 	UploadURL              string       `json:"uploadURL"`
+	UseTLS                 jsonBool     `json:"useTLS"`
 	Timeout                jsonDuration `json:"timeout"`
 	AllowFileModifications jsonBool     `json:"allowFileModifications"`
 	OnError                string       `json:"onError"`
 	OnErrorMovePath        string       `json:"onErrorMovePath"`
 
 	deleteOnError, moveOnError bool
-	client                     *ic.Client
+	client                     *icap.Client
 }
 
-func (i *icapTask) parseParams(params map[string]string) error {
+func (i *icapTask) parseParams(db database.ReadAccess, params map[string]string) error {
 	*i = icapTask{}
 	if err := utils.JSONConvert(params, i); err != nil {
 		return fmt.Errorf("failed to parse icap task arguments: %w", err)
@@ -75,35 +77,52 @@ func (i *icapTask) parseParams(params map[string]string) error {
 		return ErrIcapInvalidErrorAction
 	}
 
-	i.client = &ic.Client{
-		Timeout:        i.Timeout.Duration,
-		SetAbsoluteUrl: true,
+	i.client = &icap.Client{}
+
+	if i.UseTLS {
+		i.client.TLSConfig = &tls.Config{}
+		if err := auth.AddTLSAuthorities(db, i.client.TLSConfig); err != nil {
+			return fmt.Errorf("failed to add TLS authorities: %w", err)
+		}
 	}
 
 	return nil
 }
 
-func (i *icapTask) Validate(params map[string]string) error {
-	return i.parseParams(params)
+func (i *icapTask) ValidateDB(db database.ReadAccess, params map[string]string) error {
+	return i.parseParams(db, params)
 }
 
-func (i *icapTask) Run(_ context.Context, params map[string]string, _ *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext, _ any,
+func (i *icapTask) Run(parent context.Context, params map[string]string,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
-	if err := i.parseParams(params); err != nil {
+	if err := i.parseParams(db, params); err != nil {
 		return err
 	}
 
-	previewSize, optErr := i.options(transCtx.Transfer.LocalPath)
+	ctx := parent
+
+	if !i.Timeout.IsZero() {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(parent, i.Timeout.Duration)
+
+		defer cancel()
+	}
+
+	previewSize, optErr := i.options(ctx, transCtx.Transfer.LocalPath)
 	if optErr != nil {
 		logger.Errorf("Failed to get preview size: %v", optErr)
 
 		return optErr
 	}
 
-	runErr := i.run(logger, transCtx, previewSize)
+	runErr := i.run(ctx, logger, transCtx, previewSize)
 	if runErr == nil {
 		return nil // no error
+	}
+
+	if errors.Is(runErr, context.DeadlineExceeded) {
+		runErr = ErrIcapTimeout
 	}
 
 	logger.Errorf("Failed to run ICAP task: %v", runErr)
@@ -130,14 +149,12 @@ func (i *icapTask) checkFileSize(file fs.File) (int64, error) {
 		return 0, fmt.Errorf("failed to stat file: %w", err)
 	}
 
-	if uint64(info.Size()) > memory.FreeMemory() {
-		return 0, ErrIcapFileTooBig
-	}
-
 	return info.Size(), nil
 }
 
-func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, previewSize int64) error {
+func (i *icapTask) run(ctx context.Context, logger *log.Logger,
+	transCtx *model.TransferContext, previewSize int64,
+) error {
 	flags := fs.FlagReadOnly
 	if i.AllowFileModifications {
 		flags = fs.FlagReadWrite
@@ -160,7 +177,7 @@ func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, prev
 		return sizErr
 	}
 
-	if err := i.makeRequest(file, transCtx, fileSize, previewSize); err != nil {
+	if err := i.makeRequest(ctx, file, transCtx, fileSize, previewSize); err != nil {
 		logger.Errorf("Failed to make icap request: %v", err)
 
 		return err
@@ -169,61 +186,46 @@ func (i *icapTask) run(logger *log.Logger, transCtx *model.TransferContext, prev
 	return nil
 }
 
-func (i *icapTask) options(filepath string) (int64, error) {
+func (i *icapTask) options(ctx context.Context, filepath string) (int64, error) {
 	fileExt := path.Ext(filepath)
 
-	req, reqErr := ic.NewRequest(ic.MethodOPTIONS, i.UploadURL, nil, nil)
-	if reqErr != nil {
-		return 0, fmt.Errorf("failed to create icap OPTIONS request: %w", reqErr)
-	}
-
-	optClient := &ic.Client{
-		Timeout:        i.Timeout.Duration,
-		SetAbsoluteUrl: true,
-	}
-
-	resp, reqErr := optClient.Do(req)
+	resp, reqErr := i.client.Options(ctx, i.UploadURL)
 	if reqErr != nil {
 		return 0, fmt.Errorf("failed to execute icap OPTIONS request: %w", reqErr)
 	}
 
-	if containsExt(resp.Header, ic.TransferIgnoreHeader, fileExt) {
+	if containsExt(resp.TransferIgnore, fileExt) {
 		return 0, ErrIcapFileRefused
 	}
 
-	if containsExt(resp.Header, ic.TransferCompleteHeader, fileExt) {
+	if containsExt(resp.TransferComplete, fileExt) {
 		// Server has indicated that this file type should be sent in full, with no preview.
-		return -1, nil
+		return icap.NoPreview, nil
 	}
 
-	previewSize := int64(-1)
-
-	if containsExt(resp.Header, ic.TransferPreviewHeader, fileExt) {
-		previewSize = int64(resp.PreviewBytes)
-	}
-
-	return previewSize, nil
+	return resp.Preview, nil
 }
 
-func (i *icapTask) overwriteFile(resp *ic.Response, transCtx *model.TransferContext) error {
-	isSend := transCtx.Rule.IsSend
-	filepath := transCtx.Transfer.LocalPath
-
+func (i *icapTask) overwriteFile(resp *icap.Response,
+	transCtx *model.TransferContext,
+) error {
 	var newFile io.ReadCloser
 
 	switch {
-	case isSend && resp.ContentRequest.ContentLength != 0:
-		newFile = resp.ContentRequest.Body
-	case !isSend && resp.ContentResponse.ContentLength != 0:
-		newFile = resp.ContentResponse.Body
+	case hasBody(resp.HttpReq.Body):
+		newFile = resp.HttpReq.Body
+	case hasBody(resp.HttpResp.Body):
+		newFile = resp.HttpResp.Body
 	default:
 		return nil
 	}
 
-	file, reopErr := fs.Create(filepath)
+	file, reopErr := fs.Create(transCtx.Transfer.LocalPath)
 	if reopErr != nil {
 		return fmt.Errorf("failed to re-open transfer file: %w", reopErr)
 	}
+
+	defer file.Close()
 
 	n, copErr := io.Copy(file, newFile)
 	if copErr != nil {
@@ -239,33 +241,37 @@ func (i *icapTask) overwriteFile(resp *ic.Response, transCtx *model.TransferCont
 	return nil
 }
 
-func (i *icapTask) makeRequest(file fs.File, transCtx *model.TransferContext,
+func (i *icapTask) makeRequest(ctx context.Context, file fs.File, transCtx *model.TransferContext,
 	fileSize, previewSize int64,
 ) error {
 	var (
-		req    *ic.Request
+		req    *icap.Request
 		reqErr error
 	)
 
 	if transCtx.Rule.IsSend {
-		req, reqErr = i.makeReqmodRequest(file, getOriginAddress(transCtx), fileSize)
+		req, reqErr = i.makeReqmodRequest(file, getOriginAddress(transCtx), fileSize, previewSize)
 	} else {
-		req, reqErr = i.makeRespmodRequest(file, fileSize)
+		req, reqErr = i.makeRespmodRequest(file, getOriginAddress(transCtx), fileSize, previewSize)
 	}
 
 	if reqErr != nil {
 		return fmt.Errorf("failed to create icap request: %w", reqErr)
 	}
 
-	if previewSize >= 0 && previewSize < fileSize {
-		if err := req.SetPreview(int(previewSize)); err != nil {
-			return fmt.Errorf("failed to prepare preview request: %w", err)
-		}
-	}
+	req.Allow204 = true
 
-	resp, respErr := i.client.Do(req)
+	resp, respErr := i.client.Do(ctx, req)
 	if respErr != nil {
 		return fmt.Errorf("failed to execute icap request: %w", respErr)
+	}
+
+	if resp.HttpReq != nil {
+		defer resp.HttpReq.Body.Close()
+	}
+
+	if resp.HttpResp != nil {
+		defer resp.HttpResp.Body.Close()
 	}
 
 	//nolint:mnd //too specific
@@ -274,16 +280,23 @@ func (i *icapTask) makeRequest(file fs.File, transCtx *model.TransferContext,
 	}
 
 	if i.AllowFileModifications {
-		if err := i.overwriteFile(resp, transCtx); err != nil {
+		done := make(chan error)
+
+		go func() { done <- i.overwriteFile(resp, transCtx) }()
+
+		select {
+		case err := <-done:
 			return err
+		case <-ctx.Done():
+			return ErrIcapTimeout
 		}
 	}
 
 	return nil
 }
 
-func (i *icapTask) makeReqmodRequest(file io.Reader, originServer string, length int64,
-) (*ic.Request, error) {
+func (i *icapTask) makeReqmodRequest(file io.Reader, originServer string, length, preview int64,
+) (*icap.Request, error) {
 	//nolint:noctx //not a real HTTP request, just a payload inside the actual icap request
 	httpReq, reqErr := http.NewRequest(http.MethodPost, "http://"+originServer, file)
 	if reqErr != nil {
@@ -292,7 +305,7 @@ func (i *icapTask) makeReqmodRequest(file io.Reader, originServer string, length
 
 	httpReq.ContentLength = length
 
-	req, err := ic.NewRequest(ic.MethodREQMOD, i.UploadURL, httpReq, nil)
+	req, err := icap.NewReqModRequest(i.UploadURL, httpReq, preview)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create icap request: %w", err)
 	}
@@ -300,7 +313,14 @@ func (i *icapTask) makeReqmodRequest(file io.Reader, originServer string, length
 	return req, nil
 }
 
-func (i *icapTask) makeRespmodRequest(file io.Reader, length int64) (*ic.Request, error) {
+func (i *icapTask) makeRespmodRequest(file io.Reader, originServer string, length, preview int64,
+) (*icap.Request, error) {
+	//nolint:noctx //not a real HTTP request, just a payload inside the actual icap request
+	httpReq, reqErr := http.NewRequest(http.MethodGet, "http://"+originServer, http.NoBody)
+	if reqErr != nil {
+		return nil, fmt.Errorf("failed to create http request: %w", reqErr)
+	}
+
 	httpResp := &http.Response{
 		Status:     "200 OK",
 		StatusCode: http.StatusOK,
@@ -313,9 +333,10 @@ func (i *icapTask) makeRespmodRequest(file io.Reader, length int64) (*ic.Request
 		},
 		Body:          io.NopCloser(file),
 		ContentLength: length,
+		Request:       httpReq,
 	}
 
-	req, err := ic.NewRequest(ic.MethodRESPMOD, i.UploadURL, nil, httpResp)
+	req, err := icap.NewRespModRequest(i.UploadURL, httpResp, preview)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create icap request: %w", err)
 	}
@@ -323,10 +344,8 @@ func (i *icapTask) makeRespmodRequest(file io.Reader, length int64) (*ic.Request
 	return req, nil
 }
 
-func containsExt(headers http.Header, header, fileExt string) bool {
-	val := headers.Get(header)
-
-	for _, ext := range utils.TrimSplit(val, ",") {
+func containsExt(list []string, fileExt string) bool {
+	for _, ext := range list {
 		if ext == "*" || strings.EqualFold(ext, fileExt) {
 			return true
 		}
@@ -341,4 +360,8 @@ func getOriginAddress(ctx *model.TransferContext) string {
 	}
 
 	return ctx.LocalAgent.Address.String()
+}
+
+func hasBody(body io.Reader) bool {
+	return body != nil && body != http.NoBody
 }
