@@ -50,6 +50,7 @@ type Transfer struct {
 	RemotePath           string                  `xorm:"remote_path"`
 	Filesize             int64                   `xorm:"filesize"`
 	Start                time.Time               `xorm:"start DATETIME(6) UTC"`
+	Stop                 time.Time               `xorm:"stop DATETIME(6) UTC"`
 	Status               types.TransferStatus    `xorm:"status"`
 	Step                 types.TransferStep      `xorm:"step"`
 	Progress             int64                   `xorm:"progress"`
@@ -489,6 +490,7 @@ func (t *Transfer) Resume(db database.Access, when time.Time) error {
 	t.ErrCode = types.TeOk
 	t.ErrDetails = ""
 	t.NextRetry = when
+	t.Stop = time.Time{}
 
 	if err := db.Update(t).Run(); err != nil {
 		return fmt.Errorf("failed to update transfer: %w", err)
