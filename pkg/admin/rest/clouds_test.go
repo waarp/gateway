@@ -127,7 +127,7 @@ func TestAddCloud(t *testing.T) {
 
 		require.NoError(t, db.Get(&dbCloud, "name=? AND owner=?", input.Name,
 			conf.GlobalConfig.GatewayName).Run())
-		assert.Equal(t, expectedCloud, dbCloud,
+		assert.EqualExportedValues(t, expectedCloud, dbCloud,
 			`Then the cloud instance should have been inserted in the database`)
 	})
 
@@ -222,7 +222,8 @@ func TestDeleteCloud(t *testing.T) {
 		var dbClouds model.CloudInstances
 
 		require.NoError(t, db.Select(&dbClouds).Run())
-		assert.Contains(t, dbClouds, ex,
+		require.Len(t, dbClouds, 1)
+		assert.EqualExportedValues(t, ex, dbClouds[0],
 			`Then it should have left the database untouched`)
 	})
 }
@@ -327,7 +328,7 @@ func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 		var dbCloud model.CloudInstance
 
 		require.NoError(t, db.Get(&dbCloud, "id=?", old.ID).Run())
-		assert.Equal(t,
+		assert.EqualExportedValues(t,
 			expectedCloud,
 			dbCloud,
 			`Then the cloud instance should have been updated`)

@@ -16,6 +16,8 @@ type CloudInstance struct {
 	Key     string              `xorm:"api_key"`
 	Secret  database.SecretText `xorm:"secret"`
 	Options map[string]string   `xorm:"options"`
+
+	oldName string
 }
 
 func (c *CloudInstance) TableName() string   { return TableCloudInstances }
@@ -43,6 +45,41 @@ func (c *CloudInstance) BeforeWrite(db database.Access) error {
 	} else if n > 0 {
 		return database.NewValidationErrorf("a cloud instance named %q already exist", c.Name)
 	}
+
+	return nil
+}
+
+func (c *CloudInstance) AfterInsert(database.Access) error {
+	fileSys, err := fs.NewFS(c.Name, c.Type, c.Key, c.Secret.String(), c.Options)
+	if err != nil {
+		return database.NewValidationErrorf("invalid cloud instance configuration: %v", err)
+	}
+
+	fs.FileSystems.Store(c.Name, fileSys)
+
+	return nil
+}
+
+func (c *CloudInstance) AfterUpdate(db database.Access) error {
+	if err := c.AfterInsert(db); err != nil {
+		return err
+	}
+
+	if c.oldName != c.Name {
+		fs.FileSystems.Delete(c.oldName)
+	}
+
+	return nil
+}
+
+func (c *CloudInstance) AfterDelete(database.Access) error {
+	fs.FileSystems.Delete(c.Name)
+
+	return nil
+}
+
+func (c *CloudInstance) AfterRead(database.ReadAccess) error {
+	c.oldName = c.Name
 
 	return nil
 }

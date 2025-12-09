@@ -20,7 +20,7 @@ type FS interface {
 	fs() rfs.Fs
 }
 
-func newFS(name, kind, key, secret string, opts map[string]string) (FS, error) {
+func NewFS(name, kind, key, secret string, opts map[string]string) (FS, error) {
 	mkfs, ok := fsMakers.Load(kind)
 	if !ok {
 		return nil, fmt.Errorf("%w %q", ErrUnknownFSType, kind)
@@ -30,7 +30,7 @@ func newFS(name, kind, key, secret string, opts map[string]string) (FS, error) {
 }
 
 func ValidateConfig(name, kind, key, secret string, opts map[string]string) error {
-	_, err := newFS(name, kind, key, secret, opts)
+	_, err := NewFS(name, kind, key, secret, opts)
 
 	return err
 }

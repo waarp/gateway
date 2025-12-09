@@ -153,14 +153,17 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	return wg.startClients()
+	if err := wg.startClients(); err != nil {
+		return err
+	}
+
+	return wg.startClouds()
 }
 
 //nolint:dupl //too many differences
 func (wg *WG) startServers() error {
 	var servers model.LocalAgents
-	if err := wg.DBService.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := wg.DBService.Select(&servers).Owner().Run(); err != nil {
 		return fmt.Errorf("failed to retrieve servers from the database: %w", err)
 	}
 
@@ -188,8 +191,7 @@ func (wg *WG) startServers() error {
 //nolint:dupl //too many differences
 func (wg *WG) startClients() error {
 	var dbClients model.Clients
-	if err := wg.DBService.Select(&dbClients).Where("owner=?", conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := wg.DBService.Select(&dbClients).Owner().Run(); err != nil {
 		return fmt.Errorf("failed to retrieve clients from the database: %w", err)
 	}
 
@@ -209,6 +211,25 @@ func (wg *WG) startClients() error {
 				wg.Logger.Errorf("Error starting the %q client: %v", client.Name, err)
 			}
 		}
+	}
+
+	return nil
+}
+
+func (wg *WG) startClouds() error {
+	var clouds model.CloudInstances
+	if err := wg.DBService.Select(&clouds).Owner().Run(); err != nil {
+		return fmt.Errorf("failed to retrieve clouds instances from the database: %w", err)
+	}
+
+	for _, c := range clouds {
+		fileSys, err := fs.NewFS(c.Name, c.Type, c.Key, c.Secret.String(), c.Options)
+		if err != nil {
+			wg.Logger.Errorf("Failed to instantiate cloud instance %q: %v", c.Name, err)
+			continue
+		}
+
+		fs.FileSystems.Store(c.Name, fileSys)
 	}
 
 	return nil

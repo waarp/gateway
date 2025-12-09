@@ -63,7 +63,7 @@ func TestCloudImport(t *testing.T) {
 			require.NoError(t, db.Select(&dbClouds).OrderBy("id", true).Run())
 			assert.Len(t, dbClouds, 2)
 
-			assert.Equal(t, existing, dbClouds[0])
+			assert.EqualExportedValues(t, existing, dbClouds[0])
 
 			assert.Equal(t, newCloud.Name, dbClouds[1].Name)
 			assert.Equal(t, newCloud.Type, dbClouds[1].Type)
@@ -93,7 +93,7 @@ func TestCloudImport(t *testing.T) {
 		require.NoError(t, db.Select(&dbClouds).OrderBy("id", true).Run())
 		assert.Len(t, dbClouds, 2)
 
-		assert.Equal(t, existing, dbClouds[0])
+		assert.EqualExportedValues(t, existing, dbClouds[0])
 
 		assert.Equal(t, newCloud.Name, dbClouds[1].Name)
 		assert.Equal(t, newCloud.Type, dbClouds[1].Type)

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`506` Correction d'un bug qui empêchait l'utilisation des instances cloud.
+  Celles-ci pouvaient être créées ou modifiées sans problèmes, mais elles ne
+  pouvaient pas être utilisées dans un transfert (cela résultait systématiquement
+  en une erreur de transfert).
 * :feature:`507` Les transferts interrompus (de quelque manière que ce soit)
   auront désormais auront désormais la date et l'heure de l'interruption comme
   date de fin (*stop date*). Précédemment, seuls les transferts terminés avaient

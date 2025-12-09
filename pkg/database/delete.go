@@ -34,6 +34,14 @@ func (d *DeleteQuery) run(s *Session) error {
 		return NewInternalError(err)
 	}
 
+	if hook, ok := d.bean.(DeletionCallback); ok {
+		if err := hook.AfterDelete(s); err != nil {
+			s.logger.Errorf("%s deletion callback failed: %v", d.bean.Appellation(), err)
+
+			return fmt.Errorf("%s deletion callback failed: %w", d.bean.Appellation(), err)
+		}
+	}
+
 	return nil
 }
 
