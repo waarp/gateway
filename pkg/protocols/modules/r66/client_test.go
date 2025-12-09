@@ -34,15 +34,15 @@ func TestGetConnection(t *testing.T) {
 			})
 
 			Convey("Then the connection counter should have increased", func() {
-				So(r66client.conns.Exists(ctx.Partner.Address.String()), ShouldBeTrue)
+				So(r66client.conns.Exists(ctx.RemAccount), ShouldBeTrue)
 			})
 
 			Convey("When returning the connection", func() {
-				r66client.ReturnConnection(ctx.Partner)
+				r66client.ReturnConnection(ctx.RemAccount)
 
 				Convey("Then the connection should be returned to the pool", func() {
 					<-time.After(100 * time.Millisecond)
-					So(r66client.conns.Exists(ctx.Partner.Address.String()), ShouldBeFalse)
+					So(r66client.conns.Exists(ctx.RemAccount), ShouldBeFalse)
 				})
 			})
 		})

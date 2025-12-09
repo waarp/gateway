@@ -64,17 +64,17 @@ func TestPushClientPreError(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
-				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
-				ctx.CheckServerTransferError(c,
-					types.TeConnectionReset,
-					"session closed unexpectedly",
-					types.StepData)
+				// The state of the server transfer is undefined here. Since SFTP
+				// has no mechanism for transmitting errors from client to server,
+				// the server considers the transfer "done", when in reality it
+				// failed.
 			})
 		})
 	})
@@ -121,17 +121,17 @@ func TestPullClientPreError(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
-				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
-				ctx.CheckServerTransferError(c,
-					types.TeConnectionReset,
-					"session closed unexpectedly",
-					types.StepData)
+				// The state of the server transfer is undefined here. Since SFTP
+				// has no mechanism for transmitting errors from client to server,
+				// the server considers the transfer "done", when in reality it
+				// failed.
 			})
 		})
 	})
@@ -179,16 +179,16 @@ func TestSelfPushClientDataFail(t *testing.T) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
-				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeInternal,
 					"read trace error: "+pipelinetest.ErrTestError.Error(),
 					types.StepData)
-				ctx.CheckServerTransferError(c,
-					types.TeConnectionReset,
-					"session closed unexpectedly",
-					types.StepData)
+				// The state of the server transfer is undefined here. Since SFTP
+				// has no mechanism for transmitting errors from client to server,
+				// the server considers the transfer "done", when in reality it
+				// failed.
 			})
 		})
 	})
@@ -237,16 +237,16 @@ func TestSelfPullClientDataFail(t *testing.T) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
-				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeInternal,
 					"write trace error: "+pipelinetest.ErrTestError.Error(),
 					types.StepData)
-				ctx.CheckServerTransferError(c,
-					types.TeConnectionReset,
-					"session closed unexpectedly",
-					types.StepData)
+				// The state of the server transfer is undefined here. Since SFTP
+				// has no mechanism for transmitting errors from client to server,
+				// the server considers the transfer "done", when in reality it
+				// failed.
 			})
 		})
 	})
@@ -295,17 +295,16 @@ func TestPushClientPostError(t *testing.T) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHavePostTasked(c)
-				ctx.ServerShouldHaveErrorTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
-				ctx.CheckServerTransferError(c,
-					types.TeConnectionReset,
-					"session closed unexpectedly",
-					types.StepData)
+				// The state of the server transfer is undefined here. Since SFTP
+				// has no mechanism for transmitting errors from client to server,
+				// the server considers the transfer "done", when in reality it
+				// failed.
 			})
 		})
 	})
@@ -326,7 +325,6 @@ func TestPushServerPostError(t *testing.T) {
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHavePostTasked(c)
 				ctx.ServerShouldHavePostTasked(c)
-				ctx.ServerShouldHaveErrorTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
@@ -356,17 +354,16 @@ func TestPullClientPostError(t *testing.T) {
 				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHavePostTasked(c)
-				ctx.ServerShouldHaveErrorTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
-				ctx.CheckServerTransferError(c,
-					types.TeConnectionReset,
-					"session closed unexpectedly",
-					types.StepData)
+				// The state of the server transfer is undefined here. Since SFTP
+				// has no mechanism for transmitting errors from client to server,
+				// the server considers the transfer "done", when in reality it
+				// failed.
 			})
 		})
 	})

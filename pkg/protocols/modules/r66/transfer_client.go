@@ -2,7 +2,6 @@ package r66
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"io"
 
@@ -15,7 +14,7 @@ import (
 )
 
 type transferClient struct {
-	conns *internal.ConnPool
+	conns *r66ConnPool
 	pip   *pipeline.Pipeline
 
 	ctx    context.Context
@@ -26,8 +25,7 @@ type transferClient struct {
 	finalHashAlgo               string
 	serverLogin, serverPassword string
 
-	tlsConfig *tls.Config
-	ses       *r66.Session
+	ses *r66.Session
 }
 
 // Request opens a connection to the remote partner, creates a new authenticated
@@ -130,24 +128,19 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 // EndTransfer send a transfer end message, and then closes the session.
 func (c *transferClient) EndTransfer() *pipeline.Error {
 	defer c.cancel()
-
-	if c.ses == nil {
-		c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
-
-		return nil
-	}
-
-	defer c.ses.Close()
+	defer c.conns.CloseConn(c.pip)
 
 	c.pip.Logger.Debug("Ending transfert with remote partner")
 
-	if err := c.ses.EndRequest(); err != nil {
-		c.pip.Logger.Errorf("Failed to end transfer request: %v", err)
+	if c.ses != nil {
+		defer c.ses.Close()
 
-		return c.wrapAndSendError(err)
+		if err := c.ses.EndRequest(); err != nil {
+			c.pip.Logger.Errorf("Failed to end transfer request: %v", err)
+
+			return c.wrapAndSendError(err)
+		}
 	}
-
-	c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	return nil
 }
@@ -158,40 +151,26 @@ func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
 	pErr := pipeline.NewError(code, msg)
 	r66Err := internal.ToR66Error(pErr)
 
-	c.pip.Logger.Debugf(`Sending error "%v" to remote partner`, pErr)
-
-	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
-
-	if c.ses == nil {
-		return
-	}
-
-	defer c.ses.Close()
-
-	if sErr := c.ses.SendError(r66Err); sErr != nil {
-		c.pip.Logger.Errorf("Failed to send error to remote partner: %v", sErr)
-	}
+	//nolint:errcheck //error is irrelevant here
+	_ = c.halt(func() error { return c.ses.SendError(r66Err) },
+		"Sending error message: %v", pErr)
 }
 
-func (c *transferClient) halt(op string, haltFunc func() error) *pipeline.Error {
+func (c *transferClient) halt(haltFunc func() error, msg string, args ...any) *pipeline.Error {
 	defer c.cancel()
+	defer c.conns.CloseConn(c.pip)
 
-	if c.ses == nil {
-		c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
+	c.pip.Logger.Debugf(msg, args...)
 
-		return nil
+	if c.ses != nil {
+		defer c.ses.Close()
+
+		if err := haltFunc(); err != nil {
+			c.pip.Logger.Errorf("Failed to stop transfer: %v", err)
+
+			return c.wrapError(err)
+		}
 	}
-
-	defer c.ses.Close()
-
-	if err := haltFunc(); err != nil {
-		c.pip.Logger.Warningf("Failed send %q signal to remote host: %v", op, err)
-
-		return c.wrapAndSendError(err)
-	}
-
-	c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	return nil
 }
@@ -199,21 +178,26 @@ func (c *transferClient) halt(op string, haltFunc func() error) *pipeline.Error 
 // Pause sends a pause message to the remote partner and then closes the
 // session.
 func (c *transferClient) Pause() *pipeline.Error {
-	return c.halt("pause", c.ses.Stop)
+	return c.halt(c.ses.Stop, "Pausing transfer")
 }
 
 // Cancel sends a cancel message to the remote partner and then closes the
 // session.
 func (c *transferClient) Cancel() *pipeline.Error {
-	return c.halt("cancel", c.ses.Cancel)
+	return c.halt(c.ses.Cancel, "Cancelling transfer")
 }
 
-func (c *transferClient) wrapAndSendError(err error) *pipeline.Error {
+func (c *transferClient) wrapError(err error) *pipeline.Error {
 	var tErr *pipeline.Error
 	if !errors.As(err, &tErr) {
 		tErr = internal.FromR66Error(err, c.pip)
 	}
 
+	return tErr
+}
+
+func (c *transferClient) wrapAndSendError(err error) *pipeline.Error {
+	tErr := c.wrapError(err)
 	c.SendError(tErr.Code(), tErr.Details())
 
 	return tErr

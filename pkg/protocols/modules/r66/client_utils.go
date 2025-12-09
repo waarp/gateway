@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -27,11 +26,8 @@ func (c *transferClient) logErrConf(msg string) {
 	c.pip.Logger.Errorf("Client-server configuration mismatch: %s", msg)
 }
 
-func (c *transferClient) connect() (*r66.Client, *pipeline.Error) {
-	addr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
-		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
-
-	cli, err := c.conns.Add(addr, c.tlsConfig, c.pip.Logger)
+func (c *transferClient) connect() (*clientConn, *pipeline.Error) {
+	cli, err := c.conns.Connect(c.pip)
 	if err != nil {
 		c.pip.Logger.Errorf("Failed to connect to remote host: %v", err)
 
@@ -42,9 +38,9 @@ func (c *transferClient) connect() (*r66.Client, *pipeline.Error) {
 }
 
 //nolint:funlen //no easy way to split this
-func (c *transferClient) authenticate(cli *r66.Client) *pipeline.Error {
+func (c *transferClient) authenticate(conn *clientConn) *pipeline.Error {
 	var sesErr error
-	if c.ses, sesErr = cli.NewSession(); sesErr != nil {
+	if c.ses, sesErr = conn.NewSession(); sesErr != nil {
 		c.pip.Logger.Errorf("Failed to start R66 session: %s", sesErr)
 
 		return pipeline.NewErrorWith(types.TeConnection, "failed to start R66 session", sesErr)

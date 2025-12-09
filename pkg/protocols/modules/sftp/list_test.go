@@ -91,7 +91,6 @@ func TestSFTPList(t *testing.T) {
 				SSHConf:  serverConfig,
 				Listener: listener,
 			}
-			sshList.handlerMaker = sshList.makeHandlers
 
 			go sshList.listen()
 			Reset(func() {

@@ -84,3 +84,21 @@ func RWatWithCtx(ctx context.Context, f func([]byte, int64) (int, error), b []by
 
 	return n, rwErr
 }
+
+func TrySend[T any](c chan<- T, v T) bool {
+	select {
+	case c <- v:
+		return true
+	default:
+		return false
+	}
+}
+
+func TryRecv[T any](c <-chan T) (T, bool) {
+	select {
+	case v := <-c:
+		return v, true
+	default:
+		return *new(T), false
+	}
+}
