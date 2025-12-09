@@ -58,7 +58,7 @@ func (a *archiveTask) parseParams(params map[string]string) error {
 		return ErrArchiveNoOutput
 	}
 
-	for _, pattern := range strings.Split(a.Files, ",") {
+	for pattern := range strings.SplitSeq(a.Files, ",") {
 		files, err := fs.Glob(strings.TrimSpace(pattern))
 		if err != nil {
 			return fmt.Errorf("invalid input file path %q: %w", pattern, err)
@@ -74,8 +74,8 @@ func (a *archiveTask) Validate(params map[string]string) error {
 	return a.parseParams(params)
 }
 
-func (a *archiveTask) Run(_ context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (a *archiveTask) Run(_ context.Context, params map[string]string, _ *database.DB,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := a.parseParams(params); err != nil {
 		logger.Errorf("%v", err)

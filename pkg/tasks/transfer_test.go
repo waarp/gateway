@@ -115,7 +115,7 @@ func TestTransferRun(t *testing.T) {
 		}
 
 		t.Run("Valid task", func(t *testing.T) {
-			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
+			err := runner.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			require.NoError(t, err)
 
 			var transfer model.Transfer
@@ -140,35 +140,35 @@ func TestTransferRun(t *testing.T) {
 		t.Run("Partner does not exist", func(t *testing.T) {
 			replaceArg(t, args, "to", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
+			err := runner.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			assert.ErrorIs(t, err, ErrTransferPartnerNotFound)
 		})
 
 		t.Run("Account does not exist", func(t *testing.T) {
 			replaceArg(t, args, "as", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
+			err := runner.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			assert.ErrorIs(t, err, ErrTransferAccountNotFound)
 		})
 
 		t.Run("Rule does not exist", func(t *testing.T) {
 			replaceArg(t, args, "rule", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
+			err := runner.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			assert.ErrorIs(t, err, ErrTransferRuleNotFound)
 		})
 
 		t.Run("Client does not exist", func(t *testing.T) {
 			replaceArg(t, args, "using", "toto")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
+			err := runner.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			assert.ErrorIs(t, err, ErrTransferClientNotFound)
 		})
 
 		t.Run("With default client", func(t *testing.T) {
 			delete(args, "using")
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
+			err := runner.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			require.NoError(t, err)
 		})
 
@@ -180,7 +180,7 @@ func TestTransferRun(t *testing.T) {
 				return &check, nil
 			}
 
-			err := runner.Run(context.Background(), args, db, logger, transCtx(t))
+			err := runner.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			require.NoError(t, err)
 
 			assert.True(t, check.done)
@@ -199,7 +199,7 @@ func TestTransferRun(t *testing.T) {
 				return &check, nil
 			}
 
-			err := runner.Run(context.Background(), args, db, logger, ctx)
+			err := runner.Run(t.Context(), args, db, logger, ctx, nil)
 			require.ErrorIs(t, err, assert.AnError)
 
 			assert.True(t, check.done)
@@ -211,7 +211,7 @@ func TestTransferRun(t *testing.T) {
 				return &check2, nil
 			}
 
-			err = runner.Run(context.Background(), args, db, logger, ctx)
+			err = runner.Run(t.Context(), args, db, logger, ctx, nil)
 			require.NoError(t, err)
 
 			assert.True(t, check2.done)
@@ -231,7 +231,7 @@ func TestTransferRun(t *testing.T) {
 		}
 
 		t.Run("Valid task", func(t *testing.T) {
-			err := trans.Run(context.Background(), args, db, logger, transCtx(t))
+			err := trans.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			require.NoError(t, err)
 
 			var transfer model.Transfer
@@ -245,7 +245,7 @@ func TestTransferRun(t *testing.T) {
 		t.Run("Partner does not exist", func(t *testing.T) {
 			replaceArg(t, args, "from", "toto")
 
-			err := trans.Run(context.Background(), args, db, logger, transCtx(t))
+			err := trans.Run(t.Context(), args, db, logger, transCtx(t), nil)
 			assert.ErrorIs(t, err, ErrTransferPartnerNotFound)
 		})
 	})

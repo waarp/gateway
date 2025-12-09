@@ -39,7 +39,7 @@ func (e *execTask) Validate(params map[string]string) error {
 
 // Run executes the task by executing the external program with the given parameters.
 func (e *execTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	output, runErr := runExec(parent, logger, transCtx, params)
 	if runErr != nil {

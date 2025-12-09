@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"path"
 	"strings"
 	"testing"
@@ -91,16 +90,16 @@ func testArchive(t *testing.T, extension string) {
 
 	archive := &archiveTask{}
 	extract := &extractTask{}
-	ctx := context.Background()
+	ctx := t.Context()
 
-	require.NoError(t, archive.Run(ctx, archParam, db, logger, transCtxArch))
+	require.NoError(t, archive.Run(ctx, archParam, db, logger, transCtxArch, nil))
 	assert.FileExists(t, archivePath)
 
 	require.NoError(t, fs.RemoveAll(fileA))
 	require.NoError(t, fs.RemoveAll(fileB))
 	require.NoError(t, fs.RemoveAll(dir))
 
-	require.NoError(t, extract.Run(ctx, extrParams, db, logger, transCtxExtr))
+	require.NoError(t, extract.Run(ctx, extrParams, db, logger, transCtxExtr, nil))
 
 	assert.FileExists(t, fileA)
 	assert.FileExists(t, fileB)
@@ -133,7 +132,7 @@ func testArchive(t *testing.T, extension string) {
 
 	t.Run("Idempotence", func(t *testing.T) {
 		affectedFiles := len(archive.files)
-		require.NoError(t, archive.Run(ctx, archParam, db, logger, transCtxArch))
+		require.NoError(t, archive.Run(ctx, archParam, db, logger, transCtxArch, nil))
 		assert.Len(t, archive.files, affectedFiles)
 	})
 }

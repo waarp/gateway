@@ -1,6 +1,8 @@
 package ftp
 
 import (
+	"context"
+
 	"code.waarp.fr/lib/goftp"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
@@ -87,4 +89,8 @@ func (t *clientStorTransfer) sendError() {
 	if err := t.client.Close(); err != nil {
 		t.pip.Logger.Warningf("Failed to close FTP connection: %v", err)
 	}
+}
+
+func (t *clientStorTransfer) Delete(ctx context.Context, path string, recursive bool) error {
+	return deleteRemoteCtx(ctx, t.client, path, recursive)
 }

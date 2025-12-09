@@ -87,8 +87,8 @@ func (i *icapTask) Validate(params map[string]string) error {
 	return i.parseParams(params)
 }
 
-func (i *icapTask) Run(_ context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (i *icapTask) Run(_ context.Context, params map[string]string, _ *database.DB,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := i.parseParams(params); err != nil {
 		return err

@@ -3,7 +3,6 @@
 package tasks
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -35,7 +34,6 @@ func TestManualIcap(t *testing.T) {
 
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
-	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
 		root := t.TempDir()
@@ -49,6 +47,6 @@ func TestManualIcap(t *testing.T) {
 			"timeout":   "5h",
 		}
 
-		require.NoError(t, task.Run(ctx, params, db, logger, transCtx))
+		require.NoError(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 	})
 }

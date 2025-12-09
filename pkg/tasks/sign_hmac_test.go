@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -72,13 +71,11 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	}
 
 	doSign := func() error {
-		return (&sign{}).Run(context.Background(), signParams, db,
-			logger, transCtx)
+		return (&sign{}).Run(t.Context(), signParams, db, logger, transCtx, nil)
 	}
 
 	doVerify := func() error {
-		return (&verify{}).Run(context.Background(), verifyParams, db,
-			logger, transCtx)
+		return (&verify{}).Run(t.Context(), verifyParams, db, logger, transCtx, nil)
 	}
 
 	t.Run("When signing with "+method, func(t *testing.T) {

@@ -22,9 +22,11 @@ type Runner struct {
 	db       *database.DB
 	logger   *log.Logger
 	transCtx *model.TransferContext
-	Ctx      context.Context
-	Stop     context.CancelFunc
-	lock     sync.WaitGroup
+	Remote   any
+
+	Ctx  context.Context
+	Stop context.CancelFunc
+	lock sync.WaitGroup
 }
 
 // NewTaskRunner returns a new tasks.Runner using the given elements.
@@ -87,9 +89,9 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 	var runErr error
 
 	if isErrTasks {
-		runErr = runner.Run(context.Background(), args, r.db, r.logger, r.transCtx)
+		runErr = runner.Run(context.Background(), args, r.db, r.logger, r.transCtx, r.Remote)
 	} else {
-		runErr = runner.Run(r.Ctx, args, r.db, r.logger, r.transCtx)
+		runErr = runner.Run(r.Ctx, args, r.db, r.logger, r.transCtx, r.Remote)
 	}
 
 	if runErr != nil {

@@ -113,20 +113,24 @@ func (h *httpClient) State() (utils.StateCode, string) { return h.state.Get() }
 func newTransferClient(pip *pipeline.Pipeline, transport *http.Transport, isHTTPS bool,
 ) protocol.TransferClient {
 	client := &http.Client{Transport: transport}
+	scheme := schemeHTTP
+	if isHTTPS {
+		scheme = schemeHTTPS
+	}
 
 	if pip.TransCtx.Rule.IsSend {
 		return &postClient{
-			pip:     pip,
-			client:  client,
-			isHTTPS: isHTTPS,
-			reqErr:  make(chan error),
-			resp:    make(chan *http.Response),
+			pip:    pip,
+			client: client,
+			scheme: scheme,
+			reqErr: make(chan error),
+			resp:   make(chan *http.Response),
 		}
 	}
 
 	return &getClient{
-		pip:     pip,
-		client:  client,
-		isHTTPS: isHTTPS,
+		pip:    pip,
+		client: client,
+		scheme: scheme,
 	}
 }

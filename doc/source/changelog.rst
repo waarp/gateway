@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`428` Ajout d'une tâche REMOTEDELETE permettant de supprimer à distance
+  un fichier sur le partenaire de transfert si le protocole le permet. Voir la
+  :doc:`documentation<reference/tasks/remotedelete>` de la tâche pour plus de détails.
 * :feature:`504` Ajout du multiplexing pour SFTP côté client. Les transferts SFTP
   simultané avec un même partenaire prendront place au sein de la même session
   au lieu d'être chacun dans des sessions séparées. Cela devrait engendrer

@@ -99,7 +99,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 		return nil, pipErr
 	}
 
-	clientService, cliErr := client.InitTransfer(pip)
+	clientTransfer, cliErr := client.InitTransfer(pip)
 	if cliErr != nil {
 		pip.SetError(cliErr.Code(), cliErr.Details())
 		logger.Errorf("Failed to instantiate the %q transfer client: %s",
@@ -110,10 +110,11 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 
 	c := &ClientPipeline{
 		Pip:    pip,
-		Client: clientService,
+		Client: clientTransfer,
 	}
 
 	pip.SetInterruptionHandlers(c.Pause, c.Interrupt, c.Cancel)
+	pip.SetProtocolAgent(clientTransfer)
 
 	if transCtx.Rule.IsSend {
 		logger.Infof("Starting upload of file %q to %q as %q using rule %q",

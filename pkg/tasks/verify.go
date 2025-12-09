@@ -100,7 +100,7 @@ func (v *verify) ValidateDB(db database.ReadAccess, params map[string]string) er
 }
 
 func (v *verify) Run(_ context.Context, params map[string]string, db *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := v.ValidateDB(db, params); err != nil {
 		logger.Error(err.Error())

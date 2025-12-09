@@ -74,7 +74,7 @@ func (m *emailTask) ValidateDB(db database.ReadAccess, args map[string]string) e
 }
 
 func (m *emailTask) Run(_ context.Context, params map[string]string, db *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := m.parseParams(db, params); err != nil {
 		logger.Errorf("%v", err)

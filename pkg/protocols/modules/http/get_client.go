@@ -17,9 +17,9 @@ import (
 )
 
 type getClient struct {
-	pip     *pipeline.Pipeline
-	client  *http.Client
-	isHTTPS bool
+	pip    *pipeline.Pipeline
+	client *http.Client
+	scheme string
 
 	resp   *http.Response
 	ctx    context.Context
@@ -30,14 +30,9 @@ type getClient struct {
 func (g *getClient) Request() *pipeline.Error {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
-	scheme := schemeHTTP
-	if g.isHTTPS {
-		scheme = schemeHTTPS
-	}
-
 	addr := conf.GetRealAddress(g.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(g.pip.TransCtx.RemoteAgent.Address.Port))
-	url := scheme + path.Join(addr, g.pip.TransCtx.Transfer.RemotePath)
+	url := g.scheme + path.Join(addr, g.pip.TransCtx.Transfer.RemotePath)
 
 	req, reqErr := http.NewRequestWithContext(g.ctx, http.MethodGet, url, http.NoBody)
 	if reqErr != nil {
@@ -166,4 +161,10 @@ func (g *getClient) wrapAndSendError(cause error, code types.TransferErrorCode, 
 	g.SendError(tErr.Code(), tErr.Redacted())
 
 	return tErr
+}
+
+func (g *getClient) Delete(ctx context.Context, filepath string, recursive bool) error {
+	url := makeRequestURL(g.scheme, g.pip.TransCtx, filepath)
+
+	return deleteRemoteFile(ctx, g.client, url, recursive)
 }

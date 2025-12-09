@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -55,13 +54,11 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	}
 
 	doEncrypt := func() error {
-		return (&encrypt{}).Run(context.Background(), encryptParams, db,
-			logger, transCtx)
+		return (&encrypt{}).Run(t.Context(), encryptParams, db, logger, transCtx, nil)
 	}
 
 	doDecrypt := func() error {
-		return (&decrypt{}).Run(context.Background(), decryptParams, db,
-			logger, transCtx)
+		return (&decrypt{}).Run(t.Context(), decryptParams, db, logger, transCtx, nil)
 	}
 
 	t.Run("Encrypt", func(t *testing.T) {

@@ -3,19 +3,23 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -294,4 +298,37 @@ func sendServerError(pip *pipeline.Pipeline, req *http.Request, resp http.Respon
 		resp.Header().Set(httpconst.ErrorMessage, err.Redacted())
 		resp.WriteHeader(status)
 	})
+}
+
+func makeRequestURL(scheme string, transCtx *model.TransferContext, filepath string) string {
+	addr := conf.GetRealAddress(transCtx.RemoteAgent.Address.Host,
+		utils.FormatUint(transCtx.RemoteAgent.Address.Port))
+
+	return scheme + path.Join(addr, filepath)
+}
+
+var ErrRemoteDeleteRecursive = errors.New("HTTP does not support recursive deletion")
+
+func deleteRemoteFile(ctx context.Context, client *http.Client, url string, recursive bool) error {
+	if recursive {
+		return ErrRemoteDeleteRecursive
+	}
+
+	req, reqErr := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
+	if reqErr != nil {
+		return fmt.Errorf("failed to create HTTP DELETE request: %w", reqErr)
+	}
+
+	resp, doErr := client.Do(req)
+	if doErr != nil {
+		return fmt.Errorf("failed to execute HTTP DELETE request: %w", doErr)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode > 299 { //nolint:mnd //too specific
+		return newUnexpectedStatusError(resp)
+	}
+
+	return nil
 }

@@ -42,7 +42,7 @@ func TestChangeNewline(t *testing.T) {
 	}
 
 	task := chNewlineTask{}
-	require.NoError(t, task.Run(t.Context(), args, db, logger, transCtx))
+	require.NoError(t, task.Run(t.Context(), args, db, logger, transCtx, nil))
 
 	content, err := os.ReadFile(filePath)
 	require.NoError(t, err)

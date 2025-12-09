@@ -1,6 +1,8 @@
 package sftp
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -105,6 +107,11 @@ func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 		return c.wrapAndSendError(err, types.TeDataTransfer)
 	}
 
+	if err := c.sftpFile.Close(); err != nil {
+		c.pip.Logger.Errorf("Failed to close remote SFTP file: %v", err)
+		return fromSFTPErr(err, types.TeFinalization, c.pip)
+	}
+
 	return nil
 }
 
@@ -123,6 +130,12 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 		return c.wrapAndSendError(err, types.TeDataTransfer)
 	}
 
+	if err := c.sftpFile.Close(); err != nil {
+		c.pip.Logger.Errorf("Failed to close remote SFTP file: %v", err)
+
+		return fromSFTPErr(err, types.TeFinalization, c.pip)
+	}
+
 	return nil
 }
 
@@ -131,31 +144,9 @@ func (c *transferClient) EndTransfer() *pipeline.Error {
 }
 
 func (c *transferClient) endTransfer() (tErr *pipeline.Error) {
-	defer c.conns.CloseConn(c.pip)
+	c.conns.CloseConn(c.pip)
 
-	if c.sftpFile != nil {
-		if err := c.sftpFile.Close(); err != nil {
-			c.pip.Logger.Errorf("Failed to close remote SFTP file: %v", err)
-
-			if cErr := c.sftpSession.Close(); cErr != nil {
-				c.pip.Logger.Warningf("An error occurred while closing the SFTP session: %v", cErr)
-			}
-
-			tErr = fromSFTPErr(err, types.TeFinalization, c.pip)
-		}
-	}
-
-	if c.sftpSession != nil {
-		if err := c.sftpSession.Close(); err != nil {
-			c.pip.Logger.Errorf("Failed to close SFTP session: %v", err)
-
-			if tErr == nil {
-				tErr = fromSFTPErr(err, types.TeFinalization, c.pip)
-			}
-		}
-	}
-
-	return tErr
+	return nil
 }
 
 func (c *transferClient) wrapAndSendError(err error, defaultCode types.TransferErrorCode) *pipeline.Error {
@@ -168,4 +159,23 @@ func (c *transferClient) wrapAndSendError(err error, defaultCode types.TransferE
 func (c *transferClient) SendError(types.TransferErrorCode, string) {
 	//nolint:errcheck //error is irrelevant here
 	_ = c.endTransfer()
+}
+
+func (c *transferClient) Delete(ctx context.Context, filepath string, recursive bool) error {
+	result := make(chan error)
+	go func() {
+		defer close(result)
+		if recursive {
+			result <- c.sftpSession.RemoveAll(filepath)
+		} else {
+			result <- c.sftpSession.Remove(filepath)
+		}
+	}()
+
+	select {
+	case err := <-result:
+		return err
+	case <-ctx.Done():
+		return fmt.Errorf("request canceled: %w", ctx.Err())
+	}
 }

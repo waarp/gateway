@@ -47,7 +47,7 @@ func (c *chNewlineTask) Validate(args map[string]string) error {
 }
 
 func (c *chNewlineTask) Run(ctx context.Context, args map[string]string, _ *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := c.parseParams(args); err != nil {
 		return err

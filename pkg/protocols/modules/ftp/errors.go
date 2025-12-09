@@ -21,8 +21,17 @@ func toPipelineError(ftpErr error, context string) *pipeline.Error {
 
 	var netErr *net.OpError
 	if errors.As(ftpErr, &netErr) {
-		return pipeline.NewError(types.TeConnectionReset,
-			"data connection closed unexpectedly")
+		switch netErr.Op {
+		case "dial":
+			return pipeline.NewErrorWith(types.TeConnection,
+				"could not connect to FTP server", netErr.Err)
+		case "read", "write":
+			return pipeline.NewErrorf(types.TeConnectionReset,
+				"connection closed unexpectedly")
+		default:
+			return pipeline.NewErrorf(types.TeConnection,
+				"%s: %s", context, netErr.Err)
+		}
 	}
 
 	var goftpErr goftp.Error

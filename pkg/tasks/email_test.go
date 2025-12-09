@@ -76,5 +76,5 @@ func TestMail(t *testing.T) {
 		Transfer: &model.Transfer{ID: 1234},
 	}
 
-	require.NoError(t, task.Run(ctx, taskParams, db, logger, tCtx))
+	require.NoError(t, task.Run(ctx, taskParams, db, logger, tCtx, nil))
 }

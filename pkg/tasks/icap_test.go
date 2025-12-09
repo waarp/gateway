@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
@@ -43,7 +42,6 @@ func TestIcapTaskReqModRun(t *testing.T) {
 
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
-	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
 		root := t.TempDir()
@@ -59,7 +57,7 @@ func TestIcapTaskReqModRun(t *testing.T) {
 			"timeout":   "5h",
 		}
 
-		require.NoError(t, task.Run(ctx, params, db, logger, transCtx))
+		require.NoError(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 	})
 
 	t.Run("Error with delete", func(t *testing.T) {
@@ -77,7 +75,7 @@ func TestIcapTaskReqModRun(t *testing.T) {
 			"onError":   IcapOnErrorDelete,
 		}
 
-		require.Error(t, task.Run(ctx, params, db, logger, transCtx))
+		require.Error(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 		require.NoFileExists(t, filepath)
 	})
 
@@ -98,7 +96,7 @@ func TestIcapTaskReqModRun(t *testing.T) {
 			"onErrorMovePath": errorPath,
 		}
 
-		require.Error(t, task.Run(ctx, params, db, logger, transCtx))
+		require.Error(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 		require.NoFileExists(t, filepath)
 		require.FileExists(t, errorPath)
 	})
@@ -132,7 +130,6 @@ func TestIcapTaskRespModRun(t *testing.T) {
 
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
-	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
 		root := t.TempDir()
@@ -148,7 +145,7 @@ func TestIcapTaskRespModRun(t *testing.T) {
 			"timeout":   "5s",
 		}
 
-		require.NoError(t, task.Run(ctx, params, db, logger, transCtx))
+		require.NoError(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 	})
 
 	t.Run("Error with delete", func(t *testing.T) {
@@ -166,7 +163,7 @@ func TestIcapTaskRespModRun(t *testing.T) {
 			"onError":   IcapOnErrorDelete,
 		}
 
-		require.Error(t, task.Run(ctx, params, db, logger, transCtx))
+		require.Error(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 		require.NoFileExists(t, filepath)
 	})
 
@@ -187,7 +184,7 @@ func TestIcapTaskRespModRun(t *testing.T) {
 			"onErrorMovePath": errorPath,
 		}
 
-		require.Error(t, task.Run(ctx, params, db, logger, transCtx))
+		require.Error(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 		require.NoFileExists(t, filepath)
 		require.FileExists(t, errorPath)
 	})

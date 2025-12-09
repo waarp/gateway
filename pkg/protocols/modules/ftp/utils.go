@@ -1,14 +1,17 @@
 package ftp
 
 import (
+	"context"
 	"fmt"
 	"math/rand/v2"
 	"net"
 	"strings"
 
+	"code.waarp.fr/lib/goftp"
 	"code.waarp.fr/lib/log"
 	ftplog "github.com/fclairamb/go-log"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
@@ -74,3 +77,58 @@ func (f *ftpServerLogger) Warn(msg string, keyvals ...any)  { f.log(msg, keyvals
 func (f *ftpServerLogger) Error(msg string, keyvals ...any) { f.log(msg, keyvals) }
 func (f *ftpServerLogger) Panic(msg string, keyvals ...any) { f.log(msg, keyvals) }
 func (f *ftpServerLogger) With(...any) ftplog.Logger        { return f }
+
+func deleteRemoteCtx(ctx context.Context, client *goftp.Client, path string, recursive bool) error {
+	result := make(chan error)
+	go func() {
+		defer close(result)
+		result <- deleteRemote(client, path, recursive)
+	}()
+
+	select {
+	case err := <-result:
+		return err
+	case <-ctx.Done():
+		return fmt.Errorf("request canceled: %w", ctx.Err())
+	}
+}
+
+func deleteRemote(client *goftp.Client, path string, recursive bool) error {
+	if !recursive {
+		if err := client.Delete(path); err != nil {
+			return fmt.Errorf("failed to delete file %q: %w", path, err)
+		}
+
+		return nil
+	}
+
+	info, err := client.Stat(path)
+	if err != nil {
+		return fmt.Errorf("failed to stat file %q: %w", path, err)
+	}
+
+	return deleteRemoteRec(client, info)
+}
+
+func deleteRemoteRec(client *goftp.Client, info fs.FileInfo) error {
+	path := info.Name()
+
+	if info.IsDir() {
+		children, rdErr := client.ReadDir(path)
+		if rdErr != nil {
+			return fmt.Errorf("failed to read directory %q: %w", path, rdErr)
+		}
+
+		for _, child := range children {
+			if err := deleteRemoteRec(client, child); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := client.Delete(path); err != nil {
+		return fmt.Errorf("failed to delete file %q: %w", path, err)
+	}
+
+	return nil
+}

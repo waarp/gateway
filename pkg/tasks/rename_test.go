@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -72,7 +71,7 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": dstPath}
 
 			Convey("When calling the `run` method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 				So(err, ShouldBeNil)
 
 				Convey("Then transfer filepath should be modified", func() {
@@ -89,7 +88,7 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": "wrong:/dummy.file"}
 
 			Convey("When calling the `run` method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldWrap, fs.ErrUnknownFS)

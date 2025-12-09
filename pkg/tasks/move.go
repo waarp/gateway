@@ -30,7 +30,7 @@ func (*moveTask) Validate(args map[string]string) error {
 
 // Run executes the task by moving the file in the requested directory.
 func (*moveTask) Run(_ context.Context, args map[string]string, _ *database.DB,
-	logger *log.Logger, transCtx *model.TransferContext,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	newDir := args["path"]
 	if newDir == "" {

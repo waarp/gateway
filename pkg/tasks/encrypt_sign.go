@@ -99,8 +99,8 @@ func (e *encryptSign) ValidateDB(db database.ReadAccess, params map[string]strin
 	return nil
 }
 
-func (e *encryptSign) Run(_ context.Context, params map[string]string,
-	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (e *encryptSign) Run(_ context.Context, params map[string]string, db *database.DB,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := e.ValidateDB(db, params); err != nil {
 		logger.Error(err.Error())

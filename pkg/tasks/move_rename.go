@@ -31,7 +31,7 @@ func (*moveRenameTask) Validate(args map[string]string) error {
 // Run move and rename the current file to the destination and
 // modify the transfer model to reflect the file change.
 func (*moveRenameTask) Run(_ context.Context, args map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	source := transCtx.Transfer.LocalPath
 	dest := args["path"]

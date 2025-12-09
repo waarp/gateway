@@ -105,3 +105,7 @@ func (c *client) Stop(ctx context.Context) error {
 
 	return nil
 }
+
+func (c *client) SetGracePeriod(d time.Duration) {
+	c.conns.SetGracePeriod(d)
+}

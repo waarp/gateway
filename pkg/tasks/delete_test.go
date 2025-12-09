@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -45,7 +44,7 @@ func TestDeleteTaskRun(t *testing.T) {
 
 		Convey("Given that the file exists", func() {
 			Convey("When calling the run method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -62,7 +61,7 @@ func TestDeleteTaskRun(t *testing.T) {
 			So(fs.RemoveAll(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				err := task.Run(context.Background(), args, nil, logger, transCtx)
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)

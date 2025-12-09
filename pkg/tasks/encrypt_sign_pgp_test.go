@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -57,13 +56,11 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`
 	}
 
 	doEncryptSign := func() error {
-		return (&encryptSign{}).Run(context.Background(), encryptParams, db,
-			logger, transCtx)
+		return (&encryptSign{}).Run(t.Context(), encryptParams, db, logger, transCtx, nil)
 	}
 
 	doDecryptVerify := func() error {
-		return (&decryptVerify{}).Run(context.Background(), decryptParams, db,
-			logger, transCtx)
+		return (&decryptVerify{}).Run(t.Context(), decryptParams, db, logger, transCtx, nil)
 	}
 
 	t.Run("Encrypt & sign", func(t *testing.T) {

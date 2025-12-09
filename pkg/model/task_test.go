@@ -29,7 +29,7 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext) error {
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext, any) error {
 	return nil
 }
 
@@ -39,7 +39,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return errValid
 }
 
-func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext) error {
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *log.Logger, *TransferContext, any) error {
 	return errExec
 }
 

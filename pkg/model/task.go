@@ -42,8 +42,8 @@ type TaskValidatorDB interface {
 // them.
 type TaskRunner interface {
 	// Run executes the task.
-	Run(ctx context.Context, args map[string]string, db *database.DB,
-		logger *log.Logger, transCtx *TransferContext) error
+	Run(ctx context.Context, params map[string]string, db *database.DB,
+		logger *log.Logger, transCtx *TransferContext, remote any) error
 }
 
 // Chain represents the valid chains for a task entry.

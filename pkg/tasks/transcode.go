@@ -104,8 +104,8 @@ func (t *transcodeTask) Validate(params map[string]string) error {
 	return t.parseParams(params)
 }
 
-func (t *transcodeTask) Run(_ context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+func (t *transcodeTask) Run(_ context.Context, params map[string]string, _ *database.DB,
+	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
 	if err := t.parseParams(params); err != nil {
 		return err

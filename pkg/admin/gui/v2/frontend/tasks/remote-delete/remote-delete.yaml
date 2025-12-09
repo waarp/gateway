@@ -1,0 +1,38 @@
+description:
+  en: Delete a file or folder on a remote server.
+  fr: Supprime un fichier ou dossier sur un serveur distant.
+
+path:
+  en: Path
+  fr: Chemin
+
+pathTooltip:
+  en: The path of the file or folder to delete.
+  fr: Le chemin du fichier ou dossier à supprimer.
+
+recursive:
+  en: Recursive
+  fr: Récursif
+
+recursiveTooltip:
+  en: >
+    Specifies whether to delete the folder's contents recursively. Note: if this
+    option is false, the server might refuse to delete the folder if it is not
+    empty.
+  fr: >
+    Indique si le contenu du dossier doit être supprimé récursivement. Note :
+    si cette option est fausse, le serveur peut refuser de supprimer le dossier
+    s'il n'est pas vide.
+
+timeout:
+  en: Timeout
+  fr: Durée limite
+
+timeoutTooltip:
+  en: >
+    The timeout for the task. If the task takes longer than this duration, it 
+    will be considered a failure. By default, there is no timeout.
+  fr: >
+    La durée maximale pour la tâche. Si la tâche dure plus longtemps que cette
+    durée, elle sera considérée comme un échec. Par défaut, il n'y a pas de
+    limite de temps.

@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -392,7 +391,7 @@ func TestRunTasks(t *testing.T) {
 				Rule:     rule,
 				Transfer: trans,
 			},
-			Ctx: context.Background(),
+			Ctx: t.Context(),
 		}
 
 		Convey("Given a list of tasks", func() {
