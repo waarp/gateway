@@ -30,6 +30,14 @@ Affiche une liste de tous les clé cryptographiques remplissant les critères ci
    - par nom (``name+`` & ``name-``)
    - par type (``type+`` & ``type-``)
 
+.. option:: --format=<FORMAT>
+
+   Spécifie le format du retour de la commande. Les valeurs acceptées sont :
+   ``human``, ``json`` et ``yaml``. Par défaut, le format sera le format pour
+   humain (``human``).
+
+|
+
 **Exemple**
 
 .. code-block:: shell

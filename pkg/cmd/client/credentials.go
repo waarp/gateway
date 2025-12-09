@@ -29,16 +29,16 @@ func getCredentialPath() (string, error) {
 	}
 }
 
-func displayCredential(w io.Writer, cred *api.OutCred, raw bool) error {
+func displayCredential(w io.Writer, cred *api.OutCred) error {
 	switch cred.Type {
 	case auth.Password:
 		Style1.PrintL(w, fmt.Sprintf("Password %q", cred.Name), cred.Value)
 	case auth.TLSCertificate, auth.TLSTrustedCertificate:
-		return displayTLSInfo(w, Style1, cred.Name, cred.Value, raw)
+		return displayTLSInfo(w, Style1, cred.Name, cred.Value)
 	case sftp.AuthSSHPublicKey:
-		return displaySSHKeyInfo(w, Style1, cred.Name, cred.Value, raw)
+		return displaySSHKeyInfo(w, Style1, cred.Name, cred.Value)
 	case sftp.AuthSSHPrivateKey:
-		return displayPrivateKeyInfo(w, Style1, cred.Name, cred.Value, raw)
+		return displayPrivateKeyInfo(w, Style1, cred.Name, cred.Value)
 	case r66.AuthLegacyCertificate:
 		Style1.Printf(w, "Legacy R66 certificate %q", cred.Name)
 	default:
@@ -51,10 +51,10 @@ func displayCredential(w io.Writer, cred *api.OutCred, raw bool) error {
 
 //nolint:lll //flags tags are long
 type CredentialAdd struct {
-	Name   string      `short:"n" long:"name" description:"The credential's name" json:"name,omitempty"`
-	Type   string      `required:"true" short:"t" long:"type" description:"The type of credential" json:"type,omitempty"`
-	Value  fileOrValue `short:"v" long:"value" description:"The credential value. Can also be a file path." json:"value,omitempty"`
-	Value2 fileOrValue `short:"s" long:"secondary-value" description:"The secondary credential value (when applicable). Can also be a filepath." json:"value2,omitempty"`
+	Name   string          `short:"n" long:"name" description:"The credential's name" json:"name,omitempty"`
+	Type   string          `required:"true" short:"t" long:"type" description:"The type of credential" json:"type,omitempty"`
+	Value  textFileOrValue `short:"v" long:"value" description:"The credential value. Can also be a file path." json:"value,omitzero"`
+	Value2 textFileOrValue `short:"s" long:"secondary-value" description:"The secondary credential value (when applicable). Can also be a filepath." json:"value2,omitzero"`
 }
 
 func (a *CredentialAdd) Execute([]string) error { return a.execute(stdOutput) }
@@ -81,10 +81,11 @@ func (a *CredentialAdd) execute(w io.Writer) error {
 }
 
 type CredentialGet struct {
+	OutputFormat
+
 	Args struct {
 		Credential string `required:"yes" positional-arg-name:"credential" description:"The credential's name"`
 	} `positional-args:"yes"`
-	Raw bool `short:"r" long:"raw" description:"Display the raw credential value (when applicable)"`
 }
 
 func (a *CredentialGet) Execute([]string) error { return a.execute(stdOutput) }
@@ -101,7 +102,7 @@ func (a *CredentialGet) execute(w io.Writer) error {
 		return err
 	}
 
-	return displayCredential(w, &cred, a.Raw)
+	return outputObject(w, &cred, &a.OutputFormat, displayCredential)
 }
 
 type CredentialDelete struct {

@@ -4,61 +4,43 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strconv"
 
 	"github.com/jessevdk/go-flags"
 )
 
-type file string
+type textFile struct{ flags.Filename }
 
-func (f *file) Complete(match string) []flags.Completion {
-	filename := flags.Filename("")
+func (f *textFile) IsZero() bool { return f.Filename == "" }
 
-	return filename.Complete(match)
-}
-
-func (f *file) UnmarshalFlag(value string) error {
-	if value == "" {
-		return nil
-	}
-
-	cont, err := os.ReadFile(filepath.Clean(value))
-	if err != nil {
-		return fmt.Errorf("failed to read file %q: %w", value, err)
-	}
-
-	*f = file(cont)
+func (f *textFile) UnmarshalFlag(value string) error {
+	f.Filename = flags.Filename(value)
 
 	return nil
 }
 
-type fileOrValue string
+func (f *textFile) MarshalJSON() ([]byte, error) {
+	if f.Filename == "" {
+		return []byte("null"), nil
+	}
 
-func (f *fileOrValue) Complete(match string) []flags.Completion {
-	filename := flags.Filename("")
+	name := string(f.Filename)
+	cont, err := os.ReadFile(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %q: %w", name, err)
+	}
 
-	return filename.Complete(match)
+	return []byte(strconv.Quote(string(cont))), nil
 }
 
-func (f *fileOrValue) UnmarshalFlag(value string) error {
-	if value == "" {
-		return nil
+type textFileOrValue struct{ textFile }
+
+func (f *textFileOrValue) MarshalJSON() ([]byte, error) {
+	if b, err := f.textFile.MarshalJSON(); err == nil {
+		return b, nil
 	}
 
-	if _, err := os.Stat(filepath.Clean(value)); err != nil {
-		*f = fileOrValue(value)
-
-		return nil
-	}
-
-	cont, err := os.ReadFile(filepath.Clean(value))
-	if err != nil {
-		return fmt.Errorf("failed to read file %q: %w", value, err)
-	}
-
-	*f = fileOrValue(cont)
-
-	return nil
+	return []byte(strconv.Quote(string(f.Filename))), nil
 }
 
 type jsonObject map[string]any
@@ -69,11 +51,7 @@ func (j *jsonObject) UnmarshalFlag(value string) error {
 		return nil
 	}
 
-	if err := json.Unmarshal([]byte(value), j); err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal([]byte(value), j)
 }
 
 type jsonObjects []jsonObject

@@ -13,23 +13,36 @@ import (
 // ################################################## EMAIL TEMPLATES ##################################################
 // #####################################################################################################################
 
-func displayEmailTemplate(w io.Writer, template *api.GetEmailTemplateObject) {
+func displayEmailTemplates(w io.Writer, templates []*api.GetEmailTemplateObject) error {
+	Style0.PrintV(w, "=== Email templates ===")
+	for _, template := range templates {
+		if err := displayEmailTemplate(w, template); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayEmailTemplate(w io.Writer, template *api.GetEmailTemplateObject) error {
 	Style1.Printf(w, "Email template %q", template.Name)
 	Style22.PrintL(w, "Subject", template.Subject)
 	Style22.PrintL(w, "MIME type", template.MIMEType)
 	Style22.MultiL(w, "Body", template.Body)
 	Style22.Defaul(w, "Attachments", strings.Join(template.Attachments, ", "), none)
+
+	return nil
 }
 
 // ######################## ADD ##########################
 
 //nolint:lll //struct tags are long
 type EmailTemplateAdd struct {
-	Name        string      `required:"yes" short:"n" long:"name" description:"The template's name" json:"name,omitempty"`
-	Subject     string      `required:"yes" short:"s" long:"subject" description:"The email's subject" json:"subject,omitempty"`
-	MIMEType    string      `short:"m" long:"mime-type" description:"The email's MIME type" default:"text/plain" json:"mimeType,omitempty"`
-	Body        fileOrValue `required:"yes" short:"b" long:"body" description:"The email's body" json:"body,omitempty"`
-	Attachments []string    `short:"a" long:"attachments" description:"The email's attachments. Can be repeated." json:"attachments,omitempty"`
+	Name        string          `required:"yes" short:"n" long:"name" description:"The template's name" json:"name,omitempty"`
+	Subject     string          `required:"yes" short:"s" long:"subject" description:"The email's subject" json:"subject,omitempty"`
+	MIMEType    string          `short:"m" long:"mime-type" description:"The email's MIME type" default:"text/plain" json:"mimeType,omitempty"`
+	Body        textFileOrValue `required:"yes" short:"b" long:"body" description:"The email's body" json:"body,omitzero"`
+	Attachments []string        `short:"a" long:"attachments" description:"The email's attachments. Can be repeated." json:"attachments,omitempty"`
 }
 
 func (e *EmailTemplateAdd) Execute([]string) error { return execute(e) }
@@ -66,14 +79,10 @@ func (e *EmailTemplateList) execute(w io.Writer) error {
 	}
 
 	if templates := body["emailTemplates"]; len(templates) > 0 {
-		Style0.PrintV(w, "=== Email templates ===")
-
-		for _, template := range templates {
-			displayEmailTemplate(w, template)
-		}
-	} else {
-		fmt.Fprintln(w, "No email templates found.")
+		return outputObject(w, templates, &e.OutputFormat, displayEmailTemplates)
 	}
+
+	fmt.Fprintln(w, "No email templates found.")
 
 	return nil
 }
@@ -81,6 +90,8 @@ func (e *EmailTemplateList) execute(w io.Writer) error {
 // ######################## GET ##########################
 
 type EmailTemplateGet struct {
+	OutputFormat
+
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The template's name"`
 	} `positional-args:"yes"`
@@ -95,9 +106,7 @@ func (e *EmailTemplateGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayEmailTemplate(w, &template)
-
-	return nil
+	return outputObject(w, &template, &e.OutputFormat, displayEmailTemplate)
 }
 
 // ######################## UPDATE ##########################
@@ -108,11 +117,11 @@ type EmailTemplateUpdate struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The old template's name"`
 	} `positional-args:"yes" json:"-"`
 
-	Name        string      `short:"n" long:"name" description:"The template's name" json:"name,omitempty"`
-	Subject     string      `short:"s" long:"subject" description:"The email's subject" json:"subject,omitempty"`
-	MIMEType    string      `short:"m" long:"mime-type" description:"The email's MIME type" json:"mimeType,omitempty"`
-	Body        fileOrValue `short:"b" long:"body" description:"The email's body" json:"body,omitempty"`
-	Attachments []string    `short:"a" long:"attachments" description:"The email's attachments. Can be repeated." json:"attachments,omitempty"`
+	Name        string          `short:"n" long:"name" description:"The template's name" json:"name,omitempty"`
+	Subject     string          `short:"s" long:"subject" description:"The email's subject" json:"subject,omitempty"`
+	MIMEType    string          `short:"m" long:"mime-type" description:"The email's MIME type" json:"mimeType,omitempty"`
+	Body        textFileOrValue `short:"b" long:"body" description:"The email's body" json:"body,omitzero"`
+	Attachments []string        `short:"a" long:"attachments" description:"The email's attachments. Can be repeated." json:"attachments,omitempty"`
 }
 
 func (e *EmailTemplateUpdate) Execute([]string) error { return execute(e) }
@@ -158,11 +167,24 @@ func (e *EmailTemplateDelete) execute(w io.Writer) error {
 // ################################################# SMTP CREDENTIALS #################################################
 // ####################################################################################################################
 
-func displaySMTPCredential(w io.Writer, cred *api.GetSMTPCredentialObject) {
+func displaySMTPCredentials(w io.Writer, credentials []*api.GetSMTPCredentialObject) error {
+	Style0.PrintV(w, "=== SMTP credentials ===")
+	for _, credential := range credentials {
+		if err := displaySMTPCredential(w, credential); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displaySMTPCredential(w io.Writer, cred *api.GetSMTPCredentialObject) error {
 	Style1.Printf(w, "SMTP credential %q", cred.EmailAddress)
 	Style22.PrintL(w, "Server address", cred.ServerAddress)
 	Style22.Defaul(w, "Login", cred.Login, none)
 	Style22.Defaul(w, "Password", cred.Password, none)
+
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -209,14 +231,10 @@ func (e *SMTPCredentialList) execute(w io.Writer) error {
 	}
 
 	if credentials := body["smtpCredentials"]; len(credentials) > 0 {
-		Style0.Printf(w, "=== SMTP credentials ===")
-
-		for _, credential := range credentials {
-			displaySMTPCredential(w, credential)
-		}
-	} else {
-		fmt.Fprintln(w, "No SMTP credentials found.")
+		return outputObject(w, credentials, &e.OutputFormat, displaySMTPCredentials)
 	}
+
+	fmt.Fprintln(w, "No SMTP credentials found.")
 
 	return nil
 }
@@ -224,6 +242,8 @@ func (e *SMTPCredentialList) execute(w io.Writer) error {
 // ######################## GET ##########################
 
 type SMTPCredentialGet struct {
+	OutputFormat
+
 	Args struct {
 		Email string `required:"yes" positional-arg-name:"email-address" description:"The email address"`
 	} `positional-args:"yes"`
@@ -238,9 +258,7 @@ func (e *SMTPCredentialGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displaySMTPCredential(w, &credential)
-
-	return nil
+	return outputObject(w, &credential, &e.OutputFormat, displaySMTPCredential)
 }
 
 // ######################## UPDATE ##########################

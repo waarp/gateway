@@ -57,6 +57,14 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
    Filtre les transferts ayant l'ID de flux renseigné avec ce paramètre. Les
    transferts renvoyés feront donc partie du même flux.
 
+.. option:: --format=<FORMAT>
+
+   Spécifie le format du retour de la commande. Les valeurs acceptées sont :
+   ``human``, ``json`` et ``yaml``. Par défaut, le format sera le format pour
+   humain (``human``).
+
+|
+
 **Exemple**
 
 .. code-block:: shell

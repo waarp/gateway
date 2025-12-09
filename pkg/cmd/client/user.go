@@ -8,7 +8,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-func displayUser(w io.Writer, user *api.OutUser) {
+func displayUsers(w io.Writer, users []*api.OutUser) error {
+	Style0.Printf(w, "=== Users ===")
+	for _, user := range users {
+		if err := displayUser(w, user); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displayUser(w io.Writer, user *api.OutUser) error {
 	perm := func(p string) string { return withDefault(p, noPerm) }
 
 	Style1.Printf(w, "User %q", user.Username)
@@ -19,6 +30,8 @@ func displayUser(w io.Writer, user *api.OutUser) {
 	Style333.PrintL(w, "Rules", perm(user.Perms.Rules))
 	Style333.PrintL(w, "Users", perm(user.Perms.Users))
 	Style333.PrintL(w, "Administration", perm(user.Perms.Administration))
+
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -33,9 +46,9 @@ type UserAdd struct {
 
 func (u *UserAdd) Execute([]string) error { return execute(u) }
 func (u *UserAdd) execute(w io.Writer) error {
-	perms, err := parsePerms(u.PermsStr)
-	if err != nil {
-		return err
+	perms, pErr := parsePerms(u.PermsStr)
+	if pErr != nil {
+		return pErr
 	}
 
 	u.Perms = perms
@@ -53,6 +66,8 @@ func (u *UserAdd) execute(w io.Writer) error {
 // ######################## GET ##########################
 
 type UserGet struct {
+	OutputFormat
+
 	Args struct {
 		Username string `required:"yes" positional-arg-name:"username" description:"The user's name"`
 	} `positional-args:"yes"`
@@ -67,9 +82,7 @@ func (u *UserGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayUser(w, user)
-
-	return nil
+	return outputObject(w, user, &u.OutputFormat, displayUser)
 }
 
 // ######################## UPDATE ##########################
@@ -136,6 +149,7 @@ func (u *UserDelete) execute(w io.Writer) error {
 //nolint:lll // tags can be long for flags
 type UserList struct {
 	ListOptions
+
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"username+" choice:"username-" default:"username+"`
 }
 
@@ -153,14 +167,10 @@ func (u *UserList) execute(w io.Writer) error {
 	}
 
 	if users := body["users"]; len(users) > 0 {
-		Style0.Printf(w, "=== Users ===")
-
-		for _, user := range users {
-			displayUser(w, user)
-		}
-	} else {
-		fmt.Fprintln(w, "No users found.")
+		return outputObject(w, users, &u.OutputFormat, displayUsers)
 	}
+
+	fmt.Fprintln(w, "No users found.")
 
 	return nil
 }

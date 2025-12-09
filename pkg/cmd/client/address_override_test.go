@@ -78,7 +78,7 @@ func TestAddressOverridesList(t *testing.T) {
 					expectedOutput(t, result.body,
 						`=== Address indirections ===`,
 						`{{- range $target, $redir := . }}`,
-						`‣Address "{{$target}}" redirects to "{{$redir}}"`,
+						`-Address "{{$target}}" redirects to "{{$redir}}"`,
 						`{{- end }}`,
 					),
 					w.String(),

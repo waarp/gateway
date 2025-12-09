@@ -9,7 +9,7 @@ const DateHeader = "Waarp-Gateway-Date"
 // Service represents a gateway service (core, server or client) along with its
 // status.
 type Service struct {
-	Name   string `json:"name"`
-	State  string `json:"state"`
-	Reason string `json:"reason"`
+	Name   string `json:"name" yaml:"name"`
+	State  string `json:"state" yaml:"state"`
+	Reason string `json:"reason" yaml:"reason"`
 }

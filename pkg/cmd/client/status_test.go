@@ -110,29 +110,29 @@ func TestRequestStatus(t *testing.T) {
 
 				t.Run("Then it should display the services' status", func(t *testing.T) {
 					assert.Equal(t, ""+
-						fmt.Sprintf("‣Server version: %s\n", version)+
-						fmt.Sprintf("‣Local date: %s\n", wgDate)+
-						fmt.Sprintf("‣Core services:\n")+
-						fmt.Sprintf("  •[ERROR  ] %s (%s)\n", core4, reason4)+
-						fmt.Sprintf("  •[ERROR  ] %s (%s)\n", core5, reason5)+
-						fmt.Sprintf("  •[ACTIVE ] %s\n", core2)+
-						fmt.Sprintf("  •[ACTIVE ] %s\n", core6)+
-						fmt.Sprintf("  •[OFFLINE] %s\n", core1)+
-						fmt.Sprintf("  •[OFFLINE] %s\n", core3)+
-						fmt.Sprintf("‣Servers:\n")+
-						fmt.Sprintf("  •[ERROR  ] %s (%s)\n", server2, reason2)+
-						fmt.Sprintf("  •[ERROR  ] %s (%s)\n", server6, reason6)+
-						fmt.Sprintf("  •[ACTIVE ] %s\n", server1)+
-						fmt.Sprintf("  •[ACTIVE ] %s\n", server5)+
-						fmt.Sprintf("  •[OFFLINE] %s\n", server3)+
-						fmt.Sprintf("  •[OFFLINE] %s\n", server4)+
-						fmt.Sprintf("‣Clients:\n")+
-						fmt.Sprintf("  •[ERROR  ] %s (%s)\n", client1, reason1)+
-						fmt.Sprintf("  •[ERROR  ] %s (%s)\n", client3, reason3)+
-						fmt.Sprintf("  •[ACTIVE ] %s\n", client4)+
-						fmt.Sprintf("  •[ACTIVE ] %s\n", client5)+
-						fmt.Sprintf("  •[OFFLINE] %s\n", client2)+
-						fmt.Sprintf("  •[OFFLINE] %s\n", client6),
+						fmt.Sprintf("-Server version: %s\n", version)+
+						fmt.Sprintf("-Local date: %s\n", wgDate)+
+						fmt.Sprintf("-Core services:\n")+
+						fmt.Sprintf("  -[ERROR  ] %s (%s)\n", core4, reason4)+
+						fmt.Sprintf("  -[ERROR  ] %s (%s)\n", core5, reason5)+
+						fmt.Sprintf("  -[ACTIVE ] %s\n", core2)+
+						fmt.Sprintf("  -[ACTIVE ] %s\n", core6)+
+						fmt.Sprintf("  -[OFFLINE] %s\n", core1)+
+						fmt.Sprintf("  -[OFFLINE] %s\n", core3)+
+						fmt.Sprintf("-Servers:\n")+
+						fmt.Sprintf("  -[ERROR  ] %s (%s)\n", server2, reason2)+
+						fmt.Sprintf("  -[ERROR  ] %s (%s)\n", server6, reason6)+
+						fmt.Sprintf("  -[ACTIVE ] %s\n", server1)+
+						fmt.Sprintf("  -[ACTIVE ] %s\n", server5)+
+						fmt.Sprintf("  -[OFFLINE] %s\n", server3)+
+						fmt.Sprintf("  -[OFFLINE] %s\n", server4)+
+						fmt.Sprintf("-Clients:\n")+
+						fmt.Sprintf("  -[ERROR  ] %s (%s)\n", client1, reason1)+
+						fmt.Sprintf("  -[ERROR  ] %s (%s)\n", client3, reason3)+
+						fmt.Sprintf("  -[ACTIVE ] %s\n", client4)+
+						fmt.Sprintf("  -[ACTIVE ] %s\n", client5)+
+						fmt.Sprintf("  -[OFFLINE] %s\n", client2)+
+						fmt.Sprintf("  -[OFFLINE] %s\n", client6),
 						w.String(),
 						"Then it should display the gateway's information",
 					)

@@ -13,6 +13,19 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+func showStatuses(headers http.Header) func(io.Writer, map[string][]*api.Service) error {
+	return func(w io.Writer, servicesMap map[string][]*api.Service) error {
+		Style1.PrintL(w, "Server version", headers.Get("Server"))
+		Style1.PrintL(w, "Local date", headers.Get(api.DateHeader))
+
+		showStatus(w, "Core services", servicesMap["coreServices"])
+		showStatus(w, "Servers", servicesMap["servers"])
+		showStatus(w, "Clients", servicesMap["clients"])
+
+		return nil
+	}
+}
+
 //nolint:varnamelen //formatter name is kept short for readability
 func showStatus(w io.Writer, title string, services []*api.Service) {
 	if len(services) == 0 {
@@ -65,7 +78,9 @@ func showStatus(w io.Writer, title string, services []*api.Service) {
 }
 
 // Status regroups all the options of the 'status' command.
-type Status struct{}
+type Status struct {
+	OutputFormat
+}
 
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
@@ -91,14 +106,7 @@ func (s Status) execute(w io.Writer) error {
 			return err
 		}
 
-		Style1.PrintL(w, "Server version", resp.Header.Get("Server"))
-		Style1.PrintL(w, "Local date", resp.Header.Get(api.DateHeader))
-
-		showStatus(w, "Core services", body["coreServices"])
-		showStatus(w, "Servers", body["servers"])
-		showStatus(w, "Clients", body["clients"])
-
-		return nil
+		return outputObject(w, body, &s.OutputFormat, showStatuses(resp.Header))
 
 	default:
 		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))

@@ -8,10 +8,11 @@ import (
 
 // OutHistory is the JSON representation of a history entry in responses sent by
 // the REST interface.
+//
 // Deprecated: replaced by OutTransfer.
 type OutHistory struct {
 	ID             int64                   `json:"id"`
-	RemoteID       string                  `json:"remoteID,omitempty"` //nolint:tagliatelle,lll // FIXME too late to change that
+	RemoteID       string                  `json:"remoteID,omitempty"`
 	IsServer       bool                    `json:"isServer"`
 	IsSend         bool                    `json:"isSend"`
 	Requester      string                  `json:"requester"`
@@ -22,7 +23,7 @@ type OutHistory struct {
 	Filesize       int64                   `json:"filesize"`
 	Rule           string                  `json:"rule"`
 	Start          time.Time               `json:"start"`
-	Stop           Nullable[time.Time]     `json:"stop,omitempty"`
+	Stop           Nullable[time.Time]     `json:"stop,omitzero"`
 	TransferInfo   map[string]any          `json:"transferInfo,omitempty"`
 	Status         types.TransferStatus    `json:"status"`
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`

@@ -11,6 +11,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+func displayCryptoKeys(w io.Writer, keys []*api.GetCryptoKeyRespObject) error {
+	Style0.Printf(w, "=== Cryptographic keys ===")
+	for _, key := range keys {
+		if err := displayCryptoKey(w, key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func displayCryptoKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
 	switch key.Type {
 	case model.CryptoKeyTypeAES, model.CryptoKeyTypeHMAC:
@@ -57,9 +68,9 @@ func displayRawKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
 
 //nolint:lll // command tags are long
 type CryptoKeysAdd struct {
-	Name string `short:"n" long:"name" required:"yes" description:"The name of the cryptographic key" json:"name,omitempty"`
-	Type string `short:"t" long:"type" required:"yes" description:"The type of the cryptographic key." choice:"AES" choice:"HMAC" choice:"PGP-PUBLIC" choice:"PGP-PRIVATE" json:"type,omitempty"`
-	Key  file   `short:"k" long:"key" description:"The file containing the cryptographic key" json:"key,omitempty"`
+	Name string   `short:"n" long:"name" required:"yes" description:"The name of the cryptographic key" json:"name,omitempty"`
+	Type string   `short:"t" long:"type" required:"yes" description:"The type of the cryptographic key." choice:"AES" choice:"HMAC" choice:"PGP-PUBLIC" choice:"PGP-PRIVATE" json:"type,omitempty"`
+	Key  textFile `short:"k" long:"key" description:"The file containing the cryptographic key" json:"key,omitzero"`
 }
 
 func (p *CryptoKeysAdd) Execute([]string) error { return p.execute(stdOutput) }
@@ -76,6 +87,8 @@ func (p *CryptoKeysAdd) execute(w io.Writer) error {
 }
 
 type CryptoKeysGet struct {
+	OutputFormat
+
 	Args struct {
 		Key string `required:"yes" positional-arg-name:"key" description:"The name of the cryptographic key"`
 	} `positional-args:"yes"`
@@ -90,7 +103,7 @@ func (p *CryptoKeysGet) execute(w io.Writer) error {
 		return err
 	}
 
-	return displayCryptoKey(w, key)
+	return outputObject(w, key, &p.OutputFormat, displayCryptoKey)
 }
 
 //nolint:lll //struct tags can be long
@@ -112,16 +125,10 @@ func (p *CryptoKeysList) execute(w io.Writer) error {
 	}
 
 	if keys := body["cryptoKeys"]; len(keys) > 0 {
-		Style0.Printf(w, "=== Cryptographic keys ===")
-
-		for _, key := range keys {
-			if err := displayCryptoKey(w, key); err != nil {
-				return err
-			}
-		}
-	} else {
-		fmt.Fprintln(w, "No cryptographic keys found.")
+		return outputObject(w, keys, &p.OutputFormat, displayCryptoKeys)
 	}
+
+	fmt.Fprintln(w, "No cryptographic keys found.")
 
 	return nil
 }
@@ -132,9 +139,9 @@ type CryptoKeysUpdate struct {
 		Key string `required:"yes" positional-arg-name:"key" description:"The name of the cryptographic key"`
 	} `positional-args:"yes" json:"-"`
 
-	Name *string `short:"n" long:"name" description:"The name of the cryptographic key" json:"name,omitempty"`
-	Type *string `short:"t" long:"type" description:"The type of the cryptographic key." choice:"AES" choice:"HMAC" choice:"PGP-PUBLIC" choice:"PGP-PRIVATE"  json:"type,omitempty"`
-	Key  *file   `short:"k" long:"key" description:"The file containing the cryptographic key" json:"key,omitempty"`
+	Name *string   `short:"n" long:"name" description:"The name of the cryptographic key" json:"name,omitempty"`
+	Type *string   `short:"t" long:"type" description:"The type of the cryptographic key." choice:"AES" choice:"HMAC" choice:"PGP-PUBLIC" choice:"PGP-PRIVATE"  json:"type,omitempty"`
+	Key  *textFile `short:"k" long:"key" description:"The file containing the cryptographic key" json:"key,omitempty"`
 }
 
 func (p *CryptoKeysUpdate) Execute([]string) error { return p.execute(stdOutput) }

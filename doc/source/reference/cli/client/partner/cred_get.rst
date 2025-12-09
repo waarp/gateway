@@ -14,12 +14,13 @@ Affiche les informations de la méthode d'authentification donnée.
 
 **Options**
 
-.. option:: -r, --raw
+.. option:: --format=<FORMAT>
 
-   Affiche la valeur brute de la méthode d'authentification au lieu de ses
-   métadonnées quand applicable. Par exemple, utiliser cette option sur un
-   certificat TLS affichera le fichier PEM du certificat au lieu des informations
-   du certificat.
+   Spécifie le format du retour de la commande. Les valeurs acceptées sont :
+   ``human``, ``json`` et ``yaml``. Par défaut, le format sera le format pour
+   humain (``human``).
+
+|
 
 **Exemple**
 

@@ -25,7 +25,18 @@ func (*ServerArg) UnmarshalFlag(value string) error {
 	return nil
 }
 
-func displayServer(w io.Writer, server *api.OutServer) {
+func displayServers(w io.Writer, servers []*api.OutServer) error {
+	Style0.Printf(w, "=== Servers ===")
+	for _, server := range servers {
+		if err := displayServer(w, server); err != nil {
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func displayServer(w io.Writer, server *api.OutServer) error {
 	Style1.Printf(w, "Server %q [%s]", server.Name, coloredEnabled(server.Enabled))
 	Style22.PrintL(w, "Protocol", server.Protocol)
 	Style22.PrintL(w, "Address", server.Address)
@@ -37,6 +48,8 @@ func displayServer(w io.Writer, server *api.OutServer) {
 
 	displayProtoConfig(w, server.ProtoConfig)
 	displayAuthorizedRules(w, server.AuthorizedRules)
+
+	return nil
 }
 
 func warnServerRootDeprecated(w io.Writer) {
@@ -62,6 +75,8 @@ func warnServerWorkDeprecated(w io.Writer) {
 // ######################## GET ##########################
 
 type ServerGet struct {
+	OutputFormat
+
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes"`
@@ -76,9 +91,7 @@ func (s *ServerGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displayServer(w, server)
-
-	return nil
+	return outputObject(w, server, &s.OutputFormat, displayServer)
 }
 
 // ######################## ADD ##########################
@@ -173,14 +186,10 @@ func (s *ServerList) execute(w io.Writer) error {
 	}
 
 	if servers := body["servers"]; len(servers) > 0 {
-		Style0.Printf(w, "=== Servers ===")
-
-		for _, server := range servers {
-			displayServer(w, server)
-		}
-	} else {
-		fmt.Fprintln(w, "No servers found.")
+		return outputObject(w, servers, &s.OutputFormat, displayServers)
 	}
+
+	fmt.Fprintln(w, "No servers found.")
 
 	return nil
 }

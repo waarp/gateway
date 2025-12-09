@@ -17,14 +17,15 @@ func warnCertDeprecated() {
 	fmt.Fprintln(stdOutput, color.Red.Sprint(certDeprecatedMsg))
 }
 
-func displayCrypto(w io.Writer, cert *api.OutCrypto, raw bool) error {
+// Deprecated: replaced by displayCredential.
+func displayCrypto(w io.Writer, cert *api.OutCrypto) error {
 	switch {
 	case cert.Certificate != "":
-		return displayTLSInfo(w, Style1, cert.Name, cert.Certificate, raw)
+		return displayTLSInfo(w, Style1, cert.Name, cert.Certificate)
 	case cert.PublicKey != "":
-		return displaySSHKeyInfo(w, Style1, cert.Name, cert.PublicKey, raw)
+		return displaySSHKeyInfo(w, Style1, cert.Name, cert.PublicKey)
 	case cert.PrivateKey != "":
-		return displayPrivateKeyInfo(w, Style1, cert.Name, cert.PrivateKey, raw)
+		return displayPrivateKeyInfo(w, Style1, cert.Name, cert.PrivateKey)
 	default:
 		//nolint:err113 //too specific
 		return fmt.Errorf("entry %q: <unknown authentication type>", cert.Name)
@@ -48,19 +49,21 @@ func getCertPath() string {
 
 // ######################## GET ##########################
 
+// Deprecated: use CredentialGet command instead.
 type CertGet struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes"`
-	Raw bool `short:"r" long:"raw" description:"Display the raw certificate data"`
 }
 
+// Deprecated: use CredentialGet command instead.
 func (c *CertGet) Execute([]string) error {
 	warnCertDeprecated()
 
 	return c.execute(stdOutput)
 }
 
+// Deprecated: use CredentialGet command instead.
 func (c *CertGet) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
@@ -69,7 +72,7 @@ func (c *CertGet) execute(w io.Writer) error {
 		return err
 	}
 
-	return displayCrypto(w, cert, c.Raw)
+	return displayCrypto(w, cert)
 }
 
 // ######################## ADD ##########################
@@ -78,10 +81,10 @@ func (c *CertGet) execute(w io.Writer) error {
 
 //nolint:lll //tags are long
 type CertAdd struct {
-	Name        string `required:"true" short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
-	PrivateKey  file   `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitempty"`
-	PublicKey   file   `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitempty"`
-	Certificate file   `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitempty"`
+	Name        string   `required:"true" short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
+	PrivateKey  textFile `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitzero"`
+	PublicKey   textFile `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitzero"`
+	Certificate textFile `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitzero"`
 }
 
 func (c *CertAdd) Execute([]string) error {
@@ -130,6 +133,8 @@ func (c *CertDelete) execute(w io.Writer) error {
 
 // ######################## LIST ##########################
 
+// Deprecated: use command "get" on the certificate owner instead.
+//
 //nolint:lll // struct tags for command line arguments can be long
 type CertList struct {
 	ListOptions
@@ -138,12 +143,14 @@ type CertList struct {
 	Raw    bool   `short:"r" long:"raw" description:"Display the raw certificates data"`
 }
 
+// Deprecated: use command "get" on the certificate owner instead.
 func (c *CertList) Execute([]string) error {
 	warnCertDeprecated()
 
 	return c.execute(stdOutput)
 }
 
+// Deprecated: use command "get" on the certificate owner instead.
 func (c *CertList) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates")
 
@@ -158,7 +165,7 @@ func (c *CertList) execute(w io.Writer) error {
 		Style0.Printf(w, "=== Certificates ===")
 
 		for _, cert := range certs {
-			if err := displayCrypto(w, cert, c.Raw); err != nil {
+			if err := displayCrypto(w, cert); err != nil {
 				return err
 			}
 		}
@@ -176,10 +183,10 @@ type CertUpdate struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes" json:"-"`
-	Name        *string `short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
-	PrivateKey  *file   `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitempty"`
-	PublicKey   *file   `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitempty"`
-	Certificate *file   `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitempty"`
+	Name        *string   `short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
+	PrivateKey  *textFile `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitempty"`
+	PublicKey   *textFile `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitempty"`
+	Certificate *textFile `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitempty"`
 }
 
 func (c *CertUpdate) Execute([]string) error {

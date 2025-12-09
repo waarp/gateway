@@ -9,7 +9,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-func displaySnmpMonitor(w io.Writer, monitor *api.GetSnmpMonitorRespObject) {
+func displaySnmpMonitors(w io.Writer, monitors []*api.GetSnmpMonitorRespObject) error {
+	Style0.Printf(w, "=== SNMP monitors ===")
+	for _, monitor := range monitors {
+		if err := displaySnmpMonitor(w, monitor); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func displaySnmpMonitor(w io.Writer, monitor *api.GetSnmpMonitorRespObject) error {
 	Style1.Printf(w, "SNMP monitor %q", monitor.Name)
 	Style22.PrintL(w, "SNMP version", monitor.Version)
 	Style22.PrintL(w, "UDP address", monitor.UDPAddress)
@@ -24,6 +35,8 @@ func displaySnmpMonitor(w io.Writer, monitor *api.GetSnmpMonitorRespObject) {
 	Style22.Option(w, "SNMPv3 authentication passphrase", monitor.AuthPassphrase)
 	Style22.Option(w, "SNMPv3 privacy protocol", monitor.PrivProtocol)
 	Style22.Option(w, "SNMPv3 privacy passphrase", monitor.PrivPassphrase)
+
+	return nil
 }
 
 func snmpNotifType(useInforms bool) string {
@@ -86,19 +99,17 @@ func (s *SnmpMonitorList) execute(w io.Writer) error {
 	}
 
 	if monitors := respBody["monitors"]; len(monitors) > 0 {
-		Style0.Printf(w, "=== SNMP monitors ===")
-
-		for _, monitor := range monitors {
-			displaySnmpMonitor(w, monitor)
-		}
-	} else {
-		fmt.Fprintln(w, "No SNMP monitor found.")
+		return outputObject(w, monitors, &s.OutputFormat, displaySnmpMonitors)
 	}
+
+	fmt.Fprintln(w, "No SNMP monitor found.")
 
 	return nil
 }
 
 type SnmpMonitorGet struct {
+	OutputFormat
+
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The SNMP monitor's name"`
 	} `positional-args:"yes"`
@@ -113,9 +124,7 @@ func (s *SnmpMonitorGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displaySnmpMonitor(w, &monitor)
-
-	return nil
+	return outputObject(w, &monitor, &s.OutputFormat, displaySnmpMonitor)
 }
 
 //nolint:lll // tags can be long for flags
@@ -186,7 +195,7 @@ func (s *SnmpMonitorDelete) execute(w io.Writer) error {
 	return nil
 }
 
-func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject) {
+func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject) error {
 	Style1.Printf(w, "SNMP server configuration")
 	Style22.PrintL(w, "Local UDP address", monitor.LocalUDPAddress)
 	Style22.Option(w, "Community", monitor.Community)
@@ -197,6 +206,8 @@ func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject)
 	Style22.Option(w, "SNMPv3 authentication passphrase", monitor.V3AuthPassphrase)
 	Style22.Option(w, "SNMPv3 privacy protocol", monitor.V3PrivProtocol)
 	Style22.Option(w, "SNMPv3 privacy passphrase", monitor.V3PrivPassphrase)
+
+	return nil
 }
 
 //nolint:lll //tags can be long for flags
@@ -224,7 +235,9 @@ func (s *SnmpServerSet) execute(w io.Writer) error {
 	return nil
 }
 
-type SnmpServerGet struct{}
+type SnmpServerGet struct {
+	OutputFormat
+}
 
 func (s *SnmpServerGet) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpServerGet) execute(w io.Writer) error {
@@ -235,9 +248,7 @@ func (s *SnmpServerGet) execute(w io.Writer) error {
 		return err
 	}
 
-	displaySnmpServerConfig(w, &serverConf)
-
-	return nil
+	return outputObject(w, &serverConf, &s.OutputFormat, displaySnmpServerConfig)
 }
 
 type SnmpServerDelete struct{}

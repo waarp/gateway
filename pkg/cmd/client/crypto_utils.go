@@ -22,13 +22,7 @@ import (
 )
 
 //nolint:varnamelen,funlen //formatter name is kept short for readability
-func displayTLSInfo(w io.Writer, style *style, name, content string, raw bool) error {
-	if raw {
-		style.MultiL(w, name, content)
-
-		return nil
-	}
-
+func displayTLSInfo(w io.Writer, style *style, name, content string) error {
 	certs, err := utils.ParsePEMCertChain(content)
 	if err != nil || len(certs) == 0 {
 		return fmt.Errorf("could not parse certificate: %w", err)
@@ -116,13 +110,7 @@ func shortHex(bytes []byte) string {
 	return fmt.Sprintf("% X... (%d bytes total)", bytes[:maxLen-7], len(bytes))
 }
 
-func displaySSHKeyInfo(w io.Writer, style *style, name, content string, raw bool) error {
-	if raw {
-		style.PrintL(w, name, content)
-
-		return nil
-	}
-
+func displaySSHKeyInfo(w io.Writer, style *style, name, content string) error {
 	key, err := utils.ParseSSHAuthorizedKey(content)
 	if err != nil || key == nil {
 		return fmt.Errorf("could not parse SSH public key: %w", err)
@@ -138,13 +126,7 @@ func displaySSHKeyInfo(w io.Writer, style *style, name, content string, raw bool
 	return nil
 }
 
-func displayPrivateKeyInfo(w io.Writer, style *style, name, content string, raw bool) error {
-	if raw {
-		style.MultiL(w, name, content)
-
-		return nil
-	}
-
+func displayPrivateKeyInfo(w io.Writer, style *style, name, content string) error {
 	pk, err := ssh.ParsePrivateKey([]byte(content))
 	if err != nil {
 		return fmt.Errorf("could not parse private key: %w", err)

@@ -10,11 +10,21 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gookit/color"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const historyDeprecatedMsg = `‼WARNING‼ The "history" command is deprecated.` +
+	`Please use the "transfer" command instead.`
+
+func warnHistoryDeprecated() {
+	fmt.Fprintln(stdOutput, color.Red.Sprint(historyDeprecatedMsg))
+}
+
+// Deprecated: replaced by displayTransfer.
 func displayHistory(w io.Writer, hist *api.OutHistory) {
 	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", Style1.bulletPrefix,
 		Style1.color.Sprintf("Transfer %d", hist.ID),
@@ -50,13 +60,20 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 
 // ######################## GET ##########################
 
+// Deprecated: replaced by "transfer" command.
 type HistoryGet struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
 	} `positional-args:"yes"`
 }
 
-func (h *HistoryGet) Execute([]string) error { return h.execute(stdOutput) }
+func (h *HistoryGet) Execute([]string) error {
+	warnHistoryDeprecated()
+
+	return h.execute(stdOutput)
+}
+
+// Deprecated: replaced by "transfer" command.
 func (h *HistoryGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/history/", utils.FormatUint(h.Args.ID))
 
@@ -72,9 +89,12 @@ func (h *HistoryGet) execute(w io.Writer) error {
 
 // ######################## LIST ##########################
 
+// Deprecated: replaced by "transfer" command.
+//
 //nolint:lll // struct tags can be long for command line args
 type HistoryList struct {
 	ListOptions
+
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"start+" choice:"start-" choice:"stop+" choice:"stop-" choice:"rule+" choice:"rule-" choice:"requester+" choice:"requester-" choice:"requested+" choice:"requested-" default:"start+"`
 	Requester []string `short:"q" long:"requester" description:"Filter the transfers based on the transfer's requester. Can be repeated multiple times to filter multiple sources."`
 	Requested []string `short:"d" long:"requested" description:"Filter the transfers based on the transfer's requested. Can be repeated multiple times to filter multiple destinations."`
@@ -137,8 +157,14 @@ func (h *HistoryList) listURL() error {
 	return nil
 }
 
-func (h *HistoryList) Execute([]string) error { return h.execute(stdOutput) }
+func (h *HistoryList) Execute([]string) error {
+	warnHistoryDeprecated()
 
+	return h.execute(stdOutput)
+}
+
+// Deprecated: replaced by "transfer" command.
+//
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (h *HistoryList) execute(w io.Writer) error {
 	if err := h.listURL(); err != nil {
@@ -165,6 +191,8 @@ func (h *HistoryList) execute(w io.Writer) error {
 
 // ######################## RETRY ##########################
 
+// Deprecated: replaced by "transfer" command.
+//
 //nolint:lll // struct tags can be long for command line args
 type HistoryRetry struct {
 	Args struct {
@@ -173,7 +201,11 @@ type HistoryRetry struct {
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
-func (h *HistoryRetry) Execute([]string) error { return h.execute(stdOutput) }
+func (h *HistoryRetry) Execute([]string) error {
+	warnHistoryDeprecated()
+
+	return h.execute(stdOutput)
+}
 
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (h *HistoryRetry) execute(w io.Writer) error {
@@ -196,9 +228,9 @@ func (h *HistoryRetry) execute(w io.Writer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
-	resp, err := sendRequest(ctx, nil, http.MethodPut)
-	if err != nil {
-		return err
+	resp, reqErr := sendRequest(ctx, nil, http.MethodPut)
+	if reqErr != nil {
+		return reqErr
 	}
 	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
 
