@@ -6,20 +6,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func ver0_13_0AddTransferAutoResumeUp(db Actions) error {
-	if err := db.DropView("normalized_transfers"); err != nil {
-		return fmt.Errorf("failed to drop the transfers view: %w", err)
-	}
-
-	if err := db.AlterTable("transfers",
-		AddColumn{Name: "remaining_tries", Type: TinyInt{}, NotNull: true, Default: 0},
-		AddColumn{Name: "next_retry_delay", Type: Integer{}, NotNull: true, Default: 0},
-		AddColumn{Name: "retry_increment_factor", Type: Float{}, NotNull: true, Default: 1},
-		AddColumn{Name: "next_retry", Type: DateTime{}},
-	); err != nil {
-		return fmt.Errorf("failed to add the auto-resume columns: %w", err)
-	}
-
+func ver0_13_0CreateTransfersView(db Actions) error {
 	transStop := utils.If(db.GetDialect() == PostgreSQL,
 		"null::timestamp", "null")
 
@@ -62,6 +49,23 @@ func ver0_13_0AddTransferAutoResumeUp(db Actions) error {
 	}
 
 	return nil
+}
+
+func ver0_13_0AddTransferAutoResumeUp(db Actions) error {
+	if err := db.DropView("normalized_transfers"); err != nil {
+		return fmt.Errorf("failed to drop the transfers view: %w", err)
+	}
+
+	if err := db.AlterTable("transfers",
+		AddColumn{Name: "remaining_tries", Type: TinyInt{}, NotNull: true, Default: 0},
+		AddColumn{Name: "next_retry_delay", Type: Integer{}, NotNull: true, Default: 0},
+		AddColumn{Name: "retry_increment_factor", Type: Float{}, NotNull: true, Default: 1},
+		AddColumn{Name: "next_retry", Type: DateTime{}},
+	); err != nil {
+		return fmt.Errorf("failed to add the auto-resume columns: %w", err)
+	}
+
+	return ver0_13_0CreateTransfersView(db)
 }
 
 func ver0_13_0AddTransferAutoResumeDown(db Actions) error {

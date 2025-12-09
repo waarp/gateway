@@ -195,6 +195,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							ID:               transfers[0].ID,
 							RemoteTransferID: transfers[0].RemoteTransferID,
 							Start:            transfers[0].Start,
+							Stop:             transfers[0].Stop,
 							LocalAccountID:   utils.NewNullInt64(test.LocAccount.ID),
 							LocalPath: fs.JoinPath(test.Paths.GatewayHome, test.Server.RootDir,
 								test.ServerRule.TmpLocalRcvDir, "test_in_shutdown.dst.part"),

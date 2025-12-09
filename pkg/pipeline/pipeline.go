@@ -95,6 +95,10 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		transCtx.Transfer.ErrDetails = ""
 	}
 
+	if !transCtx.Transfer.Stop.IsZero() {
+		transCtx.Transfer.Stop = time.Time{}
+	}
+
 	if transCtx.Transfer.ID == 0 {
 		if err := db.Insert(transCtx.Transfer).Run(); err != nil {
 			logger.Errorf("failed to insert the new transfer entry: %v", err)
@@ -507,8 +511,9 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 	}()
 
 	p.TransCtx.Transfer.Status = status
+	p.TransCtx.Transfer.Stop = time.Now().UTC()
 
-	if p.TransCtx.Transfer.RemainingTries > 0 {
+	if status == types.StatusError && p.TransCtx.Transfer.RemainingTries > 0 {
 		p.TransCtx.Transfer.NextRetry = time.Now().UTC().
 			Add(time.Second * time.Duration(p.TransCtx.Transfer.NextRetryDelay))
 		incrementRetryDelay(p.TransCtx.Transfer)

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`507` Les transferts interrompus (de quelque manière que ce soit)
+  auront désormais auront désormais la date et l'heure de l'interruption comme
+  date de fin (*stop date*). Précédemment, seuls les transferts terminés avaient
+  une date de fin.
 * :feature:`490` La tâche ICAP supporte désormais TLS via l'option *"useTLS"*.
   La limitation sur la taille des fichiers pouvant être traités via la tâche
   ICAP a également été levée.

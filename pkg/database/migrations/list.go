@@ -181,11 +181,6 @@ var Migrations = []Change{
 		Up:          ver0_7_5SplitR66TLSUp,
 		Down:        ver0_7_5SplitR66TLSDown,
 	},
-	// ######################### 0.7.1 #########################
-	// ######################### 0.7.2 #########################
-	// ######################### 0.7.3 #########################
-	// ######################### 0.7.4 #########################
-	// ######################### 0.7.5 #########################
 	{ // #33
 		Description: "Drop the normalized transfer view",
 		Up:          ver0_8_0DropNormalizedTransfersViewUp,
@@ -335,5 +330,10 @@ var Migrations = []Change{
 		Description: `Add the "smtp_credentials" table`,
 		Up:          ver0_13_0AddSMTPCredentialsUp,
 		Down:        ver0_13_0AddSMTPCredentialsDown,
+	},
+	{ // #63
+		Description: `Add a "stop" column to the "transfers" table`,
+		Up:          ver0_14_0AddTransferStopUp,
+		Down:        ver0_14_0AddTransferStopDown,
 	},
 }
