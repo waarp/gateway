@@ -205,6 +205,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							Step:         types.StepData,
 							Owner:        conf.GlobalConfig.GatewayName,
 							Progress:     3,
+							TransferInfo: transfers[0].TransferInfo,
 						}
 						So(transfers[0], ShouldResemble, expected)
 

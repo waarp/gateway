@@ -96,7 +96,7 @@ func (t *TransferPreregister) Run(_ context.Context, args map[string]string,
 
 	transferInfo := map[string]any{}
 	if t.CopyInfo {
-		transferInfo = transCtx.TransInfo
+		transferInfo = transCtx.Transfer.CopyInfo()
 	}
 
 	maps.Copy(transferInfo, t.Info)
@@ -106,6 +106,7 @@ func (t *TransferPreregister) Run(_ context.Context, args map[string]string,
 		RuleID:         t.rule.ID,
 		LocalAccountID: utils.NewNullInt64(t.account.ID),
 		Start:          t.dueDate,
+		TransferInfo:   transferInfo,
 	}
 
 	var kind string
@@ -118,18 +119,8 @@ func (t *TransferPreregister) Run(_ context.Context, args map[string]string,
 		kind = "upload"
 	}
 
-	if err := db.Transaction(func(ses *database.Session) error {
-		if err := ses.Insert(trans).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer: %w", err)
-		}
-
-		if err := trans.SetTransferInfo(ses, transferInfo); err != nil {
-			return fmt.Errorf("failed to set transfer info: %w", err)
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("failed to preregister transfer: %w", err)
+	if err := db.Insert(trans).Run(); err != nil {
+		return fmt.Errorf("failed to insert transfer: %w", err)
 	}
 
 	logger.Debugf("Preregistered %s transfer n°%d of file %q, from %q to %q using rule %q",

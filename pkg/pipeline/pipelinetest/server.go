@@ -2,6 +2,7 @@ package pipelinetest
 
 import (
 	"context"
+	"encoding/json"
 	"path"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 type ServerContext struct {
 	*testData
 	*serverData
+
 	filename string
 	service  testService
 }
@@ -160,9 +162,9 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string,
 }
 
 // AddAuths adds the given cryptos to the test database.
-func (s *ServerContext) AddAuths(c convey.C, auths ...*model.Credential) {
-	for _, auth := range auths {
-		c.So(s.DB.Insert(auth).Run(), convey.ShouldBeNil)
+func (s *ServerContext) AddAuths(c convey.C, creds ...*model.Credential) {
+	for _, cred := range creds {
+		c.So(s.DB.Insert(cred).Run(), convey.ShouldBeNil)
 	}
 }
 
@@ -188,5 +190,6 @@ func (s *ServerContext) CheckTransferOK(c convey.C) {
 
 	remoteID := actual.RemoteTransferID
 	progress := TestFileSize
-	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.testData, &actual, nil)
+	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.testData, &actual,
+		map[string]any{model.FollowID: json.Number(remoteID)})
 }

@@ -352,7 +352,7 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 
 		end := t.pip.TransCtx.Transfer.Progress
 		articlesLen = append(articlesLen, end-start)
-		t.pip.TransCtx.TransInfo[articlesLengthsKey] = articlesLen
+		t.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articlesLen
 	}
 }
 

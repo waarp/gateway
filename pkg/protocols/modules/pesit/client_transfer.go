@@ -357,7 +357,7 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 
 			end := c.pip.TransCtx.Transfer.Progress
 			articleLengths = append(articleLengths, end-start)
-			c.pip.TransCtx.TransInfo[articlesLengthsKey] = articleLengths
+			c.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articleLengths
 		}
 	}, file)
 }

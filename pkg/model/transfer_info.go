@@ -7,9 +7,25 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
-// FollowID defines the name of the transfer info value containing the R66
-// follow ID.
-const FollowID = "__followID__"
+type ResumeSyncError struct {
+	ID       int64
+	ParentID any
+}
+
+func (e *ResumeSyncError) Error() string {
+	return fmt.Sprintf(
+		"cannot resume transfer %d: it is a child of transfer %v, resume the parent instead",
+		e.ID, e.ParentID)
+}
+
+const (
+	// FollowID defines the name of the transfer info value containing the R66
+	// follow ID.
+	FollowID = "__followID__"
+
+	SyncTransferID   = "__syncTransferID__"
+	SyncTransferRank = "__syncTransferRank__"
+)
 
 type transferInfoOwner interface {
 	getTransInfoCondition() (string, int64)

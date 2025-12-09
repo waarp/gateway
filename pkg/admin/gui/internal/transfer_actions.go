@@ -34,27 +34,15 @@ func InsertNewTransfer(db *database.DB,
 		RemainingTries:       remainingTries,
 		NextRetryDelay:       nextRetryDelay,
 		RetryIncrementFactor: retryIncrementFactor,
+		TransferInfo:         transferInfos,
 	}
 
 	if date.IsZero() {
 		trans.Start = time.Now()
 	}
 
-	err := db.Transaction(func(ses *database.Session) error {
-		if err := ses.Insert(trans).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer: %w", err)
-		}
-
-		if len(transferInfos) != 0 {
-			if err := trans.SetTransferInfo(ses, transferInfos); err != nil {
-				return fmt.Errorf("failed to set transfer info: %w", err)
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
+	if err := db.Insert(trans).Run(); err != nil {
+		return nil, fmt.Errorf("failed to insert transfer: %w", err)
 	}
 
 	return trans, nil
@@ -72,6 +60,7 @@ func RegisterNewTransfer(db *database.DB,
 		LocalAccountID: utils.NewNullInt64(account.ID),
 		RuleID:         rule.ID,
 		Start:          dueDate,
+		TransferInfo:   transferInfos,
 	}
 
 	if rule.IsSend {
@@ -80,21 +69,8 @@ func RegisterNewTransfer(db *database.DB,
 		trans.DestFilename = filename
 	}
 
-	err := db.Transaction(func(ses *database.Session) error {
-		if err := ses.Insert(trans).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer: %w", err)
-		}
-
-		if len(transferInfos) != 0 {
-			if err := trans.SetTransferInfo(ses, transferInfos); err != nil {
-				return fmt.Errorf("failed to set transfer info: %w", err)
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
+	if err := db.Insert(trans).Run(); err != nil {
+		return nil, fmt.Errorf("failed to insert transfer: %w", err)
 	}
 
 	return trans, nil
@@ -128,18 +104,8 @@ func PauseTransfer(ctx context.Context, db database.Access, view *model.Normaliz
 }
 
 func ResumeTransfer(db database.Access, view *model.NormalizedTransferView) error {
-	if !view.Status.IsOneOf(types.StatusPaused, types.StatusError, types.StatusInterrupted) {
-		return ErrResumeTransferNotPaused
-	}
-
-	var transfer model.Transfer
-	if err := db.Get(&transfer, "id=?", view.ID).Run(); err != nil {
-		return fmt.Errorf("failed to retrieve transfer: %w", err)
-	}
-
-	transfer.Status = types.StatusPlanned
-	if err := db.Update(&transfer).Run(); err != nil {
-		return fmt.Errorf("failed to update transfer: %w", err)
+	if err := view.Resume(db, time.Now()); err != nil {
+		return fmt.Errorf("failed to resume transfer: %w", err)
 	}
 
 	return nil
@@ -180,20 +146,9 @@ func ReprogramTransfer(db *database.DB, transfer *model.NormalizedTransferView,
 		return nil, fmt.Errorf("failed to reprogram transfer: %w", copyErr)
 	}
 
-	infos, infErr := transfer.GetTransferInfo(db)
-	if infErr != nil {
-		return nil, fmt.Errorf("failed to get transfer info: %w", infErr)
+	if err := db.Insert(newTransfer).Run(); err != nil {
+		return nil, fmt.Errorf("failed to insert transfer: %w", err)
 	}
 
-	return newTransfer, db.Transaction(func(ses *database.Session) error {
-		if err := ses.Insert(newTransfer).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer: %w", err)
-		}
-
-		if err := newTransfer.SetTransferInfo(ses, infos); err != nil {
-			return fmt.Errorf("failed to set transfer info: %w", err)
-		}
-
-		return nil
-	})
+	return newTransfer, nil
 }

@@ -142,10 +142,10 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 		query.In("status", statuses)
 	}
 
-	if followIDs, ok := r.Form["followID"]; ok && len(followIDs) > 0 {
+	if followID := r.FormValue("followID"); followID != "" {
 		query.Where("id IN (SELECT CONCAT(transfer_id, history_id) "+
 			"FROM transfer_info WHERE name=? AND value=?)",
-			model.FollowID, followIDs[0])
+			model.FollowID, followID)
 	}
 
 	if startStr := r.FormValue("start"); startStr != "" {

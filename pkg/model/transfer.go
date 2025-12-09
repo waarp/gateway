@@ -2,7 +2,9 @@ package model
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"maps"
 	"path"
 	"path/filepath"
 	"strings"
@@ -58,6 +60,7 @@ type Transfer struct {
 	NextRetryDelay       int32                   `xorm:"next_retry_delay"`
 	RetryIncrementFactor float32                 `xorm:"retry_increment_factor"`
 	NextRetry            time.Time               `xorm:"next_retry DATETIME(6) UTC"`
+	TransferInfo         map[string]any          `xorm:"-"`
 }
 
 func (*Transfer) TableName() string   { return TableTransfers }
@@ -220,16 +223,39 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	return nil
 }
 
+func (t *Transfer) UpdateInfo(db database.Access) error {
+	return setTransferInfo(db, t, t.TransferInfo)
+}
+
 func (t *Transfer) AfterInsert(db database.Access) error {
-	if err := db.Insert(&TransferInfo{
-		TransferID: utils.NewNullInt64(t.ID),
-		Name:       FollowID,
-		Value:      t.RemoteTransferID,
-	}).Run(); err != nil {
-		return fmt.Errorf("failed to create follow ID: %w", err)
+	if t.TransferInfo == nil {
+		t.TransferInfo = map[string]any{}
 	}
 
-	return mkPesitID(db, t)
+	if err := mkPesitID(db, t); err != nil {
+		return err
+	}
+
+	if t.TransferInfo[FollowID] == nil {
+		t.TransferInfo[FollowID] = json.Number(t.RemoteTransferID)
+	}
+
+	return t.UpdateInfo(db)
+}
+
+func (t *Transfer) AfterUpdate(db database.Access) error {
+	return t.UpdateInfo(db)
+}
+
+func (t *Transfer) AfterRead(db database.ReadAccess) error {
+	infos, err := getTransferInfo(db, t)
+	if err != nil {
+		return err
+	}
+
+	t.TransferInfo = infos
+
+	return nil
 }
 
 func (t *Transfer) makeAgentInfo(db database.ReadAccess,
@@ -377,17 +403,6 @@ func (t *Transfer) MoveToHistory(db *database.DB, logger *log.Logger, end time.T
 	return nil
 }
 
-// GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (t *Transfer) GetTransferInfo(db database.ReadAccess) (map[string]any, error) {
-	return getTransferInfo(db, t)
-}
-
-// SetTransferInfo replaces all the TransferInfo in the database of the given
-// history entry by those given in the map parameter.
-func (t *Transfer) SetTransferInfo(db database.Access, info map[string]any) error {
-	return setTransferInfo(db, t, info)
-}
-
 func (t *Transfer) TransferID() (int64, error) {
 	id, err := snowflake.ParseString(t.RemoteTransferID)
 	if err != nil {
@@ -431,37 +446,61 @@ func (t *Transfer) clearRetryParameters() {
 	t.RetryIncrementFactor = 0
 }
 
-func GetDefaultTransferClient(db database.Access, remoteAccountID int64) (*Client, error) {
-	// Retrieve the transfer's partner (to retrieve the transfer's protocol).
-	var partner RemoteAgent
-	if err := db.Get(&partner, "id=(SELECT remote_agent_id FROM remote_accounts WHERE id=?)",
-		remoteAccountID).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve transfer partner: %w", err)
+func GetTransferFromParentID(db database.ReadAccess, parent *Transfer) (*Transfer, error) {
+	id := utils.FormatInt(parent.ID)
+	rank := utils.FormatInt(parent.TaskNumber)
+
+	var transfer Transfer
+	if err := db.Get(&transfer,
+		"id=(SELECT transfer_id FROM transfer_info WHERE name=? AND value=? AND "+
+			"transfer_id IN (SELECT transfer_id FROM transfer_info WHERE name=? AND value=?))",
+		SyncTransferID, id, SyncTransferRank, rank).
+		Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve transfer: %w", err)
 	}
 
-	// Retrieve all clients with the transfer's protocol.
-	var clients Clients
-	if err := db.Select(&clients).Where("protocol=? AND owner=?", partner.Protocol,
-		conf.GlobalConfig.GatewayName).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve potential transfer clients: %w", err)
+	return &transfer, nil
+}
+
+func (t *Transfer) CheckResumable() error {
+	if t.IsServer() {
+		return ErrResumeServer
 	}
 
-	// If more than one client was found, return an error to the user (because
-	// we don't know which one to use, so we ask the user to specify one).
-	if len(clients) > 1 {
-		return nil, database.NewValidationError("the transfer is missing a client ID")
+	switch t.Status {
+	case types.StatusPaused, types.StatusInterrupted, types.StatusError:
+	default:
+		return ErrResumeRunning
 	}
 
-	// If exactly one client was found, use it.
-	if len(clients) == 1 {
-		return clients[0], nil
+	if parentID := t.TransferInfo[SyncTransferID]; parentID != nil {
+		return &ResumeSyncError{ID: t.ID, ParentID: parentID}
 	}
 
-	// Finally, if no clients were found, create a new default one and use it.
-	client := Client{Protocol: partner.Protocol}
-	if err := db.Insert(&client).Run(); err != nil {
-		return nil, fmt.Errorf("failed to create new transfer client: %w", err)
+	return nil
+}
+
+func (t *Transfer) Resume(db database.Access, when time.Time) error {
+	if err := t.CheckResumable(); err != nil {
+		return err
 	}
 
-	return &client, nil
+	t.Status = types.StatusPlanned
+	t.ErrCode = types.TeOk
+	t.ErrDetails = ""
+	t.NextRetry = when
+
+	if err := db.Update(t).Run(); err != nil {
+		return fmt.Errorf("failed to update transfer: %w", err)
+	}
+
+	return nil
+}
+
+func (t *Transfer) CopyInfo() map[string]any {
+	clone := maps.Clone(t.TransferInfo)
+	delete(clone, SyncTransferID)
+	delete(clone, SyncTransferRank)
+
+	return clone
 }

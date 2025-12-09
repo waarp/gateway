@@ -6,16 +6,28 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"time"
 
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const transferCancelTimeout = 5 * time.Second
+
+type ClientPipeline interface {
+	Run() error
+	Interrupt(context.Context) error
+}
+
 //nolint:gochecknoglobals //yes, this is very ugly, but there is really no other way to avoid an import cycle
-var GetDefaultTransferClient func(db *database.DB, protocol string) (*model.Client, error)
+var (
+	GetDefaultTransferClient func(db *database.DB, protocol string) (*model.Client, error)
+	NewClientPipeline        func(db *database.DB, trans *model.Transfer) (ClientPipeline, error)
+)
 
 var (
 	ErrTransferNoFile       = errors.New(`missing transfer source file`)
@@ -32,6 +44,7 @@ var (
 
 // TransferTask is a task which schedules a new transfer.
 type TransferTask struct {
+	Synchronous          jsonBool     `json:"synchronous"`
 	File                 string       `json:"file"`
 	Output               string       `json:"output"`
 	To                   string       `json:"to"`
@@ -44,6 +57,7 @@ type TransferTask struct {
 	NbOfAttempts         jsonInt      `json:"nbOfAttempts"`
 	FirstRetryDelay      jsonDuration `json:"firstRetryDelay"`
 	RetryIncrementFactor jsonFloat    `json:"retryIncrementFactor"`
+	Timeout              jsonDuration `json:"timeout"`
 
 	partner model.RemoteAgent
 	account model.RemoteAccount
@@ -128,7 +142,7 @@ func (t *TransferTask) ValidateDB(db database.ReadAccess, args map[string]string
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
-func (t *TransferTask) Run(_ context.Context, args map[string]string,
+func (t *TransferTask) Run(ctx context.Context, args map[string]string,
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 ) error {
 	if err := t.parseArgs(db, args); err != nil {
@@ -137,9 +151,46 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		return err
 	}
 
+	trans, err := t.makeTransfer(db, transCtx)
+	if err != nil {
+		logger.Errorf("Failed to create transfer: %v", err)
+
+		return err
+	}
+
+	if !t.Synchronous {
+		logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
+			trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
+
+		return nil
+	}
+
+	return t.runSynchronousTransfer(ctx, db, logger, trans)
+}
+
+func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferContext,
+) (*model.Transfer, error) {
+	if t.Synchronous {
+		trans, dbErr := model.GetTransferFromParentID(db, transCtx.Transfer)
+		if dbErr == nil {
+			trans.Status = types.StatusRunning
+			trans.ErrCode = types.TeOk
+			trans.ErrDetails = ""
+			trans.NextRetry = time.Now()
+
+			if err := db.Update(trans).Run(); err != nil {
+				return nil, fmt.Errorf("failed to update transfer: %w", err)
+			}
+
+			return trans, nil
+		} else if !database.IsNotFound(dbErr) {
+			return nil, fmt.Errorf("failed to retrieve transfer: %w", dbErr)
+		}
+	}
+
 	transferInfo := map[string]any{}
 	if t.CopyInfo {
-		transferInfo = transCtx.TransInfo
+		transferInfo = transCtx.Transfer.CopyInfo()
 	}
 
 	maps.Copy(transferInfo, t.Info)
@@ -158,24 +209,61 @@ func (t *TransferTask) Run(_ context.Context, args map[string]string,
 		RemainingTries:       int8(t.NbOfAttempts),
 		NextRetryDelay:       int32(t.FirstRetryDelay.Seconds()),
 		RetryIncrementFactor: float32(t.RetryIncrementFactor),
+		TransferInfo:         transferInfo,
 	}
 
-	if err := db.Transaction(func(ses *database.Session) error {
-		if err := ses.Insert(trans).Run(); err != nil {
-			return fmt.Errorf("failed to insert transfer: %w", err)
-		}
+	if t.Synchronous {
+		trans.Status = types.StatusRunning
+		transferInfo[model.SyncTransferID] = transCtx.Transfer.ID
+		transferInfo[model.SyncTransferRank] = transCtx.Transfer.TaskNumber
+	}
 
-		if err := trans.SetTransferInfo(ses, transferInfo); err != nil {
-			return fmt.Errorf("failed to set transfer info: %w", err)
+	if err := db.Insert(trans).Run(); err != nil {
+		return nil, fmt.Errorf("failed to insert transfer: %w", err)
+	}
+
+	return trans, nil
+}
+
+func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
+	db *database.DB, logger *log.Logger, trans *model.Transfer,
+) error {
+	logger.Debugf("Executing new transfer n°%d of file %q, %s as %q using rule %q",
+		trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
+
+	pip, pipErr := NewClientPipeline(db, trans)
+	if pipErr != nil {
+		return fmt.Errorf("failed to initialize the client transfer pipeline: %w", pipErr)
+	}
+
+	if !t.Timeout.IsZero() {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, t.Timeout.Duration)
+		defer cancel()
+	}
+
+	result := make(chan error)
+	go func() {
+		defer close(result)
+		result <- pip.Run()
+	}()
+
+	select {
+	case err := <-result:
+		if err != nil {
+			return fmt.Errorf("failed to run the client transfer pipeline: %w", err)
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("failed to create transfer: %w", err)
+	case <-ctx.Done():
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, transferCancelTimeout)
+		defer cancel()
+
+		if err := pip.Interrupt(ctx); err != nil {
+			logger.Warningf("Failed to cancel transfer: %v", err)
+		}
+
+		return fmt.Errorf("transfer cancelled: %w", ctx.Err())
 	}
-
-	logger.Debugf("Programmed new transfer n°%d of file %q, %s as %q using rule %q",
-		trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
-
-	return nil
 }

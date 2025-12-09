@@ -113,11 +113,7 @@ func makeTestRequest(method, host, path string, body io.Reader) *http.Response {
 
 func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
 	var t model.NormalizedTransferView
-
 	convey.So(db.Get(&t, "id=?", trans.ID).Run(), convey.ShouldBeNil)
 
-	jTrans, err := DBTransferToREST(db, &t)
-	convey.So(err, convey.ShouldBeNil)
-
-	return jTrans
+	return DBTransferToREST(&t)
 }

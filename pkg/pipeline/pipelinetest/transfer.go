@@ -1,12 +1,9 @@
 package pipelinetest
 
 import (
-	"maps"
-
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -14,14 +11,13 @@ import (
 )
 
 type transData struct {
-	ClientTrans  *model.Transfer
-	transferInfo map[string]interface{}
+	ClientTrans *model.Transfer
 	// fileInfo     map[string]interface{}
 	fileContent []byte
 }
 
 func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
-	db *database.DB, actual *model.HistoryEntry,
+	actual *model.HistoryEntry,
 ) {
 	c.Convey("Then there should be a client-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
@@ -45,17 +41,15 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
 			Progress:         int64(len(data.fileContent)),
+			TransferInfo:     actual.TransferInfo,
 		}
 		c.So(*actual, convey.ShouldResemble, *expected)
-		checkHistoryInfo(c, db, actual, data)
-		/* if !d.ClientRule.IsSend {
-			checkFileInfo(c, db, actual.ID, data)
-		} */
+		c.So(actual.TransferInfo, testhelpers.ShouldEqualJSON, data.ClientTrans.TransferInfo)
 	})
 }
 
 func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filename string,
-	progress int64, ctx *testData, actual *model.HistoryEntry, data *transData,
+	progress int64, ctx *testData, actual *model.HistoryEntry, transInfo map[string]any,
 ) {
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
 		expectedLocalPath := fs.JoinPath(ctx.Paths.GatewayHome, d.Server.RootDir,
@@ -79,6 +73,7 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
 			Progress:         progress,
+			TransferInfo:     actual.TransferInfo,
 		}
 
 		if d.ServerRule.IsSend {
@@ -88,48 +83,6 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 		}
 
 		c.So(*actual, convey.ShouldResemble, *expected)
-		checkHistoryInfo(c, ctx.DB, actual, data)
-		/* if !d.ServerRule.IsSend {
-			checkFileInfo(c, db, actual.ID, data)
-		} */
+		c.So(actual.TransferInfo, testhelpers.ShouldEqualJSON, transInfo)
 	})
 }
-
-func checkHistoryInfo(c convey.C, db *database.DB, hist *model.HistoryEntry, data *transData) {
-	if data == nil || !Protocols[hist.Protocol].TransferInfo {
-		return
-	}
-
-	actualInfo, err := hist.GetTransferInfo(db)
-	c.So(err, convey.ShouldBeNil)
-
-	expectedData := maps.Clone(data.transferInfo)
-
-	var idErr error
-	expectedData[model.FollowID], idErr = hist.TransferID()
-	c.So(idErr, convey.ShouldBeNil)
-
-	c.So(actualInfo, testhelpers.ShouldEqualJSON, expectedData)
-}
-
-/*
-func checkFileInfo(c convey.C, db *database.DB, transID uint64, data *transData) {
-	if data == nil {
-		return
-	}
-
-	var infoList model.FileInfoList
-	c.So(db.Select(&infoList).Where("transfer_id=?", transID).Run(), convey.ShouldBeNil)
-
-	actualInfo := map[string]interface{}{}
-
-	for _, info := range infoList {
-		var val interface{}
-		c.So(json.Unmarshal([]byte(info.Value), &val), convey.ShouldBeNil)
-
-		actualInfo[info.String] = val
-	}
-
-	c.So(actualInfo, convey.ShouldResemble, data.fileInfo)
-}
-*/

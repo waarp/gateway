@@ -42,3 +42,21 @@ function catchFetchErr(error) {
         popupErr(error)
     }
 }
+
+function disableElem(id) {
+    const elem = document.getElementById(id)
+    if (!elem) return
+
+    elem.hidden = true
+    const children = elem.querySelectorAll("input")
+    children.forEach(child => {
+        child.value = ""
+    })
+}
+
+function enableElem(id) {
+    const elem = document.getElementById(id)
+    if (!elem) return
+
+    elem.hidden = false
+}

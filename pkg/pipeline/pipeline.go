@@ -7,9 +7,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
-	"maps"
 	"math"
-	"reflect"
 	"sync"
 	"time"
 
@@ -45,10 +43,9 @@ type Pipeline struct {
 	Trace    Trace
 	snmp     *snmp.Service
 
-	machine          *statemachine.Machine
-	interruption     interruption
-	updTicker        *time.Ticker
-	lastTransferInfo map[string]any
+	machine      *statemachine.Machine
+	interruption interruption
+	updTicker    *time.Ticker
 
 	storedErr *Error
 	errOnce   sync.Once
@@ -140,20 +137,6 @@ func (p *Pipeline) forceUpdateTrans() *Error {
 	if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
 		return NewErrorWith(types.TeInternal, "Failed to update transfer", dbErr)
 	}
-
-	return p.updateTransferInfo()
-}
-
-func (p *Pipeline) updateTransferInfo() *Error {
-	if reflect.DeepEqual(p.TransCtx.TransInfo, p.lastTransferInfo) {
-		return nil
-	}
-
-	if err := p.TransCtx.Transfer.SetTransferInfo(p.DB, p.TransCtx.TransInfo); err != nil {
-		return p.internalError(types.TeInternal, "failed to update the transfer info", err)
-	}
-
-	p.lastTransferInfo = maps.Clone(p.TransCtx.TransInfo)
 
 	return nil
 }
@@ -337,7 +320,7 @@ func (p *Pipeline) EndTransfer() *Error {
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
 
-		if err := p.updateTransferInfo(); err != nil {
+		if err := p.TransCtx.Transfer.UpdateInfo(p.DB); err != nil {
 			p.Logger.Errorf("Failed to update transfer infos: %v", err)
 			p.errorTasks()
 			p.storedErr = sErr

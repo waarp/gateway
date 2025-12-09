@@ -66,31 +66,18 @@ func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
 	return infoMap, nil
 }
 
-func setTransferInfo(access database.Access, owner transferInfoOwner,
-	info map[string]any,
+func setTransferInfo(db database.Access, owner transferInfoOwner, info map[string]any,
 ) error {
-	switch db := access.(type) {
-	case *database.DB:
-		//nolint:wrapcheck //wrapping this error would add nothing
-		return db.Transaction(func(ses *database.Session) error {
-			return doSetTransferInfo(ses, owner, info)
-		})
-	case *database.Session:
-		return doSetTransferInfo(db, owner, info)
-	default:
-		panic(fmt.Sprintf("unknown database access type %T", access))
-	}
+	//nolint:wrapcheck //wrapping this error would add nothing
+	return db.Transaction(func(ses *database.Session) error {
+		return doSetTransferInfo(ses, owner, info)
+	})
 }
 
-func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
-	info map[string]any,
+func doSetTransferInfo(ses *database.Session, owner transferInfoOwner, info map[string]any,
 ) error {
-	delQuery := ses.DeleteAll(&TransferInfo{}).Where(owner.getTransInfoCondition())
-	if _, ok := info[FollowID]; !ok {
-		delQuery.Where("name <> ?", FollowID)
-	}
-
-	if err := delQuery.Run(); err != nil {
+	if err := ses.DeleteAll(&TransferInfo{}).
+		Where(owner.getTransInfoCondition()).Run(); err != nil {
 		return fmt.Errorf("failed to delete transfer info: %w", err)
 	}
 

@@ -1,6 +1,7 @@
 package pesit
 
 import (
+	"maps"
 	"testing"
 	"time"
 
@@ -286,11 +287,9 @@ func TestCFT(t *testing.T) {
 			SrcFilename:    ctx.TransferPull.SrcFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,
+			TransferInfo:   map[string]any{serverTransFreetextKey: "pesit freetext sample"},
 		}
 		require.NoError(t, db.Insert(serverPullTrans).Run())
-
-		servFreetext := map[string]any{serverTransFreetextKey: "pesit freetext sample"}
-		require.NoError(t, serverPullTrans.SetTransferInfo(db, servFreetext))
 
 		pip := ctx.PullPipeline(t)
 
@@ -300,10 +299,12 @@ func TestCFT(t *testing.T) {
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
 				ctx.CheckPullTransferOK(t)
 
-				hist := &model.HistoryEntry{ID: ctx.TransferPull.ID}
-				infoCheck, infoErr := hist.GetTransferInfo(db)
-				require.NoError(t, infoErr)
-				assert.Subset(t, infoCheck, servFreetext)
+				var hist model.HistoryEntry
+				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Run())
+
+				expectedInfo := maps.Clone(serverPullTrans.TransferInfo)
+				delete(expectedInfo, model.FollowID)
+				assert.Subset(t, hist.TransferInfo, expectedInfo)
 			})
 		})
 	})

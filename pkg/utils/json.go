@@ -53,3 +53,12 @@ func (j *jsonBody) Read(p []byte) (int, error) {
 
 	return j.buf.Read(p)
 }
+
+func MustJSON(v any) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(b)
+}

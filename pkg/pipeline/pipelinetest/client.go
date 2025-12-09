@@ -63,10 +63,7 @@ func initClient(c convey.C, proto string, clientConf protocol.ClientConfig,
 			Client:      cli,
 			ProtoClient: client,
 		},
-		transData: &transData{
-			transferInfo: map[string]any{},
-			// fileInfo:     map[string]any{},
-		},
+		transData:     &transData{},
 		protoFeatures: &feat,
 	}
 }
@@ -239,7 +236,7 @@ func (cc *ClientContext) CheckTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
 	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Run(), convey.ShouldBeNil)
-	cc.checkClientTransferOK(c, cc.transData, cc.DB, &actual)
+	cc.checkClientTransferOK(c, cc.transData, &actual)
 }
 
 func (cc *ClientContext) GetTransferContent(c convey.C) *model.TransferContext {
@@ -251,7 +248,6 @@ func (cc *ClientContext) GetTransferContent(c convey.C) *model.TransferContext {
 
 	return &model.TransferContext{
 		Transfer:           cc.ClientTrans,
-		TransInfo:          cc.transferInfo,
 		Rule:               cc.ClientRule,
 		Client:             cc.Client,
 		RemoteAgent:        cc.Partner,

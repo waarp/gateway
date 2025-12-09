@@ -218,7 +218,6 @@ func setTransferInfo(pip *pipeline.Pipeline, headers http.Header) *pipeline.Erro
 }
 
 func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.Error {
-	info := pip.TransCtx.TransInfo
 	const headerParts = 2
 
 	for _, text := range headers.Values(key) {
@@ -239,17 +238,15 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.
 			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info value", err)
 		}
 
-		info[name] = value
+		pip.TransCtx.Transfer.TransferInfo[name] = value
 	}
 
-	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, info); err != nil {
+	if err := pip.TransCtx.Transfer.AfterInsert(pip.DB); err != nil {
 		pip.Logger.Errorf("Failed to set transfer info: %v", err)
 		pip.SetError(types.TeInternal, "failed to set transfer info")
 
 		return pipeline.NewError(types.TeInternal, "database error")
 	}
-
-	pip.TransCtx.TransInfo = info
 
 	return nil
 }
@@ -272,7 +269,7 @@ func makeInfo(headers http.Header, pip *pipeline.Pipeline, key string,
 }
 
 func makeTransferInfo(headers http.Header, pip *pipeline.Pipeline) *pipeline.Error {
-	return makeInfo(headers, pip, httpconst.TransferInfo, pip.TransCtx.TransInfo)
+	return makeInfo(headers, pip, httpconst.TransferInfo, pip.TransCtx.Transfer.TransferInfo)
 }
 
 /*

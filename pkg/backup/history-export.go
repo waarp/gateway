@@ -12,12 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.Transfer, error) {
-	info, err := hist.GetTransferInfo(db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve info of transfer %d: %w", hist.ID, err)
-	}
-
+func dbHistToFileTrans(hist *model.HistoryEntry) *file.Transfer {
 	return &file.Transfer{
 		ID:             hist.ID,
 		RemoteID:       hist.RemoteTransferID,
@@ -41,19 +36,16 @@ func dbHistToFileTrans(hist *model.HistoryEntry, db database.ReadAccess) (*file.
 		TaskNumber:     hist.TaskNumber,
 		ErrorCode:      hist.ErrCode,
 		ErrorMsg:       hist.ErrDetails,
-		TransferInfo:   info,
-	}, nil
+		TransferInfo:   hist.TransferInfo,
+	}
 }
 
-func encodeHistEntry(db database.ReadAccess, hist *model.HistoryEntry, w io.Writer) error {
-	trans, err := dbHistToFileTrans(hist, db)
-	if err != nil {
-		return err
-	}
+func encodeHistEntry(hist *model.HistoryEntry, w io.Writer) error {
+	trans := dbHistToFileTrans(hist)
 
-	jTrans, err := json.Marshal(trans)
-	if err != nil {
-		return fmt.Errorf("failed to marshal history entry: %w", err)
+	jTrans, mErr := json.Marshal(trans)
+	if mErr != nil {
+		return fmt.Errorf("failed to marshal history entry: %w", mErr)
 	}
 
 	buf := &bytes.Buffer{}
@@ -70,6 +62,10 @@ func encodeHistEntry(db database.ReadAccess, hist *model.HistoryEntry, w io.Writ
 
 func ExportHistory(db database.Access, w io.Writer, olderThan time.Time) error {
 	const sliceSize = 20
+
+	fmt.Fprintln(w, "[")
+
+	defer fmt.Fprintln(w, "\n]")
 
 	for i := 0; ; i += sliceSize {
 		var transfers model.HistoryEntries
@@ -88,10 +84,6 @@ func ExportHistory(db database.Access, w io.Writer, olderThan time.Time) error {
 			return nil
 		}
 
-		fmt.Fprintln(w, "[")
-
-		defer fmt.Fprintln(w, "\n]")
-
 		for i, hist := range transfers {
 			if i == 0 {
 				fmt.Fprint(w, "  ")
@@ -99,7 +91,7 @@ func ExportHistory(db database.Access, w io.Writer, olderThan time.Time) error {
 				fmt.Fprint(w, ",\n  ")
 			}
 
-			if err := encodeHistEntry(db, hist, w); err != nil {
+			if err := encodeHistEntry(hist, w); err != nil {
 				return err
 			}
 		}

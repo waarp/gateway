@@ -92,6 +92,7 @@ func TestImportHistory(t *testing.T) {
 			Step:             types.StepNone,
 			Progress:         321,
 			TaskNumber:       10,
+			TransferInfo:     map[string]any{"key": "val"},
 		}
 		expected2 := &model.HistoryEntry{
 			ID:               2,
@@ -117,6 +118,7 @@ func TestImportHistory(t *testing.T) {
 			TaskNumber:       20,
 			ErrCode:          types.TeDataTransfer,
 			ErrDetails:       "error in data transfer",
+			TransferInfo:     map[string]any{},
 		}
 
 		hist3 := &model.HistoryEntry{
@@ -151,10 +153,6 @@ func TestImportHistory(t *testing.T) {
 				So(hist, ShouldHaveLength, 2)
 				So(hist[0], ShouldResemble, expected1)
 				So(hist[1], ShouldResemble, expected2)
-
-				info, err := hist[0].GetTransferInfo(db)
-				So(err, ShouldBeNil)
-				So(info["key"], ShouldResemble, "val")
 			})
 
 			Convey("Then any newly inserted transfer should not have a conflicting ID", func() {

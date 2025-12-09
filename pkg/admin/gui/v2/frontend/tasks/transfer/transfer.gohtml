@@ -1,6 +1,7 @@
 {{ $rule := .Task.Args.rule }}
 {{ $client := .Task.Args.using }}
 {{ $account := .Task.Args.as }}
+{{ $sync := .Task.Args.synchronous }}
 
 {{ $partner := "" }}
 {{ $direction := "" }}
@@ -12,8 +13,87 @@
     {{ $direction = "receive"}}
 {{ end }}
 
+{{ $mode := "" }}
+{{ if eq $sync "true" }}
+    {{ $mode = "sync" }}
+{{ else if eq $sync "false" }}
+    {{ $mode = "async" }}
+{{ end }}
+
 <!-- Task description -->
 <p class="task-description">{{ .Text.description }}</p>
+
+<!-- Sync/async -->
+<script>
+    function toggleRetrySettingsCheck(isSync) {
+        const retryCheckElem = document.getElementById("retrySettingsCheck")
+        if (isSync) {
+            retryCheckElem.checked = false
+            retryCheckElem.parentElement.hidden = true
+            toggleRetrySettings(false)
+        } else {
+            retryCheckElem.parentElement.hidden = false
+        }
+    }
+
+    function toggleTimeout(isSync) {
+        if (isSync) enableElem("transferTaskTimeout")
+        else disableElem("transferTaskTimeout")
+    }
+
+    function changeMode(mode) {
+        const isSync = (mode === "sync")
+        const syncField = document.getElementById("transferTaskSync")
+        syncField.value = isSync
+
+        toggleRetrySettingsCheck(isSync)
+        toggleTimeout(isSync)
+    }
+</script>
+<div class="form-input">
+    <input id="transferTaskSync" name="synchronous" hidden>
+    <label class="col-form-label me-3">
+        {{ .Text.mode }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.directionTooltip }}">
+        </i> :
+    </label>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" name="mode" required
+               type="radio" id="modeSync" value="sync" form=""
+               onclick="changeMode(this.value)"
+               {{ if eq $sync "true" }}checked{{ end }}>
+        <label class="form-check-label" for="modeSync">
+            {{ .Text.sync }}
+            <i class="bi bi-info-circle"
+               data-bs-toggle="tooltip"
+               data-bs-placement="right"
+               data-bs-title="{{ .Text.syncTooltip }}">
+            </i>
+        </label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" name="mode" required
+               type="radio" id="modeAsync" value="async" form=""
+               onclick="changeMode(this.value)"
+               {{ if ne $sync "false" }}checked{{ end }}>
+        <label class="form-check-label" for="modeAsync">
+            {{ .Text.async }}
+            <i class="bi bi-info-circle"
+               data-bs-toggle="tooltip"
+               data-bs-placement="right"
+               data-bs-title="{{ .Text.asyncTooltip }}">
+            </i>
+        </label>
+    </div>
+</div>
+{{ if $mode }}
+    <script defer>
+        changeDirection({{$mode}})
+    </script>
+{{ end }}
 
 <!-- File -->
 {{ template "textInputRow" dict
@@ -216,3 +296,16 @@
     toggleRetrySettings("true")
 </script>
 {{ end }}
+
+<!-- Timeout -->
+<div id="transferTaskTimeout" hidden>
+    {{ template "timeInputRow" dict
+        "label" .Text.timeout
+        "tooltip" .Text.timeoutTooltip
+        "fieldName" "timeout"
+        "value" .Task.Args.timeout
+        "aggregate" "aggregateDuration"
+        "units" (list "h" "m" "s")
+        "optional" true
+    }}
+</div>

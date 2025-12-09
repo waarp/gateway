@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // UserContent defines the name of the transfer info value containing the R66
@@ -40,7 +41,7 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *pipeline.Erro
 
 	if info.FileInfo != nil {
 		if info.FileInfo.SystemData.FollowID > 0 {
-			pip.TransCtx.TransInfo[model.FollowID] = info.FileInfo.SystemData.FollowID
+			pip.TransCtx.Transfer.TransferInfo[model.FollowID] = info.FileInfo.SystemData.FollowID
 		}
 
 		if info.FileInfo.UserContent != "" {
@@ -59,27 +60,20 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Er
 		return nil // cannot update transfer info after data transfer started
 	}
 
-	info := map[string]any{}
-	if !pip.IsServer() {
-		info = pip.TransCtx.TransInfo
-	}
-
 	if uContent := []byte(userContent); json.Valid(uContent) {
+		info := map[string]any{}
 		if err := json.Unmarshal(uContent, &info); err != nil {
 			pip.Logger.Errorf("Failed to unmarshall transfer info: %s", err)
 
 			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info", err)
 		}
+
+		maps.Copy(pip.TransCtx.Transfer.TransferInfo, info)
 	} else {
-		pip.TransCtx.TransInfo[UserContent] = userContent
+		pip.TransCtx.Transfer.TransferInfo[UserContent] = userContent
 	}
 
-	if pip.IsServer() {
-		maps.Copy(info, pip.TransCtx.TransInfo)
-		pip.TransCtx.TransInfo = info
-	}
-
-	if err := pip.TransCtx.Transfer.SetTransferInfo(pip.DB, pip.TransCtx.TransInfo); err != nil {
+	if err := pip.TransCtx.Transfer.UpdateInfo(pip.DB); err != nil {
 		pip.Logger.Errorf("Failed to update transfer info: %v", err)
 
 		return pipeline.NewError(types.TeInternal, "database error")
@@ -123,28 +117,18 @@ func MakeTransferInfo(pip *pipeline.Pipeline, info *r66.TransferData) error {
 func makeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 	info *r66.TransferData,
 ) *pipeline.Error {
-	follow, hasFollow := transCtx.TransInfo[model.FollowID]
-	if !hasFollow {
-		return nil
+	followID, fErr := utils.GetAs[int](transCtx.Transfer.TransferInfo, model.FollowID)
+	if fErr != nil {
+		logger.Errorf("Could not parse the R66 follow ID: %v", fErr)
+
+		return pipeline.NewError(types.TeInternal, "failed to parse follow ID")
 	}
 
-	switch fID := follow.(type) {
-	case json.Number:
-		fID64, err := fID.Int64()
-		if err != nil {
-			logger.Errorf("Could not parse the R66 follow ID: %v", err)
+	info.SystemData.FollowID = followID
 
-			return pipeline.NewError(types.TeInternal, "failed to parse follow ID")
-		}
-
-		info.SystemData.FollowID = int(fID64)
-	case int:
-		info.SystemData.FollowID = fID
-	}
-
-	userContent, err := MakeUserContent(logger, transCtx.TransInfo)
-	if err != nil {
-		return err
+	userContent, uErr := MakeUserContent(logger, transCtx.Transfer.TransferInfo)
+	if uErr != nil {
+		return uErr
 	}
 
 	info.UserContent = userContent

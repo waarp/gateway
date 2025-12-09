@@ -50,11 +50,9 @@ func TestGetHistory(t *testing.T) {
 				Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
 				Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
 				Status:           "DONE",
+				TransferInfo:     map[string]any{"key1": "val1", "key2": 2},
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
-
-			infos := map[string]any{"key1": "val1", "key2": 2}
-			So(h.SetTransferInfo(db, infos), ShouldBeNil)
 
 			id := utils.FormatInt(h.ID)
 
@@ -81,8 +79,7 @@ func TestGetHistory(t *testing.T) {
 
 					Convey("Then the body should contain the requested transfer history "+
 						"in JSON format", func() {
-						jHist, err := FromHistory(db, h)
-						So(err, ShouldBeNil)
+						jHist := FromHistory(h)
 
 						exp, err := json.Marshal(jHist)
 						So(err, ShouldBeNil)
@@ -127,11 +124,9 @@ func TestGetHistory(t *testing.T) {
 					Start:            time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
 					Stop:             time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
 					Status:           "DONE",
+					TransferInfo:     map[string]any{"key1": "val1", "key2": 2},
 				}
 				So(db.Insert(h2).Run(), ShouldBeNil)
-
-				infos := map[string]any{"key1": "val1", "key2": 2}
-				So(h.SetTransferInfo(db, infos), ShouldBeNil)
 
 				conf.GlobalConfig.GatewayName = gwname
 
@@ -247,14 +242,10 @@ func TestListHistory(t *testing.T) {
 			}
 			So(db.Insert(h4).Run(), ShouldBeNil)
 
-			hist1, err := FromHistory(db, h1)
-			So(err, ShouldBeNil)
-			hist2, err := FromHistory(db, h2)
-			So(err, ShouldBeNil)
-			hist3, err := FromHistory(db, h3)
-			So(err, ShouldBeNil)
-			hist4, err := FromHistory(db, h4)
-			So(err, ShouldBeNil)
+			hist1 := FromHistory(h1)
+			hist2 := FromHistory(h2)
+			hist3 := FromHistory(h3)
+			hist4 := FromHistory(h4)
 
 			Convey("Given a request with 2 valid 'requester' parameter", func() {
 				req, err := http.NewRequest(http.MethodGet, "?requester=from1&requester=from2", nil)

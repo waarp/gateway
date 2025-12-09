@@ -105,8 +105,8 @@ func TestSetup(t *testing.T) {
 				RemotePath:      path.Join(transCtx.Rule.RemoteDir, "file.rem"),
 				ErrCode:         types.TeConnection,
 				ErrDetails:      `error message`,
+				TransferInfo:    map[string]any{"foo": "bar", "id": 123},
 			}
-			transCtx.TransInfo = map[string]any{"foo": "bar", "id": 123}
 
 			r := &Runner{db: db, transCtx: transCtx}
 

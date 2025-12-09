@@ -35,6 +35,7 @@ func jsonTransToDbHist(trans *file.Transfer) *model.HistoryEntry {
 		TaskNumber:       trans.TaskNumber,
 		ErrCode:          trans.ErrorCode,
 		ErrDetails:       trans.ErrorMsg,
+		TransferInfo:     trans.TransferInfo,
 	}
 }
 
@@ -64,10 +65,6 @@ func importHistory(ses *database.Session, r io.Reader) (int64, error) {
 		h := jsonTransToDbHist(&trans)
 		if err := ses.Insert(h).Run(); err != nil {
 			return 0, fmt.Errorf("failed to insert history entry %d: %w", trans.ID, err)
-		}
-
-		if err := h.SetTransferInfo(ses, trans.TransferInfo); err != nil {
-			return 0, fmt.Errorf("failed to insert info of transfer %d: %w", trans.ID, err)
 		}
 	}
 

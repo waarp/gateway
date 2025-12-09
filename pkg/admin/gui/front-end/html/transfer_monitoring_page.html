@@ -239,7 +239,7 @@
             </form>
             <form method="post" style="display:inline;">
               <input type="hidden" name="resumeTransferID" value="{{ .ID }}">
-              <button class="btn btn-outline-success btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "resume" }}" {{if or (eq .Status "PAUSED") (eq .Status "ERROR") (eq .Status "INTERRUPTED")}} {{else}}disabled{{end}}>
+              <button class="btn btn-outline-success btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ index $.tab "resume" }}" {{if .CheckResumable }}disabled{{end}}>
                   <i class="bi bi-play"></i>
               </button>
             </form>

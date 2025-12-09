@@ -1,9 +1,18 @@
 package model
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+)
+
+var (
+	ErrResumeDone    = errors.New("cannot resume a transfer that is already done")
+	ErrResumeRunning = errors.New("cannot resume a transfer that is already running")
+	ErrResumeServer  = errors.New("cannot resume server transfers")
 )
 
 type NormalizedTransferView struct {
@@ -30,9 +39,20 @@ func (n *NormalizedTransferView) BeforeDelete(database.Access) error {
 	return database.NewInternalError(errWriteOnView)
 }
 
-// GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]any, error) {
-	return getTransferInfo(db, n)
+func (n *NormalizedTransferView) AfterRead(db database.ReadAccess) error {
+	var owner transferInfoOwner = &n.HistoryEntry
+	if n.IsTransfer {
+		owner = &Transfer{ID: n.ID}
+	}
+
+	infos, err := getTransferInfo(db, owner)
+	if err != nil {
+		return err
+	}
+
+	n.TransferInfo = infos
+
+	return nil
 }
 
 func (n *NormalizedTransferView) getTransInfoCondition() (string, int64) {
@@ -49,4 +69,47 @@ func (n *NormalizedTransferView) setTransInfoOwner(info *TransferInfo) {
 	} else {
 		(&HistoryEntry{ID: n.ID}).setTransInfoOwner(info)
 	}
+}
+
+func (n *NormalizedTransferView) CheckResumable() error {
+	if !n.IsTransfer {
+		return ErrResumeDone
+	}
+
+	trans := &Transfer{
+		ID:           n.ID,
+		Status:       n.Status,
+		TransferInfo: n.TransferInfo,
+	}
+
+	if n.IsServer {
+		trans.LocalAccountID = utils.NewNullInt64(-1)
+	} else {
+		trans.ClientID = utils.NewNullInt64(-1)
+		trans.RemoteAccountID = utils.NewNullInt64(-1)
+	}
+
+	return trans.CheckResumable()
+}
+
+func (n *NormalizedTransferView) Resume(db database.Access, when time.Time) error {
+	if !n.IsTransfer {
+		return ErrResumeDone
+	}
+
+	var dbTrans Transfer
+	if err := db.Get(&dbTrans, "id=?", n.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve transfer: %w", err)
+	}
+
+	if err := dbTrans.Resume(db, when); err != nil {
+		return err
+	}
+
+	n.Status = dbTrans.Status
+	n.NextRetry = dbTrans.NextRetry
+	n.ErrCode = dbTrans.ErrCode
+	n.ErrDetails = dbTrans.ErrDetails
+
+	return nil
 }
