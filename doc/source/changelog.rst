@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`381` Ajout du support pour Azure Files et Azure Blob comme instances
+  cloud. Voir leur documentations respectives :doc:`ici<source/reference/cloud/azurefiles>`
+  et :doc:`ici<source/reference/cloud/azureblob>`.
 * :bug:`506` Correction d'un bug qui empêchait l'utilisation des instances cloud.
   Celles-ci pouvaient être créées ou modifiées sans problèmes, mais elles ne
   pouvaient pas être utilisées dans un transfert (cela résultait systématiquement

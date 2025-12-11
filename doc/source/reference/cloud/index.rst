@@ -1,8 +1,8 @@
 .. _reference-cloud:
 
-###########################################
-Liste des types d'instances cloud supportés
-###########################################
+###############
+Instances cloud
+###############
 
 Au lieu d'utiliser le disque local pour le transfert de fichiers, la gateway est
 également capable de stocker ou récupérer les fichiers sur une instance cloud
@@ -19,6 +19,8 @@ Cette liste regroupe les types d'instances cloud supportés par la gateway, ains
 que leur configurations respectives.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    s3
+   azurefiles
+   azureblob

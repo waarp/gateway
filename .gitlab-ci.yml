@@ -59,6 +59,7 @@ lint:
 tests:
   stage: test
   script:
+    - env
     - gotestsum --junitfile tests.junit.xml --rerun-fails --format-icons hivis --packages ./... -- -coverprofile=coverage.txt -covermode atomic -shuffle on
   after_script:
     - gocover-cobertura < coverage.txt > coverage.xml

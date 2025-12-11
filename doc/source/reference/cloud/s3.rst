@@ -1,40 +1,39 @@
-.. _ref-fs-s3:
-
 =========
 Amazon S3
 =========
 
-Pour qu'un fichier soit déposé et/ou lu depuis un serveur cloud de type S3, il
-faut que le chemin complet du fichier (après concaténation des éventuels chemins
-de règle et/ou de serveur) forme un chemin distant ayant la syntaxe : ::
+Waarp Gateway permet d'utiliser un bucket S3 à la place du disque dur local.
 
-   instance:chemin/du/fichier
+Configuration
+-------------
 
-Pour ce faire, l'instance en question doit avoir été pré-configurée dans la
-gateway, par exemple via la :ref:`commande CLI<reference-cli-client-cloud>`.
+Pour utiliser une instance cloud, celle-ci doit d'abord être créée et configurée.
+Pour créer une instance cloud S3, le type renseigné doit être ``s3`` ou ``aws``.
 
-Identifiants
-------------
+Authentification
+^^^^^^^^^^^^^^^^
 
 Pour se connecter à une instance S3, Waarp Gateway a besoin d'identifiants.
 Ces identifiants peuvent être fournis de 2 manières différentes :
 
-- soit en les renseignant directement à la création de l'instance cloud
-- soit en les renseignant dans des variables d'environnement
+- Soit en les renseignant directement à la création de l'instance cloud, auquel cas :
 
-Ces variables d'environnement sont :
+  - Le paramètre *key* doit contenir la clé d'accès
+  - Le paramètre *secret* doit contenir la clé secrète
+- Soit en les renseignant dans des variables d'environnement. Les variables
+  suivantes doivent être renseignées :
 
-- :envvar:`AWS_ACCESS_KEY_ID` pour la clé d'accès AWS
-- :envvar:`AWS_SECRET_ACCESS_KEY` pour la clé secrète associée à la clé d'accès
+  - :envvar:`AWS_ACCESS_KEY_ID` pour la clé d'accès AWS
+  - :envvar:`AWS_SECRET_ACCESS_KEY` pour la clé secrète associée à la clé d'accès
 
 Options
--------
+^^^^^^^
 
-La *Gateway* permet de stocker les fichier envoyés et reçu sur un serveur cloud
-de stockage S3 (AWS ou autre). Pour cela, l'instance cloud à créer doit contenir
-les options suivantes :
+Les options de configuration suivantes sont disponibles pour S3 :
 
 * **bucket**: *REQUIS* - Le nom du bucket dans lequel le fichier sera déposé.
+* **env_auth**: Booléen, mettre à ``true`` pour activer l'authentification via
+  variables d'environnement décrite ci-dessus.
 * **region**: La région du serveur S3. Peut également être renseigné via la
   variable d'environnement :envvar:`AWS_REGION`.
 * **endpoint**: L'adresse du serveur S3 (si celle-ci est différente de l'adresse
@@ -46,23 +45,23 @@ Exemple
 
 Prenons le cas de figure suivant :
 
-  - fichier: ``doc/waarp-gateway.pdf``
-  - bucket: ``archive``
-  - point de terminaison: ``s3.eu-west-3.amazonaws.com``
-  - région: ``eu-west-3`` (Paris)
-  - clé d'accès: ``toto``
-  - clé d'accès secrète: ``sesame``
+- fichier: ``doc/waarp-gateway.pdf``
+- bucket: ``archive``
+- point de terminaison: ``s3.eu-west-3.amazonaws.com``
+- région: ``eu-west-3`` (Paris)
+- clé d'accès: ``toto``
+- clé d'accès secrète: ``sesame``
 
 Dans un premier temps, l'instance cloud doit être définie. Dans cet exemple, nous
-lui donnerons le nom "instance-exemple".
+lui donnerons le nom "ex-s3".
 
 La commande de création pour cette instance cloud est donc :
 
 .. code-block:: shell
 
-   waarp-gateway cloud add -n "instance-exemple" -t "s3" -k "toto" -s "sesame" -o "bucket:archive" -o "region:eu-west-3" -o "endpoint:s3.eu-west-3.amazonaws.com"
+   waarp-gateway cloud add -n "ex-s3" -t "s3" -k "toto" -s "sesame" -o "bucket:archive" -o "region:eu-west-3" -o "endpoint:s3.eu-west-3.amazonaws.com"
 
-Par la suite, lors de mon transfert, le chemin du fichier devra donc ressembler à : ::
+Par la suite, lors de mon transfert, le chemin du fichier devra donc ressembler à :
 
-    instance-exemple:doc/waarp-gateway.pdf
+| ex-s3:doc/waarp-gateway.pdf
 

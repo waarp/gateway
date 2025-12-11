@@ -5,113 +5,87 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path"
-	"time"
 
 	"github.com/rclone/rclone/backend/s3"
-	rfs "github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/config/configmap"
 	"github.com/rclone/rclone/vfs"
-	"github.com/rclone/rclone/vfs/vfscommon"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal"
 )
 
 var ErrMissingBucket = errors.New("no S3 bucket specified")
 
-func parseOpts(opts map[string]string) (configmap.Simple, *vfscommon.Options) {
+const bucketKey = "bucket"
+
+func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, error) {
+	// constant options
 	const (
-		envAuthKey = "env_auth"
-		envAuth    = "true"
-
-		chunkSizeKey = "chunk_size"
-		chunkSize    = "5MiB"
-
-		copyCutoffKey = "copy_cutoff"
-		copyCutoff    = "5MiB"
-
-		dirMarkersKey = "directory_markers"
-		dirMarkers    = "true"
-
-		regionKey     = "region"
-		regionEnvVar  = "AWS_REGION"
-		regionEnvVar2 = "AWS_DEFAULT_REGION"
-
-		listChunkKey   = "list_chunk"
-		listChunk      = "1000"
+		dirMarkersKey  = "directory_markers"
 		listVersionKey = "list_version"
-		listVersion    = "2"
+		listChunkKey   = "list_chunk"
+
+		dirMarkers  = "true"
+		listVersion = "2"
+		listChunk   = "1000"
 	)
 
-	confMap := configmap.Simple(opts)
+	opts[dirMarkersKey] = dirMarkers
+	opts[listVersionKey] = listChunk
+	opts[listChunkKey] = listVersion
 
-	if confMap[regionKey] == "" {
-		confMap[regionKey] = os.Getenv(regionEnvVar)
+	// required options
+	const (
+		chunkSizeKey  = "chunk_size"
+		copyCutoffKey = "copy_cutoff"
+
+		defaultChunkSize  = "5MiB"
+		defaultCopyCutoff = "5MiB"
+	)
+
+	if bucket := opts[bucketKey]; bucket == "" {
+		return nil, ErrMissingBucket
 	}
 
-	if confMap[regionKey] == "" {
-		confMap[regionKey] = os.Getenv(regionEnvVar2)
+	internal.SetDefaultValue(opts, copyCutoffKey, defaultCopyCutoff)
+	internal.SetDefaultValue(opts, chunkSizeKey, defaultChunkSize)
+
+	if key != "" {
+		opts["access_key_id"] = key
 	}
 
-	confMap[envAuthKey] = envAuth
-	confMap[chunkSizeKey] = chunkSize
-	confMap[copyCutoffKey] = copyCutoff
-	confMap[dirMarkersKey] = dirMarkers
-	confMap[listChunkKey] = listChunk
-	confMap[listVersionKey] = listVersion
+	if secret != "" {
+		opts["secret_access_key"] = secret
+	}
 
-	vfsOpts := parseVFSOpts()
-
-	return confMap, vfsOpts
+	return opts, nil
 }
 
-func parseVFSOpts() *vfscommon.Options {
-	const (
-		readWaitDuration = rfs.Duration(100 * time.Millisecond)
-	)
-
-	vfsOpts := &vfscommon.Options{
-		FastFingerprint: true,
-		CacheMode:       vfscommon.CacheModeOff,
-		ReadWait:        readWaitDuration,
+func newVFS(name, key, secret, root string, confMap map[string]string) (*vfs.VFS, error) {
+	opts, err := parseOpts(key, secret, confMap)
+	if err != nil {
+		return nil, err
 	}
 
-	return vfsOpts
+	root = path.Join(opts[bucketKey], root)
+
+	s3fs, err := s3.NewFs(context.Background(), name, root, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate s3 filesystem: %w", err)
+	}
+
+	vfsOpts := internal.VFSOpts()
+	s3vfs := vfs.New(s3fs, vfsOpts)
+
+	return s3vfs, nil
 }
 
 func NewFS(name, key, secret string, opts map[string]string) (fs.FS, error) {
-	s3vfs, err := newS3FSWithRoot(name, key, secret, "", opts)
+	s3vfs, err := newVFS(name, key, secret, "", opts)
 	if err != nil {
 		return nil, err
 	}
 
 	return &fs.VFS{VFS: s3vfs}, nil
-}
-
-func newS3FSWithRoot(name, key, secret, root string, opts map[string]string) (*vfs.VFS, error) {
-	confMap, vfsOpts := parseOpts(opts)
-
-	if key != "" {
-		confMap["access_key_id"] = key
-	}
-
-	if secret != "" {
-		confMap["secret_access_key"] = secret
-	}
-
-	if bucket := confMap["bucket"]; bucket == "" {
-		return nil, ErrMissingBucket
-	} else {
-		root = path.Join(bucket, root)
-	}
-
-	s3fs, err := s3.NewFs(context.Background(), name, root, confMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate s3 filesystem: %w", err)
-	}
-
-	s3vfs := vfs.New(s3fs, vfsOpts)
-
-	return s3vfs, nil
 }
