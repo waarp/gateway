@@ -3,6 +3,7 @@ package backends
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/azure"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/gcs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/s3"
 )
 
@@ -17,4 +18,8 @@ func init() {
 	fs.Register("azureblob", azure.NewBlobFS)
 	fs.Register("azfiles", azure.NewFilesFS)
 	fs.Register("azurefiles", azure.NewFilesFS)
+
+	// Google Cloud
+	fs.Register("gcs", gcs.NewFS)
+	fs.Register("google", gcs.NewFS)
 }

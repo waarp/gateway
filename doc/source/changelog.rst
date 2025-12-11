@@ -3,9 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`383` Ajout du support pour Google Cloud Storage comme instance cloud.
+  Voir la :doc:`documentation<reference/cloud/gcs>` de l'implémentation pour
+  plus de détails.
 * :feature:`381` Ajout du support pour Azure Files et Azure Blob comme instances
-  cloud. Voir leur documentations respectives :doc:`ici<source/reference/cloud/azurefiles>`
-  et :doc:`ici<source/reference/cloud/azureblob>`.
+  cloud. Voir leur documentations respectives :doc:`ici<reference/cloud/azurefiles>`
+  et :doc:`ici<reference/cloud/azureblob>`.
 * :bug:`506` Correction d'un bug qui empêchait l'utilisation des instances cloud.
   Celles-ci pouvaient être créées ou modifiées sans problèmes, mais elles ne
   pouvaient pas être utilisées dans un transfert (cela résultait systématiquement
@@ -154,8 +157,8 @@ Historique des versions
 
 * :release:`0.12.11 <2025-09-25>`
 * :bug:`-` Pour des raisons de compatibilité avec Waarp R66, les *backslashs*
-  (`\`) dans les chemins de requête R66 sont désormais toujours traité comme
-  des séparateur de chemin, au même titre que les *forward-slash* (`/`),
+  (``\``) dans les chemins de requête R66 sont désormais toujours traité comme
+  des séparateur de chemin, au même titre que les *forward-slash* (``/``),
   **y compris sous Linux**. En conséquence, les *backslashes* sont désormais
   proscris dans les noms de fichiers transmis en R66, car ceux-ci seront traités
   comme des séparateurs.
