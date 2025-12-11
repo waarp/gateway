@@ -24,3 +24,4 @@ que leur configurations respectives.
    s3
    azurefiles
    azureblob
+   gcs

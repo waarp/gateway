@@ -56,6 +56,7 @@ lui donnerons le nom "ex-azblob".
 La commande de création pour cette instance cloud est donc :
 
 .. code-block:: shell
+
    waarp-gateway cloud add -n "ex-azblob" -t "azblob" -o "env_auth:true"
 
 Par la suite, lors de mon transfert, le chemin du fichier devra donc ressembler à :

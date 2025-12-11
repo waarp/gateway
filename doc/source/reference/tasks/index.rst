@@ -34,6 +34,7 @@ Liste des traitements
    copy
    copyrename
    delete
+   remotedelete
    exec
    execmove
    execoutput
