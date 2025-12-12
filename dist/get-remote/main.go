@@ -45,7 +45,7 @@ func main() {
 
 	// parse file
 	if !pathExists(files.listFile()) {
-		fmt.Printf("No file get-files.list found.\n")
+		fmt.Printf("No file get-file.list found.\n")
 
 		return
 	}

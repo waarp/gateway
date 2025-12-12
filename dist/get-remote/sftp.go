@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"path"
+	"path/filepath"
 	"slices"
 
 	"github.com/pkg/sftp"
@@ -70,6 +71,12 @@ func (sc *sftpClient) List(rule *api.OutRule, pattern string) ([]string, error) 
 	res, listErr := sc.sftpClient.Glob(path.Join(rule.RemoteDir, pattern))
 	if listErr != nil {
 		return nil, fmt.Errorf("failed to list files: %w", listErr)
+	}
+
+	for i := range res {
+		//nolint:errcheck // res[i] IS a subpath of rule.RemoteDir.
+		remotePath, _ := filepath.Rel(rule.RemoteDir, res[i])
+		res[i] = remotePath
 	}
 
 	return res, nil

@@ -15,7 +15,7 @@ func (p paths) lockFile() string {
 }
 
 func (p paths) listFile() string {
-	return filepath.Join(p.confDir, "get-files.list")
+	return filepath.Join(p.confDir, "get-file.list")
 }
 
 func getPaths() (paths, error) {
