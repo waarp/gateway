@@ -12,10 +12,12 @@ type serverConfig struct {
 	sharedServerConfig
 
 	// The server's password for server authentication.
+	//
 	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
+	//
 	// Deprecated: use the r66-tls protocol instead.
 	IsTLS *bool `json:"isTLS,omitempty"`
 }
@@ -34,10 +36,12 @@ type PartnerConfig struct {
 	sharedPartnerConfig
 
 	// The server's password for server authentication.
+	//
 	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
+	//
 	// Deprecated: use the r66-tls protocol instead.
 	IsTLS *bool `json:"isTLS,omitempty"` //nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
 }

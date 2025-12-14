@@ -68,7 +68,8 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 		return fmt.Errorf("failed to connect to the R66 partner: %w", dialErr)
 	}
 
-	if partner.Protocol == string(gwr66.R66TLS) || (partnerConf.IsTLS != nil && *partnerConf.IsTLS) {
+	//nolint:staticcheck // r66.PartnerConfig.IsTLS is used for retrocompatibility.
+	if partner.Protocol == gwr66.R66TLS || (partnerConf.IsTLS != nil && *partnerConf.IsTLS) {
 		tlsConf := getTLSConf(partner.Address, 0, partnerCreds, accountCreds, nil)
 		conn = tls.Client(conn, tlsConf)
 	}
