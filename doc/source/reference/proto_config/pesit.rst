@@ -3,6 +3,13 @@
 Configuration PeSIT & PeSIT-TLS
 ###############################
 
+.. deprecated:: 0.14.0
+
+   L'option ``disablePreConnection`` de la configuration serveur est désormais
+   ineffective. L'usage ou non de la pré-connexion est désormais détecté
+   automatiquement à l'ouverture de la connexion par le partenaire client.
+   Ce paramètre est donc désormais inutile.
+
 Configuration client
 ====================
 
@@ -123,10 +130,10 @@ est la suivante :
   pour les paquets PeSIT envoyés à (et reçus depuis) ce serveur. Si un client se
   connectant au serveur demande une taille plus grande, celle-ci sera rabaissée
   à ce maximum. La valeur par défaut est de 65535 octets.
-* **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
-  pré-connexion (et la pré-authentification qui va avec) si le partenaire client
-  ne le supporte pas. Par défaut, un échange de pré-connexion aura lieu à chaque
-  nouvelle connexion.
+* **disablePreConnection** (*boolean*) - **(DÉPRÉCIÉ: ce paramètre est désormais
+  ineffectif)** Permet de désactiver le processus de pré-connexion (et la
+  pré-authentification qui va avec) si le partenaire client ne le supporte pas.
+  Par défaut, un échange de pré-connexion aura lieu à chaque nouvelle connexion.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée par ce serveur. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
@@ -141,6 +148,5 @@ est la suivante :
      "checkpointSize": 65535,
      "checkpointWindow": 1,
      "maxMessageSize": 65535,
-     "disablePreConnection": false,
      "minTLSVersion": "v1.2"
    }

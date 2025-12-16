@@ -59,8 +59,6 @@ func (s *server) listen() (string, error) {
 
 	list = &protoutils.TraceListener{Listener: list}
 
-	s.server.SetPreConnectionUsage(s.conf.DisablePreConnection)
-
 	go func() {
 		if err := s.server.Serve(list); err != nil {
 			s.logger.Errorf("unexpected error: %v", err)

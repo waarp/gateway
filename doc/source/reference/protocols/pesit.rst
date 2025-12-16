@@ -1,16 +1,7 @@
 .. _ref-proto-pesit:
 
-PeSIT *(beta)*
-==============
-
-.. warning:: L'implémentation de PeSIT est actuellement en **beta**. En effet,
-   celle-ci n'a, pour l'heure, pas pu être testée avec d'autres agents PeSIT.
-   Par conséquent, nous ne pouvons donner de garantie absolue que cette implémentation
-   soit compatible avec tous les agents PeSIT tiers du marché.
-
-   Nous vous prions de bien vouloir nous remonter tout problème de compatibilité
-   que vous pourriez observer lors de votre utilisation afin que nous puissions
-   les corriger.
+PeSIT
+=====
 
 Authentification
 ----------------
@@ -45,7 +36,7 @@ du serveur.
 
 Cette pré-connexion inclue notamment une étape d'authentification supplémentaire
 pour le client. Lorsque la Gateway est client, ces identifiants de pré-connexion
-peuvent être renseignés via des ref:`identifiants <reference-auth-methods>` de
+peuvent être renseignés via des :ref:`identifiants <reference-auth-methods>` de
 type *"pesit_pre-connection_auth"* rattachés au compte distant utilisé pour le
 transfert. Lorsque la Gateway est serveur, tous les identifiants de pré-connexion
 seront acceptés quels qu'ils soient, ceux-ci étant redondants avec la procédure
@@ -116,12 +107,6 @@ les clés spéciales suivantes :
 - ``__clientTransFreetext__`` pour le texte envoyé par le client à la sélection du fichier
 - ``__serverConnFreetext__`` pour le texte envoyé par le serveur à la connexion
 - ``__serverTransFreetext__`` pour le texte envoyé par le serveur à la sélection du fichier
-
-Il est à noter que Waarp Gateway ne permettant pas de pré-renseigner des informations
-de transfert pour les transfert serveur, les clés ``__serverConnFreetext__`` et
-``__serverTransFreetext__`` ne seront utilisées que par le client PeSIT pour stocker
-le texte envoyé par un serveur PeSIT tier. Le serveur PeSIT de Waarp Gateway ne
-renverra jamais de texte.
 
 Ces valeurs étant stockées dans les :term:`infos de transfert`, il est donc possible
 de référencer ces valeurs dans des traitements via les :ref:`marqueurs de substitution

@@ -82,11 +82,11 @@ type ServerConfig struct {
 	// The PeSIT compatibility mode to use when communicating with this server.
 	// Accepted values are: "standard" or "non-standard". Default is "standard".
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
-	// Deprecated: This is no longer useful as the library detect the preconnection stage.
-	//
 	// DisablePreConnection disables the pre-connection authentication when
 	// connecting to this server. By default, the pre-connection authentication
 	// is activated.
+	//
+	// Deprecated: This is no longer useful as the library detects the preconnection stage.
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
 	// this server. Default is 65535.
