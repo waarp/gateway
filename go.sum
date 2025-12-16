@@ -57,6 +57,14 @@ code.waarp.fr/lib/migration v1.4.0 h1:Fhw5UXpqSQ1vtkjIjqAkxSzyh06FSsmevs0Zz9KBGP
 code.waarp.fr/lib/migration v1.4.0/go.mod h1:cPayWXd8qkKe/qtrTFIEtaofdAgQJYkwH6i8Wxb6WNg=
 code.waarp.fr/lib/pesit v0.1.4 h1:1keBTg04qQ06ftQ6Cb97RKsR4luiaTzgIi8d7fJFkrA=
 code.waarp.fr/lib/pesit v0.1.4/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.5-0.20251118125746-ed44d3b53c5d h1:Uq9TxO+LTkWWgxNYkPrG2BBDru6NTzpdeN/7wlbkJTs=
+code.waarp.fr/lib/pesit v0.1.5-0.20251118125746-ed44d3b53c5d/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.5-0.20251121105259-fffc4f143b0c h1:6sOBztEScgXesjzLXaQGCIkVctq7RSGbtNcIYjwePEs=
+code.waarp.fr/lib/pesit v0.1.5-0.20251121105259-fffc4f143b0c/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.5-0.20251212144057-dc6023000c11 h1:ftye9C0+PlMy6tFa12AJAZzr1Lgl/NwX7Cat+iZMu/k=
+code.waarp.fr/lib/pesit v0.1.5-0.20251212144057-dc6023000c11/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.5 h1:HWtlisPXEQY22ZU01gkqb6b0hjtNz6j9IJMgC1idG5g=
+code.waarp.fr/lib/pesit v0.1.5/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
 code.waarp.fr/lib/r66 v1.0.8 h1:RHNbOzY95eKPA/yYHU559tdY2eAqQvjR+Fz+R3WTS7w=
 code.waarp.fr/lib/r66 v1.0.8/go.mod h1:APiI1uK3RliA/0opgYWCzS7q3GxdypkRiaesjhclUZI=
 dario.cat/mergo v1.0.1 h1:Ra4+bf83h2ztPIQYNP99R6m+Y7KfnARDfID+a+vLl4s=

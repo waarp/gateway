@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :support:`505` Amélioration de la compatibilité du module PeSIT. Le protocole
+  PeSIT sort donc officiellement de beta. En conséquence de ces changements,
+  l'option ``disablePreConnection`` de configuration protocolaire est maintenant
+  dépréciée car plus nécessaire.
 * :bug:`236` get-remote récupère les informations de connexion depuis l'interface
   REST de la gateway et supporte les protocols R66(-TLS) et FTP(S).
 * :feature:`383` Ajout du support pour Google Cloud Storage comme instance cloud.

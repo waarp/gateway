@@ -7,7 +7,7 @@ require (
 	code.waarp.fr/lib/icap v1.0.0
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/migration v1.4.0
-	code.waarp.fr/lib/pesit v0.1.4
+	code.waarp.fr/lib/pesit v0.1.5
 	code.waarp.fr/lib/r66 v1.0.8
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/ProtonMail/gopenpgp/v3 v3.3.0
