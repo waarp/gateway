@@ -7,19 +7,15 @@ import (
 )
 
 type paths struct {
-	baseDir, logDir, confDir, binDir string
+	baseDir, confDir string
 }
 
 func (p paths) lockFile() string {
-	return filepath.Join(p.logDir, "get-remote.lock")
-}
-
-func (p paths) logFile() string {
-	return filepath.Join(p.logDir, "get-remote.log")
+	return filepath.Join(p.confDir, "get-remote.lock")
 }
 
 func (p paths) listFile() string {
-	return filepath.Join(p.confDir, "get-files.list")
+	return filepath.Join(p.confDir, "get-file.list")
 }
 
 func getPaths() (paths, error) {
@@ -35,13 +31,9 @@ func getPaths() (paths, error) {
 
 	if pathExists(filepath.Join(parentDir, "etc")) {
 		p.baseDir = parentDir
-		p.logDir = filepath.Join(p.baseDir, "log")
 		p.confDir = filepath.Join(p.baseDir, "etc")
-		p.binDir = filepath.Join(p.baseDir, "bin")
 	} else if pathExists("/etc/waarp-gateway") {
-		p.logDir = "/var/log/waarp-gateway"
 		p.confDir = "/etc/waarp-gateway"
-		p.binDir = "/usr/bin"
 	}
 
 	return p, nil

@@ -23,7 +23,7 @@ func (Module) NewClient(db *database.DB, cli *model.Client) protocol.Client {
 
 func (Module) MakeServerConfig() protocol.ServerConfig   { return new(serverConfig) }
 func (Module) MakeClientConfig() protocol.ClientConfig   { return new(clientConfig) }
-func (Module) MakePartnerConfig() protocol.PartnerConfig { return new(partnerConfig) }
+func (Module) MakePartnerConfig() protocol.PartnerConfig { return new(PartnerConfig) }
 
 type ModuleTLS struct{ Module }
 

@@ -19,7 +19,7 @@ const (
 var (
 	cliConf  = &clientConfig{}
 	servConf = &serverConfig{sharedServerConfig: sharedServerConfig{ServerLogin: serverLogin}}
-	partConf = &partnerConfig{sharedPartnerConfig: sharedPartnerConfig{ServerLogin: serverLogin}}
+	partConf = &PartnerConfig{sharedPartnerConfig: sharedPartnerConfig{ServerLogin: serverLogin}}
 )
 
 func init() {

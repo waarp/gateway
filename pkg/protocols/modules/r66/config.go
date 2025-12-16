@@ -12,10 +12,12 @@ type serverConfig struct {
 	sharedServerConfig
 
 	// The server's password for server authentication.
+	//
 	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
+	//
 	// Deprecated: use the r66-tls protocol instead.
 	IsTLS *bool `json:"isTLS,omitempty"`
 }
@@ -29,15 +31,17 @@ func (c *serverConfig) ValidServer() error {
 	return c.ValidShared()
 }
 
-// partnerConfig represents the configuration of a remote R66 partner.
-type partnerConfig struct {
+// PartnerConfig represents the configuration of a remote R66 partner.
+type PartnerConfig struct {
 	sharedPartnerConfig
 
 	// The server's password for server authentication.
+	//
 	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
+	//
 	// Deprecated: use the r66-tls protocol instead.
 	IsTLS *bool `json:"isTLS,omitempty"` //nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
 }
@@ -45,7 +49,7 @@ type partnerConfig struct {
 // ValidPartner checks if the configuration is valid for a R66 partner.
 //
 //nolint:dupl //It's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
-func (c *partnerConfig) ValidPartner() error {
+func (c *PartnerConfig) ValidPartner() error {
 	if c.ServerPassword == "" {
 		return nil
 	}
