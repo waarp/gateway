@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`509` Correction de bug mineurs dans l'interface Web :
+
+  - Le port n'est plus requis pour les clients
+  - L'adresse (hôte) est maintenant requise pour les serveur locaux
+  - Le paramètres "arguments" de la tâche EXEC (et ses variantes) n'est plus requis
+  - L'option pour désactiver la pré-connexion sur les serveur PeSIT a été enlevé,
+    celle-ci est ineffective depuis la v0.14.0 (issue 505 ci-dessous)
 * :bug:`510` Les valeurs des options ``FilePermissions`` et ``DirectoryPermissions``
   du fichier de configuration .ini par défaut (généré via commande) affichent
   désormais bien "0640" et "0750" par défaut. Les valeurs précédemment affichées
@@ -53,6 +60,7 @@ Historique des versions
 * :feature:`497` Ajout d'une option ``synchronous`` à la tâche *TRANSFER*
   permettant d'exécuter des transferts de façon synchrone. Voir la :ref:`documentation
   <reference-tasks-transfer>` de la tâche *TRANSFER* pour plus de détails.
+
 * :release:`0.13.3 <2025-11-05>`
 * :bug:`500` Correction d'un bug de l'interface Web empêchant la modification
   des tâches de règles.

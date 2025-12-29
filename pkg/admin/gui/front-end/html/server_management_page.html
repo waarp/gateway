@@ -90,7 +90,7 @@
                 <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input">
                   <label class="col-form-label">{{ index .tab "address" }} ({{ index .tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                  <input type="text" name="addServerHost" class="form-control" value="{{ index .modalElement "addServerHost" }}">
+                  <input type="text" name="addServerHost" class="form-control" required value="{{ index .modalElement "addServerHost" }}">
                 </div>
 
                 <hr style="border-top: 1px solid #ababab;">
@@ -419,7 +419,7 @@
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
                               <label class="col-form-label">{{ index $.tab "address" }} ({{ index $.tab "host" }}) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipHost" }}"></i> :</label>
-                              <input type="text" name="editServerHost" class="form-control" value="{{ if $me }}{{ index $me "editServerHost" }}{{ else }}{{ .Address.Host }}{{ end }}">
+                              <input type="text" name="editServerHost" class="form-control" required value="{{ if $me }}{{ index $me "editServerHost" }}{{ else }}{{ .Address.Host }}{{ end }}">
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
                             <div class="form-input mt-4">
