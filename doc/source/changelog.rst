@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`492` Ajout du support pour Microsoft OneDrive (et Sharepoint) comme
+  instance cloud. Voir la :doc:`documentation<reference/cloud/onedrive>` de
+  l'implémentation pour plus de détails.
 * :feature:`-` Gateway pose désormais un verrou sur les fichiers de transfert
   pendant leur lecture/écriture afin d'empêcher des applications tierces de
   modifier ou de lire le fichier pendant que Gateway travaille dessus.

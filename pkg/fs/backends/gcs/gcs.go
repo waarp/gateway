@@ -48,15 +48,14 @@ func newVFS(name, key, secret string, confMap map[string]string) (*vfs.VFS, erro
 
 	root := opts[bucketKey]
 
-	s3fs, err := gcs.NewFs(context.Background(), name, root, opts)
+	gcfs, err := gcs.NewFs(context.Background(), name, root, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate s3 filesystem: %w", err)
+		return nil, fmt.Errorf("failed to instantiate GCS filesystem: %w", err)
 	}
 
 	vfsOpts := internal.VFSOpts()
-	s3vfs := vfs.New(s3fs, vfsOpts)
 
-	return s3vfs, nil
+	return vfs.New(gcfs, vfsOpts), nil
 }
 
 func NewFS(name, key, secret string, opts map[string]string) (fs.FS, error) {

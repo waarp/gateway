@@ -15,7 +15,7 @@ func TestVFS(tb testing.TB, rvfs *vfs.VFS) {
 
 	const (
 		dirName    = "foo"
-		filename   = "bar"
+		filename   = "bar.txt"
 		filepath   = dirName + "/" + filename
 		expContent = "hello world"
 	)

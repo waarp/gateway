@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
 
 	"github.com/rclone/rclone/backend/s3"
 	"github.com/rclone/rclone/fs/config/configmap"
@@ -62,13 +61,13 @@ func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, er
 	return opts, nil
 }
 
-func newVFS(name, key, secret, root string, confMap map[string]string) (*vfs.VFS, error) {
+func newVFS(name, key, secret string, confMap map[string]string) (*vfs.VFS, error) {
 	opts, err := parseOpts(key, secret, confMap)
 	if err != nil {
 		return nil, err
 	}
 
-	root = path.Join(opts[bucketKey], root)
+	root := opts[bucketKey]
 
 	s3fs, err := s3.NewFs(context.Background(), name, root, opts)
 	if err != nil {
@@ -82,7 +81,7 @@ func newVFS(name, key, secret, root string, confMap map[string]string) (*vfs.VFS
 }
 
 func NewFS(name, key, secret string, opts map[string]string) (fs.FS, error) {
-	s3vfs, err := newVFS(name, key, secret, "", opts)
+	s3vfs, err := newVFS(name, key, secret, opts)
 	if err != nil {
 		return nil, err
 	}

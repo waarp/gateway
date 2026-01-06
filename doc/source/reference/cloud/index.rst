@@ -25,3 +25,4 @@ que leur configurations respectives.
    azurefiles
    azureblob
    gcs
+   onedrive
