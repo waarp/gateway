@@ -46,15 +46,17 @@ contents:
   - src: ./build/dist/example_config.yaml
     dst: "/usr/share/waarp-gateway/example_config.yaml"
 
-  - dst: /var/lib/waarp-gateway/in
+  - dst: "/var/lib/waarp-gateway"
     type: dir
-  - dst: /var/lib/waarp-gateway/out
+  - dst: "/var/lib/waarp-gateway/in"
     type: dir
-  - dst: /var/lib/waarp-gateway/work
+  - dst: "/var/lib/waarp-gateway/out"
     type: dir
-  - dst: /var/lib/waarp-gateway/db
+  - dst: "/var/lib/waarp-gateway/work"
     type: dir
-  - dst: /var/log/waarp-gateway
+  - dst: "/var/lib/waarp-gateway/db"
+    type: dir
+  - dst: "/var/log/waarp-gateway"
     type: dir
 
 scripts:
@@ -87,6 +89,19 @@ overrides:
       - src: ./build/waarp-gatewayd.ini
         dst: "/etc/waarp-gateway/gatewayd.ini"
         type: config
+
+      - dst: "/var/lib/waarp-gateway"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/in"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/out"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/work"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/db"
+        type: dir
+      - dst: "/var/log/waarp-gateway"
+        type: dir
   deb:
     contents:
       - src: dist/waarp-gatewayd.service
@@ -109,6 +124,19 @@ overrides:
       - src: ./build/waarp-gatewayd.ini
         dst: "/etc/waarp-gateway/gatewayd.ini"
         type: config
+
+      - dst: "/var/lib/waarp-gateway"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/in"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/out"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/work"
+        type: dir
+      - dst: "/var/lib/waarp-gateway/db"
+        type: dir
+      - dst: "/var/log/waarp-gateway"
+        type: dir
 #    scripts:
 #      preinstall: ./scripts/preinstall.sh
 #      postremove: ./scripts/postremove.sh
