@@ -22,7 +22,7 @@ func Open(path string) (File, error) {
 }
 
 func Create(path string) (File, error) {
-	createPerms := conf.GlobalConfig.Paths.FilePerms
+	createPerms := FileMode(conf.GlobalConfig.Paths.FilePerms)
 
 	return OpenFile(path, FlagReadWrite|FlagCreate|FlagTruncate, createPerms)
 }
