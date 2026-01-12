@@ -25,7 +25,7 @@ type ClientPipeline interface {
 
 //nolint:gochecknoglobals //yes, this is very ugly, but there is really no other way to avoid an import cycle
 var (
-	GetDefaultTransferClient func(db *database.DB, protocol string) (*model.Client, error)
+	GetDefaultTransferClient func(db database.Access, protocol string) (*model.Client, error)
 	NewClientPipeline        func(db *database.DB, trans *model.Transfer) (ClientPipeline, error)
 )
 
@@ -40,6 +40,8 @@ var (
 	ErrTransferAccountNotFound = errors.New("transfer account not found")
 	ErrTransferRuleNotFound    = errors.New("transfer rule not found")
 	ErrTransferClientNotFound  = errors.New("transfer client not found")
+
+	errTransferNeedDBWrite = errors.New("transfer task requires database write access")
 )
 
 // TransferTask is a task which schedules a new transfer.
@@ -65,7 +67,7 @@ type TransferTask struct {
 	client  model.Client
 }
 
-func (t *TransferTask) parseArgs(db database.ReadAccess, args map[string]string) error {
+func (t *TransferTask) parseArgs(db database.Access, args map[string]string) error {
 	*t = TransferTask{}
 
 	if err := utils.JSONConvert(args, t); err != nil {
@@ -108,7 +110,7 @@ func (t *TransferTask) parseArgs(db database.ReadAccess, args map[string]string)
 	}
 
 	if t.Using == "" {
-		client, err := GetDefaultTransferClient(db.AsDB(), t.partner.Protocol)
+		client, err := GetDefaultTransferClient(db, t.partner.Protocol)
 		if err != nil {
 			return fmt.Errorf("failed to retrieve default transfer client: %w", err)
 		}
@@ -137,8 +139,13 @@ func (t *TransferTask) parseArgs(db database.ReadAccess, args map[string]string)
 }
 
 // ValidateDB checks if the task has all the required arguments.
-func (t *TransferTask) ValidateDB(db database.ReadAccess, args map[string]string) error {
-	return t.parseArgs(db, args)
+func (t *TransferTask) ValidateDB(rd database.ReadAccess, args map[string]string) error {
+	rw, ok := rd.(database.Access)
+	if !ok {
+		return errTransferNeedDBWrite
+	}
+
+	return t.parseArgs(rw, args)
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
