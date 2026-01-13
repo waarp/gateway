@@ -56,7 +56,7 @@ func TestTransferRun(t *testing.T) {
 	client := &model.Client{Name: "cli", Protocol: testProtocol}
 	require.NoError(t, db.Insert(client).Run())
 
-	GetDefaultTransferClient = func(*database.DB, string) (*model.Client, error) {
+	GetDefaultTransferClient = func(database.Access, string) (*model.Client, error) {
 		return client, nil
 	}
 

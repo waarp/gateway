@@ -16,7 +16,7 @@ func init() {
 	tasks.GetDefaultTransferClient = GetDefaultTransferClient
 }
 
-func GetDefaultTransferClient(db *database.DB, protocol string) (*model.Client, error) {
+func GetDefaultTransferClient(db database.Access, protocol string) (*model.Client, error) {
 	// Retrieve all clients with the transfer's protocol.
 	var clients model.Clients
 	if err := db.Select(&clients).Where("protocol=?", protocol).Owner().Run(); err != nil {
@@ -41,9 +41,12 @@ func GetDefaultTransferClient(db *database.DB, protocol string) (*model.Client, 
 	}
 
 	module := protocols.Get(client.Protocol)
-	service := module.NewClient(db, client)
+	service := module.NewClient(db.AsDB(), client) // Give the client its own db connection.
 	services.Clients[client.Name] = service
 
+	// Start the new client. This should be fine as long as the client does not
+	// start a transaction while starting. It normally shouldn't need to, but
+	// if it does, then it will fail to start.
 	if err := service.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start transfer client: %w", err)
 	}

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`515` Correction d'une erreur "SQLITE_BUSY" survenant avec les bases de
+  données SQLite lors de l'ajout d'une tâche TRANSFER sans avoir préconfiguré
+  le client à utiliser pour le transfert.
+
 * :release:`0.14.0 <2025-12-19>`
 * :support:`505` Amélioration de la compatibilité du module PeSIT. Le protocole
   PeSIT sort donc officiellement de beta. En conséquence de ces changements,
