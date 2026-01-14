@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :support:`511` Le dossier ``/etc/waarp-gateway`` créé par les packages Linux
+  appartiendra désormais à l'utilisateur ``waarp:waarp`` au lieu de ``root:root``.
+* :support:`512` Les packages Linux créent désormais correctement les dossiers
+  de log (``/var/lob/waarp-gateway``) et de données (``/var/lib/waarp-gateway``).
 * :bug:`517` Suppression de la validation d'hôte pour les certificats locaux.
   Celle-ci pouvait empêcher l'ajout d'un certificat si le serveur local écoute
   sur une adresse locale différente de celle renseignée dans le certificat.
