@@ -26,7 +26,7 @@ func MoveFile(srcPath, dstPath string) error {
 }
 
 func fastRename(srcFs FS, srcParsed, dstParsed *parsedPath) error {
-	mkdirPerms := conf.GlobalConfig.Paths.DirPerms
+	mkdirPerms := FileMode(conf.GlobalConfig.Paths.DirPerms)
 
 	if err := srcFs.MkdirAll(dstParsed.dir().Path, mkdirPerms); err != nil {
 		return pathError("mkdir", dstParsed.dir().String(), err)

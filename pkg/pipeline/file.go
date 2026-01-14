@@ -71,7 +71,7 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 		return nil, err
 	}
 
-	filePerms := conf.GlobalConfig.Paths.FilePerms
+	filePerms := fs.FileMode(conf.GlobalConfig.Paths.FilePerms)
 
 	file, fsErr := fs.OpenFile(trans.LocalPath, fs.FlagReadWrite|fs.FlagCreate, filePerms)
 	if fsErr != nil {

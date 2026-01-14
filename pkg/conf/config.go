@@ -39,12 +39,12 @@ type ServerConfig struct {
 //
 //nolint:lll // cannot split struct tags
 type PathsConfig struct {
-	GatewayHome   string      `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
-	DefaultInDir  string      `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
-	DefaultOutDir string      `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
-	DefaultTmpDir string      `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
-	FilePerms     fs.FileMode `ini-name:"FilePermissions" default:"0640" description:"The permissions of the files created by the gateway."`
-	DirPerms      fs.FileMode `ini-name:"DirectoryPermissions" default:"0750" description:"The permissions of the directories created by the gateway."`
+	GatewayHome   string   `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
+	DefaultInDir  string   `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
+	DefaultOutDir string   `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
+	DefaultTmpDir string   `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
+	FilePerms     fileMode `ini-name:"FilePermissions" default:"0640" description:"The permissions of the files created by the gateway." `
+	DirPerms      fileMode `ini-name:"DirectoryPermissions" default:"0750" description:"The permissions of the directories created by the gateway." `
 
 	// Deprecated fields.
 	InDirectory   string `ini-name:"InDirectory" default:"" description:"DEPRECATED, use DefaultInDir instead"`    // Deprecated: replaced by DefaultInDir
@@ -284,4 +284,10 @@ func CreateGatewayConfig(configFile, nodeID string) error {
 	}
 
 	return CreateOverride(configFile, nodeID)
+}
+
+type fileMode fs.FileMode
+
+func (f fileMode) MarshalFlag() (string, error) {
+	return fmt.Sprintf("0%o", f), nil
 }

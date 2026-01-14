@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`510` Les valeurs des options ``FilePermissions`` et ``DirectoryPermissions``
+  du fichier de configuration .ini par défaut (généré via commande) affichent
+  désormais bien "0640" et "0750" par défaut. Les valeurs précédemment affichées
+  ("416" et 488" respectivement) étaient correctes, mais étaient affichées en
+  base 10 au lieu de base 8.
 * :bug:`515` Correction d'une erreur "SQLITE_BUSY" survenant avec les bases de
   données SQLite lors de l'ajout d'une tâche TRANSFER sans avoir préconfiguré
   le client à utiliser pour le transfert.

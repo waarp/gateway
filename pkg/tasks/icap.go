@@ -160,7 +160,7 @@ func (i *icapTask) run(ctx context.Context, logger *log.Logger,
 		flags = fs.FlagReadWrite
 	}
 
-	filePerms := conf.GlobalConfig.Paths.FilePerms
+	filePerms := fs.FileMode(conf.GlobalConfig.Paths.FilePerms)
 
 	file, opErr := fs.OpenFile(transCtx.Transfer.LocalPath, flags, filePerms)
 	if opErr != nil {

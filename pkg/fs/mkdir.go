@@ -3,7 +3,7 @@ package fs
 import "code.waarp.fr/apps/gateway/gateway/pkg/conf"
 
 func MkdirAll(path string) error {
-	mkdirPerms := conf.GlobalConfig.Paths.DirPerms
+	mkdirPerms := FileMode(conf.GlobalConfig.Paths.DirPerms)
 
 	parsed, srcFs, parsErr := parseFs(path)
 	if parsErr != nil {
