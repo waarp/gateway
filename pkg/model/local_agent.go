@@ -39,7 +39,7 @@ func (*LocalAgent) Appellation() string        { return "server" }
 func (l *LocalAgent) GetID() int64             { return l.ID }
 func (l *LocalAgent) GetNullID() sql.NullInt64 { return utils.NewNullInt64(l.ID) }
 func (*LocalAgent) IsServer() bool             { return true }
-func (l *LocalAgent) Host() string             { return l.Address.Host }
+func (l *LocalAgent) Host() string             { return "" }
 
 func (l *LocalAgent) validateProtoConfig() error {
 	if err := ConfigChecker.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {

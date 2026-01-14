@@ -55,7 +55,7 @@ func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 }
 
 func (h *httpService) listen() error {
-	addr := conf.GetRealAddress(h.agent.Host(),
+	addr := conf.GetRealAddress(h.agent.Address.Host,
 		utils.FormatUint(h.agent.Address.Port))
 
 	var (
