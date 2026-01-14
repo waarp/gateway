@@ -110,6 +110,7 @@ overrides:
         dst: /lib/systemd/system/waarp-gateway-get-remote.service
       - src: dist/waarp-gateway-get-remote.timer
         dst: /lib/systemd/system/waarp-gateway-get-remote.timer
+
       - src: ./build/waarp-gateway_linux_amd64
         dst: "/usr/bin/waarp-gateway"
       - src: ./build/waarp-gatewayd_linux_amd64
@@ -118,9 +119,9 @@ overrides:
         dst: "/usr/share/waarp-gateway/get-remote"
       - src: ./build/updateconf_linux_amd64
         dst: "/usr/share/waarp-gateway/updateconf"
+
       - src: ./doc/source/reference/waarp-gateway.mib
         dst: "/usr/share/waarp-gateway/waarp-gateway.mib"
-
       - src: ./build/waarp-gatewayd.ini
         dst: "/etc/waarp-gateway/gatewayd.ini"
         type: config
