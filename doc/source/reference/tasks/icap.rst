@@ -1,7 +1,7 @@
 .. _ref-tasks-icap:
 
-ICAP (BETA)
-===========
+ICAP
+====
 
 Le traitement ``ICAP`` upload le fichier de transfert vers un serveur ICAP pour
 être traité. Dans le cas où le transfert est un envoi, la méthode Icap ``REQMOD``
