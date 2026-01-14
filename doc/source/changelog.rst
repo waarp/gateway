@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`517` Suppression de la validation d'hôte pour les certificats locaux.
+  Celle-ci pouvait empêcher l'ajout d'un certificat si le serveur local écoute
+  sur une adresse locale différente de celle renseignée dans le certificat.
 * :bug:`509` Correction de bug mineurs dans l'interface Web :
 
   - Le port n'est plus requis pour les clients
