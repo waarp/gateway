@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.14.1 <2026-14-01>`
 * :support:`511` Le dossier ``/etc/waarp-gateway`` créé par les packages Linux
   appartiendra désormais à l'utilisateur ``waarp:waarp`` au lieu de ``root:root``.
 * :support:`512` Les packages Linux créent désormais correctement les dossiers
