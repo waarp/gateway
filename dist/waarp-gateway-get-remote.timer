@@ -5,7 +5,7 @@ Description=Starts fetching files from SFTP servers for Waarp Gateway
 OnBootSec=5m
 OnUnitActiveSec=5m
 Persistent=true
-Unit=waarp-gateway-get-remote.service
+Unit=waarp-gatewayd-get-remote.service
 
 [Install]
 WantedBy=timers.target

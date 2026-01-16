@@ -5,4 +5,4 @@ Description=Verifies files on sftp partners for Waarp Gateway
 Type=oneshot
 User=waarp
 Group=waarp
-ExecStart=/usr/share/waarp-gateway/get-remotes
+ExecStart=/usr/share/waarp-gateway/get-remote

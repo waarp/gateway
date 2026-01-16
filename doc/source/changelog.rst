@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`520` L'utilitaire *get-remote* n'éssayera plus de transférer des dossiers.
+
 * :release:`0.14.1 <2026-14-01>`
 * :support:`511` Le dossier ``/etc/waarp-gateway`` créé par les packages Linux
   appartiendra désormais à l'utilisateur ``waarp:waarp`` au lieu de ``root:root``.

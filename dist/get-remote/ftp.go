@@ -122,13 +122,15 @@ func (fc *ftpClient) List(rule *api.OutRule, pattern string) ([]string, error) {
 	res := []string{}
 
 	for _, fi := range fileInfos {
-		ok, err := path.Match(filePattern, fi.Name())
-		if err != nil {
-			return nil, fmt.Errorf("bad pattern: %w", err)
-		}
+		if !fi.IsDir() {
+			ok, err := path.Match(filePattern, fi.Name())
+			if err != nil {
+				return nil, fmt.Errorf("bad pattern %q: %w", filePattern, err)
+			}
 
-		if ok {
-			res = append(res, path.Join(dirPattern, fi.Name()))
+			if ok {
+				res = append(res, path.Join(dirPattern, fi.Name()))
+			}
 		}
 	}
 
