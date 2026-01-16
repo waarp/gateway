@@ -125,7 +125,7 @@ func (fc *ftpClient) List(rule *api.OutRule, pattern string) ([]string, error) {
 		if !fi.IsDir() {
 			ok, err := path.Match(filePattern, fi.Name())
 			if err != nil {
-				return nil, fmt.Errorf("bad pattern: %w", err)
+				return nil, fmt.Errorf("bad pattern %q: %w", filePattern, err)
 			}
 
 			if ok {
