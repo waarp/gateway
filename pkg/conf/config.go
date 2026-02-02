@@ -16,6 +16,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
 
+const (
+	ConfigFileEnvVar = "WAARP_CONFIG_FILE"
+	ConfigDirEnvVar  = "WAARP_CONFIG_DIR"
+)
+
 // GlobalConfig is a global instance of ServerConfig containing the
 // configuration of the gateway instance.
 //
@@ -169,6 +174,9 @@ func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 			return nil, ErrNoConfigFile
 		}
 	}
+
+	os.Setenv(ConfigFileEnvVar, userConfig)
+	os.Setenv(ConfigDirEnvVar, filepath.Dir(userConfig))
 
 	return c, nil
 }

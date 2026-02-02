@@ -123,7 +123,10 @@ renseignée.
 Ces valeurs de substitutions sont également disponibles pour les programmes externes
 appelés par les tâches EXEC sous forme de variables d'environnement. Ces variables
 d'environnement ont exactement le même nom que leurs variables de substitution
-correspondantes (ex: ``#TRUEFULLPATH#``).
+correspondantes (ex: ``#TRUEFULLPATH#``). Par ailleurs, Waarp Gateway met à
+disposition des programmes externes les variables d'environnement ``WAARP_CONFIG_FILE``
+et ``WAARP_CONFIG_DIR`` contenant, respectivement, le chemin du fichier de
+configuration de Waarp Gateway, et le dossier parent de ce fichier.
 
 .. _ref-timestamp-format:
 
