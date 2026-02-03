@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 const (
@@ -25,7 +27,7 @@ var (
 //nolint:forbidigo //this is allowed in the main function
 func main() {
 	if len(os.Args) < minArgs {
-		fmt.Printf("updateconf needs at least 1 parameter")
+		fmt.Printf("updateconf needs at least 1 parameter\n")
 		os.Exit(exitErrorCode)
 	}
 
@@ -58,7 +60,7 @@ func main() {
 
 	_ = archReader.Close() //nolint:errcheck //ignore error
 
-	fmt.Println("End of process updateconf")
+	fmt.Printf("End of process updateconf\n")
 }
 
 func getConfFilename(archfile string) string {
@@ -106,12 +108,12 @@ func importConf(arch *zip.Reader, file string) error {
 func getFileFromArch(arch *zip.Reader, file string) (io.ReadCloser, error) {
 	for _, f := range arch.File {
 		if f.Name == file {
-			conf, err := f.Open()
+			confFile, err := f.Open()
 			if err != nil {
 				return nil, fmt.Errorf("cannot read zip file: %w", err)
 			}
 
-			return conf, nil
+			return confFile, nil
 		}
 	}
 
@@ -119,7 +121,14 @@ func getFileFromArch(arch *zip.Reader, file string) (io.ReadCloser, error) {
 }
 
 func execImport(confReader io.Reader) error {
-	cmd := exec.CommandContext(context.Background(), "waarp-gatewayd", "import", "-v")
+	envConfFile := os.Getenv(conf.ConfigFileEnvVar)
+
+	params := []string{"import", "-v"}
+	if envConfFile != "" {
+		params = append(params, "-c", envConfFile)
+	}
+
+	cmd := exec.CommandContext(context.Background(), "waarp-gatewayd", params...)
 	cmd.Stdin = confReader
 
 	out, err := cmd.CombinedOutput()
@@ -133,7 +142,8 @@ func execImport(confReader io.Reader) error {
 }
 
 func moveToConf(arch *zip.Reader, files ...string) error {
-	confDir, dirErr := getConfDir("etc/", "/etc/waarp-gateway/")
+	envConfDir := os.Getenv(conf.ConfigDirEnvVar)
+	confDir, dirErr := getConfDir(envConfDir, "etc/", "/etc/waarp-gateway/")
 	if dirErr != nil {
 		return dirErr
 	}
