@@ -18,6 +18,7 @@ chown -R root:waarp /usr/share/waarp-gateway/
 chmod -R 750 /usr/share/waarp-gateway/
 
 systemctl daemon-reload
-if systemctl is-active waarp-gatewayd; then
-  systemctl restart waarp-gatewayd
-fi
+
+echo ">>> Upgrade the database before restarting the service."
+echo ">>> waarp-gatewayd migrate -c /etc/waarp-gateway/gatewayd.ini"
+echo ">>> More information on the migration process at \"https://doc.waarp.org/waarp-gateway/latest/fr/migrate.html\""
