@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`524` Les chemins UNC sous Windows sont désormais correctement traités
+  comme des chemins absolus, et ne devraient donc plus être rattachés au dossier
+  racine de l'application.
 * :support:`522` Au démarrage, Waarp Gateway crée désormais 2 variables d'environnement
   nommées ``WAARP_GATEWAY_CONFIG_FILE`` et ``WAARP_GATEWAY_CONFIG_DIR`` contenant,
   respectivement le chemin du fichier de configuration de Gateway, et le dossier

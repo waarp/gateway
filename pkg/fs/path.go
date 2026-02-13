@@ -3,7 +3,6 @@ package fs
 import (
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/rclone/rclone/fs/fspath"
@@ -47,11 +46,6 @@ func parsePath(path string) (*parsedPath, error) {
 		parsed.Name = ""
 	}
 
-	// For retro-compatibility, remove leading slashes on Windows paths.
-	if parsed.Name == "" && runtime.GOOS == "windows" {
-		parsed.Path = strings.TrimLeft(parsed.Path, "/")
-	}
-
 	p := parsedPath(parsed)
 
 	return &p, nil
@@ -82,9 +76,5 @@ func IsAbsPath(path string) bool {
 		return true
 	}
 
-	if runtime.GOOS == "windows" {
-		parsed.Path = strings.TrimLeft(parsed.Path, "/")
-	}
-
-	return filepath.IsAbs(parsed.Path)
+	return filepath.IsAbs(path)
 }
