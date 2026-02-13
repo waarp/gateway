@@ -13,50 +13,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
-
-var errNoValidCert = errors.New("could not find a valid certificate for HTTP server")
-
-func (h *httpService) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
-	creds, dbErr := h.agent.GetCredentials(h.db, auth.TLSCertificate)
-	if dbErr != nil {
-		h.logger.Errorf("Failed to retrieve server certificates: %s", dbErr)
-
-		return nil, fmt.Errorf("failed to retrieve server certificates: %w", dbErr)
-	}
-
-	var tlsCerts []tls.Certificate
-
-	for _, cred := range creds {
-		cert, err := tls.X509KeyPair([]byte(cred.Value), []byte(cred.Value2))
-		if err != nil {
-			h.logger.Warningf("Failed to parse server certificate: %v", err)
-
-			continue
-		}
-
-		tlsCerts = append(tlsCerts, cert)
-	}
-
-	if len(tlsCerts) == 0 {
-		h.logger.Error("Could not find a valid certificate for HTTP server")
-
-		return nil, errNoValidCert
-	}
-
-	return &tls.Config{
-		MinVersion:            h.conf.MinTLSVersion.TLS(),
-		Certificates:          tlsCerts,
-		ClientAuth:            tls.RequestClientCert,
-		VerifyPeerCertificate: auth.VerifyClientCert(h.db, h.logger, h.agent),
-		VerifyConnection:      compatibility.LogSha1(h.logger),
-	}, nil
-}
 
 func (h *httpService) listen() error {
 	addr := conf.GetRealAddress(h.agent.Address.Host,
 		utils.FormatUint(h.agent.Address.Port))
+	h.serv.Addr = addr
 
 	var (
 		list   net.Listener
@@ -66,7 +28,7 @@ func (h *httpService) listen() error {
 	if h.agent.Protocol == HTTPS {
 		list, netErr = tls.Listen("tcp", addr, &tls.Config{
 			MinVersion:         h.conf.MinTLSVersion.TLS(),
-			GetConfigForClient: h.makeTLSConf,
+			GetConfigForClient: protoutils.GetServerTLSConfig(h.db, h.logger, h.agent, h.conf.MinTLSVersion),
 		})
 	} else {
 		list, netErr = net.Listen("tcp", addr)

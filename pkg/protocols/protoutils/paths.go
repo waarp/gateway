@@ -3,7 +3,6 @@ package protoutils
 import (
 	"errors"
 	"fmt"
-	gofs "io/fs"
 	"path"
 	"strings"
 
@@ -56,6 +55,9 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger, server *model.Lo
 
 		return nil, ErrDatabase
 	} else if !ok {
+		logger.Errorf("Account %q is not allowed to use %s rule %q",
+			acc.Login, rule.Direction(), rule.Name)
+
 		return &rule, ErrPermissionDenied
 	}
 
@@ -110,7 +112,7 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 
 func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
 	acc *model.LocalAccount, dir string,
-) ([]gofs.FileInfo, error) {
+) (FakeDirInfos, error) {
 	dir = strings.TrimPrefix(dir, "/")
 
 	var rules model.Rules
@@ -149,11 +151,28 @@ func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
 		}
 	}
 
-	entries := make([]gofs.FileInfo, len(paths))
+	entries := make(FakeDirInfos, len(paths))
 
 	for i := range paths {
 		entries[i] = FakeDirInfo(paths[i])
 	}
 
 	return entries, nil
+}
+
+func GetRuleDir(db database.ReadAccess, serv *model.LocalAgent,
+	acc *model.LocalAccount, dir string,
+) (*FakeDir, error) {
+	dir = strings.TrimPrefix(dir, "/")
+
+	children, err := GetRulesPaths(db, serv, acc, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(children) == 0 {
+		return nil, ErrRuleNotFound
+	}
+
+	return &FakeDir{name: dir, children: children}, nil
 }

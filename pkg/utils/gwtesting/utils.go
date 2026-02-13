@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 // GetLocalPort returns a local address with an unused port which can be
@@ -36,4 +37,21 @@ func HashPassword(tb testing.TB, password string) string {
 	require.NoErrorf(tb, err, "Failed to hash password %q", password)
 
 	return string(h)
+}
+
+func Addr(tb testing.TB, addr string) types.Address {
+	tb.Helper()
+
+	parsed, err := types.NewAddress(addr)
+	require.NoError(tb, err)
+
+	return *parsed
+}
+
+func requireNoError(tb testing.TB, err *pipeline.Error) {
+	tb.Helper()
+
+	if err != nil {
+		require.NoError(tb, err)
+	}
 }

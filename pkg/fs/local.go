@@ -40,7 +40,6 @@ func (l *LocalFS) Open(name string) (fs.File, error) {
 	return os.Open(name)
 }
 
-//nolint:wrapcheck //no need to wrap here
 func (l *LocalFS) OpenFile(name string, flags Flags, perm FileMode) (File, error) {
 	//nolint:gosec //file inclusion is checked elsewhere
 	return os.OpenFile(name, flags, perm)

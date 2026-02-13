@@ -84,6 +84,12 @@
                     {{ if in $.protocolsList "pesit-tls" }}
                         <option value="pesit-tls" {{ if eq (index .modalElement "addServerProtocol") "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
                     {{ end }}
+                    {{ if in $.protocolsList "webdav" }}
+                        <option value="webdav" {{ if eq (index .modalElement "addServerProtocol") "webdav" }}selected{{ end }}>WebDAV</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "webdav-tls" }}
+                        <option value="webdav-tls" {{ if eq (index .modalElement "addServerProtocol") "webdav-tls" }}selected{{ end }}>WebDAV over HTTPS</option>
+                    {{ end }}
                 </select>
                 </div>
 
@@ -127,6 +133,7 @@
                 {{ template "addFtpServer" . }}
                 {{ template "addPesitServer" . }}
                 {{ template "addHttpServer" . }}
+                {{ template "addWebdavServer" . }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
@@ -202,6 +209,14 @@
             <div class="form-check form-check-inline">
               <input class="form-check-input" type="checkbox" name="filterProtocolPeSIT-TLS" id="filterProtocolPeSIT-TLS" value="true" {{ if .filter.Protocols.PeSITTLS }}checked{{ end }}>
               <label class="form-check-label" for="filterProtocolPeSIT-TLS">PeSIT-TLS</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolWebdav" id="filterProtocolWebdav" value="true" {{ if .filter.Protocols.Webdav }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolWebdav">WebDAV</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" name="filterProtocolWebdavTLS" id="filterProtocolWebdavTLS" value="true" {{ if .filter.Protocols.WebdavTLS }}checked{{ end }}>
+              <label class="form-check-label" for="filterProtocolWebdavTLS">WebDAV over HTTPS</label>
             </div>
         </div>
       </form>
@@ -297,7 +312,7 @@
               </div>
             </td>
             <td>
-              {{ if ne .Protocol "http" }}
+              {{ if and (ne .Protocol "http") (ne .Protocol "webdav") }}
               <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#protoConfigModal_{{ .ID }}">
                     <i class="bi bi-gear-wide-connected"></i>
                 </button>
@@ -325,6 +340,9 @@
                         {{ end }}
                         {{ if eq .Protocol "https" }}
                           {{ template "displayHttpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
+                        {{ end }}
+                        {{ if eq .Protocol "webdav-tls" }}
+                            {{ template "displayWebdavServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                         {{ end }}
                         </div>
                         <div class="modal-footer">
@@ -414,6 +432,12 @@
                                 {{ if in $.protocolsList "pesit-tls" }}
                                     <option value="pesit-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "pesit-tls" }}selected{{ end }}{{ else if eq .Protocol "pesit-tls" }}selected{{ end }}>PeSIT-TLS</option>
                                 {{ end }}
+                                {{ if in $.protocolsList "webdav" }}
+                                    <option value="webdav" {{ if $me }}{{ if eq (index $me "editServerProtocol") "webdav" }}selected{{ end }}{{ else if eq .Protocol "webdav" }}selected{{ end }}>WebDAV</option>
+                                {{ end }}
+                                {{ if in $.protocolsList "webdav-tls" }}
+                                    <option value="webdav-tls" {{ if $me }}{{ if eq (index $me "editServerProtocol") "webdav-tls" }}selected{{ end }}{{ else if eq .Protocol "webdav-tls" }}selected{{ end }}>WebDAV over HTTPS</option>
+                                {{ end }}
                             </select>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
@@ -451,6 +475,7 @@
                             {{ template "editPesitServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
                             {{ template "editSftpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
                             {{ template "editHttpServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                            {{ template "editWebdavServer" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

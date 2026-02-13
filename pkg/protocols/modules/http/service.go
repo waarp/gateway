@@ -64,7 +64,6 @@ func (h *httpService) start() error {
 	}
 
 	h.serv = &http.Server{
-		Addr:              h.agent.Address.String(),
 		Handler:           h.makeHandler(),
 		ErrorLog:          h.logger.AsStdLogger(log.LevelError),
 		ReadHeaderTimeout: readHeaderTimeout,

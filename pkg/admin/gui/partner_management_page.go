@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
@@ -69,6 +70,10 @@ func editPartner(db *database.DB, r *http.Request) error {
 		editPartner.ProtoConfig = protoConfigFTPpartner(r, editPartner.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		editPartner.ProtoConfig = protoConfigPeSITPartner(r, editPartner.Protocol)
+	case webdav.Webdav:
+		editPartner.ProtoConfig = protoConfigWebdavPartner(r)
+	case webdav.WebdavTLS:
+		editPartner.ProtoConfig = protoConfigWebdavTLSPartner(r)
 	}
 
 	if err = internal.UpdatePartner(db, editPartner); err != nil {
@@ -117,6 +122,10 @@ func addPartner(db *database.DB, r *http.Request) error {
 		newPartner.ProtoConfig = protoConfigFTPpartner(r, newPartner.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		newPartner.ProtoConfig = protoConfigPeSITPartner(r, newPartner.Protocol)
+	case webdav.Webdav:
+		newPartner.ProtoConfig = protoConfigWebdavPartner(r)
+	case webdav.WebdavTLS:
+		newPartner.ProtoConfig = protoConfigWebdavTLSPartner(r)
 	}
 
 	if err := internal.InsertPartner(db, &newPartner); err != nil {

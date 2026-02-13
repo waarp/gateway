@@ -946,3 +946,54 @@
     </div>
 </div>
 {{ end }}
+
+{{ define "editWebdavPartner" }}
+<div id="protoConfig_webdav" class="protoConfigBlock" style="display:none;">
+    <div id="WebdavTLSForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigWebdavMinTLSVersion" class="form-select" required>
+                {{ range $.TLSVersions }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigWebdavMinTLSVersion") . }}selected{{ end }}{{ else if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "editWebdavServer" }}
+<div id="protoConfig_webdav" class="protoConfigBlock" style="display:none;">
+    <div id="WebdavTLSForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigWebdavMinTLSVersion" class="form-select" required>
+                {{ range $.TLSVersions }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigWebdavMinTLSVersion") . }}selected{{ end }}{{ else if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "editWebdavClient" }}
+<div id="protoConfig_webdav" class="protoConfigBlock" style="display:none;">
+    <div id="WebdavTLSForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigWebdavMinTLSVersion" class="form-select" required>
+                {{ range $.TLSVersions }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigWebdavMinTLSVersion") . }}selected{{ end }}{{ else if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}

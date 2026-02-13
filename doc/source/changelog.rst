@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`-` Gateway pose désormais un verrou sur les fichiers de transfert
+  pendant leur lecture/écriture afin d'empêcher des applications tierces de
+  modifier ou de lire le fichier pendant que Gateway travaille dessus.
+* :feature:`503` Ajout du support pour le protocol WebDAV, ainsi que sa variante
+  *over HTTPS*. Il est recommandé de lire :doc:`la rubrique<reference/protocols/pesit>`
+  spécifiant les détails d'implémentation du protocole avant de commencer à
+  l'utiliser.
 * :feature:`514` Ajout d'une tâche UPDATECONF permettant d'importer une archive
   de configuration (typiquement générée par Waarp Manager) directement dans la
   base de données de Gateway. Cette tâche remplace l'utilitaire *updateconf* qui
