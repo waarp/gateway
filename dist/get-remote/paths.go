@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 type paths struct {
@@ -29,7 +31,10 @@ func getPaths() (paths, error) {
 
 	p := paths{}
 
-	if pathExists(filepath.Join(parentDir, "etc")) {
+	envConfDir := os.Getenv(conf.ConfigDirEnvVar)
+	if envConfDir != "" && pathExists(envConfDir) {
+		p.confDir = envConfDir
+	} else if pathExists(filepath.Join(parentDir, "etc")) {
 		p.baseDir = parentDir
 		p.confDir = filepath.Join(p.baseDir, "etc")
 	} else if pathExists("/etc/waarp-gateway") {
