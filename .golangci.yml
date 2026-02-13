@@ -625,7 +625,8 @@ linters:
       replace-local: false
       # List of allowed `replace` directives.
       # Default: []
-      replace-allow-list: []
+      replace-allow-list:
+        - xorm.io/xorm
       # Allow to not explain why the version has been retracted in the `retract` directives.
       # Default: false
       retract-allow-no-explanation: false
