@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :support:`522` Au démarrage, Waarp Gateway crée désormais 2 variables d'environnement
+  nommées ``WAARP_GATEWAY_CONFIG_FILE`` et ``WAARP_GATEWAY_CONFIG_DIR`` contenant,
+  respectivement le chemin du fichier de configuration de Gateway, et le dossier
+  parent de ce fichier. Ces variables sont héritées et peuvent être utilisées par
+  les programmes externes appellés dans les tâches de règles.
 * :bug:`520` L'utilitaire *get-remote* n'éssayera plus de transférer des dossiers.
 
 * :release:`0.14.1 <2026-14-01>`
