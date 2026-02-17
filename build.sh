@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
-GOOS=$1 GOARCH=$2
+export GOOS=$1
+export GOARCH=$2
 
 echo "==> building for $GOOS/$GOARCH"
 
 mkdir -p build
 
 git_tag=$(git describe --tags --dirty)
-version=${git_tag#"v"}
+version=0.14.2
 
 CGO_ENABLED=0 go build -ldflags "-s -w \
   -X code.waarp.fr/apps/gateway/gateway/pkg/version.Date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \

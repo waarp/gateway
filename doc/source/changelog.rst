@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`525` Correction d'un bug sous Windows qui causait une duplication du
+  *host* et du *share* dans les chemins UNC.
+
 * :release:`0.14.2 <2026-13-02>`
 * :bug:`524` Les chemins UNC sous Windows sont désormais correctement traités
   comme des chemins absolus, et ne devraient donc plus être rattachés au dossier
