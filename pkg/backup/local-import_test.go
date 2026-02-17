@@ -221,6 +221,7 @@ func TestImportLocalAccounts(t *testing.T) {
 				account1 := LocalAccount{Login: "toto", Password: "pwd"}
 				account2 := LocalAccount{Login: "tata", Password: "pwd"}
 				accounts := []LocalAccount{account1, account2}
+				So(preprocessLocalAccounts(accounts), ShouldBeNil)
 
 				Convey("When calling the importLocalAccounts method", func() {
 					err := importLocalAccounts(discard(), db, accounts, agent)
@@ -275,6 +276,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					},
 				}
 				accounts := []LocalAccount{account1}
+				So(preprocessLocalAccounts(accounts), ShouldBeNil)
 
 				Convey("When calling the importLocalAccounts method", func() {
 					err := importLocalAccounts(discard(), db, accounts, agent)
@@ -370,6 +372,7 @@ func TestR66PasswordImport(t *testing.T) {
 		Password:     pswd,
 		PasswordHash: hashed,
 	}}
+	require.NoError(t, preprocessLocalAccounts(accounts))
 
 	require.NoError(t, importLocalAccounts(logger, db, accounts, server))
 

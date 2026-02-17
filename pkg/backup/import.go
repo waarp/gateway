@@ -44,6 +44,10 @@ func ImportData(db *database.DB, r *os.File, targets []string, dry, reset bool) 
 		return fmt.Errorf("cannot read data: %w", err)
 	}
 
+	if err := PreprocessImport(&data); err != nil {
+		return err
+	}
+
 	if err := db.Transaction(func(ses *database.Session) error {
 		if utils.ContainsOneOf(targets, "authorities", "all") {
 			if err := importAuthorities(logger, ses, data.Authorities, reset); err != nil {
