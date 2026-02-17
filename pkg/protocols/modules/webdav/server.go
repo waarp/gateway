@@ -102,7 +102,7 @@ func (s *server) start() error {
 	s.server = &http.Server{
 		Addr:              addr,
 		Handler:           http.HandlerFunc(s.handle),
-		ErrorLog:          s.logger.AsStdLogger(log.LevelError),
+		ErrorLog:          s.logger.AsStdLogger(log.LevelWarning),
 		ReadHeaderTimeout: readHeaderTimeout,
 		ConnState: func(_ net.Conn, state http.ConnState) {
 			switch state {
