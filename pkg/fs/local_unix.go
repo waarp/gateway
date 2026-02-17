@@ -30,7 +30,7 @@ func lockFile(file *os.File) error {
 	}
 
 	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		return pathError("lock", file.Name(), err)
+		return pathError("flock", file.Name(), err)
 	}
 
 	return nil

@@ -16,6 +16,31 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
+func TestServerPropfind(t *testing.T) {
+	t.Parallel()
+
+	// Setup DB
+	ctx := gwtesting.NewTestServerCtx(t, webdav.Webdav, nil)
+	ctx.AddPassword(t, password)
+	client := makeClient(ctx)
+
+	// Setup data
+	dirPath := filepath.Join(ctx.Root, ctx.RulePull.LocalDir)
+	require.NoError(t, os.MkdirAll(dirPath, 0o700))
+	filePath := filepath.Join(dirPath, "test.txt")
+	require.NoError(t, os.WriteFile(filePath, []byte("hello world"), 0o600))
+
+	// Do
+	dirURL := ctx.RulePull.Path
+	fileURL := path.Join(dirURL, "test.txt")
+
+	require.NoError(t, client.Connect())
+	_, err := client.Stat(dirURL)
+	require.NoError(t, err)
+	_, err = client.Stat(fileURL)
+	require.NoError(t, err)
+}
+
 func TestServerUpload(t *testing.T) {
 	t.Parallel()
 
@@ -68,7 +93,7 @@ func TestServerDownload(t *testing.T) {
 	srcBuf := makeBuf(t)
 	srcFilename := t.Name() + ".src"
 	srcPath := path.Join(ctx.RulePull.Path, srcFilename)
-	srcFilePath := filepath.Join(ctx.Root, ctx.RulePull.Path, srcFilename)
+	srcFilePath := filepath.Join(ctx.Root, ctx.RulePull.LocalDir, srcFilename)
 	require.NoError(t, os.WriteFile(srcFilePath, srcBuf, 0o600))
 
 	// Do transfer

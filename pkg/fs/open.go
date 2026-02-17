@@ -8,6 +8,7 @@ import (
 )
 
 type File interface {
+	Name() string
 	fs.File
 	fs.ReadDirFile
 	io.Writer
