@@ -42,6 +42,7 @@ var formFiles = []taskCategory{
 			{tasknames.Exec, "tasks/exec/exec.gohtml", "tasks/exec/exec.yaml"},
 			{tasknames.ExecMove, "tasks/exec/exec.gohtml", "tasks/exec/execmove.yaml"},
 			{tasknames.ExecOutput, "tasks/exec/exec.gohtml", "tasks/exec/execoutput.yaml"},
+			{tasknames.UpdateConf, "tasks/updateconf/updateconf.gohtml", "tasks/updateconf/updateconf.yaml"},
 		},
 	}, {
 		Name: "transfer",

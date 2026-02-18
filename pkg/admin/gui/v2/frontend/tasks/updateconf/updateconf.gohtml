@@ -1,0 +1,12 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Zip file -->
+{{ template "textInputRow" dict
+    "label" .Text.zipFile
+    "tooltip" .Text.zipFileTooltip
+    "fieldName" "zipFile"
+    "fieldType" "text"
+    "value" .Task.Args.zipFile
+    "placeholder" "#TRUEFULLPATH#"
+}}

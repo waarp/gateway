@@ -3,6 +3,7 @@ package backup
 import (
 	"testing"
 
+	r66lib "code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +16,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -359,12 +359,12 @@ func TestR66PasswordImport(t *testing.T) {
 	server := &model.LocalAgent{
 		Name:     "r66_server",
 		Address:  types.Addr("localhost", 0),
-		Protocol: r66.R66TLS,
+		Protocol: r66TLS,
 	}
 	require.NoError(t, db.Insert(server).Run())
 
 	const pswd = "bar"
-	hashed, err := utils.HashPassword(bcrypt.MinCost, r66.CryptPass(pswd))
+	hashed, err := utils.HashPassword(bcrypt.MinCost, string(r66lib.CryptPass([]byte(pswd))))
 	require.NoError(t, err)
 
 	accounts := []LocalAccount{{

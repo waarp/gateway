@@ -7,7 +7,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const (
+	r66           = "r66"
+	r66TLS        = "r66-tls"
+	r66LegacyCert = "r66_legacy_certificate"
+)
+
 func hashPswd(pswd string) (string, error) {
+	//nolint:wrapcheck //no need to wrap here
 	return utils.HashPassword(database.BcryptRounds, pswd)
 }
 
@@ -49,5 +56,5 @@ func preprocessPasswordHashes(creds []file.Credential) (bool, error) {
 }
 
 func isR66(proto string) bool {
-	return proto == "r66" || proto == "r66-tls"
+	return proto == r66 || proto == r66TLS
 }

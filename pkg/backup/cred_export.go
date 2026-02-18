@@ -9,8 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -62,17 +60,17 @@ func exportLegacyCredentials(src *model.Credential, certs *[]file.Certificate,
 			Certificate: src.Value,
 			PrivateKey:  src.Value2,
 		})
-	case sftp.AuthSSHPrivateKey:
+	case "ssh_private_key":
 		*certs = append(*certs, file.Certificate{
 			Name:       src.Name,
 			PrivateKey: src.Value,
 		})
-	case sftp.AuthSSHPublicKey:
+	case "ssh_public_key":
 		*certs = append(*certs, file.Certificate{
 			Name:      src.Name,
 			PublicKey: src.Value,
 		})
-	case r66.AuthLegacyCertificate:
+	case "r66_legacy_certificate":
 		if src.LocalAgentID.Valid || src.RemoteAccountID.Valid {
 			*certs = append(*certs, file.Certificate{
 				Name:        src.Name,

@@ -37,9 +37,9 @@ func preprocessUsers(users []file.User) error {
 }
 
 func preprocessServers(servers []file.LocalAgent) error {
-	var err error
-	for _, server := range servers {
-		if err = preprocessLocalAccounts(server.Accounts); err != nil {
+	for i := range servers {
+		server := &servers[i]
+		if err := preprocessLocalAccounts(server.Accounts); err != nil {
 			return err
 		}
 	}
@@ -78,15 +78,14 @@ func preprocessPartners(partners []file.RemoteAgent) error {
 	for i := range partners {
 		partner := &partners[i]
 
-		hasPswd, err := preprocessPasswordHashes(partner.Credentials)
-		if err != nil {
-			return err
+		hasPswd, hErr := preprocessPasswordHashes(partner.Credentials)
+		if hErr != nil {
+			return hErr
 		}
 
 		if isR66(partner.Protocol) && !hasPswd {
-			var confPswd string
-			if confPswd, err = utils.GetAs[string](partner.Configuration, "serverPassword"); err == nil {
-				if err = addPswdHashCred(&partner.Credentials, confPswd); err != nil {
+			if confPswd, jErr := utils.GetAs[string](partner.Configuration, "serverPassword"); jErr == nil {
+				if err := addPswdHashCred(&partner.Credentials, confPswd); err != nil {
 					return err
 				}
 			}

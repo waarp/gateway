@@ -1,0 +1,17 @@
+description:
+  en: |
+    Imports the Waarp Manager generated configuration files from a ZIP archive.
+  fr: |
+    Importe les fichiers de configuration d'une archive ZIP générée par Waarp Manager.
+
+zipFile:
+  en: ZIP archive
+  fr: Archive ZIP
+
+zipFileTooltip:
+  en: |
+    The path of the archive to extract and import. By default, it will be the
+    transfer file.
+  fr: |
+    Le chemin de l'archive à extraire et importer. Par défaut, ce sera le fichier de 
+    transfert.

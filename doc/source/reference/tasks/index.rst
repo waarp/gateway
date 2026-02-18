@@ -55,6 +55,7 @@ Liste des traitements
    verify
    encrypt_sign
    decrypt_verify
+   updateconf
 
 
 

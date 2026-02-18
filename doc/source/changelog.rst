@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`514` Ajout d'une tâche UPDATECONF permettant d'importer une archive
+  de configuration (typiquement générée par Waarp Manager) directement dans la
+  base de données de Gateway. Cette tâche remplace l'utilitaire *updateconf* qui
+  était livré avec Waarp Gateway. Voir la :doc:`documentation <reference/tasks/updateconf>`
+  de la tâche pour plus de détails.
 * :bug:`525` Correction d'un bug sous Windows qui causait une duplication du
   *host* et du *share* dans les chemins UNC.
 

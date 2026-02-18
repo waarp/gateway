@@ -36,3 +36,20 @@ func WriteFullFile(path string, content []byte) error {
 
 	return nil
 }
+
+func WriteFileFromReader(path string, reader io.Reader) error {
+	file, openErr := Create(path)
+	if openErr != nil {
+		return openErr
+	}
+
+	if _, wrErr := io.Copy(file, reader); wrErr != nil {
+		return pathError("write", path, wrErr)
+	}
+
+	if err := file.Close(); err != nil {
+		return pathError("close", path, err)
+	}
+
+	return nil
+}
