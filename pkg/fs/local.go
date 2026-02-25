@@ -36,13 +36,11 @@ func getLocalFs(parsed *parsedPath) (FS, error) {
 func (l *LocalFS) fs() rfs.Fs { return l.locRFS }
 
 func (l *LocalFS) Open(name string) (fs.File, error) {
-	//nolint:wrapcheck,gosec //no need to wrap here
-	return os.Open(name)
+	return openFile(name, FlagReadOnly, 0)
 }
 
 func (l *LocalFS) OpenFile(name string, flags Flags, perm FileMode) (File, error) {
-	//nolint:gosec //file inclusion is checked elsewhere
-	return os.OpenFile(name, flags, perm)
+	return openFile(name, flags, perm)
 }
 
 func (l *LocalFS) Stat(name string) (FileInfo, error) {

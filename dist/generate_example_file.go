@@ -82,6 +82,9 @@ func do() error {
 		// PeSIT-TLS local server
 		"pesitCertificate": certBlock,
 		"pesitPrivateKey":  keyBlock,
+		// WebDAV-TLS local server
+		"webdavCertificate": certBlock,
+		"webdavPrivateKey":  keyBlock,
 		// Waarp Transfer R66-TLS partner
 		"wtCertificate": certBlock,
 	}
