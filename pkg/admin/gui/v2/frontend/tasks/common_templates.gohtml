@@ -70,9 +70,11 @@
             {{ if .onchange }}onchange="window[{{ .onchange }}](this)"{{ end }}
             {{ if .disabled }}disabled{{ end }}
             {{ if not .optional }}required{{ end }}>
+        {{ if .placeholder }}
         <option value="" disabled {{ if not .value }}selected{{ end }}>
             {{ .placeholder }}
         </option>
+        {{ end }}
 
         {{ range .list }}
             <option value="{{.}}" {{ if eq . $.value }}selected{{ end }}>

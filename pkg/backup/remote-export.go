@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -46,8 +45,8 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 		}
 
 		// Retro-compatibility with the R66 "isTLS" property.
-		if src.Protocol == r66.R66TLS && compatibility.IsTLS(src.ProtoConfig) {
-			res[i].Protocol = r66.R66
+		if src.Protocol == "r66-tls" && compatibility.IsTLS(src.ProtoConfig) {
+			res[i].Protocol = "r66"
 		}
 	}
 

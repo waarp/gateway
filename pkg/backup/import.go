@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 
+	"code.waarp.fr/lib/log"
 	"gopkg.in/yaml.v3"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -34,14 +34,21 @@ var errDry = database.NewValidationError("dry run")
 // The reset parameter states whether the database should be reset before
 // importing. A value of 1 means 'reset', a value of 2 means
 // 'reset with no confirmation prompt', and any other value means 'no reset'.
-//
-//nolint:gocognit,gocyclo,cyclop,funlen //function cannot realistically be split
-func ImportData(db *database.DB, r *os.File, targets []string, dry, reset bool) error {
-	logger := logging.NewLogger("import")
+func ImportData(db *database.DB, r importFile, targets []string, dry, reset bool) error {
+	return Import(db, logging.NewLogger("import"), r, targets, dry, reset)
+}
 
+//nolint:gocognit,gocyclo,cyclop,funlen //function cannot realistically be split
+func Import(db database.Access, logger *log.Logger, r importFile, targets []string,
+	dry, reset bool,
+) error {
 	var data file.Data
 	if err := deserializeFile(r, &data); err != nil {
 		return fmt.Errorf("cannot read data: %w", err)
+	}
+
+	if err := PreprocessImport(&data); err != nil {
+		return err
 	}
 
 	if err := db.Transaction(func(ses *database.Session) error {
@@ -165,7 +172,12 @@ func ImportHistory(db *database.DB, r io.Reader, dry bool) error {
 	return nil
 }
 
-func deserializeFile(f *os.File, data *file.Data) error {
+type importFile interface {
+	io.Reader
+	Name() string
+}
+
+func deserializeFile(f importFile, data *file.Data) error {
 	var decErr error
 
 	ext := filepath.Ext(f.Name())

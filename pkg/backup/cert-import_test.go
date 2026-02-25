@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -23,7 +22,7 @@ func TestImportCerts(t *testing.T) {
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
 				Name:     "server",
-				Protocol: r66.R66TLS,
+				Protocol: r66TLS,
 				Address:  types.Addr("localhost", 6666),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
@@ -83,7 +82,7 @@ func TestImportCerts(t *testing.T) {
 							So(dbCerts[0].Value, ShouldResemble, insert.Certificate)
 
 							So(dbCerts[1].Name, ShouldResemble, legacy.Name)
-							So(dbCerts[1].Type, ShouldResemble, r66.AuthLegacyCertificate)
+							So(dbCerts[1].Type, ShouldResemble, r66LegacyCert)
 							So(dbCerts[1].Value2, ShouldBeBlank)
 							So(dbCerts[1].Value, ShouldBeBlank)
 						})

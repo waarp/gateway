@@ -16,6 +16,7 @@ const (
 	Exec       = "EXEC"
 	ExecMove   = "EXECMOVE"
 	ExecOutput = "EXECOUTPUT"
+	UpdateConf = "UPDATECONF"
 
 	Rename      = "RENAME"
 	Transfer    = "TRANSFER"
@@ -52,6 +53,7 @@ func init() {
 	model.ValidTasks[Exec] = newRunner[*execTask]
 	model.ValidTasks[ExecMove] = newRunner[*execMoveTask]
 	model.ValidTasks[ExecOutput] = newRunner[*execOutputTask]
+	model.ValidTasks[UpdateConf] = newRunner[*updateconfTask]
 
 	// Transfer tasks
 	model.ValidTasks[Rename] = newRunner[*renameTask] // "RENAME" is in fact a "change target" task

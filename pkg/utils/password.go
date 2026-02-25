@@ -87,6 +87,13 @@ func HashPassword(bcryptRounds int, password string) (string, error) {
 	return string(hash), nil
 }
 
+// IsHashOf returns whether the given hash is a hash of the given password.
+func IsHashOf(hash, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+
+	return err == nil
+}
+
 // ConstantEqual takes a pair of strings and returns whether they are equal or
 // not. Comparison is done in constant time for security purposes.
 func ConstantEqual(s1, s2 string) bool {

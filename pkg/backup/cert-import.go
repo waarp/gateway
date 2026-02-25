@@ -9,8 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -39,7 +37,7 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 		switch {
 		case src.Certificate != "" && src.PrivateKey != "":
 			if compatibility.IsLegacyR66CertPEM(src.Certificate) {
-				crypto.Type = r66.AuthLegacyCertificate
+				crypto.Type = r66LegacyCert
 			} else {
 				crypto.Type = auth.TLSCertificate
 				crypto.Value = src.Certificate
@@ -47,16 +45,16 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 			}
 		case src.Certificate != "":
 			if compatibility.IsLegacyR66CertPEM(src.Certificate) {
-				crypto.Type = r66.AuthLegacyCertificate
+				crypto.Type = r66LegacyCert
 			} else {
 				crypto.Type = auth.TLSTrustedCertificate
 				crypto.Value = src.Certificate
 			}
 		case src.PublicKey != "":
-			crypto.Type = sftp.AuthSSHPublicKey
+			crypto.Type = "ssh_public_key"
 			crypto.Value = src.PublicKey
 		case src.PrivateKey != "":
-			crypto.Type = sftp.AuthSSHPrivateKey
+			crypto.Type = "ssh_private_key"
 			crypto.Value = src.PrivateKey
 		}
 
