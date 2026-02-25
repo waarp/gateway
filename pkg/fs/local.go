@@ -15,27 +15,14 @@ import (
 var _ FS = &LocalFS{}
 
 type LocalFS struct {
-	root   string
 	locRFS rfs.Fs
-}
-
-func GetTestFS(root string) (*LocalFS, error) {
-	localFS, err := local.NewFs(context.Background(), "testfs", root, configmap.Simple{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate local fs: %w", err)
-	}
-
-	return &LocalFS{
-		root:   root,
-		locRFS: localFS,
-	}, nil
 }
 
 //nolint:contextcheck //it's fine not to pass context here
 func getLocalFs(parsed *parsedPath) (FS, error) {
 	root := "/"
 	if volume := filepath.VolumeName(parsed.Path); volume != "" {
-		root = volume + "/"
+		root = filepath.ToSlash(volume) + "/"
 	}
 
 	localRFS, err := local.NewFs(context.Background(), "local", root, configmap.Simple{})
@@ -50,41 +37,41 @@ func (l *LocalFS) fs() rfs.Fs { return l.locRFS }
 
 func (l *LocalFS) Open(name string) (fs.File, error) {
 	//nolint:wrapcheck,gosec //no need to wrap here
-	return os.Open(filepath.Join(l.root, name))
+	return os.Open(name)
 }
 
 //nolint:wrapcheck //no need to wrap here
 func (l *LocalFS) OpenFile(name string, flags Flags, perm FileMode) (File, error) {
 	//nolint:gosec //file inclusion is checked elsewhere
-	return os.OpenFile(filepath.Join(l.root, name), flags, perm)
+	return os.OpenFile(name, flags, perm)
 }
 
 func (l *LocalFS) Stat(name string) (FileInfo, error) {
 	//nolint:wrapcheck //no need to wrap here
-	return os.Stat(filepath.Join(l.root, name))
+	return os.Stat(name)
 }
 
 func (l *LocalFS) ReadDir(name string) ([]DirEntry, error) {
 	//nolint:wrapcheck //no need to wrap here
-	return os.ReadDir(filepath.Join(l.root, name))
+	return os.ReadDir(name)
 }
 
 func (l *LocalFS) MkdirAll(path string, perm FileMode) error {
 	//nolint:wrapcheck //no need to wrap here
-	return os.MkdirAll(filepath.Join(l.root, path), perm)
+	return os.MkdirAll(path, perm)
 }
 
 func (l *LocalFS) Rename(oldpath, newpath string) error {
 	//nolint:wrapcheck //no need to wrap here
-	return os.Rename(filepath.Join(l.root, oldpath), filepath.Join(l.root, newpath))
+	return os.Rename(oldpath, newpath)
 }
 
 func (l *LocalFS) Remove(path string) error {
 	//nolint:wrapcheck //no need to wrap here
-	return os.Remove(filepath.Join(l.root, path))
+	return os.Remove(path)
 }
 
 func (l *LocalFS) RemoveAll(path string) error {
 	//nolint:wrapcheck //no need to wrap here
-	return os.RemoveAll(filepath.Join(l.root, path))
+	return os.RemoveAll(path)
 }

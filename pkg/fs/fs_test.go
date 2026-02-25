@@ -43,6 +43,8 @@ func TestIsLocal(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.path, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tc.expected, IsLocalPath(tc.path))
 		})
 	}
@@ -90,6 +92,8 @@ func TestIsAbs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.path, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tc.expected, IsAbsPath(tc.path))
 		})
 	}
@@ -125,6 +129,8 @@ func TestParse(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.path, func(t *testing.T) {
+			t.Parallel()
+
 			parsed, err := parsePath(tc.path)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expName, parsed.Name)

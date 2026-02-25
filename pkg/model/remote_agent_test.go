@@ -195,7 +195,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 				Convey("Given that the new agent is missing an address", func() {
 					newAgent.Address = types.Address{}
 
-					shouldFailWith(types.ErrEmptyAddress.Error())
+					shouldFailWith("%s", types.ErrEmptyAddress.Error())
 				})
 
 				Convey("Given that the new agent's address is invalid", func() {

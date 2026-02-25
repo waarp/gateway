@@ -28,6 +28,8 @@ func (p *parsedPath) unrooted() string {
 		return p.Path
 	}
 
+	volume = filepath.ToSlash(volume)
+
 	return strings.TrimPrefix(p.Path, volume+"/")
 }
 
