@@ -2,6 +2,7 @@ package r66
 
 import (
 	"fmt"
+	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -32,8 +33,13 @@ func (t *serverTransfer) checkSize() *pipeline.Error {
 }
 
 func (t *serverTransfer) getHash() ([]byte, error) {
-	hash, tErr := internal.MakeHash(t.ctx, t.conf.Digest, t.pip.Logger,
-		t.pip.TransCtx.Transfer.LocalPath)
+	file := t.pip.Stream
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, internal.ToR66Error(err)
+	}
+
+	hash, tErr := internal.ComputeHash(t.ctx, t.conf.Digest, t.pip.Logger, file)
 	if tErr != nil {
 		return nil, internal.ToR66Error(tErr)
 	}

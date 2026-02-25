@@ -90,7 +90,7 @@ func (c *transferClient) EndPreTasks() *pipeline.Error {
 }
 
 func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
-	if _, err := c.ses.Send(clientReader{r: file}, c.makeHash); err != nil {
+	if _, err := c.ses.Send(clientReader{r: file}, c.makeHash(file)); err != nil {
 		c.ses = nil
 		c.pip.Logger.Errorf("Failed to send transfer file: %v", err)
 

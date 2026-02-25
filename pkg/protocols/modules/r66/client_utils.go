@@ -5,10 +5,10 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"path"
 
 	"code.waarp.fr/lib/r66"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -16,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -79,7 +80,7 @@ func (c *transferClient) authenticate(conn *clientConn) *pipeline.Error {
 	}
 
 	loginOK := utils.ConstantEqual(c.serverLogin, authent.Login)
-	pwdErr := bcrypt.CompareHashAndPassword([]byte(pswd.Value), authent.Password)
+	pwdOK := utils.IsHashOf(pswd.Value, string(authent.Password))
 
 	if !loginOK {
 		c.pip.Logger.Errorf("Server authentication failed: wrong login %q", authent.Login)
@@ -87,8 +88,8 @@ func (c *transferClient) authenticate(conn *clientConn) *pipeline.Error {
 		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
 	}
 
-	if pwdErr != nil {
-		c.pip.Logger.Errorf("Server authentication failed: wrong password: %v", pwdErr)
+	if !pwdOK {
+		c.pip.Logger.Error("Server authentication failed: wrong password")
 
 		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
 	}
@@ -228,18 +229,23 @@ func (c *transferClient) checkReqResp(req, resp *r66.Request) *pipeline.Error {
 	return nil
 }
 
-func (c *transferClient) makeHash() ([]byte, error) {
-	if c.noFinalHash {
-		return nil, nil
-	}
+func (c *transferClient) makeHash(file protocol.SendFile) func() ([]byte, error) {
+	return func() ([]byte, error) {
+		if c.noFinalHash {
+			return nil, nil
+		}
 
-	hash, err := internal.MakeHash(c.ctx, c.finalHashAlgo, c.pip.Logger,
-		c.pip.TransCtx.Transfer.LocalPath)
-	if err != nil {
-		return nil, internal.ToR66Error(err)
-	}
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			return nil, internal.ToR66Error(err)
+		}
 
-	return hash, nil
+		hash, err := internal.ComputeHash(c.ctx, c.finalHashAlgo, c.pip.Logger, file)
+		if err != nil {
+			return nil, internal.ToR66Error(err)
+		}
+
+		return hash, nil
+	}
 }
 
 var (
