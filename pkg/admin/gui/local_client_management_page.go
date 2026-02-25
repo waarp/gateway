@@ -21,6 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -102,6 +103,10 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 		newLocalClient.ProtoConfig = protoConfigFTPClient(r, newLocalClient.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		newLocalClient.ProtoConfig = protoConfigPeSITClient(r)
+	case webdav.Webdav:
+		newLocalClient.ProtoConfig = protoConfigWebdavClient(r)
+	case webdav.WebdavTLS:
+		newLocalClient.ProtoConfig = protoConfigWebdavTLSClient(r)
 	}
 
 	if err := internal.AddClient(db, &newLocalClient); err != nil {
@@ -195,6 +200,10 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 		editLocalClient.ProtoConfig = protoConfigFTPClient(r, editLocalClient.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		editLocalClient.ProtoConfig = protoConfigPeSITClient(r)
+	case webdav.Webdav:
+		editLocalClient.ProtoConfig = protoConfigWebdavClient(r)
+	case webdav.WebdavTLS:
+		editLocalClient.ProtoConfig = protoConfigWebdavTLSClient(r)
 	}
 
 	if err = internal.UpdateClient(db, editLocalClient); err != nil {

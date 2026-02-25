@@ -25,3 +25,4 @@ de configuration approprié doit être fourni.
    http
    ftp
    pesit
+   webdav

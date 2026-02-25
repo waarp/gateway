@@ -165,7 +165,7 @@ func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
 			s.logger.Debugf("Returned dir entry: %q", entry.Name())
 		}
 
-		return infos, nil
+		return infos.AsFileInfos(), nil
 	}
 
 	entries, dirErr := fs.List(realDir)

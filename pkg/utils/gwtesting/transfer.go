@@ -357,3 +357,9 @@ func (ctx *TransferCtx) AddServerDataError(tb testing.TB, rule *model.Rule) {
 		})
 	}
 }
+
+func (ctx *TransferCtx) AddCred(tb testing.TB, cred *model.Credential) {
+	tb.Helper()
+
+	require.NoError(tb, ctx.db.Insert(cred).Run())
+}

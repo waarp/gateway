@@ -400,3 +400,45 @@ func protoConfigPeSITClient(r *http.Request) map[string]any {
 
 	return pesitProtoConfig
 }
+
+func protoConfigWebdavPartner(*http.Request) map[string]any {
+	return make(map[string]any)
+}
+
+func protoConfigWebdavTLSPartner(r *http.Request) map[string]any {
+	conf := protoConfigWebdavPartner(r)
+
+	if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
+		conf["minTLSVersion"] = minTLSVersion
+	}
+
+	return conf
+}
+
+func protoConfigWebdavServer(*http.Request) map[string]any {
+	return make(map[string]any)
+}
+
+func protoConfigWebdavTLSServer(r *http.Request) map[string]any {
+	conf := protoConfigWebdavServer(r)
+
+	if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
+		conf["minTLSVersion"] = minTLSVersion
+	}
+
+	return conf
+}
+
+func protoConfigWebdavClient(*http.Request) map[string]any {
+	return make(map[string]any)
+}
+
+func protoConfigWebdavTLSClient(r *http.Request) map[string]any {
+	conf := protoConfigWebdavClient(r)
+
+	if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
+		conf["minTLSVersion"] = minTLSVersion
+	}
+
+	return conf
+}

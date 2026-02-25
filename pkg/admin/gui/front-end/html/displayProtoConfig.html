@@ -559,3 +559,30 @@
         </div>
     {{ end }}
 {{ end }}
+
+{{ define "displayWebdavPartner" }}
+    {{ if eq .Protocol "webdav-tls" }}
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ end }}
+{{ end }}
+
+{{ define "displayWebdavServer" }}
+    {{ if eq .Protocol "webdav-tls" }}
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ end }}
+{{ end }}
+
+{{ define "displayWebdavClient" }}
+    {{ if eq .Protocol "webdav-tls" }}
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ end }}
+{{ end }}

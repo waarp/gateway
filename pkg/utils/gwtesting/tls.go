@@ -1,21 +1,23 @@
 package gwtesting
 
 import (
-	"testing"
+	"crypto/tls"
 
-	"github.com/stretchr/testify/require"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const (
-	LocalhostCert = testhelpers.LocalhostCert
-	LocalhostKey  = testhelpers.LocalhostKey
+	LocalhostCertPEM = testhelpers.LocalhostCert
+	LocalhostKeyPEM  = testhelpers.LocalhostKey
 )
 
-func (ctx *TransferCtx) AddCred(tb testing.TB, cred *model.Credential) {
-	tb.Helper()
+//nolint:gochecknoglobals //global var needed for tests
+var LocalhostCert tls.Certificate
 
-	require.NoError(tb, ctx.db.Insert(cred).Run())
+//nolint:gochecknoinits //init is needed here
+func init() {
+	var err error
+	if LocalhostCert, err = tls.X509KeyPair([]byte(LocalhostCertPEM), []byte(LocalhostKeyPEM)); err != nil {
+		panic(err)
+	}
 }

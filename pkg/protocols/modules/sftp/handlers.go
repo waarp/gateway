@@ -227,5 +227,5 @@ func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string,
 		return nil, err //nolint:wrapcheck //no need to wrap here
 	}
 
-	return entries, nil
+	return entries.AsFileInfos(), nil
 }

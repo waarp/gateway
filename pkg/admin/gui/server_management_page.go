@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -79,6 +80,10 @@ func addServer(db *database.DB, r *http.Request) error {
 		newServer.ProtoConfig = protoConfigFTPServer(r, newServer.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		newServer.ProtoConfig = protoConfigPeSITServer(r, newServer.Protocol)
+	case webdav.Webdav:
+		newServer.ProtoConfig = protoConfigWebdavServer(r)
+	case webdav.WebdavTLS:
+		newServer.ProtoConfig = protoConfigWebdavTLSServer(r)
 	}
 
 	if err := internal.AddServer(db, &newServer); err != nil {
@@ -144,6 +149,10 @@ func editServer(db *database.DB, r *http.Request) error {
 		editServer.ProtoConfig = protoConfigFTPServer(r, editServer.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		editServer.ProtoConfig = protoConfigPeSITServer(r, editServer.Protocol)
+	case webdav.Webdav:
+		editServer.ProtoConfig = protoConfigWebdavServer(r)
+	case webdav.WebdavTLS:
+		editServer.ProtoConfig = protoConfigWebdavTLSServer(r)
 	}
 
 	if err = internal.UpdateServer(db, editServer); err != nil {

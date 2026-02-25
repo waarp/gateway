@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
@@ -26,51 +25,20 @@ type r66Client struct {
 func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string,
 	insecure bool,
 ) error {
-	var err error
-	var partnerCreds []api.OutCred
-	var accountCreds []api.OutCred
-	var realAddr string
-
-	restPath, urlErr := url.JoinPath(restAddr, "/api/partners", partner.Name, "credentials")
-	if urlErr != nil {
-		return fmt.Errorf("failed to build URL: %w", urlErr)
-	}
-
-	if partnerCreds, err = getCreds(partner.Credentials, restPath, insecure); err != nil {
-		return fmt.Errorf("could not get partner %s credentials: %w", partner.Name, err)
-	}
-
-	restPath, err = url.JoinPath(restAddr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
+	//nolint:varnamelen //we want to keep the var name short here
+	t, err := getTransferContext[*gwr66.PartnerConfig](partner, account, restAddr, insecure)
 	if err != nil {
-		return fmt.Errorf("failed to build URL: %w", err)
+		return err
 	}
 
-	if accountCreds, err = getCreds(account.Credentials, restPath, insecure); err != nil {
-		return fmt.Errorf("could not get account %s credentials: %w", account.Login, err)
-	}
-
-	var partnerConf gwr66.PartnerConfig
-	if err = utils.JSONConvert(partner.ProtoConfig, &partnerConf); err != nil {
-		return fmt.Errorf("failed to parse R66 partner protocol configuration: %w", err)
-	}
-
-	restPath, err = url.JoinPath(restAddr, "/api/override/addresses")
-	if err != nil {
-		return fmt.Errorf("failed to build URL: %w", err)
-	}
-
-	if realAddr, err = getRealAddress(partner.Address, restPath, insecure); err != nil {
-		return fmt.Errorf("could not get address for partner %s: %w", partner.Name, err)
-	}
-
-	conn, dialErr := net.Dial("tcp", realAddr)
+	conn, dialErr := net.Dial("tcp", t.realAddr)
 	if dialErr != nil {
 		return fmt.Errorf("failed to connect to the R66 partner: %w", dialErr)
 	}
 
 	//nolint:staticcheck // r66.PartnerConfig.IsTLS is used for retrocompatibility.
-	if partner.Protocol == gwr66.R66TLS || (partnerConf.IsTLS != nil && *partnerConf.IsTLS) {
-		tlsConf := getTLSConf(partner.Address, 0, partnerCreds, accountCreds, nil)
+	if partner.Protocol == gwr66.R66TLS || (t.partnerConf.IsTLS != nil && *t.partnerConf.IsTLS) {
+		tlsConf := getTLSConf(partner.Address, 0, t.partnerCreds, t.accountCreds, nil)
 		conn = tls.Client(conn, tlsConf)
 	}
 
@@ -88,7 +56,7 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 
 	var accountPassword string
 
-	for _, cred := range accountCreds {
+	for _, cred := range t.accountCreds {
 		if cred.Type == auth.Password {
 			accountPassword = cred.Value
 
@@ -103,7 +71,7 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 
 	var partnerPassword string
 
-	for _, cred := range partnerCreds {
+	for _, cred := range t.partnerCreds {
 		if cred.Type == auth.Password {
 			partnerPassword = cred.Value
 
@@ -112,8 +80,8 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 	}
 
 	partnerLogin := partner.Name
-	if partnerConf.ServerLogin != "" {
-		partnerLogin = partnerConf.ServerLogin
+	if t.partnerConf.ServerLogin != "" {
+		partnerLogin = t.partnerConf.ServerLogin
 	}
 
 	return validateServerAuthent(partnerLogin, authent.Login, []byte(partnerPassword), authent.Password)

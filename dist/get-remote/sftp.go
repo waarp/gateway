@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
-	"path"
 	"slices"
 
 	"github.com/pkg/sftp"
@@ -27,39 +25,12 @@ type sftpClient struct {
 
 func (sc *sftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAccount, restAddr string, insecure bool,
 ) error {
-	var err error
-	var partnerCreds []api.OutCred
-	var accountCreds []api.OutCred
-	var realAddr string
-
-	restPath, urlErr := url.JoinPath(restAddr, "/api/partners", partner.Name, "credentials")
-	if urlErr != nil {
-		return fmt.Errorf("failed to build URL: %w", urlErr)
-	}
-
-	if partnerCreds, err = getCreds(partner.Credentials, restPath, insecure); err != nil {
-		return fmt.Errorf("could not get partner %s credentials: %w", partner.Name, err)
-	}
-
-	restPath, urlErr = url.JoinPath(restAddr, "/api/partners", partner.Name, "accounts", account.Login, "credentials")
-	if urlErr != nil {
-		return fmt.Errorf("failed to build URL: %w", urlErr)
-	}
-
-	if accountCreds, err = getCreds(account.Credentials, restPath, insecure); err != nil {
-		return fmt.Errorf("could not get account %s credentials: %w", account.Login, err)
-	}
-
-	restPath, err = url.JoinPath(restAddr, "/api/override/addresses")
+	t, err := getTransferContext[*dummyConf](partner, account, restAddr, insecure)
 	if err != nil {
-		return fmt.Errorf("failed to build URL: %w", err)
+		return err
 	}
 
-	if realAddr, err = getRealAddress(partner.Address, restPath, insecure); err != nil {
-		return fmt.Errorf("could not get address for partner %s: %w", partner.Name, err)
-	}
-
-	if netErr := sc.openSSHConn(realAddr, account, partnerCreds, accountCreds); netErr != nil {
+	if netErr := sc.openSSHConn(t.realAddr, account, t.partnerCreds, t.accountCreds); netErr != nil {
 		return netErr
 	}
 
@@ -67,30 +38,7 @@ func (sc *sftpClient) Connect(partner *api.OutPartner, account *api.OutRemoteAcc
 }
 
 func (sc *sftpClient) List(rule *api.OutRule, pattern string) ([]string, error) {
-	dirPattern := path.Dir(pattern)
-	filePattern := path.Base(pattern)
-
-	fileInfos, listErr := sc.sftpClient.ReadDir(path.Join(rule.RemoteDir, dirPattern))
-	if listErr != nil {
-		return nil, fmt.Errorf("failed to list files: %w", listErr)
-	}
-
-	res := []string{}
-
-	for _, fi := range fileInfos {
-		if !fi.IsDir() {
-			ok, err := path.Match(filePattern, fi.Name())
-			if err != nil {
-				return nil, fmt.Errorf("bad pattern %q: %w", filePattern, err)
-			}
-
-			if ok {
-				res = append(res, path.Join(dirPattern, fi.Name()))
-			}
-		}
-	}
-
-	return res, nil
+	return list(sc.sftpClient, rule, pattern)
 }
 
 func (sc *sftpClient) Close() error {

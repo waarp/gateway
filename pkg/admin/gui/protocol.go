@@ -10,19 +10,22 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 type Protocols struct {
-	R66      string
-	R66TLS   string
-	SFTP     string
-	HTTP     string
-	HTTPS    string
-	FTP      string
-	FTPS     string
-	PeSIT    string
-	PeSITTLS string
+	R66       string
+	R66TLS    string
+	SFTP      string
+	HTTP      string
+	HTTPS     string
+	FTP       string
+	FTPS      string
+	PeSIT     string
+	PeSITTLS  string
+	Webdav    string
+	WebdavTLS string
 }
 
 func applyProtocolsFilter(filter *Filters) []string {
@@ -63,6 +66,14 @@ func applyProtocolsFilter(filter *Filters) []string {
 		filterProtocol = append(filterProtocol, pesit.PesitTLS)
 	}
 
+	if filter.Protocols.Webdav == True {
+		filterProtocol = append(filterProtocol, webdav.Webdav)
+	}
+
+	if filter.Protocols.WebdavTLS == True {
+		filterProtocol = append(filterProtocol, webdav.WebdavTLS)
+	}
+
 	return filterProtocol
 }
 
@@ -72,7 +83,8 @@ func checkProtocolsFilter(r *http.Request, isApply bool, filter *Filters) (*Filt
 		urlParams.Has("filterProtocolR66-TLS") || urlParams.Has("filterProtocolSFTP") ||
 		urlParams.Has("filterProtocolHTTP") || urlParams.Has("filterProtocolHTTPS") ||
 		urlParams.Has("filterProtocolFTP") || urlParams.Has("filterProtocolFTPS") ||
-		urlParams.Has("filterProtocolPeSIT") || urlParams.Has("filterProtocolPeSIT-TLS")
+		urlParams.Has("filterProtocolPeSIT") || urlParams.Has("filterProtocolPeSIT-TLS") ||
+		urlParams.Has("filterProtocolWebdav") || urlParams.Has("filterProtocolWebdav-TLS")
 
 	if isApply || hasProtoParams {
 		return protocolsFilter(r, filter)
@@ -84,15 +96,17 @@ func checkProtocolsFilter(r *http.Request, isApply bool, filter *Filters) (*Filt
 
 func supportedProtocolServer(protocol string) []string {
 	supportedProtocolsExternal := map[string][]string{
-		r66.R66:         {auth.Password},
-		r66.R66TLS:      {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
-		httpconst.HTTP:  {},
-		httpconst.HTTPS: {auth.TLSCertificate},
-		sftp.SFTP:       {sftp.AuthSSHPrivateKey},
-		pesit.Pesit:     {pesit.PreConnectionAuth},
-		pesit.PesitTLS:  {auth.TLSCertificate, pesit.PreConnectionAuth},
-		ftp.FTP:         {},
-		ftp.FTPS:        {auth.TLSCertificate},
+		r66.R66:          {auth.Password},
+		r66.R66TLS:       {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:   {},
+		httpconst.HTTPS:  {auth.TLSCertificate},
+		sftp.SFTP:        {sftp.AuthSSHPrivateKey},
+		pesit.Pesit:      {pesit.PreConnectionAuth},
+		pesit.PesitTLS:   {auth.TLSCertificate, pesit.PreConnectionAuth},
+		ftp.FTP:          {},
+		ftp.FTPS:         {auth.TLSCertificate},
+		webdav.Webdav:    {},
+		webdav.WebdavTLS: {auth.TLSCertificate},
 	}
 
 	return supportedProtocolsExternal[protocol]
@@ -100,15 +114,17 @@ func supportedProtocolServer(protocol string) []string {
 
 func supportedProtocolPartner(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
-		r66.R66:         {auth.Password},
-		r66.R66TLS:      {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
-		httpconst.HTTP:  {},
-		httpconst.HTTPS: {auth.TLSTrustedCertificate},
-		sftp.SFTP:       {sftp.AuthSSHPublicKey},
-		pesit.Pesit:     {},
-		pesit.PesitTLS:  {auth.TLSTrustedCertificate},
-		ftp.FTP:         {},
-		ftp.FTPS:        {auth.TLSTrustedCertificate},
+		r66.R66:          {auth.Password},
+		r66.R66TLS:       {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:   {},
+		httpconst.HTTPS:  {auth.TLSTrustedCertificate},
+		sftp.SFTP:        {sftp.AuthSSHPublicKey},
+		pesit.Pesit:      {},
+		pesit.PesitTLS:   {auth.TLSTrustedCertificate},
+		ftp.FTP:          {},
+		ftp.FTPS:         {auth.TLSTrustedCertificate},
+		webdav.Webdav:    {},
+		webdav.WebdavTLS: {auth.TLSTrustedCertificate},
 	}
 
 	return supportedProtocolsInternal[protocol]
@@ -116,15 +132,17 @@ func supportedProtocolPartner(protocol string) []string {
 
 func supportedProtocolLocalAccount(protocol string) []string {
 	supportedProtocolsInternal := map[string][]string{
-		r66.R66:         {auth.Password},
-		r66.R66TLS:      {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
-		httpconst.HTTP:  {auth.Password},
-		httpconst.HTTPS: {auth.Password, auth.TLSTrustedCertificate},
-		sftp.SFTP:       {auth.Password, sftp.AuthSSHPublicKey},
-		pesit.Pesit:     {auth.Password},
-		pesit.PesitTLS:  {auth.Password, auth.TLSTrustedCertificate},
-		ftp.FTP:         {auth.Password},
-		ftp.FTPS:        {auth.Password, auth.TLSTrustedCertificate},
+		r66.R66:          {auth.Password},
+		r66.R66TLS:       {auth.Password, auth.TLSTrustedCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:   {auth.Password},
+		httpconst.HTTPS:  {auth.Password, auth.TLSTrustedCertificate},
+		sftp.SFTP:        {auth.Password, sftp.AuthSSHPublicKey},
+		pesit.Pesit:      {auth.Password},
+		pesit.PesitTLS:   {auth.Password, auth.TLSTrustedCertificate},
+		ftp.FTP:          {auth.Password},
+		ftp.FTPS:         {auth.Password, auth.TLSTrustedCertificate},
+		webdav.Webdav:    {auth.Password},
+		webdav.WebdavTLS: {auth.Password, auth.TLSTrustedCertificate},
 	}
 
 	return supportedProtocolsInternal[protocol]
@@ -132,15 +150,17 @@ func supportedProtocolLocalAccount(protocol string) []string {
 
 func supportedProtocolRemoteAccount(protocol string) []string {
 	supportedProtocolsExternal := map[string][]string{
-		r66.R66:         {auth.Password},
-		r66.R66TLS:      {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
-		httpconst.HTTP:  {auth.Password},
-		httpconst.HTTPS: {auth.Password, auth.TLSCertificate},
-		sftp.SFTP:       {auth.Password, sftp.AuthSSHPrivateKey},
-		pesit.Pesit:     {auth.Password, pesit.PreConnectionAuth},
-		pesit.PesitTLS:  {auth.TLSCertificate, pesit.PreConnectionAuth},
-		ftp.FTP:         {auth.Password},
-		ftp.FTPS:        {auth.Password, auth.TLSCertificate},
+		r66.R66:          {auth.Password},
+		r66.R66TLS:       {auth.Password, auth.TLSCertificate, r66.AuthLegacyCertificate},
+		httpconst.HTTP:   {auth.Password},
+		httpconst.HTTPS:  {auth.Password, auth.TLSCertificate},
+		sftp.SFTP:        {auth.Password, sftp.AuthSSHPrivateKey},
+		pesit.Pesit:      {auth.Password, pesit.PreConnectionAuth},
+		pesit.PesitTLS:   {auth.TLSCertificate, pesit.PreConnectionAuth},
+		ftp.FTP:          {auth.Password},
+		ftp.FTPS:         {auth.Password, auth.TLSCertificate},
+		webdav.Webdav:    {auth.Password},
+		webdav.WebdavTLS: {auth.Password, auth.TLSCertificate},
 	}
 
 	return supportedProtocolsExternal[protocol]
@@ -202,6 +222,14 @@ func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {
 		filterProtocol = append(filterProtocol, pesit.PesitTLS)
 	}
 
+	if filter.Protocols.Webdav = urlParams.Get("filterProtocolWebdav"); filter.Protocols.Webdav == True {
+		filterProtocol = append(filterProtocol, webdav.Webdav)
+	}
+
+	if filter.Protocols.WebdavTLS = urlParams.Get("filterProtocolWebdav-TLS"); filter.Protocols.WebdavTLS == True {
+		filterProtocol = append(filterProtocol, webdav.WebdavTLS)
+	}
+
 	return filter, filterProtocol
 }
 
@@ -225,6 +253,10 @@ func protocolDisplayName(protocol string) string {
 		return "FTP"
 	case ftp.FTPS:
 		return "FTPS"
+	case webdav.Webdav:
+		return "WebDAV"
+	case webdav.WebdavTLS:
+		return "WebDAV over HTTPS"
 	default:
 		return protocol
 	}

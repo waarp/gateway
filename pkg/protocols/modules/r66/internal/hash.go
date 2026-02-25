@@ -56,11 +56,6 @@ func GetHasher(h string) (hash.Hash, error) {
 // MakeHash takes a file path and returns the sha256 checksum of the file.
 func MakeHash(ctx context.Context, hashAlgo string, logger *log.Logger, path string,
 ) ([]byte, *pipeline.Error) {
-	hasher, hashErr := GetHasher(hashAlgo)
-	if hashErr != nil {
-		return nil, pipeline.NewErrorWith(types.TeInternal, "unknown hash algorithm", hashErr)
-	}
-
 	file, opErr := fs.Open(path)
 	if opErr != nil {
 		logger.Errorf("Failed to open file for hash calculation: %v", opErr)
@@ -73,6 +68,16 @@ func MakeHash(ctx context.Context, hashAlgo string, logger *log.Logger, path str
 			logger.Warningf("Failed to close file: %v", fErr)
 		}
 	}()
+
+	return ComputeHash(ctx, hashAlgo, logger, file)
+}
+
+func ComputeHash(ctx context.Context, hashAlgo string, logger *log.Logger, file io.Reader,
+) ([]byte, *pipeline.Error) {
+	hasher, hashErr := GetHasher(hashAlgo)
+	if hashErr != nil {
+		return nil, pipeline.NewErrorWith(types.TeInternal, "unknown hash algorithm", hashErr)
+	}
 
 	if err := utils.RunWithCtx(ctx, func() error {
 		if _, err := io.Copy(hasher, file); err != nil {

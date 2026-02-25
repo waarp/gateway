@@ -519,7 +519,7 @@ func TestTransOnHold(t *testing.T) {
 		})
 	})
 
-	t.Run("Given a PESIT push client", func(t *testing.T) {
+	t.Run("Given a R66 push client", func(t *testing.T) {
 		serverPushTrans := &model.Transfer{
 			RuleID:         ctx.ServerRulePush.ID,
 			LocalAccountID: ctx.LocalAccount.GetNullID(),
