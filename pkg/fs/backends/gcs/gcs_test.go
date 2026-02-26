@@ -22,8 +22,8 @@ func TestGCS(t *testing.T) {
 		"bucket_policy_only": "true",
 	}
 
-	s3VFS, fsErr := newVFS("gcs", "", "", opts)
+	gcsVFS, fsErr := newVFS("gcs", "", "", opts)
 	require.NoError(t, fsErr)
 
-	backtest.TestVFS(t, s3VFS)
+	backtest.TestVFS(t, gcsVFS)
 }

@@ -17,7 +17,7 @@ func TestS3(t *testing.T) {
 		"bucket":   bucket,
 	}
 
-	s3VFS, fsErr := newVFS("s3", "", "", "", opts)
+	s3VFS, fsErr := newVFS("s3", "", "", opts)
 	require.NoError(t, fsErr)
 
 	backtest.TestVFS(t, s3VFS)
