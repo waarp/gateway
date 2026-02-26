@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/lib/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 

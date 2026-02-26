@@ -2,51 +2,52 @@ package logtest
 
 import (
 	"io"
+	"log/slog"
 	"testing"
 
-	"code.bcarlin.net/go/logging"
-	"code.waarp.fr/lib/log"
+	"code.waarp.fr/lib/log/v2"
 	"github.com/stretchr/testify/require"
 )
 
-type LogOpt func(testing.TB, logging.Backend, *log.Logger)
+type LogOpt func(testing.TB, *log.Handler)
 
 func GetTestLogger(tb testing.TB, opts ...LogOpt) *log.Logger {
 	tb.Helper()
 
-	backend := logging.NewIoBackend(tb.Output())
-	backend.SetLevel(logging.Info)
-	logger := &log.Logger{Logger: logging.NewLogger(tb.Name())}
-	logger.SetBackend(backend)
+	leveler := &slog.LevelVar{}
+	handler := log.NewLogHandler(tb.Output(), leveler, tb.Name(), nil)
+	handler.SetLevel(log.LevelInfo)
 
 	for _, opt := range opts {
-		opt(tb, backend, logger)
+		opt(tb, handler)
 	}
+
+	slogger := slog.New(handler)
+	logger := log.NewLogger(slogger)
 
 	return logger
 }
 
 func WithLevel(level string) LogOpt {
-	return func(tb testing.TB, backend logging.Backend, _ *log.Logger) {
+	return func(tb testing.TB, handler *log.Handler) {
 		tb.Helper()
-		lvl, err := logging.LevelByName(level)
+		lvl, err := log.LevelByName(level)
 		require.NoError(tb, err)
-		backend.SetLevel(lvl)
+		handler.SetLevel(lvl)
 	}
 }
 
 func WithWriter(w io.Writer) LogOpt {
 	//nolint:staticcheck //we need to reassign here
-	return func(tb testing.TB, backend logging.Backend, logger *log.Logger) {
+	return func(tb testing.TB, handler *log.Handler) {
 		tb.Helper()
-		backend = logging.NewIoBackend(w)
-		logger.SetBackend(backend)
+		handler.SetOutput(w)
 	}
 }
 
 func WithName(name string) LogOpt {
-	return func(tb testing.TB, _ logging.Backend, logger *log.Logger) {
+	return func(tb testing.TB, handler *log.Handler) {
 		tb.Helper()
-		logger.Logger = logging.NewLogger(name)
+		handler.SetGroup(name)
 	}
 }

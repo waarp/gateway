@@ -38,6 +38,12 @@ func sendRequest(ctx context.Context, object any, method string) (*http.Response
 func SendRequest(ctx context.Context, object any, method string,
 	addr *url.URL, insecure bool,
 ) (*http.Response, error) {
+	if addr == nil || addr.String() == "" {
+		//nolint:err113 //specific base error
+		return nil, fmt.Errorf("the REST server address is missing, it should be provided "+
+			"using either the `--address` option or the `%s` environment variable", addrEnvVar)
+	}
+
 	var body io.Reader
 
 	if object != nil {

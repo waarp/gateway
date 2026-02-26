@@ -7,10 +7,10 @@ import (
 	"slices"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	"github.com/gosnmp/gosnmp"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )

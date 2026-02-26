@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"code.waarp.fr/lib/log"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 //nolint:lll // tags can be long for flags

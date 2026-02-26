@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"code.waarp.fr/lib/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"github.com/gorilla/mux"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"

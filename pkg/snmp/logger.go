@@ -4,9 +4,10 @@ import (
 	"fmt"
 	golog "log"
 
-	"code.waarp.fr/lib/log"
 	"github.com/gosnmp/gosnmp"
 	snmplib "github.com/slayercat/GoSNMPServer"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 type clientLogger struct {

@@ -4,18 +4,19 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/lib/log"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 func TestLogger(c convey.C, name string) *log.Logger {
 	level := log.LevelDebug
 
 	if envLvl := os.Getenv("WAARP_TEST_LOG_LEVEL"); envLvl != "" {
-		level = logging.LevelFromString(envLvl)
+		var err error
+		level, err = log.LevelByName(envLvl)
+		c.So(err, convey.ShouldBeNil)
 	}
 
 	back, err := log.NewBackend(level, log.Stdout, "", "")

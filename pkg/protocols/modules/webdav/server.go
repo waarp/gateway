@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	"golang.org/x/net/webdav"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
@@ -16,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"

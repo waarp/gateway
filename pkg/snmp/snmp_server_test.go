@@ -8,7 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 
-	"code.waarp.fr/lib/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"

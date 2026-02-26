@@ -8,8 +8,9 @@ import (
 
 //nolint:gochecknoglobals //global vars are required here
 var (
-	addr     url.URL
-	insecure bool
+	addr       url.URL
+	insecure   bool
+	addrEnvVar = "WAARP_GATEWAY_ADDRESS"
 )
 
 type AddrOpt struct{}

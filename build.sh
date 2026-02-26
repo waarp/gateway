@@ -8,7 +8,7 @@ echo "==> building for $GOOS/$GOARCH"
 mkdir -p build
 
 git_tag=$(git describe --tags --dirty)
-version=0.14.2
+version=${git_tag#"v"}
 
 CGO_ENABLED=0 go build -ldflags "-s -w \
   -X code.waarp.fr/apps/gateway/gateway/pkg/version.Date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \

@@ -3,10 +3,9 @@ package model
 import (
 	"fmt"
 
-	"code.waarp.fr/lib/log"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 // TransferContext regroups all the information necessary for an outgoing

@@ -4,11 +4,11 @@ import (
 	"errors"
 	"strings"
 
-	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
 	xlog "xorm.io/xorm/log"
 	"xorm.io/xorm/names"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 

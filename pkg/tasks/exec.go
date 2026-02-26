@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	"github.com/google/shlex"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 

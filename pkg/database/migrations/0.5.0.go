@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"runtime"
 )
 
 func ver0_5_0RemoveRulePathSlashUp(db Actions) error {
@@ -81,7 +80,7 @@ func ver0_5_0CheckRulePathParentUp(db Actions) error {
 }
 
 func ver0_5_0LocalAgentDenormalizePathsUp(db Actions) (err error) {
-	if runtime.GOOS != windowsRuntime {
+	if !isWindowsRuntime() {
 		return nil // nothing to do
 	}
 
@@ -116,7 +115,7 @@ func ver0_5_0LocalAgentDenormalizePathsUp(db Actions) (err error) {
 }
 
 func ver0_5_0LocalAgentDenormalizePathsDown(db Actions) (err error) {
-	if runtime.GOOS != windowsRuntime {
+	if !isWindowsRuntime() {
 		return nil // nothing to do
 	}
 
@@ -265,7 +264,7 @@ func ver0_5_0RulesPathsRenameDown(db Actions) error {
 }
 
 func ver0_5_0RulePathChangesUp(db Actions) (err error) {
-	if runtime.GOOS != windowsRuntime {
+	if !isWindowsRuntime() {
 		return nil // nothing to do
 	}
 
@@ -294,7 +293,7 @@ func ver0_5_0RulePathChangesUp(db Actions) (err error) {
 }
 
 func ver0_5_0RulePathChangesDown(db Actions) (err error) {
-	if runtime.GOOS != windowsRuntime {
+	if !isWindowsRuntime() {
 		return nil // nothing to do
 	}
 
@@ -452,7 +451,7 @@ func ver0_5_0TransferChangePathsDown(db Actions) error {
 }
 
 func ver0_5_0TransferFormatLocalPathUp(db Actions) (err error) {
-	if runtime.GOOS != windowsRuntime {
+	if !isWindowsRuntime() {
 		return nil // nothing to do
 	}
 
@@ -478,7 +477,7 @@ func ver0_5_0TransferFormatLocalPathUp(db Actions) (err error) {
 }
 
 func ver0_5_0TransferFormatLocalPathDown(db Actions) (err error) {
-	if runtime.GOOS != windowsRuntime {
+	if !isWindowsRuntime() {
 		return nil // nothing to do
 	}
 
@@ -520,7 +519,7 @@ func ver0_5_0HistoryPathsChangeUp(db Actions) error {
 		return fmt.Errorf("failed to swap the new history path columns: %w", err)
 	}
 
-	if runtime.GOOS != windowsRuntime {
+	if !isWindowsRuntime() {
 		return nil // nothing more to do
 	}
 
@@ -548,7 +547,7 @@ func ver0_5_0HistoryPathsChangeUp(db Actions) error {
 }
 
 func ver0_5_0HistoryPathsChangeDown(db Actions) (err error) {
-	if runtime.GOOS == windowsRuntime {
+	if isWindowsRuntime() {
 		switch dial := db.GetDialect(); dial {
 		case SQLite:
 			err = db.Exec(`UPDATE transfer_history SET 

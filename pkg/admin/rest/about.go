@@ -3,10 +3,9 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/lib/log"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 func makeAbout(logger *log.Logger) http.HandlerFunc {

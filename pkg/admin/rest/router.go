@@ -3,11 +3,11 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -326,8 +326,10 @@ func makeSNMPHandlers(mkHandler HandlerFactory) {
 	// SNMP monitors
 	mkHandler(snmpMonitorsPath, addSnmpMonitor, model.PermAdminWrite, http.MethodPost)
 	mkHandler(snmpMonitorsPath, listSnmpMonitors, model.PermAdminRead, http.MethodGet)
+	mkHandler.noDB(snmpMonitorsPath, testSnmpTrapTransErr, model.PermAdminWrite, http.MethodPut)
 	mkHandler(snmpMonitorPath, getSnmpMonitor, model.PermAdminRead, http.MethodGet)
 	mkHandler(snmpMonitorPath, updateSnmpMonitor, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(snmpMonitorPath, deleteSnmpMonitor, model.PermAdminDelete, http.MethodDelete)
 	mkHandler(snmpMonitorPath, deleteSnmpMonitor, model.PermAdminDelete, http.MethodDelete)
 
 	// SNMP server

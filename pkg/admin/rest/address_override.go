@@ -3,10 +3,10 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 type addrOverride struct{ target, real string }
@@ -26,7 +26,7 @@ func getAddrOverride(r *http.Request) (*addrOverride, error) {
 }
 
 func listAddressOverrides(logger *log.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		indirections := conf.GetAllIndirections()
 		handleError(w, logger, writeJSON(w, indirections))
 	}
@@ -51,8 +51,8 @@ func addAddressOverride(logger *log.Logger) http.HandlerFunc {
 
 func deleteAddressOverride(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		address, err := getAddrOverride(r)
-		if handleError(w, logger, err) {
+		address, addrErr := getAddrOverride(r)
+		if handleError(w, logger, addrErr) {
 			return
 		}
 

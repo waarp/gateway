@@ -7,9 +7,8 @@ import (
 	"crypto/x509"
 	"os"
 
-	"code.waarp.fr/lib/log"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
