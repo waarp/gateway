@@ -74,7 +74,7 @@ func getReplacers() replacersMap {
 		"#HOUR#": func(*model.TransferContext, string) (string, error) {
 			t := time.Now()
 
-			return t.Format("030405"), nil
+			return t.Format("150405"), nil
 		},
 		`#TIMESTAMP(\([^\)]*\))?#`: func(_ *model.TransferContext, match string) (string, error) {
 			format := strings.TrimPrefix(match, "#TIMESTAMP")

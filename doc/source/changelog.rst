@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :fix:`-` La valeur de remplacement ``#HOUR#`` pour les tâches donne désormais
+  l'heure en format 24h au lieu de 12h.
 * :feature:`492` Ajout du support pour Microsoft OneDrive (et Sharepoint) comme
   instance cloud. Voir la :doc:`documentation<reference/cloud/onedrive>` de
   l'implémentation pour plus de détails.
