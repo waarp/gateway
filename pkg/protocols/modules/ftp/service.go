@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.waarp.fr/lib/log"
 	ftplib "github.com/fclairamb/ftpserverlib"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
@@ -72,7 +72,7 @@ func (s *service) start() error {
 	}
 
 	s.server = ftplib.NewFtpServer(s.handler)
-	s.server.Logger = &ftpServerLogger{s.logger}
+	s.server.Logger = s.logger.Slogger()
 
 	if err := s.server.Listen(); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)

@@ -11,13 +11,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.waarp.fr/lib/log"
 	"github.com/puzpuzpuz/xsync/v4"
 	"xorm.io/xorm"
 	xnames "xorm.io/xorm/names"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 

@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"testing"
 
-	"code.waarp.fr/lib/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
 

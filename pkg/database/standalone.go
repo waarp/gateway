@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 func (db *DB) newSession() *Session {

@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"os"
 
-	"code.waarp.fr/lib/log"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 var ErrResetPipe = errors.New("cannot use -r without -s")
@@ -45,10 +44,6 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 	if err2 != nil {
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
-
-	back.SetFormatter(func(record *log.Record) string {
-		return fmt.Sprintf("[%-8s] %s", record.Level, record.Message)
-	})
 
 	conf.GlobalConfig = *config
 	db := &database.DB{}

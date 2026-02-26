@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	ftplib "github.com/fclairamb/ftpserverlib"
 	"github.com/spf13/afero"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"

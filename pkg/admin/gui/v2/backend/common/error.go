@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.waarp.fr/lib/log"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 type Error struct {

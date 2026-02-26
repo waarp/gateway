@@ -7,18 +7,20 @@ import (
 	"strconv"
 	"time"
 
-	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
+//
+//nolint:staticcheck //deprecated type used for retro-compatibility
 func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 	var stop api.Nullable[time.Time]
 	if !hist.Stop.IsZero() {
@@ -61,6 +63,8 @@ func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 
 // FromHistories transforms the given list of database history entries into its
 // JSON equivalent.
+//
+//nolint:staticcheck //deprecated type used for retro-compatibility
 func FromHistories(hs []*model.HistoryEntry) []*api.OutHistory {
 	outHist := make([]*api.OutHistory, len(hs))
 
@@ -197,6 +201,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		hist := FromHistories(results)
 
+		//nolint:staticcheck //deprecated type used for retro-compatibility
 		resp := map[string][]*api.OutHistory{"history": hist}
 		handleError(w, logger, writeJSON(w, resp))
 	}

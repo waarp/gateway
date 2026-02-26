@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"code.waarp.fr/lib/log"
 	"github.com/google/uuid"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
@@ -20,6 +19,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 

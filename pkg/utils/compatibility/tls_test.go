@@ -1,35 +1,28 @@
 package compatibility
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"io"
 	"net/http"
-	"os"
-	"sync"
 	"testing"
 
-	"code.waarp.fr/lib/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func initLogger() (*log.Logger, io.Reader, func()) {
-	r, w, err := os.Pipe()
-	So(err, ShouldBeNil)
+func initLogger(tb testing.TB) (*log.Logger, io.Reader) {
+	tb.Helper()
+	w := &bytes.Buffer{}
+	logger := logtest.GetTestLogger(tb,
+		logtest.WithWriter(w),
+		logtest.WithName("test_log_sha1"),
+	)
 
-	stdout := os.Stdout
-	os.Stdout = w
-
-	Reset(func() { os.Stdout = stdout })
-
-	back, err := log.NewBackend(log.LevelWarning, "stdout", "", "")
-	So(err, ShouldBeNil)
-
-	once := sync.Once{}
-	done := func() { once.Do(func() { So(w.Close(), ShouldBeNil) }) }
-
-	return back.NewLogger("test_log_sha1"), r, done
+	return logger, w
 }
 
 const sha1Key = `-----BEGIN RSA PRIVATE KEY-----
@@ -139,8 +132,7 @@ func TestLogSha1(t *testing.T) {
 			}))
 
 			Convey("When connecting to the server", func() {
-				logger, reader, done := initLogger()
-				defer done()
+				logger, reader := initLogger(t)
 
 				//nolint:forcetypeassert //assertion will always succeed
 				client := http.DefaultTransport.(*http.Transport)
@@ -159,8 +151,6 @@ func TestLogSha1(t *testing.T) {
 				defer resp.Body.Close()
 
 				Convey("Then it should have logged the deprecation of SHA1", func() {
-					done()
-
 					bytes, err := io.ReadAll(reader)
 					So(err, ShouldBeNil)
 

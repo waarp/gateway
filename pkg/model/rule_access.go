@@ -78,7 +78,7 @@ func (r *RuleAccess) BeforeWrite(db database.Access) error {
 	if n, err := db.Count(target).Where("id=?", target.GetID()).Run(); err != nil {
 		return fmt.Errorf("failed to check access target: %w", err)
 	} else if n == 0 {
-		return database.NewValidationErrorf("no %s found with ID %q", target.Appellation(),
+		return database.NewValidationErrorf(`no %s found with ID "%d"`, target.Appellation(),
 			target.GetID())
 	}
 

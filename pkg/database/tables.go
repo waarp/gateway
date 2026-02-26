@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 

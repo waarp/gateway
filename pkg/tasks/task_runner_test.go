@@ -139,7 +139,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[hour] should contain the resolved variable", func() {
-							So(val, ShouldEqual, now.Format("030405"))
+							So(val, ShouldEqual, now.Format("150405"))
 						})
 					})
 

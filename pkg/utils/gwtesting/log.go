@@ -4,10 +4,10 @@ package gwtesting
 import (
 	"testing"
 
-	"code.waarp.fr/lib/log"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 const testLogLevel = "DEBUG"

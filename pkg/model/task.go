@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.waarp.fr/lib/log"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 // ValidTasks is a list of all the tasks known by the gateway.

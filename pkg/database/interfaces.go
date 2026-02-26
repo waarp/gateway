@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 // ReadAccess is the interface listing all the read operations possible on the

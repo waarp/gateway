@@ -7,13 +7,11 @@ import (
 	"io"
 	"runtime"
 
-	"code.waarp.fr/lib/log"
 	"code.waarp.fr/lib/migration"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
-
-const windowsRuntime = "windows"
 
 func isWindowsRuntime() bool {
 	return runtime.GOOS == "windows"
@@ -44,8 +42,8 @@ func getCurrentIndex(db *sql.DB, dialect string) (int, error) {
 	row := db.QueryRow("SELECT current FROM version")
 
 	var current string
-	if err := row.Scan(&current); err != nil {
-		return 0, fmt.Errorf("cannot scan database results: %w", err)
+	if scanErr := row.Scan(&current); scanErr != nil {
+		return 0, fmt.Errorf("cannot scan database results: %w", scanErr)
 	}
 
 	index, ok := VersionsMap[current]
@@ -85,8 +83,8 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 		copy(toApply, Migrations[start+1:target+1])
 		toApply = append(toApply, versionBump...)
 
-		if err := engine.Upgrade(toApply); err != nil {
-			return fmt.Errorf("cannot upgrade database: %w", err)
+		if upErr := engine.Upgrade(toApply); upErr != nil {
+			return fmt.Errorf("cannot upgrade database: %w", upErr)
 		}
 
 		return nil
@@ -96,8 +94,8 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 	copy(toApply, Migrations[target+1:start+1])
 	toApply = append(versionBump, toApply...)
 
-	if err := engine.Downgrade(toApply); err != nil {
-		return fmt.Errorf("cannot downgrade database: %w", err)
+	if downErr := engine.Downgrade(toApply); downErr != nil {
+		return fmt.Errorf("cannot downgrade database: %w", downErr)
 	}
 
 	return nil
