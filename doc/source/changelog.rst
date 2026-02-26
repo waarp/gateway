@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.15.0 <2026-02-26>`
 * :fix:`-` La valeur de remplacement ``#HOUR#`` pour les tâches donne désormais
   l'heure en format 24h au lieu de 12h.
 * :feature:`492` Ajout du support pour Microsoft OneDrive (et Sharepoint) comme
