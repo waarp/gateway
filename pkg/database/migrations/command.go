@@ -73,7 +73,7 @@ func DoMigration(db *sql.DB, logger *log.Logger, targetVersion, dialect string, 
 		Down:        setDBVersion(targetVersion),
 	}}
 
-	engine, err := migration.NewEngine(db, dialect, logger, out)
+	engine, err := migration.NewEngine(db, dialect, logger.Slogger(), out)
 	if err != nil {
 		return fmt.Errorf("cannot initialize migration engine: %w", err)
 	}
