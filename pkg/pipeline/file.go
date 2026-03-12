@@ -88,7 +88,7 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 // createDir takes a file path and creates all the file's parent directories if
 // they don't exist.
 func createDir(file string) *Error {
-	if err := fs.MkdirAll(path.Dir(file)); err != nil {
+	if err := fs.MkdirAll(fs.Dir(file)); err != nil {
 		return FileErrToTransferErr(err)
 	}
 
