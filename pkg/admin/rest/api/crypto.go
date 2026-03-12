@@ -3,7 +3,7 @@ package api
 // InCrypto is the JSON representation of a certificate in requests made to
 // the REST interface.
 //
-// Deprecated: replaced by InCred.
+// Replaced by InCred.
 type InCrypto struct {
 	Name        Nullable[string] `json:"name,omitzero" yaml:"name,omitempty"`
 	PrivateKey  Nullable[string] `json:"privateKey,omitzero" yaml:"privateKey,omitempty"`
@@ -14,8 +14,7 @@ type InCrypto struct {
 // OutCrypto is the JSON representation of a certificate in responses sent by
 // the REST interface.
 //
-// Deprecated: replaced by OutServer.Credentials, OutPartner.Credentials &
-// OutAccount.Credentials.
+// Replaced by OutServer.Credentials, OutPartner.Credentials & OutAccount.Credentials.
 type OutCrypto struct {
 	Name        string `json:"name" yaml:"name"`
 	PrivateKey  string `json:"privateKey,omitempty" yaml:"privateKey,omitempty"`
