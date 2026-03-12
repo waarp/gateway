@@ -80,3 +80,12 @@ func IsAbsPath(path string) bool {
 
 	return filepath.IsAbs(path)
 }
+
+func Dir(path string) string {
+	parsed, err := parsePath(path)
+	if err != nil {
+		return ""
+	}
+
+	return parsed.dir().String()
+}
