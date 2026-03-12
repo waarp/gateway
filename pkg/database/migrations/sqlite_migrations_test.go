@@ -51,7 +51,7 @@ func getSQLiteEngine(tb testing.TB) *testEngine {
 	logger := testhelpers.GetTestLogger(tb)
 	db := migtest.SQLiteDatabase(tb)
 
-	eng, err := migration.NewEngine(db, SQLite, logger, nil)
+	eng, err := migration.NewEngine(db, SQLite, logger.Slogger(), nil)
 	require.NoError(tb, err)
 
 	return &testEngine{Engine: eng, DB: db, Dialect: SQLite}

@@ -3,10 +3,11 @@
 Historique des versions
 =======================
 
-* :fix:`529` Correction d'un bug dans le processus de construction de chemin de
+* :release:`0.15.1 <2026-03-12>`
+* :bug:`529` Correction d'un bug dans le processus de construction de chemin de
   fichiers sous Windows qui altérait les chemins, et pouvait les rendre invalides
   (notamment les chemins UNC).
-* :fix:`528` Correction d'une régression de l'ancien handler REST pour certificats
+* :bug:`528` Correction d'une régression de l'ancien handler REST pour certificats
   ainsi que des commandes CLI l'utilisant. Ce bug empêchait le listing des
   certificats dans certaines conditions.
 
