@@ -5,6 +5,7 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/gorilla/mux"
 
@@ -14,8 +15,19 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
+
+func certCredTypes() []string {
+	return []string{
+		auth.TLSTrustedCertificate,
+		auth.TLSCertificate,
+		sftp.AuthSSHPublicKey,
+		sftp.AuthSSHPrivateKey,
+		r66.AuthLegacyCertificate,
+	}
+}
 
 // cryptoToModel transforms the JSON secure credentials into its database equivalent.
 func cryptoToModel(in *api.InCrypto, cred *model.Credential) *model.Credential {
@@ -161,6 +173,10 @@ func retrieveCrypto(r *http.Request, db database.ReadAccess, owner model.CredOwn
 		return nil, fmt.Errorf("failed to retrieve certificate %q: %w", cryptName, err)
 	}
 
+	if !slices.Contains(certCredTypes(), crypto.Type) {
+		return nil, notFoundf("certificate %q not found", cryptName)
+	}
+
 	return &crypto, nil
 }
 
@@ -226,6 +242,7 @@ func listCryptos(w http.ResponseWriter, r *http.Request, db database.ReadAccess,
 	}
 
 	query.Where(owner.GetCredCond())
+	query.In("type", utils.AsAny(certCredTypes())...)
 
 	if err := query.Run(); err != nil {
 		return fmt.Errorf("failed to list certificates: %w", err)
