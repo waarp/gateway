@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
@@ -89,7 +90,7 @@ func (a *authHandler) certAuth(authent *r66.Authent, acc *model.LocalAccount,
 	// and for this account).
 	if compatibility.IsLegacyR66Cert(authent.TLS.PeerCertificates[0]) {
 		if n, err := a.db.Count(&model.Credential{}).Where(acc.GetCredCond()).
-			Where("type=?", AuthLegacyCertificate).Run(); err != nil {
+			Where("type=?", r66auth.AuthLegacyCertificate).Run(); err != nil {
 			return false, internal.NewR66Error(r66.Internal, "database error")
 		} else if n == 0 {
 			return false, internal.NewR66Error(r66.BadAuthent, "invalid certificate")

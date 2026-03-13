@@ -3,13 +3,13 @@ package r66
 import (
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestRemoteAgentAfterInsert(t *testing.T) {
@@ -35,8 +35,7 @@ func TestRemoteAgentAfterInsert(t *testing.T) {
 				So(db.Get(&pswd, "remote_agent_id=? AND type=?", ag.ID,
 					auth.Password).Run(), ShouldBeNil)
 
-				So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-					[]byte(CryptPass(serverPswd))), ShouldBeNil)
+				So(utils.IsHashOf(pswd.Value, r66auth.CryptPass(serverPswd)), ShouldBeTrue)
 			})
 		})
 	})
@@ -68,8 +67,7 @@ func TestRemoteAgentAfterUpdate(t *testing.T) {
 				So(db.Get(&pswd, "remote_agent_id=? AND type=?", ag.ID,
 					auth.Password).Run(), ShouldBeNil)
 
-				So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-					[]byte(CryptPass(serverPswd))), ShouldBeNil)
+				So(utils.IsHashOf(pswd.Value, r66auth.CryptPass(serverPswd)), ShouldBeTrue)
 			})
 		})
 	})

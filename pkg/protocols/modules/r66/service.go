@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -71,7 +72,7 @@ func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 		tlsConfig.VerifyPeerCertificate = auth.VerifyClientCert(s.db, s.logger, s.agent)
 	}
 
-	if usesLegacyCert(s.db, s.agent) {
+	if r66auth.UsesLegacyCert(s.db, s.agent) {
 		tlsConfig.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
 	} else {
 		certs, dbErr := s.agent.GetCredentials(s.db, auth.TLSCertificate)

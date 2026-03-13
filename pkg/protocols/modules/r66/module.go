@@ -3,13 +3,29 @@ package r66
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 )
 
 const (
 	R66    = "r66"
 	R66TLS = "r66-tls"
+
+	AuthLegacyCertificate = r66auth.AuthLegacyCertificate
 )
+
+//nolint:gochecknoinits //init is used by design
+func init() {
+	authentication.AddInternalCredentialTypeForProtocol(auth.Password, R66, &r66auth.BcryptAuthHandler{})
+	authentication.AddInternalCredentialTypeForProtocol(auth.Password, R66TLS, &r66auth.BcryptAuthHandler{})
+
+	authentication.AddInternalCredentialTypeForProtocol(
+		r66auth.AuthLegacyCertificate, R66TLS, &r66auth.LegacyCertificate{})
+	authentication.AddExternalCredentialTypeForProtocol(
+		r66auth.AuthLegacyCertificate, R66TLS, &r66auth.LegacyCertificate{})
+}
 
 type Module struct{}
 

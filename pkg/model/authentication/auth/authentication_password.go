@@ -3,7 +3,6 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
@@ -20,17 +19,15 @@ type ProtocolPasswordHandler struct{}
 
 //nolint:gochecknoinits //init is used by design
 func init() {
-	authentication.AddInternalCredentialType(Password, &BcryptAuthHandler{})
-	authentication.AddExternalCredentialType(Password, &AESPasswordHandler{})
+	authentication.AddInternalCredentialType(Password, BcryptAuthHandler{})
+	authentication.AddExternalCredentialType(Password, AESPasswordHandler{})
 }
-
-var ErrNoPassword = errors.New("no password found")
 
 type BcryptAuthHandler struct{}
 
-func (*BcryptAuthHandler) CanOnlyHaveOne() bool { return true }
+func (BcryptAuthHandler) CanOnlyHaveOne() bool { return true }
 
-func (*BcryptAuthHandler) ToDB(plain, _ string) (hashed, _ string, err error) {
+func (BcryptAuthHandler) ToDB(plain, _ string) (hashed, _ string, err error) {
 	if hashed, err = utils.HashPassword(database.BcryptRounds, plain); err != nil {
 		return "", "", fmt.Errorf("failed to hash the password: %w", err)
 	}
@@ -38,7 +35,7 @@ func (*BcryptAuthHandler) ToDB(plain, _ string) (hashed, _ string, err error) {
 	return hashed, "", nil
 }
 
-func (*BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
+func (BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
 	if _, err := bcrypt.Cost([]byte(value)); err == nil {
 		return nil // password is already hashed
 	}
@@ -48,13 +45,13 @@ func (*BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
 	return nil
 }
 
-func (b *BcryptAuthHandler) Authenticate(db database.ReadAccess,
+func (b BcryptAuthHandler) Authenticate(db database.ReadAccess,
 	owner authentication.Owner, val any,
 ) (*authentication.Result, error) {
 	return b.AuthenticateType(db, owner, val, Password)
 }
 
-func (*BcryptAuthHandler) AuthenticateType(db database.ReadAccess,
+func (BcryptAuthHandler) AuthenticateType(db database.ReadAccess,
 	owner authentication.Owner, val any, authType string,
 ) (*authentication.Result, error) {
 	doVerify := func(value []byte) (*authentication.Result, error) {
@@ -86,9 +83,9 @@ func (*BcryptAuthHandler) AuthenticateType(db database.ReadAccess,
 
 type AESPasswordHandler struct{}
 
-func (*AESPasswordHandler) CanOnlyHaveOne() bool { return true }
+func (AESPasswordHandler) CanOnlyHaveOne() bool { return true }
 
-func (*AESPasswordHandler) ToDB(plainPwd, _ string) (encryptedPwd, _ string, err error) {
+func (AESPasswordHandler) ToDB(plainPwd, _ string) (encryptedPwd, _ string, err error) {
 	if encryptedPwd, err = utils.AESCrypt(database.GCM, plainPwd); err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the password: %w", err)
 	}
@@ -96,7 +93,7 @@ func (*AESPasswordHandler) ToDB(plainPwd, _ string) (encryptedPwd, _ string, err
 	return encryptedPwd, "", nil
 }
 
-func (*AESPasswordHandler) FromDB(encryptedPwd, _ string) (plainPwd, _ string, err error) {
+func (AESPasswordHandler) FromDB(encryptedPwd, _ string) (plainPwd, _ string, err error) {
 	if plainPwd, err = utils.AESDecrypt(database.GCM, encryptedPwd); err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the password: %w", err)
 	}
@@ -104,7 +101,7 @@ func (*AESPasswordHandler) FromDB(encryptedPwd, _ string) (plainPwd, _ string, e
 	return plainPwd, "", nil
 }
 
-func (*AESPasswordHandler) Validate(_, _, _, _ string, _ bool) error {
+func (AESPasswordHandler) Validate(_, _, _, _ string, _ bool) error {
 	// TODO add more verifications (min length, character variety...)
 	return nil
 }

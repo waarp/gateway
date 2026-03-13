@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`531` Correction d'une régression de la v0.15.0 qui causait une invalidation
+  des mots de passe locaux R66 importés via la commande d'import.
+
 * :release:`0.15.1 <2026-03-12>`
 * :bug:`529` Correction d'un bug dans le processus de construction de chemin de
   fichiers sous Windows qui altérait les chemins, et pouvait les rendre invalides
@@ -12,7 +15,7 @@ Historique des versions
   certificats dans certaines conditions.
 
 * :release:`0.15.0 <2026-02-26>`
-* :fix:`-` La valeur de remplacement ``#HOUR#`` pour les tâches donne désormais
+* :bug:`-` La valeur de remplacement ``#HOUR#`` pour les tâches donne désormais
   l'heure en format 24h au lieu de 12h.
 * :feature:`492` Ajout du support pour Microsoft OneDrive (et Sharepoint) comme
   instance cloud. Voir la :doc:`documentation<reference/cloud/onedrive>` de

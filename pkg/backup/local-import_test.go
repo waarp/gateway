@@ -3,6 +3,8 @@ package backup
 import (
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	r66lib "code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -221,7 +223,7 @@ func TestImportLocalAccounts(t *testing.T) {
 				account1 := LocalAccount{Login: "toto", Password: "pwd"}
 				account2 := LocalAccount{Login: "tata", Password: "pwd"}
 				accounts := []LocalAccount{account1, account2}
-				So(preprocessLocalAccounts(accounts), ShouldBeNil)
+				So(preprocessLocalAccounts(accounts, agent.Protocol), ShouldBeNil)
 
 				Convey("When calling the importLocalAccounts method", func() {
 					err := importLocalAccounts(discard(), db, accounts, agent)
@@ -276,7 +278,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					},
 				}
 				accounts := []LocalAccount{account1}
-				So(preprocessLocalAccounts(accounts), ShouldBeNil)
+				So(preprocessLocalAccounts(accounts, agent.Protocol), ShouldBeNil)
 
 				Convey("When calling the importLocalAccounts method", func() {
 					err := importLocalAccounts(discard(), db, accounts, agent)
@@ -355,6 +357,7 @@ func TestImportLocalAccounts(t *testing.T) {
 func TestR66PasswordImport(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
+	authentication.AddInternalCredentialTypeForProtocol(auth.Password, r66TLS, &r66auth.BcryptAuthHandler{})
 
 	server := &model.LocalAgent{
 		Name:     "r66_server",
@@ -364,20 +367,18 @@ func TestR66PasswordImport(t *testing.T) {
 	require.NoError(t, db.Insert(server).Run())
 
 	const pswd = "bar"
-	hashed, err := utils.HashPassword(bcrypt.MinCost, string(r66lib.CryptPass([]byte(pswd))))
-	require.NoError(t, err)
+	expected := string(r66lib.CryptPass([]byte(pswd)))
 
 	accounts := []LocalAccount{{
-		Login:        "foo",
-		Password:     pswd,
-		PasswordHash: hashed,
+		Login:    "foo",
+		Password: pswd,
 	}}
-	require.NoError(t, preprocessLocalAccounts(accounts))
+	require.NoError(t, preprocessLocalAccounts(accounts, server.Protocol))
 
 	require.NoError(t, importLocalAccounts(logger, db, accounts, server))
 
 	var cred model.Credential
 	require.NoError(t, db.Get(&cred, "type=?", auth.Password).Run())
 
-	assert.Equal(t, hashed, cred.Value)
+	assert.True(t, utils.IsHashOf(cred.Value, expected))
 }

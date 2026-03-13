@@ -39,7 +39,7 @@ func preprocessUsers(users []file.User) error {
 func preprocessServers(servers []file.LocalAgent) error {
 	for i := range servers {
 		server := &servers[i]
-		if err := preprocessLocalAccounts(server.Accounts); err != nil {
+		if err := preprocessLocalAccounts(server.Accounts, server.Protocol); err != nil {
 			return err
 		}
 	}
@@ -47,11 +47,11 @@ func preprocessServers(servers []file.LocalAgent) error {
 	return nil
 }
 
-func preprocessLocalAccounts(accounts []file.LocalAccount) error {
+func preprocessLocalAccounts(accounts []file.LocalAccount, protocol string) error {
 	for i := range accounts {
 		account := &accounts[i]
 
-		hasPswd, err := preprocessPasswordHashes(account.Credentials)
+		hasPswd, err := preprocessPasswordHashes(account.Credentials, protocol)
 		if err != nil {
 			return err
 		}
@@ -61,9 +61,9 @@ func preprocessLocalAccounts(accounts []file.LocalAccount) error {
 		}
 
 		if account.PasswordHash != "" {
-			err = addPswdHashCred(&account.Credentials, account.PasswordHash)
+			err = addPswdHashCred(&account.Credentials, account.PasswordHash, protocol)
 		} else if account.Password != "" {
-			err = addPswdHashCred(&account.Credentials, account.Password)
+			err = addPswdHashCred(&account.Credentials, account.Password, protocol)
 		}
 
 		if err != nil {
@@ -77,15 +77,16 @@ func preprocessLocalAccounts(accounts []file.LocalAccount) error {
 func preprocessPartners(partners []file.RemoteAgent) error {
 	for i := range partners {
 		partner := &partners[i]
+		proto := partner.Protocol
 
-		hasPswd, hErr := preprocessPasswordHashes(partner.Credentials)
+		hasPswd, hErr := preprocessPasswordHashes(partner.Credentials, proto)
 		if hErr != nil {
 			return hErr
 		}
 
 		if isR66(partner.Protocol) && !hasPswd {
 			if confPswd, jErr := utils.GetAs[string](partner.Configuration, "serverPassword"); jErr == nil {
-				if err := addPswdHashCred(&partner.Credentials, confPswd); err != nil {
+				if err := addPswdHashCred(&partner.Credentials, confPswd, proto); err != nil {
 					return err
 				}
 			}

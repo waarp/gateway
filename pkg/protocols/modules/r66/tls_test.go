@@ -3,6 +3,7 @@ package r66
 import (
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
@@ -174,10 +175,10 @@ func TestTLS(t *testing.T) {
 			compatibility.IsLegacyR66CertificateAllowed = true
 			defer func() { compatibility.IsLegacyR66CertificateAllowed = false }()
 
-			remoteAccountCert.Type = AuthLegacyCertificate
+			remoteAccountCert.Type = r66auth.AuthLegacyCertificate
 
 			Convey("Given that the legacy certificate was expected", func(c C) {
-				localAccountCert.Type = AuthLegacyCertificate
+				localAccountCert.Type = r66auth.AuthLegacyCertificate
 
 				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
@@ -219,10 +220,10 @@ func TestTLS(t *testing.T) {
 			compatibility.IsLegacyR66CertificateAllowed = true
 			defer func() { compatibility.IsLegacyR66CertificateAllowed = false }()
 
-			localAgentCert.Type = AuthLegacyCertificate
+			localAgentCert.Type = r66auth.AuthLegacyCertificate
 
 			Convey("Given that the legacy certificate was expected", func(c C) {
-				remotePartnerCert.Type = AuthLegacyCertificate
+				remotePartnerCert.Type = r66auth.AuthLegacyCertificate
 
 				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
