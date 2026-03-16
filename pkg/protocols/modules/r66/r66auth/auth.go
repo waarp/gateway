@@ -1,4 +1,4 @@
-package r66
+package r66auth
 
 import (
 	"crypto/tls"
@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"code.waarp.fr/lib/r66"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -20,22 +23,13 @@ const (
 var _ interface {
 	authentication.InternalAuthHandler
 	authentication.ExternalAuthHandler
-} = &r66LegacyCertificate{}
+} = &LegacyCertificate{}
 
-var _ authentication.InternalAuthHandler = &r66BcryptAuthHandler{}
+var _ authentication.InternalAuthHandler = &BcryptAuthHandler{}
 
-//nolint:gochecknoinits //init is used by design
-func init() {
-	authentication.AddInternalCredentialTypeForProtocol(auth.Password, R66, &r66BcryptAuthHandler{})
-	authentication.AddInternalCredentialTypeForProtocol(auth.Password, R66TLS, &r66BcryptAuthHandler{})
+type BcryptAuthHandler struct{ auth.BcryptAuthHandler }
 
-	authentication.AddInternalCredentialTypeForProtocol(AuthLegacyCertificate, R66TLS, &r66LegacyCertificate{})
-	authentication.AddExternalCredentialTypeForProtocol(AuthLegacyCertificate, R66TLS, &r66LegacyCertificate{})
-}
-
-type r66BcryptAuthHandler struct{ auth.BcryptAuthHandler }
-
-func (r *r66BcryptAuthHandler) ToDB(plainPwd, _ string) (hashedPwd, _ string, err error) {
+func (r *BcryptAuthHandler) ToDB(plainPwd, _ string) (hashedPwd, _ string, err error) {
 	if utils.IsHash(plainPwd) {
 		return plainPwd, "", nil
 	}
@@ -46,11 +40,11 @@ func (r *r66BcryptAuthHandler) ToDB(plainPwd, _ string) (hashedPwd, _ string, er
 
 var ErrLegacyCertNotAllowed = errors.New("legacy certificates usage is not allowed on this instance")
 
-type r66LegacyCertificate struct{}
+type LegacyCertificate struct{}
 
-func (r *r66LegacyCertificate) CanOnlyHaveOne() bool { return true }
+func (r *LegacyCertificate) CanOnlyHaveOne() bool { return true }
 
-func (r *r66LegacyCertificate) Validate(_, _, _, _ string, _ bool) error {
+func (r *LegacyCertificate) Validate(_, _, _, _ string, _ bool) error {
 	if !compatibility.IsLegacyR66CertificateAllowed {
 		return ErrLegacyCertNotAllowed
 	}
@@ -58,10 +52,10 @@ func (r *r66LegacyCertificate) Validate(_, _, _, _ string, _ bool) error {
 	return nil
 }
 
-func (r *r66LegacyCertificate) Authenticate(db database.ReadAccess,
+func (r *LegacyCertificate) Authenticate(db database.ReadAccess,
 	owner authentication.Owner, val any,
 ) (*authentication.Result, error) {
-	if !compatibility.IsLegacyR66CertificateAllowed || !usesLegacyCert(db, owner) {
+	if !compatibility.IsLegacyR66CertificateAllowed || !UsesLegacyCert(db, owner) {
 		return nil, ErrLegacyCertNotAllowed
 	}
 
@@ -87,6 +81,22 @@ func (r *r66LegacyCertificate) Authenticate(db database.ReadAccess,
 	return authentication.Success(), nil
 }
 
-func (r *r66LegacyCertificate) ToDB(_, _ string) (_, _ string, err error) {
+func (r *LegacyCertificate) ToDB(_, _ string) (_, _ string, err error) {
 	return "", "", nil
+}
+
+func UsesLegacyCert(db database.ReadAccess, owner authentication.Owner) bool {
+	if compatibility.IsLegacyR66CertificateAllowed {
+		if n, err := db.Count(&model.Credential{}).Where(owner.GetCredCond()).
+			Where("type=?", AuthLegacyCertificate).Run(); err == nil {
+			return n != 0
+		}
+	}
+
+	return false
+}
+
+// CryptPass returns the R66 hash of the given password.
+func CryptPass(pwd string) string {
+	return string(r66.CryptPass([]byte(pwd)))
 }

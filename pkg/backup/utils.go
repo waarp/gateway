@@ -2,9 +2,8 @@ package backup
 
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -13,9 +12,19 @@ const (
 	r66LegacyCert = "r66_legacy_certificate"
 )
 
-func hashPswd(pswd string) (string, error) {
-	//nolint:wrapcheck //no need to wrap here
-	return utils.HashPassword(database.BcryptRounds, pswd)
+//nolint:wrapcheck //no need to wrap here
+func hashPswd(pswd, protocol string) (string, error) {
+	handler := authentication.GetInternalAuthHandler(auth.Password, protocol)
+	serializer, ok := handler.(authentication.Serializer)
+	if !ok {
+		hash, _, err := auth.BcryptAuthHandler{}.ToDB(pswd, "")
+
+		return hash, err
+	}
+
+	hash, _, err := serializer.ToDB(pswd, "")
+
+	return hash, err
 }
 
 func pswdCred(value string) file.Credential {
@@ -26,8 +35,8 @@ func pswdCred(value string) file.Credential {
 	}
 }
 
-func addPswdHashCred(creds *[]file.Credential, pswd string) error {
-	hash, err := hashPswd(pswd)
+func addPswdHashCred(creds *[]file.Credential, pswd, protocol string) error {
+	hash, err := hashPswd(pswd, protocol)
 	if err != nil {
 		return err
 	}
@@ -37,7 +46,7 @@ func addPswdHashCred(creds *[]file.Credential, pswd string) error {
 	return nil
 }
 
-func preprocessPasswordHashes(creds []file.Credential) (bool, error) {
+func preprocessPasswordHashes(creds []file.Credential, protocol string) (bool, error) {
 	var (
 		err     error
 		hasPswd bool
@@ -46,7 +55,7 @@ func preprocessPasswordHashes(creds []file.Credential) (bool, error) {
 		cred := &creds[i]
 		if cred.Type == auth.Password {
 			hasPswd = true
-			if cred.Value, err = hashPswd(cred.Value); err != nil {
+			if cred.Value, err = hashPswd(cred.Value, protocol); err != nil {
 				return hasPswd, err
 			}
 		}

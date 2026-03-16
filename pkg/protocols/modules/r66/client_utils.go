@@ -16,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
@@ -270,7 +271,7 @@ func makeClientTLSConfig(pip *pipeline.Pipeline, partConf *tlsPartnerConfig,
 	tlsConf.Certificates = make([]tls.Certificate, 0, len(pip.TransCtx.RemoteAccountCreds))
 
 	for _, cred := range pip.TransCtx.RemoteAccountCreds {
-		if cred.Type == AuthLegacyCertificate {
+		if cred.Type == r66auth.AuthLegacyCertificate {
 			tlsConf.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
 
 			break
@@ -291,7 +292,7 @@ func makeClientTLSConfig(pip *pipeline.Pipeline, partConf *tlsPartnerConfig,
 	caPool := utils.TLSCertPool()
 
 	for _, cred := range pip.TransCtx.RemoteAgentCreds {
-		if cred.Type == AuthLegacyCertificate {
+		if cred.Type == r66auth.AuthLegacyCertificate {
 			tlsConf.InsecureSkipVerify = true
 			tlsConf.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 				if len(rawCerts) == 0 {

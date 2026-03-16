@@ -23,15 +23,15 @@ const (
 
 //nolint:gochecknoinits //init is used by design
 func init() {
-	authentication.AddExternalCredentialType(TLSCertificate, &TLSCertHandler{})
-	authentication.AddInternalCredentialType(TLSTrustedCertificate, &TLSTrustedCertHandler{})
+	authentication.AddExternalCredentialType(TLSCertificate, TLSCertHandler{})
+	authentication.AddInternalCredentialType(TLSTrustedCertificate, TLSTrustedCertHandler{})
 }
 
 type TLSCertHandler struct{}
 
-func (*TLSCertHandler) CanOnlyHaveOne() bool { return false }
+func (TLSCertHandler) CanOnlyHaveOne() bool { return false }
 
-func (*TLSCertHandler) ToDB(cert, plainPk string) (certificate, encryptedPk string, err error) {
+func (TLSCertHandler) ToDB(cert, plainPk string) (certificate, encryptedPk string, err error) {
 	encryptedPk, err = utils.AESCrypt(database.GCM, plainPk)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the private key: %w", err)
@@ -40,7 +40,7 @@ func (*TLSCertHandler) ToDB(cert, plainPk string) (certificate, encryptedPk stri
 	return cert, encryptedPk, nil
 }
 
-func (*TLSCertHandler) FromDB(cert, encryptedPk string) (certificate, plainPk string, err error) {
+func (TLSCertHandler) FromDB(cert, encryptedPk string) (certificate, plainPk string, err error) {
 	plainPk, err = utils.AESDecrypt(database.GCM, encryptedPk)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the private key: %w", err)
@@ -49,7 +49,7 @@ func (*TLSCertHandler) FromDB(cert, encryptedPk string) (certificate, plainPk st
 	return cert, plainPk, nil
 }
 
-func (*TLSCertHandler) Validate(value, value2, _, host string, isServer bool) error {
+func (TLSCertHandler) Validate(value, value2, _, host string, isServer bool) error {
 	if err := checkCert(value, value2, host, isServer); err != nil {
 		return fmt.Errorf("failed to validate certificate: %w", err)
 	}
@@ -59,9 +59,9 @@ func (*TLSCertHandler) Validate(value, value2, _, host string, isServer bool) er
 
 type TLSTrustedCertHandler struct{}
 
-func (*TLSTrustedCertHandler) CanOnlyHaveOne() bool { return false }
+func (TLSTrustedCertHandler) CanOnlyHaveOne() bool { return false }
 
-func (*TLSTrustedCertHandler) Validate(value, _, _, host string, isServer bool) error {
+func (TLSTrustedCertHandler) Validate(value, _, _, host string, isServer bool) error {
 	if err := checkRemoteSelfSignedCert(value, host, isServer); err != nil {
 		return fmt.Errorf("failed to validate certificate: %w", err)
 	}
@@ -69,7 +69,7 @@ func (*TLSTrustedCertHandler) Validate(value, _, _, host string, isServer bool) 
 	return nil
 }
 
-func (*TLSTrustedCertHandler) Authenticate(db database.ReadAccess,
+func (TLSTrustedCertHandler) Authenticate(db database.ReadAccess,
 	owner authentication.Owner, val any,
 ) (*authentication.Result, error) {
 	doVerify := func(chain []*x509.Certificate) (*authentication.Result, error) {
