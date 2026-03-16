@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.15.2 <2026-03-16>`
 * :bug:`531` Correction d'une régression de la v0.15.0 qui causait une invalidation
   des mots de passe locaux R66 importés via la commande d'import.
 
