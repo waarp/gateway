@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`534` La tâche EXEC écrit maintenant systématiquement le contenu de la
+  sortie standard du programme appelé dans les logs (niveau DEBUG). Précédemment,
+  ce contenu n'était écrit qu'en cas de succès de la commande.
 * :bug:`537` Correction d'une régression de la v0.15 qui empêchait l'import de
   mots de passe PeSIT locaux.
 * :bug:`535` Correction d'une régression de la v0.15 qui empêchait l'utilitaire
