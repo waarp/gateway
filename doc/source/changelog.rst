@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`537` Correction d'une régression de la v0.15 qui empêchait l'import de
+  mots de passe PeSIT locaux.
 * :bug:`535` Correction d'une régression de la v0.15 qui empêchait l'utilitaire
   "get-remote" de correctement parser la configuration protocolaire des partenaires.
 
