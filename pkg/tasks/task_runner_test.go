@@ -275,7 +275,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[inPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, fs.JoinPath(root, r.transCtx.Rule.LocalDir))
+							So(val, ShouldEqual, fs.JoinPath(root, r.transCtx.Paths.DefaultInDir))
 						})
 					})
 
@@ -293,7 +293,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[workPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, fs.JoinPath(root, r.transCtx.Rule.TmpLocalRcvDir))
+							So(val, ShouldEqual, r.transCtx.Paths.DefaultTmpDir)
 						})
 					})
 
