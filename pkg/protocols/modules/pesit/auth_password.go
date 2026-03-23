@@ -75,6 +75,10 @@ func (p pesitBcryptAuthHandler) Validate(val, val2, protocol, host string, isSer
 		return err //nolint:wrapcheck //wrapping adds nothing here
 	}
 
+	if utils.IsHash(val) {
+		return nil
+	}
+
 	return checkPesitPassword(val)
 }
 
