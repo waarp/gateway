@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -45,9 +46,18 @@ func getTransferContext[confType protocol.PartnerConfig](partner *api.OutPartner
 		return nil, fmt.Errorf("could not get account %s credentials: %w", account.Login, err)
 	}
 
-	partnerConf := *new(confType)
+	var partnerConf confType
+	if reflect.TypeOf(partnerConf).Kind() == reflect.Ptr {
+		//nolint:forcetypeassert //type assertion can never fail here
+		partnerConf = reflect.New(reflect.TypeOf(partnerConf).Elem()).Interface().(confType)
+	}
+
 	if err = utils.JSONConvert(partner.ProtoConfig, partnerConf); err != nil {
-		return nil, fmt.Errorf("failed to parse WebDAV partner protocol configuration: %w", err)
+		return nil, fmt.Errorf("failed to parse partner protocol configuration: %w", err)
+	}
+
+	if restPath, err = url.JoinPath(restAddr, "/api/override/addresses"); err != nil {
+		return nil, fmt.Errorf("failed to build URL: %w", err)
 	}
 
 	realAddr, err := getRealAddress(partner.Address, restPath, insecure)
