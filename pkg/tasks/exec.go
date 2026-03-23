@@ -37,20 +37,29 @@ func (e *execTask) Validate(params map[string]string) error {
 	return nil
 }
 
-// Run executes the task by executing the external program with the given parameters.
-func (e *execTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
-) error {
-	output, runErr := runExec(parent, logger, transCtx, params)
-	if runErr != nil {
-		return runErr
+func printOutput(logger *log.Logger, output *bytes.Buffer) {
+	if output == nil {
+		return
 	}
 
 	scanner := bufio.NewScanner(output)
 	for scanner.Scan() {
 		logger.Debug(scanner.Text())
 	}
+}
 
+// Run executes the task by executing the external program with the given parameters.
+func (e *execTask) Run(parent context.Context, params map[string]string,
+	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
+) error {
+	output, runErr := runExec(parent, logger, transCtx, params)
+	if runErr != nil {
+		printOutput(logger, output)
+
+		return runErr
+	}
+
+	printOutput(logger, output)
 	logger.Debugf("Done executing command %s %s", params["path"], params["args"])
 
 	return nil
