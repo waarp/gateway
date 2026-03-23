@@ -84,12 +84,9 @@ Marqueur                Signification
 ``#FILESIZE#``          La taille du fichier
 ``#HOMEPATH#``          Le dossier racine de la Gateway. Ce chemin est toujours
                         absolu.
-``#INPATH#``            Le dossier de réception par défaut définit dans le fichier
-                        de configuration. Ce chemin est toujours absolu.
-``#OUTPATH#``           Le dossier d'envoi par défaut définit dans le fichier de
-                        configuration. Ce chemin est toujours absolu.
-``#WORKPATH#``          Le dossier temporaire de réception par défaut définit dans
-                        le fichier de configuration. Ce chemin est toujours absolu.
+``#INPATH#``            Le dossier de réception. Ce chemin est toujours absolu.
+``#OUTPATH#``           Le dossier d'envoi. Ce chemin est toujours absolu.
+``#WORKPATH#``          Le dossier temporaire de réception. Ce chemin est toujours absolu.
 ``#RULE#``              La règle utilisée par le transfert
 ``#DATE#``              La date (au format ``AAAAMMJJ``) au moment de l'exécution
                         de la tâche

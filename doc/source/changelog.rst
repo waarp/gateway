@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`533` Les variables de substitution ``#INPATH#`` et ``#OUTPATH#`` pointent
+  désormais vers leur dossiers par défaut respectifs lorsque la règle n'est pas
+  pertinente. Par exemple, dans le cas d'un transfert en réception ``#OUTPATH#``
+  pointera vers le dossier d'envoi par défaut. Inversement, dans le cas d'un
+  transfert en envoi, ``#INPATH#`` pointera vers le dossier de réception par
+  défaut. Précédemment, ces variables pointaient toutes deux vers le dossier
+  local de la règle.
 * :bug:`534` La tâche EXEC écrit maintenant systématiquement le contenu de la
   sortie standard du programme appelé dans les logs (niveau DEBUG). Précédemment,
   ce contenu n'était écrit qu'en cas de succès de la commande.
