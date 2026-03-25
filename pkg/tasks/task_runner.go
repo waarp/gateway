@@ -19,7 +19,7 @@ import (
 // Runner provides a way to execute tasks given a transfer context (rule, transfer).
 type Runner struct {
 	db       *database.DB
-	logger   *log.Logger
+	Logger   *log.Logger
 	transCtx *model.TransferContext
 	Remote   any
 
@@ -33,7 +33,7 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 	ctx, cancel := context.WithCancel(context.Background())
 	r := &Runner{
 		db:       db,
-		logger:   logger,
+		Logger:   logger,
 		transCtx: transCtx,
 		Ctx:      ctx,
 	}
@@ -77,37 +77,37 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 
 	args, setupErr := r.setup(task)
 	if setupErr != nil {
-		r.logger.Errorf("%s: setup failed: %v", taskInfo, setupErr)
+		r.Logger.Errorf("%s: setup failed: %v", taskInfo, setupErr)
 
 		return newErrorWith(types.TeExternalOperation,
 			fmt.Sprintf("%s: setup failed", taskInfo), setupErr)
 	}
 
-	r.logger.Debugf("Executing task %s with args %s", taskInfo, mapToStr(args))
+	r.Logger.Debugf("Executing task %s with args %s", taskInfo, mapToStr(args))
 
 	var runErr error
 
 	if isErrTasks {
-		runErr = runner.Run(context.Background(), args, r.db, r.logger, r.transCtx, r.Remote)
+		runErr = runner.Run(context.Background(), args, r.db, r.Logger, r.transCtx, r.Remote)
 	} else {
-		runErr = runner.Run(r.Ctx, args, r.db, r.logger, r.transCtx, r.Remote)
+		runErr = runner.Run(r.Ctx, args, r.db, r.Logger, r.transCtx, r.Remote)
 	}
 
 	if runErr != nil {
 		var warningError *WarningError
 		if !errors.As(runErr, &warningError) {
-			r.logger.Errorf("%s: %v", taskInfo, runErr)
+			r.Logger.Errorf("%s: %v", taskInfo, runErr)
 			r.transCtx.Transfer.ErrCode = types.TeExternalOperation
 			r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
 
 			return newErrorWith(types.TeExternalOperation, taskInfo, runErr)
 		}
 
-		r.logger.Warningf("%s: %v", taskInfo, runErr)
+		r.Logger.Warningf("%s: %v", taskInfo, runErr)
 		r.transCtx.Transfer.ErrCode = types.TeWarning
 		r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
 	} else {
-		r.logger.Debug(taskInfo)
+		r.Logger.Debug(taskInfo)
 	}
 
 	return r.updateProgress(updTicker, isErrTasks)
@@ -129,7 +129,7 @@ func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error 
 
 	if dbErr := r.db.Update(r.transCtx.Transfer).Cols("task_number", "error_code",
 		"error_details", "filesize").Run(); dbErr != nil {
-		r.logger.Errorf("Failed to update transfer after task: %v", dbErr)
+		r.Logger.Errorf("Failed to update transfer after task: %v", dbErr)
 
 		if !isErrTasks {
 			return newErrorWith(types.TeInternal, "failed to update transfer", dbErr)
@@ -215,7 +215,7 @@ func (r *Runner) getFilesize() int64 {
 
 	info, err := fs.Stat(r.transCtx.Transfer.LocalPath)
 	if err != nil {
-		r.logger.Warningf("Failed to retrieve file size: %v", err)
+		r.Logger.Warningf("Failed to retrieve file size: %v", err)
 
 		return -1
 	}

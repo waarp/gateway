@@ -14,9 +14,7 @@ type LogOpt func(testing.TB, *log.Handler)
 func GetTestLogger(tb testing.TB, opts ...LogOpt) *log.Logger {
 	tb.Helper()
 
-	leveler := &slog.LevelVar{}
-	handler := log.NewLogHandler(tb.Output(), leveler, tb.Name(), nil)
-	handler.SetLevel(log.LevelInfo)
+	handler := log.NewLogHandler(tb.Output(), log.LevelInfo, tb.Name(), nil)
 
 	for _, opt := range opts {
 		opt(tb, handler)

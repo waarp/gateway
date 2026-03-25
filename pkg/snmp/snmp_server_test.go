@@ -17,7 +17,7 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	require.NoError(t, logging.AddLogBackend("TRACE", "stdout", "", ""))
+	require.NoError(t, logging.SetLogBackend("TRACE", "stdout", "", ""))
 
 	db := dbtest.TestDatabase(t)
 

@@ -104,13 +104,16 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 
 			return nil, NewErrorWith(types.TeInternal, "failed to insert the new transfer entry", err)
 		}
-
-		logger = logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", transCtx.Transfer.ID))
-		pipeline.Logger = logger
 	} else if err := pipeline.UpdateTrans(); err != nil {
 		logger.Errorf("Failed to update the transfer details: %v", err)
 
 		return nil, NewErrorWith(types.TeInternal, "Failed to update the transfer details", err)
+	}
+
+	if transCtx.Transfer.IsServer() {
+		logger = logging.NewLogger(fmt.Sprintf("Pipeline %d (server)", transCtx.Transfer.ID))
+		pipeline.Logger = logger
+		pipeline.Runner.Logger = logger
 	}
 
 	if err := List.add(pipeline); err != nil {

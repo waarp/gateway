@@ -37,14 +37,14 @@ func (e *execTask) Validate(params map[string]string) error {
 	return nil
 }
 
-func printOutput(logger *log.Logger, output *bytes.Buffer) {
+func printOutput(printLog func(string), output *bytes.Buffer) {
 	if output == nil {
 		return
 	}
 
 	scanner := bufio.NewScanner(output)
 	for scanner.Scan() {
-		logger.Debug(scanner.Text())
+		printLog(scanner.Text())
 	}
 }
 
@@ -54,12 +54,12 @@ func (e *execTask) Run(parent context.Context, params map[string]string,
 ) error {
 	output, runErr := runExec(parent, logger, transCtx, params)
 	if runErr != nil {
-		printOutput(logger, output)
+		printOutput(logger.Error, output)
 
 		return runErr
 	}
 
-	printOutput(logger, output)
+	printOutput(logger.Debug, output)
 	logger.Debugf("Done executing command %s %s", params["path"], params["args"])
 
 	return nil
