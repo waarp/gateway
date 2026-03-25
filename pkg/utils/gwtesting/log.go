@@ -14,7 +14,7 @@ const testLogLevel = "DEBUG"
 
 //nolint:gochecknoinits //init is needed here
 func init() {
-	if err := logging.AddLogBackend(testLogLevel, log.Stdout, "", ""); err != nil {
+	if err := logging.SetLogBackend(testLogLevel, log.Stdout, "", ""); err != nil {
 		panic(err)
 	}
 }

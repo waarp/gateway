@@ -36,7 +36,7 @@ func init() {
 		level = envLvl
 	}
 
-	if err := logging.AddLogBackend(level, "stdout", "", ""); err != nil {
+	if err := logging.SetLogBackend(level, "stdout", "", ""); err != nil {
 		panic(fmt.Sprintf("failed to initialize the log backend: %v", err))
 	}
 }
@@ -203,7 +203,7 @@ func initTestData(c convey.C) *testData {
 
 	// Change log level if needed. Set to CRITICAL to avoid polluting stdout
 	// with error messages from error tests.
-	c.So(logging.AddLogBackend("CRITICAL", "stdout", "", ""), convey.ShouldBeNil)
+	c.So(logging.SetLogBackend("CRITICAL", "stdout", "", ""), convey.ShouldBeNil)
 
 	analytics.GlobalService = &analytics.Service{DB: db}
 	c.So(analytics.GlobalService.Start(), convey.ShouldBeNil)

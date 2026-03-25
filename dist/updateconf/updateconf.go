@@ -133,10 +133,14 @@ func execImport(confReader io.Reader) error {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		if out != nil {
+			fmt.Print(string(out))
+		}
+
 		return fmt.Errorf("cannot read subprocess output: %w", err)
 	}
 
-	fmt.Print(string(out)) //nolint:forbidigo //output must be written for the Gateway uses it
+	fmt.Print(string(out))
 
 	return nil
 }

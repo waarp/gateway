@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`536` Correction d'un bug causant des inconsistances dans les préfixes de log.
 * :bug:`533` Les variables de substitution ``#INPATH#`` et ``#OUTPATH#`` pointent
   désormais vers leur dossiers par défaut respectifs lorsque la règle n'est pas
   pertinente. Par exemple, dans le cas d'un transfert en réception ``#OUTPATH#``

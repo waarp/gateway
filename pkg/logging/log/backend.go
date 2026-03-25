@@ -10,8 +10,7 @@ const (
 )
 
 type (
-	Backend     = log.Backend
-	BackendPool = log.BackendPool
+	Backend = log.Backend
 )
 
 func NewBackend(level Level, logTo, facility, tag string) (*Backend, error) {

@@ -3,7 +3,6 @@ package controller
 import (
 	"path"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -11,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
@@ -42,7 +42,7 @@ type testContext struct {
 
 func initTestDB(c C, rootPath string) *testContext {
 	db := database.TestDatabase(c)
-	c.So(logging.AddLogBackend("DEBUG", "stdout", "", ""), ShouldBeNil)
+	c.So(logging.SetLogBackend("DEBUG", "stdout", "", ""), ShouldBeNil)
 	logger := testhelpers.TestLogger(c, "Pipeline test")
 
 	paths := conf.PathsConfig{

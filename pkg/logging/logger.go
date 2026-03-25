@@ -4,13 +4,14 @@ package logging
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 var (
 	//nolint:gochecknoglobals //global var is more convenient here
-	pool = &log.BackendPool{}
+	back = &log.Backend{Output: io.Discard, Level: log.LevelInfo}
 
 	ErrUnknownLogLevel = errors.New("unknown log level")
 )
@@ -29,24 +30,24 @@ func NewLogBackend(level, logTo, facility, tag string) (*log.Backend, error) {
 	return backend, nil
 }
 
-func AddLogBackend(level, logTo, facility, tag string) error {
+func SetLogBackend(level, logTo, facility, tag string) error {
 	backend, err := NewLogBackend(level, logTo, facility, tag)
 	if err != nil {
 		return err
 	}
 
-	pool.AddBackend(backend)
+	back = backend
 
 	return nil
 }
 
 func NewLogger(name string) *log.Logger {
-	return pool.NewLogger(name)
+	return back.NewLogger(name)
 }
 
 func Discard() *log.Logger {
 	//nolint:errcheck //never returns an error
-	back, _ := log.NewBackend(log.LevelInfo, log.Discard, "", "")
+	backend, _ := log.NewBackend(log.LevelInfo, log.Discard, "", "")
 
-	return back.NewLogger("")
+	return backend.NewLogger("")
 }

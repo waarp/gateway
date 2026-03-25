@@ -386,7 +386,7 @@ func TestRunTasks(t *testing.T) {
 
 		proc := &Runner{
 			db:     db,
-			logger: logger,
+			Logger: logger,
 			transCtx: &model.TransferContext{
 				Rule:     rule,
 				Transfer: trans,
