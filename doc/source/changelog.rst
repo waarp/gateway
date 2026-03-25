@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.15.3 <2026-03-25>`
 * :bug:`536` Correction d'un bug causant des inconsistances dans les préfixes de log.
 * :bug:`533` Les variables de substitution ``#INPATH#`` et ``#OUTPATH#`` pointent
   désormais vers leur dossiers par défaut respectifs lorsque la règle n'est pas
