@@ -153,9 +153,9 @@ type commands struct {
 	} `command:"transfer" description:"Manage the running transfers"`
 
 	History struct {
-		Get  wg.HistoryGet   `command:"get" description:"Consult a finished transfer"`
-		List wg.HistoryList  `command:"list" description:"List the finished transfers"`
-		Ret  wg.HistoryRetry `command:"retry" description:"Reprogram a canceled transfer"`
+		Get  wg.HistoryGet   `command:"get" description:"Consult a finished transfer"`     //nolint:staticcheck // legacy command is still exposed for backward compatibility
+		List wg.HistoryList  `command:"list" description:"List the finished transfers"`    //nolint:staticcheck // legacy command is still exposed for backward compatibility
+		Ret  wg.HistoryRetry `command:"retry" description:"Reprogram a canceled transfer"` //nolint:staticcheck // legacy command is still exposed for backward compatibility
 	} `command:"history" description:"Manage the transfer history [DEPRECATED: merged with the 'transfer' command] "`
 
 	User struct {
@@ -231,6 +231,60 @@ type commands struct {
 		} `command:"credential" description:"Manage the SMTP credentials"`
 	} `command:"email" description:"Manage the gateway's email configuration"`
 
+	Ebics struct {
+		Operation struct {
+			List wg.EbicsOperationList `command:"list" description:"List the EBICS operations"`
+			Get  wg.EbicsOperationGet  `command:"get" description:"Retrieve an EBICS operation"`
+		} `command:"operation" description:"Manage the EBICS operations"`
+
+		Payload struct {
+			Upload   wg.EbicsPayloadUpload   `command:"upload" description:"Submit an EBICS payload upload"`
+			Download wg.EbicsPayloadDownload `command:"download" description:"Submit an EBICS payload download"`
+			List     wg.EbicsPayloadList     `command:"list" description:"List the EBICS payload operations"`
+			Get      wg.EbicsPayloadGet      `command:"get" description:"Retrieve an EBICS payload operation"`
+			Retry    wg.EbicsPayloadRetry    `command:"retry" description:"Retry an EBICS payload operation"`
+			Recover  wg.EbicsPayloadRecover  `command:"recover" description:"Recover an EBICS payload operation"`
+			Profile  struct {
+				Add    wg.EbicsPayloadProfileAdd    `command:"add" description:"Add an EBICS payload profile"`
+				List   wg.EbicsPayloadProfileList   `command:"list" description:"List the EBICS payload profiles"`
+				Get    wg.EbicsPayloadProfileGet    `command:"get" description:"Retrieve an EBICS payload profile"`
+				Update wg.EbicsPayloadProfileUpdate `command:"update" description:"Update an EBICS payload profile"`
+			} `command:"profile" description:"Manage the EBICS payload profiles"`
+		} `command:"payload" description:"Manage the EBICS payload operations"`
+
+		ContractView struct {
+			List wg.EbicsContractViewList `command:"list" description:"List the EBICS contract views"`
+			Get  wg.EbicsContractViewGet  `command:"get" description:"Retrieve an EBICS contract view"`
+		} `command:"contract-view" description:"Manage the EBICS contract views"`
+
+		KeyLifecycle struct {
+			List   wg.EbicsKeyLifecycleList   `command:"list" description:"List the EBICS key lifecycles"`
+			Get    wg.EbicsKeyLifecycleGet    `command:"get" description:"Retrieve an EBICS key lifecycle"`
+			Action wg.EbicsKeyLifecycleAction `command:"action" description:"Apply an action to an EBICS key lifecycle"`
+		} `command:"key-lifecycle" description:"Manage the EBICS key lifecycles"`
+
+		Initialization struct {
+			List   wg.EbicsInitializationList   `command:"list" description:"List the EBICS initializations"`
+			Get    wg.EbicsInitializationGet    `command:"get" description:"Retrieve an EBICS initialization workflow"`
+			Action wg.EbicsInitializationAction `command:"action" description:"Apply an action to an EBICS initialization workflow"`
+		} `command:"initialization" description:"Manage the EBICS initialization workflows"`
+
+		RTN struct {
+			Provider struct {
+				Add    wg.EbicsRTNProviderAdd    `command:"add" description:"Add an EBICS RTN provider"`
+				List   wg.EbicsRTNProviderList   `command:"list" description:"List the EBICS RTN providers"`
+				Get    wg.EbicsRTNProviderGet    `command:"get" description:"Retrieve an EBICS RTN provider"`
+				Update wg.EbicsRTNProviderUpdate `command:"update" description:"Update an EBICS RTN provider"`
+			} `command:"provider" description:"Manage the EBICS RTN providers"`
+			Event struct {
+				List       wg.EbicsRTNEventList       `command:"list" description:"List the EBICS RTN events"`
+				Get        wg.EbicsRTNEventGet        `command:"get" description:"Retrieve an EBICS RTN event"`
+				Retry      wg.EbicsRTNEventRetry      `command:"retry" description:"Retry an EBICS RTN event"`
+				Quarantine wg.EbicsRTNEventQuarantine `command:"quarantine" description:"Quarantine an EBICS RTN event"`
+			} `command:"event" description:"Manage the EBICS RTN events"`
+		} `command:"rtn" description:"Manage the EBICS RTN"`
+	} `command:"ebics" description:"Manage EBICS"`
+
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }
 
@@ -241,8 +295,10 @@ type credCommands struct {
 }
 
 type certCommands struct {
-	Add  wg.CertAdd    `command:"add" description:"Add a new certificate"`
-	Get  wg.CertGet    `command:"get" description:"Retrieve a certificate's information"`
+	Add wg.CertAdd `command:"add" description:"Add a new certificate"`
+	//nolint:staticcheck // legacy certificate commands are kept for compatibility
+	Get wg.CertGet `command:"get" description:"Retrieve a certificate's information"`
+	//nolint:staticcheck // legacy certificate commands are kept for compatibility
 	List wg.CertList   `command:"list" description:"List the known certificates"`
 	Upd  wg.CertUpdate `command:"update" description:"Update a certificate"`
 	Del  wg.CertDelete `command:"delete" description:"Delete a certificate"`

@@ -85,24 +85,24 @@ Regles:
 
 ## 7. REST handlers
 
-- [ ] Creer `pkg/admin/rest/ebics_operations.go`
-- [ ] Creer `pkg/admin/rest/ebics_payload_profiles.go`
-- [ ] Creer `pkg/admin/rest/ebics_contract_views.go`
-- [ ] Creer `pkg/admin/rest/ebics_payloads.go`
-- [ ] Creer `pkg/admin/rest/ebics_key_lifecycles.go`
-- [ ] Creer `pkg/admin/rest/ebics_initializations.go`
-- [ ] Creer `pkg/admin/rest/ebics_rtn.go`
-- [ ] Etendre `pkg/admin/rest/router.go`
+- [x] Creer `pkg/admin/rest/ebics_operations.go`
+- [x] Creer `pkg/admin/rest/ebics_payload_profiles.go`
+- [x] Creer `pkg/admin/rest/ebics_contract_views.go`
+- [x] Creer `pkg/admin/rest/ebics_payloads.go`
+- [x] Creer `pkg/admin/rest/ebics_key_lifecycles.go`
+- [x] Creer `pkg/admin/rest/ebics_initializations.go`
+- [x] Creer `pkg/admin/rest/ebics_rtn.go`
+- [x] Etendre `pkg/admin/rest/router.go`
 
 ## 8. CLI
 
-- [ ] Creer `pkg/cmd/client/ebics_operations.go`
-- [ ] Creer `pkg/cmd/client/ebics_payload.go`
-- [ ] Creer `pkg/cmd/client/ebics_payload_profiles.go`
-- [ ] Creer `pkg/cmd/client/ebics_contract_views.go`
-- [ ] Creer `pkg/cmd/client/ebics_key_lifecycles.go`
-- [ ] Creer `pkg/cmd/client/ebics_initializations.go`
-- [ ] Creer `pkg/cmd/client/ebics_rtn.go`
+- [x] Creer `pkg/cmd/client/ebics_operations.go`
+- [x] Creer `pkg/cmd/client/ebics_payload.go`
+- [x] Creer `pkg/cmd/client/ebics_payload_profiles.go`
+- [x] Creer `pkg/cmd/client/ebics_contract_views.go`
+- [x] Creer `pkg/cmd/client/ebics_key_lifecycles.go`
+- [x] Creer `pkg/cmd/client/ebics_initializations.go`
+- [x] Creer `pkg/cmd/client/ebics_rtn.go`
 
 ## 9. Import / export / administration transverse
 
@@ -142,5 +142,9 @@ Regles:
 - Verification: `Phase E` validee avec `golangci-lint run ./pkg/model ./pkg/protocols/... ./pkg/admin/rest/api ./pkg/cmd/client`
 - Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...`, `./pkg/admin/rest/api`
   et `./pkg/cmd/client` passent apres la passe linter de la `Phase E`
+- Verification: socle REST EBICS valide avec `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
+- Verification: `go test ./pkg/admin/rest` et `./pkg/admin/rest/api` passent apres la passe linter REST
+- Verification: CLI EBICS validee avec `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
+- Verification: `go test ./pkg/cmd/client` et `./cmd/waarp-gateway` passent apres la passe linter CLI
 - Decision: la protection des `Credential` references par un lifecycle actif est posee directement dans
   `pkg/model/credentials.go` pour couvrir uniformement REST, GUI et CLI

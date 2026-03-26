@@ -81,11 +81,17 @@ Note:
 
 ## 3. Jalons transverses
 
-- [ ] REST EBICS minimal exploitable
+- [x] REST EBICS minimal exploitable
 - [x] CLI EBICS minimale exploitable
 - [x] Import/export/updateconf coherents pour le socle `ProtoConfig` de la Phase A
 - [x] Documentation de dev a jour
 - [x] Dossier EBICS toujours coherent avec les specs
+
+Note:
+- socle REST pose pour `payload profiles`, `contract views`, `operations`, `transactions`,
+  `payloads`, `key lifecycles`, `initializations` et `RTN`
+- arbre CLI `ebics` branche dans `cmd/waarp-gateway/main.go` avec `operation`, `payload`,
+  `contract-view`, `key-lifecycle`, `initialization` et `rtn`
 
 ## 4. GO Implementation
 

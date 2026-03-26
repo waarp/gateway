@@ -45,6 +45,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router) {
 	makeSNMPHandlers(mkHandler)
 	makeKeysHandlers(mkHandler)
 	makeEmailHanddlers(mkHandler)
+	makeEbicsHandlers(mkHandler)
 
 	if conf.LocalOverrides != nil {
 		makeOverrideHandlers(mkHandler)
@@ -372,4 +373,75 @@ func makeEmailHanddlers(mkHandler HandlerFactory) {
 	mkHandler(smtpCredentialPath, getSMTPCredential, model.PermRulesRead, http.MethodGet)
 	mkHandler(smtpCredentialPath, updateSMTPCredential, model.PermRulesWrite, http.MethodPatch)
 	mkHandler(smtpCredentialPath, deleteSMTPCredential, model.PermRulesDelete, http.MethodDelete)
+}
+
+func makeEbicsHandlers(mkHandler HandlerFactory) {
+	const (
+		payloadBTUUploadPath     = "/ebics/payloads/{order_type:btu|ful}/upload"
+		payloadBTDDownloadPath   = "/ebics/payloads/{order_type:btd|fdl}/download"
+		payloadsPath             = "/ebics/payloads"
+		payloadPath              = "/ebics/payloads/{ebics_operation}"
+		payloadRetryPath         = "/ebics/payloads/{ebics_operation}/retry"
+		payloadRecoverPath       = "/ebics/payloads/{ebics_operation}/recover"
+		payloadProfilesPath      = "/ebics/payload-profiles"
+		payloadProfilePath       = "/ebics/payload-profiles/{payload_profile}"
+		contractViewsPath        = "/ebics/contract-views"
+		contractViewPath         = "/ebics/contract-views/{contract_view}"
+		operationsPath           = "/ebics/operations"
+		operationPath            = "/ebics/operations/{ebics_operation}"
+		transactionsPath         = "/ebics/transactions"
+		transactionPath          = "/ebics/transactions/{ebics_transaction}"
+		keyLifecyclesPath        = "/ebics/key-lifecycles"
+		keyLifecyclePath         = "/ebics/key-lifecycles/{ebics_key_lifecycle}"
+		keyLifecycleActionPath   = "/ebics/key-lifecycles/{ebics_key_lifecycle}/actions"
+		initializationsPath      = "/ebics/initializations"
+		initializationPath       = "/ebics/initializations/{ebics_initialization}"
+		initializationActionPath = "/ebics/initializations/{ebics_initialization}/actions"
+		rtnEventsPath            = "/ebics/rtn/events"
+		rtnEventPath             = "/ebics/rtn/events/{ebics_rtn_event}"
+		rtnEventActionPath       = "/ebics/rtn/events/{ebics_rtn_event}/actions"
+		rtnProvidersPath         = "/ebics/rtn/providers"
+		rtnProviderPath          = "/ebics/rtn/providers/{ebics_rtn_provider}"
+	)
+
+	mkHandler(payloadBTUUploadPath, submitEbicsPayload, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(payloadBTDDownloadPath, submitEbicsPayload, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(payloadsPath, listEbicsPayloads, model.PermTransfersRead, http.MethodGet)
+	mkHandler(payloadPath, getEbicsPayload, model.PermTransfersRead, http.MethodGet)
+	mkHandler(payloadRetryPath, retryEbicsPayload, model.PermTransfersWrite, http.MethodPut)
+	mkHandler(payloadRecoverPath, recoverEbicsPayload, model.PermTransfersWrite, http.MethodPut)
+
+	mkHandler(payloadProfilesPath, listEbicsPayloadProfiles, model.PermAdminRead, http.MethodGet)
+	mkHandler(payloadProfilesPath, addEbicsPayloadProfile, model.PermAdminWrite, http.MethodPost)
+	mkHandler(payloadProfilePath, getEbicsPayloadProfile, model.PermAdminRead, http.MethodGet)
+	mkHandler(payloadProfilePath, updateEbicsPayloadProfile, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(payloadProfilePath, replaceEbicsPayloadProfile, model.PermAdminWrite, http.MethodPut)
+	mkHandler(payloadProfilePath, deleteEbicsPayloadProfile, model.PermAdminDelete, http.MethodDelete)
+
+	mkHandler(contractViewsPath, listEbicsContractViews, model.PermAdminRead, http.MethodGet)
+	mkHandler(contractViewPath, getEbicsContractView, model.PermAdminRead, http.MethodGet)
+
+	mkHandler(operationsPath, listEbicsOperations, model.PermTransfersRead, http.MethodGet)
+	mkHandler(operationPath, getEbicsOperation, model.PermTransfersRead, http.MethodGet)
+
+	mkHandler(transactionsPath, listEbicsTransactions, model.PermTransfersRead, http.MethodGet)
+	mkHandler(transactionPath, getEbicsTransaction, model.PermTransfersRead, http.MethodGet)
+
+	mkHandler(keyLifecyclesPath, listEbicsKeyLifecycles, model.PermTransfersRead, http.MethodGet)
+	mkHandler(keyLifecyclePath, getEbicsKeyLifecycle, model.PermTransfersRead, http.MethodGet)
+	mkHandler(keyLifecycleActionPath, actOnEbicsKeyLifecycle, model.PermTransfersWrite, http.MethodPut)
+
+	mkHandler(initializationsPath, listEbicsInitializations, model.PermTransfersRead, http.MethodGet)
+	mkHandler(initializationPath, getEbicsInitialization, model.PermTransfersRead, http.MethodGet)
+	mkHandler(initializationActionPath, actOnEbicsInitialization, model.PermTransfersWrite, http.MethodPut)
+
+	mkHandler(rtnEventsPath, listEbicsRTNEvents, model.PermTransfersRead, http.MethodGet)
+	mkHandler(rtnEventPath, getEbicsRTNEvent, model.PermTransfersRead, http.MethodGet)
+	mkHandler(rtnEventActionPath, actOnEbicsRTNEvent, model.PermTransfersWrite, http.MethodPut)
+	mkHandler(rtnProvidersPath, listEbicsRTNProviders, model.PermAdminRead, http.MethodGet)
+	mkHandler(rtnProvidersPath, addEbicsRTNProvider, model.PermAdminWrite, http.MethodPost)
+	mkHandler(rtnProviderPath, getEbicsRTNProvider, model.PermAdminRead, http.MethodGet)
+	mkHandler(rtnProviderPath, updateEbicsRTNProvider, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(rtnProviderPath, replaceEbicsRTNProvider, model.PermAdminWrite, http.MethodPut)
+	mkHandler(rtnProviderPath, deleteEbicsRTNProvider, model.PermAdminDelete, http.MethodDelete)
 }

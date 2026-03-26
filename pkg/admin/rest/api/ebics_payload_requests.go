@@ -49,3 +49,9 @@ type OutEbicsPayloadSubmission struct {
 	ContractViewID         *int64  `json:"contractViewID,omitempty" yaml:"contractViewID,omitempty"`
 	MatchedContractItemIDs []int64 `json:"matchedContractItemIDs,omitempty" yaml:"matchedContractItemIDs,omitempty"`
 }
+
+// InEbicsPayloadAction defines an operator action on a payload-bound EBICS operation.
+type InEbicsPayloadAction struct {
+	Reason   string         `json:"reason,omitempty" yaml:"reason,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
