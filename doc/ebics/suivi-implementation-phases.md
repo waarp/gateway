@@ -54,13 +54,16 @@ Note:
 
 ## Phase D - Workflows sensibles
 
-- [ ] `EbicsKeyLifecycle` pose
-- [ ] `EbicsInitializationWorkflow` pose
-- [ ] `signatureState` centralise
-- [ ] Transitions runners bornees
-- [ ] Protection des `Credential` references
+- [x] `EbicsKeyLifecycle` pose
+- [x] `EbicsInitializationWorkflow` pose
+- [x] `signatureState` centralise
+- [x] Transitions runners bornees
+- [x] Protection des `Credential` references
 
 Note:
+- DTO REST `key lifecycles` et `initializations` poses
+- protection des suppressions/modifications sensibles de `Credential` posee au niveau model
+- linter et compilations ciblees valides sur `pkg/model`, `pkg/protocols/modules/ebics/...` et `pkg/admin/rest/api`
 
 ## Phase E - RTN
 

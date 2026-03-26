@@ -73,7 +73,26 @@ func (c *Credential) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("the authentication method cannot have multiple targets")
 	}
 
+	if err := c.checkProtectedMutation(db); err != nil {
+		return err
+	}
+
 	return c.validate(db)
+}
+
+// BeforeDelete checks whether the credential can be safely deleted.
+func (c *Credential) BeforeDelete(db database.Access) error {
+	protected, err := isCredentialReferencedByActiveEbicsLifecycle(db, c.ID)
+	if err != nil {
+		return err
+	}
+
+	if protected {
+		return database.NewValidationError(
+			"this credential is referenced by an active EBICS key lifecycle and cannot be deleted")
+	}
+
+	return nil
 }
 
 func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentication.Handler, error) {
@@ -174,6 +193,67 @@ func (c *Credential) validate(db database.ReadAccess) error {
 	}
 
 	return nil
+}
+
+func (c *Credential) checkProtectedMutation(db database.Access) error {
+	if c.ID == 0 {
+		return nil
+	}
+
+	var existing Credential
+	if err := db.Get(&existing, "id=?", c.ID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil
+		}
+
+		return fmt.Errorf("failed to retrieve the existing credential: %w", err)
+	}
+
+	if !isProtectedCredentialMutation(&existing, c) {
+		return nil
+	}
+
+	protected, err := isCredentialReferencedByActiveEbicsLifecycle(db, c.ID)
+	if err != nil {
+		return err
+	}
+
+	if protected {
+		return database.NewValidationError(
+			"this credential is referenced by an active EBICS key lifecycle and its protected material cannot be modified")
+	}
+
+	return nil
+}
+
+func isProtectedCredentialMutation(current, next *Credential) bool {
+	return current.Type != next.Type ||
+		current.Value != next.Value ||
+		current.Value2 != next.Value2 ||
+		current.LocalAgentID != next.LocalAgentID ||
+		current.RemoteAgentID != next.RemoteAgentID ||
+		current.LocalAccountID != next.LocalAccountID ||
+		current.RemoteAccountID != next.RemoteAccountID
+}
+
+func isCredentialReferencedByActiveEbicsLifecycle(db database.Access, credentialID int64) (bool, error) {
+	if credentialID == 0 {
+		return false, nil
+	}
+
+	count, err := db.Count(&EbicsKeyLifecycle{}).Where(
+		"(current_credential_id=? OR next_credential_id=?) AND status NOT IN (?, ?, ?)",
+		credentialID,
+		credentialID,
+		ebicsKeyLifecycleStatusRetired,
+		ebicsKeyLifecycleStatusCancelled,
+		ebicsKeyLifecycleStatusRejected,
+	).Run()
+	if err != nil {
+		return false, fmt.Errorf("failed to check active EBICS key lifecycle references: %w", err)
+	}
+
+	return count != 0, nil
 }
 
 func (c *Credential) AfterInsert(db database.Access) error {

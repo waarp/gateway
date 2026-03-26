@@ -60,15 +60,15 @@ Regles:
 
 ## 5. Workflows sensibles Phase D
 
-- [ ] Ajouter les constantes lifecycle/init dans `table_names.go`
-- [ ] Ajouter les appellations correspondantes dans `display_names.go`
-- [ ] Creer `pkg/model/ebics_key_lifecycle.go`
-- [ ] Creer `pkg/model/ebics_initialization_workflow.go`
-- [ ] Creer `pkg/protocols/modules/ebics/runtime/key_lifecycle_runner.go`
-- [ ] Creer `pkg/protocols/modules/ebics/runtime/initialization_runner.go`
-- [ ] Creer `pkg/protocols/modules/ebics/runtime/signature_state.go`
-- [ ] Creer `pkg/admin/rest/api/ebics_key_lifecycles.go`
-- [ ] Creer `pkg/admin/rest/api/ebics_initializations.go`
+- [x] Ajouter les constantes lifecycle/init dans `table_names.go`
+- [x] Ajouter les appellations correspondantes dans `display_names.go`
+- [x] Creer `pkg/model/ebics_key_lifecycle.go`
+- [x] Creer `pkg/model/ebics_initialization_workflow.go`
+- [x] Creer `pkg/protocols/modules/ebics/runtime/key_lifecycle_runner.go`
+- [x] Creer `pkg/protocols/modules/ebics/runtime/initialization_runner.go`
+- [x] Creer `pkg/protocols/modules/ebics/runtime/signature_state.go`
+- [x] Creer `pkg/admin/rest/api/ebics_key_lifecycles.go`
+- [x] Creer `pkg/admin/rest/api/ebics_initializations.go`
 
 ## 6. RTN Phase E
 
@@ -136,3 +136,8 @@ Regles:
 - Verification: `Phase C` validee avec `golangci-lint run ./pkg/model ./pkg/protocols/... ./pkg/admin/rest/api`
 - Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...` et `./pkg/admin/rest/api`
   passent apres la passe linter de la `Phase C`
+- Verification: `Phase D` validee avec `golangci-lint run ./pkg/model ./pkg/protocols/... ./pkg/admin/rest/api`
+- Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...` et `./pkg/admin/rest/api`
+  passent apres la passe linter de la `Phase D`
+- Decision: la protection des `Credential` references par un lifecycle actif est posee directement dans
+  `pkg/model/credentials.go` pour couvrir uniformement REST, GUI et CLI

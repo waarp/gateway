@@ -5,6 +5,7 @@ type OutEbicsOperation struct {
 	ID                     int64          `json:"id" yaml:"id"`
 	OperationType          string         `json:"operationType" yaml:"operationType"`
 	OrderType              string         `json:"orderType" yaml:"orderType"`
+	SignatureState         string         `json:"signatureState,omitempty" yaml:"signatureState,omitempty"`
 	Direction              string         `json:"direction" yaml:"direction"`
 	TransportMode          string         `json:"transportMode" yaml:"transportMode"`
 	Status                 string         `json:"status" yaml:"status"`
