@@ -147,7 +147,7 @@ func (c *partnerConfig) ValidPartner() error {
 
 func validateProtocolVersion(version string) error {
 	switch strings.ToUpper(strings.TrimSpace(version)) {
-	case protocolVersionH004, protocolVersionH005:
+	case protocolVersionH005:
 		return nil
 	case "":
 		return database.NewValidationError("protocolVersion is missing")

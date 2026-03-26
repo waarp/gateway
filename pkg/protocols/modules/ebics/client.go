@@ -2,7 +2,12 @@ package ebics
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/url"
+	"time"
+
+	libebicsclient "code.waarp.fr/lib/ebics/ebics/client"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
@@ -14,12 +19,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+var errMissingEndpointServerName = errors.New("endpointURL does not contain a server name")
+
 type Client struct {
-	db     *database.DB
-	logger *log.Logger
-	client *model.Client
-	config *clientConfig
-	state  utils.State
+	db      *database.DB
+	logger  *log.Logger
+	client  *model.Client
+	config  *clientConfig
+	profile *libebicsclient.ProductionProfile
+	state   utils.State
 }
 
 func NewClient(db *database.DB, dbClient *model.Client) *Client {
@@ -48,8 +56,17 @@ func (c *Client) Start() error {
 	}
 
 	c.config = cfg
+	profile, err := c.newLibraryProfile(cfg)
+	if err != nil {
+		err = wrapConfigError(err)
+		c.state.Set(utils.StateError, err.Error())
+
+		return err
+	}
+
+	c.profile = profile
 	c.state.Set(utils.StateRunning, "")
-	c.logger.Info("EBICS client bootstrap completed")
+	c.logger.Info("EBICS client bootstrap completed with lib-ebics production profile")
 
 	return nil
 }
@@ -59,6 +76,7 @@ func (c *Client) Stop(ctx context.Context) error {
 		return utils.ErrNotRunning
 	}
 	_ = ctx
+	c.profile = nil
 	c.state.Set(utils.StateOffline, "")
 
 	return nil
@@ -74,4 +92,33 @@ func (c *Client) InitTransfer(_ *pipeline.Pipeline) (protocol.TransferClient, *p
 		"EBICS transfer bootstrap is not implemented yet",
 		fmt.Errorf("%w", ErrNotImplemented),
 	)
+}
+
+func (c *Client) newLibraryProfile(cfg *clientConfig) (*libebicsclient.ProductionProfile, error) {
+	parsedURL, err := url.Parse(cfg.EndpointURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse endpointURL for lib-ebics bootstrap: %w", err)
+	}
+
+	serverName := parsedURL.Hostname()
+	if serverName == "" {
+		return nil, fmt.Errorf("%w: %q", errMissingEndpointServerName, cfg.EndpointURL)
+	}
+
+	profile, err := libebicsclient.NewProductionProfile(
+		libebicsclient.ProductionHTTPClientRequired{
+			ServerName: serverName,
+		},
+		libebicsclient.ProductionHTTPClientOptional{
+			MinTLSVersion:  cfg.MinTLSVersion.TLS(),
+			RequestTimeout: time.Duration(cfg.RequestTimeout) * time.Second,
+		},
+		libebicsclient.ProductionRetryPolicyOptional{},
+		libebicsclient.ProductionRecoveryOptional{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("initialize lib-ebics production profile: %w", err)
+	}
+
+	return profile, nil
 }

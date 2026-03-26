@@ -56,26 +56,33 @@ func displayClient(w io.Writer, client *api.OutClient) error {
 
 //nolint:lll,tagliatelle // struct tags for command line arguments can be long
 type ClientAdd struct {
-	Name                 string             `required:"yes" short:"n" long:"name" description:"The client's name" json:"name,omitempty"`
-	Protocol             string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
-	LocalAddress         string             `short:"a" long:"local-address" description:"The client's local address [address:port]" json:"localAddress,omitempty"`
-	ProtoConfig          map[string]confVal `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
-	NbOfAttempts         int8               `long:"nb-of-attempts" description:"The number of times a transfer will be automatically re-tried in case of failure" json:"nbOfAttempts,omitempty"`
-	FirstRetryDelay      time.Duration      `long:"first-retry-delay" description:"The delay (in seconds) between the original attempt and the first automatic retry" json:"-"`
-	FirstRetryDelaySec   int32              `json:"firstRetryDelay,omitempty"`
-	RetryIncrementFactor float32            `long:"retry-increment-factor" description:"The factor by which the delay will be multiplied between each attempt of a transfer" json:"retryIncrementFactor,omitempty"`
+	Name                 string                     `required:"yes" short:"n" long:"name" description:"The client's name" json:"name,omitempty"`
+	Protocol             string                     `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
+	LocalAddress         string                     `short:"a" long:"local-address" description:"The client's local address [address:port]" json:"localAddress,omitempty"`
+	ProtoConfig          map[string]confVal         `short:"c" long:"config" description:"The client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	NbOfAttempts         int8                       `long:"nb-of-attempts" description:"The number of times a transfer will be automatically re-tried in case of failure" json:"nbOfAttempts,omitempty"`
+	FirstRetryDelay      time.Duration              `long:"first-retry-delay" description:"The delay (in seconds) between the original attempt and the first automatic retry" json:"-"`
+	FirstRetryDelaySec   int32                      `json:"firstRetryDelay,omitempty"`
+	RetryIncrementFactor float32                    `long:"retry-increment-factor" description:"The factor by which the delay will be multiplied between each attempt of a transfer" json:"retryIncrementFactor,omitempty"`
+	EBICS                ebicsClientProtoConfigArgs `group:"EBICS Options" json:"-"`
 }
 
 func (c *ClientAdd) Execute([]string) error { return execute(c) }
 func (c *ClientAdd) execute(w io.Writer) error {
 	addr.Path = "/api/clients"
 
+	protoConfig, err := c.EBICS.apply(c.Protocol, c.ProtoConfig, true)
+	if err != nil {
+		return err
+	}
+	c.ProtoConfig = protoConfig
+
 	if c.FirstRetryDelay != 0 {
 		c.FirstRetryDelaySec = int32(c.FirstRetryDelay.Seconds())
 	}
 
-	if _, err := add(w, c); err != nil {
-		return err
+	if _, addErr := add(w, c); addErr != nil {
+		return addErr
 	}
 
 	fmt.Fprintf(w, "The client %q was successfully added.\n", c.Name)
@@ -141,19 +148,33 @@ type ClientUpdate struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The old client's name"`
 	} `positional-args:"yes" json:"-"`
 
-	Name                 *string             `short:"n" long:"name" description:"The new client's name" json:"name,omitempty"`
-	Protocol             *string             `short:"p" long:"protocol" description:"The new partner's protocol" json:"protocol,omitempty"`
-	LocalAddress         *string             `short:"a" long:"local-address" description:"The new client's local address [address:port]" json:"localAddress,omitempty"`
-	ProtoConfig          *map[string]confVal `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
-	NbOfAttempts         *int8               `long:"nb-of-attempts" description:"The number of times a transfer will be automatically re-tried in case of failure" json:"nbOfAttempts,omitempty"`
-	FirstRetryDelayDur   time.Duration       `long:"first-retry-delay-dur" description:"The delay (in seconds) between the original attempt and the first automatic retry" json:"-"`
-	FirstRetryDelay      int32               `json:"firstRetryDelay,omitempty"`
-	RetryIncrementFactor *float32            `long:"retry-increment-factor" description:"The factor by which the delay will be multiplied between each attempt of a transfer" json:"retryIncrementFactor,omitempty"`
+	Name                 *string                    `short:"n" long:"name" description:"The new client's name" json:"name,omitempty"`
+	Protocol             *string                    `short:"p" long:"protocol" description:"The new partner's protocol" json:"protocol,omitempty"`
+	LocalAddress         *string                    `short:"a" long:"local-address" description:"The new client's local address [address:port]" json:"localAddress,omitempty"`
+	ProtoConfig          *map[string]confVal        `short:"c" long:"config" description:"The new client's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	NbOfAttempts         *int8                      `long:"nb-of-attempts" description:"The number of times a transfer will be automatically re-tried in case of failure" json:"nbOfAttempts,omitempty"`
+	FirstRetryDelayDur   time.Duration              `long:"first-retry-delay-dur" description:"The delay (in seconds) between the original attempt and the first automatic retry" json:"-"`
+	FirstRetryDelay      int32                      `json:"firstRetryDelay,omitempty"`
+	RetryIncrementFactor *float32                   `long:"retry-increment-factor" description:"The factor by which the delay will be multiplied between each attempt of a transfer" json:"retryIncrementFactor,omitempty"`
+	EBICS                ebicsClientProtoConfigArgs `group:"EBICS Options" json:"-"`
 }
 
 func (c *ClientUpdate) Execute([]string) error { return execute(c) }
 func (c *ClientUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/clients", c.Args.Name)
+
+	if c.EBICS.hasValues() {
+		var currentProtoConfig map[string]confVal
+		if c.ProtoConfig != nil {
+			currentProtoConfig = *c.ProtoConfig
+		}
+
+		protoConfig, err := c.EBICS.apply(valueOrEmpty(c.Protocol), currentProtoConfig, false)
+		if err != nil {
+			return err
+		}
+		c.ProtoConfig = &protoConfig
+	}
 
 	if c.FirstRetryDelayDur != 0 {
 		c.FirstRetryDelay = int32(c.FirstRetryDelayDur.Seconds())

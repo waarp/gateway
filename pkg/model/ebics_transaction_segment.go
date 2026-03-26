@@ -145,3 +145,13 @@ func validateEbicsSegmentStatus(value string) error {
 		return database.NewValidationErrorf("%q is not a supported EBICS segment status", value)
 	}
 }
+
+// EbicsTransactionSegmentStatusStoredForRuntime exposes the stored segment status.
+func EbicsTransactionSegmentStatusStoredForRuntime() string {
+	return ebicsSegmentStatusStored
+}
+
+// EbicsTransactionSegmentStatusCompletedForRuntime exposes the completed segment status.
+func EbicsTransactionSegmentStatusCompletedForRuntime() string {
+	return ebicsSegmentStatusCompleted
+}

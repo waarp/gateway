@@ -188,3 +188,8 @@ func validateEbicsTransactionCounters(t *EbicsTransaction) error {
 
 	return nil
 }
+
+// EbicsTransactionStatusCompletedForRuntime exposes the completed transaction status.
+func EbicsTransactionStatusCompletedForRuntime() string {
+	return ebicsTransactionStatusCompleted
+}

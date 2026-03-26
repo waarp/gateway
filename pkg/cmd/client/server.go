@@ -108,10 +108,11 @@ type ServerAdd struct {
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 
 	// Deprecated options
-	Root    string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
-	InDir   string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
-	OutDir  string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
-	WorkDir string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
+	Root    string                     `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
+	InDir   string                     `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
+	OutDir  string                     `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
+	WorkDir string                     `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
+	EBICS   ebicsServerProtoConfigArgs `group:"EBICS Options" json:"-"`
 }
 
 func (s *ServerAdd) Execute([]string) error { return execute(s) }
@@ -134,8 +135,14 @@ func (s *ServerAdd) execute(w io.Writer) error {
 
 	addr.Path = "/api/servers"
 
-	if _, err := add(w, s); err != nil {
+	protoConfig, err := s.EBICS.apply(s.Protocol, s.ProtoConfig, true)
+	if err != nil {
 		return err
+	}
+	s.ProtoConfig = protoConfig
+
+	if _, addErr := add(w, s); addErr != nil {
+		return addErr
 	}
 
 	fmt.Fprintf(w, "The server %q was successfully added.\n", s.Name)
@@ -212,10 +219,11 @@ type ServerUpdate struct {
 	ProtoConfig *map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON" json:"protoConfig,omitempty"`
 
 	// Deprecated options
-	Root    *string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
-	InDir   *string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
-	OutDir  *string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
-	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
+	Root    *string                    `short:"r" long:"root" description:"[DEPRECATED] The server's root directory" json:"root,omitempty"`
+	InDir   *string                    `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory" json:"inDir,omitempty"`
+	OutDir  *string                    `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory" json:"outDir,omitempty"`
+	WorkDir *string                    `short:"w" long:"work" description:"[DEPRECATED] The server's work directory" json:"workDir,omitempty"`
+	EBICS   ebicsServerProtoConfigArgs `group:"EBICS Options" json:"-"`
 }
 
 func (s *ServerUpdate) Execute([]string) error { return execute(s) }
@@ -237,6 +245,19 @@ func (s *ServerUpdate) execute(w io.Writer) error {
 	}
 
 	addr.Path = path.Join("/api/servers", s.Args.Name)
+
+	if s.EBICS.hasValues() {
+		var currentProtoConfig map[string]confVal
+		if s.ProtoConfig != nil {
+			currentProtoConfig = *s.ProtoConfig
+		}
+
+		protoConfig, err := s.EBICS.apply(valueOrEmpty(s.Protocol), currentProtoConfig, false)
+		if err != nil {
+			return err
+		}
+		s.ProtoConfig = &protoConfig
+	}
 
 	if err := update(w, s); err != nil {
 		return err

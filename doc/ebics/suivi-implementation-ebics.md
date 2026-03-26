@@ -146,5 +146,8 @@ Regles:
 - Verification: `go test ./pkg/admin/rest` et `./pkg/admin/rest/api` passent apres la passe linter REST
 - Verification: CLI EBICS validee avec `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
 - Verification: `go test ./pkg/cmd/client` et `./cmd/waarp-gateway` passent apres la passe linter CLI
+- Verification: integration `lib-ebics` Gateway validee avec `golangci-lint run ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/cmd/client ./cmd/waarp-gateway`
+- Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...`, `./pkg/cmd/client` et `./cmd/waarp-gateway`
+  passent apres suppression du `replace` local et bascule sur `code.waarp.fr/lib/ebics@v0.0.0-20260326163504-771a9550a5be`
 - Decision: la protection des `Credential` references par un lifecycle actif est posee directement dans
   `pkg/model/credentials.go` pour couvrir uniformement REST, GUI et CLI

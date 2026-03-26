@@ -316,3 +316,18 @@ func isActiveEbicsKeyLifecycleStatus(status string) bool {
 		return true
 	}
 }
+
+// EbicsKeyUsageAuthenticationForRuntime exposes the authentication key usage to runtime packages.
+func EbicsKeyUsageAuthenticationForRuntime() string {
+	return ebicsKeyUsageAuthentication
+}
+
+// EbicsKeyUsageEncryptionForRuntime exposes the encryption key usage to runtime packages.
+func EbicsKeyUsageEncryptionForRuntime() string {
+	return ebicsKeyUsageEncryption
+}
+
+// EbicsKeyUsageSignatureForRuntime exposes the signature key usage to runtime packages.
+func EbicsKeyUsageSignatureForRuntime() string {
+	return ebicsKeyUsageSignature
+}

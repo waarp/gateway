@@ -24,6 +24,7 @@ Note:
 - socle code pose et compilation ciblee validee sur `pkg/model`, `pkg/protocols` et `pkg/protocols/modules/ebics`
 - `updateconf` s'appuie deja sur le transport generique `ProtoConfig` de `pkg/backup`
 - `golangci-lint` realigne sur `go1.26.1`, puis passe avant la compilation ciblee
+- dependance `lib-ebics` publiee puis referencee sans `replace` local, avec bootstrap client et provider store Gateway valides
 
 ## Phase B - Payload profiles + contract view
 

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"fmt"
 	"net/url"
 	"strings"
@@ -10,6 +11,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
+const (
+	ebicsSubscriberAccountRoleServer = "SERVER"
+	ebicsSubscriberAccountRoleClient = "CLIENT"
+)
+
+// EbicsSubscriber represents one EBICS technical subscriber known by Gateway.
 type EbicsSubscriber struct {
 	ID    int64  `xorm:"<- id AUTOINCR"`
 	Owner string `xorm:"owner"`
@@ -21,6 +28,10 @@ type EbicsSubscriber struct {
 	UserID    string `xorm:"user_id"`
 	SystemID  string `xorm:"system_id"`
 
+	LocalAccountID  sql.NullInt64 `xorm:"local_account_id"`
+	RemoteAccountID sql.NullInt64 `xorm:"remote_account_id"`
+	AccountRole     string        `xorm:"account_role"`
+
 	TransportURL             string `xorm:"transport_url"`
 	Enabled                  bool   `xorm:"enabled"`
 	DefaultOrderDataEncoding string `xorm:"default_order_data_encoding"`
@@ -29,16 +40,23 @@ type EbicsSubscriber struct {
 	UpdatedAt time.Time `xorm:"updated_at UPDATED DATETIME(6) UTC"`
 }
 
-func (*EbicsSubscriber) TableName() string   { return TableEbicsSubscribers }
-func (*EbicsSubscriber) Appellation() string { return NameEbicsSubscriber }
-func (s *EbicsSubscriber) GetID() int64      { return s.ID }
+// TableName returns the table name used by XORM.
+func (*EbicsSubscriber) TableName() string { return TableEbicsSubscribers }
 
+// Appellation returns the display name used in validation errors.
+func (*EbicsSubscriber) Appellation() string { return NameEbicsSubscriber }
+
+// GetID returns the database identifier.
+func (s *EbicsSubscriber) GetID() int64 { return s.ID }
+
+// BeforeWrite normalizes and validates the EBICS subscriber before persistence.
 func (s *EbicsSubscriber) BeforeWrite(db database.Access) error {
 	s.Owner = conf.GlobalConfig.GatewayName
 	s.Name = strings.TrimSpace(s.Name)
 	s.PartnerID = strings.TrimSpace(s.PartnerID)
 	s.UserID = strings.TrimSpace(s.UserID)
 	s.SystemID = strings.TrimSpace(s.SystemID)
+	s.AccountRole = strings.ToUpper(strings.TrimSpace(s.AccountRole))
 	s.TransportURL = strings.TrimSpace(s.TransportURL)
 	s.DefaultOrderDataEncoding = strings.TrimSpace(s.DefaultOrderDataEncoding)
 
@@ -56,6 +74,20 @@ func (s *EbicsSubscriber) BeforeWrite(db database.Access) error {
 
 	if s.Name == "" {
 		s.Name = s.PartnerID + ":" + s.UserID
+	}
+
+	switch {
+	case s.LocalAccountID.Valid && s.RemoteAccountID.Valid:
+		return database.NewValidationError(
+			"an EBICS subscriber cannot reference both a local and a remote account")
+	case s.LocalAccountID.Valid && s.AccountRole == "":
+		s.AccountRole = ebicsSubscriberAccountRoleServer
+	case s.RemoteAccountID.Valid && s.AccountRole == "":
+		s.AccountRole = ebicsSubscriberAccountRoleClient
+	}
+
+	if err := validateEbicsSubscriberAccountBinding(db, s); err != nil {
+		return err
 	}
 
 	if s.TransportURL != "" {
@@ -87,6 +119,49 @@ func (s *EbicsSubscriber) BeforeWrite(db database.Access) error {
 		return fmt.Errorf("failed to check duplicate EBICS subscribers by name: %w", err)
 	} else if n != 0 {
 		return database.NewValidationErrorf("an EBICS subscriber named %q already exists", s.Name)
+	}
+
+	return nil
+}
+
+func validateEbicsSubscriberAccountBinding(db database.Access, subscriber *EbicsSubscriber) error {
+	switch subscriber.AccountRole {
+	case "", ebicsSubscriberAccountRoleServer, ebicsSubscriberAccountRoleClient:
+	default:
+		return database.NewValidationErrorf("%q is not a supported EBICS subscriber account role",
+			subscriber.AccountRole)
+	}
+
+	if subscriber.LocalAccountID.Valid {
+		if err := db.Get(&LocalAccount{}, "id=?", subscriber.LocalAccountID.Int64).Run(); err != nil {
+			if database.IsNotFound(err) {
+				return database.NewValidationErrorf("the local account %d does not exist",
+					subscriber.LocalAccountID.Int64)
+			}
+
+			return fmt.Errorf("failed to retrieve local account: %w", err)
+		}
+
+		if subscriber.AccountRole == ebicsSubscriberAccountRoleClient {
+			return database.NewValidationError(
+				"an EBICS subscriber referencing a local account cannot use the CLIENT role")
+		}
+	}
+
+	if subscriber.RemoteAccountID.Valid {
+		if err := db.Get(&RemoteAccount{}, "id=?", subscriber.RemoteAccountID.Int64).Run(); err != nil {
+			if database.IsNotFound(err) {
+				return database.NewValidationErrorf("the remote account %d does not exist",
+					subscriber.RemoteAccountID.Int64)
+			}
+
+			return fmt.Errorf("failed to retrieve remote account: %w", err)
+		}
+
+		if subscriber.AccountRole == ebicsSubscriberAccountRoleServer {
+			return database.NewValidationError(
+				"an EBICS subscriber referencing a remote account cannot use the SERVER role")
+		}
 	}
 
 	return nil

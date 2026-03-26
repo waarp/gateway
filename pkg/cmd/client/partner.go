@@ -47,18 +47,25 @@ func displayPartner(w io.Writer, partner *api.OutPartner) error {
 
 //nolint:lll // struct tags for command line arguments can be long
 type PartnerAdd struct {
-	Name        string             `required:"yes" short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
-	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
-	Address     string             `required:"yes" short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	Name        string                      `required:"yes" short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
+	Protocol    string                      `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
+	Address     string                      `required:"yes" short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
+	ProtoConfig map[string]confVal          `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	EBICS       ebicsPartnerProtoConfigArgs `group:"EBICS Options" json:"-"`
 }
 
 func (p *PartnerAdd) Execute([]string) error { return execute(p) }
 func (p *PartnerAdd) execute(w io.Writer) error {
 	addr.Path = "/api/partners"
 
-	if _, err := add(w, p); err != nil {
+	protoConfig, err := p.EBICS.apply(p.Protocol, p.ProtoConfig, true)
+	if err != nil {
 		return err
+	}
+	p.ProtoConfig = protoConfig
+
+	if _, addErr := add(w, p); addErr != nil {
+		return addErr
 	}
 
 	fmt.Fprintf(w, "The partner %q was successfully added.\n", p.Name)
@@ -147,15 +154,29 @@ type PartnerUpdate struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes" json:"-"`
 
-	Name        *string             `short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
-	Protocol    *string             `short:"p" long:"protocol" description:"The partner's protocol'" json:"protocol,omitempty"`
-	Address     *string             `short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
-	ProtoConfig *map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	Name        *string                     `short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
+	Protocol    *string                     `short:"p" long:"protocol" description:"The partner's protocol'" json:"protocol,omitempty"`
+	Address     *string                     `short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
+	ProtoConfig *map[string]confVal         `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
+	EBICS       ebicsPartnerProtoConfigArgs `group:"EBICS Options" json:"-"`
 }
 
 func (p *PartnerUpdate) Execute([]string) error { return execute(p) }
 func (p *PartnerUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/partners", p.Args.Name)
+
+	if p.EBICS.hasValues() {
+		var currentProtoConfig map[string]confVal
+		if p.ProtoConfig != nil {
+			currentProtoConfig = *p.ProtoConfig
+		}
+
+		protoConfig, err := p.EBICS.apply(valueOrEmpty(p.Protocol), currentProtoConfig, false)
+		if err != nil {
+			return err
+		}
+		p.ProtoConfig = &protoConfig
+	}
 
 	if err := update(w, p); err != nil {
 		return err
