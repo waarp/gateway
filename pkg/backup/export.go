@@ -73,6 +73,13 @@ func ExportData(db database.ReadAccess, w *os.File, targets []string) error {
 		}
 	}
 
+	if utils.ContainsOneOf(targets, "ebics", "all") {
+		data.EbicsPayloadProfiles, expErr = exportEbicsPayloadProfiles(logger, db)
+		if expErr != nil {
+			return expErr
+		}
+	}
+
 	if utils.ContainsOneOf(targets, "users", "all") {
 		data.Users, expErr = exportUsers(logger, db)
 		if expErr != nil {

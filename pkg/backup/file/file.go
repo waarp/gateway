@@ -10,16 +10,18 @@ import (
 
 // Data is the top-level structure of the dump file.
 type Data struct {
-	Locals      []LocalAgent  `json:"locals,omitempty" yaml:"locals,omitempty"`
-	Clients     []Client      `json:"clients,omitempty" yaml:"clients,omitempty"`
-	Remotes     []RemoteAgent `json:"remotes,omitempty" yaml:"remotes,omitempty"`
-	Rules       []Rule        `json:"rules,omitempty" yaml:"rules,omitempty"`
-	Users       []User        `json:"users,omitempty" yaml:"users,omitempty"`
-	Clouds      []Cloud       `json:"clouds,omitempty" yaml:"clouds,omitempty"`
-	SNMPConfig  *SNMPConfig   `json:"snmpConfig,omitempty" yaml:"snmpConfig,omitempty"`
-	Authorities []*Authority  `json:"authorities,omitempty" yaml:"authorities,omitempty"`
-	CryptoKeys  []*CryptoKey  `json:"cryptoKeys,omitempty" yaml:"cryptoKeys,omitempty"`
-	EmailConfig *EmailConfig  `json:"emailConfig,omitempty" yaml:"emailConfig,omitempty"`
+	Locals  []LocalAgent  `json:"locals,omitempty" yaml:"locals,omitempty"`
+	Clients []Client      `json:"clients,omitempty" yaml:"clients,omitempty"`
+	Remotes []RemoteAgent `json:"remotes,omitempty" yaml:"remotes,omitempty"`
+	Rules   []Rule        `json:"rules,omitempty" yaml:"rules,omitempty"`
+	//nolint:lll // tags are long
+	EbicsPayloadProfiles []EbicsPayloadProfile `json:"ebicsPayloadProfiles,omitempty" yaml:"ebicsPayloadProfiles,omitempty"`
+	Users                []User                `json:"users,omitempty" yaml:"users,omitempty"`
+	Clouds               []Cloud               `json:"clouds,omitempty" yaml:"clouds,omitempty"`
+	SNMPConfig           *SNMPConfig           `json:"snmpConfig,omitempty" yaml:"snmpConfig,omitempty"`
+	Authorities          []*Authority          `json:"authorities,omitempty" yaml:"authorities,omitempty"`
+	CryptoKeys           []*CryptoKey          `json:"cryptoKeys,omitempty" yaml:"cryptoKeys,omitempty"`
+	EmailConfig          *EmailConfig          `json:"emailConfig,omitempty" yaml:"emailConfig,omitempty"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -100,6 +102,7 @@ type RemoteAccount struct {
 }
 
 // Certificate is the JSON struct representing a certificate.
+//
 // Deprecated: replaced by Credential.
 type Certificate struct {
 	Name       string `json:"name" yaml:"name"`
@@ -126,6 +129,28 @@ type Rule struct {
 	InPath   string `json:"inPath,omitempty" yaml:"inPath,omitempty"`     // Deprecated: replaced by LocalDir & RemoteDir
 	OutPath  string `json:"outPath,omitempty" yaml:"outPath,omitempty"`   // Deprecated: replaced by LocalDir & RemoteDir
 	WorkPath string `json:"workPath,omitempty" yaml:"workPath,omitempty"` // Deprecated: replaced by TmpLocalRcvDir
+}
+
+type EbicsPayloadProfile struct {
+	Name                   string         `json:"name" yaml:"name"`
+	Label                  string         `json:"label,omitempty" yaml:"label,omitempty"`
+	Description            string         `json:"description,omitempty" yaml:"description,omitempty"`
+	OrderType              string         `json:"orderType" yaml:"orderType"`
+	Direction              string         `json:"direction" yaml:"direction"`
+	ServiceName            string         `json:"serviceName,omitempty" yaml:"serviceName,omitempty"`
+	ServiceOption          string         `json:"serviceOption,omitempty" yaml:"serviceOption,omitempty"`
+	Scope                  string         `json:"scope,omitempty" yaml:"scope,omitempty"`
+	MsgName                string         `json:"msgName,omitempty" yaml:"msgName,omitempty"`
+	ContainerType          string         `json:"containerType,omitempty" yaml:"containerType,omitempty"`
+	DefaultRule            string         `json:"defaultRule,omitempty" yaml:"defaultRule,omitempty"`
+	DefaultTargetDirectory string         `json:"defaultTargetDirectory,omitempty" yaml:"defaultTargetDirectory,omitempty"`
+	RequiresDeclaredAmount bool           `json:"requiresDeclaredAmount,omitempty" yaml:"requiresDeclaredAmount,omitempty"`
+	DefaultCurrency        string         `json:"defaultCurrency,omitempty" yaml:"defaultCurrency,omitempty"`
+	AllowedExtensions      []string       `json:"allowedExtensions,omitempty" yaml:"allowedExtensions,omitempty"`
+	FilenamePattern        string         `json:"filenamePattern,omitempty" yaml:"filenamePattern,omitempty"`
+	StrictContractCheck    bool           `json:"strictContractCheck" yaml:"strictContractCheck"`
+	IsEnabled              bool           `json:"isEnabled" yaml:"isEnabled"`
+	Metadata               map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 // Task is the JSON struct representing a rule task.

@@ -1,6 +1,7 @@
 package protocols
 
 import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ebics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -22,6 +23,7 @@ func IsValid(name string) bool { return Get(name) != nil }
 //
 //nolint:gochecknoglobals //global var is required here
 var List = map[string]Module{
+	ebics.EBICS:      &ebics.Module{},     // EBICS
 	sftp.SFTP:        &sftp.Module{},      // SFTP
 	r66.R66:          &r66.Module{},       // R66
 	r66.R66TLS:       &r66.ModuleTLS{},    // R66-TLS
