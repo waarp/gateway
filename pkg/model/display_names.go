@@ -31,6 +31,8 @@ const (
 	NameEbicsTransactionSegment     = "ebics transaction segment"
 	NameEbicsKeyLifecycle           = "ebics key lifecycle"
 	NameEbicsInitializationWorkflow = "ebics initialization workflow"
+	NameEbicsRTNEvent               = "ebics RTN event"
+	NameEbicsRTNProvider            = "ebics RTN provider"
 )
 
 const authPassword = "password"

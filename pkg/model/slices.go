@@ -63,4 +63,6 @@ type (
 	EbicsTransactionSegments     = Slice[*EbicsTransactionSegment]
 	EbicsKeyLifecycles           = Slice[*EbicsKeyLifecycle]
 	EbicsInitializationWorkflows = Slice[*EbicsInitializationWorkflow]
+	EbicsRTNEvents               = Slice[*EbicsRTNEvent]
+	EbicsRTNProviders            = Slice[*EbicsRTNProvider]
 )

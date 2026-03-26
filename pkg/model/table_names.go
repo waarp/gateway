@@ -36,6 +36,8 @@ const (
 	TableEbicsTransactionSegments     = "ebics_transaction_segments"
 	TableEbicsKeyLifecycles           = "ebics_key_lifecycles"
 	TableEbicsInitializationWorkflows = "ebics_initialization_workflows"
+	TableEbicsRTNEvents               = "ebics_rtn_events"
+	TableEbicsRTNProviders            = "ebics_rtn_providers"
 
 	ViewNormalizedTransfers = "normalized_transfers"
 )

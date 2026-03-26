@@ -67,24 +67,29 @@ Note:
 
 ## Phase E - RTN
 
-- [ ] `EbicsRTNEvent` pose
-- [ ] `EbicsRTNProvider` pose
-- [ ] Provider `WSS` pose
-- [ ] Idempotence durable
-- [ ] Auto-pull trace
+- [x] `EbicsRTNEvent` pose
+- [x] `EbicsRTNProvider` pose
+- [x] Provider `WSS` pose
+- [x] Idempotence durable
+- [x] Auto-pull trace
 
 Note:
+- DTO REST `RTN` et commandes CLI RTN poses
+- provider `WSS` borne, avec reconnexion et normalisation d'evenements
+- linter et compilations ciblees valides sur `pkg/model`, `pkg/protocols/modules/ebics/...`,
+  `pkg/admin/rest/api` et `pkg/cmd/client`
 
 ## 3. Jalons transverses
 
 - [ ] REST EBICS minimal exploitable
-- [ ] CLI EBICS minimale exploitable
+- [x] CLI EBICS minimale exploitable
 - [x] Import/export/updateconf coherents pour le socle `ProtoConfig` de la Phase A
 - [x] Documentation de dev a jour
-- [ ] Dossier EBICS toujours coherent avec les specs
+- [x] Dossier EBICS toujours coherent avec les specs
 
 ## 4. GO Implementation
 
-- [ ] Les phases A a E sont suffisamment stables pour lancer l'implementation large
+- [x] Les phases A a E sont suffisamment stables pour lancer l'implementation large
 
 Decision / date:
+- `GO implementation large` / 2026-03-26

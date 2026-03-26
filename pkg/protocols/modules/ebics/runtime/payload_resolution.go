@@ -13,6 +13,7 @@ import (
 const (
 	profileRequired  = "profile-required"
 	profilePreferred = "profile-preferred"
+	payloadOrderFDL  = "FDL"
 )
 
 type PayloadRequestInput struct {
@@ -301,7 +302,7 @@ func normalizePayloadSubscriber(subscriber PayloadSubscriberRef) PayloadSubscrib
 
 func validatePayloadOrderType(orderType string) error {
 	switch orderType {
-	case "BTU", "BTD", "FUL", "FDL":
+	case "BTU", "BTD", "FUL", payloadOrderFDL:
 		return nil
 	case "":
 		return database.NewValidationError("the EBICS payload order type is missing")

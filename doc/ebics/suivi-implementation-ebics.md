@@ -72,16 +72,16 @@ Regles:
 
 ## 6. RTN Phase E
 
-- [ ] Ajouter les constantes RTN dans `table_names.go`
-- [ ] Ajouter les appellations RTN dans `display_names.go`
-- [ ] Creer `pkg/model/ebics_rtn_event.go`
-- [ ] Creer `pkg/model/ebics_rtn_provider.go`
-- [ ] Creer `pkg/protocols/modules/ebics/rtn/provider.go`
-- [ ] Creer `pkg/protocols/modules/ebics/rtn/wss_provider.go`
-- [ ] Creer `pkg/protocols/modules/ebics/runtime/rtn_ingestion.go`
-- [ ] Creer `pkg/protocols/modules/ebics/runtime/rtn_autopull.go`
-- [ ] Creer `pkg/admin/rest/api/ebics_rtn.go`
-- [ ] Creer `pkg/cmd/client/ebics_rtn.go`
+- [x] Ajouter les constantes RTN dans `table_names.go`
+- [x] Ajouter les appellations RTN dans `display_names.go`
+- [x] Creer `pkg/model/ebics_rtn_event.go`
+- [x] Creer `pkg/model/ebics_rtn_provider.go`
+- [x] Creer `pkg/protocols/modules/ebics/rtn/provider.go`
+- [x] Creer `pkg/protocols/modules/ebics/rtn/wss_provider.go`
+- [x] Creer `pkg/protocols/modules/ebics/runtime/rtn_ingestion.go`
+- [x] Creer `pkg/protocols/modules/ebics/runtime/rtn_autopull.go`
+- [x] Creer `pkg/admin/rest/api/ebics_rtn.go`
+- [x] Creer `pkg/cmd/client/ebics_rtn.go`
 
 ## 7. REST handlers
 
@@ -139,5 +139,8 @@ Regles:
 - Verification: `Phase D` validee avec `golangci-lint run ./pkg/model ./pkg/protocols/... ./pkg/admin/rest/api`
 - Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...` et `./pkg/admin/rest/api`
   passent apres la passe linter de la `Phase D`
+- Verification: `Phase E` validee avec `golangci-lint run ./pkg/model ./pkg/protocols/... ./pkg/admin/rest/api ./pkg/cmd/client`
+- Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...`, `./pkg/admin/rest/api`
+  et `./pkg/cmd/client` passent apres la passe linter de la `Phase E`
 - Decision: la protection des `Credential` references par un lifecycle actif est posee directement dans
   `pkg/model/credentials.go` pour couvrir uniformement REST, GUI et CLI
