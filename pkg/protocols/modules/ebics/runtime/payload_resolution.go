@@ -13,7 +13,6 @@ import (
 const (
 	profileRequired  = "profile-required"
 	profilePreferred = "profile-preferred"
-	payloadOrderFDL  = "FDL"
 )
 
 type PayloadRequestInput struct {
@@ -180,7 +179,7 @@ func resolvePayloadService(
 	setServiceStringDefault(&service.MsgName, defaults, "msgName")
 	setServiceStringDefault(&service.ContainerType, defaults, "containerType")
 
-	service.OrderType = strings.ToUpper(strings.TrimSpace(service.OrderType))
+	service.OrderType = model.NormalizeEbicsPayloadOrderType(service.OrderType)
 	service.ServiceName = strings.TrimSpace(service.ServiceName)
 	service.ServiceOption = strings.TrimSpace(service.ServiceOption)
 	service.Scope = strings.TrimSpace(service.Scope)
@@ -301,12 +300,9 @@ func normalizePayloadSubscriber(subscriber PayloadSubscriberRef) PayloadSubscrib
 }
 
 func validatePayloadOrderType(orderType string) error {
-	switch orderType {
-	case "BTU", "BTD", "FUL", payloadOrderFDL:
-		return nil
-	case "":
-		return database.NewValidationError("the EBICS payload order type is missing")
-	default:
-		return database.NewValidationErrorf("%q is not a supported EBICS payload order type", orderType)
+	if err := model.ValidateEbicsPayloadOrderTypeForRuntime(orderType); err != nil {
+		return fmt.Errorf("validate EBICS payload order type: %w", err)
 	}
+
+	return nil
 }

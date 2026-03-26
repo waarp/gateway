@@ -23,8 +23,6 @@ const (
 	payloadRetryDecisionAuto     = "AUTO_RETRY_ALLOWED"
 	payloadRetryDecisionManual   = "MANUAL_REPLAY_ONLY"
 	payloadRetryDecisionRecovery = "RECOVERY_REQUIRED"
-	payloadOrderBTD              = "BTD"
-	payloadOrderFDL              = "FDL"
 	payloadOperationType         = "REPORTING"
 )
 
@@ -240,8 +238,8 @@ func derivePayloadOperationType() string {
 }
 
 func derivePayloadDirection(orderType string) string {
-	switch strings.ToUpper(strings.TrimSpace(orderType)) {
-	case payloadOrderBTD, payloadOrderFDL:
+	switch model.NormalizeEbicsPayloadOrderType(orderType) {
+	case "BTD":
 		return "INBOUND"
 	default:
 		return "OUTBOUND"
@@ -321,7 +319,7 @@ func submitEbicsPayload(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		if routeOrderType, ok := mux.Vars(r)["order_type"]; ok && strings.TrimSpace(routeOrderType) != "" {
-			expectedOrderType := strings.ToUpper(strings.TrimSpace(routeOrderType))
+			expectedOrderType := model.NormalizeEbicsPayloadOrderType(routeOrderType)
 			if resolved.OrderType != expectedOrderType {
 				handleError(
 					w,
@@ -406,7 +404,7 @@ func listEbicsPayloads(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		query.Owner().In("order_type", "BTU", payloadOrderBTD, "FUL", payloadOrderFDL)
+		query.Owner().In("order_type", "BTU", "BTD")
 		if err = query.Run(); handleError(w, logger, err) {
 			return
 		}
@@ -512,10 +510,5 @@ func recoverEbicsPayload(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func isRESTPayloadOrder(orderType string) bool {
-	switch strings.ToUpper(strings.TrimSpace(orderType)) {
-	case "BTU", payloadOrderBTD, "FUL", payloadOrderFDL:
-		return true
-	default:
-		return false
-	}
+	return model.IsEbicsPayloadOrderType(orderType)
 }

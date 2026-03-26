@@ -136,7 +136,7 @@ func (o *EbicsOperation) BeforeWrite(db database.Access) error {
 func (o *EbicsOperation) normalize() {
 	o.Owner = conf.GlobalConfig.GatewayName
 	o.OperationType = strings.ToUpper(strings.TrimSpace(o.OperationType))
-	o.OrderType = strings.ToUpper(strings.TrimSpace(o.OrderType))
+	o.OrderType = NormalizeEbicsPayloadOrderType(o.OrderType)
 	o.Direction = strings.ToUpper(strings.TrimSpace(o.Direction))
 	o.TransportMode = strings.ToUpper(strings.TrimSpace(o.TransportMode))
 	o.TransactionID = strings.TrimSpace(o.TransactionID)
@@ -371,12 +371,7 @@ func validateEbicsOperationBinding(o *EbicsOperation) error {
 }
 
 func isPayloadOrderType(orderType string) bool {
-	switch orderType {
-	case ebicsPayloadOrderBTU, ebicsPayloadOrderBTD, ebicsPayloadOrderFUL, ebicsPayloadOrderFDL:
-		return true
-	default:
-		return false
-	}
+	return IsEbicsPayloadOrderType(orderType)
 }
 
 // EbicsOperationStatusPlannedForRuntime exposes the planned status to runtime packages.

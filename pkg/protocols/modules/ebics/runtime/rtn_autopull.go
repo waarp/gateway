@@ -14,7 +14,7 @@ const (
 	rtnAutoPullPolicyManual       = "MANUAL"
 	rtnAutoPullPolicyAuto         = "AUTO"
 	rtnAutoPullPolicyAutoFiltered = "AUTO_FILTERED"
-	rtnDefaultAutoPullOrderType   = "FDL"
+	rtnDefaultAutoPullOrderType   = "BTD"
 )
 
 // AutoPullPlan describes the normalized Gateway action derived from an RTN event.
@@ -34,7 +34,7 @@ func BuildAutoPullPlan(event *model.EbicsRTNEvent, provider *model.EbicsRTNProvi
 
 	plan := &AutoPullPlan{
 		Enabled:       true,
-		OrderType:     strings.ToUpper(strings.TrimSpace(event.OrderTypeHint)),
+		OrderType:     model.NormalizeEbicsPayloadOrderType(event.OrderTypeHint),
 		ProfileName:   strings.TrimSpace(event.ProfileID),
 		CorrelationID: strings.TrimSpace(event.CorrelationID),
 		Reason:        "RTN auto-pull requested by provider policy",

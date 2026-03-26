@@ -52,7 +52,7 @@ func (i *EbicsContractViewItem) BeforeWrite(db database.Access) error {
 	i.Owner = conf.GlobalConfig.GatewayName
 	i.ItemType = strings.ToUpper(strings.TrimSpace(i.ItemType))
 	i.ItemKey = strings.TrimSpace(i.ItemKey)
-	i.OrderType = strings.ToUpper(strings.TrimSpace(i.OrderType))
+	i.OrderType = NormalizeEbicsPayloadOrderType(i.OrderType)
 	i.ServiceName = strings.TrimSpace(i.ServiceName)
 	i.ServiceOption = strings.TrimSpace(i.ServiceOption)
 	i.Scope = strings.TrimSpace(i.Scope)

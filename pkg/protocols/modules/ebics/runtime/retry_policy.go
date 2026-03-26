@@ -17,7 +17,7 @@ type RetryPolicyDecision struct {
 
 // DecideRetryPolicy derives a Gateway retry policy from EBICS technical and business return codes.
 func DecideRetryPolicy(orderType, technicalCode, businessCode string) (*RetryPolicyDecision, error) {
-	orderType = strings.ToUpper(strings.TrimSpace(orderType))
+	orderType = model.NormalizeEbicsPayloadOrderType(orderType)
 	technicalCode = strings.TrimSpace(technicalCode)
 	businessCode = strings.TrimSpace(businessCode)
 
@@ -129,10 +129,5 @@ func isManualReplayOrder(orderType string) bool {
 }
 
 func isPayloadOrder(orderType string) bool {
-	switch strings.ToUpper(strings.TrimSpace(orderType)) {
-	case "BTU", "BTD", "FUL", "FDL":
-		return true
-	default:
-		return false
-	}
+	return model.IsEbicsPayloadOrderType(orderType)
 }

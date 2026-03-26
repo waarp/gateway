@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"fmt"
-	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -112,7 +111,8 @@ func isContractItemCompatible(
 		return false
 	}
 
-	if strings.ToUpper(strings.TrimSpace(item.OrderType)) != request.OrderType {
+	if model.NormalizeEbicsPayloadOrderType(item.OrderType) !=
+		model.NormalizeEbicsPayloadOrderType(request.OrderType) {
 		return false
 	}
 

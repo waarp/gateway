@@ -12,11 +12,6 @@ import (
 )
 
 const (
-	ebicsPayloadOrderBTU = "BTU"
-	ebicsPayloadOrderBTD = "BTD"
-	ebicsPayloadOrderFUL = "FUL"
-	ebicsPayloadOrderFDL = "FDL"
-
 	ebicsPayloadDirectionUpload        = "UPLOAD"
 	ebicsPayloadDirectionDownload      = "DOWNLOAD"
 	ebicsPayloadDirectionBidirectional = "BIDIRECTIONAL"
@@ -65,7 +60,7 @@ func (p *EbicsPayloadProfile) BeforeWrite(db database.Access) error {
 	p.Name = strings.TrimSpace(p.Name)
 	p.Label = strings.TrimSpace(p.Label)
 	p.Description = strings.TrimSpace(p.Description)
-	p.OrderType = strings.ToUpper(strings.TrimSpace(p.OrderType))
+	p.OrderType = NormalizeEbicsPayloadOrderType(p.OrderType)
 	p.Direction = strings.ToUpper(strings.TrimSpace(p.Direction))
 	p.ServiceName = strings.TrimSpace(p.ServiceName)
 	p.ServiceOption = strings.TrimSpace(p.ServiceOption)
@@ -177,17 +172,6 @@ func (p *EbicsPayloadProfile) AfterUpdate(db database.Access) error {
 	return p.AfterRead(db)
 }
 
-func validateEbicsPayloadOrderType(orderType string) error {
-	switch orderType {
-	case ebicsPayloadOrderBTU, ebicsPayloadOrderBTD, ebicsPayloadOrderFUL, ebicsPayloadOrderFDL:
-		return nil
-	case "":
-		return database.NewValidationError("the EBICS payload order type is missing")
-	default:
-		return database.NewValidationErrorf("%q is not a supported EBICS payload order type", orderType)
-	}
-}
-
 func validateEbicsPayloadDirection(direction string) error {
 	switch direction {
 	case ebicsPayloadDirectionUpload, ebicsPayloadDirectionDownload, ebicsPayloadDirectionBidirectional:
@@ -201,12 +185,12 @@ func validateEbicsPayloadDirection(direction string) error {
 
 func validateEbicsPayloadProfileCoherence(p *EbicsPayloadProfile) error {
 	switch p.OrderType {
-	case ebicsPayloadOrderBTU, ebicsPayloadOrderFUL:
+	case ebicsPayloadOrderBTU:
 		if p.Direction == ebicsPayloadDirectionDownload {
 			return database.NewValidationError(
 				"an upload EBICS payload order cannot use the DOWNLOAD direction")
 		}
-	case ebicsPayloadOrderBTD, ebicsPayloadOrderFDL:
+	case ebicsPayloadOrderBTD:
 		if p.Direction == ebicsPayloadDirectionUpload {
 			return database.NewValidationError(
 				"a download EBICS payload order cannot use the UPLOAD direction")
