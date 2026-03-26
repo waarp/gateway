@@ -45,18 +45,18 @@ Regles:
 
 ## 4. Operations / transactions Phase C
 
-- [ ] Ajouter les constantes operations/transactions/segments dans `table_names.go`
-- [ ] Ajouter les appellations correspondantes dans `display_names.go`
-- [ ] Creer `pkg/model/ebics_operation.go`
-- [ ] Creer `pkg/model/ebics_transaction.go`
-- [ ] Creer `pkg/model/ebics_transaction_segment.go`
-- [ ] Creer `pkg/protocols/modules/ebics/stores/operation_store.go`
-- [ ] Creer `pkg/protocols/modules/ebics/stores/tx_store.go`
-- [ ] Creer `pkg/protocols/modules/ebics/runtime/operation_mapper.go`
-- [ ] Creer `pkg/protocols/modules/ebics/runtime/retry_policy.go`
-- [ ] Creer `pkg/admin/rest/api/ebics_payload_requests.go`
-- [ ] Creer `pkg/admin/rest/api/ebics_operations.go`
-- [ ] Creer `pkg/admin/rest/api/ebics_transactions.go`
+- [x] Ajouter les constantes operations/transactions/segments dans `table_names.go`
+- [x] Ajouter les appellations correspondantes dans `display_names.go`
+- [x] Creer `pkg/model/ebics_operation.go`
+- [x] Creer `pkg/model/ebics_transaction.go`
+- [x] Creer `pkg/model/ebics_transaction_segment.go`
+- [x] Creer `pkg/protocols/modules/ebics/stores/operation_store.go`
+- [x] Creer `pkg/protocols/modules/ebics/stores/tx_store.go`
+- [x] Creer `pkg/protocols/modules/ebics/runtime/operation_mapper.go`
+- [x] Creer `pkg/protocols/modules/ebics/runtime/retry_policy.go`
+- [x] Creer `pkg/admin/rest/api/ebics_payload_requests.go`
+- [x] Creer `pkg/admin/rest/api/ebics_operations.go`
+- [x] Creer `pkg/admin/rest/api/ebics_transactions.go`
 
 ## 5. Workflows sensibles Phase D
 
@@ -133,3 +133,6 @@ Regles:
 - Verification: `Phase B` validee avec `golangci-lint run ./pkg/model ./pkg/protocols/... ./pkg/admin/rest/api ./pkg/backup/...`
 - Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...`, `./pkg/admin/rest/api`, `./pkg/backup/...`
   passent apres la passe linter de la `Phase B`
+- Verification: `Phase C` validee avec `golangci-lint run ./pkg/model ./pkg/protocols/... ./pkg/admin/rest/api`
+- Verification: `go test ./pkg/model`, `./pkg/protocols/modules/ebics/...` et `./pkg/admin/rest/api`
+  passent apres la passe linter de la `Phase C`

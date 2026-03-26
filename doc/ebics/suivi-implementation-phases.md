@@ -40,14 +40,17 @@ Note:
 
 ## Phase C - Operations + payload requests
 
-- [ ] `EbicsOperation` pose
-- [ ] `EbicsTransaction` pose
-- [ ] `EbicsTransactionSegment` pose
-- [ ] Mapping payload -> operation implemente
-- [ ] Policy retry/replay/recovery implemente
-- [ ] Projection vers `Transfer` bornee
+- [x] `EbicsOperation` pose
+- [x] `EbicsTransaction` pose
+- [x] `EbicsTransactionSegment` pose
+- [x] Mapping payload -> operation implemente
+- [x] Policy retry/replay/recovery implemente
+- [x] Projection vers `Transfer` bornee
 
 Note:
+- stores d'operations/transactions poses sous forme d'interfaces explicites
+- DTO REST `payload requests`, `operations` et `transactions` poses
+- linter et compilations ciblees valides sur `pkg/model`, `pkg/protocols/modules/ebics/...` et `pkg/admin/rest/api`
 
 ## Phase D - Workflows sensibles
 
@@ -74,7 +77,7 @@ Note:
 - [ ] REST EBICS minimal exploitable
 - [ ] CLI EBICS minimale exploitable
 - [x] Import/export/updateconf coherents pour le socle `ProtoConfig` de la Phase A
-- [ ] Documentation de dev a jour
+- [x] Documentation de dev a jour
 - [ ] Dossier EBICS toujours coherent avec les specs
 
 ## 4. GO Implementation
