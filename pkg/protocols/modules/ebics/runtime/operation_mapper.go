@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+// OperationMappingInput groups the data required to derive an EBICS operation.
 type OperationMappingInput struct {
 	Owner             string
 	LocalAgentID      int64
@@ -29,6 +30,7 @@ type OperationMappingInput struct {
 	ResolvedRequest   *ResolvedPayloadRequest
 }
 
+// NewPayloadOperation derives an EBICS operation from a resolved payload request.
 func NewPayloadOperation(input *OperationMappingInput) (*model.EbicsOperation, error) {
 	if input == nil {
 		return nil, database.NewValidationError("the EBICS operation mapping input is missing")
@@ -124,6 +126,7 @@ func NewPayloadOperation(input *OperationMappingInput) (*model.EbicsOperation, e
 	return operation, nil
 }
 
+// BindTransferToOperation links a payload-capable EBICS operation to a Gateway transfer.
 func BindTransferToOperation(operation *model.EbicsOperation, transferID int64) error {
 	if operation == nil {
 		return database.NewValidationError("the EBICS operation is missing")
@@ -142,6 +145,7 @@ func BindTransferToOperation(operation *model.EbicsOperation, transferID int64) 
 	return nil
 }
 
+// UpdateOperationOutcomeFromReturnCodes translates EBICS return codes into Gateway operation state.
 func UpdateOperationOutcomeFromReturnCodes(
 	operation *model.EbicsOperation,
 	technicalCode,

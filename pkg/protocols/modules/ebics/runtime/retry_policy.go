@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+// RetryPolicyDecision captures the Gateway decision derived from EBICS return codes.
 type RetryPolicyDecision struct {
 	GatewayOutcome       string
 	RetryDecision        string
@@ -14,6 +15,7 @@ type RetryPolicyDecision struct {
 	Message              string
 }
 
+// DecideRetryPolicy derives a Gateway retry policy from EBICS technical and business return codes.
 func DecideRetryPolicy(orderType, technicalCode, businessCode string) (*RetryPolicyDecision, error) {
 	orderType = strings.ToUpper(strings.TrimSpace(orderType))
 	technicalCode = strings.TrimSpace(technicalCode)

@@ -19,6 +19,7 @@ const (
 	ebicsTransactionStatusCancelled  = "CANCELLED"
 )
 
+// EbicsTransaction stores the resumable EBICS transaction state attached to an operation.
 type EbicsTransaction struct {
 	ID    int64  `xorm:"<- id AUTOINCR"`
 	Owner string `xorm:"owner"`
@@ -44,10 +45,16 @@ type EbicsTransaction struct {
 	MetadataMap map[string]any `xorm:"-"`
 }
 
-func (*EbicsTransaction) TableName() string   { return TableEbicsTransactions }
-func (*EbicsTransaction) Appellation() string { return NameEbicsTransaction }
-func (t *EbicsTransaction) GetID() int64      { return t.ID }
+// TableName returns the persistent table name for EBICS transactions.
+func (*EbicsTransaction) TableName() string { return TableEbicsTransactions }
 
+// Appellation returns the display name used in validation messages.
+func (*EbicsTransaction) Appellation() string { return NameEbicsTransaction }
+
+// GetID returns the database identifier of the transaction.
+func (t *EbicsTransaction) GetID() int64 { return t.ID }
+
+// BeforeWrite normalizes and validates an EBICS transaction before persistence.
 func (t *EbicsTransaction) BeforeWrite(db database.Access) error {
 	t.Owner = conf.GlobalConfig.GatewayName
 	t.TransactionID = strings.TrimSpace(t.TransactionID)
@@ -87,7 +94,7 @@ func (t *EbicsTransaction) BeforeWrite(db database.Access) error {
 	if t.MetadataMap != nil {
 		serialized, err := serializeStringMap(t.MetadataMap)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to serialize EBICS transaction metadata: %w", err)
 		}
 
 		t.Metadata = serialized
@@ -97,7 +104,7 @@ func (t *EbicsTransaction) BeforeWrite(db database.Access) error {
 
 	meta, err := deserializeStringMap(t.Metadata)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to deserialize EBICS transaction metadata: %w", err)
 	}
 
 	t.MetadataMap = meta
@@ -115,10 +122,11 @@ func (t *EbicsTransaction) BeforeWrite(db database.Access) error {
 	return nil
 }
 
+// AfterRead hydrates the transient metadata map after a database read.
 func (t *EbicsTransaction) AfterRead(database.ReadAccess) error {
 	meta, err := deserializeStringMap(t.Metadata)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to deserialize EBICS transaction metadata after read: %w", err)
 	}
 
 	t.MetadataMap = meta
@@ -126,10 +134,12 @@ func (t *EbicsTransaction) AfterRead(database.ReadAccess) error {
 	return nil
 }
 
+// AfterInsert refreshes transient state after insertion.
 func (t *EbicsTransaction) AfterInsert(db database.Access) error {
 	return t.AfterRead(db)
 }
 
+// AfterUpdate refreshes transient state after update.
 func (t *EbicsTransaction) AfterUpdate(db database.Access) error {
 	return t.AfterRead(db)
 }

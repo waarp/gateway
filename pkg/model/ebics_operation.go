@@ -58,6 +58,7 @@ const (
 	ebicsOperationStatusCancelled                   = "CANCELLED"
 )
 
+// EbicsOperation stores the protocol-level execution state of an EBICS order.
 type EbicsOperation struct {
 	ID    int64  `xorm:"<- id AUTOINCR"`
 	Owner string `xorm:"owner"`
@@ -103,10 +104,16 @@ type EbicsOperation struct {
 	MetadataMap map[string]any `xorm:"-"`
 }
 
-func (*EbicsOperation) TableName() string   { return TableEbicsOperations }
-func (*EbicsOperation) Appellation() string { return NameEbicsOperation }
-func (o *EbicsOperation) GetID() int64      { return o.ID }
+// TableName returns the persistent table name for EBICS operations.
+func (*EbicsOperation) TableName() string { return TableEbicsOperations }
 
+// Appellation returns the display name used in validation messages.
+func (*EbicsOperation) Appellation() string { return NameEbicsOperation }
+
+// GetID returns the database identifier of the operation.
+func (o *EbicsOperation) GetID() int64 { return o.ID }
+
+// BeforeWrite normalizes and validates an EBICS operation before persistence.
 func (o *EbicsOperation) BeforeWrite(db database.Access) error {
 	o.normalize()
 
@@ -191,7 +198,7 @@ func (o *EbicsOperation) hydrateMetadata() error {
 	if o.MetadataMap != nil {
 		serialized, err := serializeStringMap(o.MetadataMap)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to serialize EBICS operation metadata: %w", err)
 		}
 
 		o.Metadata = serialized
@@ -201,7 +208,7 @@ func (o *EbicsOperation) hydrateMetadata() error {
 
 	meta, err := deserializeStringMap(o.Metadata)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to deserialize EBICS operation metadata: %w", err)
 	}
 
 	o.MetadataMap = meta
@@ -237,10 +244,11 @@ func validateEbicsOperationRefs(db database.Access, operation *EbicsOperation) e
 	return nil
 }
 
+// AfterRead hydrates the transient metadata map after a database read.
 func (o *EbicsOperation) AfterRead(database.ReadAccess) error {
 	meta, err := deserializeStringMap(o.Metadata)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to deserialize EBICS operation metadata after read: %w", err)
 	}
 
 	o.MetadataMap = meta
@@ -248,10 +256,12 @@ func (o *EbicsOperation) AfterRead(database.ReadAccess) error {
 	return nil
 }
 
+// AfterInsert refreshes transient state after insertion.
 func (o *EbicsOperation) AfterInsert(db database.Access) error {
 	return o.AfterRead(db)
 }
 
+// AfterUpdate refreshes transient state after update.
 func (o *EbicsOperation) AfterUpdate(db database.Access) error {
 	return o.AfterRead(db)
 }
@@ -369,86 +379,107 @@ func isPayloadOrderType(orderType string) bool {
 	}
 }
 
+// EbicsOperationStatusPlannedForRuntime exposes the planned status to runtime packages.
 func EbicsOperationStatusPlannedForRuntime() string {
 	return ebicsOperationStatusPlanned
 }
 
+// EbicsOperationStatusWaitingBankForRuntime exposes the waiting-bank status to runtime packages.
 func EbicsOperationStatusWaitingBankForRuntime() string {
 	return ebicsOperationStatusWaitingBank
 }
 
+// EbicsOperationStatusCompletedForRuntime exposes the completed status to runtime packages.
 func EbicsOperationStatusCompletedForRuntime() string {
 	return ebicsOperationStatusCompleted
 }
 
+// EbicsOperationStatusCompletedWithWarningsForRuntime exposes the completed-with-warnings status.
 func EbicsOperationStatusCompletedWithWarningsForRuntime() string {
 	return ebicsOperationStatusCompletedWithWarnings
 }
 
+// EbicsOperationStatusFailedForRuntime exposes the failed status to runtime packages.
 func EbicsOperationStatusFailedForRuntime() string {
 	return ebicsOperationStatusFailed
 }
 
+// EbicsOperationSeverityInfoForRuntime exposes the info severity to runtime packages.
 func EbicsOperationSeverityInfoForRuntime() string {
 	return ebicsOperationSeverityInfo
 }
 
+// EbicsOperationSeverityWarningForRuntime exposes the warning severity to runtime packages.
 func EbicsOperationSeverityWarningForRuntime() string {
 	return ebicsOperationSeverityWarning
 }
 
+// EbicsOperationSeverityErrorForRuntime exposes the error severity to runtime packages.
 func EbicsOperationSeverityErrorForRuntime() string {
 	return ebicsOperationSeverityError
 }
 
+// EbicsGatewayOutcomeSuccessForRuntime exposes the success outcome to runtime packages.
 func EbicsGatewayOutcomeSuccessForRuntime() string {
 	return ebicsGatewayOutcomeSuccess
 }
 
+// EbicsGatewayOutcomeSuccessWithWarningForRuntime exposes the warning outcome to runtime packages.
 func EbicsGatewayOutcomeSuccessWithWarningForRuntime() string {
 	return ebicsGatewayOutcomeSuccessWithWarning
 }
 
+// EbicsGatewayOutcomePendingBankForRuntime exposes the pending-bank outcome to runtime packages.
 func EbicsGatewayOutcomePendingBankForRuntime() string {
 	return ebicsGatewayOutcomePendingBank
 }
 
+// EbicsGatewayOutcomeEmptySuccessForRuntime exposes the empty-success outcome to runtime packages.
 func EbicsGatewayOutcomeEmptySuccessForRuntime() string {
 	return ebicsGatewayOutcomeEmptySuccess
 }
 
+// EbicsGatewayOutcomeTechnicalRetryableFailureForRuntime exposes the retryable technical failure outcome.
 func EbicsGatewayOutcomeTechnicalRetryableFailureForRuntime() string {
 	return ebicsGatewayOutcomeTechnicalRetryableFailure
 }
 
+// EbicsGatewayOutcomeTechnicalFatalFailureForRuntime exposes the fatal technical failure outcome.
 func EbicsGatewayOutcomeTechnicalFatalFailureForRuntime() string {
 	return ebicsGatewayOutcomeTechnicalFatalFailure
 }
 
+// EbicsGatewayOutcomeBusinessRejectedForRuntime exposes the business rejection outcome to runtime packages.
 func EbicsGatewayOutcomeBusinessRejectedForRuntime() string {
 	return ebicsGatewayOutcomeBusinessRejected
 }
 
+// EbicsGatewayOutcomeManualConfirmationRequiredForRuntime exposes the manual-confirmation outcome.
 func EbicsGatewayOutcomeManualConfirmationRequiredForRuntime() string {
 	return ebicsGatewayOutcomeManualConfirmationRequired
 }
 
+// EbicsRetryDecisionNoRetryForRuntime exposes the no-retry decision to runtime packages.
 func EbicsRetryDecisionNoRetryForRuntime() string {
 	return ebicsRetryDecisionNoRetry
 }
 
+// EbicsRetryDecisionAutoRetryAllowedForRuntime exposes the automatic retry decision.
 func EbicsRetryDecisionAutoRetryAllowedForRuntime() string {
 	return ebicsRetryDecisionAutoRetryAllowed
 }
 
+// EbicsRetryDecisionRecoveryRequiredForRuntime exposes the recovery-required decision.
 func EbicsRetryDecisionRecoveryRequiredForRuntime() string {
 	return ebicsRetryDecisionRecoveryRequired
 }
 
+// EbicsRetryDecisionManualReplayOnlyForRuntime exposes the manual-replay-only decision.
 func EbicsRetryDecisionManualReplayOnlyForRuntime() string {
 	return ebicsRetryDecisionManualReplayOnly
 }
 
+// EbicsRetryDecisionManualConfirmationOnlyForRuntime exposes the manual-confirmation-only decision.
 func EbicsRetryDecisionManualConfirmationOnlyForRuntime() string {
 	return ebicsRetryDecisionManualConfirmationOnly
 }

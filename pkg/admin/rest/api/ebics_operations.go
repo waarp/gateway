@@ -1,5 +1,6 @@
 package api
 
+// OutEbicsOperation exposes the operational view of an EBICS operation.
 type OutEbicsOperation struct {
 	ID                     int64          `json:"id" yaml:"id"`
 	OperationType          string         `json:"operationType" yaml:"operationType"`

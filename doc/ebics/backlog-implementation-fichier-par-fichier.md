@@ -19,8 +19,12 @@ Il doit servir de reference pratique pendant l'implementation:
 - ce backlog ne redecide pas l'architecture;
 - un fichier est considere termine quand son contrat local est rempli, meme si
   les integrations amont/aval ne sont pas encore toutes actives;
+- aucun lot ne doit etre traite comme un developpement minimaliste ou jetable;
+- chaque objet, methode ou interface posee doit etre directement exploitable,
+  documentee et coherente avec les invariants de production retenus;
 - les items REST/CLI peuvent etre poses en stubs propres tant que le socle
-  model/runtime n'est pas pret;
+  model/runtime n'est pas pret, mais un stub ne doit jamais masquer une
+  decision d'architecture ou un comportement implicite dangereux;
 - `golangci-lint` doit etre execute avant chaque compilation ou test Go cible;
 - tout blocage de version entre le linter et la version Go du projet doit etre
   trace dans les documents de suivi.
@@ -449,7 +453,8 @@ Dependances:
 Travail:
 
 - definir interface store;
-- implementer CRUD minimaux operation.
+- poser le contrat complet necessaire a la phase pour la persistance des
+  operations, sans laisser de zone floue sur les responsabilites du store.
 
 Dependances:
 
@@ -460,7 +465,8 @@ Dependances:
 Travail:
 
 - definir interfaces transaction/segment;
-- implementer acces minimaux.
+- poser le contrat complet necessaire a la phase pour les transactions et la
+  segmentation, sans laisser de comportement implicite.
 
 Dependances:
 

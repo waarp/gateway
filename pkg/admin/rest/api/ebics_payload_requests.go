@@ -1,5 +1,6 @@
 package api
 
+// InEbicsPayloadRequest defines the payload submission contract for EBICS orders.
 type InEbicsPayloadRequest struct {
 	Profile    string            `json:"profile,omitempty" yaml:"profile,omitempty"`
 	Rule       string            `json:"rule,omitempty" yaml:"rule,omitempty"`
@@ -10,21 +11,25 @@ type InEbicsPayloadRequest struct {
 	Metadata   map[string]any    `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
+// InSubscriberRef identifies the EBICS subscriber targeted by the request.
 type InSubscriberRef struct {
 	HostID    string `json:"hostID" yaml:"hostID"`
 	PartnerID string `json:"partnerID" yaml:"partnerID"`
 	UserID    string `json:"userID" yaml:"userID"`
 }
 
+// InPayloadFile describes the source file for upload-oriented payload requests.
 type InPayloadFile struct {
 	Path       string `json:"path" yaml:"path"`
 	OutputName string `json:"outputName,omitempty" yaml:"outputName,omitempty"`
 }
 
+// InPayloadTarget describes the output target for download-oriented payload requests.
 type InPayloadTarget struct {
 	Directory string `json:"directory,omitempty" yaml:"directory,omitempty"`
 }
 
+// InPayloadService carries the service envelope fields required by EBICS payload orders.
 type InPayloadService struct {
 	OrderType     string `json:"orderType,omitempty" yaml:"orderType,omitempty"`
 	ServiceName   string `json:"serviceName,omitempty" yaml:"serviceName,omitempty"`
@@ -34,6 +39,7 @@ type InPayloadService struct {
 	ContainerType string `json:"containerType,omitempty" yaml:"containerType,omitempty"`
 }
 
+// OutEbicsPayloadSubmission returns the identifiers created for a payload submission.
 type OutEbicsPayloadSubmission struct {
 	OperationID            int64   `json:"operationID" yaml:"operationID"`
 	OrderType              string  `json:"orderType" yaml:"orderType"`

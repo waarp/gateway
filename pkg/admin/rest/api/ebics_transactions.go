@@ -1,5 +1,6 @@
 package api
 
+// OutEbicsTransaction exposes the technical view of an EBICS transaction.
 type OutEbicsTransaction struct {
 	ID             int64  `json:"id" yaml:"id"`
 	TransactionID  string `json:"transactionID" yaml:"transactionID"`
@@ -12,6 +13,7 @@ type OutEbicsTransaction struct {
 	TransferID     *int64 `json:"transferID,omitempty" yaml:"transferID,omitempty"`
 }
 
+// OutEbicsTransactionSegment exposes the technical view of a transaction segment.
 type OutEbicsTransactionSegment struct {
 	ID               int64  `json:"id" yaml:"id"`
 	SegmentNumber    int    `json:"segmentNumber" yaml:"segmentNumber"`
