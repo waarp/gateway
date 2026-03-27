@@ -74,7 +74,27 @@ func ExportData(db database.ReadAccess, w *os.File, targets []string) error {
 	}
 
 	if utils.ContainsOneOf(targets, "ebics", "all") {
+		data.EbicsHosts, expErr = exportEbicsHosts(logger, db)
+		if expErr != nil {
+			return expErr
+		}
+
+		data.EbicsSubscribers, expErr = exportEbicsSubscribers(logger, db)
+		if expErr != nil {
+			return expErr
+		}
+
+		data.EbicsBankKeys, expErr = exportEbicsBankKeys(logger, db)
+		if expErr != nil {
+			return expErr
+		}
+
 		data.EbicsPayloadProfiles, expErr = exportEbicsPayloadProfiles(logger, db)
+		if expErr != nil {
+			return expErr
+		}
+
+		data.EbicsRTNProviders, expErr = exportEbicsRTNProviders(logger, db)
 		if expErr != nil {
 			return expErr
 		}

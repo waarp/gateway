@@ -1,0 +1,120 @@
+locals:
+  - name: local-gw
+    protocol: test_proto
+    address: :12000
+    configuration: {}
+    accounts:
+      - login: local-user
+        password: secret
+remotes:
+  - name: bank-partner
+    protocol: test_proto
+    address: 127.0.0.1:443
+    configuration: {}
+    accounts:
+      - login: bank-user
+        password: secret
+rules:
+  - name: ebics-upload
+    isSend: true
+    localDir: out
+  - name: ebics-download
+    isSend: false
+    localDir: in
+ebicsHosts:
+  - name: bank-host
+    hostID: BANKHOST
+    description: Main bank host
+    enabled: true
+    isServer: false
+    protocolVersion: H005
+    transport: https
+    defaultBankURL: https://127.0.0.1/ebics
+ebicsSubscribers:
+  - name: corp-client
+    hostID: BANKHOST
+    partnerID: PARTNER1
+    userID: USER1
+    systemID: SYS1
+    remotePartner: bank-partner
+    remoteAccount: bank-user
+    accountRole: CLIENT
+    transportURL: https://127.0.0.1/ebics
+    enabled: true
+    defaultOrderDataEncoding: base64
+  - name: corp-server
+    hostID: BANKHOST
+    partnerID: PARTNER2
+    userID: USER2
+    localServer: local-gw
+    localAccount: local-user
+    accountRole: SERVER
+    enabled: true
+ebicsBankKeys:
+  - hostID: BANKHOST
+    keyType: AUTH
+    version: A005
+    publicKey: AUTH-PUBLIC-KEY
+    publicKeyHash: AUTH-HASH
+    state: validated
+    validFrom: 2026-03-27T00:00:00Z
+    validTo: 0001-01-01T00:00:00Z
+  - hostID: BANKHOST
+    keyType: ENCRYPT
+    version: E005
+    publicKey: ENCRYPT-PUBLIC-KEY
+    publicKeyHash: ENCRYPT-HASH
+    state: validated
+    validFrom: 2026-03-27T00:00:00Z
+    validTo: 0001-01-01T00:00:00Z
+ebicsPayloadProfiles:
+  - name: sct-upload
+    label: SCT upload
+    description: SEPA credit transfer upload
+    orderType: BTU
+    direction: UPLOAD
+    serviceName: SCT
+    serviceOption: COR
+    scope: GLB
+    msgName: pain.001
+    defaultRule: ebics-upload
+    defaultTargetDirectory: ignored/out
+    requiresDeclaredAmount: true
+    defaultCurrency: EUR
+    allowedExtensions:
+      - .xml
+    filenamePattern: "*.xml"
+    strictContractCheck: true
+    isEnabled: true
+    metadata:
+      profileMode: contractual
+  - name: camt-download
+    label: CAMT download
+    description: Statement download
+    orderType: BTD
+    direction: DOWNLOAD
+    serviceName: EOP
+    scope: GLB
+    msgName: camt.053
+    defaultRule: ebics-download
+    defaultTargetDirectory: statements/in
+    requiresDeclaredAmount: false
+    defaultCurrency: EUR
+    allowedExtensions:
+      - .xml
+    filenamePattern: "*.xml"
+    strictContractCheck: true
+    isEnabled: true
+    metadata:
+      profileMode: contractual
+ebicsRtnProviders:
+  - name: main-rtn
+    transport: WSS
+    enabled: true
+    hostID: BANKHOST
+    partnerID: PARTNER1
+    userID: USER1
+    autoPullPolicy: AUTO
+    configuration:
+      endpoint: wss://127.0.0.1/rtn
+      heartbeatSeconds: 30

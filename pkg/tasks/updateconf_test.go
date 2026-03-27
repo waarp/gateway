@@ -2,12 +2,14 @@ package tasks
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
@@ -60,10 +62,61 @@ func TestUpdateConf(t *testing.T) {
 	assert.Equal(t, grContent, string(cont))
 }
 
+func TestUpdateConfWithEbicsAdminData(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	logger := logtest.GetTestLogger(t)
+	root := fstest.TestRoot(t)
+	t.Setenv(conf.ConfigDirEnvVar, root.Name())
+
+	setupUpdateConfZipWithConfig(
+		t,
+		root,
+		"updateconf-ebics.zip",
+		mustMarshalJSON(t, buildUpdateConfEbicsData()),
+		`{"ebics":"ok"}`,
+		"ebics list",
+	)
+
+	task := &updateconfTask{}
+	params := map[string]string{
+		"zipFile": fs.JoinPath(root.Name(), "updateconf-ebics.zip"),
+	}
+	transCtx := &model.TransferContext{Transfer: &model.Transfer{}}
+
+	modeltest.AddDummyProtoConfig("test_proto")
+
+	require.NoError(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
+
+	var hosts model.EbicsHosts
+	require.NoError(t, db.Select(&hosts).Owner().Run())
+	require.Len(t, hosts, 1)
+	assert.Equal(t, "BANKHOST", hosts[0].HostID)
+
+	var subscribers model.EbicsSubscribers
+	require.NoError(t, db.Select(&subscribers).Owner().Run())
+	require.Len(t, subscribers, 2)
+
+	var profiles model.EbicsPayloadProfiles
+	require.NoError(t, db.Select(&profiles).Owner().Run())
+	require.Len(t, profiles, 2)
+
+	var providers model.EbicsRTNProviders
+	require.NoError(t, db.Select(&providers).Owner().Run())
+	require.Len(t, providers, 1)
+}
+
 func setupUpdateConfZip(tb testing.TB, root *os.Root, archName, fwContent, grContent string) {
 	tb.Helper()
 
-	confJson := getConfJson(tb)
+	setupUpdateConfZipWithConfig(tb, root, archName, getConfJson(tb), fwContent, grContent)
+}
+
+func setupUpdateConfZipWithConfig(
+	tb testing.TB,
+	root *os.Root,
+	archName, confJSON, fwContent, grContent string,
+) {
+	tb.Helper()
 
 	// Create archive
 	archFile, err := root.Create(archName)
@@ -75,13 +128,157 @@ func setupUpdateConfZip(tb testing.TB, root *os.Root, archName, fwContent, grCon
 
 	// Add config file
 	confFilename := conf.GlobalConfig.GatewayName + ".json"
-	writeToZip(tb, arch, confFilename, []byte(confJson))
+	writeToZip(tb, arch, confFilename, []byte(confJSON))
 
 	// Add filewatcher file
 	writeToZip(tb, arch, updateconfFwFilename, []byte(fwContent))
 
 	// Add get-remote file
 	writeToZip(tb, arch, updateconfGetRemoteFilename, []byte(grContent))
+}
+
+func mustMarshalJSON(tb testing.TB, data any) string {
+	tb.Helper()
+
+	raw, err := json.MarshalIndent(data, "", "  ")
+	require.NoError(tb, err)
+
+	return string(raw)
+}
+
+func buildUpdateConfEbicsData() *file.Data {
+	return &file.Data{
+		Locals: []file.LocalAgent{{
+			Name:          "local-gw",
+			Protocol:      "test_proto",
+			Address:       ":12000",
+			Configuration: map[string]any{},
+			Accounts: []file.LocalAccount{{
+				Login:    "local-user",
+				Password: "secret",
+			}},
+		}},
+		Remotes: []file.RemoteAgent{{
+			Name:          "bank-partner",
+			Protocol:      "test_proto",
+			Address:       "127.0.0.1:443",
+			Configuration: map[string]any{},
+			Accounts: []file.RemoteAccount{{
+				Login:    "bank-user",
+				Password: "secret",
+			}},
+		}},
+		Rules: []file.Rule{
+			{Name: "ebics-upload", IsSend: true, LocalDir: "out"},
+			{Name: "ebics-download", IsSend: false, LocalDir: "in"},
+		},
+		EbicsHosts: []file.EbicsHost{{
+			Name:            "bank-host",
+			HostID:          "BANKHOST",
+			Description:     "Main bank host",
+			Enabled:         true,
+			IsServer:        false,
+			ProtocolVersion: "H005",
+			Transport:       "https",
+			DefaultBankURL:  "https://127.0.0.1/ebics",
+		}},
+		EbicsSubscribers: []file.EbicsSubscriber{
+			{
+				Name:                     "corp-client",
+				HostID:                   "BANKHOST",
+				PartnerID:                "PARTNER1",
+				UserID:                   "USER1",
+				SystemID:                 "SYS1",
+				RemotePartner:            "bank-partner",
+				RemoteAccount:            "bank-user",
+				AccountRole:              "CLIENT",
+				TransportURL:             "https://127.0.0.1/ebics",
+				Enabled:                  true,
+				DefaultOrderDataEncoding: "base64",
+			},
+			{
+				Name:         "corp-server",
+				HostID:       "BANKHOST",
+				PartnerID:    "PARTNER2",
+				UserID:       "USER2",
+				LocalServer:  "local-gw",
+				LocalAccount: "local-user",
+				AccountRole:  "SERVER",
+				Enabled:      true,
+			},
+		},
+		EbicsBankKeys: []file.EbicsBankKey{
+			{
+				HostID:        "BANKHOST",
+				KeyType:       "AUTH",
+				Version:       "A005",
+				PublicKey:     "AUTH-PUBLIC-KEY",
+				PublicKeyHash: "AUTH-HASH",
+				State:         "validated",
+			},
+			{
+				HostID:        "BANKHOST",
+				KeyType:       "ENCRYPT",
+				Version:       "E005",
+				PublicKey:     "ENCRYPT-PUBLIC-KEY",
+				PublicKeyHash: "ENCRYPT-HASH",
+				State:         "validated",
+			},
+		},
+		EbicsPayloadProfiles: []file.EbicsPayloadProfile{
+			{
+				Name:                   "sct-upload",
+				Label:                  "SCT upload",
+				Description:            "SEPA credit transfer upload",
+				OrderType:              "BTU",
+				Direction:              "UPLOAD",
+				ServiceName:            "SCT",
+				ServiceOption:          "COR",
+				Scope:                  "GLB",
+				MsgName:                "pain.001",
+				DefaultRule:            "ebics-upload",
+				DefaultTargetDirectory: "ignored/out",
+				RequiresDeclaredAmount: true,
+				DefaultCurrency:        "EUR",
+				AllowedExtensions:      []string{".xml"},
+				FilenamePattern:        "*.xml",
+				StrictContractCheck:    true,
+				IsEnabled:              true,
+				Metadata:               map[string]any{"profileMode": "contractual"},
+			},
+			{
+				Name:                   "camt-download",
+				Label:                  "CAMT download",
+				Description:            "Statement download",
+				OrderType:              "BTD",
+				Direction:              "DOWNLOAD",
+				ServiceName:            "EOP",
+				Scope:                  "GLB",
+				MsgName:                "camt.053",
+				DefaultRule:            "ebics-download",
+				DefaultTargetDirectory: "statements/in",
+				DefaultCurrency:        "EUR",
+				AllowedExtensions:      []string{".xml"},
+				FilenamePattern:        "*.xml",
+				StrictContractCheck:    true,
+				IsEnabled:              true,
+				Metadata:               map[string]any{"profileMode": "contractual"},
+			},
+		},
+		EbicsRTNProviders: []file.EbicsRTNProvider{{
+			Name:           "main-rtn",
+			Transport:      "WSS",
+			Enabled:        true,
+			HostID:         "BANKHOST",
+			PartnerID:      "PARTNER1",
+			UserID:         "USER1",
+			AutoPullPolicy: "AUTO",
+			Configuration: map[string]any{
+				"endpoint":         "wss://127.0.0.1/rtn",
+				"heartbeatSeconds": 30,
+			},
+		}},
+	}
 }
 
 func writeToZip(tb testing.TB, arch *zip.Writer, fileName string, data []byte) {

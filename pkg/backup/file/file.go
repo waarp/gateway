@@ -15,7 +15,12 @@ type Data struct {
 	Remotes []RemoteAgent `json:"remotes,omitempty" yaml:"remotes,omitempty"`
 	Rules   []Rule        `json:"rules,omitempty" yaml:"rules,omitempty"`
 	//nolint:lll // tags are long
+	EbicsHosts       []EbicsHost       `json:"ebicsHosts,omitempty" yaml:"ebicsHosts,omitempty"`
+	EbicsSubscribers []EbicsSubscriber `json:"ebicsSubscribers,omitempty" yaml:"ebicsSubscribers,omitempty"`
+	EbicsBankKeys    []EbicsBankKey    `json:"ebicsBankKeys,omitempty" yaml:"ebicsBankKeys,omitempty"`
+	//nolint:lll // tags are long
 	EbicsPayloadProfiles []EbicsPayloadProfile `json:"ebicsPayloadProfiles,omitempty" yaml:"ebicsPayloadProfiles,omitempty"`
+	EbicsRTNProviders    []EbicsRTNProvider    `json:"ebicsRtnProviders,omitempty" yaml:"ebicsRtnProviders,omitempty"`
 	Users                []User                `json:"users,omitempty" yaml:"users,omitempty"`
 	Clouds               []Cloud               `json:"clouds,omitempty" yaml:"clouds,omitempty"`
 	SNMPConfig           *SNMPConfig           `json:"snmpConfig,omitempty" yaml:"snmpConfig,omitempty"`
@@ -151,6 +156,55 @@ type EbicsPayloadProfile struct {
 	StrictContractCheck    bool           `json:"strictContractCheck" yaml:"strictContractCheck"`
 	IsEnabled              bool           `json:"isEnabled" yaml:"isEnabled"`
 	Metadata               map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+
+type EbicsHost struct {
+	Name            string `json:"name" yaml:"name"`
+	HostID          string `json:"hostID" yaml:"hostID"`
+	Description     string `json:"description,omitempty" yaml:"description,omitempty"`
+	Enabled         bool   `json:"enabled" yaml:"enabled"`
+	IsServer        bool   `json:"isServer" yaml:"isServer"`
+	ProtocolVersion string `json:"protocolVersion" yaml:"protocolVersion"`
+	Transport       string `json:"transport" yaml:"transport"`
+	DefaultBankURL  string `json:"defaultBankURL,omitempty" yaml:"defaultBankURL,omitempty"`
+}
+
+type EbicsSubscriber struct {
+	Name                     string `json:"name" yaml:"name"`
+	HostID                   string `json:"hostID" yaml:"hostID"`
+	PartnerID                string `json:"partnerID" yaml:"partnerID"`
+	UserID                   string `json:"userID" yaml:"userID"`
+	SystemID                 string `json:"systemID,omitempty" yaml:"systemID,omitempty"`
+	LocalServer              string `json:"localServer,omitempty" yaml:"localServer,omitempty"`
+	LocalAccount             string `json:"localAccount,omitempty" yaml:"localAccount,omitempty"`
+	RemotePartner            string `json:"remotePartner,omitempty" yaml:"remotePartner,omitempty"`
+	RemoteAccount            string `json:"remoteAccount,omitempty" yaml:"remoteAccount,omitempty"`
+	AccountRole              string `json:"accountRole,omitempty" yaml:"accountRole,omitempty"`
+	TransportURL             string `json:"transportURL,omitempty" yaml:"transportURL,omitempty"`
+	Enabled                  bool   `json:"enabled" yaml:"enabled"`
+	DefaultOrderDataEncoding string `json:"defaultOrderDataEncoding,omitempty" yaml:"defaultOrderDataEncoding,omitempty"`
+}
+
+type EbicsBankKey struct {
+	HostID        string    `json:"hostID" yaml:"hostID"`
+	KeyType       string    `json:"keyType" yaml:"keyType"`
+	Version       string    `json:"version,omitempty" yaml:"version,omitempty"`
+	PublicKey     string    `json:"publicKey" yaml:"publicKey"`
+	PublicKeyHash string    `json:"publicKeyHash,omitempty" yaml:"publicKeyHash,omitempty"`
+	State         string    `json:"state" yaml:"state"`
+	ValidFrom     time.Time `json:"validFrom" yaml:"validFrom"`
+	ValidTo       time.Time `json:"validTo" yaml:"validTo"`
+}
+
+type EbicsRTNProvider struct {
+	Name           string         `json:"name" yaml:"name"`
+	Transport      string         `json:"transport" yaml:"transport"`
+	Enabled        bool           `json:"enabled" yaml:"enabled"`
+	HostID         string         `json:"hostID" yaml:"hostID"`
+	PartnerID      string         `json:"partnerID" yaml:"partnerID"`
+	UserID         string         `json:"userID" yaml:"userID"`
+	AutoPullPolicy string         `json:"autoPullPolicy" yaml:"autoPullPolicy"`
+	Configuration  map[string]any `json:"configuration,omitempty" yaml:"configuration,omitempty"`
 }
 
 // Task is the JSON struct representing a rule task.

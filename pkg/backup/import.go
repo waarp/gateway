@@ -101,7 +101,7 @@ func Import(db database.Access, logger *log.Logger, r importFile, targets []stri
 		}
 
 		if utils.ContainsOneOf(targets, "ebics", "all") {
-			if err := importEbicsPayloadProfiles(logger, ses, data.EbicsPayloadProfiles, reset); err != nil {
+			if err := importEbicsAdminData(logger, ses, &data, reset); err != nil {
 				return err
 			}
 		}

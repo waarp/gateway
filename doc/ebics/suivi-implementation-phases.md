@@ -106,7 +106,7 @@ Decision / date:
 - [ ] Plan de consolidation backend pose
 - [x] Lot B1 - Execution cliente reelle
 - [x] Lot B2 - Couverture backend complete
-- [ ] Lot B3 - Import / export / updateconf complet
+- [x] Lot B3 - Import / export / updateconf complet
 - [ ] Lot B4 - Durcissement exploitation
 - [ ] Lot B5 - Verification de sortie backend
 - [ ] Gate "backend pret frontend" prononcee
@@ -114,6 +114,8 @@ Decision / date:
 Note:
 - le suivi detaille est porte par `backend-consolidation-plan.md` et `suivi-backend-consolidation.md`
 - objectif explicite: ne plus laisser de stub bloquant ni de fonctionnalite backend EBICS partielle avant frontend
+- le chantier de consolidation serveur EBICS est maintenant rendu explicite dans `Lot B4`,
+  pour ne pas laisser un angle mort cote provider/serveur
 - `Lot B1` est termine:
   le chemin nominal client payload `BTU/BTD` est branche sur `lib-ebics`
   avec correlation `operation/transaction/transfer`, contrat actif, TLS et recovery;
@@ -132,3 +134,14 @@ Note:
   les operations payload sont explicitement typees `PAYLOAD` au lieu de
   reutiliser `REPORTING`;
   `Lot B2` est maintenant considere ferme
+- `Lot B3` est demarre:
+  `pkg/backup` couvre maintenant les objets EBICS administres
+  `hosts`, `subscribers`, `bank keys`, `payload profiles` et `RTN providers`;
+  la verification de round-trip complet JSON/YAML et `updateconf` reste ouverte
+- `Lot B3` est termine:
+  import/export couvrent les objets EBICS administres
+  `hosts`, `subscribers`, `bank keys`, `payload profiles` et `RTN providers`;
+  des jeux de reference `JSON/YAML` et un test de round-trip dedie valident
+  le perimetre `pkg/backup`; `updateconf` est aussi verifie sur ce socle;
+  la migration `0.16.0` garantit la presence des tables EBICS dans les bases
+  existantes et dans les bases de test

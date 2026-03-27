@@ -85,7 +85,28 @@ Sortie attendue:
 
 - un exploitant peut recreer une configuration EBICS complete sans script ad hoc.
 
-## 3.4 Production / exploitation
+## 3.4 Serveur EBICS reel et durcissement serveur
+
+Constat actuel:
+
+- le serveur Gateway est deja branche sur `lib-ebics`;
+- les handlers payload `FUL` / `FDL` / `BTU` / `BTD` sont exposes et relies au routeur Gateway;
+- ce socle reel n'a toutefois pas encore fait l'objet d'un lot de consolidation explicite
+  comparable a celui du client.
+
+Objectif:
+
+- relire le chemin nominal serveur `BTU/BTD` avec une exigence d'exploitation/production;
+- verifier la couverture normative des ordres serveur non payload reels exposes par `lib-ebics`;
+- durcir la segmentation, le recovery, la reprise, les statuts et les erreurs cote serveur;
+- verifier que les retours et journaux serveur sont exploitables sans ambiguite.
+
+Sortie attendue:
+
+- le serveur EBICS n'est plus seulement "branche", il est considere consolide;
+- aucun angle mort serveur critique ne subsiste avant frontend.
+
+## 3.5 Production / exploitation
 
 Constat actuel:
 
@@ -145,10 +166,22 @@ Bloquant frontend:
 - oui pour une cible production;
 - non pour une simple demo locale.
 
-## Lot B4 - Durcissement exploitation
+Statut:
+
+- 2026-03-27: termine
+- couverture posee pour `hosts`, `subscribers`, `bank keys`,
+  `payload profiles` et `RTN providers`
+- round-trip verifie par fixtures `JSON/YAML`, test dedie `pkg/backup`
+  et scenario `updateconf`
+- migration `0.16.0` ajoutee pour garantir la presence des tables EBICS
+  dans les bases migrees et dans les environnements de test
+
+## Lot B4 - Durcissement exploitation + consolidation serveur
 
 Perimetre:
 
+- execution serveur reelle EBICS;
+- couverture normative et operationnelle cote serveur;
 - messages d'erreur,
 - statuts operateur,
 - correlation,
@@ -180,7 +213,7 @@ Ordre de traitement:
 1. `Lot B1 - Execution cliente reelle`
 2. `Lot B2 - Orders backend complets`
 3. `Lot B3 - Import / export / updateconf complet`
-4. `Lot B4 - Durcissement exploitation`
+4. `Lot B4 - Durcissement exploitation + consolidation serveur`
 5. `Lot B5 - Verification backend de sortie`
 
 ## 6. Regle de conduite

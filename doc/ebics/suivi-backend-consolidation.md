@@ -16,7 +16,7 @@ Regles:
 - [x] Plus aucun `ErrNotImplemented` sur le chemin nominal EBICS
 - [ ] Plus aucun endpoint/commande EBICS expose sans logique runtime suffisante
 - [ ] Plus aucun `replace` local vers `lib-ebics`
-- [ ] Import/export/updateconf complets pour les objets EBICS administres
+- [x] Import/export/updateconf complets pour les objets EBICS administres
 - [ ] Politique d'exploitation documentee et relue
 - [ ] Backend declare "pret frontend"
 
@@ -49,16 +49,19 @@ Regles:
 
 ## 5. Lot B3 - Import / export / updateconf
 
-- [ ] Etendre `pkg/backup/export.go`
-- [ ] Etendre `pkg/backup/import.go`
-- [ ] Ajouter les helpers `*_export.go`
-- [ ] Ajouter les helpers `*_import.go`
-- [ ] Cadrer les jeux JSON/YAML de reference
-- [ ] Verifier le round-trip complet des `ProtoConfig`
-- [ ] Verifier le round-trip complet des objets EBICS administres
+- [x] Etendre `pkg/backup/export.go`
+- [x] Etendre `pkg/backup/import.go`
+- [x] Ajouter les helpers `*_export.go`
+- [x] Ajouter les helpers `*_import.go`
+- [x] Cadrer les jeux JSON/YAML de reference
+- [x] Verifier le round-trip complet des `ProtoConfig`
+- [x] Verifier le round-trip complet des objets EBICS administres
 
 ## 6. Lot B4 - Durcissement exploitation
 
+- [ ] Revoir l'execution serveur EBICS reelle sur le chemin nominal `BTU/BTD`
+- [ ] Revoir la couverture normative des ordres serveur non payload exposes
+- [ ] Revoir la segmentation / reprise / recovery cote serveur
 - [ ] Revoir la journalisation des flux serveur EBICS
 - [ ] Revoir la journalisation des flux client EBICS
 - [ ] Revoir les messages d'erreur REST EBICS
@@ -144,3 +147,20 @@ Regles:
   creation/correlation d'`EbicsOperation`, typage d'operation `PAYLOAD`
   explicite cote client et cote serveur, et actions operateur `retry/recover`.
   Le `Lot B2` est considere ferme.
+- 2026-03-27: le plan de consolidation est precise pour rendre explicite le
+  chantier serveur. Le durcissement de l'execution serveur reelle EBICS
+  (payload nominal, ordres non payload, segmentation/reprise, observabilite)
+  est maintenant porte explicitement par le `Lot B4`.
+- 2026-03-27: `Lot B3` est demarre. Le backup EBICS couvre maintenant les
+  objets administres `hosts`, `subscribers`, `bank keys`, `payload profiles`
+  et `RTN providers`, avec orchestration d'import/export dans `pkg/backup`.
+  Les objets purement operationnels (`operations`, `transactions`,
+  `initializations`, `key lifecycles`, `RTN events`, `contract views`)
+  restent volontairement hors sauvegarde de configuration. Les round-trips
+  complets JSON/YAML et `updateconf` restent a verifier.
+- 2026-03-27: `Lot B3` est maintenant ferme. Le perimetre EBICS administre
+  (`hosts`, `subscribers`, `bank keys`, `payload profiles`, `RTN providers`)
+  est couvert en import/export, avec jeux de reference `JSON/YAML`,
+  test de round-trip dedie dans `pkg/backup`, verification `updateconf`,
+  et migration `0.16.0` pour garantir la presence des tables EBICS sur les
+  bases creees ou migrees.

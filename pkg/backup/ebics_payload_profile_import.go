@@ -86,7 +86,7 @@ func getDefaultRuleIDForEbicsPayloadProfile(
 	profile *file.EbicsPayloadProfile,
 ) (sql.NullInt64, error) {
 	var rules model.Rules
-	if err := db.Select(&rules).Where("name=?", profile.DefaultRule).Owner().Run(); err != nil {
+	if err := db.Select(&rules).Where("name=?", profile.DefaultRule).Run(); err != nil {
 		return sql.NullInt64{}, fmt.Errorf(
 			"failed to retrieve default rule %q of EBICS payload profile %q: %w",
 			profile.DefaultRule, profile.Name, err,

@@ -336,4 +336,9 @@ var Migrations = []Change{
 		Up:          ver0_14_0AddTransferStopUp,
 		Down:        ver0_14_0AddTransferStopDown,
 	},
+	{ // #64
+		Description: `Add the EBICS backend tables`,
+		Up:          ver0_16_0AddEbicsTablesUp,
+		Down:        ver0_16_0AddEbicsTablesDown,
+	},
 }
