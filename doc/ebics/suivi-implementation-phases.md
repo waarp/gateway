@@ -114,3 +114,7 @@ Decision / date:
 Note:
 - le suivi detaille est porte par `backend-consolidation-plan.md` et `suivi-backend-consolidation.md`
 - objectif explicite: ne plus laisser de stub bloquant ni de fonctionnalite backend EBICS partielle avant frontend
+- `Lot B1` est en cours:
+  le chemin nominal client payload `BTU/BTD` est maintenant branche sur `lib-ebics`
+  avec correlation `operation/transaction/transfer`, contrat actif, TLS et recovery;
+  restent ouverts les ordres client hors payload et les aliases eventuels `FUL/FDL`

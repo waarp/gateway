@@ -30,7 +30,9 @@ Le backend EBICS est considere "pret frontend" quand les conditions suivantes so
 Constat actuel:
 
 - `pkg/protocols/modules/ebics/client.go` demarre un profil `lib-ebics`;
-- `InitTransfer` retourne encore `ErrNotImplemented`.
+- le chemin nominal payload client `BTU/BTD` est branche sur `lib-ebics`,
+  avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
+  transport TLS, recovery et correlation `Transfer`.
 
 Objectif:
 

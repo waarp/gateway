@@ -151,6 +151,10 @@ Regles:
   passent apres suppression du `replace` local et bascule sur `code.waarp.fr/lib/ebics@v0.0.0-20260326163504-771a9550a5be`
 - Decision: la protection des `Credential` references par un lifecycle actif est posee directement dans
   `pkg/model/credentials.go` pour couvrir uniformement REST, GUI et CLI
+- Verification: `Lot B1` payload client valide avec `golangci-lint run ./pkg/protocols/modules/ebics ./pkg/model`
+- Verification: `go test ./pkg/protocols/modules/ebics`, `./pkg/model` et `./pkg/protocols/...`
+  passent apres remplacement du stub `InitTransfer` par une execution cliente reelle `BTU/BTD`
+  avec `EbicsOperation`, `EbicsTransaction`, contrat actif, TLS et recovery
 
 ## 12. Suite backend
 

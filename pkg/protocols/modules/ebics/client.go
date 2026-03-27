@@ -86,12 +86,12 @@ func (c *Client) State() (utils.StateCode, string) {
 	return c.state.Get()
 }
 
-func (c *Client) InitTransfer(_ *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
-	return nil, pipeline.NewErrorWith(
-		types.TeUnimplemented,
-		"EBICS transfer bootstrap is not implemented yet",
-		fmt.Errorf("%w", ErrNotImplemented),
-	)
+func (c *Client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
+	if !c.state.IsRunning() {
+		return nil, pipeline.NewError(types.TeShuttingDown, "the EBICS client service is not running")
+	}
+
+	return newTransferClient(c, pip), nil
 }
 
 func (c *Client) newLibraryProfile(cfg *clientConfig) (*libebicsclient.ProductionProfile, error) {

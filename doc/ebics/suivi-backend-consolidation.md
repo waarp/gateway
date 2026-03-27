@@ -22,16 +22,16 @@ Regles:
 
 ## 3. Lot B1 - Execution cliente reelle
 
-- [ ] Remplacer le stub `InitTransfer` dans `pkg/protocols/modules/ebics/client.go`
-- [ ] Definir le mapping `Transfer -> ordre client EBICS`
-- [ ] Creer la creation d'`EbicsOperation` cote client
-- [ ] Creer la creation d'`EbicsTransaction` cote client quand necessaire
-- [ ] Brancher `BTU/BTD` cote client
+- [x] Remplacer le stub `InitTransfer` dans `pkg/protocols/modules/ebics/client.go`
+- [x] Definir le mapping `Transfer -> ordre client EBICS`
+- [x] Creer la creation d'`EbicsOperation` cote client
+- [x] Creer la creation d'`EbicsTransaction` cote client quand necessaire
+- [x] Brancher `BTU/BTD` cote client
 - [ ] Brancher `FUL/FDL` si des aliases transport restent necessaires
 - [ ] Brancher reporting / ordres admin cote client
 - [ ] Brancher initialisation / key management cote client
-- [ ] Garantir la correlation `operation / transaction / transfer`
-- [ ] Verifier l'exploitation des return codes `technical/business`
+- [x] Garantir la correlation `operation / transaction / transfer`
+- [x] Verifier l'exploitation des return codes `technical/business`
 
 ## 4. Lot B2 - Couverture backend complete
 
@@ -82,3 +82,8 @@ Regles:
 
 - Date de creation: 2026-03-27
 - Cible: backend EBICS complet avant chantier frontend
+- 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
+  `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
+  TLS, recovery et correlation `transfer`.
+  Reste a fermer dans `B1`: aliases `FUL/FDL` si requis en pipeline, puis les
+  familles client reporting/admin/initialisation/key-management.
