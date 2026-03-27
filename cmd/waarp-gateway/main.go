@@ -253,8 +253,9 @@ type commands struct {
 		} `command:"payload" description:"Manage the EBICS payload operations"`
 
 		ContractView struct {
-			List wg.EbicsContractViewList `command:"list" description:"List the EBICS contract views"`
-			Get  wg.EbicsContractViewGet  `command:"get" description:"Retrieve an EBICS contract view"`
+			List    wg.EbicsContractViewList    `command:"list" description:"List the EBICS contract views"`
+			Get     wg.EbicsContractViewGet     `command:"get" description:"Retrieve an EBICS contract view"`
+			Refresh wg.EbicsContractViewRefresh `command:"refresh" description:"Refresh EBICS contract views from the bank"`
 		} `command:"contract-view" description:"Manage the EBICS contract views"`
 
 		KeyLifecycle struct {

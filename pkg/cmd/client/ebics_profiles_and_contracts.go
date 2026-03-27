@@ -1,8 +1,10 @@
 package wg
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -226,4 +228,57 @@ func (c *EbicsContractViewGet) execute(w io.Writer) error {
 	}
 
 	return outputObject(w, body.ContractView, &c.OutputFormat, displayEbicsContractView)
+}
+
+type EbicsContractViewRefresh struct {
+	OutputFormat
+
+	EbicsSubscriberID int64 `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
+	NoHEV             bool  `long:"no-hev" description:"Skip the HEV check before refreshing contract views" json:"-"`
+}
+
+func (c *EbicsContractViewRefresh) Execute([]string) error { return execute(c) }
+func (c *EbicsContractViewRefresh) execute(w io.Writer) error {
+	addr.Path = "/api/ebics/contract-views/actions/refresh"
+
+	req := api.InEbicsContractRefresh{
+		EbicsSubscriberID: c.EbicsSubscriberID,
+		IncludeHEV:        !c.NoHEV,
+	}
+
+	var body struct {
+		ProtocolCheckOperation *api.OutEbicsOperation      `json:"protocolCheckOperation"`
+		Operations             []*api.OutEbicsOperation    `json:"operations"`
+		ContractViews          []*api.OutEbicsContractView `json:"contractViews"`
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, reqErr := sendRequest(ctx, req, http.MethodPost)
+	if reqErr != nil {
+		return reqErr
+	}
+	defer resp.Body.Close() //nolint:errcheck // nothing to handle
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		if err := unmarshalBody(resp.Body, &body); err != nil {
+			return err
+		}
+
+		if body.ProtocolCheckOperation != nil {
+			if err := outputObject(w, body.ProtocolCheckOperation, &c.OutputFormat, displayEbicsOperation); err != nil {
+				return err
+			}
+		}
+
+		return outputObject(w, body.ContractViews, &c.OutputFormat, displayEbicsContractViews)
+	case http.StatusBadRequest:
+		return getResponseErrorMessage(resp)
+	case http.StatusNotFound:
+		return getResponseErrorMessage(resp)
+	default:
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status, getResponseErrorMessage(resp))
+	}
 }

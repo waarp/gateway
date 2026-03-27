@@ -30,3 +30,9 @@ type OutEbicsContractViewItem struct {
 	MaxAmountCurrency  string `json:"maxAmountCurrency,omitempty" yaml:"maxAmountCurrency,omitempty"`
 	IsEnabled          bool   `json:"isEnabled" yaml:"isEnabled"`
 }
+
+// InEbicsContractRefresh defines a client-side contract refresh request.
+type InEbicsContractRefresh struct {
+	EbicsSubscriberID int64 `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
+	IncludeHEV        bool  `json:"includeHev" yaml:"includeHev"`
+}

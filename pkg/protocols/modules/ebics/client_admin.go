@@ -46,6 +46,7 @@ type adminExecutionContext struct {
 	remoteAgent    *model.RemoteAgent
 	endpointURL    string
 	libClient      *libebicsclient.Client
+	requestSigner  libebicscrypto.Signer
 	responseSigner libebicscrypto.Signer
 	downloadCipher libebicscrypto.E002Cipher
 }
@@ -223,7 +224,7 @@ func (c *Client) executeInitializationOrder(
 		return nil, c.failNonPayloadOperation(operation, "execute initialization order", execErr)
 	}
 
-	if completeErr := c.completeNonPayloadOperation(operation, "", "", "", ""); completeErr != nil {
+	if completeErr := c.completeNonPayloadOperation(operation, "", ""); completeErr != nil {
 		return nil, completeErr
 	}
 
@@ -269,7 +270,7 @@ func (c *Client) syncBankKeysForSubscriber(subscriberID int64) (*model.EbicsOper
 		"payloadSize": len(payload),
 	}
 
-	if completeErr := c.completeNonPayloadOperation(operation, "", "", "", ""); completeErr != nil {
+	if completeErr := c.completeNonPayloadOperation(operation, "", ""); completeErr != nil {
 		return nil, completeErr
 	}
 
@@ -323,6 +324,11 @@ func (c *Client) newAdminExecutionContext(subscriberID int64) (*adminExecutionCo
 		return nil, err
 	}
 
+	requestSigner, err := c.resolveAdminRequestSigner(subscriber.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	downloadCipher, err := c.resolveAdminDownloadCipher(subscriber.ID)
 	if err != nil {
 		return nil, err
@@ -335,6 +341,7 @@ func (c *Client) newAdminExecutionContext(subscriberID int64) (*adminExecutionCo
 		remoteAgent:    remoteAgent,
 		endpointURL:    endpointURL,
 		libClient:      libClient,
+		requestSigner:  requestSigner,
 		responseSigner: responseSigner,
 		downloadCipher: downloadCipher,
 	}, nil
@@ -475,6 +482,15 @@ func (c *Client) resolveAdminResponseSigner(hostID int64) (libebicscrypto.Signer
 	}, nil
 }
 
+func (c *Client) resolveAdminRequestSigner(subscriberID int64) (libebicscrypto.Signer, error) {
+	credential, err := c.resolveLifecycleCredential(subscriberID, model.EbicsKeyUsageAuthenticationForRuntime())
+	if err != nil {
+		return nil, err
+	}
+
+	return signerFromCredential(credential)
+}
+
 func (c *Client) resolveAdminDownloadCipher(subscriberID int64) (libebicscrypto.E002Cipher, error) {
 	credential, err := c.resolveLifecycleCredential(subscriberID, model.EbicsKeyUsageEncryptionForRuntime())
 	if err != nil {
@@ -554,16 +570,14 @@ func (c *Client) insertNonPayloadOperation(
 func (c *Client) completeNonPayloadOperation(
 	operation *model.EbicsOperation,
 	technicalCode,
-	technicalMessage,
-	businessCode,
-	businessMessage string,
+	businessCode string,
 ) error {
 	if err := ebicsruntime.UpdateOperationOutcomeFromReturnCodes(
 		operation,
 		technicalCode,
-		technicalMessage,
+		"",
 		businessCode,
-		businessMessage,
+		"",
 	); err != nil {
 		return fmt.Errorf("derive EBICS outcome for operation %d: %w", operation.ID, err)
 	}

@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	ebicsmodule "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ebics"
 )
 
 func getEbicsContractViewItems(db database.ReadAccess, viewID int64) ([]*api.OutEbicsContractViewItem, error) {
@@ -79,5 +80,59 @@ func listEbicsContractViews(logger *log.Logger, db *database.DB) http.HandlerFun
 		}
 
 		handleError(w, logger, writeJSON(w, map[string]any{"contractViews": out}))
+	}
+}
+
+func refreshEbicsContractViews(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &api.InEbicsContractRefresh{IncludeHEV: true}
+		if err := readJSON(r, req); handleError(w, logger, err) {
+			return
+		}
+
+		if req.EbicsSubscriberID == 0 {
+			handleError(w, logger, badRequestf("the EBICS subscriber identifier is missing"))
+			return
+		}
+
+		result, err := ebicsmodule.RefreshContractViews(r.Context(), db, req.EbicsSubscriberID, req.IncludeHEV)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		body := struct {
+			ProtocolCheckOperation *api.OutEbicsOperation      `json:"protocolCheckOperation,omitempty"`
+			Operations             []*api.OutEbicsOperation    `json:"operations"`
+			ContractViews          []*api.OutEbicsContractView `json:"contractViews"`
+		}{
+			Operations:    make([]*api.OutEbicsOperation, 0, len(result.ContractOperations)),
+			ContractViews: make([]*api.OutEbicsContractView, 0, len(result.ContractViews)),
+		}
+
+		if result.ProtocolCheckOperation != nil {
+			outOperation, convErr := DBEbicsOperationToREST(result.ProtocolCheckOperation)
+			if handleError(w, logger, convErr) {
+				return
+			}
+			body.ProtocolCheckOperation = outOperation
+		}
+
+		for _, view := range result.ContractViews {
+			outView, convErr := DBEbicsContractViewToREST(db, view)
+			if handleError(w, logger, convErr) {
+				return
+			}
+			body.ContractViews = append(body.ContractViews, outView)
+		}
+
+		for _, operation := range result.ContractOperations {
+			outOperation, convErr := DBEbicsOperationToREST(operation)
+			if handleError(w, logger, convErr) {
+				return
+			}
+			body.Operations = append(body.Operations, outOperation)
+		}
+
+		handleError(w, logger, writeJSON(w, body))
 	}
 }

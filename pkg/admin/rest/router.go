@@ -386,6 +386,7 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 		payloadProfilesPath      = "/ebics/payload-profiles"
 		payloadProfilePath       = "/ebics/payload-profiles/{payload_profile}"
 		contractViewsPath        = "/ebics/contract-views"
+		contractViewRefreshPath  = "/ebics/contract-views/actions/refresh"
 		contractViewPath         = "/ebics/contract-views/{contract_view}"
 		operationsPath           = "/ebics/operations"
 		operationPath            = "/ebics/operations/{ebics_operation}"
@@ -419,6 +420,7 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 	mkHandler(payloadProfilePath, deleteEbicsPayloadProfile, model.PermAdminDelete, http.MethodDelete)
 
 	mkHandler(contractViewsPath, listEbicsContractViews, model.PermAdminRead, http.MethodGet)
+	mkHandler(contractViewRefreshPath, refreshEbicsContractViews, model.PermAdminWrite, http.MethodPost)
 	mkHandler(contractViewPath, getEbicsContractView, model.PermAdminRead, http.MethodGet)
 
 	mkHandler(operationsPath, listEbicsOperations, model.PermTransfersRead, http.MethodGet)

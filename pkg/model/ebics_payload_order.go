@@ -1,8 +1,6 @@
 package model
 
 import (
-	"strings"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
@@ -15,14 +13,7 @@ const (
 
 // NormalizeEbicsPayloadOrderType returns the canonical Gateway payload order type.
 func NormalizeEbicsPayloadOrderType(orderType string) string {
-	switch strings.ToUpper(strings.TrimSpace(orderType)) {
-	case ebicsPayloadOrderFUL:
-		return ebicsPayloadOrderBTU
-	case ebicsPayloadOrderFDL:
-		return ebicsPayloadOrderBTD
-	default:
-		return strings.ToUpper(strings.TrimSpace(orderType))
-	}
+	return NormalizeEbicsOrderType(orderType)
 }
 
 // IsEbicsPayloadOrderType reports whether the provided order type belongs to the payload family.

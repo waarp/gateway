@@ -136,7 +136,7 @@ func (o *EbicsOperation) BeforeWrite(db database.Access) error {
 func (o *EbicsOperation) normalize() {
 	o.Owner = conf.GlobalConfig.GatewayName
 	o.OperationType = strings.ToUpper(strings.TrimSpace(o.OperationType))
-	o.OrderType = NormalizeEbicsPayloadOrderType(o.OrderType)
+	o.OrderType = NormalizeEbicsOrderType(o.OrderType)
 	o.Direction = strings.ToUpper(strings.TrimSpace(o.Direction))
 	o.TransportMode = strings.ToUpper(strings.TrimSpace(o.TransportMode))
 	o.TransactionID = strings.TrimSpace(o.TransactionID)
@@ -167,7 +167,7 @@ func (o *EbicsOperation) validate() error {
 		return err
 	}
 
-	if err := validateEbicsPayloadOrderType(o.OrderType); err != nil {
+	if err := validateEbicsOrderType(o.OrderType); err != nil {
 		return err
 	}
 
