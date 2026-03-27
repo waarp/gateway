@@ -114,7 +114,9 @@ Le systeme doit permettre de prendre en charge au minimum:
 - ordres d'initialisation et de gestion de cles: `HEV`, `INI`, `HIA`, `HPB`,
   `H3K`, `HCA`, `HCS`, `HSA`, `SPR`, `PUB`;
 - ordres administratifs et de consultation: `HPD`, `HTD`, `HKD`, `HAA`;
-- ordres de depot et de telechargement: `FUL`, `FDL`, `BTU`, `BTD`;
+- ordres de depot et de telechargement: `BTU`, `BTD`; `FUL` et `FDL` restent
+  seulement des alias de compatibilite normalises vers ces ordres en cible
+  `EBICS 3.0.2`;
 - ordres de reporting ou de signature, selon priorisation metier: `HAC`, `HVD`,
   `HVE`, `HVT`, `HVU`, `HVZ`, `HVS`.
 

@@ -233,8 +233,10 @@ type commands struct {
 
 	Ebics struct {
 		Operation struct {
-			List wg.EbicsOperationList `command:"list" description:"List the EBICS operations"`
-			Get  wg.EbicsOperationGet  `command:"get" description:"Retrieve an EBICS operation"`
+			List      wg.EbicsOperationList      `command:"list" description:"List the EBICS operations"`
+			Get       wg.EbicsOperationGet       `command:"get" description:"Retrieve an EBICS operation"`
+			Reporting wg.EbicsOperationReporting `command:"reporting" description:"Execute an EBICS reporting order"`
+			Signature wg.EbicsOperationSignature `command:"signature" description:"Execute an EBICS signature order"`
 		} `command:"operation" description:"Manage the EBICS operations"`
 
 		Payload struct {

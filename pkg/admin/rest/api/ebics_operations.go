@@ -23,3 +23,36 @@ type OutEbicsOperation struct {
 	TransferID             *int64         `json:"transferID,omitempty" yaml:"transferID,omitempty"`
 	Metadata               map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
+
+// InEbicsServiceRef identifies one EBICS service descriptor in admin actions.
+type InEbicsServiceRef struct {
+	ServiceName   string `json:"serviceName,omitempty" yaml:"serviceName,omitempty"`
+	ServiceOption string `json:"serviceOption,omitempty" yaml:"serviceOption,omitempty"`
+	Scope         string `json:"scope,omitempty" yaml:"scope,omitempty"`
+	MsgName       string `json:"msgName,omitempty" yaml:"msgName,omitempty"`
+	ContainerType string `json:"containerType,omitempty" yaml:"containerType,omitempty"`
+}
+
+// InEbicsReportingAction defines one client-side reporting/admin read action.
+type InEbicsReportingAction struct {
+	EbicsSubscriberID int64                `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
+	OrderType         string               `json:"orderType" yaml:"orderType"`
+	OrderID           string               `json:"orderID,omitempty" yaml:"orderID,omitempty"`
+	Service           *InEbicsServiceRef   `json:"service,omitempty" yaml:"service,omitempty"`
+	ServiceFilters    []*InEbicsServiceRef `json:"serviceFilters,omitempty" yaml:"serviceFilters,omitempty"`
+	CompleteOrderData bool                 `json:"completeOrderData,omitempty" yaml:"completeOrderData,omitempty"`
+	FetchLimit        int                  `json:"fetchLimit,omitempty" yaml:"fetchLimit,omitempty"`
+	FetchOffset       int                  `json:"fetchOffset,omitempty" yaml:"fetchOffset,omitempty"`
+	Metadata          map[string]any       `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+
+// InEbicsSignatureAction defines one client-side signature action.
+type InEbicsSignatureAction struct {
+	EbicsSubscriberID int64              `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
+	OrderType         string             `json:"orderType" yaml:"orderType"`
+	OrderID           string             `json:"orderID,omitempty" yaml:"orderID,omitempty"`
+	Service           *InEbicsServiceRef `json:"service,omitempty" yaml:"service,omitempty"`
+	OrderData         []byte             `json:"orderData,omitempty" yaml:"orderData,omitempty"`
+	SignatureData     []byte             `json:"signatureData,omitempty" yaml:"signatureData,omitempty"`
+	Metadata          map[string]any     `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}

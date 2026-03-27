@@ -53,10 +53,10 @@ Elle sert de reference pour les lots 1 et 2.
 | `HKD` | Contrat technique | `EO` | `request_id`, `correlation_id` | `RT` | `NA` | Alimente `contract_view` |
 | `HTD` | Contrat technique | `EO` | `request_id`, `correlation_id` | `RT` | `NA` | Alimente `contract_view` |
 | `HAA` | Contrat / services | `EO` | `request_id`, `correlation_id` | `RT` | `NA` | Peut aussi alimenter RTN / BTF |
-| `FUL` | Upload fichier | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | Ordre fichier, projection `Transfer` obligatoire |
-| `FDL` | Download fichier | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | Ordre fichier, projection `Transfer` obligatoire |
-| `BTU` | Upload BTF | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | A traiter comme flux fichier |
-| `BTD` | Download BTF | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | A traiter comme flux fichier |
+| `FUL` | Upload fichier | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | Alias de compatibilite normalise vers `BTU` |
+| `FDL` | Download fichier | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | Alias de compatibilite normalise vers `BTD` |
+| `BTU` | Upload BTF | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | Ordre canonique fichier cible en `EBICS 3.0.2` |
+| `BTD` | Download BTF | `EO + TR` | `transaction_id`, `request_id`, `transfer_id`, `remote_transfer_id`, `correlation_id` | `RS` | `TX + SEG + GW` | Ordre canonique fichier cible en `EBICS 3.0.2` |
 | `HAC` | Reporting / ack | `EO` ou `EO + TR` | `transaction_id`, `request_id`, `correlation_id` | `RT` | `TX` | Devient `EO + TR` seulement si fichier reellement collecte |
 | `HVD` | Reporting | `EO` | `transaction_id`, `request_id`, `correlation_id` | `RT` | `TX` | Pas de `Transfer` par defaut |
 | `HVE` | Signature protocolaire | `EO` | `transaction_id`, `request_id`, `correlation_id` | `MR` | `TX` | Pas de workflow metier dans Gateway |

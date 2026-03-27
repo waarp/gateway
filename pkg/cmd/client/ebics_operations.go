@@ -1,8 +1,11 @@
 package wg
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
 	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -83,4 +86,155 @@ func (c *EbicsOperationGet) execute(w io.Writer) error {
 	}
 
 	return outputObject(w, &operation, &c.OutputFormat, displayEbicsOperation)
+}
+
+//nolint:lll // CLI tags are intentionally explicit
+type EbicsOperationReporting struct {
+	OutputFormat
+
+	EbicsSubscriberID int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
+	OrderType         string             `required:"yes" long:"order-type" choice:"HVD" choice:"HVU" choice:"HVZ" choice:"HVT" choice:"HAC" description:"The reporting order type"`
+	OrderID           string             `long:"order-id" description:"The target EBICS order identifier"`
+	ServiceName       string             `long:"service-name" description:"The EBICS service name"`
+	ServiceOption     string             `long:"service-option" description:"The EBICS service option"`
+	Scope             string             `long:"scope" description:"The EBICS service scope"`
+	MsgName           string             `long:"msg-name" description:"The EBICS message name"`
+	ContainerType     string             `long:"container-type" description:"The EBICS container type"`
+	CompleteOrderData bool               `long:"complete-order-data" description:"Request the original order payload for HVT"`
+	FetchLimit        int                `long:"fetch-limit" description:"The HVT fetch limit"`
+	FetchOffset       int                `long:"fetch-offset" description:"The HVT fetch offset"`
+	Metadata          map[string]confVal `long:"metadata" description:"Structured metadata in key:value format. Can be repeated."`
+}
+
+func (c *EbicsOperationReporting) Execute([]string) error { return execute(c) }
+func (c *EbicsOperationReporting) execute(w io.Writer) error {
+	addr.Path = "/api/ebics/operations/actions/reporting"
+
+	req := api.InEbicsReportingAction{
+		EbicsSubscriberID: c.EbicsSubscriberID,
+		OrderType:         c.OrderType,
+		OrderID:           c.OrderID,
+		CompleteOrderData: c.CompleteOrderData,
+		FetchLimit:        c.FetchLimit,
+		FetchOffset:       c.FetchOffset,
+		Metadata:          normalizeConfMap(c.Metadata),
+	}
+	if service := cliServiceRef(c.ServiceName, c.ServiceOption, c.Scope, c.MsgName, c.ContainerType); service != nil {
+		switch c.OrderType {
+		case "HVU", "HVZ":
+			req.ServiceFilters = []*api.InEbicsServiceRef{service}
+		default:
+			req.Service = service
+		}
+	}
+
+	var operation api.OutEbicsOperation
+	if err := postEbicsOperationAction(req, &operation); err != nil {
+		return err
+	}
+
+	return outputObject(w, &operation, &c.OutputFormat, displayEbicsOperation)
+}
+
+//nolint:lll // CLI tags are intentionally explicit
+type EbicsOperationSignature struct {
+	OutputFormat
+
+	EbicsSubscriberID int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
+	OrderType         string             `required:"yes" long:"order-type" choice:"HVE" choice:"HVS" description:"The signature order type"`
+	OrderID           string             `required:"yes" long:"order-id" description:"The target EBICS order identifier"`
+	ServiceName       string             `long:"service-name" description:"The EBICS service name"`
+	ServiceOption     string             `long:"service-option" description:"The EBICS service option"`
+	Scope             string             `long:"scope" description:"The EBICS service scope"`
+	MsgName           string             `long:"msg-name" description:"The EBICS message name"`
+	ContainerType     string             `long:"container-type" description:"The EBICS container type"`
+	OrderDataPath     string             `long:"order-data" description:"Path to the HVS order data file"`
+	SignatureDataPath string             `long:"signature-data" description:"Path to the HVS signature data file"`
+	Metadata          map[string]confVal `long:"metadata" description:"Structured metadata in key:value format. Can be repeated."`
+}
+
+func (c *EbicsOperationSignature) Execute([]string) error { return execute(c) }
+func (c *EbicsOperationSignature) execute(w io.Writer) error {
+	addr.Path = "/api/ebics/operations/actions/signature"
+
+	req := api.InEbicsSignatureAction{
+		EbicsSubscriberID: c.EbicsSubscriberID,
+		OrderType:         c.OrderType,
+		OrderID:           c.OrderID,
+		Metadata:          normalizeConfMap(c.Metadata),
+	}
+	if service := cliServiceRef(c.ServiceName, c.ServiceOption, c.Scope, c.MsgName, c.ContainerType); service != nil {
+		req.Service = service
+	}
+
+	if c.OrderDataPath != "" {
+		data, err := os.ReadFile(c.OrderDataPath)
+		if err != nil {
+			return fmt.Errorf("read HVS order data %q: %w", c.OrderDataPath, err)
+		}
+		req.OrderData = data
+	}
+	if c.SignatureDataPath != "" {
+		data, err := os.ReadFile(c.SignatureDataPath)
+		if err != nil {
+			return fmt.Errorf("read HVS signature data %q: %w", c.SignatureDataPath, err)
+		}
+		req.SignatureData = data
+	}
+
+	var operation api.OutEbicsOperation
+	if err := postEbicsOperationAction(req, &operation); err != nil {
+		return err
+	}
+
+	return outputObject(w, &operation, &c.OutputFormat, displayEbicsOperation)
+}
+
+func cliServiceRef(serviceName, serviceOption, scope, msgName, containerType string) *api.InEbicsServiceRef {
+	if serviceName == "" && serviceOption == "" && scope == "" && msgName == "" && containerType == "" {
+		return nil
+	}
+
+	return &api.InEbicsServiceRef{
+		ServiceName:   serviceName,
+		ServiceOption: serviceOption,
+		Scope:         scope,
+		MsgName:       msgName,
+		ContainerType: containerType,
+	}
+}
+
+func postEbicsOperationAction(request, out any) error {
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, reqErr := sendRequest(ctx, request, http.MethodPost)
+	if reqErr != nil {
+		return reqErr
+	}
+	defer resp.Body.Close() //nolint:errcheck // nothing to handle
+
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		return unmarshalBody(resp.Body, out)
+	case http.StatusBadRequest:
+		return getResponseErrorMessage(resp)
+	case http.StatusNotFound:
+		return getResponseErrorMessage(resp)
+	default:
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status, getResponseErrorMessage(resp))
+	}
+}
+
+func normalizeConfMap(input map[string]confVal) map[string]any {
+	if len(input) == 0 {
+		return nil
+	}
+
+	out := make(map[string]any, len(input))
+	for key, value := range input {
+		out[key] = string(value)
+	}
+
+	return out
 }

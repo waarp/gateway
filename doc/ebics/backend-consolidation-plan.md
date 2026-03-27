@@ -36,7 +36,7 @@ Constat actuel:
 
 Objectif:
 
-- brancher une vraie execution cliente EBICS pour `BTU/BTD`, `FUL/FDL`, ordres d'administration, reporting, initialisation et key management;
+- brancher une vraie execution cliente EBICS pour `BTU/BTD`, avec `FUL/FDL` limites a des alias de compatibilite normalises, puis couvrir ordres d'administration, reporting, initialisation et key management;
 - integrer la creation/mise a jour de `EbicsOperation`, `EbicsTransaction` et `Transfer` cote client;
 - fermer completement le stub `InitTransfer`.
 

@@ -117,4 +117,5 @@ Note:
 - `Lot B1` est en cours:
   le chemin nominal client payload `BTU/BTD` est maintenant branche sur `lib-ebics`
   avec correlation `operation/transaction/transfer`, contrat actif, TLS et recovery;
-  restent ouverts les ordres client hors payload et les aliases eventuels `FUL/FDL`
+  restent ouverts les ordres client hors payload; `FUL/FDL` sont ramenes a de
+  simples alias de compatibilite vers `BTU/BTD`

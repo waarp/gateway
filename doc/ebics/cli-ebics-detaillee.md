@@ -45,8 +45,8 @@ Cette famille couvre les ordres EBICS qui manipulent un payload reel:
 
 - `BTU`
 - `BTD`
-- `FUL`
-- `FDL`
+- `FUL` alias de compatibilite normalise vers `BTU`
+- `FDL` alias de compatibilite normalise vers `BTD`
 
 Principe:
 
@@ -88,8 +88,8 @@ Options minimales:
 
 Regles:
 
-- `BTU` est privilegie pour les flux BTF cibles;
-- `FUL` reste disponible pour les cas historiques ou non-BTF;
+- `BTU` est l'ordre canonique cible;
+- `FUL` reste disponible uniquement comme alias de compatibilite normalise;
 - `--profile` doit permettre de charger une configuration EBICS predefinie;
 - `--profile` constitue le mode nominal d'exploitation;
 - `--rule` reste disponible pour la politique technique Gateway de projection
@@ -149,8 +149,8 @@ Options minimales:
 
 Regles:
 
-- `BTD` est privilegie pour les collectes BTF cibles;
-- `FDL` reste disponible pour les telechargements de fichiers non BTF;
+- `BTD` est l'ordre canonique cible;
+- `FDL` reste disponible uniquement comme alias de compatibilite normalise;
 - `--profile` doit pouvoir eviter la repetition de `serviceName`,
   `serviceOption`, `scope`, `msgName`;
 - `--profile` constitue le mode nominal d'exploitation;

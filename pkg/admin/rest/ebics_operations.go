@@ -1,12 +1,14 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	ebicsmodule "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ebics"
 )
 
 func getEbicsOperation(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -61,4 +63,98 @@ func listEbicsOperations(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		handleError(w, logger, writeJSON(w, map[string]any{"operations": out}))
 	}
+}
+
+func executeEbicsReportingOperation(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		request := &api.InEbicsReportingAction{}
+		if err := readJSON(r, request); handleError(w, logger, err) {
+			return
+		}
+
+		operation, err := ebicsmodule.ExecuteReportingAction(r.Context(), db, &ebicsmodule.ReportingActionInput{
+			EbicsSubscriberID: request.EbicsSubscriberID,
+			OrderType:         request.OrderType,
+			OrderID:           request.OrderID,
+			Service:           restServiceRefToRuntime(request.Service),
+			ServiceFilters:    restServiceRefsToRuntime(request.ServiceFilters),
+			CompleteOrderData: request.CompleteOrderData,
+			FetchLimit:        request.FetchLimit,
+			FetchOffset:       request.FetchOffset,
+			Metadata:          request.Metadata,
+		})
+		if handleError(w, logger, err) {
+			return
+		}
+
+		out, err := DBEbicsOperationToREST(operation)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, fmt.Sprint(operation.ID)))
+		w.WriteHeader(http.StatusCreated)
+		handleError(w, logger, writeJSON(w, out))
+	}
+}
+
+func executeEbicsSignatureOperation(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		request := &api.InEbicsSignatureAction{}
+		if err := readJSON(r, request); handleError(w, logger, err) {
+			return
+		}
+
+		operation, err := ebicsmodule.ExecuteSignatureAction(r.Context(), db, &ebicsmodule.SignatureActionInput{
+			EbicsSubscriberID: request.EbicsSubscriberID,
+			OrderType:         request.OrderType,
+			OrderID:           request.OrderID,
+			Service:           restServiceRefToRuntime(request.Service),
+			OrderData:         request.OrderData,
+			SignatureData:     request.SignatureData,
+			Metadata:          request.Metadata,
+		})
+		if handleError(w, logger, err) {
+			return
+		}
+
+		out, err := DBEbicsOperationToREST(operation)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, fmt.Sprint(operation.ID)))
+		w.WriteHeader(http.StatusCreated)
+		handleError(w, logger, writeJSON(w, out))
+	}
+}
+
+func restServiceRefToRuntime(ref *api.InEbicsServiceRef) *ebicsmodule.ServiceRef {
+	if ref == nil {
+		return nil
+	}
+
+	return &ebicsmodule.ServiceRef{
+		ServiceName:   ref.ServiceName,
+		ServiceOption: ref.ServiceOption,
+		Scope:         ref.Scope,
+		MsgName:       ref.MsgName,
+		ContainerType: ref.ContainerType,
+	}
+}
+
+func restServiceRefsToRuntime(refs []*api.InEbicsServiceRef) []ebicsmodule.ServiceRef {
+	if len(refs) == 0 {
+		return nil
+	}
+
+	items := make([]ebicsmodule.ServiceRef, 0, len(refs))
+	for _, ref := range refs {
+		if ref == nil {
+			continue
+		}
+		items = append(items, *restServiceRefToRuntime(ref))
+	}
+
+	return items
 }

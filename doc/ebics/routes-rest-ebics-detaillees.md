@@ -26,8 +26,8 @@ Cette famille couvre les ordres EBICS avec payload reel:
 
 - `BTU`
 - `BTD`
-- `FUL`
-- `FDL`
+- `FUL` alias de compatibilite normalise vers `BTU`
+- `FDL` alias de compatibilite normalise vers `BTD`
 
 Principe:
 

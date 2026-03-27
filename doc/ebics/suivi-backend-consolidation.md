@@ -29,7 +29,7 @@ Regles:
 - [x] Brancher `BTU/BTD` cote client
 - [x] Confirmer que `FUL/FDL` restent des alias de compatibilite normalises vers `BTU/BTD` en cible `EBICS 3.0.2`
 - [x] Brancher `HEV` et le refresh contractuel `HPD` / `HKD` / `HTD` / `HAA` cote client
-- [ ] Brancher le reste du reporting / des ordres admin cote client
+- [x] Brancher le reste du reporting / des ordres admin cote client
 - [ ] Brancher initialisation / key management cote client
 - [x] Garantir la correlation `operation / transaction / transfer`
 - [x] Verifier l'exploitation des return codes `technical/business`
@@ -100,5 +100,10 @@ Regles:
   `EbicsContractView` / `EbicsContractViewItem`, exposition REST/CLI de l'action
   de refresh, et correction du modele `EbicsOperation` pour accepter les ordres
   non payload.
-  Reste a fermer dans `B1`: le reste du reporting/admin client et le key
-  management de rotation hors simple initialisation.
+- 2026-03-27: le client hors payload couvre maintenant aussi le reporting
+  `HVD` / `HVU` / `HVZ` / `HVT` / `HAC` et les signatures protocolaires
+  `HVE` / `HVS`, avec actions REST/CLI dediees sur `ebics operation`,
+  execution reelle via `lib-ebics`, persistance d'`EbicsOperation` et
+  metadonnees d'exploitation.
+  Reste a fermer dans `B1`: le key management de rotation `PUB` / `HCA` /
+  `HCS` / `HSA` / `SPR`.
