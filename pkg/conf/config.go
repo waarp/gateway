@@ -174,10 +174,23 @@ func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 		}
 	}
 
+	return c, SetConfEnvVars(userConfig)
+}
+
+func SetConfEnvVars(userConfig string) error {
+	if !filepath.IsAbs(userConfig) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to retrieve current working directory: %w", err)
+		}
+
+		userConfig = filepath.Join(wd, userConfig)
+	}
+
 	os.Setenv(ConfigFileEnvVar, userConfig)
 	os.Setenv(ConfigDirEnvVar, filepath.Dir(userConfig))
 
-	return c, nil
+	return nil
 }
 
 func loadServerConfig(userConfig string) (*ServerConfig, string, error) {

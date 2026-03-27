@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`540` Les variables d'environnement ``WAARP_CONFIG_FILE`` et ``WAARP_CONFIG_DIR``
+  introduites en version 0.14.2 sont désormais toujours des chemins absolus.
+
 * :release:`0.15.3 <2026-03-25>`
 * :bug:`536` Correction d'un bug causant des inconsistances dans les préfixes de log.
 * :bug:`533` Les variables de substitution ``#INPATH#`` et ``#OUTPATH#`` pointent
@@ -57,11 +60,15 @@ Historique des versions
 * :bug:`524` Les chemins UNC sous Windows sont désormais correctement traités
   comme des chemins absolus, et ne devraient donc plus être rattachés au dossier
   racine de l'application.
+* :support:`523` L'utilitaire *updateconf* place désormais le fichier de
+  configuration de l'utilitaire *get-remote* dans le même dossier que le fichier
+  de configuration de Gateway. Précédemment, ce fichier était systématiquement
+  placé dans le sous dossier ``etc`` de la racine de Gateway.
 * :support:`522` Au démarrage, Waarp Gateway crée désormais 2 variables d'environnement
-  nommées ``WAARP_GATEWAY_CONFIG_FILE`` et ``WAARP_GATEWAY_CONFIG_DIR`` contenant,
-  respectivement le chemin du fichier de configuration de Gateway, et le dossier
-  parent de ce fichier. Ces variables sont héritées et peuvent être utilisées par
-  les programmes externes appellés dans les tâches de règles.
+  nommées ``WAARP_CONFIG_FILE`` et ``WAARP_CONFIG_DIR`` contenant, respectivement
+  le chemin du fichier de configuration de Gateway, et le dossier parent de ce
+  fichier. Ces variables sont héritées et peuvent être utilisées par les
+  programmes externes appellés dans les tâches de règles.
 * :bug:`520` L'utilitaire *get-remote* n'éssayera plus de transférer des dossiers.
 
 * :release:`0.14.1 <2026-14-01>`
