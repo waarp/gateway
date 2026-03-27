@@ -10,6 +10,7 @@ Celle-ci peut être trouvée dans le fichier
 :file:`/etc/waarp-gateway/waarp-gateway.ini`.
 
 .. seealso::
+
    La documentation complète du fichier de configuration est disponible
    :any:`ici <configuration-file>`.
 

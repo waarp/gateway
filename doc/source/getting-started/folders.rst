@@ -132,6 +132,7 @@ Instances cloud
 ===============
 
 .. note::
+
    Pour des raisons techniques, les dossiers temporaires de réception (que ce
    soit le dossier global, d'un serveur, ou d'une règle) **ne peuvent pas** être
    distants, et doivent donc impérativement être des dossiers montés sur le
@@ -143,10 +144,10 @@ sur laquelle est installée la gateway, il est possible, à la place, de les
 stocker sur une machine distante (en générale, une instance cloud).
 
 Pour cela, l'instance cloud doit préalablement avoir été renseignée dans la
-gateway (voir :ref:`la commande de gestion des instances clouds
-<reference-cli-client-cloud>` ou :ref:`le handler REST de gestion des instances
-cloud<reference-rest-cloud>`).Une fois l'instance cloud définie, il est possible
-de la référencer dans les divers chemin décrits ci-dessus.
+gateway (voir :ref:`la commande de gestion des instances clouds<reference-cli-client-cloud>`
+ou :ref:`le handler REST de gestion des instances cloud<reference-rest-cloud>`).
+Une fois l'instance cloud définie, il est possible de la référencer dans les
+divers chemin décrits ci-dessus.
 
 Ainsi, il est donc possible de définir une règle ayant comme dossier "local"
 un dossier se trouvant sur une instance cloud. De même, il est possible de
