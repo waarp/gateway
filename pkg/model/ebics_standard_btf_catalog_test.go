@@ -20,7 +20,7 @@ func TestDatabaseSeedsEbicsStandardBTFCatalogs(t *testing.T) {
 	for _, catalog := range catalogs {
 		scopes = append(scopes, catalog.Scope)
 		assert.Equal(t, "gateway-standard-btf", catalog.Name)
-		assert.Equal(t, "2024-10-23-baseline-v1", catalog.CatalogVersion)
+		assert.Equal(t, "curated-country-pack-v1", catalog.CatalogVersion)
 		assert.Equal(t, "ACTIVE", catalog.Status)
 		assert.NotEmpty(t, catalog.SeedChecksum)
 	}
@@ -29,5 +29,32 @@ func TestDatabaseSeedsEbicsStandardBTFCatalogs(t *testing.T) {
 
 	var entries EbicsStandardBTFEntries
 	require.NoError(t, db.Select(&entries).Owner().Run())
-	require.GreaterOrEqual(t, len(entries), 12)
+	require.GreaterOrEqual(t, len(entries), 50)
+
+	var frCatalog *EbicsStandardBTFCatalog
+	for i := range catalogs {
+		catalog := catalogs[i]
+		if catalog.Scope == "FR" {
+			frCatalog = catalog
+			break
+		}
+	}
+	require.NotNil(t, frCatalog)
+
+	var frEntries EbicsStandardBTFEntries
+	require.NoError(t, db.Select(&frEntries).Where("catalog_id=?", frCatalog.ID).Run())
+
+	hasFRScope := false
+	hasGLBScope := false
+	for _, entry := range frEntries {
+		switch entry.Scope {
+		case "FR":
+			hasFRScope = true
+		case "GLB":
+			hasGLBScope = true
+		}
+	}
+
+	assert.True(t, hasFRScope)
+	assert.True(t, hasGLBScope)
 }

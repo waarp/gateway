@@ -91,3 +91,8 @@ Points de focus complementaires integres a cette version:
   metier de signature;
 - mise en passe-plat vers l'application metier pour les decisions non
   protocolaires.
+
+Fichiers d'exemple utiles:
+
+- `pkg/backup/testdata/ebics-standard-btf-curated.json`
+- `pkg/backup/testdata/ebics-standard-btf-curated.yaml`

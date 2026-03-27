@@ -5,12 +5,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/ebicsbtfseed"
 )
 
 const (
@@ -147,12 +147,16 @@ func validateEbicsStandardBTFCatalogStatus(status string) error {
 }
 
 func (c *EbicsStandardBTFCatalog) Init(db database.Access) error {
-	seeds := defaultEbicsStandardBTFCatalogSeeds()
+	seeds, err := defaultEbicsStandardBTFCatalogSeeds()
+	if err != nil {
+		return fmt.Errorf("load the default EBICS standard BTF catalogs: %w", err)
+	}
+
 	for i := range seeds {
 		seed := &seeds[i]
 
 		existing := &EbicsStandardBTFCatalog{}
-		err := db.Get(
+		getErr := db.Get(
 			existing,
 			"owner=? AND name=? AND scope=? AND catalog_version=?",
 			conf.GlobalConfig.GatewayName,
@@ -160,7 +164,7 @@ func (c *EbicsStandardBTFCatalog) Init(db database.Access) error {
 			seed.Scope,
 			seed.CatalogVersion,
 		).Run()
-		if database.IsNotFound(err) {
+		if database.IsNotFound(getErr) {
 			catalog := &EbicsStandardBTFCatalog{
 				Name:           seed.Name,
 				Scope:          seed.Scope,
@@ -209,12 +213,12 @@ func (c *EbicsStandardBTFCatalog) Init(db database.Access) error {
 
 			continue
 		}
-		if err != nil {
+		if getErr != nil {
 			return fmt.Errorf(
 				"failed to probe the default EBICS standard BTF catalog %q/%q: %w",
 				seed.Name,
 				seed.Scope,
-				err,
+				getErr,
 			)
 		}
 	}
@@ -258,192 +262,45 @@ func seedChecksumForCatalogSeed(seed *ebicsStandardBTFCatalogSeed) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func defaultEbicsStandardBTFCatalogSeeds() []ebicsStandardBTFCatalogSeed {
-	const (
-		catalogName       = "gateway-standard-btf"
-		catalogVersion    = "2024-10-23-baseline-v1"
-		catalogSourceType = "OFFICIAL_ANNEX"
-		catalogSourceRef  = "EBICS Annex BTF ExternalCodeList 2024-10-23; Gateway curated baseline (non-exhaustive)"
-	)
-
-	commonMetadata := map[string]any{
-		"seedOrigin":  "gateway-curated-baseline",
-		"sourceSheet": "ServiceName",
-		"exhaustive":  false,
+func defaultEbicsStandardBTFCatalogSeeds() ([]ebicsStandardBTFCatalogSeed, error) {
+	catalogs, err := ebicsbtfseed.DefaultCatalogs()
+	if err != nil {
+		return nil, fmt.Errorf("load canonical standard BTF catalogs: %w", err)
 	}
 
-	return []ebicsStandardBTFCatalogSeed{
-		{
-			Name:           catalogName,
-			Scope:          ebicsStandardBTFCatalogScopeGLB,
-			CatalogVersion: catalogVersion,
-			SourceType:     catalogSourceType,
-			SourceRef:      catalogSourceRef,
-			Status:         ebicsStandardBTFCatalogStatusActive,
-			Entries: []ebicsStandardBTFEntrySeed{
-				{
-					EntryKey:          "btu-sct-pain001-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "SCT",
-					Scope:             "GLB",
-					MsgName:           "pain.001",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata:          standardBTFSeedMetadata(commonMetadata, "SEPA credit transfer baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btu-sdd-pain008-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "SDD",
-					Scope:             "GLB",
-					MsgName:           "pain.008",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata:          standardBTFSeedMetadata(commonMetadata, "SEPA direct debit baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-rep-pain002-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "REP",
-					Scope:             "GLB",
-					MsgName:           "pain.002",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata:          standardBTFSeedMetadata(commonMetadata, "Generic report baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-eop-camt053-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "EOP",
-					Scope:             "GLB",
-					MsgName:           "camt.053",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata: standardBTFSeedMetadata(
-						commonMetadata,
-						"End-of-period statement baseline from annex examples",
-					),
-				},
-				{
-					EntryKey:          "btd-eop-mt940",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "EOP",
-					Scope:             "GLB",
-					MsgName:           "mt940",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata: standardBTFSeedMetadata(
-						commonMetadata,
-						"SWIFT end-of-period statement baseline from annex examples",
-					),
-				},
-				{
-					EntryKey:          "btd-stm-camt052-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "STM",
-					Scope:             "GLB",
-					MsgName:           "camt.052",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata:          standardBTFSeedMetadata(commonMetadata, "Intra-day statement baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-stm-camt054-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "STM",
-					Scope:             "GLB",
-					MsgName:           "camt.054",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata:          standardBTFSeedMetadata(commonMetadata, "Statement notification baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-stm-mt942",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "STM",
-					Scope:             "GLB",
-					MsgName:           "mt942",
-					IsDefaultTemplate: true,
-					Status:            ebicsStandardBTFEntryStatusActive,
-					Metadata: standardBTFSeedMetadata(
-						commonMetadata,
-						"SWIFT intra-day statement baseline from annex examples",
-					),
-				},
-			},
-		},
-		standardBTFCountrySeedCatalog(ebicsStandardBTFCatalogScopeFR, commonMetadata),
-		standardBTFCountrySeedCatalog(ebicsStandardBTFCatalogScopeDE, commonMetadata),
-		standardBTFCountrySeedCatalog(ebicsStandardBTFCatalogScopeAT, commonMetadata),
-		standardBTFCountrySeedCatalog(ebicsStandardBTFCatalogScopeCH, commonMetadata),
+	seeds := make([]ebicsStandardBTFCatalogSeed, 0, len(catalogs))
+	for i := range catalogs {
+		catalog := &catalogs[i]
+		seed := ebicsStandardBTFCatalogSeed{
+			Name:           catalog.Name,
+			Scope:          catalog.Scope,
+			CatalogVersion: catalog.CatalogVersion,
+			SourceType:     catalog.SourceType,
+			SourceRef:      catalog.SourceRef,
+			Status:         catalog.Status,
+			Entries:        make([]ebicsStandardBTFEntrySeed, 0, len(catalog.Entries)),
+		}
+
+		for j := range catalog.Entries {
+			entry := &catalog.Entries[j]
+			seed.Entries = append(seed.Entries, ebicsStandardBTFEntrySeed{
+				EntryKey:          entry.EntryKey,
+				OrderType:         entry.OrderType,
+				Direction:         entry.Direction,
+				ServiceName:       entry.ServiceName,
+				ServiceOption:     entry.ServiceOption,
+				Scope:             entry.Scope,
+				MsgName:           entry.MsgName,
+				ContainerType:     entry.ContainerType,
+				CountryGroup:      entry.CountryGroup,
+				IsDefaultTemplate: entry.IsDefaultTemplate,
+				Status:            entry.Status,
+				Metadata:          entry.Metadata,
+			})
+		}
+
+		seeds = append(seeds, seed)
 	}
-}
 
-func standardBTFCountrySeedCatalog(scope string, commonMetadata map[string]any) ebicsStandardBTFCatalogSeed {
-	const (
-		name       = "gateway-standard-btf"
-		version    = "2024-10-23-baseline-v1"
-		sourceType = "OFFICIAL_ANNEX"
-		sourceRef  = "EBICS Annex BTF ExternalCodeList 2024-10-23; " +
-			"Gateway curated baseline (non-exhaustive)"
-	)
-
-	return ebicsStandardBTFCatalogSeed{
-		Name:           name,
-		Scope:          scope,
-		CatalogVersion: version,
-		SourceType:     sourceType,
-		SourceRef:      sourceRef,
-		Status:         ebicsStandardBTFCatalogStatusActive,
-		Entries: []ebicsStandardBTFEntrySeed{
-			{
-				EntryKey:          "btu-dct-pain001-xml",
-				OrderType:         "BTU",
-				Direction:         "UPLOAD",
-				ServiceName:       "DCT",
-				Scope:             scope,
-				MsgName:           "pain.001",
-				ContainerType:     "XML",
-				CountryGroup:      scope,
-				IsDefaultTemplate: true,
-				Status:            ebicsStandardBTFEntryStatusActive,
-				Metadata:          standardBTFSeedMetadata(commonMetadata, "Domestic non-SEPA credit transfer baseline"),
-			},
-			{
-				EntryKey:          "btu-ddd-pain008-xml",
-				OrderType:         "BTU",
-				Direction:         "UPLOAD",
-				ServiceName:       "DDD",
-				Scope:             scope,
-				MsgName:           "pain.008",
-				ContainerType:     "XML",
-				CountryGroup:      scope,
-				IsDefaultTemplate: true,
-				Status:            ebicsStandardBTFEntryStatusActive,
-				Metadata:          standardBTFSeedMetadata(commonMetadata, "Domestic non-SEPA direct debit baseline"),
-			},
-		},
-	}
-}
-
-func standardBTFSeedMetadata(commonMetadata map[string]any, description string) map[string]any {
-	metadata := make(map[string]any, len(commonMetadata)+1)
-	maps.Copy(metadata, commonMetadata)
-	metadata["description"] = description
-
-	return metadata
+	return seeds, nil
 }

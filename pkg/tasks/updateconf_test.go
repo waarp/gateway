@@ -102,11 +102,18 @@ func TestUpdateConfWithEbicsAdminData(t *testing.T) {
 
 	var catalogs model.EbicsStandardBTFCatalogs
 	require.NoError(t, db.Select(&catalogs).Owner().Run())
-	require.Len(t, catalogs, 5)
+	require.Len(t, catalogs, 7)
+
+	catalogVersions := make(map[string]int)
+	for _, catalog := range catalogs {
+		catalogVersions[catalog.CatalogVersion]++
+	}
+	assert.Equal(t, 5, catalogVersions["curated-country-pack-v1"])
+	assert.Equal(t, 2, catalogVersions["2024-10-23-baseline-v1"])
 
 	var entries model.EbicsStandardBTFEntries
 	require.NoError(t, db.Select(&entries).Owner().Run())
-	require.Len(t, entries, 8)
+	require.Greater(t, len(entries), 50)
 
 	var providers model.EbicsRTNProviders
 	require.NoError(t, db.Select(&providers).Owner().Run())

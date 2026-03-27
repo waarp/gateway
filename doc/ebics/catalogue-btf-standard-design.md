@@ -86,6 +86,9 @@ Contraintes:
 - `order_type` borne a `BTU` / `BTD`
 - `direction` borne a `UPLOAD` / `DOWNLOAD`
 - `status` borne a `ACTIVE` / `DISABLED`
+- `scope` porte le `service_scope` du tuple BTF et peut differer du `scope`
+  du catalogue; le `scope` du catalogue identifie le panier de fallback
+  (`GLB` ou pack pays), pas le `service_scope` impose a chaque ligne
 
 ## 4. Structs `model`
 
@@ -139,6 +142,8 @@ Source initiale recommandee:
 
 - `GLB`: derivee de `lib-ebics` et de sa code list embarquee
 - `FR`, `DE`, `AT`, `CH`: derivees de l'annexe officielle locale
+- les packs curated `CSV` peuvent contenir, dans un meme catalogue pays,
+  des lignes de `service_scope` `GLB` et des lignes de `service_scope` pays
 
 Regles:
 
@@ -221,6 +226,11 @@ Exposition minimale:
 - `GET /api/ebics/standard-btf/catalogs/{catalog}`
 - `GET /api/ebics/standard-btf/entries`
 - `POST /api/ebics/standard-btf/actions/seed`
+
+Fichiers d'exemple importables:
+
+- `pkg/backup/testdata/ebics-standard-btf-curated.json`
+- `pkg/backup/testdata/ebics-standard-btf-curated.yaml`
 
 ## 9. CLI minimale
 

@@ -5,20 +5,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"maps"
-)
 
-const (
-	ver0_16_2StandardBTFCatalogName       = "gateway-standard-btf"
-	ver0_16_2StandardBTFCatalogVersion    = "2024-10-23-baseline-v1"
-	ver0_16_2StandardBTFCatalogSourceType = "OFFICIAL_ANNEX"
-	ver0_16_2StandardBTFCatalogSourceRef  = "EBICS Annex BTF ExternalCodeList 2024-10-23; " +
-		"Gateway curated baseline (non-exhaustive)"
+	"code.waarp.fr/apps/gateway/gateway/pkg/ebicsbtfseed"
 )
 
 type ver0_16_2StandardBTFCatalogSeed struct {
-	Scope   string                          `json:"scope"`
-	Entries []ver0_16_2StandardBTFEntrySeed `json:"entries"`
+	Name           string                          `json:"name"`
+	Scope          string                          `json:"scope"`
+	CatalogVersion string                          `json:"catalogVersion"`
+	SourceType     string                          `json:"sourceType"`
+	SourceRef      string                          `json:"sourceRef"`
+	Status         string                          `json:"status"`
+	Entries        []ver0_16_2StandardBTFEntrySeed `json:"entries"`
 }
 
 type ver0_16_2StandardBTFEntrySeed struct {
@@ -45,10 +43,14 @@ func ver0_16_2SeedEbicsStandardBTFCatalogsUp(db Actions) error {
 		return nil
 	}
 
-	seeds := ver0_16_2StandardBTFCatalogSeeds()
+	seeds, err := ver0_16_2StandardBTFCatalogSeeds()
+	if err != nil {
+		return err
+	}
+
 	for _, owner := range owners {
-		for _, seed := range seeds {
-			insertErr := ver0_16_2InsertStandardBTFCatalogSeed(db, owner, seed)
+		for i := range seeds {
+			insertErr := ver0_16_2InsertStandardBTFCatalogSeed(db, owner, &seeds[i])
 			if insertErr != nil {
 				return insertErr
 			}
@@ -62,9 +64,9 @@ func ver0_16_2SeedEbicsStandardBTFCatalogsDown(db Actions) error {
 	if err := db.Exec(
 		`DELETE FROM ebics_standard_btf_catalogs
 		  WHERE name=? AND catalog_version=? AND source_type=?`,
-		ver0_16_2StandardBTFCatalogName,
-		ver0_16_2StandardBTFCatalogVersion,
-		ver0_16_2StandardBTFCatalogSourceType,
+		"gateway-standard-btf",
+		"curated-country-pack-v1",
+		"CUSTOM_OVERRIDE",
 	); err != nil {
 		return fmt.Errorf("failed to remove the seeded EBICS standard BTF catalogs: %w", err)
 	}
@@ -99,7 +101,7 @@ func ver0_16_2ListOwners(db Actions) ([]string, error) {
 func ver0_16_2InsertStandardBTFCatalogSeed(
 	db Actions,
 	owner string,
-	seed ver0_16_2StandardBTFCatalogSeed,
+	seed *ver0_16_2StandardBTFCatalogSeed,
 ) error {
 	checksum, err := ver0_16_2SeedChecksum(seed)
 	if err != nil {
@@ -111,12 +113,12 @@ func ver0_16_2InsertStandardBTFCatalogSeed(
 			owner, name, scope, catalog_version, source_type, source_ref, status, seed_checksum
 		) VALUES(?,?,?,?,?,?,?,?)`,
 		owner,
-		ver0_16_2StandardBTFCatalogName,
+		seed.Name,
 		seed.Scope,
-		ver0_16_2StandardBTFCatalogVersion,
-		ver0_16_2StandardBTFCatalogSourceType,
-		ver0_16_2StandardBTFCatalogSourceRef,
-		"ACTIVE",
+		seed.CatalogVersion,
+		seed.SourceType,
+		seed.SourceRef,
+		seed.Status,
 		checksum,
 	)
 	if execErr != nil {
@@ -133,9 +135,9 @@ func ver0_16_2InsertStandardBTFCatalogSeed(
 		`SELECT id FROM ebics_standard_btf_catalogs
 		  WHERE owner=? AND name=? AND scope=? AND catalog_version=?`,
 		owner,
-		ver0_16_2StandardBTFCatalogName,
+		seed.Name,
 		seed.Scope,
-		ver0_16_2StandardBTFCatalogVersion,
+		seed.CatalogVersion,
 	)
 	scanErr := row.Scan(&catalogID)
 	if scanErr != nil {
@@ -193,7 +195,7 @@ func ver0_16_2InsertStandardBTFCatalogSeed(
 	return nil
 }
 
-func ver0_16_2SeedChecksum(seed ver0_16_2StandardBTFCatalogSeed) (string, error) {
+func ver0_16_2SeedChecksum(seed *ver0_16_2StandardBTFCatalogSeed) (string, error) {
 	payload, err := json.Marshal(seed)
 	if err != nil {
 		return "", fmt.Errorf("marshal EBICS standard BTF seed payload: %w", err)
@@ -204,234 +206,44 @@ func ver0_16_2SeedChecksum(seed ver0_16_2StandardBTFCatalogSeed) (string, error)
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func ver0_16_2StandardBTFCatalogSeeds() []ver0_16_2StandardBTFCatalogSeed {
-	commonMetadata := map[string]any{
-		"seedOrigin":  "gateway-curated-baseline",
-		"sourceSheet": "ServiceName",
-		"exhaustive":  false,
+func ver0_16_2StandardBTFCatalogSeeds() ([]ver0_16_2StandardBTFCatalogSeed, error) {
+	catalogs, err := ebicsbtfseed.DefaultCatalogs()
+	if err != nil {
+		return nil, fmt.Errorf("load canonical standard BTF catalogs: %w", err)
 	}
 
-	return []ver0_16_2StandardBTFCatalogSeed{
-		{
-			Scope: "GLB",
-			Entries: []ver0_16_2StandardBTFEntrySeed{
-				{
-					EntryKey:          "btu-sct-pain001-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "SCT",
-					Scope:             "GLB",
-					MsgName:           "pain.001",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "SEPA credit transfer baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btu-sdd-pain008-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "SDD",
-					Scope:             "GLB",
-					MsgName:           "pain.008",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "SEPA direct debit baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-rep-pain002-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "REP",
-					Scope:             "GLB",
-					MsgName:           "pain.002",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Generic report baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-eop-camt053-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "EOP",
-					Scope:             "GLB",
-					MsgName:           "camt.053",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "End-of-period statement baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-eop-mt940",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "EOP",
-					Scope:             "GLB",
-					MsgName:           "mt940",
-					IsDefaultTemplate: true,
-					Metadata: ver0_16_2EntryMetadata(
-						commonMetadata,
-						"SWIFT end-of-period statement baseline from annex examples",
-					),
-				},
-				{
-					EntryKey:          "btd-stm-camt052-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "STM",
-					Scope:             "GLB",
-					MsgName:           "camt.052",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Intra-day statement baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-stm-camt054-xml",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "STM",
-					Scope:             "GLB",
-					MsgName:           "camt.054",
-					ContainerType:     "XML",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Statement notification baseline from annex examples"),
-				},
-				{
-					EntryKey:          "btd-stm-mt942",
-					OrderType:         "BTD",
-					Direction:         "DOWNLOAD",
-					ServiceName:       "STM",
-					Scope:             "GLB",
-					MsgName:           "mt942",
-					IsDefaultTemplate: true,
-					Metadata: ver0_16_2EntryMetadata(
-						commonMetadata,
-						"SWIFT intra-day statement baseline from annex examples",
-					),
-				},
-			},
-		},
-		{
-			Scope: "FR",
-			Entries: []ver0_16_2StandardBTFEntrySeed{
-				{
-					EntryKey:          "btu-dct-pain001-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DCT",
-					Scope:             "FR",
-					MsgName:           "pain.001",
-					ContainerType:     "XML",
-					CountryGroup:      "FR",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA credit transfer baseline"),
-				},
-				{
-					EntryKey:          "btu-ddd-pain008-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DDD",
-					Scope:             "FR",
-					MsgName:           "pain.008",
-					ContainerType:     "XML",
-					CountryGroup:      "FR",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA direct debit baseline"),
-				},
-			},
-		},
-		{
-			Scope: "DE",
-			Entries: []ver0_16_2StandardBTFEntrySeed{
-				{
-					EntryKey:          "btu-dct-pain001-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DCT",
-					Scope:             "DE",
-					MsgName:           "pain.001",
-					ContainerType:     "XML",
-					CountryGroup:      "DE",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA credit transfer baseline"),
-				},
-				{
-					EntryKey:          "btu-ddd-pain008-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DDD",
-					Scope:             "DE",
-					MsgName:           "pain.008",
-					ContainerType:     "XML",
-					CountryGroup:      "DE",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA direct debit baseline"),
-				},
-			},
-		},
-		{
-			Scope: "AT",
-			Entries: []ver0_16_2StandardBTFEntrySeed{
-				{
-					EntryKey:          "btu-dct-pain001-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DCT",
-					Scope:             "AT",
-					MsgName:           "pain.001",
-					ContainerType:     "XML",
-					CountryGroup:      "AT",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA credit transfer baseline"),
-				},
-				{
-					EntryKey:          "btu-ddd-pain008-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DDD",
-					Scope:             "AT",
-					MsgName:           "pain.008",
-					ContainerType:     "XML",
-					CountryGroup:      "AT",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA direct debit baseline"),
-				},
-			},
-		},
-		{
-			Scope: "CH",
-			Entries: []ver0_16_2StandardBTFEntrySeed{
-				{
-					EntryKey:          "btu-dct-pain001-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DCT",
-					Scope:             "CH",
-					MsgName:           "pain.001",
-					ContainerType:     "XML",
-					CountryGroup:      "CH",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA credit transfer baseline"),
-				},
-				{
-					EntryKey:          "btu-ddd-pain008-xml",
-					OrderType:         "BTU",
-					Direction:         "UPLOAD",
-					ServiceName:       "DDD",
-					Scope:             "CH",
-					MsgName:           "pain.008",
-					ContainerType:     "XML",
-					CountryGroup:      "CH",
-					IsDefaultTemplate: true,
-					Metadata:          ver0_16_2EntryMetadata(commonMetadata, "Domestic non-SEPA direct debit baseline"),
-				},
-			},
-		},
+	seeds := make([]ver0_16_2StandardBTFCatalogSeed, 0, len(catalogs))
+	for i := range catalogs {
+		catalog := &catalogs[i]
+		seed := ver0_16_2StandardBTFCatalogSeed{
+			Name:           catalog.Name,
+			Scope:          catalog.Scope,
+			CatalogVersion: catalog.CatalogVersion,
+			SourceType:     catalog.SourceType,
+			SourceRef:      catalog.SourceRef,
+			Status:         catalog.Status,
+			Entries:        make([]ver0_16_2StandardBTFEntrySeed, 0, len(catalog.Entries)),
+		}
+
+		for j := range catalog.Entries {
+			entry := &catalog.Entries[j]
+			seed.Entries = append(seed.Entries, ver0_16_2StandardBTFEntrySeed{
+				EntryKey:          entry.EntryKey,
+				OrderType:         entry.OrderType,
+				Direction:         entry.Direction,
+				ServiceName:       entry.ServiceName,
+				ServiceOption:     entry.ServiceOption,
+				Scope:             entry.Scope,
+				MsgName:           entry.MsgName,
+				ContainerType:     entry.ContainerType,
+				CountryGroup:      entry.CountryGroup,
+				IsDefaultTemplate: entry.IsDefaultTemplate,
+				Metadata:          entry.Metadata,
+			})
+		}
+
+		seeds = append(seeds, seed)
 	}
-}
 
-func ver0_16_2EntryMetadata(base map[string]any, description string) map[string]any {
-	out := make(map[string]any, len(base)+1)
-	maps.Copy(out, base)
-	out["description"] = description
-
-	return out
+	return seeds, nil
 }

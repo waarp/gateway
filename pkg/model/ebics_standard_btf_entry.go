@@ -104,11 +104,6 @@ func (e *EbicsStandardBTFEntry) BeforeWrite(db database.Access) error {
 		return fmt.Errorf("failed to retrieve EBICS standard BTF catalog %d: %w", e.CatalogID, err)
 	}
 
-	if e.Scope != catalog.Scope {
-		return database.NewValidationError(
-			"the EBICS standard BTF entry scope must match the selected catalog scope")
-	}
-
 	if n, err := db.Count(e).Where(
 		"id<>? AND owner=? AND catalog_id=? AND entry_key=?",
 		e.ID,

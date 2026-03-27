@@ -51,6 +51,7 @@ func TestImportExportEbicsAdminRoundTrip(t *testing.T) {
 			require.Contains(t, exportedSubscriberNames(exported), "corp-client")
 			require.Contains(t, exportedBankKeyTypes(exported), "AUTH")
 			require.Contains(t, exportedStandardCatalogScopes(exported), "GLB")
+			require.Contains(t, exportedStandardCatalogVersions(exported), "curated-country-pack-v1")
 			require.Contains(t, exportedPayloadProfileNames(exported), "sct-upload")
 			require.Equal(t, "main-rtn", exported.EbicsRTNProviders[0].Name)
 		})
@@ -89,7 +90,7 @@ func assertImportedEbicsAdminData(t *testing.T, db *database.DB) {
 
 	var entries model.EbicsStandardBTFEntries
 	require.NoError(t, db.Select(&entries).Owner().Run())
-	require.Len(t, entries, 16)
+	require.Greater(t, len(entries), 100)
 
 	var providers model.EbicsRTNProviders
 	require.NoError(t, db.Select(&providers).Owner().Run())
@@ -148,4 +149,13 @@ func exportedStandardCatalogScopes(data *file.Data) []string {
 	}
 
 	return scopes
+}
+
+func exportedStandardCatalogVersions(data *file.Data) []string {
+	versions := make([]string, 0, len(data.EbicsStandardBTFCatalogs))
+	for _, catalog := range data.EbicsStandardBTFCatalogs {
+		versions = append(versions, catalog.CatalogVersion)
+	}
+
+	return versions
 }
