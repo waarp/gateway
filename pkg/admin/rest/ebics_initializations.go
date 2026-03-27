@@ -1,12 +1,14 @@
 package rest
 
 import (
+	"maps"
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	ebicsmodule "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ebics"
 	ebicsruntime "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ebics/runtime"
 )
 
@@ -65,6 +67,23 @@ func actOnEbicsInitialization(logger *log.Logger, db *database.DB) http.HandlerF
 			return
 		}
 
+		extraEvidence := map[string]any{}
+		switch action.Action {
+		case "SEND_INI", "SEND_HIA", "SEND_H3K":
+			extraEvidence, err = ebicsmodule.ExecuteInitializationWorkflowAction(r.Context(), db, workflow, action.Action)
+			if handleError(w, logger, err) {
+				return
+			}
+		}
+
+		if len(extraEvidence) != 0 {
+			if action.Evidence == nil {
+				action.Evidence = map[string]any{}
+			}
+
+			maps.Copy(action.Evidence, extraEvidence)
+		}
+
 		err = ebicsruntime.ApplyInitializationAction(workflow, ebicsruntime.InitializationAction{
 			Action:   action.Action,
 			Operator: action.Operator,
@@ -77,6 +96,12 @@ func actOnEbicsInitialization(logger *log.Logger, db *database.DB) http.HandlerF
 
 		if err = db.Update(workflow).Run(); handleError(w, logger, err) {
 			return
+		}
+
+		if action.Action == "CONFIRM_BANK_ACTIVATION" {
+			if _, err = ebicsmodule.SyncBankKeysForInitialization(r.Context(), db, workflow); handleError(w, logger, err) {
+				return
+			}
 		}
 
 		handleError(w, logger, writeJSON(w, DBEbicsInitializationToREST(workflow)))

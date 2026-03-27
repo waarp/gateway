@@ -27,7 +27,7 @@ Regles:
 - [x] Creer la creation d'`EbicsOperation` cote client
 - [x] Creer la creation d'`EbicsTransaction` cote client quand necessaire
 - [x] Brancher `BTU/BTD` cote client
-- [ ] Brancher `FUL/FDL` si des aliases transport restent necessaires
+- [x] Confirmer que `FUL/FDL` restent des alias de compatibilite normalises vers `BTU/BTD` en cible `EBICS 3.0.2`
 - [ ] Brancher reporting / ordres admin cote client
 - [ ] Brancher initialisation / key management cote client
 - [x] Garantir la correlation `operation / transaction / transfer`
@@ -85,5 +85,14 @@ Regles:
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
-  Reste a fermer dans `B1`: aliases `FUL/FDL` si requis en pipeline, puis les
-  familles client reporting/admin/initialisation/key-management.
+  La cible `EBICS 3.0.2` est maintenant figee: `BTU/BTD` sont canoniques,
+  `FUL/FDL` restent de simples alias de compatibilite normalises.
+  Reste a fermer dans `B1`: les familles client
+  reporting/admin/initialisation/key-management.
+- 2026-03-27: le client hors payload couvre maintenant une execution reelle des
+  actions d'initialisation `INI` / `HIA` / `H3K` et de la synchronisation banque
+  `HPB`, avec creation d'`EbicsOperation`, persistance des references dans
+  `EbicsInitializationWorkflow`, generation de la lettre `H3K` et persistance des
+  cles banque.
+  Reste a fermer dans `B1`: reporting/admin client et key management de rotation
+  hors simple initialisation.
