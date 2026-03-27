@@ -300,65 +300,23 @@ Exemple d'affichage cible:
   -Transfer: N/A
 ```
 
-### 4.3 Retry
+### 4.3 Actions specialisees
 
-Commande cible:
-
-```text
-waarp-gateway ebics operation retry <id>
-```
-
-Options minimales:
-
-- `--reason`
-- `--meta key:value`
-
-Regles:
-
-- la commande doit echouer si `retryDecision` n'autorise pas l'action;
-- la commande doit expliciter s'il s'agit d'un `retry`, d'un `replay` manuel
-  ou d'une `recovery` requise;
-- la CLI ne doit jamais masquer un refus du serveur lie au scope de return
-  codes.
-
-Exemple:
+Commandes cibles:
 
 ```text
-waarp-gateway ebics operation retry 42 --reason "temporary bank outage"
-```
-
-### 4.4 Cancel
-
-Commande cible:
-
-```text
-waarp-gateway ebics operation cancel <id>
+waarp-gateway ebics operation reporting ...
+waarp-gateway ebics operation signature ...
 ```
 
 Regles:
 
-- reserve aux statuts annulables;
-- l'action doit etre presentee comme technique, jamais comme annulation
-  metier.
-
-### 4.5 Confirm
-
-Commande cible:
-
-```text
-waarp-gateway ebics operation confirm <id>
-```
-
-Options minimales:
-
-- `--reason`
-- `--meta key:value`
-
-Usage cible:
-
-- confirmation d'une activation externe;
-- validation technique de rupture d'automatisme;
-- jamais approbation metier riche.
+- la famille `operation` ne porte pas de `retry/cancel/confirm` generiques
+  en phase 1;
+- ces actions restent dans les familles specialisees `payload`,
+  `initialization`, `key-rotation` et `rtn event`;
+- la CLI `operation` reste centree sur l'observabilite et sur le declenchement
+  explicite des ordres `reporting` et `signature`.
 
 ## 6. Famille `ebics contract-view`
 
@@ -393,7 +351,7 @@ Commandes cibles:
 waarp-gateway ebics transaction list
 waarp-gateway ebics transaction get <transaction-id>
 waarp-gateway ebics transaction segments <transaction-id>
-waarp-gateway ebics transaction segment get <transaction-id> <segment-number>
+waarp-gateway ebics transaction segment <transaction-id> <segment-number>
 ```
 
 Positionnement:
@@ -431,6 +389,7 @@ waarp-gateway ebics rtn provider list
 waarp-gateway ebics rtn provider get <name>
 waarp-gateway ebics rtn provider add
 waarp-gateway ebics rtn provider update <name>
+waarp-gateway ebics rtn provider delete <name>
 ```
 
 Regle:
@@ -445,9 +404,7 @@ Commandes cibles:
 ```text
 waarp-gateway ebics initialization list
 waarp-gateway ebics initialization get <id>
-waarp-gateway ebics initialization add
-waarp-gateway ebics initialization confirm <id>
-waarp-gateway ebics initialization cancel <id>
+waarp-gateway ebics initialization action <id> --action <action>
 ```
 
 Sorties attendues:
@@ -464,9 +421,13 @@ Commandes cibles:
 ```text
 waarp-gateway ebics key-lifecycle list
 waarp-gateway ebics key-lifecycle get <id>
-waarp-gateway ebics key-lifecycle add
-waarp-gateway ebics key-lifecycle confirm <id>
-waarp-gateway ebics key-lifecycle cancel <id>
+waarp-gateway ebics key-lifecycle action <id> --action <action>
+waarp-gateway ebics key-rotation prepare ...
+waarp-gateway ebics key-rotation send ...
+waarp-gateway ebics key-rotation confirm ...
+waarp-gateway ebics key-rotation cancel ...
+waarp-gateway ebics key-rotation reject ...
+waarp-gateway ebics key-rotation revoke ...
 ```
 
 ## 12. Regles d'affichage des return codes
@@ -484,7 +445,7 @@ La CLI ne doit pas:
 
 - afficher un unique `Return code`;
 - laisser croire qu'un business reject est un incident reseau;
-- proposer `retry` sans indiquer si l'action est autorisee.
+- proposer une action generique `retry` hors de sa famille specialisee.
 
 ## 13. Regles d'ergonomie
 
@@ -492,8 +453,8 @@ Les commandes doivent rester memorisables.
 
 Recommandations:
 
-- garder des verbes simples: `list`, `get`, `retry`, `cancel`, `confirm`,
-  `refresh`, `quarantine`;
+- garder des verbes simples: `list`, `get`, `action`, `refresh`,
+  `quarantine`, `prepare`, `send`, `confirm`, `cancel`, `reject`, `revoke`;
 - conserver les options de date en RFC3339;
 - proposer `--output json|yaml|text` comme sur les autres familles;
 - preferer `--partner-id` et `--user-id` a des abreviations EBICS trop

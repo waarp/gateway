@@ -47,6 +47,33 @@ func getEbicsTransaction(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+func listEbicsTransactionSegments(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		transaction, err := getDBEbicsTransaction(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		segments, err := getEbicsTransactionSegments(db, transaction.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, writeJSON(w, map[string]any{"segments": segments}))
+	}
+}
+
+func getEbicsTransactionSegment(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		segment, err := getDBEbicsTransactionSegment(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, writeJSON(w, DBEbicsTransactionSegmentToREST(segment)))
+	}
+}
+
 //nolint:dupl // list handlers stay explicit per EBICS resource
 func listEbicsTransactions(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{

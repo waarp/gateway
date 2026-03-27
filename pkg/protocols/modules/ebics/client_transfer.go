@@ -501,7 +501,7 @@ func (c *transferClient) createOperation(
 		EbicsHostID:       host.ID,
 		EbicsSubscriberID: subscriber.ID,
 		OrderType:         resolved.OrderType,
-		OperationType:     "REPORTING",
+		OperationType:     model.EbicsOperationTypePayloadForRuntime(),
 		Direction:         c.operationDirection(),
 		TransportMode:     "ASYNC",
 		CorrelationID:     c.resolveCorrelationID(),

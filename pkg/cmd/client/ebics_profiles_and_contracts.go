@@ -2,6 +2,7 @@ package wg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,13 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
+
+var errMissingEbicsContractViewPayload = errors.New("missing EBICS contract view payload in response")
+
+type outEbicsContractViewDetail struct {
+	ContractView *api.OutEbicsContractView       `json:"contractView"`
+	Items        []*api.OutEbicsContractViewItem `json:"items"`
+}
 
 func displayEbicsPayloadProfiles(w io.Writer, profiles []*api.OutEbicsPayloadProfile) error {
 	Style0.PrintV(w, "=== EBICS payload profiles ===")
@@ -24,6 +32,7 @@ func displayEbicsPayloadProfiles(w io.Writer, profiles []*api.OutEbicsPayloadPro
 func displayEbicsPayloadProfile(w io.Writer, profile *api.OutEbicsPayloadProfile) error {
 	Style1.Printf(w, "EBICS payload profile %q", profile.Name)
 	Style22.Option(w, "Label", profile.Label)
+	Style22.Option(w, "Description", profile.Description)
 	Style22.PrintL(w, "Order type", profile.OrderType)
 	Style22.PrintL(w, "Direction", profile.Direction)
 	Style22.Option(w, "Service name", profile.ServiceName)
@@ -32,7 +41,18 @@ func displayEbicsPayloadProfile(w io.Writer, profile *api.OutEbicsPayloadProfile
 	Style22.Option(w, "Message name", profile.MsgName)
 	Style22.Option(w, "Container type", profile.ContainerType)
 	Style22.Option(w, "Default rule", profile.DefaultRule)
+	Style22.Option(w, "Default target directory", profile.DefaultTargetDirectory)
+	Style22.PrintL(w, "Requires declared amount", profile.RequiresDeclaredAmount)
+	Style22.Option(w, "Default currency", profile.DefaultCurrency)
+	Style22.Option(w, "Filename pattern", profile.FilenamePattern)
+	Style22.PrintL(w, "Strict contract check", profile.StrictContractCheck)
 	Style22.PrintL(w, "Enabled", profile.IsEnabled)
+	if len(profile.AllowedExtensions) > 0 {
+		Style22.PrintL(w, "Allowed extensions", profile.AllowedExtensions)
+	}
+	if len(profile.Metadata) > 0 {
+		Style22.PrintL(w, "Metadata", profile.Metadata)
+	}
 
 	return nil
 }
@@ -58,6 +78,54 @@ func displayEbicsContractView(w io.Writer, view *api.OutEbicsContractView) error
 	Style22.PrintL(w, "Fetched at", view.FetchedAt)
 
 	return nil
+}
+
+func displayEbicsContractViewItems(w io.Writer, items []*api.OutEbicsContractViewItem) error {
+	if len(items) == 0 {
+		Style22.PrintL(w, "Items", none)
+
+		return nil
+	}
+
+	Style22.Printf(w, "Items:")
+	for _, item := range items {
+		label := item.ItemType
+		if item.OrderType != "" {
+			label += " / " + item.OrderType
+		} else if item.AdminOrderType != "" {
+			label += " / " + item.AdminOrderType
+		}
+
+		Style333.Printf(
+			w,
+			"%s [%s] service=%s/%s scope=%s msg=%s account=%s auth=%s max=%s %s enabled=%t",
+			item.ItemKey,
+			label,
+			withDefault(item.ServiceName, none),
+			withDefault(item.ServiceOption, none),
+			withDefault(item.Scope, none),
+			withDefault(item.MsgName, none),
+			withDefault(item.AccountID, none),
+			withDefault(item.AuthorisationLevel, none),
+			withDefault(item.MaxAmountValue, none),
+			withDefault(item.MaxAmountCurrency, none),
+			item.IsEnabled,
+		)
+	}
+
+	return nil
+}
+
+func displayEbicsContractViewDetail(w io.Writer, body *outEbicsContractViewDetail) error {
+	if body == nil || body.ContractView == nil {
+		return errMissingEbicsContractViewPayload
+	}
+
+	if err := displayEbicsContractView(w, body.ContractView); err != nil {
+		return err
+	}
+
+	return displayEbicsContractViewItems(w, body.Items)
 }
 
 //nolint:lll // CLI tags are intentionally explicit
@@ -184,6 +252,25 @@ func (c *EbicsPayloadProfileUpdate) execute(w io.Writer) error {
 	return nil
 }
 
+type EbicsPayloadProfileDelete struct {
+	Args struct {
+		Profile string `required:"yes" positional-arg-name:"profile" description:"The payload profile name"`
+	} `positional-args:"yes"`
+}
+
+func (c *EbicsPayloadProfileDelete) Execute([]string) error { return execute(c) }
+func (c *EbicsPayloadProfileDelete) execute(w io.Writer) error {
+	addr.Path = path.Join("/api/ebics/payload-profiles", c.Args.Profile)
+
+	if err := remove(w); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, "The EBICS payload profile %q was successfully deleted.\n", c.Args.Profile)
+
+	return nil
+}
+
 type EbicsContractViewList struct {
 	ListOptions
 }
@@ -219,15 +306,12 @@ func (c *EbicsContractViewGet) Execute([]string) error { return execute(c) }
 func (c *EbicsContractViewGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/ebics/contract-views", c.Args.View)
 
-	var body struct {
-		ContractView *api.OutEbicsContractView       `json:"contractView"`
-		Items        []*api.OutEbicsContractViewItem `json:"items"`
-	}
+	var body outEbicsContractViewDetail
 	if err := get(&body); err != nil {
 		return err
 	}
 
-	return outputObject(w, body.ContractView, &c.OutputFormat, displayEbicsContractView)
+	return outputObject(w, &body, &c.OutputFormat, displayEbicsContractViewDetail)
 }
 
 type EbicsContractViewRefresh struct {

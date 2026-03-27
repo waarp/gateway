@@ -183,7 +183,7 @@ func (r *payloadOrderRouter) prepareRoute(
 		EbicsHostID:       route.host.ID,
 		EbicsSubscriberID: route.subscriber.ID,
 		OrderType:         resolved.OrderType,
-		OperationType:     model.EbicsOperationTypeReportingForRuntime(),
+		OperationType:     model.EbicsOperationTypePayloadForRuntime(),
 		Direction:         model.EbicsOperationDirectionInternalForRuntime(),
 		TransportMode:     model.EbicsTransportModeSyncForRuntime(),
 		CorrelationID:     resolveRuntimeCorrelationID(&req),

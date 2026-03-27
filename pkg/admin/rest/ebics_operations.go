@@ -18,7 +18,7 @@ func getEbicsOperation(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		out, err := DBEbicsOperationToREST(operation)
+		out, err := DBEbicsOperationDetailToREST(db, operation)
 		if handleError(w, logger, err) {
 			return
 		}

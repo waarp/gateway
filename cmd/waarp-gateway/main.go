@@ -239,6 +239,13 @@ type commands struct {
 			Signature wg.EbicsOperationSignature `command:"signature" description:"Execute an EBICS signature order"`
 		} `command:"operation" description:"Manage the EBICS operations"`
 
+		Transaction struct {
+			List     wg.EbicsTransactionList       `command:"list" description:"List the EBICS transactions"`
+			Get      wg.EbicsTransactionGet        `command:"get" description:"Retrieve an EBICS transaction"`
+			Segments wg.EbicsTransactionSegments   `command:"segments" description:"List the segments of an EBICS transaction"`
+			Segment  wg.EbicsTransactionSegmentGet `command:"segment" description:"Retrieve one EBICS transaction segment"`
+		} `command:"transaction" description:"Manage the EBICS transactions"`
+
 		Payload struct {
 			Upload   wg.EbicsPayloadUpload   `command:"upload" description:"Submit an EBICS payload upload"`
 			Download wg.EbicsPayloadDownload `command:"download" description:"Submit an EBICS payload download"`
@@ -251,6 +258,7 @@ type commands struct {
 				List   wg.EbicsPayloadProfileList   `command:"list" description:"List the EBICS payload profiles"`
 				Get    wg.EbicsPayloadProfileGet    `command:"get" description:"Retrieve an EBICS payload profile"`
 				Update wg.EbicsPayloadProfileUpdate `command:"update" description:"Update an EBICS payload profile"`
+				Delete wg.EbicsPayloadProfileDelete `command:"delete" description:"Delete an EBICS payload profile"`
 			} `command:"profile" description:"Manage the EBICS payload profiles"`
 		} `command:"payload" description:"Manage the EBICS payload operations"`
 
@@ -287,6 +295,7 @@ type commands struct {
 				List   wg.EbicsRTNProviderList   `command:"list" description:"List the EBICS RTN providers"`
 				Get    wg.EbicsRTNProviderGet    `command:"get" description:"Retrieve an EBICS RTN provider"`
 				Update wg.EbicsRTNProviderUpdate `command:"update" description:"Update an EBICS RTN provider"`
+				Delete wg.EbicsRTNProviderDelete `command:"delete" description:"Delete an EBICS RTN provider"`
 			} `command:"provider" description:"Manage the EBICS RTN providers"`
 			Event struct {
 				List       wg.EbicsRTNEventList       `command:"list" description:"List the EBICS RTN events"`

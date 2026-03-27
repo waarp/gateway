@@ -13,7 +13,7 @@ Regles:
 
 ## 2. Gate de sortie backend
 
-- [ ] Plus aucun `ErrNotImplemented` sur le chemin nominal EBICS
+- [x] Plus aucun `ErrNotImplemented` sur le chemin nominal EBICS
 - [ ] Plus aucun endpoint/commande EBICS expose sans logique runtime suffisante
 - [ ] Plus aucun `replace` local vers `lib-ebics`
 - [ ] Import/export/updateconf complets pour les objets EBICS administres
@@ -36,16 +36,16 @@ Regles:
 
 ## 4. Lot B2 - Couverture backend complete
 
-- [ ] Revoir chaque famille REST EBICS et confirmer l'absence de logique partielle
-- [ ] Revoir chaque famille CLI EBICS et confirmer l'absence de logique partielle
-- [ ] Verifier que `payloads` est bien exploitable de bout en bout
-- [ ] Verifier que `operations` est bien exploitable de bout en bout
-- [ ] Verifier que `transactions` est bien exploitable de bout en bout
-- [ ] Verifier que `contract views` est bien exploitable de bout en bout
-- [ ] Verifier que `payload profiles` est bien exploitable de bout en bout
-- [ ] Verifier que `initializations` est bien exploitable de bout en bout
-- [ ] Verifier que `key lifecycles` est bien exploitable de bout en bout
-- [ ] Verifier que `RTN` est bien exploitable de bout en bout
+- [x] Revoir chaque famille REST EBICS et confirmer l'absence de logique partielle
+- [x] Revoir chaque famille CLI EBICS et confirmer l'absence de logique partielle
+- [x] Verifier que `payloads` est bien exploitable de bout en bout
+- [x] Verifier que `operations` est bien exploitable de bout en bout
+- [x] Verifier que `transactions` est bien exploitable de bout en bout
+- [x] Verifier que `contract views` est bien exploitable de bout en bout
+- [x] Verifier que `payload profiles` est bien exploitable de bout en bout
+- [x] Verifier que `initializations` est bien exploitable de bout en bout
+- [x] Verifier que `key lifecycles` est bien exploitable de bout en bout
+- [x] Verifier que `RTN` est bien exploitable de bout en bout
 
 ## 5. Lot B3 - Import / export / updateconf
 
@@ -111,3 +111,36 @@ Regles:
   `prepare/send/confirm/cancel/reject/revoke`, et activation qui retire
   explicitement l'ancien lifecycle au profit du nouveau.
   `Lot B1` est maintenant ferme sur le perimetre d'execution cliente reelle.
+- 2026-03-27: `Lot B2` est demarre avec fermeture des premiers ecarts
+  objectifs de couverture CLI par rapport au backend REST:
+  ajout de `ebics transaction list/get`, ajout de `ebics payload profile delete`
+  et ajout de `ebics rtn provider delete`.
+  Le lot reste ouvert tant que la revue complete REST/CLI et l'exploitation
+  bout en bout de chaque famille EBICS n'ont pas ete bouclees.
+- 2026-03-27: une passe `rg ErrNotImplemented|not implemented` sur
+  `pkg/protocols/modules/ebics`, `pkg/admin/rest` et `pkg/cmd/client`
+  ne remonte plus aucun cas EBICS actif.
+- 2026-03-27: la famille `transactions` couvre maintenant aussi la lecture
+  detaillee des segments en REST et en CLI:
+  `GET /api/ebics/transactions/{transaction}/segments`,
+  `GET /api/ebics/transactions/{transaction}/segments/{segment}`,
+  `waarp-gateway ebics transaction segments` et
+  `waarp-gateway ebics transaction segment`.
+- 2026-03-27: la famille `operations` est maintenant explicitee comme une
+  famille d'observabilite et d'actions specialisees:
+  detail enrichi avec transaction, segments, identites et liens techniques;
+  maintien des actions `reporting` et `signature`;
+  abandon assume d'une facade generique `retry/cancel/confirm`, ces actions
+  restant portees par les familles specialisees.
+- 2026-03-27: les familles `contract views`, `payload profiles`,
+  `initializations`, `key lifecycles` et `RTN` ont ete relues cote REST et
+  CLI. Leur couverture est consideree suffisante pour `B2`, avec enrichissement
+  des sorties operateur (items contractuels, metadonnees de profil, horodatages
+  et references d'operations/workflows). Le point restant principal du lot est
+  maintenant la verification bout en bout de `payloads`, puis la cloture
+  synthese des familles REST/CLI EBICS.
+- 2026-03-27: la famille `payloads` est maintenant consideree exploitable de
+  bout en bout pour `B2`, avec soumission REST/CLI, controle contractuel,
+  creation/correlation d'`EbicsOperation`, typage d'operation `PAYLOAD`
+  explicite cote client et cote serveur, et actions operateur `retry/recover`.
+  Le `Lot B2` est considere ferme.

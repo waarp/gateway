@@ -27,6 +27,11 @@ func EbicsTransportModeSyncForRuntime() string {
 	return ebicsTransportModeSync
 }
 
+// EbicsOperationTypePayloadForRuntime exposes the payload operation type to runtime packages.
+func EbicsOperationTypePayloadForRuntime() string {
+	return ebicsOperationTypePayload
+}
+
 // EbicsOperationTypeReportingForRuntime exposes the reporting operation type to runtime packages.
 func EbicsOperationTypeReportingForRuntime() string {
 	return ebicsOperationTypeReporting

@@ -1,5 +1,7 @@
 package api
 
+import "time"
+
 // OutEbicsOperation exposes the operational view of an EBICS operation.
 type OutEbicsOperation struct {
 	ID                     int64          `json:"id" yaml:"id"`
@@ -22,6 +24,28 @@ type OutEbicsOperation struct {
 	ManualActionRequired   bool           `json:"manualActionRequired" yaml:"manualActionRequired"`
 	TransferID             *int64         `json:"transferID,omitempty" yaml:"transferID,omitempty"`
 	Metadata               map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+
+// OutEbicsOperationLinks exposes the cross-resource references attached to one
+// EBICS operation detail.
+type OutEbicsOperationLinks struct {
+	TransferID     *int64 `json:"transferID,omitempty" yaml:"transferID,omitempty"`
+	ContractViewID *int64 `json:"contractViewID,omitempty" yaml:"contractViewID,omitempty"`
+	RTNEventID     *int64 `json:"rtnEventID,omitempty" yaml:"rtnEventID,omitempty"`
+}
+
+// OutEbicsOperationDetail exposes the detailed operational view of one EBICS
+// operation together with its technical correlations.
+type OutEbicsOperationDetail struct {
+	Operation   *OutEbicsOperation            `json:"operation" yaml:"operation"`
+	HostID      string                        `json:"hostID" yaml:"hostID"`
+	PartnerID   string                        `json:"partnerID,omitempty" yaml:"partnerID,omitempty"`
+	UserID      string                        `json:"userID,omitempty" yaml:"userID,omitempty"`
+	StartedAt   *time.Time                    `json:"startedAt,omitempty" yaml:"startedAt,omitempty"`
+	FinishedAt  *time.Time                    `json:"finishedAt,omitempty" yaml:"finishedAt,omitempty"`
+	Transaction *OutEbicsTransaction          `json:"transaction,omitempty" yaml:"transaction,omitempty"`
+	Segments    []*OutEbicsTransactionSegment `json:"segments,omitempty" yaml:"segments,omitempty"`
+	Links       *OutEbicsOperationLinks       `json:"links,omitempty" yaml:"links,omitempty"`
 }
 
 // InEbicsServiceRef identifies one EBICS service descriptor in admin actions.

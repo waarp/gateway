@@ -23,7 +23,6 @@ const (
 	payloadRetryDecisionAuto     = "AUTO_RETRY_ALLOWED"
 	payloadRetryDecisionManual   = "MANUAL_REPLAY_ONLY"
 	payloadRetryDecisionRecovery = "RECOVERY_REQUIRED"
-	payloadOperationType         = "REPORTING"
 )
 
 type restPayloadProfileResolver struct {
@@ -234,7 +233,7 @@ func validatePayloadContractResult(
 }
 
 func derivePayloadOperationType() string {
-	return payloadOperationType
+	return model.EbicsOperationTypePayloadForRuntime()
 }
 
 func derivePayloadDirection(orderType string) string {

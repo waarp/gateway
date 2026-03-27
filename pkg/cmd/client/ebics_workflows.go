@@ -31,6 +31,26 @@ func displayEbicsKeyLifecycle(w io.Writer, lifecycle *api.OutEbicsKeyLifecycle) 
 	if lifecycle.NextCredentialID != nil {
 		Style22.PrintL(w, "Next credential", *lifecycle.NextCredentialID)
 	}
+	if lifecycle.TriggerOperationID != nil {
+		Style22.PrintL(w, "Trigger operation", *lifecycle.TriggerOperationID)
+	}
+	if lifecycle.LastOperationID != nil {
+		Style22.PrintL(w, "Last operation", *lifecycle.LastOperationID)
+	}
+	if lifecycle.RequestedAt != nil {
+		Style22.PrintL(w, "Requested at", *lifecycle.RequestedAt)
+	}
+	if lifecycle.SentAt != nil {
+		Style22.PrintL(w, "Sent at", *lifecycle.SentAt)
+	}
+	if lifecycle.ActivatedAt != nil {
+		Style22.PrintL(w, "Activated at", *lifecycle.ActivatedAt)
+	}
+	if lifecycle.RetiredAt != nil {
+		Style22.PrintL(w, "Retired at", *lifecycle.RetiredAt)
+	}
+	Style22.Option(w, "Operator", lifecycle.Operator)
+	Style22.Option(w, "Reason", lifecycle.Reason)
 
 	return nil
 }
@@ -58,6 +78,24 @@ func displayEbicsInitializations(w io.Writer, workflows []*api.OutEbicsInitializ
 func displayEbicsInitialization(w io.Writer, workflow *api.OutEbicsInitializationWorkflow) error {
 	Style1.Printf(w, "EBICS initialization #%d [%s]", workflow.ID, workflow.Status)
 	Style22.PrintL(w, "Current step", workflow.CurrentStep)
+	if workflow.IniOperationID != nil {
+		Style22.PrintL(w, "INI operation", *workflow.IniOperationID)
+	}
+	if workflow.HiaOperationID != nil {
+		Style22.PrintL(w, "HIA operation", *workflow.HiaOperationID)
+	}
+	if workflow.H3KOperationID != nil {
+		Style22.PrintL(w, "H3K operation", *workflow.H3KOperationID)
+	}
+	if workflow.LetterGeneratedAt != nil {
+		Style22.PrintL(w, "Letter generated at", *workflow.LetterGeneratedAt)
+	}
+	if workflow.LetterConfirmedAt != nil {
+		Style22.PrintL(w, "Letter confirmed at", *workflow.LetterConfirmedAt)
+	}
+	if workflow.BankActivationAt != nil {
+		Style22.PrintL(w, "Bank activation at", *workflow.BankActivationAt)
+	}
 	Style22.Option(w, "Operator", workflow.Operator)
 	Style22.Option(w, "Reason", workflow.Reason)
 	Style22.Option(w, "Bank feedback", workflow.BankFeedback)

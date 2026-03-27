@@ -29,6 +29,12 @@ func displayEbicsRTNEvent(w io.Writer, event *api.OutEbicsRTNEvent) error {
 	Style22.Option(w, "Profile ID", event.ProfileID)
 	Style22.PrintL(w, "Attempts", event.Attempts)
 	Style22.PrintL(w, "Received at", event.ReceivedAt)
+	if event.NextRetryAt != nil {
+		Style22.PrintL(w, "Next retry at", *event.NextRetryAt)
+	}
+	if event.ProcessedAt != nil {
+		Style22.PrintL(w, "Processed at", *event.ProcessedAt)
+	}
 	Style22.Option(w, "Last error", event.LastError)
 
 	return nil
@@ -51,6 +57,9 @@ func displayEbicsRTNProvider(w io.Writer, provider *api.OutEbicsRTNProvider) err
 	Style22.PrintL(w, "Enabled", provider.Enabled)
 	Style22.PrintL(w, "Subscriber ID", provider.SubscriberID)
 	Style22.PrintL(w, "Auto-pull policy", provider.AutoPullPolicy)
+	if provider.LastConnectionAt != nil {
+		Style22.PrintL(w, "Last connection", *provider.LastConnectionAt)
+	}
 	Style22.Option(w, "Last error", provider.LastError)
 
 	return nil
@@ -150,6 +159,25 @@ func (c *EbicsRTNProviderUpdate) execute(w io.Writer) error {
 	}
 
 	fmt.Fprintf(w, "The EBICS RTN provider %q was successfully updated.\n", name)
+
+	return nil
+}
+
+type EbicsRTNProviderDelete struct {
+	Args struct {
+		Provider string `required:"yes" positional-arg-name:"provider" description:"The RTN provider name"`
+	} `positional-args:"yes"`
+}
+
+func (c *EbicsRTNProviderDelete) Execute([]string) error { return execute(c) }
+func (c *EbicsRTNProviderDelete) execute(w io.Writer) error {
+	addr.Path = path.Join("/api/ebics/rtn/providers", c.Args.Provider)
+
+	if err := remove(w); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(w, "The EBICS RTN provider %q was successfully deleted.\n", c.Args.Provider)
 
 	return nil
 }

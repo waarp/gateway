@@ -239,49 +239,21 @@ Contenu minimal:
 - `links` vers `transfer`, `contractView`, `rtnEvent`.
 - scopes `technical` et `business` distincts quand presents.
 
-### 3.3 Retry
+### 3.3 Actions specialisees
 
-Route:
+Routes:
 
-- `PUT /api/ebics/operations/{operation}/retry`
+- `POST /api/ebics/operations/actions/reporting`
+- `POST /api/ebics/operations/actions/signature`
 
-Corps cible:
+Regles:
 
-```json
-{
-  "reason": "operator retry after temporary bank outage",
-  "metadata": {
-    "requestedBy": "ops-user"
-  }
-}
-```
-
-Codes:
-
-- `202 Accepted`
-- `400 Bad Request`
-- `409 Conflict`
-
-Regle:
-
-- refuser le retry si `retryDecision` ne l'autorise pas.
-
-### 3.4 Cancel
-
-Route:
-
-- `PUT /api/ebics/operations/{operation}/cancel`
-
-### 3.5 Confirm
-
-Route:
-
-- `PUT /api/ebics/operations/{operation}/confirm`
-
-Usage:
-
-- confirmation technique externe;
-- notamment pour `WAITING_EXTERNAL_CONFIRMATION`.
+- la famille `operations` n'expose pas de `retry/cancel/confirm` generiques
+  en phase 1;
+- ces actions restent portees par les familles specialisees `payloads`,
+  `initializations`, `key-lifecycles` et `rtn`;
+- `operations` sert d'abord a observer et a lancer les ordres specialises
+  `reporting` et `signature`.
 
 ## 5. Famille `contract-view`
 
@@ -368,9 +340,7 @@ Routes:
 
 - `GET /api/ebics/initializations`
 - `GET /api/ebics/initializations/{workflow}`
-- `POST /api/ebics/initializations`
-- `PUT /api/ebics/initializations/{workflow}/confirm`
-- `PUT /api/ebics/initializations/{workflow}/cancel`
+- `PUT /api/ebics/initializations/{workflow}/actions`
 
 ## 9. Famille `key-lifecycles`
 
@@ -378,9 +348,13 @@ Routes:
 
 - `GET /api/ebics/key-lifecycles`
 - `GET /api/ebics/key-lifecycles/{lifecycle}`
-- `POST /api/ebics/key-lifecycles`
-- `PUT /api/ebics/key-lifecycles/{lifecycle}/confirm`
-- `PUT /api/ebics/key-lifecycles/{lifecycle}/cancel`
+- `PUT /api/ebics/key-lifecycles/{lifecycle}/actions`
+- `POST /api/ebics/key-lifecycles/actions/prepare-rotation`
+- `POST /api/ebics/key-lifecycles/actions/send-rotation`
+- `POST /api/ebics/key-lifecycles/actions/confirm-rotation`
+- `POST /api/ebics/key-lifecycles/actions/cancel-rotation`
+- `POST /api/ebics/key-lifecycles/actions/reject-rotation`
+- `POST /api/ebics/key-lifecycles/actions/revoke-rotation`
 
 ## 10. Conventions de reponse
 

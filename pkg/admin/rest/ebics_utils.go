@@ -122,6 +122,43 @@ func getDBEbicsTransaction(r *http.Request, db *database.DB) (*model.EbicsTransa
 	return transaction, nil
 }
 
+func getDBEbicsTransactionSegment(r *http.Request, db *database.DB) (*model.EbicsTransactionSegment, error) {
+	transaction, err := getDBEbicsTransaction(r, db)
+	if err != nil {
+		return nil, err
+	}
+
+	segmentNumber, err := parseRESTInt64Param(r, "segment_number", "EBICS transaction segment")
+	if err != nil {
+		return nil, err
+	}
+
+	segment := &model.EbicsTransactionSegment{}
+	if err = db.Get(
+		segment,
+		"ebics_transaction_id=? AND segment_number=?",
+		transaction.ID,
+		segmentNumber,
+	).Owner().Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFoundf(
+				"EBICS transaction segment %d not found for transaction %d",
+				segmentNumber,
+				transaction.ID,
+			)
+		}
+
+		return nil, fmt.Errorf(
+			"failed to retrieve EBICS transaction segment %d for transaction %d: %w",
+			segmentNumber,
+			transaction.ID,
+			err,
+		)
+	}
+
+	return segment, nil
+}
+
 func getDBEbicsKeyLifecycle(r *http.Request, db *database.DB) (*model.EbicsKeyLifecycle, error) {
 	id, err := parseRESTInt64Param(r, "ebics_key_lifecycle", "EBICS key lifecycle")
 	if err != nil {
@@ -320,6 +357,69 @@ func DBEbicsOperationToREST(operation *model.EbicsOperation) (*api.OutEbicsOpera
 		TransferID:             ptrInt64(operation.TransferID),
 		Metadata:               operation.MetadataMap,
 	}, nil
+}
+
+// DBEbicsOperationDetailToREST transforms an EBICS operation and its related
+// technical objects into a detailed REST representation.
+func DBEbicsOperationDetailToREST(
+	db database.ReadAccess,
+	operation *model.EbicsOperation,
+) (*api.OutEbicsOperationDetail, error) {
+	restOperation, err := DBEbicsOperationToREST(operation)
+	if err != nil {
+		return nil, err
+	}
+
+	host := &model.EbicsHost{}
+	if err = db.Get(host, "id=?", operation.EbicsHostID).Owner().Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve EBICS host for operation %d: %w", operation.ID, err)
+	}
+
+	detail := &api.OutEbicsOperationDetail{
+		Operation:  restOperation,
+		HostID:     host.HostID,
+		StartedAt:  ptrTime(operation.StartedAt),
+		FinishedAt: ptrTime(operation.FinishedAt),
+	}
+
+	subscriber := &model.EbicsSubscriber{}
+	if err = db.Get(subscriber, "id=?", operation.EbicsSubscriberID).Owner().Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve EBICS subscriber for operation %d: %w", operation.ID, err)
+	}
+	detail.PartnerID = subscriber.PartnerID
+	detail.UserID = subscriber.UserID
+
+	if operation.TransferID.Valid || operation.ContractViewID.Valid || operation.RTNEventID.Valid {
+		detail.Links = &api.OutEbicsOperationLinks{
+			TransferID:     ptrInt64(operation.TransferID),
+			ContractViewID: ptrInt64(operation.ContractViewID),
+			RTNEventID:     ptrInt64(operation.RTNEventID),
+		}
+	}
+
+	transaction := &model.EbicsTransaction{}
+	if err = db.Get(transaction, "ebics_operation_id=?", operation.ID).Owner().Run(); err == nil {
+		detail.Transaction = DBEbicsTransactionToREST(transaction)
+
+		var segments model.EbicsTransactionSegments
+		if err = db.Select(&segments).Owner().Where("ebics_transaction_id=?", transaction.ID).
+			OrderBy("segment_number", true).Run(); err != nil {
+			return nil, fmt.Errorf(
+				"failed to retrieve EBICS transaction segments for operation %d: %w",
+				operation.ID,
+				err,
+			)
+		}
+
+		detail.Segments = make([]*api.OutEbicsTransactionSegment, len(segments))
+		for i, segment := range segments {
+			detail.Segments[i] = DBEbicsTransactionSegmentToREST(segment)
+		}
+	} else if !database.IsNotFound(err) {
+		return nil, fmt.Errorf("failed to retrieve EBICS transaction for operation %d: %w", operation.ID, err)
+	}
+
+	return detail, nil
 }
 
 // DBEbicsTransactionToREST transforms an EBICS transaction into its REST representation.

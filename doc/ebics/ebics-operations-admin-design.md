@@ -56,9 +56,8 @@ Routes recommandees:
 
 - `GET /api/ebics/operations`
 - `GET /api/ebics/operations/{operation}`
-- `PUT /api/ebics/operations/{operation}/retry`
-- `PUT /api/ebics/operations/{operation}/cancel`
-- `PUT /api/ebics/operations/{operation}/confirm`
+- `POST /api/ebics/operations/actions/reporting`
+- `POST /api/ebics/operations/actions/signature`
 
 ## 5.2 Liste
 
@@ -107,27 +106,22 @@ Le detail doit au minimum exposer:
 - horodatages;
 - lien vers `Transfer` si present;
 - metadonnees techniques utiles;
+- transaction associee si presente;
+- segments associes si presents;
 - references vers workflow d'initialisation, RTN ou contrat si present.
 
 ## 5.4 Actions
 
-`retry`
+La famille `operations` n'est pas une facade generique de controle.
 
-- reserve aux operations dans un etat compatible (`FAILED`,
-  `COMPLETED_WITH_WARNINGS` selon cas);
-- ne doit rejouer que l'action technique supportee.
+Regle de phase 1:
 
-`cancel`
-
-- reserve aux operations annulables;
-- n'implique pas l'annulation d'une decision metier externe.
-
-`confirm`
-
-- reserve aux cas de rupture d'automatisme, typiquement
-  `WAITING_EXTERNAL_CONFIRMATION`;
-- sert a enregistrer une confirmation technique externe, pas une approbation
-  metier riche.
+- `retry`, `cancel` et `confirm` restent sur les familles specialisees
+  (`payload`, `initialization`, `key-rotation`, `rtn`);
+- `operations` sert a observer et a lancer les ordres specialises
+  `reporting` et `signature`;
+- on evite ainsi une surface generique ambiguë, difficile a rendre
+  techniquement sure.
 
 ## 5.5 Reponse REST de reference
 
@@ -174,9 +168,8 @@ Commandes recommandees:
 
 - `waarp-gateway ebics operation list`
 - `waarp-gateway ebics operation get <id>`
-- `waarp-gateway ebics operation retry <id>`
-- `waarp-gateway ebics operation cancel <id>`
-- `waarp-gateway ebics operation confirm <id>`
+- `waarp-gateway ebics operation reporting ...`
+- `waarp-gateway ebics operation signature ...`
 
 ## 6.2 Filtres CLI
 
@@ -230,7 +223,7 @@ La vue detail doit proposer:
 - `gatewayOutcome` et `retryDecision`;
 - correlation vers `Transfer`, `RTN`, `contract view`, `initialization workflow`
   si presents;
-- actions `retry`, `cancel`, `confirm` si autorisees.
+- liens vers les familles specialisees qui portent l'action effective.
 
 ## 8. Regles d'administration
 
@@ -249,7 +242,7 @@ Actions:
 
 - `get`
 - `list`
-- `retry` si echec ou rafraichissement demande
+- relance via la famille specialisee porteuse de l'action
 
 ### 9.2 `INI`, `HIA`, `H3K`
 
@@ -257,9 +250,7 @@ Actions:
 
 - `get`
 - `list`
-- `confirm` si attente de validation externe
-- `retry` selon etat
-- `cancel` tant que l'activation finale n'est pas engagee
+- action via la famille `initialization`
 
 ### 9.3 `RTN`
 
@@ -267,8 +258,7 @@ Actions:
 
 - `get`
 - `list`
-- `retry` si pull auto a echoue
-- `cancel` uniquement si la politique autorise l'abandon
+- action via la famille `rtn`
 
 ## 10. Decision recommandee
 

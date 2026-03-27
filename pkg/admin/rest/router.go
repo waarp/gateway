@@ -394,6 +394,8 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 		operationPath            = "/ebics/operations/{ebics_operation}"
 		transactionsPath         = "/ebics/transactions"
 		transactionPath          = "/ebics/transactions/{ebics_transaction}"
+		transactionSegmentsPath  = "/ebics/transactions/{ebics_transaction}/segments"
+		transactionSegmentPath   = "/ebics/transactions/{ebics_transaction}/segments/{segment_number}"
 		keyLifecyclesPath        = "/ebics/key-lifecycles"
 		keyLifecyclePath         = "/ebics/key-lifecycles/{ebics_key_lifecycle}"
 		keyLifecycleActionPath   = "/ebics/key-lifecycles/{ebics_key_lifecycle}/actions"
@@ -438,6 +440,8 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 
 	mkHandler(transactionsPath, listEbicsTransactions, model.PermTransfersRead, http.MethodGet)
 	mkHandler(transactionPath, getEbicsTransaction, model.PermTransfersRead, http.MethodGet)
+	mkHandler(transactionSegmentsPath, listEbicsTransactionSegments, model.PermTransfersRead, http.MethodGet)
+	mkHandler(transactionSegmentPath, getEbicsTransactionSegment, model.PermTransfersRead, http.MethodGet)
 
 	mkHandler(keyLifecyclesPath, listEbicsKeyLifecycles, model.PermTransfersRead, http.MethodGet)
 	mkHandler(keyLifecyclePath, getEbicsKeyLifecycle, model.PermTransfersRead, http.MethodGet)

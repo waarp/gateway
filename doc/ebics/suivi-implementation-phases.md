@@ -104,8 +104,8 @@ Decision / date:
 ## 5. Consolidation backend avant frontend
 
 - [ ] Plan de consolidation backend pose
-- [ ] Lot B1 - Execution cliente reelle
-- [ ] Lot B2 - Couverture backend complete
+- [x] Lot B1 - Execution cliente reelle
+- [x] Lot B2 - Couverture backend complete
 - [ ] Lot B3 - Import / export / updateconf complet
 - [ ] Lot B4 - Durcissement exploitation
 - [ ] Lot B5 - Verification de sortie backend
@@ -114,8 +114,21 @@ Decision / date:
 Note:
 - le suivi detaille est porte par `backend-consolidation-plan.md` et `suivi-backend-consolidation.md`
 - objectif explicite: ne plus laisser de stub bloquant ni de fonctionnalite backend EBICS partielle avant frontend
-- `Lot B1` est en cours:
-  le chemin nominal client payload `BTU/BTD` est maintenant branche sur `lib-ebics`
+- `Lot B1` est termine:
+  le chemin nominal client payload `BTU/BTD` est branche sur `lib-ebics`
   avec correlation `operation/transaction/transfer`, contrat actif, TLS et recovery;
-  restent ouverts les ordres client hors payload; `FUL/FDL` sont ramenes a de
-  simples alias de compatibilite vers `BTU/BTD`
+  les ordres client hors payload couvrent maintenant initialisation, refresh contractuel,
+  reporting, signatures protocolaires et rotation coordonnee des cles;
+  `FUL/FDL` restent de simples alias de compatibilite vers `BTU/BTD`
+- `Lot B2` est demarre:
+  premiers ecarts de couverture CLI fermes avec `ebics transaction list/get`,
+  `ebics payload profile delete` et `ebics rtn provider delete`;
+  la famille `transactions` couvre maintenant aussi les segments en REST/CLI;
+  la famille `operations` est alignee comme vue d'observabilite detaillee et
+  d'actions specialisees (`reporting` / `signature`), sans facade generique
+  `retry/cancel/confirm`;
+  la revue exploitable est maintenant bouclee pour `contract views`,
+  `payload profiles`, `initializations`, `key lifecycles`, `RTN` et `payloads`;
+  les operations payload sont explicitement typees `PAYLOAD` au lieu de
+  reutiliser `REPORTING`;
+  `Lot B2` est maintenant considere ferme

@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	ebicsOperationTypePayload         = "PAYLOAD"
 	ebicsOperationTypeInitialization  = "INITIALIZATION"
 	ebicsOperationTypeKeyManagement   = "KEY_MANAGEMENT"
 	ebicsOperationTypeContractRefresh = "CONTRACT_REFRESH"
@@ -268,7 +269,7 @@ func (o *EbicsOperation) AfterUpdate(db database.Access) error {
 
 func validateEbicsOperationType(value string) error {
 	switch value {
-	case ebicsOperationTypeInitialization, ebicsOperationTypeKeyManagement,
+	case ebicsOperationTypePayload, ebicsOperationTypeInitialization, ebicsOperationTypeKeyManagement,
 		ebicsOperationTypeContractRefresh, ebicsOperationTypeReporting,
 		ebicsOperationTypeSignature, ebicsOperationTypeRTN, ebicsOperationTypeAdmin:
 		return nil
