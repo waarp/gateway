@@ -100,3 +100,17 @@ Note:
 
 Decision / date:
 - `GO implementation large` / 2026-03-26
+
+## 5. Consolidation backend avant frontend
+
+- [ ] Plan de consolidation backend pose
+- [ ] Lot B1 - Execution cliente reelle
+- [ ] Lot B2 - Couverture backend complete
+- [ ] Lot B3 - Import / export / updateconf complet
+- [ ] Lot B4 - Durcissement exploitation
+- [ ] Lot B5 - Verification de sortie backend
+- [ ] Gate "backend pret frontend" prononcee
+
+Note:
+- le suivi detaille est porte par `backend-consolidation-plan.md` et `suivi-backend-consolidation.md`
+- objectif explicite: ne plus laisser de stub bloquant ni de fonctionnalite backend EBICS partielle avant frontend

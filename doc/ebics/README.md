@@ -14,6 +14,7 @@ Documents disponibles:
 - `amqp-protocols-backlog.md`
 - `aptitude-gateway-rotation-cles.md`
 - `aptitude-gateway-signatures.md`
+- `backend-consolidation-plan.md`
 - `backlog-implementation.md`
 - `backlog-implementation-fichier-par-fichier.md`
 - `cli-ui-impact-ebics.md`
@@ -49,6 +50,7 @@ Documents disponibles:
 - `spike-plan.md`
 - `suivi-implementation-ebics.md`
 - `suivi-implementation-phases.md`
+- `suivi-backend-consolidation.md`
 - `positionnement-cible.md`
 - `returncodes-ebics-gateway.md`
 - `credentials-key-lifecycle-mapping.md`
