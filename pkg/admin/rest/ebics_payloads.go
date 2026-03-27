@@ -114,6 +114,45 @@ func (r *restContractViewResolver) GetActiveContractView(
 	return view, derefContractItems(items), nil
 }
 
+func (r *restContractViewResolver) GetActiveStandardBTFCatalog(
+	owner, scope string,
+) (*model.EbicsStandardBTFCatalog, []model.EbicsStandardBTFEntry, error) {
+	catalog := &model.EbicsStandardBTFCatalog{}
+	if err := r.db.Get(
+		catalog,
+		"owner=? AND scope=? AND status=?",
+		owner,
+		strings.ToUpper(strings.TrimSpace(scope)),
+		"ACTIVE",
+	).OrderBy("updated_at", false).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, nil, nil //nolint:nilnil // no active standard catalog is a valid control-flow result
+		}
+
+		return nil, nil, fmt.Errorf(
+			"failed to retrieve active EBICS standard BTF catalog for scope %q: %w",
+			scope,
+			err,
+		)
+	}
+
+	var rows model.EbicsStandardBTFEntries
+	if err := r.db.Select(&rows).Owner().Where("catalog_id=?", catalog.ID).Run(); err != nil {
+		return nil, nil, fmt.Errorf(
+			"failed to retrieve EBICS standard BTF entries for catalog %d: %w",
+			catalog.ID,
+			err,
+		)
+	}
+
+	entries := make([]model.EbicsStandardBTFEntry, 0, len(rows))
+	for _, row := range rows {
+		entries = append(entries, *row)
+	}
+
+	return catalog, entries, nil
+}
+
 func derefContractItems(items model.EbicsContractViewItems) []model.EbicsContractViewItem {
 	out := make([]model.EbicsContractViewItem, len(items))
 	for i, item := range items {
@@ -208,15 +247,11 @@ func validatePayloadContractResult(
 	resolved *ebicsruntime.ResolvedPayloadRequest,
 	result *ebicsruntime.ContractValidationResult,
 ) error {
-	if result.ContractViewID == 0 && len(result.MatchedItems) == 0 {
-		return badRequest("no active EBICS contract view found for the selected subscriber")
-	}
-
 	switch result.Status {
 	case "MATCHED":
 		return nil
-	case "NO_ACTIVE_CONTRACT":
-		return badRequest("no active EBICS contract view found for the selected subscriber")
+	case "NO_VALIDATION_BASE":
+		return badRequest(result.Message)
 	case "NO_MATCHING_ITEM":
 		profileName := resolved.ProfileName
 		if profileName == "" {
@@ -224,8 +259,9 @@ func validatePayloadContractResult(
 		}
 
 		return badRequestf(
-			"the resolved EBICS payload request for profile %q does not match the active contract",
+			"the resolved EBICS payload request for profile %q is rejected: %s",
 			profileName,
+			result.Message,
 		)
 	default:
 		return badRequestf("unsupported EBICS contract validation status %q", result.Status)

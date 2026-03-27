@@ -89,6 +89,11 @@ func ExportData(db database.ReadAccess, w *os.File, targets []string) error {
 			return expErr
 		}
 
+		data.EbicsStandardBTFCatalogs, expErr = exportEbicsStandardBTFCatalogs(logger, db)
+		if expErr != nil {
+			return expErr
+		}
+
 		data.EbicsPayloadProfiles, expErr = exportEbicsPayloadProfiles(logger, db)
 		if expErr != nil {
 			return expErr

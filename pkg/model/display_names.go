@@ -26,6 +26,8 @@ const (
 	NameEbicsBankKey                = "ebics bank key"
 	NameEbicsContractView           = "ebics contract view"
 	NameEbicsContractViewItem       = "ebics contract view item"
+	NameEbicsStandardBTFCatalog     = "ebics standard BTF catalog"
+	NameEbicsStandardBTFEntry       = "ebics standard BTF entry"
 	NameEbicsPayloadProfile         = "ebics payload profile"
 	NameEbicsOperation              = "ebics operation"
 	NameEbicsTransaction            = "ebics transaction"

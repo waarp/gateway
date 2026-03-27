@@ -61,6 +61,8 @@ type (
 	EbicsSubscriberKeyMaterials  = Slice[*EbicsSubscriberKeyMaterial]
 	EbicsContractViews           = Slice[*EbicsContractView]
 	EbicsContractViewItems       = Slice[*EbicsContractViewItem]
+	EbicsStandardBTFCatalogs     = Slice[*EbicsStandardBTFCatalog]
+	EbicsStandardBTFEntries      = Slice[*EbicsStandardBTFEntry]
 	EbicsPayloadProfiles         = Slice[*EbicsPayloadProfile]
 	EbicsOperations              = Slice[*EbicsOperation]
 	EbicsTransactions            = Slice[*EbicsTransaction]

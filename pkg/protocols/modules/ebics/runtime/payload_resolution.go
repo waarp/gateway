@@ -50,20 +50,22 @@ type PayloadServiceRef struct {
 }
 
 type ResolvedPayloadRequest struct {
-	OrderType        string
-	ResolutionMode   string
-	Profile          *model.EbicsPayloadProfile
-	ProfileName      string
-	RuleName         string
-	Subscriber       PayloadSubscriberRef
-	ResolvedFile     *PayloadFileRef
-	ResolvedTarget   *PayloadTargetRef
-	ResolvedService  PayloadServiceRef
-	ResolvedMetadata map[string]any
-	DeclaredAmount   string
-	DeclaredCurrency string
-	ContractViewID   int64
-	ContractItemIDs  []int64
+	OrderType         string
+	ResolutionMode    string
+	Profile           *model.EbicsPayloadProfile
+	ProfileName       string
+	RuleName          string
+	Subscriber        PayloadSubscriberRef
+	ResolvedFile      *PayloadFileRef
+	ResolvedTarget    *PayloadTargetRef
+	ResolvedService   PayloadServiceRef
+	ResolvedMetadata  map[string]any
+	DeclaredAmount    string
+	DeclaredCurrency  string
+	ContractViewID    int64
+	ContractItemIDs   []int64
+	StandardCatalogID int64
+	StandardEntryIDs  []int64
 }
 
 type PayloadProfileResolver interface {

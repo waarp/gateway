@@ -138,6 +138,62 @@ func exportEbicsBankKeys(
 	return keys, nil
 }
 
+func exportEbicsStandardBTFCatalogs(
+	logger *log.Logger,
+	db database.ReadAccess,
+) ([]file.EbicsStandardBTFCatalog, error) {
+	var dbCatalogs model.EbicsStandardBTFCatalogs
+	if err := db.Select(&dbCatalogs).Owner().Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve EBICS standard BTF catalogs: %w", err)
+	}
+
+	out := make([]file.EbicsStandardBTFCatalog, len(dbCatalogs))
+	for i, catalog := range dbCatalogs {
+		logger.Infof("Exporting EBICS standard BTF catalog %q/%q", catalog.Name, catalog.Scope)
+
+		var dbEntries model.EbicsStandardBTFEntries
+		if err := db.Select(&dbEntries).Owner().Where("catalog_id=?", catalog.ID).Run(); err != nil {
+			return nil, fmt.Errorf(
+				"failed to retrieve entries of EBICS standard BTF catalog %q/%q: %w",
+				catalog.Name,
+				catalog.Scope,
+				err,
+			)
+		}
+
+		entries := make([]file.EbicsStandardBTFEntry, len(dbEntries))
+		for j, entry := range dbEntries {
+			entries[j] = file.EbicsStandardBTFEntry{
+				EntryKey:          entry.EntryKey,
+				OrderType:         entry.OrderType,
+				Direction:         entry.Direction,
+				ServiceName:       entry.ServiceName,
+				ServiceOption:     entry.ServiceOption,
+				Scope:             entry.Scope,
+				MsgName:           entry.MsgName,
+				ContainerType:     entry.ContainerType,
+				CountryGroup:      entry.CountryGroup,
+				IsDefaultTemplate: entry.IsDefaultTemplate,
+				Status:            entry.Status,
+				Metadata:          entry.MetadataMap,
+			}
+		}
+
+		out[i] = file.EbicsStandardBTFCatalog{
+			Name:           catalog.Name,
+			Scope:          catalog.Scope,
+			CatalogVersion: catalog.CatalogVersion,
+			SourceType:     catalog.SourceType,
+			SourceRef:      catalog.SourceRef,
+			Status:         catalog.Status,
+			SeedChecksum:   catalog.SeedChecksum,
+			Entries:        entries,
+		}
+	}
+
+	return out, nil
+}
+
 func exportEbicsRTNProviders(
 	logger *log.Logger,
 	db database.ReadAccess,

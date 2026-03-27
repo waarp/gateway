@@ -85,6 +85,25 @@ Sortie attendue:
 
 - un exploitant peut recreer une configuration EBICS complete sans script ad hoc.
 
+## 3.3 bis Catalogue BTF standard
+
+Constat actuel:
+
+- la vue contractuelle specifique est bien alimentee par `HPD` / `HKD` / `HTD` / `HAA`;
+- aucun catalogue standard generique `GLB/FR/DE/AT/CH` n'est encore porte par Gateway.
+
+Objectif:
+
+- ajouter un catalogue BTF standard, non specifique a une banque;
+- fournir une base de validation et de creation de profils avant recuperation
+  d'un contrat specifique;
+- garder une separation stricte entre reference standard et contrat banque.
+
+Sortie attendue:
+
+- Gateway sait valider selon `specific > country > GLB`;
+- le catalogue standard est versionne et gouverne.
+
 ## 3.4 Serveur EBICS reel et durcissement serveur
 
 Constat actuel:
@@ -176,6 +195,28 @@ Statut:
 - migration `0.16.0` ajoutee pour garantir la presence des tables EBICS
   dans les bases migrees et dans les environnements de test
 
+## Lot B3.5 - Catalogue BTF standard
+
+Perimetre:
+
+- catalogue standard `GLB`, `FR`, `DE`, `AT`, `CH`
+- seed versionne
+- fallback `specific > country > GLB`
+
+Bloquant frontend:
+
+- oui pour une experience d'administration propre et pour les validations
+  pre-contractuelles.
+
+Statut:
+
+- 2026-03-27: termine
+- tables dediees `ebics_standard_btf_catalogs` et `ebics_standard_btf_entries`
+- bootstrap sur base fraiche + migration de rattrapage sur base existante
+- import/export/updateconf couverts pour les catalogues standard
+- validation runtime stricte: si un contrat specifique actif existe, aucun
+  fallback vers le catalogue standard n'est autorise
+
 ## Lot B4 - Durcissement exploitation + consolidation serveur
 
 Perimetre:
@@ -213,8 +254,9 @@ Ordre de traitement:
 1. `Lot B1 - Execution cliente reelle`
 2. `Lot B2 - Orders backend complets`
 3. `Lot B3 - Import / export / updateconf complet`
-4. `Lot B4 - Durcissement exploitation + consolidation serveur`
-5. `Lot B5 - Verification backend de sortie`
+4. `Lot B3.5 - Catalogue BTF standard`
+5. `Lot B4 - Durcissement exploitation + consolidation serveur`
+6. `Lot B5 - Verification backend de sortie`
 
 ## 6. Regle de conduite
 

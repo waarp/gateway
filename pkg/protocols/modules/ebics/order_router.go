@@ -685,6 +685,42 @@ func (r *routerContractViewResolver) GetActiveContractView(
 	return view, items, nil
 }
 
+//nolint:nilnil // nil catalog is the expected "no active standard catalog" signal for fallback validation.
+func (r *routerContractViewResolver) GetActiveStandardBTFCatalog(
+	owner, scope string,
+) (*model.EbicsStandardBTFCatalog, []model.EbicsStandardBTFEntry, error) {
+	catalog := &model.EbicsStandardBTFCatalog{}
+	if err := r.db.Get(
+		catalog,
+		"owner=? AND scope=? AND status=?",
+		owner,
+		strings.ToUpper(strings.TrimSpace(scope)),
+		"ACTIVE",
+	).OrderBy("updated_at", false).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, nil, nil
+		}
+
+		return nil, nil, fmt.Errorf(
+			"load active EBICS standard BTF catalog for scope %q: %w",
+			scope,
+			err,
+		)
+	}
+
+	var rows model.EbicsStandardBTFEntries
+	if err := r.db.Select(&rows).Owner().Where("catalog_id=?", catalog.ID).Run(); err != nil {
+		return nil, nil, fmt.Errorf("load EBICS standard BTF entries: %w", err)
+	}
+
+	entries := make([]model.EbicsStandardBTFEntry, 0, len(rows))
+	for _, row := range rows {
+		entries = append(entries, *row)
+	}
+
+	return catalog, entries, nil
+}
+
 func buildUploadResolvedRequest(
 	req *libebics.OrderContext,
 	params *ebicsxml.BTUOrderParams,
@@ -742,14 +778,17 @@ func validateRouterContract(
 	switch validation.Status {
 	case "MATCHED":
 		return nil
-	case "NO_ACTIVE_CONTRACT":
-		return mappedOrderError(fmt.Errorf("%w: no active EBICS contract view found",
-			liborders.ErrInvalidOrderParams))
+	case "NO_VALIDATION_BASE":
+		return mappedOrderError(fmt.Errorf("%w: %s",
+			liborders.ErrInvalidOrderParams,
+			validation.Message,
+		))
 	case "NO_MATCHING_ITEM":
 		return mappedOrderError(fmt.Errorf(
-			"%w: the EBICS payload profile %q is not allowed by the active contract",
+			"%w: the EBICS payload profile %q is rejected: %s",
 			liborders.ErrInvalidOrderParams,
 			resolved.ProfileName,
+			validation.Message,
 		))
 	default:
 		return mappedOrderError(fmt.Errorf(

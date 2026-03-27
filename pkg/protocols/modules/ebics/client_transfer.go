@@ -962,6 +962,46 @@ func (r *transferContractViewResolver) GetActiveContractView(
 	return view, items, nil
 }
 
+//nolint:nilnil // nil catalog is the expected "no active standard catalog" signal here.
+func (r *transferContractViewResolver) GetActiveStandardBTFCatalog(
+	owner, scope string,
+) (*model.EbicsStandardBTFCatalog, []model.EbicsStandardBTFEntry, error) {
+	catalog := &model.EbicsStandardBTFCatalog{}
+	if err := r.db.Get(
+		catalog,
+		"owner=? AND scope=? AND status=?",
+		owner,
+		strings.ToUpper(strings.TrimSpace(scope)),
+		"ACTIVE",
+	).OrderBy("updated_at", false).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, nil, nil
+		}
+
+		return nil, nil, fmt.Errorf(
+			"load active EBICS standard BTF catalog for scope %q: %w",
+			scope,
+			err,
+		)
+	}
+
+	var rows model.EbicsStandardBTFEntries
+	if err := r.db.Select(&rows).Owner().Where("catalog_id=?", catalog.ID).Run(); err != nil {
+		return nil, nil, fmt.Errorf(
+			"load EBICS standard BTF entries for catalog %d: %w",
+			catalog.ID,
+			err,
+		)
+	}
+
+	entries := make([]model.EbicsStandardBTFEntry, 0, len(rows))
+	for _, row := range rows {
+		entries = append(entries, *row)
+	}
+
+	return catalog, entries, nil
+}
+
 type runtimeProfileResolver struct {
 	db *database.DB
 }

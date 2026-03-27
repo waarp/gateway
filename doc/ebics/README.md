@@ -17,6 +17,8 @@ Documents disponibles:
 - `backend-consolidation-plan.md`
 - `backlog-implementation.md`
 - `backlog-implementation-fichier-par-fichier.md`
+- `catalogue-btf-standard.md`
+- `catalogue-btf-standard-design.md`
 - `cli-ui-impact-ebics.md`
 - `cli-ebics-detaillee.md`
 - `decision-gateway-vs-scratch.md`

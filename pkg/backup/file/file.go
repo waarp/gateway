@@ -19,6 +19,8 @@ type Data struct {
 	EbicsSubscribers []EbicsSubscriber `json:"ebicsSubscribers,omitempty" yaml:"ebicsSubscribers,omitempty"`
 	EbicsBankKeys    []EbicsBankKey    `json:"ebicsBankKeys,omitempty" yaml:"ebicsBankKeys,omitempty"`
 	//nolint:lll // tags are long
+	EbicsStandardBTFCatalogs []EbicsStandardBTFCatalog `json:"ebicsStandardBtfCatalogs,omitempty" yaml:"ebicsStandardBtfCatalogs,omitempty"`
+	//nolint:lll // tags are long
 	EbicsPayloadProfiles []EbicsPayloadProfile `json:"ebicsPayloadProfiles,omitempty" yaml:"ebicsPayloadProfiles,omitempty"`
 	EbicsRTNProviders    []EbicsRTNProvider    `json:"ebicsRtnProviders,omitempty" yaml:"ebicsRtnProviders,omitempty"`
 	Users                []User                `json:"users,omitempty" yaml:"users,omitempty"`
@@ -194,6 +196,32 @@ type EbicsBankKey struct {
 	State         string    `json:"state" yaml:"state"`
 	ValidFrom     time.Time `json:"validFrom" yaml:"validFrom"`
 	ValidTo       time.Time `json:"validTo" yaml:"validTo"`
+}
+
+type EbicsStandardBTFCatalog struct {
+	Name           string                  `json:"name" yaml:"name"`
+	Scope          string                  `json:"scope" yaml:"scope"`
+	CatalogVersion string                  `json:"catalogVersion" yaml:"catalogVersion"`
+	SourceType     string                  `json:"sourceType" yaml:"sourceType"`
+	SourceRef      string                  `json:"sourceRef,omitempty" yaml:"sourceRef,omitempty"`
+	Status         string                  `json:"status" yaml:"status"`
+	SeedChecksum   string                  `json:"seedChecksum,omitempty" yaml:"seedChecksum,omitempty"`
+	Entries        []EbicsStandardBTFEntry `json:"entries,omitempty" yaml:"entries,omitempty"`
+}
+
+type EbicsStandardBTFEntry struct {
+	EntryKey          string         `json:"entryKey" yaml:"entryKey"`
+	OrderType         string         `json:"orderType" yaml:"orderType"`
+	Direction         string         `json:"direction" yaml:"direction"`
+	ServiceName       string         `json:"serviceName" yaml:"serviceName"`
+	ServiceOption     string         `json:"serviceOption,omitempty" yaml:"serviceOption,omitempty"`
+	Scope             string         `json:"scope" yaml:"scope"`
+	MsgName           string         `json:"msgName,omitempty" yaml:"msgName,omitempty"`
+	ContainerType     string         `json:"containerType,omitempty" yaml:"containerType,omitempty"`
+	CountryGroup      string         `json:"countryGroup,omitempty" yaml:"countryGroup,omitempty"`
+	IsDefaultTemplate bool           `json:"isDefaultTemplate" yaml:"isDefaultTemplate"`
+	Status            string         `json:"status" yaml:"status"`
+	Metadata          map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
 type EbicsRTNProvider struct {

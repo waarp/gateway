@@ -31,6 +31,8 @@ const (
 	TableEbicsBankKeys                = "ebics_bank_keys"
 	TableEbicsContractViews           = "ebics_contract_views"
 	TableEbicsContractViewItems       = "ebics_contract_view_items"
+	TableEbicsStandardBTFCatalogs     = "ebics_standard_btf_catalogs"
+	TableEbicsStandardBTFEntries      = "ebics_standard_btf_entries"
 	TableEbicsPayloadProfiles         = "ebics_payload_profiles"
 	TableEbicsOperations              = "ebics_operations"
 	TableEbicsTransactions            = "ebics_transactions"
@@ -47,4 +49,5 @@ const (
 //nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddInit(&User{})
+	database.AddInit(&EbicsStandardBTFCatalog{})
 }

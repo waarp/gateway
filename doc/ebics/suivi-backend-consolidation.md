@@ -17,6 +17,7 @@ Regles:
 - [ ] Plus aucun endpoint/commande EBICS expose sans logique runtime suffisante
 - [ ] Plus aucun `replace` local vers `lib-ebics`
 - [x] Import/export/updateconf complets pour les objets EBICS administres
+- [x] Catalogue BTF standard disponible pour les validations pre-contractuelles
 - [ ] Politique d'exploitation documentee et relue
 - [ ] Backend declare "pret frontend"
 
@@ -56,6 +57,18 @@ Regles:
 - [x] Cadrer les jeux JSON/YAML de reference
 - [x] Verifier le round-trip complet des `ProtoConfig`
 - [x] Verifier le round-trip complet des objets EBICS administres
+
+## 6. Lot B4 - Durcissement exploitation
+
+## 5 bis. Lot B3.5 - Catalogue BTF standard
+
+- [x] Cadrer l'objet de persistance dedie
+- [x] Arreter la source initiale `GLB`
+- [x] Arreter la source initiale `FR`, `DE`, `AT`, `CH`
+- [x] Figer la regle `specific > country > GLB`
+- [x] Cadrer la strategie de seed versionne
+- [x] Cadrer les surfaces REST/CLI minimales
+- [x] Cadrer le fallback runtime dans `contract_validation`
 
 ## 6. Lot B4 - Durcissement exploitation
 
@@ -164,3 +177,10 @@ Regles:
   test de round-trip dedie dans `pkg/backup`, verification `updateconf`,
   et migration `0.16.0` pour garantir la presence des tables EBICS sur les
   bases creees ou migrees.
+- 2026-03-27: `Lot B3.5` est maintenant ferme. Gateway porte un catalogue BTF
+  standard distinct des contrats banques, avec tables dediees,
+  seed versionne `GLB/FR/DE/AT/CH`, bootstrap sur base fraiche,
+  migration de rattrapage sur base existante, import/export/updateconf,
+  et fallback runtime strict `specific > country > GLB`.
+  Si un contrat specifique actif existe et qu'un tuple n'y est pas trouve,
+  l'echange est rejete sans fallback vers le catalogue standard.

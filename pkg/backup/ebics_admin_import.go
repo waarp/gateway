@@ -35,11 +35,23 @@ func importEbicsAdminData(
 		return err
 	}
 
+	if err := importEbicsStandardBTFCatalogs(logger, db, data.EbicsStandardBTFCatalogs); err != nil {
+		return err
+	}
+
 	if err := importEbicsPayloadProfiles(logger, db, data.EbicsPayloadProfiles, false); err != nil {
 		return err
 	}
 
-	return importEbicsRTNProviders(logger, db, data.EbicsRTNProviders)
+	if err := importEbicsRTNProviders(logger, db, data.EbicsRTNProviders); err != nil {
+		return err
+	}
+
+	if err := (&model.EbicsStandardBTFCatalog{}).Init(db); err != nil {
+		return fmt.Errorf("failed to restore the default EBICS standard BTF catalogs: %w", err)
+	}
+
+	return nil
 }
 
 func purgeEbicsAdminData(db database.Access) error {
@@ -51,6 +63,9 @@ func purgeEbicsAdminData(db database.Access) error {
 	}
 	if err := db.DeleteAll(&model.EbicsBankKey{}).Owner().Run(); err != nil {
 		return fmt.Errorf("failed to purge %s: %w", model.NameEbicsBankKey, err)
+	}
+	if err := db.DeleteAll(&model.EbicsStandardBTFCatalog{}).Owner().Run(); err != nil {
+		return fmt.Errorf("failed to purge %s: %w", model.NameEbicsStandardBTFCatalog, err)
 	}
 	if err := db.DeleteAll(&model.EbicsSubscriber{}).Owner().Run(); err != nil {
 		return fmt.Errorf("failed to purge %s: %w", model.NameEbicsSubscriber, err)
@@ -246,6 +261,107 @@ func importEbicsBankKeys(logger *log.Logger, db database.Access, keys []file.Ebi
 				dbKey.Version,
 				dbErr,
 			)
+		}
+	}
+
+	return nil
+}
+
+func importEbicsStandardBTFCatalogs(
+	logger *log.Logger,
+	db database.Access,
+	catalogs []file.EbicsStandardBTFCatalog,
+) error {
+	for i := range catalogs {
+		src := &catalogs[i]
+
+		var (
+			dbCatalog model.EbicsStandardBTFCatalog
+			isNew     bool
+		)
+
+		if err := db.Get(
+			&dbCatalog,
+			"name=? AND scope=? AND catalog_version=?",
+			src.Name,
+			src.Scope,
+			src.CatalogVersion,
+		).Owner().Run(); database.IsNotFound(err) {
+			isNew = true
+		} else if err != nil {
+			return fmt.Errorf(
+				"failed to retrieve EBICS standard BTF catalog %q/%q version %q: %w",
+				src.Name,
+				src.Scope,
+				src.CatalogVersion,
+				err,
+			)
+		}
+
+		dbCatalog.Name = src.Name
+		dbCatalog.Scope = src.Scope
+		dbCatalog.CatalogVersion = src.CatalogVersion
+		dbCatalog.SourceType = src.SourceType
+		dbCatalog.SourceRef = src.SourceRef
+		dbCatalog.Status = src.Status
+		dbCatalog.SeedChecksum = src.SeedChecksum
+
+		var dbErr error
+		if isNew {
+			logger.Infof("Create EBICS standard BTF catalog %q/%q", dbCatalog.Name, dbCatalog.Scope)
+			dbErr = db.Insert(&dbCatalog).Run()
+		} else {
+			logger.Infof("Update EBICS standard BTF catalog %q/%q", dbCatalog.Name, dbCatalog.Scope)
+			dbErr = db.Update(&dbCatalog).Run()
+		}
+		if dbErr != nil {
+			return fmt.Errorf(
+				"failed to import EBICS standard BTF catalog %q/%q: %w",
+				dbCatalog.Name,
+				dbCatalog.Scope,
+				dbErr,
+			)
+		}
+
+		if err := db.DeleteAll(&model.EbicsStandardBTFEntry{}).
+			Owner().
+			Where("catalog_id=?", dbCatalog.ID).
+			Run(); err != nil {
+			return fmt.Errorf(
+				"failed to purge entries of EBICS standard BTF catalog %q/%q: %w",
+				dbCatalog.Name,
+				dbCatalog.Scope,
+				err,
+			)
+		}
+
+		for j := range src.Entries {
+			entrySrc := &src.Entries[j]
+			dbEntry := model.EbicsStandardBTFEntry{
+				CatalogID:         dbCatalog.ID,
+				EntryKey:          entrySrc.EntryKey,
+				OrderType:         entrySrc.OrderType,
+				Direction:         entrySrc.Direction,
+				ServiceName:       entrySrc.ServiceName,
+				ServiceOption:     entrySrc.ServiceOption,
+				Scope:             entrySrc.Scope,
+				MsgName:           entrySrc.MsgName,
+				ContainerType:     entrySrc.ContainerType,
+				CountryGroup:      entrySrc.CountryGroup,
+				IsDefaultTemplate: entrySrc.IsDefaultTemplate,
+				Status:            entrySrc.Status,
+				MetadataMap:       entrySrc.Metadata,
+			}
+
+			if err := db.Insert(&dbEntry).Run(); err != nil {
+				return fmt.Errorf(
+					"failed to import EBICS standard BTF entry %q in catalog %q/%q: %w",
+					dbEntry.EntryKey,
+					dbCatalog.Name,
+					dbCatalog.Scope,
+					err,
+				)
+			}
 		}
 	}
 

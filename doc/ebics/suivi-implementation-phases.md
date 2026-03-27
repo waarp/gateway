@@ -103,10 +103,11 @@ Decision / date:
 
 ## 5. Consolidation backend avant frontend
 
-- [ ] Plan de consolidation backend pose
+- [x] Plan de consolidation backend pose
 - [x] Lot B1 - Execution cliente reelle
 - [x] Lot B2 - Couverture backend complete
 - [x] Lot B3 - Import / export / updateconf complet
+- [x] Lot B3.5 - Catalogue BTF standard
 - [ ] Lot B4 - Durcissement exploitation
 - [ ] Lot B5 - Verification de sortie backend
 - [ ] Gate "backend pret frontend" prononcee
@@ -145,3 +146,11 @@ Note:
   le perimetre `pkg/backup`; `updateconf` est aussi verifie sur ce socle;
   la migration `0.16.0` garantit la presence des tables EBICS dans les bases
   existantes et dans les bases de test
+- `Lot B3.5` est termine:
+  Gateway porte maintenant un catalogue BTF standard `GLB/FR/DE/AT/CH`,
+  distinct des contrats specifiques recuperes via `HPD/HKD/HTD/HAA`;
+  le seed est versionne, restaure sur base fraiche et sur base migree,
+  couvert par import/export/updateconf, et la resolution runtime applique
+  strictement `specific > country > GLB`;
+  si un contrat specifique actif existe et qu'un tuple n'y est pas trouve,
+  l'echange est rejete sans fallback vers le catalogue standard

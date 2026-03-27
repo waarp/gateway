@@ -43,12 +43,14 @@ func TestImportExportEbicsAdminRoundTrip(t *testing.T) {
 			require.Len(t, exported.EbicsHosts, 1)
 			require.Len(t, exported.EbicsSubscribers, 2)
 			require.Len(t, exported.EbicsBankKeys, 2)
+			require.Len(t, exported.EbicsStandardBTFCatalogs, 5)
 			require.Len(t, exported.EbicsPayloadProfiles, 2)
 			require.Len(t, exported.EbicsRTNProviders, 1)
 
 			require.Equal(t, "BANKHOST", exported.EbicsHosts[0].HostID)
 			require.Contains(t, exportedSubscriberNames(exported), "corp-client")
 			require.Contains(t, exportedBankKeyTypes(exported), "AUTH")
+			require.Contains(t, exportedStandardCatalogScopes(exported), "GLB")
 			require.Contains(t, exportedPayloadProfileNames(exported), "sct-upload")
 			require.Equal(t, "main-rtn", exported.EbicsRTNProviders[0].Name)
 		})
@@ -79,6 +81,15 @@ func assertImportedEbicsAdminData(t *testing.T, db *database.DB) {
 	require.Len(t, profiles, 2)
 	require.True(t, profiles[0].DefaultRuleID.Valid)
 	require.True(t, profiles[0].StrictContractCheck)
+
+	var catalogs model.EbicsStandardBTFCatalogs
+	require.NoError(t, db.Select(&catalogs).Owner().OrderBy("scope", true).Run())
+	require.Len(t, catalogs, 5)
+	require.Equal(t, "gateway-standard-btf", catalogs[0].Name)
+
+	var entries model.EbicsStandardBTFEntries
+	require.NoError(t, db.Select(&entries).Owner().Run())
+	require.Len(t, entries, 16)
 
 	var providers model.EbicsRTNProviders
 	require.NoError(t, db.Select(&providers).Owner().Run())
@@ -128,4 +139,13 @@ func exportedPayloadProfileNames(data *file.Data) []string {
 	}
 
 	return names
+}
+
+func exportedStandardCatalogScopes(data *file.Data) []string {
+	scopes := make([]string, 0, len(data.EbicsStandardBTFCatalogs))
+	for _, catalog := range data.EbicsStandardBTFCatalogs {
+		scopes = append(scopes, catalog.Scope)
+	}
+
+	return scopes
 }

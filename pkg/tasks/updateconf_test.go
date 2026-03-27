@@ -100,6 +100,14 @@ func TestUpdateConfWithEbicsAdminData(t *testing.T) {
 	require.NoError(t, db.Select(&profiles).Owner().Run())
 	require.Len(t, profiles, 2)
 
+	var catalogs model.EbicsStandardBTFCatalogs
+	require.NoError(t, db.Select(&catalogs).Owner().Run())
+	require.Len(t, catalogs, 5)
+
+	var entries model.EbicsStandardBTFEntries
+	require.NoError(t, db.Select(&entries).Owner().Run())
+	require.Len(t, entries, 8)
+
 	var providers model.EbicsRTNProviders
 	require.NoError(t, db.Select(&providers).Owner().Run())
 	require.Len(t, providers, 1)
@@ -223,6 +231,51 @@ func buildUpdateConfEbicsData() *file.Data {
 				PublicKey:     "ENCRYPT-PUBLIC-KEY",
 				PublicKeyHash: "ENCRYPT-HASH",
 				State:         "validated",
+			},
+		},
+		EbicsStandardBTFCatalogs: []file.EbicsStandardBTFCatalog{
+			{
+				Name:           "gateway-standard-btf",
+				Scope:          "GLB",
+				CatalogVersion: "2024-10-23-baseline-v1",
+				SourceType:     "OFFICIAL_ANNEX",
+				SourceRef:      "test-catalog",
+				Status:         "ACTIVE",
+				SeedChecksum:   "seed-glb",
+				Entries: []file.EbicsStandardBTFEntry{{
+					EntryKey:          "btu-sct-pain001-xml",
+					OrderType:         "BTU",
+					Direction:         "UPLOAD",
+					ServiceName:       "SCT",
+					Scope:             "GLB",
+					MsgName:           "pain.001",
+					ContainerType:     "XML",
+					IsDefaultTemplate: true,
+					Status:            "ACTIVE",
+					Metadata:          map[string]any{"seedOrigin": "test"},
+				}},
+			},
+			{
+				Name:           "gateway-standard-btf",
+				Scope:          "FR",
+				CatalogVersion: "2024-10-23-baseline-v1",
+				SourceType:     "OFFICIAL_ANNEX",
+				SourceRef:      "test-catalog",
+				Status:         "ACTIVE",
+				SeedChecksum:   "seed-fr",
+				Entries: []file.EbicsStandardBTFEntry{{
+					EntryKey:          "btu-dct-pain001-xml",
+					OrderType:         "BTU",
+					Direction:         "UPLOAD",
+					ServiceName:       "DCT",
+					Scope:             "FR",
+					MsgName:           "pain.001",
+					ContainerType:     "XML",
+					CountryGroup:      "FR",
+					IsDefaultTemplate: true,
+					Status:            "ACTIVE",
+					Metadata:          map[string]any{"seedOrigin": "test"},
+				}},
 			},
 		},
 		EbicsPayloadProfiles: []file.EbicsPayloadProfile{

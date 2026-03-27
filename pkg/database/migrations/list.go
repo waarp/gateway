@@ -341,4 +341,14 @@ var Migrations = []Change{
 		Up:          ver0_16_0AddEbicsTablesUp,
 		Down:        ver0_16_0AddEbicsTablesDown,
 	},
+	{ // #65
+		Description: `Add the EBICS standard BTF catalog tables`,
+		Up:          ver0_16_1AddEbicsStandardBTFCatalogsUp,
+		Down:        ver0_16_1AddEbicsStandardBTFCatalogsDown,
+	},
+	{ // #66
+		Description: `Seed the EBICS standard BTF catalogs`,
+		Up:          ver0_16_2SeedEbicsStandardBTFCatalogsUp,
+		Down:        ver0_16_2SeedEbicsStandardBTFCatalogsDown,
+	},
 }
