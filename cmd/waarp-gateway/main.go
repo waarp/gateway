@@ -272,6 +272,15 @@ type commands struct {
 			Action wg.EbicsInitializationAction `command:"action" description:"Apply an action to an EBICS initialization workflow"`
 		} `command:"initialization" description:"Manage the EBICS initialization workflows"`
 
+		KeyRotation struct {
+			Prepare wg.EbicsKeyRotationPrepare `command:"prepare" description:"Prepare a coordinated EBICS key rotation"`
+			Send    wg.EbicsKeyRotationSend    `command:"send" description:"Send a coordinated EBICS key rotation to the bank"`
+			Confirm wg.EbicsKeyRotationConfirm `command:"confirm" description:"Confirm a coordinated EBICS key rotation"`
+			Cancel  wg.EbicsKeyRotationCancel  `command:"cancel" description:"Cancel a coordinated EBICS key rotation"`
+			Reject  wg.EbicsKeyRotationReject  `command:"reject" description:"Reject a coordinated EBICS key rotation"`
+			Revoke  wg.EbicsKeyRotationRevoke  `command:"revoke" description:"Revoke a coordinated EBICS key rotation with SPR"`
+		} `command:"key-rotation" description:"Manage coordinated EBICS key rotations"`
+
 		RTN struct {
 			Provider struct {
 				Add    wg.EbicsRTNProviderAdd    `command:"add" description:"Add an EBICS RTN provider"`

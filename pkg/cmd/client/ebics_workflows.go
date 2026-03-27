@@ -1,8 +1,11 @@
 package wg
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
 	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -23,12 +26,22 @@ func displayEbicsKeyLifecycle(w io.Writer, lifecycle *api.OutEbicsKeyLifecycle) 
 	Style1.Printf(w, "EBICS key lifecycle #%d [%s]", lifecycle.ID, lifecycle.Status)
 	Style22.PrintL(w, "Key usage", lifecycle.KeyUsage)
 	Style22.PrintL(w, "Rotation type", lifecycle.RotationType)
+	Style22.Option(w, "Coordination ID", lifecycle.CoordinationID)
 	Style22.PrintL(w, "Current credential", lifecycle.CurrentCredentialID)
 	if lifecycle.NextCredentialID != nil {
 		Style22.PrintL(w, "Next credential", *lifecycle.NextCredentialID)
 	}
 
 	return nil
+}
+
+func displayEbicsKeyRotationGroup(w io.Writer, group *api.OutEbicsKeyRotationGroup) error {
+	Style1.Printf(w, "EBICS key rotation %q", group.CoordinationID)
+	if len(group.Operations) > 0 {
+		Style22.PrintL(w, "Operations", len(group.Operations))
+	}
+
+	return displayEbicsKeyLifecycles(w, group.Lifecycles)
 }
 
 func displayEbicsInitializations(w io.Writer, workflows []*api.OutEbicsInitializationWorkflow) error {
@@ -117,6 +130,156 @@ func (c *EbicsKeyLifecycleAction) execute(w io.Writer) error {
 	fmt.Fprintf(w, "The EBICS key lifecycle %q was successfully updated.\n", c.Args.Lifecycle)
 
 	return nil
+}
+
+//nolint:lll // CLI tags are intentionally explicit
+type EbicsKeyRotationPrepare struct {
+	OutputFormat
+
+	EbicsSubscriberID              int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
+	CoordinationID                 string             `long:"coordination-id" description:"Reuse an existing coordinated rotation identifier"`
+	RotationType                   string             `long:"rotation-type" choice:"ROTATION" choice:"REPLACEMENT" description:"The coordinated rotation type"`
+	NextAuthenticationCredentialID *int64             `long:"auth-credential" description:"The next authentication credential identifier"`
+	NextEncryptionCredentialID     *int64             `long:"enc-credential" description:"The next encryption credential identifier"`
+	NextSignatureCredentialID      *int64             `long:"sig-credential" description:"The next signature credential identifier"`
+	SignatureOrderType             string             `long:"signature-order-type" choice:"PUB" choice:"HSA" description:"The signature order to use for signature-only rotations"`
+	Operator                       string             `long:"operator" description:"The operator"`
+	Reason                         string             `long:"reason" description:"The action reason"`
+	Evidence                       map[string]confVal `long:"evidence" description:"Structured evidence."`
+}
+
+func (c *EbicsKeyRotationPrepare) Execute([]string) error { return execute(c) }
+func (c *EbicsKeyRotationPrepare) execute(w io.Writer) error {
+	addr.Path = "/api/ebics/key-lifecycles/actions/prepare-rotation"
+
+	req := api.InEbicsKeyRotationPrepare{
+		EbicsSubscriberID:              c.EbicsSubscriberID,
+		CoordinationID:                 c.CoordinationID,
+		RotationType:                   c.RotationType,
+		NextAuthenticationCredentialID: c.NextAuthenticationCredentialID,
+		NextEncryptionCredentialID:     c.NextEncryptionCredentialID,
+		NextSignatureCredentialID:      c.NextSignatureCredentialID,
+		SignatureOrderType:             c.SignatureOrderType,
+		Operator:                       c.Operator,
+		Reason:                         c.Reason,
+		Evidence:                       normalizeConfMap(c.Evidence),
+	}
+
+	var group api.OutEbicsKeyRotationGroup
+	if err := postWorkflowAction(req, &group); err != nil {
+		return err
+	}
+
+	return outputObject(w, &group, &c.OutputFormat, displayEbicsKeyRotationGroup)
+}
+
+//nolint:lll // CLI tags are intentionally explicit
+type EbicsKeyRotationAction struct {
+	OutputFormat
+
+	Path               string             `json:"-" yaml:"-"`
+	EbicsSubscriberID  int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
+	CoordinationID     string             `required:"yes" long:"coordination-id" description:"The coordinated rotation identifier"`
+	SignatureOrderType string             `long:"signature-order-type" choice:"PUB" choice:"HSA" description:"The signature order to use for signature-only rotations"`
+	SignatureDataPath  string             `long:"signature-data" description:"Path to the SPR signature data file"`
+	Operator           string             `long:"operator" description:"The operator"`
+	Reason             string             `long:"reason" description:"The action reason"`
+	Evidence           map[string]confVal `long:"evidence" description:"Structured evidence."`
+}
+
+func (c *EbicsKeyRotationAction) Execute([]string) error { return execute(c) }
+func (c *EbicsKeyRotationAction) execute(w io.Writer) error {
+	addr.Path = c.Path
+
+	req := api.InEbicsKeyRotationAction{
+		EbicsSubscriberID:  c.EbicsSubscriberID,
+		CoordinationID:     c.CoordinationID,
+		SignatureOrderType: c.SignatureOrderType,
+		Operator:           c.Operator,
+		Reason:             c.Reason,
+		Evidence:           normalizeConfMap(c.Evidence),
+	}
+	if c.SignatureDataPath != "" {
+		data, err := os.ReadFile(c.SignatureDataPath)
+		if err != nil {
+			return fmt.Errorf("read coordinated rotation signature data %q: %w", c.SignatureDataPath, err)
+		}
+		req.SignatureData = data
+	}
+
+	var group api.OutEbicsKeyRotationGroup
+	if err := postWorkflowAction(req, &group); err != nil {
+		return err
+	}
+
+	return outputObject(w, &group, &c.OutputFormat, displayEbicsKeyRotationGroup)
+}
+
+type EbicsKeyRotationSend struct {
+	EbicsKeyRotationAction
+}
+
+type EbicsKeyRotationConfirm struct {
+	EbicsKeyRotationAction
+}
+
+type EbicsKeyRotationCancel struct {
+	EbicsKeyRotationAction
+}
+
+type EbicsKeyRotationReject struct {
+	EbicsKeyRotationAction
+}
+
+type EbicsKeyRotationRevoke struct {
+	EbicsKeyRotationAction
+}
+
+func (c *EbicsKeyRotationSend) Execute(args []string) error {
+	c.Path = "/api/ebics/key-lifecycles/actions/send-rotation"
+	return c.EbicsKeyRotationAction.Execute(args)
+}
+
+func (c *EbicsKeyRotationConfirm) Execute(args []string) error {
+	c.Path = "/api/ebics/key-lifecycles/actions/confirm-rotation"
+	return c.EbicsKeyRotationAction.Execute(args)
+}
+
+func (c *EbicsKeyRotationCancel) Execute(args []string) error {
+	c.Path = "/api/ebics/key-lifecycles/actions/cancel-rotation"
+	return c.EbicsKeyRotationAction.Execute(args)
+}
+
+func (c *EbicsKeyRotationReject) Execute(args []string) error {
+	c.Path = "/api/ebics/key-lifecycles/actions/reject-rotation"
+	return c.EbicsKeyRotationAction.Execute(args)
+}
+
+func (c *EbicsKeyRotationRevoke) Execute(args []string) error {
+	c.Path = "/api/ebics/key-lifecycles/actions/revoke-rotation"
+	return c.EbicsKeyRotationAction.Execute(args)
+}
+
+func postWorkflowAction(request, out any) error {
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, reqErr := sendRequest(ctx, request, http.MethodPost)
+	if reqErr != nil {
+		return reqErr
+	}
+	defer resp.Body.Close() //nolint:errcheck // nothing to handle
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated:
+		return unmarshalBody(resp.Body, out)
+	case http.StatusBadRequest:
+		return getResponseErrorMessage(resp)
+	case http.StatusNotFound:
+		return getResponseErrorMessage(resp)
+	default:
+		return fmt.Errorf("unexpected response (%s): %w", resp.Status, getResponseErrorMessage(resp))
+	}
 }
 
 type EbicsInitializationList struct {

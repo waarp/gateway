@@ -30,7 +30,7 @@ Regles:
 - [x] Confirmer que `FUL/FDL` restent des alias de compatibilite normalises vers `BTU/BTD` en cible `EBICS 3.0.2`
 - [x] Brancher `HEV` et le refresh contractuel `HPD` / `HKD` / `HTD` / `HAA` cote client
 - [x] Brancher le reste du reporting / des ordres admin cote client
-- [ ] Brancher initialisation / key management cote client
+- [x] Brancher initialisation / key management cote client
 - [x] Garantir la correlation `operation / transaction / transfer`
 - [x] Verifier l'exploitation des return codes `technical/business`
 
@@ -105,5 +105,9 @@ Regles:
   `HVE` / `HVS`, avec actions REST/CLI dediees sur `ebics operation`,
   execution reelle via `lib-ebics`, persistance d'`EbicsOperation` et
   metadonnees d'exploitation.
-  Reste a fermer dans `B1`: le key management de rotation `PUB` / `HCA` /
-  `HCS` / `HSA` / `SPR`.
+- 2026-03-27: le key management de rotation client couvre maintenant une
+  orchestration coordonnee `PUB` / `HCA` / `HCS` / `HSA` / `SPR`, avec
+  coexistence `ACTIVATED + pending`, `coordinationID`, actions REST/CLI
+  `prepare/send/confirm/cancel/reject/revoke`, et activation qui retire
+  explicitement l'ancien lifecycle au profit du nouveau.
+  `Lot B1` est maintenant ferme sur le perimetre d'execution cliente reelle.

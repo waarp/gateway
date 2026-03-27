@@ -355,6 +355,7 @@ func DBEbicsKeyLifecycleToREST(lifecycle *model.EbicsKeyLifecycle) *api.OutEbics
 		ID:                  lifecycle.ID,
 		KeyUsage:            lifecycle.KeyUsage,
 		RotationType:        lifecycle.RotationType,
+		CoordinationID:      lifecycle.CoordinationID,
 		Status:              lifecycle.Status,
 		CurrentCredentialID: lifecycle.CurrentCredentialID,
 		NextCredentialID:    ptrInt64(lifecycle.NextCredentialID),

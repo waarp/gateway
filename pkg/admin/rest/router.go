@@ -397,6 +397,12 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 		keyLifecyclesPath        = "/ebics/key-lifecycles"
 		keyLifecyclePath         = "/ebics/key-lifecycles/{ebics_key_lifecycle}"
 		keyLifecycleActionPath   = "/ebics/key-lifecycles/{ebics_key_lifecycle}/actions"
+		keyRotationPreparePath   = "/ebics/key-lifecycles/actions/prepare-rotation"
+		keyRotationSendPath      = "/ebics/key-lifecycles/actions/send-rotation"
+		keyRotationConfirmPath   = "/ebics/key-lifecycles/actions/confirm-rotation"
+		keyRotationCancelPath    = "/ebics/key-lifecycles/actions/cancel-rotation"
+		keyRotationRejectPath    = "/ebics/key-lifecycles/actions/reject-rotation"
+		keyRotationRevokePath    = "/ebics/key-lifecycles/actions/revoke-rotation"
 		initializationsPath      = "/ebics/initializations"
 		initializationPath       = "/ebics/initializations/{ebics_initialization}"
 		initializationActionPath = "/ebics/initializations/{ebics_initialization}/actions"
@@ -436,6 +442,12 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 	mkHandler(keyLifecyclesPath, listEbicsKeyLifecycles, model.PermTransfersRead, http.MethodGet)
 	mkHandler(keyLifecyclePath, getEbicsKeyLifecycle, model.PermTransfersRead, http.MethodGet)
 	mkHandler(keyLifecycleActionPath, actOnEbicsKeyLifecycle, model.PermTransfersWrite, http.MethodPut)
+	mkHandler(keyRotationPreparePath, prepareEbicsKeyRotation, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(keyRotationSendPath, sendEbicsKeyRotation, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(keyRotationConfirmPath, confirmEbicsKeyRotation, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(keyRotationCancelPath, cancelEbicsKeyRotation, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(keyRotationRejectPath, rejectEbicsKeyRotation, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(keyRotationRevokePath, revokeEbicsKeyRotation, model.PermTransfersWrite, http.MethodPost)
 
 	mkHandler(initializationsPath, listEbicsInitializations, model.PermTransfersRead, http.MethodGet)
 	mkHandler(initializationPath, getEbicsInitialization, model.PermTransfersRead, http.MethodGet)

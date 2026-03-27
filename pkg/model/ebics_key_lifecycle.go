@@ -38,6 +38,7 @@ type EbicsKeyLifecycle struct {
 
 	KeyUsage            string        `xorm:"key_usage"`
 	RotationType        string        `xorm:"rotation_type"`
+	CoordinationID      string        `xorm:"coordination_id"`
 	Status              string        `xorm:"status"`
 	CurrentCredentialID int64         `xorm:"current_credential_id"`
 	NextCredentialID    sql.NullInt64 `xorm:"next_credential_id"`
@@ -70,6 +71,7 @@ func (l *EbicsKeyLifecycle) BeforeWrite(db database.Access) error {
 	l.Owner = conf.GlobalConfig.GatewayName
 	l.KeyUsage = strings.ToUpper(strings.TrimSpace(l.KeyUsage))
 	l.RotationType = strings.ToUpper(strings.TrimSpace(l.RotationType))
+	l.CoordinationID = strings.TrimSpace(l.CoordinationID)
 	l.Status = strings.ToUpper(strings.TrimSpace(l.Status))
 	l.Operator = strings.TrimSpace(l.Operator)
 	l.Reason = strings.TrimSpace(l.Reason)
@@ -274,7 +276,8 @@ func validateUniqueActiveEbicsKeyLifecycle(db database.Access, lifecycle *EbicsK
 		return nil
 	}
 
-	count, err := db.Count(lifecycle).Where(
+	var others EbicsKeyLifecycles
+	err := db.Select(&others).Where(
 		"id<>? AND owner=? AND ebics_subscriber_id=? AND key_usage=? AND status NOT IN (?, ?, ?)",
 		lifecycle.ID,
 		lifecycle.Owner,
@@ -288,9 +291,31 @@ func validateUniqueActiveEbicsKeyLifecycle(db database.Access, lifecycle *EbicsK
 		return fmt.Errorf("failed to check duplicate active EBICS key lifecycles: %w", err)
 	}
 
-	if count != 0 {
+	activatedCount := 0
+	pendingCount := 0
+	if lifecycle.Status == ebicsKeyLifecycleStatusActivated {
+		activatedCount++
+	} else {
+		pendingCount++
+	}
+
+	for _, current := range others {
+		if current.Status == ebicsKeyLifecycleStatusActivated {
+			activatedCount++
+		} else {
+			pendingCount++
+		}
+	}
+
+	if activatedCount > 1 {
 		return database.NewValidationErrorf(
-			"an active EBICS key lifecycle already exists for subscriber %d and usage %q",
+			"an activated EBICS key lifecycle already exists for subscriber %d and usage %q",
+			lifecycle.EbicsSubscriberID, lifecycle.KeyUsage)
+	}
+
+	if pendingCount > 1 {
+		return database.NewValidationErrorf(
+			"a pending EBICS key lifecycle already exists for subscriber %d and usage %q",
 			lifecycle.EbicsSubscriberID, lifecycle.KeyUsage)
 	}
 
@@ -300,8 +325,7 @@ func validateUniqueActiveEbicsKeyLifecycle(db database.Access, lifecycle *EbicsK
 func requiresNextCredential(status string) bool {
 	switch status {
 	case ebicsKeyLifecycleStatusMaterialPrepared, ebicsKeyLifecycleStatusOrderPlanned,
-		ebicsKeyLifecycleStatusOrderSent, ebicsKeyLifecycleStatusWaitingBankConfirmation,
-		ebicsKeyLifecycleStatusActivated, ebicsKeyLifecycleStatusRetired, ebicsKeyLifecycleStatusRejected:
+		ebicsKeyLifecycleStatusOrderSent, ebicsKeyLifecycleStatusWaitingBankConfirmation:
 		return true
 	default:
 		return false
@@ -330,4 +354,44 @@ func EbicsKeyUsageEncryptionForRuntime() string {
 // EbicsKeyUsageSignatureForRuntime exposes the signature key usage to runtime packages.
 func EbicsKeyUsageSignatureForRuntime() string {
 	return ebicsKeyUsageSignature
+}
+
+// EbicsRotationTypeRotationForRuntime exposes the standard rotation type to runtime packages.
+func EbicsRotationTypeRotationForRuntime() string {
+	return ebicsRotationTypeRotation
+}
+
+// EbicsKeyLifecycleStatusMaterialPreparedForRuntime exposes the prepared status to runtime packages.
+func EbicsKeyLifecycleStatusMaterialPreparedForRuntime() string {
+	return ebicsKeyLifecycleStatusMaterialPrepared
+}
+
+// EbicsKeyLifecycleStatusOrderSentForRuntime exposes the sent status to runtime packages.
+func EbicsKeyLifecycleStatusOrderSentForRuntime() string {
+	return ebicsKeyLifecycleStatusOrderSent
+}
+
+// EbicsKeyLifecycleStatusWaitingBankConfirmationForRuntime exposes the waiting confirmation status.
+func EbicsKeyLifecycleStatusWaitingBankConfirmationForRuntime() string {
+	return ebicsKeyLifecycleStatusWaitingBankConfirmation
+}
+
+// EbicsKeyLifecycleStatusActivatedForRuntime exposes the activated status to runtime packages.
+func EbicsKeyLifecycleStatusActivatedForRuntime() string {
+	return ebicsKeyLifecycleStatusActivated
+}
+
+// EbicsKeyLifecycleStatusRetiredForRuntime exposes the retired status to runtime packages.
+func EbicsKeyLifecycleStatusRetiredForRuntime() string {
+	return ebicsKeyLifecycleStatusRetired
+}
+
+// EbicsKeyLifecycleStatusCancelledForRuntime exposes the cancelled status to runtime packages.
+func EbicsKeyLifecycleStatusCancelledForRuntime() string {
+	return ebicsKeyLifecycleStatusCancelled
+}
+
+// EbicsKeyLifecycleStatusRejectedForRuntime exposes the rejected status to runtime packages.
+func EbicsKeyLifecycleStatusRejectedForRuntime() string {
+	return ebicsKeyLifecycleStatusRejected
 }
