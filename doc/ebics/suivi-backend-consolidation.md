@@ -193,6 +193,16 @@ Regles:
   contexte de reprise.
   Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
+- 2026-03-31: `Lot 3A` est maintenant ferme avec ajout de
+  `pkg/admin/rest/ebics_handlers_test.go`.
+  La premiere vague de couverture REST verrouille les handlers `payloads /
+  operations / transactions` sur les points operateur les plus sensibles:
+  filtrage effectif des `payloads` sur les ordres `BTU/BTD`, action `recover`
+  qui reinitialise correctement l'etat exploitable d'une operation payload,
+  detail d'operation avec fallback sur `archivedTransferID` et remontée des
+  segments tries, et lecture detaillee d'une transaction avec segments ordonnes.
+  Verification rejouee: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
+  puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -500,7 +510,7 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot 3A - Couvrir les handlers REST payloads / operations / transactions
+- [x] Lot 3A - Couvrir les handlers REST payloads / operations / transactions
   Fichiers principaux: `pkg/admin/rest/ebics_payloads.go`,
   `pkg/admin/rest/ebics_operations.go`,
   `pkg/admin/rest/ebics_transactions.go`
@@ -528,7 +538,7 @@ Sous-lots cochables:
 
 Ordre d'execution recommande:
 
-1. [ ] Lot 3A
+1. [x] Lot 3A
 2. [ ] Lot 3B
 3. [ ] Lot 3C
 4. [ ] Rejouer linter + tests REST complets
