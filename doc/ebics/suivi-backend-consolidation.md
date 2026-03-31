@@ -203,6 +203,14 @@ Regles:
   segments tries, et lecture detaillee d'une transaction avec segments ordonnes.
   Verification rejouee: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
   puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`.
+- 2026-03-31: `Lot 3B` est maintenant ferme avec extension de
+  `pkg/admin/rest/ebics_handlers_test.go`.
+  La couverture REST verrouille a present le detail `contract views` avec items
+  ordonnes, une action locale `key lifecycle` avec transition de statut et
+  evidence persistees, et une action locale `initialization` avec annulation
+  coherente du workflow.
+  Verification rejouee: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
+  puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -519,7 +527,7 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
   puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`
 
-- [ ] Lot 3B - Couvrir les handlers REST contract views / key lifecycles / initializations
+- [x] Lot 3B - Couvrir les handlers REST contract views / key lifecycles / initializations
   Fichiers principaux: `pkg/admin/rest/ebics_contract_views.go`,
   `pkg/admin/rest/ebics_key_lifecycles.go`,
   `pkg/admin/rest/ebics_initializations.go`,
@@ -539,7 +547,7 @@ Sous-lots cochables:
 Ordre d'execution recommande:
 
 1. [x] Lot 3A
-2. [ ] Lot 3B
+2. [x] Lot 3B
 3. [ ] Lot 3C
 4. [ ] Rejouer linter + tests REST complets
 

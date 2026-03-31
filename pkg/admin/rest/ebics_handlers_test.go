@@ -18,6 +18,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	auth "code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -229,6 +232,127 @@ func TestGetEbicsTransactionReturnsOrderedSegments(t *testing.T) {
 	assert.Equal(t, 3, body.Segments[1].SegmentNumber)
 }
 
+func TestGetEbicsContractViewReturnsItemsOrderedByID(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-CV", "PARTNER-CV", "USER-CV")
+
+	view := &model.EbicsContractView{
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: sql.NullInt64{Int64: subscriber.ID, Valid: true},
+		SourceOrderType:   "HTD",
+		VersionTag:        "v1",
+		Status:            "ACTIVE",
+		FetchedAt:         time.Date(2026, 3, 31, 15, 0, 0, 0, time.UTC),
+	}
+	require.NoError(t, db.Insert(view).Run())
+
+	first := &model.EbicsContractViewItem{
+		ContractViewID: view.ID,
+		ItemType:       "ORDER_TYPE",
+		ItemKey:        "B",
+		OrderType:      "BTU",
+		IsEnabled:      true,
+	}
+	second := &model.EbicsContractViewItem{
+		ContractViewID: view.ID,
+		ItemType:       "ORDER_TYPE",
+		ItemKey:        "A",
+		OrderType:      "BTD",
+		IsEnabled:      true,
+	}
+	require.NoError(t, db.Insert(first).Run())
+	require.NoError(t, db.Insert(second).Run())
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/contract-views/"+marshalID(view.ID), nil)
+	req = mux.SetURLVars(req, map[string]string{"contract_view": marshalID(view.ID)})
+	w := httptest.NewRecorder()
+
+	getEbicsContractView(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body struct {
+		ContractView *api.OutEbicsContractView       `json:"contractView"`
+		Items        []*api.OutEbicsContractViewItem `json:"items"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.NotNil(t, body.ContractView)
+	assert.Equal(t, "HOST-CV", body.ContractView.HostID)
+	assert.Equal(t, "PARTNER-CV", body.ContractView.PartnerID)
+	require.Len(t, body.Items, 2)
+	assert.EqualValues(t, first.ID, body.Items[0].ID)
+	assert.EqualValues(t, second.ID, body.Items[1].ID)
+}
+
+func TestActOnEbicsKeyLifecycleUpdatesStatusAndEvidence(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-KL", "PARTNER-KL", "USER-KL")
+	credential := insertRESTEbicsCredential(t, db)
+	nextCredential := insertRESTEbicsCredential(t, db)
+
+	lifecycle := &model.EbicsKeyLifecycle{
+		EbicsSubscriberID:    subscriber.ID,
+		KeyUsage:             "AUTHENTICATION",
+		RotationType:         "ROTATION",
+		Status:               "ORDER_PLANNED",
+		CurrentCredentialID:  credential.ID,
+		NextCredentialID:     sql.NullInt64{Int64: nextCredential.ID, Valid: true},
+		CoordinationID:       "coord-kl",
+	}
+	require.NoError(t, db.Insert(lifecycle).Run())
+
+	req := httptest.NewRequest(http.MethodPatch, "/ebics/key-lifecycles/"+marshalID(lifecycle.ID),
+		strings.NewReader(`{"action":"MARK_SENT","operator":"ops","reason":"submitted","evidence":{"ticket":"INC-42"}}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = mux.SetURLVars(req, map[string]string{"ebics_key_lifecycle": marshalID(lifecycle.ID)})
+	w := httptest.NewRecorder()
+
+	actOnEbicsKeyLifecycle(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var refreshed model.EbicsKeyLifecycle
+	require.NoError(t, db.Get(&refreshed, "id=?", lifecycle.ID).Run())
+	assert.Equal(t, "ORDER_SENT", refreshed.Status)
+	assert.Equal(t, "ops", refreshed.Operator)
+	assert.Equal(t, "submitted", refreshed.Reason)
+	assert.False(t, refreshed.SentAt.IsZero())
+	assert.Equal(t, "INC-42", refreshed.EvidenceMap["ticket"])
+}
+
+func TestActOnEbicsInitializationCancelsWorkflow(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-INIT", "PARTNER-INIT", "USER-INIT")
+
+	workflow := &model.EbicsInitializationWorkflow{
+		EbicsSubscriberID: subscriber.ID,
+		Status:            "RUNNING",
+		CurrentStep:       "INI_SENT",
+	}
+	require.NoError(t, db.Insert(workflow).Run())
+
+	req := httptest.NewRequest(http.MethodPatch, "/ebics/initializations/"+marshalID(workflow.ID),
+		strings.NewReader(`{"action":"CANCEL","operator":"ops","reason":"abort","evidence":{"ticket":"INIT-9"}}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = mux.SetURLVars(req, map[string]string{"ebics_initialization": marshalID(workflow.ID)})
+	w := httptest.NewRecorder()
+
+	actOnEbicsInitialization(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var refreshed model.EbicsInitializationWorkflow
+	require.NoError(t, db.Get(&refreshed, "id=?", workflow.ID).Run())
+	assert.Equal(t, "CANCELLED", refreshed.Status)
+	assert.Equal(t, "CANCELLED", refreshed.CurrentStep)
+	assert.Equal(t, "ops", refreshed.Operator)
+	assert.Equal(t, "abort", refreshed.Reason)
+	assert.Equal(t, "INIT-9", refreshed.EvidenceMap["ticket"])
+}
+
 func insertRESTEbicsHostAndSubscriber(
 	t *testing.T,
 	db *database.DB,
@@ -278,6 +402,30 @@ func insertRESTEbicsSegment(
 	t.Helper()
 	require.NoError(t, db.Insert(segment).Run())
 	return segment
+}
+
+func insertRESTEbicsCredential(t *testing.T, db *database.DB) *model.Credential {
+	t.Helper()
+
+	now := time.Now().UTC().UnixNano()
+	suffix := strconv.FormatInt(now, 10)
+	port := uint16(10000 + (now % 50000))
+	agent := &model.LocalAgent{
+		Name:     "ebics-rest-cred-server-" + suffix,
+		Protocol: testProto1,
+		Address:  types.Addr("localhost", port),
+	}
+	require.NoError(t, db.Insert(agent).Run())
+
+	credential := &model.Credential{
+		LocalAgentID: utils.NewNullInt64(agent.ID),
+		Name:         "ebics-rest-credential-" + suffix,
+		Type:         auth.Password,
+		Value:        "sesame",
+	}
+	require.NoError(t, db.Insert(credential).Run())
+
+	return credential
 }
 
 func marshalID(id int64) string {
