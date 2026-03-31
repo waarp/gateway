@@ -137,6 +137,24 @@ Regles:
   tester separement a ce stade.
   Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
+- 2026-03-31: `Lot 1D` est maintenant ferme avec
+  `pkg/protocols/modules/ebics/server_integration_test.go`.
+  La couverture ajoute un demarrage reel du service EBICS Gateway avec stores
+  reels, un upload `BTU` nominal jusqu'au fichier final et a l'historique, puis
+  un download `BTD` nominal jusqu'au payload retourne et a l'archivage du
+  transfert. La persistance transactionnelle `TxStore/NonceStore/segments`
+  reste couverte en profondeur par `Lot 1C`; ce lot ferme le chemin serveur
+  payload `operation + transfert + pipeline + historique`.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`.
+- 2026-03-31: `Lot 1E` est maintenant ferme apres correction de deux defauts
+  reels reveles par `Lot 1D`:
+  preservation de la correlation apres archivage du transfert cote serveur
+  payload (ID archive deplace dans les metadonnees d'operation avec fallback
+  REST), et suppression d'une course `Start/Stop` dans `server.go` ou la
+  goroutine `Serve` pouvait dereferencer `s.httpServer` apres remise a `nil`.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/admin/rest/... ./pkg/admin/rest/api`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/admin/rest ./pkg/admin/rest/api`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -321,7 +339,7 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
 
-- [ ] Lot 1D - Ajouter un test d'integration serveur minimal
+- [x] Lot 1D - Ajouter un test d'integration serveur minimal
   Fichier principal: `pkg/protocols/modules/ebics/server_integration_test.go`
   ou `pkg/protocols/modules/ebics/server_test.go`
   Attendus: demarrage du serveur Gateway EBICS avec stores reels, execution d'un
@@ -330,7 +348,7 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
 
-- [ ] Lot 1E - Corriger le code apres la premiere vague de tests
+- [x] Lot 1E - Corriger le code apres la premiere vague de tests
   Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
   `pkg/protocols/modules/ebics/order_router.go`,
   `pkg/protocols/modules/ebics/provider_store.go`,
@@ -345,10 +363,10 @@ Ordre d'execution recommande:
 1. [x] Lot 1A
 2. [x] Lot 1B
 3. [x] Lot 1C
-4. [ ] Faire passer la premiere vague de tests
-5. [ ] Lot 1E
-6. [ ] Lot 1D
-7. [ ] Rejouer linter + tests
+4. [x] Faire passer la premiere vague de tests
+5. [x] Lot 1E
+6. [x] Lot 1D
+7. [x] Rejouer linter + tests
 
 ### Etape 2. Cadrer la segmentation, reprise et recovery serveur
 

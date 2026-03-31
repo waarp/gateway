@@ -146,16 +146,17 @@ func (s *Server) start() error {
 	}
 
 	s.listener = listener
+	httpServer := s.httpServer
 
-	go func() {
-		serveErr := s.httpServer.Serve(listener)
+	go func(server *http.Server, serveListener net.Listener) {
+		serveErr := server.Serve(serveListener)
 		if !errors.Is(serveErr, http.ErrServerClosed) {
 			s.logger.Errorf("Unexpected EBICS server error: %v", serveErr)
 			s.state.Set(utils.StateError, fmt.Sprintf("unexpected error: %v", serveErr))
 		} else {
 			s.state.Set(utils.StateOffline, "")
 		}
-	}()
+	}(httpServer, listener)
 
 	return nil
 }

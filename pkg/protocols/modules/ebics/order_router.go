@@ -3,6 +3,7 @@ package ebics
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -26,15 +27,16 @@ import (
 )
 
 const (
-	transferInfoKeyEbicsOperationID   = "ebicsOperationID"
-	transferInfoKeyEbicsOrderType     = "ebicsOrderType"
-	transferInfoKeyEbicsHostID        = "ebicsHostID"
-	transferInfoKeyEbicsPartnerID     = "ebicsPartnerID"
-	transferInfoKeyEbicsUserID        = "ebicsUserID"
-	transferInfoKeyEbicsRequestID     = "ebicsRequestID"
-	transferInfoKeyEbicsCorrelationID = "ebicsCorrelationID"
-	transferInfoKeyEbicsProtocol      = "ebicsProtocol"
-	transferInfoKeyEbicsService       = "ebicsService"
+	transferInfoKeyEbicsOperationID        = "ebicsOperationID"
+	transferInfoKeyEbicsOrderType          = "ebicsOrderType"
+	transferInfoKeyEbicsHostID             = "ebicsHostID"
+	transferInfoKeyEbicsPartnerID          = "ebicsPartnerID"
+	transferInfoKeyEbicsUserID             = "ebicsUserID"
+	transferInfoKeyEbicsRequestID          = "ebicsRequestID"
+	transferInfoKeyEbicsCorrelationID      = "ebicsCorrelationID"
+	transferInfoKeyEbicsProtocol           = "ebicsProtocol"
+	transferInfoKeyEbicsService            = "ebicsService"
+	operationMetadataKeyArchivedTransferID = "archivedTransferID"
 )
 
 type payloadOrderRouter struct {
@@ -570,6 +572,7 @@ func (r *payloadOrderRouter) completeOperation(operation *model.EbicsOperation) 
 		return fmt.Errorf("derive successful EBICS operation outcome: %w", err)
 	}
 
+	preserveArchivedTransferLink(operation)
 	operation.FinishedAt = time.Now().UTC()
 
 	if err := r.db.Update(operation).Run(); err != nil {
@@ -619,6 +622,19 @@ func (r *payloadOrderRouter) markOperationFailed(operation *model.EbicsOperation
 	if updateErr := r.db.Update(operation).Run(); updateErr != nil {
 		r.logger.Warningf("failed to persist EBICS operation %d failure state: %v", operation.ID, updateErr)
 	}
+}
+
+func preserveArchivedTransferLink(operation *model.EbicsOperation) {
+	if operation == nil || !operation.TransferID.Valid {
+		return
+	}
+
+	if operation.MetadataMap == nil {
+		operation.MetadataMap = map[string]any{}
+	}
+
+	operation.MetadataMap[operationMetadataKeyArchivedTransferID] = operation.TransferID.Int64
+	operation.TransferID = sql.NullInt64{}
 }
 
 type routerContractViewResolver struct {

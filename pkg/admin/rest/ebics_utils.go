@@ -2,6 +2,7 @@ package rest
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -48,6 +49,56 @@ func ptrInt64(value sql.NullInt64) *int64 {
 	v := value.Int64
 
 	return &v
+}
+
+func metadataInt64(metadata map[string]any, key string) *int64 {
+	if metadata == nil {
+		return nil
+	}
+
+	raw, ok := metadata[key]
+	if !ok {
+		return nil
+	}
+
+	switch value := raw.(type) {
+	case int:
+		v := int64(value)
+		return &v
+	case int32:
+		v := int64(value)
+		return &v
+	case int64:
+		return &value
+	case float32:
+		v := int64(value)
+		if float32(v) == value {
+			return &v
+		}
+	case float64:
+		v := int64(value)
+		if float64(v) == value {
+			return &v
+		}
+	case json.Number:
+		if v, err := value.Int64(); err == nil {
+			return &v
+		}
+	case string:
+		if v, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64); err == nil {
+			return &v
+		}
+	}
+
+	return nil
+}
+
+func operationTransferID(operation *model.EbicsOperation) *int64 {
+	if transferID := ptrInt64(operation.TransferID); transferID != nil {
+		return transferID
+	}
+
+	return metadataInt64(operation.MetadataMap, "archivedTransferID")
 }
 
 func getDBEbicsPayloadProfile(r *http.Request, db *database.DB) (*model.EbicsPayloadProfile, error) {
@@ -354,7 +405,7 @@ func DBEbicsOperationToREST(operation *model.EbicsOperation) (*api.OutEbicsOpera
 		GatewayOutcome:         operation.GatewayOutcome,
 		RetryDecision:          operation.RetryDecision,
 		ManualActionRequired:   operation.ManualActionRequired,
-		TransferID:             ptrInt64(operation.TransferID),
+		TransferID:             operationTransferID(operation),
 		Metadata:               operation.MetadataMap,
 	}, nil
 }
@@ -389,9 +440,10 @@ func DBEbicsOperationDetailToREST(
 	detail.PartnerID = subscriber.PartnerID
 	detail.UserID = subscriber.UserID
 
-	if operation.TransferID.Valid || operation.ContractViewID.Valid || operation.RTNEventID.Valid {
+	if transferID := operationTransferID(operation); transferID != nil ||
+		operation.ContractViewID.Valid || operation.RTNEventID.Valid {
 		detail.Links = &api.OutEbicsOperationLinks{
-			TransferID:     ptrInt64(operation.TransferID),
+			TransferID:     operationTransferID(operation),
 			ContractViewID: ptrInt64(operation.ContractViewID),
 			RTNEventID:     ptrInt64(operation.RTNEventID),
 		}
