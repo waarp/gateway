@@ -198,7 +198,7 @@ func (c *EbicsPayloadGet) execute(w io.Writer) error {
 type EbicsPayloadRetry struct {
 	Args struct {
 		Operation string `required:"yes" positional-arg-name:"operation" description:"The payload operation identifier"`
-	} `positional-args:"yes"`
+	} `positional-args:"yes" json:"-"`
 
 	Reason   string             `long:"reason" description:"Operator reason for the retry" json:"reason,omitempty"`
 	Metadata map[string]confVal `long:"metadata" description:"Operator metadata." json:"metadata,omitempty"`
@@ -220,7 +220,7 @@ func (c *EbicsPayloadRetry) execute(w io.Writer) error {
 type EbicsPayloadRecover struct {
 	Args struct {
 		Operation string `required:"yes" positional-arg-name:"operation" description:"The payload operation identifier"`
-	} `positional-args:"yes"`
+	} `positional-args:"yes" json:"-"`
 
 	Reason   string             `long:"reason" description:"Operator reason for the recovery" json:"reason,omitempty"`
 	Metadata map[string]confVal `long:"metadata" description:"Operator metadata." json:"metadata,omitempty"`

@@ -587,7 +587,7 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot 4A - Couvrir les commandes CLI payloads / operations / transactions
+- [x] Lot 4A - Couvrir les commandes CLI payloads / operations / transactions
   Fichiers principaux: `pkg/cmd/client/ebics_payload.go`,
   `pkg/cmd/client/ebics_operations.go`,
   `pkg/cmd/client/ebics_transactions.go`,
@@ -595,6 +595,13 @@ Sous-lots cochables:
   Attendus: tests CLI dedies, sorties utilisateur lisibles, erreurs coherentes
   Validation: `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
   puis `go test ./pkg/cmd/client ./cmd/waarp-gateway`
+
+  2026-03-31: Lot 4A est maintenant ferme. Une premiere vague de tests couvre
+  la construction des requetes payload `upload` / `download`, l'action
+  `recover`, l'affichage detaille d'une operation, la gestion d'erreur sur une
+  transaction incomplete et le cas vide sur les segments. Un defaut reel de
+  serialisation JSON a ete corrige sur les commandes `payload retry/recover`
+  pour ne plus envoyer les arguments positionnels au backend.
 
 - [ ] Lot 4B - Couvrir les commandes CLI contract views / key lifecycles / initializations
   Fichiers principaux: `pkg/cmd/client/ebics_contract_views.go`,
@@ -615,7 +622,7 @@ Sous-lots cochables:
 
 Ordre d'execution recommande:
 
-1. [ ] Lot 4A
+1. [x] Lot 4A
 2. [ ] Lot 4B
 3. [ ] Lot 4C
 4. [ ] Rejouer linter + tests CLI complets
