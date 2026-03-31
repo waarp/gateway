@@ -308,7 +308,9 @@ func (s *providerStore) UpdateTransaction(ctx context.Context, tx libebics.Trans
 	}
 
 	row.Status = normalizeLibTransactionStatus(tx.Status)
-	row.SegmentCount = tx.SegmentCnt
+	if tx.SegmentCnt > 0 {
+		row.SegmentCount = max(row.SegmentCount, tx.SegmentCnt)
+	}
 	row.UpdatedAt = valueOrNowUTC(tx.UpdatedAt)
 
 	if updateErr := s.db.Update(&row).Run(); updateErr != nil {
@@ -378,6 +380,8 @@ func (s *providerStore) AddSegment(
 		txRow.SegmentCount = max(txRow.SegmentCount, seg.Total)
 	}
 	txRow.SegmentCount = max(txRow.SegmentCount, txRow.CurrentSegment)
+	txRow.Status = ebicsClientRecoveryStatusRunning
+	txRow.UpdatedAt = time.Now().UTC()
 
 	if updateErr := s.db.Update(&txRow).Run(); updateErr != nil {
 		return fmt.Errorf("update EBICS transaction after segment upsert: %w", updateErr)
@@ -403,6 +407,8 @@ func (s *providerStore) UpdateRecovery(
 	meta["recoveryPoint"] = point
 	meta["recoveryCounter"] = counter
 	row.MetadataMap = meta
+	row.Status = ebicsClientRecoveryStatusRecovering
+	row.UpdatedAt = time.Now().UTC()
 
 	if updateErr := s.db.Update(&row).Run(); updateErr != nil {
 		return fmt.Errorf("update EBICS transaction recovery: %w", updateErr)

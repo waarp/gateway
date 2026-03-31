@@ -252,6 +252,105 @@ func TestProviderStoreUpdateTransactionCreatesMissingTransaction(t *testing.T) {
 	require.Equal(t, 4, row.SegmentCount)
 }
 
+func TestProviderStoreUpdateTransactionPreservesSegmentCountWhenLibOmitsTotal(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+	createdAt := time.Date(2026, 3, 31, 13, 15, 0, 0, time.UTC)
+	updatedAt := createdAt.Add(time.Minute)
+
+	require.NoError(t, store.CreateTransaction(context.Background(), libebics.Transaction{
+		ID:         "TX-SEG-COUNT-KEEP",
+		HostID:     "HOST1",
+		PartnerID:  "PARTNER1",
+		UserID:     "USER1",
+		OrderType:  "BTU",
+		SegmentCnt: 4,
+		Status:     "RUNNING",
+		CreatedAt:  createdAt,
+		UpdatedAt:  createdAt,
+	}))
+
+	require.NoError(t, store.UpdateTransaction(context.Background(), libebics.Transaction{
+		ID:        "TX-SEG-COUNT-KEEP",
+		HostID:    "HOST1",
+		PartnerID: "PARTNER1",
+		UserID:    "USER1",
+		OrderType: "BTU",
+		Status:    "RUNNING",
+		UpdatedAt: updatedAt,
+	}))
+
+	var row model.EbicsTransaction
+	require.NoError(t, db.Get(&row, "transaction_id=?", "TX-SEG-COUNT-KEEP").Run())
+	require.Equal(t, 4, row.SegmentCount)
+	require.True(t, row.UpdatedAt.After(createdAt))
+}
+
+func TestProviderStoreUpdateRecoveryMarksTransactionRecovering(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+	createdAt := time.Date(2026, 3, 31, 13, 20, 0, 0, time.UTC)
+
+	require.NoError(t, store.CreateTransaction(context.Background(), libebics.Transaction{
+		ID:         "TX-RECOVER-STATE",
+		HostID:     "HOST1",
+		PartnerID:  "PARTNER1",
+		UserID:     "USER1",
+		OrderType:  "BTU",
+		SegmentCnt: 3,
+		Status:     "RUNNING",
+		CreatedAt:  createdAt,
+		UpdatedAt:  createdAt,
+	}))
+
+	require.NoError(t, store.UpdateRecovery(context.Background(), "TX-RECOVER-STATE", 2, 7))
+
+	var row model.EbicsTransaction
+	require.NoError(t, db.Get(&row, "transaction_id=?", "TX-RECOVER-STATE").Run())
+	require.Equal(t, "RECOVERING", row.Status)
+	require.Equal(t, 2, readIntMetadata(row.MetadataMap, "recoveryPoint"))
+	require.Equal(t, 7, readIntMetadata(row.MetadataMap, "recoveryCounter"))
+	require.True(t, row.UpdatedAt.After(createdAt) || row.UpdatedAt.Equal(createdAt))
+}
+
+func TestProviderStoreAddSegmentAfterRecoveryReturnsTransactionToRunning(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+
+	require.NoError(t, store.CreateTransaction(context.Background(), libebics.Transaction{
+		ID:         "TX-RECOVER-RUNNING",
+		HostID:     "HOST1",
+		PartnerID:  "PARTNER1",
+		UserID:     "USER1",
+		OrderType:  "BTU",
+		SegmentCnt: 3,
+		Status:     "RECOVERING",
+		CreatedAt:  time.Date(2026, 3, 31, 13, 25, 0, 0, time.UTC),
+		UpdatedAt:  time.Date(2026, 3, 31, 13, 25, 0, 0, time.UTC),
+	}))
+
+	require.NoError(t, store.UpdateRecovery(context.Background(), "TX-RECOVER-RUNNING", 1, 2))
+	require.NoError(t, store.AddSegment(context.Background(), "TX-RECOVER-RUNNING", libebics.SegmentInfo{
+		Number:          2,
+		HasSegment:      true,
+		Total:           3,
+		RecoveryPoint:   2,
+		RecoveryCounter: 3,
+	}, []byte("hash-recover-running")))
+
+	var row model.EbicsTransaction
+	require.NoError(t, db.Get(&row, "transaction_id=?", "TX-RECOVER-RUNNING").Run())
+	require.Equal(t, "RUNNING", row.Status)
+	require.Equal(t, 2, row.CurrentSegment)
+	require.Equal(t, 3, row.SegmentCount)
+}
+
 func TestProviderStoreNonceLifecycle(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 	store := newProviderStore(db)

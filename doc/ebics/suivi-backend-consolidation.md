@@ -180,6 +180,19 @@ Regles:
   `ExpiresAt > Timestamp` et sur l'unicite par subscriber.
   Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
+- 2026-03-31: `Lot 2C` est maintenant ferme avec durcissement de
+  `pkg/protocols/modules/ebics/provider_store.go` et enrichissement
+  complementaire de `pkg/protocols/modules/ebics/provider_store_test.go`.
+  Trois defauts runtime reels ont ete corriges sur le chemin serveur de
+  reprise: `UpdateTransaction` preserve desormais `segmentCount` quand
+  `lib-ebics` n'envoie plus `SegmentCnt` sur les segments suivants,
+  `UpdateRecovery` fait passer la transaction en statut `RECOVERING`, et
+  `AddSegment` remet explicitement la transaction en `RUNNING` en mettant aussi
+  a jour son horodatage.
+  La couverture ajoutee verrouille ces transitions d'etat et la conservation du
+  contexte de reprise.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -439,7 +452,7 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
 
-- [ ] Lot 2C - Corriger le runtime serveur sur la reprise / recovery
+- [x] Lot 2C - Corriger le runtime serveur sur la reprise / recovery
   Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
   `pkg/protocols/modules/ebics/provider_store.go`,
   `pkg/protocols/modules/ebics/stores/tx_store.go`
@@ -453,8 +466,8 @@ Ordre d'execution recommande:
 1. [x] Lot 2A
 2. [x] Lot 2B
 3. [x] Faire passer la vague de tests segmentation / nonce
-4. [ ] Lot 2C
-5. [ ] Rejouer linter + tests
+4. [x] Lot 2C
+5. [x] Rejouer linter + tests
 
 ### Etape 3. Fermer la couverture REST EBICS
 
