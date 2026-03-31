@@ -126,6 +126,17 @@ Regles:
   EbicsTransaction / Transfer`; ce point reste porte par `Lot 1D`.
   Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`.
+- 2026-03-31: `Lot 1C` est maintenant ferme sur la persistance provider et les
+  stores effectivement utilises par le runtime EBICS. Le fichier
+  `pkg/protocols/modules/ebics/provider_store_test.go` couvre a present:
+  lifecycle transaction (`Create/Get/Update/Purge`), persistance des segments,
+  lecture/ecriture du recovery, et lifecycle des nonces (`Seen/Store/Purge`).
+  La revue a confirme que `pkg/protocols/modules/ebics/stores/tx_store.go` et
+  `pkg/protocols/modules/ebics/stores/operation_store.go` ne portent ici que
+  des interfaces de contrat, sans logique de persistance supplementaire a
+  tester separement a ce stade.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -300,7 +311,7 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
 
-- [ ] Lot 1C - Couvrir les stores et la persistance provider
+- [x] Lot 1C - Couvrir les stores et la persistance provider
   Fichiers principaux: `pkg/protocols/modules/ebics/provider_store_test.go`,
   `pkg/protocols/modules/ebics/stores/tx_store_test.go`,
   `pkg/protocols/modules/ebics/stores/operation_store_test.go`
@@ -333,7 +344,7 @@ Ordre d'execution recommande:
 
 1. [x] Lot 1A
 2. [x] Lot 1B
-3. [ ] Lot 1C
+3. [x] Lot 1C
 4. [ ] Faire passer la premiere vague de tests
 5. [ ] Lot 1E
 6. [ ] Lot 1D
