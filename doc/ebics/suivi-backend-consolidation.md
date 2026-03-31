@@ -155,6 +155,19 @@ Regles:
   goroutine `Serve` pouvait dereferencer `s.httpServer` apres remise a `nil`.
   Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/admin/rest/... ./pkg/admin/rest/api`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/admin/rest ./pkg/admin/rest/api`.
+- 2026-03-31: `Lot 2A` est maintenant ferme avec enrichissement de
+  `pkg/protocols/modules/ebics/provider_store_test.go` et ajout de tests
+  modeles `pkg/model/ebics_transaction_test.go` et
+  `pkg/model/ebics_transaction_segment_test.go`.
+  La couverture verrouille la reprise/segmentation serveur sur:
+  statuts `RUNNING/RECOVERING`, lecture recovery apres rechargement DB, creation
+  sur `UpdateTransaction`, absence de faux positifs sur transaction absente,
+  duplication de segments, et monotonie `currentSegment/segmentCount`.
+  Un defaut runtime reel a ete corrige dans `provider_store.go`:
+  `AddSegment` ne peut plus retrograder `segmentCount` sous `currentSegment`
+  lors d'une reprise ou d'un upsert de segment.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -397,7 +410,7 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot 2A - Poser les tests de segmentation serveur
+- [x] Lot 2A - Poser les tests de segmentation serveur
   Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
   `pkg/protocols/modules/ebics/stores/tx_store.go`,
   `pkg/model/ebics_transaction.go`,
@@ -425,9 +438,9 @@ Sous-lots cochables:
 
 Ordre d'execution recommande:
 
-1. [ ] Lot 2A
+1. [x] Lot 2A
 2. [ ] Lot 2B
-3. [ ] Faire passer la vague de tests segmentation / nonce
+3. [x] Faire passer la vague de tests segmentation / nonce
 4. [ ] Lot 2C
 5. [ ] Rejouer linter + tests
 

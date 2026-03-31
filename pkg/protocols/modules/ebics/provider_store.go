@@ -375,8 +375,9 @@ func (s *providerStore) AddSegment(
 
 	txRow.CurrentSegment = max(txRow.CurrentSegment, seg.Number)
 	if seg.Total > 0 {
-		txRow.SegmentCount = seg.Total
+		txRow.SegmentCount = max(txRow.SegmentCount, seg.Total)
 	}
+	txRow.SegmentCount = max(txRow.SegmentCount, txRow.CurrentSegment)
 
 	if updateErr := s.db.Update(&txRow).Run(); updateErr != nil {
 		return fmt.Errorf("update EBICS transaction after segment upsert: %w", updateErr)

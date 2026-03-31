@@ -134,6 +134,122 @@ func TestProviderStoreSegmentAndRecoveryLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 11, point)
 	require.Equal(t, 4, counter)
+
+	require.NoError(t, store.UpdateTransaction(context.Background(), libebics.Transaction{
+		ID:         "TX-SEG-1",
+		HostID:     "HOST1",
+		PartnerID:  "PARTNER1",
+		UserID:     "USER1",
+		OrderType:  "BTU",
+		SegmentCnt: 2,
+		Status:     "RECOVERING",
+	}))
+
+	require.NoError(t, db.Get(&txRow, "transaction_id=?", "TX-SEG-1").Run())
+	require.Equal(t, "RECOVERING", txRow.Status)
+	require.Equal(t, 11, readIntMetadata(txRow.MetadataMap, "recoveryPoint"))
+	require.Equal(t, 4, readIntMetadata(txRow.MetadataMap, "recoveryCounter"))
+}
+
+func TestProviderStoreSegmentUpsertKeepsMonotonicProgress(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+
+	require.NoError(t, store.CreateTransaction(context.Background(), libebics.Transaction{
+		ID:         "TX-SEG-2",
+		HostID:     "HOST1",
+		PartnerID:  "PARTNER1",
+		UserID:     "USER1",
+		OrderType:  "BTU",
+		SegmentCnt: 3,
+		Status:     "RUNNING",
+	}))
+
+	require.NoError(t, store.AddSegment(context.Background(), "TX-SEG-2", libebics.SegmentInfo{
+		Number:          2,
+		Last:            false,
+		HasSegment:      true,
+		Total:           3,
+		RecoveryPoint:   5,
+		RecoveryCounter: 1,
+	}, []byte("hash-v1")))
+	require.NoError(t, store.AddSegment(context.Background(), "TX-SEG-2", libebics.SegmentInfo{
+		Number:          2,
+		Last:            true,
+		HasSegment:      true,
+		Total:           2,
+		RecoveryPoint:   9,
+		RecoveryCounter: 2,
+	}, []byte("hash-v2")))
+	require.NoError(t, store.AddSegment(context.Background(), "TX-SEG-2", libebics.SegmentInfo{
+		Number:          1,
+		Last:            false,
+		HasSegment:      true,
+		Total:           1,
+		RecoveryPoint:   3,
+		RecoveryCounter: 1,
+	}, []byte("hash-v0")))
+
+	var txRow model.EbicsTransaction
+	require.NoError(t, db.Get(&txRow, "transaction_id=?", "TX-SEG-2").Run())
+	require.Equal(t, 2, txRow.CurrentSegment)
+	require.Equal(t, 3, txRow.SegmentCount)
+
+	var count int64
+	n, err := db.Count(&model.EbicsTransactionSegment{}).Where("ebics_transaction_id=?", txRow.ID).Run()
+	require.NoError(t, err)
+	count = int64(n)
+	require.EqualValues(t, 2, count)
+
+	var segment model.EbicsTransactionSegment
+	require.NoError(t, db.Get(&segment, "ebics_transaction_id=? AND segment_number=?", txRow.ID, 2).Run())
+	require.Equal(t, model.EbicsTransactionSegmentStatusCompletedForRuntime(), segment.SegmentStatus)
+	require.Contains(t, segment.Checksum, "686173682d7632")
+	require.Equal(t, 9, readIntMetadata(segment.MetadataMap, "recoveryPoint"))
+	require.Equal(t, 2, readIntMetadata(segment.MetadataMap, "recoveryCounter"))
+}
+
+func TestProviderStoreRecoveryQueriesAreEmptyForUnknownTransaction(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+
+	ok, err := store.HasSegment(context.Background(), "TX-MISSING", 1)
+	require.NoError(t, err)
+	require.False(t, ok)
+
+	point, counter, err := store.GetRecovery(context.Background(), "TX-MISSING")
+	require.NoError(t, err)
+	require.Zero(t, point)
+	require.Zero(t, counter)
+}
+
+func TestProviderStoreUpdateTransactionCreatesMissingTransaction(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	subscriber := insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+	stamp := time.Date(2026, 3, 31, 13, 0, 0, 0, time.UTC)
+
+	require.NoError(t, store.UpdateTransaction(context.Background(), libebics.Transaction{
+		ID:         "TX-CREATE-ON-UPDATE",
+		HostID:     "HOST1",
+		PartnerID:  "PARTNER1",
+		UserID:     "USER1",
+		OrderType:  "BTD",
+		SegmentCnt: 4,
+		Status:     "RECOVERING",
+		CreatedAt:  stamp,
+		UpdatedAt:  stamp,
+	}))
+
+	var row model.EbicsTransaction
+	require.NoError(t, db.Get(&row, "transaction_id=?", "TX-CREATE-ON-UPDATE").Run())
+	require.Equal(t, subscriber.ID, row.EbicsSubscriberID)
+	require.Equal(t, host.ID, row.EbicsHostID)
+	require.Equal(t, "RECOVERING", row.Status)
+	require.Equal(t, 4, row.SegmentCount)
 }
 
 func TestProviderStoreNonceLifecycle(t *testing.T) {
