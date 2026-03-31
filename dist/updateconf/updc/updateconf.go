@@ -1,4 +1,4 @@
-package main
+package updc
 
 import (
 	"archive/zip"
@@ -10,8 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 const (
@@ -20,14 +18,21 @@ const (
 )
 
 var (
-	errFileNotFound = errors.New("file not found")
+	errFileNotFound = errors.New("file not found in archive")
 	errNoConfDir    = errors.New("configuration directory not found or invalid")
 )
 
-//nolint:forbidigo //this is allowed in the main function
-func main() {
+//nolint:gochecknoglobals //global vars needed here for Waarp Transfer
+var (
+	ExeName = "waarp-gatewayd"
+	DirName = "waarp-gateway"
+	AppName = "Gateway"
+)
+
+//nolint:forbidigo //prints are needed here
+func Do() {
 	if len(os.Args) < minArgs {
-		fmt.Printf("updateconf needs at least 1 parameter\n")
+		fmt.Println("updateconf needs at least 1 parameter")
 		os.Exit(exitErrorCode)
 	}
 
@@ -38,13 +43,13 @@ func main() {
 
 	archReader, opErr := zip.OpenReader(archFile)
 	if opErr != nil {
-		fmt.Printf("Cannot open archive: %s\n", opErr.Error())
+		fmt.Println("Cannot open archive:", opErr)
 		os.Exit(exitErrorCode)
 	}
 
 	// Import
 	if err := importConf(&archReader.Reader, instance); err != nil {
-		fmt.Printf("Cannot import configuration: %s\n", err.Error())
+		fmt.Println("Cannot import configuration:", err)
 
 		_ = archReader.Close() //nolint:errcheck //ignore error
 
@@ -53,14 +58,14 @@ func main() {
 
 	// Additional files
 	if err := moveToConf(&archReader.Reader, "get-file.list"); err != nil {
-		fmt.Printf("Cannot write configuration file: %s\n", err.Error())
+		fmt.Println("Cannot write configuration file:", err)
 
 		_ = archReader.Close() //nolint:errcheck //ignore error
 	}
 
 	_ = archReader.Close() //nolint:errcheck //ignore error
 
-	fmt.Printf("End of process updateconf\n")
+	fmt.Println("End of process updateconf")
 }
 
 func getConfFilename(archfile string) string {
@@ -117,18 +122,18 @@ func getFileFromArch(arch *zip.Reader, file string) (io.ReadCloser, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("file %s is not in the archive: %w", file, errFileNotFound)
+	return nil, fmt.Errorf("%w: %q", errFileNotFound, file)
 }
 
 func execImport(confReader io.Reader) error {
-	envConfFile := os.Getenv(conf.ConfigFileEnvVar)
+	envConfFile := os.Getenv("WAARP_CONFIG_FILE")
 
 	params := []string{"import", "-v"}
 	if envConfFile != "" {
 		params = append(params, "-c", envConfFile)
 	}
 
-	cmd := exec.CommandContext(context.Background(), "waarp-gatewayd", params...)
+	cmd := exec.CommandContext(context.Background(), ExeName, params...)
 	cmd.Stdin = confReader
 
 	out, err := cmd.CombinedOutput()
@@ -145,28 +150,28 @@ func execImport(confReader io.Reader) error {
 	return nil
 }
 
-func moveToConf(arch *zip.Reader, files ...string) error {
-	envConfDir := os.Getenv(conf.ConfigDirEnvVar)
-	confDir, dirErr := getConfDir(envConfDir, "etc/", "/etc/waarp-gateway/")
+func moveToConf(arch *zip.Reader, file string) error {
+	envConfDir := os.Getenv("WAARP_CONFIG_DIR")
+	confDir, dirErr := getConfDir(envConfDir, "etc/", "/etc/"+DirName)
 	if dirErr != nil {
 		return dirErr
 	}
 
-	for _, f := range files {
-		src, err := getFileFromArch(arch, f)
-		if err != nil {
-			return err
-		}
+	src, err := getFileFromArch(arch, file)
+	if errors.Is(err, errFileNotFound) {
+		return nil
+	} else if err != nil {
+		return err
+	}
 
-		dst, err := os.Create(filepath.Clean(confDir + f))
-		if err != nil {
-			return fmt.Errorf("cannot open file %q: %w", confDir+f, err)
-		}
+	dst, err := os.Create(filepath.Clean(confDir + file))
+	if err != nil {
+		return fmt.Errorf("cannot open file %q: %w", confDir+file, err)
+	}
 
-		_, err = io.Copy(dst, src)
-		if err != nil {
-			return fmt.Errorf("cannot write to file %q: %w", confDir+f, err)
-		}
+	_, err = io.Copy(dst, src)
+	if err != nil {
+		return fmt.Errorf("cannot write to file %q: %w", confDir+file, err)
 	}
 
 	return nil
@@ -184,5 +189,5 @@ func getConfDir(dirs ...string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("no gateway directory found: %w", errNoConfDir)
+	return "", fmt.Errorf("no %s directory found: %w", AppName, errNoConfDir)
 }

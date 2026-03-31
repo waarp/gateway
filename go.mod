@@ -49,7 +49,7 @@ require (
 	golang.org/x/text v0.35.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.47.0
+	modernc.org/sqlite v1.48.0
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2
 )
