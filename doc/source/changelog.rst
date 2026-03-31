@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.15.4 <2026-03-31>`
 * :bug:`540` Les variables d'environnement ``WAARP_CONFIG_FILE`` et ``WAARP_CONFIG_DIR``
   introduites en version 0.14.2 sont désormais toujours des chemins absolus.
 
