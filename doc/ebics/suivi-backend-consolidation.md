@@ -168,6 +168,18 @@ Regles:
   lors d'une reprise ou d'un upsert de segment.
   Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
+- 2026-03-31: `Lot 2B` est maintenant ferme avec enrichissement de
+  `pkg/protocols/modules/ebics/provider_store_test.go` et ajout de
+  `pkg/model/ebics_nonce_test.go`.
+  La couverture verrouille l'anti-rejeu sur: trimming coherent entre
+  `StoreNonce` et `SeenNonce`, portee du nonce par subscriber, rejet des
+  doublons pour un meme subscriber, acceptation du meme nonce pour des
+  subscribers distincts, et comportement de purge a la borne exacte
+  d'expiration.
+  Cote modele, `EbicsNonce` est maintenant couvert sur la contrainte
+  `ExpiresAt > Timestamp` et sur l'unicite par subscriber.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -420,7 +432,7 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
 
-- [ ] Lot 2B - Poser les tests anti-rejeu / nonce
+- [x] Lot 2B - Poser les tests anti-rejeu / nonce
   Fichiers principaux: `pkg/protocols/modules/ebics/provider_store.go`,
   `pkg/model/ebics_nonce.go`
   Attendus: tests de fenetre anti-rejeu, persistance et rejet des doublons
@@ -439,7 +451,7 @@ Sous-lots cochables:
 Ordre d'execution recommande:
 
 1. [x] Lot 2A
-2. [ ] Lot 2B
+2. [x] Lot 2B
 3. [x] Faire passer la vague de tests segmentation / nonce
 4. [ ] Lot 2C
 5. [ ] Rejouer linter + tests

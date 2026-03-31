@@ -281,6 +281,70 @@ func TestProviderStoreNonceLifecycle(t *testing.T) {
 	require.Zero(t, count)
 }
 
+func TestProviderStoreNonceIsScopedPerSubscriber(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+	insertTestEbicsSubscriber(t, db, host.ID, "PARTNER2", "USER2", true)
+	ts := time.Date(2026, 3, 31, 11, 30, 0, 0, time.UTC)
+
+	require.NoError(t, store.StoreNonce(context.Background(), "HOST1", "PARTNER1", "USER1", "nonce-shared", ts))
+
+	seen, err := store.SeenNonce(context.Background(), "HOST1", "PARTNER1", "USER1", " nonce-shared ")
+	require.NoError(t, err)
+	require.True(t, seen)
+
+	seen, err = store.SeenNonce(context.Background(), "HOST1", "PARTNER2", "USER2", "nonce-shared")
+	require.NoError(t, err)
+	require.False(t, seen)
+
+	require.NoError(t, store.StoreNonce(context.Background(), "HOST1", "PARTNER2", "USER2", "nonce-shared", ts.Add(time.Minute)))
+
+	count, err := db.Count(&model.EbicsNonce{}).Where("nonce=?", "nonce-shared").Run()
+	require.NoError(t, err)
+	require.EqualValues(t, 2, count)
+}
+
+func TestProviderStoreStoreNonceRejectsDuplicatesForSameSubscriber(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+	ts := time.Date(2026, 3, 31, 11, 45, 0, 0, time.UTC)
+
+	require.NoError(t, store.StoreNonce(context.Background(), "HOST1", "PARTNER1", "USER1", "nonce-dup", ts))
+
+	err := store.StoreNonce(context.Background(), "HOST1", "PARTNER1", "USER1", " nonce-dup ", ts.Add(time.Minute))
+	require.Error(t, err)
+	require.ErrorContains(t, err, "already exists")
+
+	count, countErr := db.Count(&model.EbicsNonce{}).Where("nonce=?", "nonce-dup").Run()
+	require.NoError(t, countErr)
+	require.EqualValues(t, 1, count)
+}
+
+func TestProviderStorePurgeBeforeKeepsNonceAtExactExpirationBoundary(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	store := newProviderStore(db)
+	host := insertTestEbicsHost(t, db, "HOST1")
+	subscriber := insertTestEbicsSubscriber(t, db, host.ID, "PARTNER1", "USER1", true)
+	ts := time.Date(2026, 3, 31, 12, 0, 0, 0, time.UTC)
+
+	require.NoError(t, store.StoreNonce(context.Background(), "HOST1", "PARTNER1", "USER1", "nonce-boundary", ts))
+	require.NoError(t, store.PurgeBefore(context.Background(), ts.Add(defaultNonceTTL)))
+
+	count, err := db.Count(&model.EbicsNonce{}).Where("ebics_subscriber_id=?", subscriber.ID).Run()
+	require.NoError(t, err)
+	require.EqualValues(t, 1, count)
+
+	require.NoError(t, store.PurgeBefore(context.Background(), ts.Add(defaultNonceTTL).Add(time.Nanosecond)))
+
+	count, err = db.Count(&model.EbicsNonce{}).Where("ebics_subscriber_id=?", subscriber.ID).Run()
+	require.NoError(t, err)
+	require.Zero(t, count)
+}
+
 func TestProviderStorePurgeTransactionsBefore(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 	store := newProviderStore(db)
