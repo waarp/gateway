@@ -537,19 +537,24 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
   puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`
 
-- [ ] Lot 3C - Couvrir les handlers REST RTN et stabiliser les erreurs EBICS
+- [x] Lot 3C - Couvrir les handlers REST RTN et stabiliser les erreurs EBICS
   Fichier principal: `pkg/admin/rest/ebics_rtn.go`
   Attendus: tests REST RTN dedies, statuts et erreurs coherents, absence de
   logique partielle exposee
   Validation: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
   puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`
 
+  2026-03-31: Lot 3C est maintenant ferme. Une premiere vague de tests couvre
+  les transitions operateur `RETRY`, le rejet des actions RTN non supportees,
+  la validation des providers sans configuration et la preservation des champs
+  runtime (`LastConnectionAt`, `LastError`) lors d'un `update`.
+
 Ordre d'execution recommande:
 
 1. [x] Lot 3A
 2. [x] Lot 3B
-3. [ ] Lot 3C
-4. [ ] Rejouer linter + tests REST complets
+3. [x] Lot 3C
+4. [x] Rejouer linter + tests REST complets
 
 ### Etape 4. Fermer la couverture CLI EBICS
 

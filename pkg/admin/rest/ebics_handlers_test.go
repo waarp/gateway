@@ -353,6 +353,124 @@ func TestActOnEbicsInitializationCancelsWorkflow(t *testing.T) {
 	assert.Equal(t, "INIT-9", refreshed.EvidenceMap["ticket"])
 }
 
+func TestActOnEbicsRTNEventRetryUpdatesStatusAttemptsAndMetadata(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+
+	event := insertRESTEbicsRTNEvent(t, db, &model.EbicsRTNEvent{
+		Source:         "BANK_PUSH",
+		IdempotenceKey: "rtn-retry",
+		Status:         "RECEIVED",
+		Attempts:       1,
+		ReceivedAt:     time.Date(2026, 3, 31, 16, 0, 0, 0, time.UTC),
+	})
+
+	req := httptest.NewRequest(http.MethodPatch, "/ebics/rtn/events/"+marshalID(event.ID),
+		strings.NewReader(`{"action":"RETRY","reason":"temporary outage","metadata":{"ticket":"RTN-42"}}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_event": marshalID(event.ID)})
+	w := httptest.NewRecorder()
+
+	actOnEbicsRTNEvent(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body api.OutEbicsRTNEvent
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, "RETRYABLE", body.Status)
+	assert.Equal(t, 2, body.Attempts)
+	require.NotNil(t, body.NextRetryAt)
+	assert.Equal(t, "temporary outage", body.LastError)
+
+	var refreshed model.EbicsRTNEvent
+	require.NoError(t, db.Get(&refreshed, "id=?", event.ID).Run())
+	assert.Equal(t, "RETRYABLE", refreshed.Status)
+	assert.Equal(t, 2, refreshed.Attempts)
+	assert.Equal(t, "RETRY", refreshed.PayloadMap["lastOperatorAction"])
+	assert.Equal(t, "temporary outage", refreshed.PayloadMap["lastOperatorReason"])
+	assert.Equal(t, "RTN-42", refreshed.PayloadMap["lastOperatorMetadata"].(map[string]any)["ticket"])
+}
+
+func TestActOnEbicsRTNEventRejectsUnsupportedAction(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+
+	event := insertRESTEbicsRTNEvent(t, db, &model.EbicsRTNEvent{
+		Source:         "BANK_PUSH",
+		IdempotenceKey: "rtn-invalid",
+		Status:         "RECEIVED",
+		ReceivedAt:     time.Date(2026, 3, 31, 16, 5, 0, 0, time.UTC),
+	})
+
+	req := httptest.NewRequest(http.MethodPatch, "/ebics/rtn/events/"+marshalID(event.ID),
+		strings.NewReader(`{"action":"DROP","reason":"invalid"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_event": marshalID(event.ID)})
+	w := httptest.NewRecorder()
+
+	actOnEbicsRTNEvent(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), `"DROP" is not a supported EBICS RTN action`)
+
+	var refreshed model.EbicsRTNEvent
+	require.NoError(t, db.Get(&refreshed, "id=?", event.ID).Run())
+	assert.Equal(t, "RECEIVED", refreshed.Status)
+	assert.Zero(t, refreshed.Attempts)
+}
+
+func TestAddEbicsRTNProviderRequiresConfiguration(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-CONF", "PARTNER-RTN-CONF", "USER-RTN-CONF")
+
+	req := httptest.NewRequest(http.MethodPost, "/ebics/rtn/providers",
+		strings.NewReader(`{"name":"provider-a","transport":"WSS","subscriberID":`+marshalID(subscriber.ID)+`}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	addEbicsRTNProvider(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "the EBICS RTN provider configuration is missing")
+}
+
+func TestUpdateEbicsRTNProviderPreservesRuntimeFields(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-PROVIDER", "PARTNER-RTN-PROVIDER", "USER-RTN-PROVIDER")
+
+	lastConnection := time.Date(2026, 3, 31, 16, 10, 0, 0, time.UTC)
+	provider := insertRESTEbicsRTNProvider(t, db, &model.EbicsRTNProvider{
+		Name:              "provider-runtime",
+		Transport:         "WSS",
+		Enabled:           true,
+		EbicsSubscriberID: subscriber.ID,
+		ConfigurationMap:  map[string]any{"endpoint": "wss://bank.example/rtn", "clientID": "legacy"},
+		AutoPullPolicy:    "MANUAL",
+		LastConnectionAt:  lastConnection,
+		LastError:         "previous timeout",
+	})
+
+	req := httptest.NewRequest(http.MethodPatch, "/ebics/rtn/providers/"+provider.Name,
+		strings.NewReader(`{"autoPullPolicy":"AUTO","configuration":{"endpoint":"wss://bank.example/new","clientID":"fresh"}}`))
+	req.Header.Set("Content-Type", "application/json")
+	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_provider": provider.Name})
+	w := httptest.NewRecorder()
+
+	updateEbicsRTNProvider(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, "/ebics/rtn/providers/provider-runtime", w.Header().Get("Location"))
+
+	var refreshed model.EbicsRTNProvider
+	require.NoError(t, db.Get(&refreshed, "id=?", provider.ID).Run())
+	assert.Equal(t, "AUTO", refreshed.AutoPullPolicy)
+	assert.Equal(t, "wss://bank.example/new", refreshed.ConfigurationMap["endpoint"])
+	assert.Equal(t, lastConnection, refreshed.LastConnectionAt.UTC())
+	assert.Equal(t, "previous timeout", refreshed.LastError)
+}
+
 func insertRESTEbicsHostAndSubscriber(
 	t *testing.T,
 	db *database.DB,
@@ -426,6 +544,22 @@ func insertRESTEbicsCredential(t *testing.T, db *database.DB) *model.Credential 
 	require.NoError(t, db.Insert(credential).Run())
 
 	return credential
+}
+
+func insertRESTEbicsRTNEvent(t *testing.T, db *database.DB, event *model.EbicsRTNEvent) *model.EbicsRTNEvent {
+	t.Helper()
+	require.NoError(t, db.Insert(event).Run())
+	return event
+}
+
+func insertRESTEbicsRTNProvider(
+	t *testing.T,
+	db *database.DB,
+	provider *model.EbicsRTNProvider,
+) *model.EbicsRTNProvider {
+	t.Helper()
+	require.NoError(t, db.Insert(provider).Run())
+	return provider
 }
 
 func marshalID(id int64) string {
