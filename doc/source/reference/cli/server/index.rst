@@ -8,6 +8,7 @@ Serveur ``waarp-gatewayd``
    server
    import
    export
+   migrate
    purge
    restore_history
    change_aes
