@@ -106,10 +106,10 @@ Regles:
 
 ## 9. Import / export / administration transverse
 
-- [ ] Etendre `pkg/backup/export.go`
-- [ ] Etendre `pkg/backup/import.go`
-- [ ] Ajouter les helpers `*_export.go` / `*_import.go` si necessaire
-- [ ] Verifier le round-trip JSON/YAML de tous les objets administres
+- [x] Etendre `pkg/backup/export.go`
+- [x] Etendre `pkg/backup/import.go`
+- [x] Ajouter les helpers `*_export.go` / `*_import.go` si necessaire
+- [x] Verifier le round-trip JSON/YAML de tous les objets administres
 
 ## 10. Points de controle obligatoires
 
@@ -124,6 +124,10 @@ Regles:
 
 - Date: 2026-03-26
 - Auteur: Codex
+- Discipline: tout changement code EBICS doit desormais rejouer
+  systematiquement `golangci-lint` avant compilation ou tests Go cibles, puis
+  les tests unitaires du perimetre touche et une passe de non-regression
+  backend EBICS avant cloture
 - Blocage: aucun blocage actif sur la boucle `linter -> compilation` de la `Phase A`
 - Decision: `updateconf` ne demande pas de code specifique pour EBICS en `Phase A`, car le round-trip `ProtoConfig`
   est deja assure generiquement par `pkg/backup` et la validation protocolaire passe ensuite par les `BeforeWrite`
@@ -162,3 +166,23 @@ Le suivi des prochaines etapes backend avant frontend est desormais porte par:
 
 - `backend-consolidation-plan.md`
 - `suivi-backend-consolidation.md`
+
+Point de situation:
+
+- 2026-03-31: `B1`, `B2`, `B3` et `B3.5` restent fermes sur le depot;
+  `B4` et `B5` restent ouverts.
+  Les ecarts restants sont maintenant priorises dans
+  `suivi-backend-consolidation.md`, avec un focus explicite sur le durcissement
+  serveur EBICS, l'observabilite et la verification finale avant frontend.
+- 2026-03-31: la couverture de tests EBICS reste encore partielle au regard du
+  perimetre implemente.
+  Les tests visibles couvrent surtout `pkg/backup`, `updateconf` et
+  `runtime/contract_validation`.
+  Il manque encore une couverture plus directe du client EBICS, du serveur
+  EBICS, des handlers REST EBICS et de la CLI EBICS.
+- 2026-03-31: l'analyse d'avancement doit maintenant etre relue au regard des
+  documents `specifications-fonctionnelles.md`,
+  `specifications-techniques.md` et `architecture-logicielle.md`, car les
+  attentes sur le passe-plat metier, les connecteurs standards et la lecture
+  globale de l'architecture cible restent encore seulement partiellement
+  refletees dans le statut courant.

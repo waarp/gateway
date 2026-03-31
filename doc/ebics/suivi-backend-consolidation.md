@@ -15,7 +15,7 @@ Regles:
 
 - [x] Plus aucun `ErrNotImplemented` sur le chemin nominal EBICS
 - [ ] Plus aucun endpoint/commande EBICS expose sans logique runtime suffisante
-- [ ] Plus aucun `replace` local vers `lib-ebics`
+- [x] Plus aucun `replace` local vers `lib-ebics`
 - [x] Import/export/updateconf complets pour les objets EBICS administres
 - [x] Catalogue BTF standard disponible pour les validations pre-contractuelles
 - [ ] Politique d'exploitation documentee et relue
@@ -99,6 +99,20 @@ Regles:
 
 - Date de creation: 2026-03-27
 - Cible: backend EBICS complet avant chantier frontend
+- 2026-03-31: revue de situation B1 -> B5 rejouee sur le depot.
+  `B1`, `B2`, `B3` et `B3.5` restent consideres fermes;
+  `B4` et `B5` restent ouverts.
+  La dependance `code.waarp.fr/lib/ebics` est bien referencee sans `replace`
+  local actif dans `go.mod`.
+  Le principal reste a faire avant frontend est maintenant concentre sur
+  l'exploitation serveur/provider et sur la passe finale de verification.
+- 2026-03-31: `Lot 1A` est maintenant ferme.
+  Une premiere vague de tests a ete ajoutee dans
+  `pkg/protocols/modules/ebics/server_test.go` pour couvrir le cycle de vie du
+  service EBICS: `Start/Stop`, double demarrage, arret hors etat running,
+  erreur de configuration, erreur d'ecoute TLS et resolution du repertoire XSD.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -184,3 +198,503 @@ Regles:
   et fallback runtime strict `specific > country > GLB`.
   Si un contrat specifique actif existe et qu'un tuple n'y est pas trouve,
   l'echange est rejete sans fallback vers le catalogue standard.
+
+## 9. Priorisation des ecarts restants
+
+### Bloquants frontend
+
+- Valider l'execution serveur EBICS reelle sur le chemin nominal `BTU/BTD`
+- Valider la couverture normative des ordres serveur non payload exposes
+- Valider la segmentation / reprise / recovery cote serveur
+- Solder la gate "plus aucun endpoint/commande EBICS expose sans logique runtime suffisante"
+- Rejouer la passe de sortie backend `B5` avant de prononcer la gate frontend
+- Rejouer la lecture de sortie backend au regard des specs fonctionnelles,
+  techniques et d'architecture, pas seulement du code courant et des suivis
+
+### Importants
+
+- Revoir la journalisation des flux serveur EBICS
+- Revoir la journalisation des flux client EBICS
+- Revoir les messages d'erreur REST EBICS
+- Revoir les messages CLI EBICS
+- Revoir les statuts operateur visibles
+- Revoir la coherence des reprises / recovery
+- Revoir la discipline multi-SGBD / XORM
+- Revoir les protections de suppression / mutation sur objets sensibles
+- Repositionner explicitement les connecteurs de passe-plat metier
+  (`filesystem`, `REST`, `CLI`, `AMQP 0.9.1`, `AMQP 1.0`) dans la lecture
+  d'avancement EBICS, car ils font partie des specs et de l'architecture cible
+
+### Confort exploitation
+
+- Revoir la purge / retention des nonces
+- Revoir la purge / retention des transactions
+- Revoir la purge / retention des evenements RTN
+
+### Discipline qualite
+
+- Avant tout changement code EBICS, executer `golangci-lint` sur le perimetre
+  cible avant compilation ou tests Go
+- A chaque changement code EBICS, executer les tests unitaires cibles du
+  perimetre touche puis une passe de non-regression backend EBICS
+- Ne pas fermer `B4` ni `B5` sans enrichissement mesurable de la couverture de
+  tests EBICS sur le client, le serveur, les handlers REST et la CLI
+
+## 10. Backlog executable B4 / B5
+
+### Etape 1. Consolider le serveur payload nominal
+
+Objectif:
+
+- verifier et durcir le chemin serveur `BTU/BTD` de bout en bout;
+- fermer l'angle mort principal identifie avant frontend.
+
+Fichiers cibles:
+
+- `pkg/protocols/modules/ebics/server.go`
+- `pkg/protocols/modules/ebics/order_router.go`
+- `pkg/protocols/modules/ebics/provider_store.go`
+- `pkg/protocols/modules/ebics/stores/tx_store.go`
+- `pkg/protocols/modules/ebics/stores/operation_store.go`
+
+Tests a ajouter ou enrichir en priorite:
+
+- tests unitaires/integres sur le routage serveur payload
+- tests de correlation `operation / transaction / transfer`
+- tests de statuts et retours serveur en succes / echec
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
+
+Sous-lots cochables:
+
+- [x] Lot 1A - Poser les tests de cycle de vie serveur
+  Fichier principal: `pkg/protocols/modules/ebics/server_test.go`
+  Attendus: demarrage nominal, echec de configuration, echec de listener TLS,
+  arret propre, double `Start` / double `Stop`, activation du profil XSD strict
+  si disponible, comportement degrade explicite si le repertoire XSD est absent
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
+
+- [ ] Lot 1B - Poser les tests de routage payload serveur
+  Fichier principal: `pkg/protocols/modules/ebics/order_router_test.go`
+  Attendus: `BTU` nominal cree `EbicsOperation`, `EbicsTransaction` et le lien
+  `Transfer`; `BTD` nominal cree les correlations attendues; rejet contractuel
+  sans fallback interdit; mapping correct des return codes `technical` et
+  `business`; absence de creation parasite d'objets sur un chemin rejete
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
+
+- [ ] Lot 1C - Couvrir les stores et la persistance provider
+  Fichiers principaux: `pkg/protocols/modules/ebics/provider_store_test.go`,
+  `pkg/protocols/modules/ebics/stores/tx_store_test.go`,
+  `pkg/protocols/modules/ebics/stores/operation_store_test.go`
+  Attendus: lecture / ecriture transaction, persistance des segments si
+  presents, coherence `owner / host / partner / user`, reprise correcte depuis
+  la base
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+
+- [ ] Lot 1D - Ajouter un test d'integration serveur minimal
+  Fichier principal: `pkg/protocols/modules/ebics/server_integration_test.go`
+  ou `pkg/protocols/modules/ebics/server_test.go`
+  Attendus: demarrage du serveur Gateway EBICS avec stores reels, execution d'un
+  scenario payload nominal, verification de `operation / transaction / transfer`,
+  verification du statut final exploitable
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
+
+- [ ] Lot 1E - Corriger le code apres la premiere vague de tests
+  Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
+  `pkg/protocols/modules/ebics/order_router.go`,
+  `pkg/protocols/modules/ebics/provider_store.go`,
+  `pkg/protocols/modules/ebics/stores/tx_store.go`,
+  `pkg/protocols/modules/ebics/stores/operation_store.go`
+  Attendus: corriger les ecarts trouves sans perdre le filet de securite
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
+
+Ordre d'execution recommande:
+
+1. [ ] Lot 1A
+2. [ ] Lot 1B
+3. [ ] Lot 1C
+4. [ ] Faire passer la premiere vague de tests
+5. [ ] Lot 1E
+6. [ ] Lot 1D
+7. [ ] Rejouer linter + tests
+
+### Etape 2. Cadrer la segmentation, reprise et recovery serveur
+
+Objectif:
+
+- verifier la persistance durable et les comportements de reprise;
+- confirmer l'alignement avec les specs techniques et d'architecture.
+
+Fichiers cibles:
+
+- `pkg/protocols/modules/ebics/server.go`
+- `pkg/protocols/modules/ebics/provider_store.go`
+- `pkg/protocols/modules/ebics/stores/tx_store.go`
+- `pkg/model/ebics_transaction.go`
+- `pkg/model/ebics_transaction_segment.go`
+- `pkg/model/ebics_nonce.go`
+
+Tests a ajouter ou enrichir en priorite:
+
+- tests de reprise sur transaction segmentee
+- tests de persistance des segments
+- tests de fenetre anti-rejeu / nonce
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+
+Sous-lots cochables:
+
+- [ ] Lot 2A - Poser les tests de segmentation serveur
+  Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
+  `pkg/protocols/modules/ebics/stores/tx_store.go`,
+  `pkg/model/ebics_transaction.go`,
+  `pkg/model/ebics_transaction_segment.go`
+  Attendus: tests de reprise sur transaction segmentee, persistance des
+  segments, verification du comptage et de l'etat de transaction
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+
+- [ ] Lot 2B - Poser les tests anti-rejeu / nonce
+  Fichiers principaux: `pkg/protocols/modules/ebics/provider_store.go`,
+  `pkg/model/ebics_nonce.go`
+  Attendus: tests de fenetre anti-rejeu, persistance et rejet des doublons
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+
+- [ ] Lot 2C - Corriger le runtime serveur sur la reprise / recovery
+  Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
+  `pkg/protocols/modules/ebics/provider_store.go`,
+  `pkg/protocols/modules/ebics/stores/tx_store.go`
+  Attendus: comportement de recovery explicite, persistance durable, alignement
+  avec les specs techniques et d'architecture
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/database/migrations`
+
+Ordre d'execution recommande:
+
+1. [ ] Lot 2A
+2. [ ] Lot 2B
+3. [ ] Faire passer la vague de tests segmentation / nonce
+4. [ ] Lot 2C
+5. [ ] Rejouer linter + tests
+
+### Etape 3. Fermer la couverture REST EBICS
+
+Objectif:
+
+- verifier que les handlers REST EBICS exposes ont une logique exploitable,
+  des erreurs lisibles et des statuts operateur coherents.
+
+Fichiers cibles:
+
+- `pkg/admin/rest/ebics_payloads.go`
+- `pkg/admin/rest/ebics_operations.go`
+- `pkg/admin/rest/ebics_transactions.go`
+- `pkg/admin/rest/ebics_contract_views.go`
+- `pkg/admin/rest/ebics_key_lifecycles.go`
+- `pkg/admin/rest/ebics_initializations.go`
+- `pkg/admin/rest/ebics_rtn.go`
+- `pkg/admin/rest/ebics_utils.go`
+
+Tests a ajouter ou enrichir en priorite:
+
+- tests REST dedies par famille EBICS
+- tests de validation d'entrees et erreurs operateur
+- tests de mapping DTO <-> model pour les sorties critiques
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
+- `go test ./pkg/admin/rest ./pkg/admin/rest/api`
+
+Sous-lots cochables:
+
+- [ ] Lot 3A - Couvrir les handlers REST payloads / operations / transactions
+  Fichiers principaux: `pkg/admin/rest/ebics_payloads.go`,
+  `pkg/admin/rest/ebics_operations.go`,
+  `pkg/admin/rest/ebics_transactions.go`
+  Attendus: tests REST dedies, validation d'entrees, erreurs operateur,
+  mapping DTO <-> model sur les sorties critiques
+  Validation: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
+  puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`
+
+- [ ] Lot 3B - Couvrir les handlers REST contract views / key lifecycles / initializations
+  Fichiers principaux: `pkg/admin/rest/ebics_contract_views.go`,
+  `pkg/admin/rest/ebics_key_lifecycles.go`,
+  `pkg/admin/rest/ebics_initializations.go`,
+  `pkg/admin/rest/ebics_utils.go`
+  Attendus: tests REST dedies, sorties operateur lisibles, validations de
+  references et d'etats
+  Validation: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
+  puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`
+
+- [ ] Lot 3C - Couvrir les handlers REST RTN et stabiliser les erreurs EBICS
+  Fichier principal: `pkg/admin/rest/ebics_rtn.go`
+  Attendus: tests REST RTN dedies, statuts et erreurs coherents, absence de
+  logique partielle exposee
+  Validation: `golangci-lint run ./pkg/admin/rest/... ./pkg/admin/rest/api`
+  puis `go test ./pkg/admin/rest ./pkg/admin/rest/api`
+
+Ordre d'execution recommande:
+
+1. [ ] Lot 3A
+2. [ ] Lot 3B
+3. [ ] Lot 3C
+4. [ ] Rejouer linter + tests REST complets
+
+### Etape 4. Fermer la couverture CLI EBICS
+
+Objectif:
+
+- verifier que les commandes EBICS exposent correctement les actions backend et
+  les messages operateur.
+
+Fichiers cibles:
+
+- `pkg/cmd/client/ebics_operations.go`
+- `pkg/cmd/client/ebics_payload.go`
+- `pkg/cmd/client/ebics_payload_profiles.go`
+- `pkg/cmd/client/ebics_contract_views.go`
+- `pkg/cmd/client/ebics_key_lifecycles.go`
+- `pkg/cmd/client/ebics_initializations.go`
+- `pkg/cmd/client/ebics_rtn.go`
+- `cmd/waarp-gateway/main.go`
+
+Tests a ajouter ou enrichir en priorite:
+
+- tests CLI dedies par commande EBICS
+- tests des sorties utilisateur et des erreurs
+- tests des actions specialisees `reporting`, `signature`, `retry`, `recover`
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
+- `go test ./pkg/cmd/client ./cmd/waarp-gateway`
+
+Sous-lots cochables:
+
+- [ ] Lot 4A - Couvrir les commandes CLI payloads / operations / transactions
+  Fichiers principaux: `pkg/cmd/client/ebics_payload.go`,
+  `pkg/cmd/client/ebics_operations.go`,
+  `pkg/cmd/client/ebics_transactions.go`,
+  `cmd/waarp-gateway/main.go`
+  Attendus: tests CLI dedies, sorties utilisateur lisibles, erreurs coherentes
+  Validation: `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
+  puis `go test ./pkg/cmd/client ./cmd/waarp-gateway`
+
+- [ ] Lot 4B - Couvrir les commandes CLI contract views / key lifecycles / initializations
+  Fichiers principaux: `pkg/cmd/client/ebics_contract_views.go`,
+  `pkg/cmd/client/ebics_key_lifecycles.go`,
+  `pkg/cmd/client/ebics_initializations.go`
+  Attendus: tests des actions et sorties operateur, coherence avec le backend
+  REST expose
+  Validation: `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
+  puis `go test ./pkg/cmd/client ./cmd/waarp-gateway`
+
+- [ ] Lot 4C - Couvrir les commandes CLI RTN / actions specialisees
+  Fichiers principaux: `pkg/cmd/client/ebics_rtn.go`,
+  `pkg/cmd/client/ebics_payload_profiles.go`
+  Attendus: tests des actions specialisees `reporting`, `signature`, `retry`,
+  `recover` et messages utilisateur associes
+  Validation: `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
+  puis `go test ./pkg/cmd/client ./cmd/waarp-gateway`
+
+Ordre d'execution recommande:
+
+1. [ ] Lot 4A
+2. [ ] Lot 4B
+3. [ ] Lot 4C
+4. [ ] Rejouer linter + tests CLI complets
+
+### Etape 5. Durcir l'observabilite et les statuts operateur
+
+Objectif:
+
+- aligner les logs, statuts et messages avec les specs fonctionnelles,
+  techniques et d'architecture;
+- rendre l'exploitation lisible sans debugger le code.
+
+Fichiers cibles:
+
+- `pkg/protocols/modules/ebics/server.go`
+- `pkg/protocols/modules/ebics/client.go`
+- `pkg/protocols/modules/ebics/client_transfer.go`
+- `pkg/protocols/modules/ebics/client_admin.go`
+- `pkg/protocols/modules/ebics/client_reporting.go`
+- `pkg/protocols/modules/ebics/client_key_rotation.go`
+- `pkg/admin/rest/ebics_*.go`
+- `pkg/cmd/client/ebics_*.go`
+
+Points a verifier:
+
+- correlation `HostID / PartnerID / UserID / OrderType / TransactionID`
+- restitution separee des return codes `technical` et `business`
+- coherence des messages REST / CLI / logs
+- statuts d'initialisation, rotation et RTN exploitables
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
+
+Sous-lots cochables:
+
+- [ ] Lot 5A - Normaliser les correlations et statuts EBICS
+  Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
+  `pkg/protocols/modules/ebics/client.go`,
+  `pkg/protocols/modules/ebics/client_transfer.go`
+  Attendus: correlation `HostID / PartnerID / UserID / OrderType / TransactionID`
+  visible et statuts operateur coherents
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
+
+- [ ] Lot 5B - Rendre explicites les return codes et messages operateur
+  Fichiers principaux: `pkg/protocols/modules/ebics/client_admin.go`,
+  `pkg/protocols/modules/ebics/client_reporting.go`,
+  `pkg/protocols/modules/ebics/client_key_rotation.go`,
+  `pkg/admin/rest/ebics_*.go`,
+  `pkg/cmd/client/ebics_*.go`
+  Attendus: restitution separee des return codes `technical` et `business`,
+  coherence des messages REST / CLI / logs
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
+
+- [ ] Lot 5C - Rendre exploitables les workflows sensibles et RTN
+  Fichiers principaux: `pkg/protocols/modules/ebics/client_admin.go`,
+  `pkg/protocols/modules/ebics/client_key_rotation.go`,
+  `pkg/admin/rest/ebics_initializations.go`,
+  `pkg/admin/rest/ebics_key_lifecycles.go`,
+  `pkg/admin/rest/ebics_rtn.go`
+  Attendus: statuts d'initialisation, rotation et RTN lisibles sans debugger le
+  code
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
+
+Ordre d'execution recommande:
+
+1. [ ] Lot 5A
+2. [ ] Lot 5B
+3. [ ] Lot 5C
+4. [ ] Rejouer linter + tests observabilite
+
+### Etape 6. Fermer les exigences d'exploitation transverses
+
+Objectif:
+
+- solder les points de retention, protections d'etat et discipline
+  multi-SGBD/XORM.
+
+Fichiers cibles:
+
+- `pkg/model/credentials.go`
+- `pkg/model/ebics_key_lifecycle.go`
+- `pkg/model/ebics_initialization_workflow.go`
+- `pkg/model/ebics_rtn_event.go`
+- `pkg/model/ebics_nonce.go`
+- `pkg/database/migrations/*.go`
+
+Tests a ajouter ou enrichir en priorite:
+
+- tests de protections de mutation/suppression
+- tests de contraintes de persistance et migrations
+- tests de purge / retention sur `nonces`, transactions et RTN
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/model ./pkg/database/migrations ./pkg/backup`
+- `go test ./pkg/model ./pkg/database/migrations ./pkg/backup`
+
+Sous-lots cochables:
+
+- [ ] Lot 6A - Durcir les protections de mutation / suppression
+  Fichiers principaux: `pkg/model/credentials.go`,
+  `pkg/model/ebics_key_lifecycle.go`,
+  `pkg/model/ebics_initialization_workflow.go`,
+  `pkg/model/ebics_rtn_event.go`
+  Attendus: tests de protections de mutation/suppression sur objets sensibles
+  Validation: `golangci-lint run ./pkg/model ./pkg/database/migrations ./pkg/backup`
+  puis `go test ./pkg/model ./pkg/database/migrations ./pkg/backup`
+
+- [ ] Lot 6B - Fermer la discipline multi-SGBD / XORM et migrations
+  Fichiers principaux: `pkg/database/migrations/*.go`,
+  `pkg/model/ebics_nonce.go`
+  Attendus: tests de contraintes de persistance, migrations et comportements
+  cross-SGBD sur le perimetre EBICS
+  Validation: `golangci-lint run ./pkg/model ./pkg/database/migrations ./pkg/backup`
+  puis `go test ./pkg/model ./pkg/database/migrations ./pkg/backup`
+
+- [ ] Lot 6C - Poser la retention / purge minimale EBICS
+  Fichiers principaux: `pkg/model/ebics_nonce.go`,
+  `pkg/model/ebics_rtn_event.go`,
+  `pkg/model/ebics_transaction.go`
+  Attendus: tests de purge / retention sur `nonces`, transactions et RTN
+  Validation: `golangci-lint run ./pkg/model ./pkg/database/migrations ./pkg/backup`
+  puis `go test ./pkg/model ./pkg/database/migrations ./pkg/backup`
+
+Ordre d'execution recommande:
+
+1. [ ] Lot 6A
+2. [ ] Lot 6B
+3. [ ] Lot 6C
+4. [ ] Rejouer linter + tests transverses
+
+### Etape 7. Passe de sortie B5
+
+Objectif:
+
+- prononcer ou refuser explicitement la gate "backend pret frontend".
+
+Verification attendue:
+
+- repasse `rg ErrNotImplemented|not implemented` sur le perimetre EBICS
+- relecture contre `specifications-fonctionnelles.md`
+- relecture contre `specifications-techniques.md`
+- relecture contre `architecture-logicielle.md`
+- verification explicite des attentes de passe-plat metier et connecteurs
+- verification explicite de la couverture de tests EBICS ajoutee pendant `B4`
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`
+- `go test ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`
+
+Sous-lots cochables:
+
+- [ ] Lot 7A - Rejouer la passe "zero stub bloquant"
+  Attendus: repasse `rg ErrNotImplemented|not implemented` sur le perimetre
+  EBICS et solder tous les cas restants
+  Validation: commande de recherche rejouee et conclusion tracee dans le suivi
+
+- [ ] Lot 7B - Rejouer la passe qualite complete
+  Attendus: linter complet backend EBICS puis tests cibles / non-regression
+  Validation: `golangci-lint run ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`
+  puis `go test ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`
+
+- [ ] Lot 7C - Relecture finale contre les specs et les suivis
+  Attendus: relecture contre `specifications-fonctionnelles.md`,
+  `specifications-techniques.md`, `architecture-logicielle.md`, verification
+  explicite des attentes de passe-plat metier, connecteurs et couverture de
+  tests EBICS ajoutee pendant `B4`
+  Validation: synthese de sortie documentee dans le suivi
+
+- [ ] Lot 7D - Prononcer ou refuser la gate "backend pret frontend"
+  Attendus: decision explicite, motivee, tracee dans les documents de suivi
+  Validation: mise a jour des cases de sortie backend
+
+Ordre d'execution recommande:
+
+1. [ ] Lot 7A
+2. [ ] Lot 7B
+3. [ ] Lot 7C
+4. [ ] Lot 7D

@@ -115,6 +115,16 @@ Decision / date:
 Note:
 - le suivi detaille est porte par `backend-consolidation-plan.md` et `suivi-backend-consolidation.md`
 - objectif explicite: ne plus laisser de stub bloquant ni de fonctionnalite backend EBICS partielle avant frontend
+- point de situation rejoue le 2026-03-31:
+  `B1`, `B2`, `B3` et `B3.5` restent fermes;
+  `B4` et `B5` restent ouverts;
+  les principaux ecarts restants sont maintenant concentres sur le serveur EBICS,
+  l'observabilite / l'exploitation et la passe finale de verification de sortie
+- ce point de situation doit maintenant etre relu contre
+  `specifications-fonctionnelles.md`, `specifications-techniques.md` et
+  `architecture-logicielle.md`, car une lecture centree seulement sur le code
+  courant sous-estime encore les attentes de passe-plat metier, d'observabilite,
+  de validation serveur et de verification finale
 - le chantier de consolidation serveur EBICS est maintenant rendu explicite dans `Lot B4`,
   pour ne pas laisser un angle mort cote provider/serveur
 - `Lot B1` est termine:
