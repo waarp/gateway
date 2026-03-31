@@ -113,6 +113,19 @@ Regles:
   erreur de configuration, erreur d'ecoute TLS et resolution du repertoire XSD.
   Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`.
+- 2026-03-31: `Lot 1B` est maintenant ferme pour sa premiere vague de tests
+  unitaires de routage payload serveur. Le fichier
+  `pkg/protocols/modules/ebics/order_router_test.go` couvre a present:
+  selection de profil la plus specifique, rejet des profils ambigus,
+  validation contractuelle et mapping de return codes, derive de nom de fichier
+  entrant, correlation runtime, enrichissement des metadonnees `Transfer`,
+  resolution `host / subscriber / local account`, et rejet d'un profil payload
+  lie a une regle Gateway de direction incompatible.
+  Cette fermeture ne solde pas encore le scenario nominal complet
+  `Upload/Download` avec creation verifiee de `EbicsOperation /
+  EbicsTransaction / Transfer`; ce point reste porte par `Lot 1D`.
+  Verification rejouee: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`.
 - 2026-03-27: `Lot B1` est entame et couvre maintenant le chemin nominal payload client
   `BTU/BTD` avec creation `EbicsOperation` / `EbicsTransaction`, contrat actif,
   TLS, recovery et correlation `transfer`.
@@ -278,7 +291,7 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/model`
 
-- [ ] Lot 1B - Poser les tests de routage payload serveur
+- [x] Lot 1B - Poser les tests de routage payload serveur
   Fichier principal: `pkg/protocols/modules/ebics/order_router_test.go`
   Attendus: `BTU` nominal cree `EbicsOperation`, `EbicsTransaction` et le lien
   `Transfer`; `BTD` nominal cree les correlations attendues; rejet contractuel
@@ -318,8 +331,8 @@ Sous-lots cochables:
 
 Ordre d'execution recommande:
 
-1. [ ] Lot 1A
-2. [ ] Lot 1B
+1. [x] Lot 1A
+2. [x] Lot 1B
 3. [ ] Lot 1C
 4. [ ] Faire passer la premiere vague de tests
 5. [ ] Lot 1E
