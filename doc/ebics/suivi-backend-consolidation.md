@@ -833,30 +833,63 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot 7A - Rejouer la passe "zero stub bloquant"
+- [x] Lot 7A - Rejouer la passe "zero stub bloquant"
   Attendus: repasse `rg ErrNotImplemented|not implemented` sur le perimetre
   EBICS et solder tous les cas restants
   Validation: commande de recherche rejouee et conclusion tracee dans le suivi
 
-- [ ] Lot 7B - Rejouer la passe qualite complete
+  2026-04-01: Lot 7A est maintenant ferme. La repasse
+  `rg ErrNotImplemented|not implemented` sur `pkg/protocols/modules/ebics`,
+  `pkg/admin/rest`, `pkg/admin/rest/api`, `pkg/cmd/client`,
+  `cmd/waarp-gateway`, `pkg/model`, `pkg/backup` et
+  `pkg/database/migrations` ne remonte aucun stub EBICS bloquant actif.
+
+- [x] Lot 7B - Rejouer la passe qualite complete
   Attendus: linter complet backend EBICS puis tests cibles / non-regression
   Validation: `golangci-lint run ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`
   puis `go test ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`
 
-- [ ] Lot 7C - Relecture finale contre les specs et les suivis
+  2026-04-01: Lot 7B est maintenant ferme. La passe qualite backend EBICS a
+  ete rejouee avec succes:
+  `golangci-lint run ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`
+  puis
+  `go test ./pkg/model ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/backup ./pkg/database/migrations`.
+
+- [x] Lot 7C - Relecture finale contre les specs et les suivis
   Attendus: relecture contre `specifications-fonctionnelles.md`,
   `specifications-techniques.md`, `architecture-logicielle.md`, verification
   explicite des attentes de passe-plat metier, connecteurs et couverture de
   tests EBICS ajoutee pendant `B4`
   Validation: synthese de sortie documentee dans le suivi
 
-- [ ] Lot 7D - Prononcer ou refuser la gate "backend pret frontend"
+  2026-04-01: Lot 7C est maintenant ferme. La relecture contre les specs et
+  l'architecture confirme que le backend EBICS proprement dit est fortement
+  consolide sur l'execution protocolaire, la persistance, l'administration,
+  l'observabilite et la couverture de tests ajoutee pendant `B4`. En
+  revanche, la cible documentaire complete inclut explicitement une couche de
+  passe-plat metier et des connecteurs asynchrones `AMQP 0.9.1` / `AMQP 1.0`
+  comme attente minimale ou prealable architectural; ces capacites restent
+  absentes du code courant. La conclusion de sortie doit donc rester negative
+  a l'echelle de la cible documentaire globale, meme si le backend EBICS
+  strict est beaucoup plus mature.
+
+- [x] Lot 7D - Prononcer ou refuser la gate "backend pret frontend"
   Attendus: decision explicite, motivee, tracee dans les documents de suivi
   Validation: mise a jour des cases de sortie backend
 
+  2026-04-01: Lot 7D est maintenant ferme avec une decision explicite de
+  refus de la gate `backend pret frontend` a l'echelle de la cible
+  documentaire complete. Motifs principaux:
+  absence des protocoles natifs `amqp091` / `amqp10`, absence de socle
+  `outbox / consumer workers` pour le passe-plat asynchrone metier, et
+  ecart restant entre le backend EBICS strict et l'architecture cible
+  documentee. Le backend EBICS seul peut etre considere tres avance et
+  techniquement consolide, mais pas encore conforme au perimetre complet
+  annonce par les specs.
+
 Ordre d'execution recommande:
 
-1. [ ] Lot 7A
-2. [ ] Lot 7B
-3. [ ] Lot 7C
-4. [ ] Lot 7D
+1. [x] Lot 7A
+2. [x] Lot 7B
+3. [x] Lot 7C
+4. [x] Lot 7D

@@ -186,3 +186,10 @@ Point de situation:
   attentes sur le passe-plat metier, les connecteurs standards et la lecture
   globale de l'architecture cible restent encore seulement partiellement
   refletees dans le statut courant.
+- 2026-04-01: la passe finale `B5` est maintenant rejouee avec succes sur le
+  perimetre backend EBICS (`rg`, `golangci-lint`, `go test`, relecture specs).
+  La conclusion globale reste toutefois negative pour la gate
+  `backend pret frontend` a l'echelle de la cible documentaire complete:
+  le backend EBICS strict est consolide, mais les protocoles natifs
+  `AMQP 0.9.1` / `AMQP 1.0` et le socle de passe-plat asynchrone metier
+  restent absents.

@@ -108,8 +108,8 @@ Decision / date:
 - [x] Lot B2 - Couverture backend complete
 - [x] Lot B3 - Import / export / updateconf complet
 - [x] Lot B3.5 - Catalogue BTF standard
-- [ ] Lot B4 - Durcissement exploitation
-- [ ] Lot B5 - Verification de sortie backend
+- [x] Lot B4 - Durcissement exploitation
+- [x] Lot B5 - Verification de sortie backend
 - [ ] Gate "backend pret frontend" prononcee
 
 Note:
@@ -120,6 +120,13 @@ Note:
   `B4` et `B5` restent ouverts;
   les principaux ecarts restants sont maintenant concentres sur le serveur EBICS,
   l'observabilite / l'exploitation et la passe finale de verification de sortie
+- point de situation rejoue le 2026-04-01:
+  `B4` et `B5` sont maintenant fermes sur le backend EBICS strict avec
+  repasse linter/tests complete, relecture des specs et refus explicite de la
+  gate frontend a l'echelle de la cible documentaire globale.
+  Le motif principal restant est l'absence du passe-plat asynchrone metier et
+  des protocoles natifs `AMQP 0.9.1` / `AMQP 1.0`, identifies comme attente
+  minimale ou prealable architectural dans les documents de specification.
 - ce point de situation doit maintenant etre relu contre
   `specifications-fonctionnelles.md`, `specifications-techniques.md` et
   `architecture-logicielle.md`, car une lecture centree seulement sur le code
