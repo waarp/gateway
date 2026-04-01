@@ -76,25 +76,25 @@ func TestRecoverEbicsPayloadResetsOperationState(t *testing.T) {
 	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RECOVER", "PARTNER-RECOVER", "USER-RECOVER")
 
 	operation := insertRESTEbicsOperation(t, db, &model.EbicsOperation{
-		EbicsHostID:             host.ID,
-		EbicsSubscriberID:       subscriber.ID,
-		OperationType:           model.EbicsOperationTypePayloadForRuntime(),
-		OrderType:               "BTD",
-		Direction:               "INBOUND",
-		TransportMode:           "ASYNC",
-		Status:                  "FAILED",
-		Severity:                "ERROR",
-		GatewayOutcome:          "TECHNICAL_FATAL_FAILURE",
-		RetryDecision:           "RECOVERY_REQUIRED",
-		CorrelationID:           "recover-op",
-		TechnicalReturnCode:     "091005",
-		TechnicalReturnMessage:  "technical failure",
-		BusinessReturnCode:      "090003",
-		BusinessReturnMessage:   "business failure",
-		ManualActionRequired:    true,
-		StartedAt:               time.Date(2026, 3, 31, 9, 0, 0, 0, time.UTC),
-		FinishedAt:              time.Date(2026, 3, 31, 9, 1, 0, 0, time.UTC),
-		MetadataMap:             map[string]any{"existing": "value"},
+		EbicsHostID:            host.ID,
+		EbicsSubscriberID:      subscriber.ID,
+		OperationType:          model.EbicsOperationTypePayloadForRuntime(),
+		OrderType:              "BTD",
+		Direction:              "INBOUND",
+		TransportMode:          "ASYNC",
+		Status:                 "FAILED",
+		Severity:               "ERROR",
+		GatewayOutcome:         "TECHNICAL_FATAL_FAILURE",
+		RetryDecision:          "RECOVERY_REQUIRED",
+		CorrelationID:          "recover-op",
+		TechnicalReturnCode:    "091005",
+		TechnicalReturnMessage: "technical failure",
+		BusinessReturnCode:     "090003",
+		BusinessReturnMessage:  "business failure",
+		ManualActionRequired:   true,
+		StartedAt:              time.Date(2026, 3, 31, 9, 0, 0, 0, time.UTC),
+		FinishedAt:             time.Date(2026, 3, 31, 9, 1, 0, 0, time.UTC),
+		MetadataMap:            map[string]any{"existing": "value"},
 	})
 
 	req := httptest.NewRequest(http.MethodPatch, "/ebics/payloads/1/recover",
@@ -311,13 +311,13 @@ func TestActOnEbicsKeyLifecycleUpdatesStatusAndEvidence(t *testing.T) {
 	nextCredential := insertRESTEbicsCredential(t, db)
 
 	lifecycle := &model.EbicsKeyLifecycle{
-		EbicsSubscriberID:    subscriber.ID,
-		KeyUsage:             "AUTHENTICATION",
-		RotationType:         "ROTATION",
-		Status:               "ORDER_PLANNED",
-		CurrentCredentialID:  credential.ID,
-		NextCredentialID:     sql.NullInt64{Int64: nextCredential.ID, Valid: true},
-		CoordinationID:       "coord-kl",
+		EbicsSubscriberID:   subscriber.ID,
+		KeyUsage:            "AUTHENTICATION",
+		RotationType:        "ROTATION",
+		Status:              "ORDER_PLANNED",
+		CurrentCredentialID: credential.ID,
+		NextCredentialID:    sql.NullInt64{Int64: nextCredential.ID, Valid: true},
+		CoordinationID:      "coord-kl",
 	}
 	require.NoError(t, db.Insert(lifecycle).Run())
 
@@ -474,6 +474,46 @@ func TestActOnEbicsRTNEventRejectsUnsupportedAction(t *testing.T) {
 	require.NoError(t, db.Get(&refreshed, "id=?", event.ID).Run())
 	assert.Equal(t, "RECEIVED", refreshed.Status)
 	assert.Zero(t, refreshed.Attempts)
+}
+
+func TestGetEbicsRTNEventExposesAutoPullLinksAndOutcome(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+
+	event := insertRESTEbicsRTNEvent(t, db, &model.EbicsRTNEvent{
+		Source:         "BANK_PUSH",
+		IdempotenceKey: "rtn-autopull",
+		Status:         "PROCESSED",
+		Attempts:       1,
+		ReceivedAt:     time.Date(2026, 4, 1, 16, 0, 0, 0, time.UTC),
+		ProcessedAt:    time.Date(2026, 4, 1, 16, 1, 0, 0, time.UTC),
+		PayloadMap: map[string]any{
+			"autoPullOperationID": int64(910),
+			"autoPullTransferID":  int64(911),
+			"autoPullOrderType":   "BTD",
+			"autoPullStatus":      "COMPLETED",
+			"autoPullOutcome":     "SUCCESS",
+			"autoPullRetry":       "NO_RETRY",
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/rtn/events/"+marshalID(event.ID), nil)
+	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_event": marshalID(event.ID)})
+	w := httptest.NewRecorder()
+
+	getEbicsRTNEvent(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var body api.OutEbicsRTNEvent
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.NotNil(t, body.AutoPullOperationID)
+	require.NotNil(t, body.AutoPullTransferID)
+	assert.EqualValues(t, 910, *body.AutoPullOperationID)
+	assert.EqualValues(t, 911, *body.AutoPullTransferID)
+	assert.Equal(t, "BTD", body.AutoPullOrderType)
+	assert.Equal(t, "COMPLETED", body.AutoPullStatus)
+	assert.Equal(t, "SUCCESS", body.AutoPullOutcome)
+	assert.Equal(t, "NO_RETRY", body.AutoPullRetry)
 }
 
 func TestAddEbicsRTNProviderRequiresConfiguration(t *testing.T) {

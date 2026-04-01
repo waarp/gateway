@@ -28,6 +28,7 @@ import (
 
 const (
 	transferInfoKeyEbicsOperationID        = "ebicsOperationID"
+	transferInfoKeyEbicsRTNEventID         = "ebicsRTNEventID"
 	transferInfoKeyEbicsOrderType          = "ebicsOrderType"
 	transferInfoKeyEbicsHostID             = "ebicsHostID"
 	transferInfoKeyEbicsPartnerID          = "ebicsPartnerID"
@@ -792,7 +793,7 @@ func validateRouterContract(
 	}
 
 	switch validation.Status {
-	case "MATCHED":
+	case contractValidationStatusMatched:
 		return nil
 	case "NO_VALIDATION_BASE":
 		return mappedOrderError(fmt.Errorf("%w: %s",

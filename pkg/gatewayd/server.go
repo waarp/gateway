@@ -26,6 +26,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ebics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -46,6 +47,7 @@ type WG struct {
 	SnmpService  *snmp.Service
 	Controller   *controller.Controller
 	Analytics    *analytics.Service
+	EbicsRTN     *ebics.RTNService
 }
 
 // NewWG creates a new application.
@@ -112,6 +114,7 @@ func (wg *WG) initServices() {
 	wg.SnmpService = &snmp.Service{DB: wg.DBService}
 	wg.AdminService = &admin.Server{DB: wg.DBService}
 	wg.Controller = &controller.Controller{DB: wg.DBService}
+	wg.EbicsRTN = ebics.NewRTNService(wg.DBService)
 
 	snmp.GlobalService = wg.SnmpService
 	analytics.GlobalService = wg.Analytics
@@ -138,6 +141,10 @@ func (wg *WG) startServices() error {
 		return fmt.Errorf("cannot start controller service: %w", err)
 	}
 
+	if err := wg.EbicsRTN.Start(); err != nil {
+		return fmt.Errorf("cannot start EBICS RTN service: %w", err)
+	}
+
 	if err := wg.makeDirs(); err != nil {
 		return err
 	}
@@ -147,6 +154,7 @@ func (wg *WG) startServices() error {
 	services.Core[admin.ServiceName] = wg.AdminService
 	services.Core[snmp.ServiceName] = wg.SnmpService
 	services.Core[analytics.ServiceName] = wg.Analytics
+	services.Core[ebics.RTNServiceName] = wg.EbicsRTN
 
 	if err := wg.startServers(); err != nil {
 		return err
@@ -269,6 +277,10 @@ func (wg *WG) stopServices() {
 
 	if err := wg.Controller.Stop(ctx); err != nil {
 		wg.Logger.Warningf("an error occurred while stopping the controller service: %v", err)
+	}
+
+	if err := wg.EbicsRTN.Stop(ctx); err != nil && !errors.Is(err, utils.ErrNotRunning) {
+		wg.Logger.Warningf("an error occurred while stopping the EBICS RTN service: %v", err)
 	}
 
 	if err := wg.AdminService.Stop(ctx); err != nil {

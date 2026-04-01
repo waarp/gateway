@@ -107,6 +107,7 @@ func (s *Server) start() error {
 		RequireCorrelationID(false).
 		RequireTenantID(false).
 		HandlerTimeout(time.Duration(cfg.RequestTimeout) * time.Second).
+		Option(libserver.WithSigner(newProviderRequestSigner(s.providerStore))).
 		Option(libserver.WithVerifyBankDigests(cfg.VerifyBankKeys)).
 		Option(libserver.WithMaxSegmentBytes(cfg.MaxSegmentSize)).
 		Option(libserver.WithRequireTxStore(true))

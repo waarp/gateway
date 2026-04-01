@@ -598,6 +598,24 @@ func DBEbicsRTNEventToREST(event *model.EbicsRTNEvent) *api.OutEbicsRTNEvent {
 	operatorAction := ""
 	operatorReason := ""
 	var operatorMetadata map[string]any
+	autoPullOperationID := metadataInt64(event.PayloadMap, "autoPullOperationID")
+	autoPullTransferID := metadataInt64(event.PayloadMap, "autoPullTransferID")
+	autoPullOrderType := strings.TrimSpace(fmt.Sprint(event.PayloadMap["autoPullOrderType"]))
+	autoPullStatus := strings.TrimSpace(fmt.Sprint(event.PayloadMap["autoPullStatus"]))
+	autoPullOutcome := strings.TrimSpace(fmt.Sprint(event.PayloadMap["autoPullOutcome"]))
+	autoPullRetry := strings.TrimSpace(fmt.Sprint(event.PayloadMap["autoPullRetry"]))
+	if autoPullOrderType == "<nil>" {
+		autoPullOrderType = ""
+	}
+	if autoPullStatus == "<nil>" {
+		autoPullStatus = ""
+	}
+	if autoPullOutcome == "<nil>" {
+		autoPullOutcome = ""
+	}
+	if autoPullRetry == "<nil>" {
+		autoPullRetry = ""
+	}
 	if event.PayloadMap != nil {
 		if value, ok := event.PayloadMap["lastOperatorAction"].(string); ok {
 			operatorAction = value
@@ -611,22 +629,28 @@ func DBEbicsRTNEventToREST(event *model.EbicsRTNEvent) *api.OutEbicsRTNEvent {
 	}
 
 	return &api.OutEbicsRTNEvent{
-		ID:               event.ID,
-		Source:           event.Source,
-		EventID:          event.EventID,
-		CorrelationID:    event.CorrelationID,
-		IdempotenceKey:   event.IdempotenceKey,
-		OrderTypeHint:    event.OrderTypeHint,
-		ProfileID:        event.ProfileID,
-		Status:           event.Status,
-		Attempts:         event.Attempts,
-		NextRetryAt:      ptrTime(event.NextRetryAt),
-		ReceivedAt:       event.ReceivedAt.UTC(),
-		ProcessedAt:      ptrTime(event.ProcessedAt),
-		LastError:        event.LastError,
-		OperatorAction:   operatorAction,
-		OperatorReason:   operatorReason,
-		OperatorMetadata: operatorMetadata,
+		ID:                  event.ID,
+		Source:              event.Source,
+		EventID:             event.EventID,
+		CorrelationID:       event.CorrelationID,
+		IdempotenceKey:      event.IdempotenceKey,
+		OrderTypeHint:       event.OrderTypeHint,
+		ProfileID:           event.ProfileID,
+		Status:              event.Status,
+		Attempts:            event.Attempts,
+		NextRetryAt:         ptrTime(event.NextRetryAt),
+		ReceivedAt:          event.ReceivedAt.UTC(),
+		ProcessedAt:         ptrTime(event.ProcessedAt),
+		LastError:           event.LastError,
+		AutoPullOperationID: autoPullOperationID,
+		AutoPullTransferID:  autoPullTransferID,
+		AutoPullOrderType:   autoPullOrderType,
+		AutoPullStatus:      autoPullStatus,
+		AutoPullOutcome:     autoPullOutcome,
+		AutoPullRetry:       autoPullRetry,
+		OperatorAction:      operatorAction,
+		OperatorReason:      operatorReason,
+		OperatorMetadata:    operatorMetadata,
 	}
 }
 

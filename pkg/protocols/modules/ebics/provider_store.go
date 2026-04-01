@@ -659,8 +659,8 @@ func normalizeLibTransactionStatus(status string) string {
 		return "RECOVERING"
 	case model.EbicsTransactionStatusCompletedForRuntime():
 		return model.EbicsTransactionStatusCompletedForRuntime()
-	case "FAILED":
-		return "FAILED"
+	case ebicsClientTransactionStatusFailed:
+		return ebicsClientTransactionStatusFailed
 	case "CANCELLED":
 		return "CANCELLED"
 	default:

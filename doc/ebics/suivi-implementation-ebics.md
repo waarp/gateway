@@ -196,3 +196,45 @@ Point de situation:
   perimetre EBICS strict et doivent etre implementes comme protocoles Gateway
   autonomes, tout en restant des pre-requis imperatifs du chantier metier
   cible.
+- 2026-04-01: le chantier `P0` RTN reel est maintenant entame cote code.
+  `pkg/protocols/modules/ebics/rtn_service.go` ajoute un service de fond
+  branche dans `gatewayd`, qui charge les providers RTN activees, consomme
+  leurs evenements, persiste l'idempotence et programme un vrai `Transfer`
+  Gateway immediat pour l'auto-pull.
+  Ce `Transfer` est relie a une `EbicsOperation` `AUTO_TRIGGERED` pre-creee,
+  ensuite reutilisee par le runtime client EBICS existant.
+  La premiere vague de tests est posee dans
+  `pkg/protocols/modules/ebics/rtn_service_test.go`.
+  2026-04-01: le scenario RTN complet jusqu'au payload final est maintenant
+  ferme par `pkg/protocols/modules/ebics/rtn_controller_integration_test.go`.
+  Le vrai chemin de production
+  `RTN -> Transfer planifie -> controller -> ClientPipeline -> client EBICS HTTP
+  -> serveur EBICS HTTP -> payload final`
+  passe en vert.
+  Les defauts runtime corriges sur ce maillon final sont:
+  abandon du `TransactionID` synthetique sur `BTD`,
+  persistance du vrai `TransactionID` de download,
+  relecture correcte de `ebicsOperationID` en `json.Number`,
+  et restauration de `EndTransfer()` cote client EBICS pour conserver le lien
+  vers l'historique archive.
+  2026-04-01: `P0C` est maintenant ferme.
+  L'evenement RTN ne passe plus prematurement a `PROCESSED` lors de la simple
+  programmation du `Transfer` auto-triggered. Il reste `PROCESSING` jusqu'a
+  l'issue reelle du flux client EBICS, puis est synchronise en
+  `PROCESSED`, `RETRYABLE` ou `FAILED` selon l'operation finale.
+  Les informations operateur d'auto-pull (`operation`, `transfer`, `status`,
+  `outcome`, `retry`) sont visibles en REST/CLI.
+- 2026-04-01: le reste a faire post-`B5` n'est plus seulement formule en
+  analyse libre.
+  Il est maintenant decliné en lots cochables `P0`, `P2`, `P3` et `P4` dans
+  `suivi-backend-consolidation.md`, avec attendus, validations minimales et
+  rappel explicite du hors-perimetre EBICS strict pour `AMQP 0.9.1` /
+  `AMQP 1.0`.
+  Le lot `P2D` ajoute en particulier l'historisation native des ordres EBICS
+  non payload, pour ne pas limiter la tracabilite durable aux seuls
+  transferts Gateway.
+  Le chantier `P4` est dedie a la remise en ordre architecturale de
+  l'implementation EBICS autour de `TransferInfo`: l'objectif est de separer
+  proprement l'espace metier/exploitant expose en `#TI_*#` des correlations
+  techniques EBICS, quitte a redevelopper une partie importante du runtime et
+  de la persistance de correlation.

@@ -27,6 +27,16 @@ func EbicsTransportModeSyncForRuntime() string {
 	return ebicsTransportModeSync
 }
 
+// EbicsTransportModeAsyncForRuntime exposes the asynchronous transport mode to runtime packages.
+func EbicsTransportModeAsyncForRuntime() string {
+	return ebicsTransportModeAsync
+}
+
+// EbicsTransportModeAutoTriggeredForRuntime exposes the auto-triggered transport mode.
+func EbicsTransportModeAutoTriggeredForRuntime() string {
+	return ebicsTransportModeAutoTriggered
+}
+
 // EbicsOperationTypePayloadForRuntime exposes the payload operation type to runtime packages.
 func EbicsOperationTypePayloadForRuntime() string {
 	return ebicsOperationTypePayload

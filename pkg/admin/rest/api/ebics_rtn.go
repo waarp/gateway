@@ -4,22 +4,28 @@ import "time"
 
 // OutEbicsRTNEvent exposes the operational view of a persisted RTN event.
 type OutEbicsRTNEvent struct {
-	ID               int64          `json:"id" yaml:"id"`
-	Source           string         `json:"source" yaml:"source"`
-	EventID          string         `json:"eventID,omitempty" yaml:"eventID,omitempty"`
-	CorrelationID    string         `json:"correlationID,omitempty" yaml:"correlationID,omitempty"`
-	IdempotenceKey   string         `json:"idempotenceKey" yaml:"idempotenceKey"`
-	OrderTypeHint    string         `json:"orderTypeHint,omitempty" yaml:"orderTypeHint,omitempty"`
-	ProfileID        string         `json:"profileID,omitempty" yaml:"profileID,omitempty"`
-	Status           string         `json:"status" yaml:"status"`
-	Attempts         int            `json:"attempts" yaml:"attempts"`
-	NextRetryAt      *time.Time     `json:"nextRetryAt,omitempty" yaml:"nextRetryAt,omitempty"`
-	ReceivedAt       time.Time      `json:"receivedAt" yaml:"receivedAt"`
-	ProcessedAt      *time.Time     `json:"processedAt,omitempty" yaml:"processedAt,omitempty"`
-	LastError        string         `json:"lastError,omitempty" yaml:"lastError,omitempty"`
-	OperatorAction   string         `json:"operatorAction,omitempty" yaml:"operatorAction,omitempty"`
-	OperatorReason   string         `json:"operatorReason,omitempty" yaml:"operatorReason,omitempty"`
-	OperatorMetadata map[string]any `json:"operatorMetadata,omitempty" yaml:"operatorMetadata,omitempty"`
+	ID                  int64          `json:"id" yaml:"id"`
+	Source              string         `json:"source" yaml:"source"`
+	EventID             string         `json:"eventID,omitempty" yaml:"eventID,omitempty"`
+	CorrelationID       string         `json:"correlationID,omitempty" yaml:"correlationID,omitempty"`
+	IdempotenceKey      string         `json:"idempotenceKey" yaml:"idempotenceKey"`
+	OrderTypeHint       string         `json:"orderTypeHint,omitempty" yaml:"orderTypeHint,omitempty"`
+	ProfileID           string         `json:"profileID,omitempty" yaml:"profileID,omitempty"`
+	Status              string         `json:"status" yaml:"status"`
+	Attempts            int            `json:"attempts" yaml:"attempts"`
+	NextRetryAt         *time.Time     `json:"nextRetryAt,omitempty" yaml:"nextRetryAt,omitempty"`
+	ReceivedAt          time.Time      `json:"receivedAt" yaml:"receivedAt"`
+	ProcessedAt         *time.Time     `json:"processedAt,omitempty" yaml:"processedAt,omitempty"`
+	LastError           string         `json:"lastError,omitempty" yaml:"lastError,omitempty"`
+	AutoPullOperationID *int64         `json:"autoPullOperationID,omitempty" yaml:"autoPullOperationID,omitempty"`
+	AutoPullTransferID  *int64         `json:"autoPullTransferID,omitempty" yaml:"autoPullTransferID,omitempty"`
+	AutoPullOrderType   string         `json:"autoPullOrderType,omitempty" yaml:"autoPullOrderType,omitempty"`
+	AutoPullStatus      string         `json:"autoPullStatus,omitempty" yaml:"autoPullStatus,omitempty"`
+	AutoPullOutcome     string         `json:"autoPullOutcome,omitempty" yaml:"autoPullOutcome,omitempty"`
+	AutoPullRetry       string         `json:"autoPullRetry,omitempty" yaml:"autoPullRetry,omitempty"`
+	OperatorAction      string         `json:"operatorAction,omitempty" yaml:"operatorAction,omitempty"`
+	OperatorReason      string         `json:"operatorReason,omitempty" yaml:"operatorReason,omitempty"`
+	OperatorMetadata    map[string]any `json:"operatorMetadata,omitempty" yaml:"operatorMetadata,omitempty"`
 }
 
 // OutEbicsRTNProvider exposes the operational view of an RTN provider.

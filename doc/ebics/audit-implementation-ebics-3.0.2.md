@@ -163,7 +163,7 @@ Les **écarts majeurs** sont concentrés sur l'**intégration métier et l'autom
 
 ---
 
-### 5.2 RTN (Real-Time Notification) — PARTIEL / DÉCONNECTÉ
+### 5.2 RTN (Real-Time Notification) — IMPL / OPÉRATIONNEL
 
 **Références spec :**
 
@@ -179,26 +179,52 @@ Les **écarts majeurs** sont concentrés sur l'**intégration métier et l'autom
 | Tables en base (migration 0.16.0) | **IMPL** | Oui |
 | REST API CRUD providers + events + actions retry/quarantine | **IMPL** | Oui |
 | CLI (provider add/list/get/update/delete, event list/get/retry/quarantine) | **IMPL** | Oui |
-| WSS Provider (`rtn/wss_provider.go`, 284 lignes) | **IMPL** | **Non** |
-| Logique d'ingestion (`runtime/rtn_ingestion.go`) avec idempotence SHA-256 | **IMPL** | **Non** |
-| Logique auto-pull (`runtime/rtn_autopull.go`) avec plan de pull et corrélation | **IMPL** | **Non** |
-| **Service de fond qui instancie et démarre les providers** | **ABSENT** | N/A |
-| **Boucle de traitement des événements entrants** | **ABSENT** | N/A |
-| **Déclenchement effectif d'un BTD suite à un auto-pull** | **ABSENT** | N/A |
+| WSS Provider (`rtn/wss_provider.go`, 284 lignes) | **IMPL** | **Oui** |
+| Logique d'ingestion (`runtime/rtn_ingestion.go`) avec idempotence SHA-256 | **IMPL** | **Oui** |
+| Logique auto-pull (`runtime/rtn_autopull.go`) avec plan de pull et corrélation | **IMPL** | **Oui** |
+| **Service de fond qui instancie et démarre les providers** | **IMPL** | **Oui** |
+| **Boucle de traitement des événements entrants** | **IMPL** | **Oui** |
+| **Déclenchement effectif d'un BTD suite à un auto-pull** | **IMPL** | **Oui** |
 | Publication AMQP des événements RTN | **ABSENT** | N/A |
-| Tests unitaires RTN | **ABSENT** | N/A |
+| Tests unitaires RTN | **IMPL** | **Premiere vague** |
 
 **Analyse détaillée :**
 
-Le WSSProvider (`rtn/wss_provider.go`) est un client WebSocket Secure complet : connexion, reconnexion automatique (3s), lecture de messages JSON, normalisation en `RawEvent`, streaming par channel. Mais il n'est **jamais instancié ni démarré** par aucun service.
+Le WSSProvider (`rtn/wss_provider.go`) est un client WebSocket Secure complet : connexion, reconnexion automatique (3s), lecture de messages JSON, normalisation en `RawEvent`, streaming par channel.
+Depuis le 2026-04-01, il est maintenant instancie par un service de fond
+`EBICS RTN` branche dans `gatewayd`.
 
-La logique d'ingestion (`runtime/rtn_ingestion.go`) calcule des clés d'idempotence SHA-256 et gère la déduplication. Mais `IngestRTNEvent()` n'est **jamais appelé** par aucun code de production.
+La logique d'ingestion (`runtime/rtn_ingestion.go`) calcule des clés d'idempotence SHA-256 et gère la déduplication.
+Depuis le 2026-04-01, `IngestRTNEvent()` est appele par le service `EBICS RTN`
+pour les evenements recus des providers.
 
-La logique auto-pull (`runtime/rtn_autopull.go`) construit des plans de pull (BTD par défaut) avec corrélation. Mais `BuildAutoPullPlan()` n'est **jamais appelé** pour déclencher un téléchargement réel.
+La logique auto-pull (`runtime/rtn_autopull.go`) construit des plans de pull (BTD par défaut) avec corrélation.
+Depuis le 2026-04-01, `BuildAutoPullPlan()` est appele en production pour
+programmer un vrai `Transfer` Gateway immediat, relie a une `EbicsOperation`
+`AUTO_TRIGGERED` pre-creee puis reutilisee par le runtime client existant.
+Depuis le 2026-04-01, le maillon final est lui aussi ferme via
+`rtn_controller_integration_test.go`, qui passe par le vrai chemin
+`RTN -> Transfer planifie -> controller -> ClientPipeline -> client EBICS HTTP
+-> serveur EBICS HTTP -> payload final`.
+Les causes profondes corrigees sur ce dernier verrou ont ete:
+un `TransactionID` synthetique a tort sur `BTD`, qui forcait `lib-ebics`
+a partir en phase `Transfer` sans segment;
+la persistance du vrai `TransactionID` renvoye par la banque sur download;
+la relecture de `ebicsOperationID` en `json.Number`;
+et le court-circuit de `EndTransfer()` cote client EBICS, qui empechait de
+conserver le lien vers l'historique archive.
 
-**Verdict :** RTN est une **coquille administrative** — on peut configurer des providers et consulter des events via REST/CLI, mais aucun provider ne se connecte réellement à un endpoint bancaire, aucun événement n'est automatiquement ingéré, et aucun download n'est déclenché. L'architecture RTN est codée à ~60-70% mais fondamentalement **non opérationnelle**.
+**Verdict révisé au 2026-04-01 :** RTN n'est plus une simple coquille
+administrative.
+Le service de fond, l'ingestion automatique, la mise a jour d'etat provider, la
+creation d'operations d'auto-pull et l'execution effective du `BTD` jusqu'au
+payload final sont maintenant actives sur le vrai chemin de production.
+Le suivi operateur a aussi ete durci: l'evenement RTN reste `PROCESSING`
+tant que l'auto-pull n'a pas effectivement termine, puis est synchronise sur
+le resultat reel (`PROCESSED` / `RETRYABLE` / `FAILED`) avec exposition REST/CLI
+des liens `operation/transfer` et du triplet `status/outcome/retry`.
 
-**Sévérité : MAJEUR**
+**Sévérité : FAIBLE** pour EBICS strict.
 
 ---
 

@@ -380,6 +380,11 @@ func EbicsOperationStatusPlannedForRuntime() string {
 	return ebicsOperationStatusPlanned
 }
 
+// EbicsOperationStatusWaitingPayloadTransferForRuntime exposes the waiting-payload-transfer status.
+func EbicsOperationStatusWaitingPayloadTransferForRuntime() string {
+	return ebicsOperationStatusWaitingPayloadTransfer
+}
+
 // EbicsOperationStatusWaitingBankForRuntime exposes the waiting-bank status to runtime packages.
 func EbicsOperationStatusWaitingBankForRuntime() string {
 	return ebicsOperationStatusWaitingBank

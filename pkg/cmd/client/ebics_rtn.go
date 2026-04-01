@@ -36,6 +36,16 @@ func displayEbicsRTNEvent(w io.Writer, event *api.OutEbicsRTNEvent) error {
 		Style22.PrintL(w, "Processed at", *event.ProcessedAt)
 	}
 	Style22.Option(w, "Last error", event.LastError)
+	if event.AutoPullOperationID != nil {
+		Style22.PrintL(w, "Auto-pull operation ID", *event.AutoPullOperationID)
+	}
+	if event.AutoPullTransferID != nil {
+		Style22.PrintL(w, "Auto-pull transfer ID", *event.AutoPullTransferID)
+	}
+	Style22.Option(w, "Auto-pull order type", event.AutoPullOrderType)
+	Style22.Option(w, "Auto-pull status", event.AutoPullStatus)
+	Style22.Option(w, "Auto-pull outcome", event.AutoPullOutcome)
+	Style22.Option(w, "Auto-pull retry", event.AutoPullRetry)
 	Style22.Option(w, "Operator action", event.OperatorAction)
 	Style22.Option(w, "Operator reason", event.OperatorReason)
 	if len(event.OperatorMetadata) > 0 {

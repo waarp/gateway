@@ -299,6 +299,26 @@ Regles:
 
 ## 9. Priorisation des ecarts restants
 
+- 2026-04-01: ouverture du chantier `P0` RTN reel.
+  Un nouveau service de fond `EBICS RTN` est maintenant branche dans
+  `gatewayd` et expose dans `services.Core`.
+  Il charge les providers RTN actives, demarre le transport `WSS`, consomme
+  `Events/Errors`, persiste l'ingestion idempotente, met a jour l'etat runtime
+  des providers, puis derive un auto-pull en programmant un vrai `Transfer`
+  Gateway immediat relie a une `EbicsOperation` `AUTO_TRIGGERED`.
+  Le point important est architectural: le service RTN ne contourne pas le
+  runtime client EBICS, il s'appuie sur le mecanisme natif des `Transfer`
+  planifies pour declencher l'execution existante.
+  La premiere vague de tests dedies couvre ce service dans
+  `pkg/protocols/modules/ebics/rtn_service_test.go`.
+  Verification rejouee:
+  `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
+  puis
+  `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`.
+  Limite residuelle explicite: le `P0` ferme la programmation du pull, mais
+  pas encore la consommation terminale `BTD` jusqu'au payload final dans un
+  scenario RTN de bout en bout.
+
 ### Bloquants frontend
 
 - Valider l'execution serveur EBICS reelle sur le chemin nominal `BTU/BTD`
@@ -308,6 +328,8 @@ Regles:
 - Rejouer la passe de sortie backend `B5` avant de prononcer la gate frontend
 - Rejouer la lecture de sortie backend au regard des specs fonctionnelles,
   techniques et d'architecture, pas seulement du code courant et des suivis
+- Fermer le dernier ecart RTN entre creation d'operation auto-triggered et
+  execution effective du `BTD` jusqu'au payload final
 
 ### Importants
 
@@ -897,3 +919,332 @@ Ordre d'execution recommande:
 2. [x] Lot 7B
 3. [x] Lot 7C
 4. [x] Lot 7D
+
+## 11. Backlog executable apres B5
+
+Objectif:
+
+- sortir du mode "analyse libre" sur les restes a faire post-`B5`;
+- piloter explicitement les chantiers `P0`, `P2` et `P3`;
+- rappeler que `AMQP 0.9.1` / `AMQP 1.0` restent hors perimetre EBICS strict,
+  tout en etant des pre-requis du futur passe-plat metier.
+
+Regles:
+
+- ne cocher un lot qu'apres dev, linter et tests du perimetre touche;
+- tracer la limite residuelle si un lot est seulement partiellement ferme;
+- ne pas fermer `P0` sans preuve de bout en bout sur le chemin
+  `RTN -> Transfer planifie -> execution client -> payload final`.
+
+### Chantier P0 - RTN reel jusqu'au payload final
+
+Objectif:
+
+- fermer le dernier ecart entre orchestration RTN et execution reelle du pull;
+- prouver que l'auto-pull RTN s'appuie sur le moteur natif des `Transfer`
+  Gateway, sans chemin parallele fragile.
+
+Fichiers cibles:
+
+- `pkg/protocols/modules/ebics/rtn_service.go`
+- `pkg/protocols/modules/ebics/rtn_service_test.go`
+- `pkg/protocols/modules/ebics/client_transfer.go`
+- `pkg/controller/client_transfers.go`
+- `pkg/pipeline/client.go`
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
+
+Sous-lots cochables:
+
+- [x] Lot P0A - Valider la programmation du `Transfer` RTN dans le moteur Gateway
+  Attendus: un evenement RTN auto-pull cree un `Transfer` `PLANNED`
+  immediat, un `EbicsOperation` `AUTO_TRIGGERED` en attente d'execution,
+  et les correlations `event / operation / transfer` sont persistantes et
+  lisibles cote operateur
+  Validation: `go test ./pkg/protocols/modules/ebics -run "TestRTNService" -v`
+
+  2026-04-01: Lot P0A est maintenant ferme. `TestRTNService` confirme qu'un
+  evenement RTN `AUTO` cree un `Transfer` Gateway `PLANNED` immediat,
+  une `EbicsOperation` `AUTO_TRIGGERED` en statut
+  `WAITING_PAYLOAD_TRANSFER`, et les liens `RTN event -> operation ->
+  transfer` sont bien persistants et relisibles.
+
+- [x] Lot P0B - Fermer le scenario de bout en bout `RTN -> BTD -> payload final`
+  Attendus: le scheduler/controller reprend bien le `Transfer` planifie,
+  le runtime client EBICS reutilise l'operation pre-creee, le `BTD` aboutit
+  au payload final attendu, et les statuts finaux `event / operation / transfer`
+  sont coherents
+  Validation: `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
+  2026-04-01: jalon intermediaire pose via `TestTransferClientCreateOperationReusesScheduledOperation`.
+  Le chemin `Transfer planifie -> runtime client -> reutilisation de l'operation
+  RTN pre-creee` est maintenant couvert, avec conservation des liens
+  `RTN event / operation / transfer` et absence de duplication d'`EbicsOperation`.
+  Le lot reste ouvert tant qu'un vrai scenario `scheduler -> BTD -> payload final`
+  n'est pas valide de bout en bout.
+  2026-04-01: une integration `RTN -> controller -> client EBICS -> serveur EBICS`
+  est maintenant posee dans `rtn_controller_integration_test.go`, avec deux
+  constats techniques explicites:
+  `server.go` devait fournir un verifieur XMLDSig au handler `lib-ebics`,
+  faute de quoi toute requete signee tombait en `091304 EBICS_SIGNER_UNKNOWN`;
+  ce trou runtime est maintenant corrige via un verifieur adosse au
+  `providerStore`.
+  2026-04-01: `Lot P0B` est maintenant ferme. Le vrai scenario
+  `RTN -> Transfer planifie -> controller -> ClientPipeline -> client EBICS HTTP
+  -> serveur EBICS HTTP -> payload final` passe desormais en vert dans
+  `rtn_controller_integration_test.go`.
+  Les causes profondes corrigees sur ce maillon final sont:
+  generation a tort d'un `TransactionID` synthetique pour `BTD`, ce qui forcait
+  `lib-ebics` a entrer en phase `Transfer` sans segment;
+  absence de persistance du vrai `TransactionID` de download lors de la reponse
+  banque;
+  reutilisation manquee de l'operation RTN planifiee quand
+  `TransferInfo["ebicsOperationID"]` etait relu comme `json.Number`;
+  et surtout court-circuit de `EndTransfer()` cote client EBICS, car
+  `completeSuccess()` marquait le client comme `finished` trop tot, ce qui
+  empechait la preservation du lien d'historique `archivedTransferID`.
+  Verification rejouee:
+  `go test ./pkg/protocols/modules/ebics -run "TestRTNControllerExecutesScheduledBTDToFinalPayload" -v -count=1 -timeout 10m`
+  puis
+  `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`.
+  Point d'attention explicite: plusieurs tests EBICS actuels restent des
+  tests unitaires ou semi-integres qui appellent le routeur payload ou les
+  services directement (`order_router_test.go`, `server_integration_test.go`,
+  `rtn_service_test.go`, une partie de `client_transfer_test.go`).
+  Ils restent utiles, mais ne suffisent pas a prouver les vrais chemins
+  de production `RTN -> controller -> pipeline -> client EBICS HTTP ->
+  serveur EBICS HTTP -> persistence/historique`.
+  Le lot `P0B` doit donc etre lu comme la fermeture d'un vrai test
+  d'integration de production, et pas seulement d'un empilement de tests
+  unitaires de composants.
+
+- [x] Lot P0C - Durcir reprise, retry et observabilite operateur sur RTN reel
+  Attendus: echec retryable correctement remonte, reprogrammation lisible,
+  recovery sans duplication parasite, erreurs et transitions visibles en
+  REST/CLI pour `RTN`, `operation` et `transfer`
+  Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
+  puis `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
+
+  2026-04-01: le statut RTN n'est plus marque `PROCESSED` au simple moment de
+  la programmation du `Transfer`. L'evenement reste maintenant `PROCESSING`
+  tant que l'auto-pull n'a pas reellement termine, puis est synchronise avec
+  l'issue finale de l'`EbicsOperation` cote client:
+  succes -> `PROCESSED`, echec retryable -> `RETRYABLE`, echec terminal ->
+  `FAILED`.
+  Les liens et statuts d'auto-pull (`operation`, `transfer`, `orderType`,
+  `status`, `outcome`, `retry`) sont exposes en REST/CLI.
+  Un defaut runtime connexe a aussi ete corrige cote client EBICS:
+  les decisions de retry calculees a partir des return codes EBICS ne sont plus
+  ecrasees systematiquement en `TECHNICAL_FATAL_FAILURE` dans le chemin
+  d'erreur pipeline.
+  Verification rejouee:
+  `go test ./pkg/protocols/modules/ebics -run "Test(TransferClient|RTNService|RTNController)" -v -count=1 -timeout 10m`,
+  `go test ./pkg/admin/rest ./pkg/admin/rest/api -run 'Test(ActOnEbicsRTNEvent|GetEbicsRTNEvent)' -v -count=1`,
+  `go test ./pkg/cmd/client ./pkg/gatewayd ./pkg/model -count=1`.
+  `golangci-lint` reste bloque uniquement par la contrainte d'environnement
+  Windows deja identifiee (`can't eval symlinks on wd ... Access is denied`),
+  y compris lorsqu'il est relance sur le vrai chemin du depot.
+
+Ordre d'execution recommande:
+
+1. [x] Lot P0A
+2. [x] Lot P0B
+3. [x] Lot P0C
+
+### Chantier P4 - Remise en ordre architecturale `TransferInfo` / EBICS
+
+Objectif:
+
+- supprimer le double usage de `TransferInfo` comme espace metier exploitable
+  et comme support de correlation technique EBICS;
+- remettre la correlation structurelle EBICS dans une persistance dediee et
+  stable, conforme aux principes d'architecture du projet;
+- preparer, si necessaire, un redeveloppement partiel du runtime EBICS pour
+  revenir a un standard architectural propre.
+
+Positionnement:
+
+- ce chantier demarre apres la fermeture de `P0C`;
+- il est considere prioritaire avant tout elargissement fonctionnel EBICS
+  supplementaire non critique.
+
+Constat de depart:
+
+- `TransferInfo` est historiquement reutilisable par l'exploitant et expose en
+  variables `#TI_*#`;
+- l'implementation EBICS actuelle y stocke encore des donnees de correlation
+  technique (`ebicsOperationID`, `ebicsTransactionID`, identite EBICS,
+  service/profil, hints RTN), ce qui cree une fuite de details internes dans un
+  espace semi-public et un couplage runtime sur une structure souple;
+- ce point est contraire aux principes documentes dans les specs et notes
+  d'architecture EBICS, qui imposent de ne pas faire de `TransferInfo` la cle
+  de voute des relations structurelles.
+
+Fichiers cibles:
+
+- `pkg/protocols/modules/ebics/client_transfer.go`
+- `pkg/protocols/modules/ebics/order_router.go`
+- `pkg/protocols/modules/ebics/rtn_service.go`
+- `pkg/model/ebics_operation.go`
+- `pkg/model/ebics_transaction.go`
+- migrations SQL EBICS a completer si de nouveaux champs ou tables de liaison
+  sont necessaires
+- surfaces REST/CLI qui lisent aujourd'hui des correlations via `TransferInfo`
+- documentation d'architecture et backlog EBICS associes
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./pkg/model ./pkg/database/migrations`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./pkg/model ./pkg/database/migrations`
+
+Sous-lots cochables:
+
+- [ ] Lot P4A - Cartographier et classer toutes les cles EBICS actuellement stockees dans `TransferInfo`
+  Attendus: inventaire exhaustif des cles, qualification `metier exploitable /
+  confort local / correlation structurelle / detail runtime transitoire`,
+  et cible de relogement pour chaque cle
+  Validation: synthese documentee et relue
+
+- [ ] Lot P4B - Definir le modele cible de correlation EBICS hors `TransferInfo`
+  Attendus: choix explicite des champs/tables/liaisons qui remplacent les
+  usages actuels de `TransferInfo` pour `EbicsOperation`, `EbicsTransaction`,
+  `RTN` et les metadonnees techniques de resolution
+  Validation: mise a jour documentaire + migration ciblee si necessaire
+
+- [ ] Lot P4C - Refactorer le runtime EBICS pour supprimer la dependance structurelle a `TransferInfo`
+  Attendus: le code client, serveur payload et RTN n'utilise plus
+  `TransferInfo` comme support principal de correlation technique; les lectures
+  runtime critiques passent par la persistance dediee
+  Validation: linter + tests unitaires et d'integration du perimetre touche
+
+- [ ] Lot P4D - Preserver uniquement un `TransferInfo` metier / operateur propre
+  Attendus: seules des metadonnees explicitement assumees comme visibles et
+  reutilisables par l'exploitant restent dans `TransferInfo`; les cles
+  techniques EBICS internes n'y figurent plus
+  Validation: tests REST/CLI/taches sur `TransferInfo` et verification des
+  variables `#TI_*#`
+
+- [ ] Lot P4E - Rejouer la non-regression complete apres remise en ordre
+  Attendus: scenarios reels `payload client`, `payload serveur`,
+  `RTN -> auto-pull -> payload final`, et verification de l'absence de derive
+  sur l'historique, l'observabilite et les workflows sensibles
+  Validation: linter + passe `go test` du perimetre EBICS consolide
+
+Ordre d'execution recommande:
+
+1. [ ] Finir Lot P0C
+2. [ ] Lot P4A
+3. [ ] Lot P4B
+4. [ ] Lot P4C
+5. [ ] Lot P4D
+6. [ ] Lot P4E
+
+### Chantier P2 - Automatisation d'exploitation native
+
+Objectif:
+
+- fermer les ecarts restants d'exploitation continue autour d'EBICS strict;
+- eviter de laisser une retention ou une orchestration uniquement manuelle.
+
+Fichiers cibles:
+
+- `pkg/model/ebics_retention.go`
+- `pkg/protocols/modules/ebics/rtn_service.go`
+- `pkg/gatewayd/server.go`
+- futurs jobs/services dedies a la retention ou au refresh
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/gatewayd`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/model ./pkg/gatewayd`
+
+Sous-lots cochables:
+
+- [ ] Lot P2A - Poser une retention automatisee minimale
+  Attendus: purge automatique bornee des `nonces`, transactions anciennes et
+  evenements RTN selon politique explicite et testee
+  Validation: `go test ./pkg/model -run "Test(PurgeEbics|EbicsRTNEvent)" -v`
+
+- [ ] Lot P2B - Poser l'orchestration planifiee native
+  Attendus: refresh, retries et taches de maintenance critiques ne reposent
+  plus uniquement sur une action manuelle ou un ordonnanceur externe non trace
+  Validation: tests cibles du ou des services ajoutes
+
+- [ ] Lot P2C - Completer la couverture de tests runtime encore faible
+  Attendus: couverture mesurable sur le client EBICS direct, le runtime RTN
+  reel et les chemins de reprise encore peu testes
+  Validation: `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
+  Criteres complementaires:
+  au moins un scenario client payload doit passer par le vrai `controller`
+  et le vrai `ClientPipeline`;
+  au moins un scenario serveur payload doit passer par le vrai serveur HTTP
+  EBICS, et pas seulement par `newPayloadOrderRouter(...).Upload/Download(...)`;
+  au moins un scenario RTN auto-pull doit passer par `RTN -> Transfer planifie
+  -> controller -> client EBICS -> serveur EBICS -> payload final`;
+  les tests directs de fonctions/routage restent maintenus comme unitaires,
+  mais ne peuvent plus, a eux seuls, servir de preuve de fermeture runtime.
+
+- [ ] Lot P2D - Historiser nativement les ordres EBICS non payload
+  Attendus: les ordres d'administration, d'initialisation, de gestion de cles
+  et de reporting disposent d'un historique durable et interrogeable, analogue
+  a l'historique natif des transferts Gateway, avec statuts, horodatages,
+  codes retour et evidence operateur
+  Validation: `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/model`
+
+Ordre d'execution recommande:
+
+1. [ ] Lot P2A
+2. [ ] Lot P2B
+3. [ ] Lot P2C
+4. [ ] Lot P2D
+5. [ ] Ne lancer les evolutions structurelles connexes qu'apres `P4`
+
+### Chantier P3 - Workflow VEU et signature distribuee
+
+Objectif:
+
+- fermer le manque applicatif entre support protocolaire `HVE/HVS` et vrai
+  workflow metier de validation multi-signataires.
+
+Fichiers cibles:
+
+- runtime/client EBICS de signatures
+- REST/CLI `key lifecycle` / `initialization` / futurs workflows VEU
+- documentation fonctionnelle de pilotage operateur
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
+
+Sous-lots cochables:
+
+- [ ] Lot P3A - Cadrer le workflow VEU cible
+  Attendus: etats, transitions, roles operateur et invariants documentes
+  contre les specs fonctionnelles/techniques/architecturales
+  Validation: mise a jour documentaire relue
+
+- [ ] Lot P3B - Implementer le workflow VEU minimal exploitable
+  Attendus: workflow borne de bout en bout, sans simple facade protocolaire,
+  avec persistance, statuts et commandes operateur coherents
+  Validation: linter + tests du perimetre touche
+
+- [ ] Lot P3C - Completer observabilite et non-regression VEU
+  Attendus: REST/CLI et tests de non-regression couvrent les cas nominaux,
+  rejets et reprises principaux
+  Validation: linter + tests du perimetre touche
+
+Ordre d'execution recommande:
+
+1. [ ] Lot P3A
+2. [ ] Lot P3B
+3. [ ] Lot P3C
+
+### Hors perimetre EBICS strict mais pre-requis metier
+
+- [ ] `AMQP 0.9.1` implemente comme protocole Gateway autonome
+- [ ] `AMQP 1.0` implemente comme protocole Gateway autonome
+- [ ] chantier `passe-plat metier` ouvert sur ces protocoles et sur les autres
+  connecteurs Gateway cibles
