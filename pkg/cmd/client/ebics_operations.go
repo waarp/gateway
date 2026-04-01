@@ -40,7 +40,9 @@ func displayEbicsOperation(w io.Writer, operation *api.OutEbicsOperation) error 
 	Style22.Option(w, "Request ID", operation.RequestID)
 	Style22.Option(w, "Correlation ID", operation.CorrelationID)
 	Style22.Option(w, "Technical return code", operation.TechnicalReturnCode)
+	Style22.Option(w, "Technical return message", operation.TechnicalReturnMessage)
 	Style22.Option(w, "Business return code", operation.BusinessReturnCode)
+	Style22.Option(w, "Business return message", operation.BusinessReturnMessage)
 	Style22.Option(w, "Gateway outcome", operation.GatewayOutcome)
 	Style22.Option(w, "Retry decision", operation.RetryDecision)
 	Style22.PrintL(w, "Manual action required", operation.ManualActionRequired)
@@ -70,6 +72,9 @@ func displayEbicsOperationDetail(w io.Writer, detail *api.OutEbicsOperationDetai
 		Style22.PrintL(w, "Finished at", *detail.FinishedAt)
 	}
 	if detail.Links != nil {
+		if detail.Links.TransferID != nil {
+			Style22.PrintL(w, "Transfer ID", *detail.Links.TransferID)
+		}
 		if detail.Links.ContractViewID != nil {
 			Style22.PrintL(w, "Contract view ID", *detail.Links.ContractViewID)
 		}
@@ -221,19 +226,16 @@ func (c *EbicsTransactionGet) Execute([]string) error { return execute(c) }
 func (c *EbicsTransactionGet) execute(w io.Writer) error {
 	addr.Path = path.Join("/api/ebics/transactions", c.Args.Transaction)
 
-	var body struct {
-		Transaction *api.OutEbicsTransaction          `json:"transaction"`
-		Segments    []*api.OutEbicsTransactionSegment `json:"segments"`
-	}
-	if err := get(&body); err != nil {
+	var detail api.OutEbicsTransactionDetail
+	if err := get(&detail); err != nil {
 		return err
 	}
 
-	if body.Transaction == nil {
+	if detail.Transaction == nil {
 		return errMissingEbicsTransactionPayload
 	}
 
-	if err := outputObject(w, body.Transaction, &c.OutputFormat, displayEbicsTransaction); err != nil {
+	if err := outputObject(w, detail.Transaction, &c.OutputFormat, displayEbicsTransaction); err != nil {
 		return err
 	}
 
@@ -241,7 +243,13 @@ func (c *EbicsTransactionGet) execute(w io.Writer) error {
 		return nil
 	}
 
-	return displayEbicsTransactionSegments(w, body.Segments)
+	Style22.PrintL(w, "Host ID", detail.HostID)
+	Style22.Option(w, "Partner ID", detail.PartnerID)
+	Style22.Option(w, "User ID", detail.UserID)
+	Style22.Option(w, "Request ID", detail.RequestID)
+	Style22.Option(w, "Correlation ID", detail.CorrelationID)
+
+	return displayEbicsTransactionSegments(w, detail.Segments)
 }
 
 type EbicsTransactionSegments struct {

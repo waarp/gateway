@@ -189,7 +189,23 @@ func TestGetEbicsTransactionReturnsOrderedSegments(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-TX", "PARTNER-TX", "USER-TX")
 
+	operation := insertRESTEbicsOperation(t, db, &model.EbicsOperation{
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: subscriber.ID,
+		OperationType:     model.EbicsOperationTypePayloadForRuntime(),
+		OrderType:         "BTD",
+		Direction:         "INBOUND",
+		TransportMode:     "ASYNC",
+		Status:            "RUNNING",
+		Severity:          "INFO",
+		GatewayOutcome:    "PENDING_BANK",
+		RetryDecision:     "RECOVERY_REQUIRED",
+		RequestID:         "REQ-TX",
+		CorrelationID:     "CORR-TX",
+	})
+
 	tx := insertRESTEbicsTransaction(t, db, &model.EbicsTransaction{
+		EbicsOperationID:  sql.NullInt64{Int64: operation.ID, Valid: true},
 		EbicsHostID:       host.ID,
 		EbicsSubscriberID: subscriber.ID,
 		TransactionID:     "TX-ORDER",
@@ -220,12 +236,14 @@ func TestGetEbicsTransactionReturnsOrderedSegments(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 
-	var body struct {
-		Transaction *api.OutEbicsTransaction          `json:"transaction"`
-		Segments    []*api.OutEbicsTransactionSegment `json:"segments"`
-	}
+	var body api.OutEbicsTransactionDetail
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	require.NotNil(t, body.Transaction)
+	assert.Equal(t, "HOST-TX", body.HostID)
+	assert.Equal(t, "PARTNER-TX", body.PartnerID)
+	assert.Equal(t, "USER-TX", body.UserID)
+	assert.Equal(t, "REQ-TX", body.RequestID)
+	assert.Equal(t, "CORR-TX", body.CorrelationID)
 	assert.Equal(t, "TX-ORDER", body.Transaction.TransactionID)
 	require.Len(t, body.Segments, 2)
 	assert.Equal(t, 1, body.Segments[0].SegmentNumber)
@@ -320,6 +338,19 @@ func TestActOnEbicsKeyLifecycleUpdatesStatusAndEvidence(t *testing.T) {
 	assert.Equal(t, "submitted", refreshed.Reason)
 	assert.False(t, refreshed.SentAt.IsZero())
 	assert.Equal(t, "INC-42", refreshed.EvidenceMap["ticket"])
+
+	reqGet := httptest.NewRequest(http.MethodGet, "/ebics/key-lifecycles/"+marshalID(lifecycle.ID), nil)
+	reqGet = mux.SetURLVars(reqGet, map[string]string{"ebics_key_lifecycle": marshalID(lifecycle.ID)})
+	wGet := httptest.NewRecorder()
+
+	getEbicsKeyLifecycle(logger, db).ServeHTTP(wGet, reqGet)
+
+	require.Equal(t, http.StatusOK, wGet.Code)
+	var body api.OutEbicsKeyLifecycle
+	require.NoError(t, json.Unmarshal(wGet.Body.Bytes(), &body))
+	assert.Equal(t, "ops", body.Operator)
+	assert.Equal(t, "submitted", body.Reason)
+	assert.Equal(t, "INC-42", body.Evidence["ticket"])
 }
 
 func TestActOnEbicsInitializationCancelsWorkflow(t *testing.T) {
@@ -351,6 +382,19 @@ func TestActOnEbicsInitializationCancelsWorkflow(t *testing.T) {
 	assert.Equal(t, "ops", refreshed.Operator)
 	assert.Equal(t, "abort", refreshed.Reason)
 	assert.Equal(t, "INIT-9", refreshed.EvidenceMap["ticket"])
+
+	reqGet := httptest.NewRequest(http.MethodGet, "/ebics/initializations/"+marshalID(workflow.ID), nil)
+	reqGet = mux.SetURLVars(reqGet, map[string]string{"ebics_initialization": marshalID(workflow.ID)})
+	wGet := httptest.NewRecorder()
+
+	getEbicsInitialization(logger, db).ServeHTTP(wGet, reqGet)
+
+	require.Equal(t, http.StatusOK, wGet.Code)
+	var body api.OutEbicsInitializationWorkflow
+	require.NoError(t, json.Unmarshal(wGet.Body.Bytes(), &body))
+	assert.Equal(t, "ops", body.Operator)
+	assert.Equal(t, "abort", body.Reason)
+	assert.Equal(t, "INIT-9", body.Evidence["ticket"])
 }
 
 func TestActOnEbicsRTNEventRetryUpdatesStatusAttemptsAndMetadata(t *testing.T) {
@@ -389,6 +433,19 @@ func TestActOnEbicsRTNEventRetryUpdatesStatusAttemptsAndMetadata(t *testing.T) {
 	assert.Equal(t, "RETRY", refreshed.PayloadMap["lastOperatorAction"])
 	assert.Equal(t, "temporary outage", refreshed.PayloadMap["lastOperatorReason"])
 	assert.Equal(t, "RTN-42", refreshed.PayloadMap["lastOperatorMetadata"].(map[string]any)["ticket"])
+
+	reqGet := httptest.NewRequest(http.MethodGet, "/ebics/rtn/events/"+marshalID(event.ID), nil)
+	reqGet = mux.SetURLVars(reqGet, map[string]string{"ebics_rtn_event": marshalID(event.ID)})
+	wGet := httptest.NewRecorder()
+
+	getEbicsRTNEvent(logger, db).ServeHTTP(wGet, reqGet)
+
+	require.Equal(t, http.StatusOK, wGet.Code)
+	var detail api.OutEbicsRTNEvent
+	require.NoError(t, json.Unmarshal(wGet.Body.Bytes(), &detail))
+	assert.Equal(t, "RETRY", detail.OperatorAction)
+	assert.Equal(t, "temporary outage", detail.OperatorReason)
+	assert.Equal(t, "RTN-42", detail.OperatorMetadata["ticket"])
 }
 
 func TestActOnEbicsRTNEventRejectsUnsupportedAction(t *testing.T) {

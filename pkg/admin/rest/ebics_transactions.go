@@ -40,10 +40,12 @@ func getEbicsTransaction(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		handleError(w, logger, writeJSON(w, map[string]any{
-			"transaction": DBEbicsTransactionToREST(transaction),
-			"segments":    segments,
-		}))
+		detail, err := DBEbicsTransactionDetailToREST(db, transaction, segments)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, writeJSON(w, detail))
 	}
 }
 

@@ -51,6 +51,10 @@ func displayEbicsKeyLifecycle(w io.Writer, lifecycle *api.OutEbicsKeyLifecycle) 
 	}
 	Style22.Option(w, "Operator", lifecycle.Operator)
 	Style22.Option(w, "Reason", lifecycle.Reason)
+	if len(lifecycle.Evidence) > 0 {
+		Style22.Printf(w, "Evidence:")
+		displayMap(w, Style333, lifecycle.Evidence)
+	}
 
 	return nil
 }
@@ -99,6 +103,10 @@ func displayEbicsInitialization(w io.Writer, workflow *api.OutEbicsInitializatio
 	Style22.Option(w, "Operator", workflow.Operator)
 	Style22.Option(w, "Reason", workflow.Reason)
 	Style22.Option(w, "Bank feedback", workflow.BankFeedback)
+	if len(workflow.Evidence) > 0 {
+		Style22.Printf(w, "Evidence:")
+		displayMap(w, Style333, workflow.Evidence)
+	}
 
 	return nil
 }

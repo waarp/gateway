@@ -36,6 +36,12 @@ func displayEbicsRTNEvent(w io.Writer, event *api.OutEbicsRTNEvent) error {
 		Style22.PrintL(w, "Processed at", *event.ProcessedAt)
 	}
 	Style22.Option(w, "Last error", event.LastError)
+	Style22.Option(w, "Operator action", event.OperatorAction)
+	Style22.Option(w, "Operator reason", event.OperatorReason)
+	if len(event.OperatorMetadata) > 0 {
+		Style22.Printf(w, "Operator metadata:")
+		displayMap(w, Style333, event.OperatorMetadata)
+	}
 
 	return nil
 }

@@ -132,6 +132,10 @@ func TestEbicsOperationGetCommandDisplaysDetail(t *testing.T) {
 				"severity":            "INFO",
 				"transactionID":       "TX-77",
 				"correlationID":       "corr-77",
+				"technicalReturnCode":    "091005",
+				"technicalReturnMessage": "temporary transport warning",
+				"businessReturnCode":     "090003",
+				"businessReturnMessage":  "business validation warning",
 				"gatewayOutcome":      "SUCCESS",
 				"retryDecision":       "NO_RETRY",
 				"manualActionRequired": false,
@@ -142,6 +146,7 @@ func TestEbicsOperationGetCommandDisplaysDetail(t *testing.T) {
 			"startedAt":  "2026-03-31T10:00:00Z",
 			"finishedAt": "2026-03-31T10:01:00Z",
 			"links": map[string]any{
+				"transferID":     88,
 				"contractViewID": 9,
 				"rtnEventID":     15,
 			},
@@ -183,6 +188,11 @@ func TestEbicsOperationGetCommandDisplaysDetail(t *testing.T) {
 	assert.Contains(t, w.String(), "EBICS operation #77 [COMPLETED]")
 	assert.Contains(t, w.String(), "Operation type: PAYLOAD")
 	assert.Contains(t, w.String(), "Host ID: HOST-77")
+	assert.Contains(t, w.String(), "Technical return code: 091005")
+	assert.Contains(t, w.String(), "Technical return message: temporary transport warning")
+	assert.Contains(t, w.String(), "Business return code: 090003")
+	assert.Contains(t, w.String(), "Business return message: business validation warning")
+	assert.Contains(t, w.String(), "Transfer ID: 88")
 	assert.Contains(t, w.String(), "RTN event ID: 15")
 	assert.Contains(t, w.String(), "EBICS transaction #12 [COMPLETED]")
 	assert.Contains(t, w.String(), "#1 [STORED] size=2048 checksum=seg-1 ref=payload-1")
@@ -211,6 +221,58 @@ func TestEbicsTransactionGetCommandFailsOnMissingTransactionPayload(t *testing.T
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, errMissingEbicsTransactionPayload))
 	assert.Equal(t, "", w.String())
+}
+
+func TestEbicsTransactionGetCommandDisplaysCorrelationDetail(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsTransactionGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/transactions/92",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"transaction": map[string]any{
+				"id":             92,
+				"transactionID":  "TX-92",
+				"orderType":      "BTD",
+				"status":         "RECOVERING",
+				"direction":      "INBOUND",
+				"segmentCount":   2,
+				"currentSegment": 1,
+				"totalSize":      2048,
+				"transferID":     502,
+			},
+			"hostID":        "HOST-92",
+			"partnerID":     "PARTNER-92",
+			"userID":        "USER-92",
+			"requestID":     "REQ-92",
+			"correlationID": "CORR-92",
+			"segments": []map[string]any{
+				{
+					"id":            1,
+					"segmentNumber": 1,
+					"segmentStatus": "STORED",
+					"payloadSize":   2048,
+				},
+			},
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "92"))
+	assert.Contains(t, w.String(), "EBICS transaction #92 [RECOVERING]")
+	assert.Contains(t, w.String(), "Transfer ID: 502")
+	assert.Contains(t, w.String(), "Host ID: HOST-92")
+	assert.Contains(t, w.String(), "Partner ID: PARTNER-92")
+	assert.Contains(t, w.String(), "User ID: USER-92")
+	assert.Contains(t, w.String(), "Request ID: REQ-92")
+	assert.Contains(t, w.String(), "Correlation ID: CORR-92")
 }
 
 func TestEbicsTransactionSegmentsCommandShowsEmptyMessage(t *testing.T) {
@@ -516,6 +578,77 @@ func TestEbicsKeyRotationPrepareCommandBuildsRequest(t *testing.T) {
 	assert.Contains(t, w.String(), "EBICS key lifecycle #1 [ORDER_PLANNED]")
 }
 
+func TestEbicsKeyLifecycleGetCommandDisplaysEvidence(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsKeyLifecycleGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/key-lifecycles/44",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":                  44,
+			"keyUsage":            "AUTHENTICATION",
+			"rotationType":        "ROTATION",
+			"coordinationID":      "coord-44",
+			"status":              "ORDER_SENT",
+			"currentCredentialID": 10,
+			"operator":            "ops",
+			"reason":              "submitted",
+			"evidence": map[string]any{
+				"ticket": "KL-44",
+			},
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "44"))
+	assert.Contains(t, w.String(), "Operator: ops")
+	assert.Contains(t, w.String(), "Reason: submitted")
+	assert.Contains(t, w.String(), "Evidence:")
+	assert.Contains(t, w.String(), "ticket: KL-44")
+}
+
+func TestEbicsInitializationGetCommandDisplaysEvidence(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsInitializationGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/initializations/45",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":          45,
+			"status":      "WAITING_BANK_ACTIVATION",
+			"currentStep": "WAITING_BANK_ACTIVATION",
+			"operator":    "ops",
+			"reason":      "waiting bank feedback",
+			"bankFeedback": "pending validation",
+			"evidence": map[string]any{
+				"ticket": "INIT-45",
+			},
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "45"))
+	assert.Contains(t, w.String(), "Operator: ops")
+	assert.Contains(t, w.String(), "Reason: waiting bank feedback")
+	assert.Contains(t, w.String(), "Bank feedback: pending validation")
+	assert.Contains(t, w.String(), "Evidence:")
+	assert.Contains(t, w.String(), "ticket: INIT-45")
+}
+
 func TestEbicsRTNProviderAddCommandBuildsRequest(t *testing.T) {
 	w := newTestOutput()
 	command := &EbicsRTNProviderAdd{}
@@ -598,6 +731,43 @@ func TestEbicsRTNEventQuarantineCommandBuildsRequest(t *testing.T) {
 
 	require.NoError(t, executeCommand(t, w, command, "32", "--reason", "manual review"))
 	assert.Equal(t, "The EBICS RTN event \"32\" was successfully quarantined.\n", w.String())
+}
+
+func TestEbicsRTNEventGetCommandDisplaysOperatorMetadata(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRTNEventGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/rtn/events/33",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":             33,
+			"source":         "BANK_PUSH",
+			"idempotenceKey": "IDEMP-33",
+			"status":         "QUARANTINED",
+			"attempts":       2,
+			"receivedAt":     "2026-04-01T10:00:00Z",
+			"lastError":      "manual review",
+			"operatorAction": "QUARANTINE",
+			"operatorReason": "suspect payload",
+			"operatorMetadata": map[string]any{
+				"ticket": "RTN-33",
+			},
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "33"))
+	assert.Contains(t, w.String(), "Operator action: QUARANTINE")
+	assert.Contains(t, w.String(), "Operator reason: suspect payload")
+	assert.Contains(t, w.String(), "Operator metadata:")
+	assert.Contains(t, w.String(), "ticket: RTN-33")
 }
 
 func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {

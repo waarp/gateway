@@ -489,6 +489,57 @@ func DBEbicsTransactionToREST(transaction *model.EbicsTransaction) *api.OutEbics
 	}
 }
 
+// DBEbicsTransactionDetailToREST transforms an EBICS transaction and its
+// related subscriber/operation references into a detailed REST representation.
+func DBEbicsTransactionDetailToREST(
+	db database.ReadAccess,
+	transaction *model.EbicsTransaction,
+	segments []*api.OutEbicsTransactionSegment,
+) (*api.OutEbicsTransactionDetail, error) {
+	host := &model.EbicsHost{}
+	if err := db.Get(host, "id=?", transaction.EbicsHostID).Owner().Run(); err != nil {
+		return nil, fmt.Errorf(
+			"failed to retrieve EBICS host for transaction %d: %w",
+			transaction.ID,
+			err,
+		)
+	}
+
+	subscriber := &model.EbicsSubscriber{}
+	if err := db.Get(subscriber, "id=?", transaction.EbicsSubscriberID).Owner().Run(); err != nil {
+		return nil, fmt.Errorf(
+			"failed to retrieve EBICS subscriber for transaction %d: %w",
+			transaction.ID,
+			err,
+		)
+	}
+
+	detail := &api.OutEbicsTransactionDetail{
+		Transaction: DBEbicsTransactionToREST(transaction),
+		HostID:      host.HostID,
+		PartnerID:   subscriber.PartnerID,
+		UserID:      subscriber.UserID,
+		Segments:    segments,
+	}
+
+	if transaction.EbicsOperationID.Valid {
+		operation := &model.EbicsOperation{}
+		if err := db.Get(operation, "id=?", transaction.EbicsOperationID.Int64).Owner().Run(); err != nil {
+			return nil, fmt.Errorf(
+				"failed to retrieve EBICS operation %d for transaction %d: %w",
+				transaction.EbicsOperationID.Int64,
+				transaction.ID,
+				err,
+			)
+		}
+
+		detail.RequestID = operation.RequestID
+		detail.CorrelationID = operation.CorrelationID
+	}
+
+	return detail, nil
+}
+
 // DBEbicsTransactionSegmentToREST transforms an EBICS transaction segment into its REST representation.
 func DBEbicsTransactionSegmentToREST(segment *model.EbicsTransactionSegment) *api.OutEbicsTransactionSegment {
 	return &api.OutEbicsTransactionSegment{
@@ -519,6 +570,7 @@ func DBEbicsKeyLifecycleToREST(lifecycle *model.EbicsKeyLifecycle) *api.OutEbics
 		RetiredAt:           ptrTime(lifecycle.RetiredAt),
 		Operator:            lifecycle.Operator,
 		Reason:              lifecycle.Reason,
+		Evidence:            lifecycle.EvidenceMap,
 	}
 }
 
@@ -537,25 +589,44 @@ func DBEbicsInitializationToREST(workflow *model.EbicsInitializationWorkflow) *a
 		Operator:          workflow.Operator,
 		Reason:            workflow.Reason,
 		BankFeedback:      workflow.BankFeedback,
+		Evidence:          workflow.EvidenceMap,
 	}
 }
 
 // DBEbicsRTNEventToREST transforms an RTN event into its REST representation.
 func DBEbicsRTNEventToREST(event *model.EbicsRTNEvent) *api.OutEbicsRTNEvent {
+	operatorAction := ""
+	operatorReason := ""
+	var operatorMetadata map[string]any
+	if event.PayloadMap != nil {
+		if value, ok := event.PayloadMap["lastOperatorAction"].(string); ok {
+			operatorAction = value
+		}
+		if value, ok := event.PayloadMap["lastOperatorReason"].(string); ok {
+			operatorReason = value
+		}
+		if value, ok := event.PayloadMap["lastOperatorMetadata"].(map[string]any); ok {
+			operatorMetadata = value
+		}
+	}
+
 	return &api.OutEbicsRTNEvent{
-		ID:             event.ID,
-		Source:         event.Source,
-		EventID:        event.EventID,
-		CorrelationID:  event.CorrelationID,
-		IdempotenceKey: event.IdempotenceKey,
-		OrderTypeHint:  event.OrderTypeHint,
-		ProfileID:      event.ProfileID,
-		Status:         event.Status,
-		Attempts:       event.Attempts,
-		NextRetryAt:    ptrTime(event.NextRetryAt),
-		ReceivedAt:     event.ReceivedAt.UTC(),
-		ProcessedAt:    ptrTime(event.ProcessedAt),
-		LastError:      event.LastError,
+		ID:               event.ID,
+		Source:           event.Source,
+		EventID:          event.EventID,
+		CorrelationID:    event.CorrelationID,
+		IdempotenceKey:   event.IdempotenceKey,
+		OrderTypeHint:    event.OrderTypeHint,
+		ProfileID:        event.ProfileID,
+		Status:           event.Status,
+		Attempts:         event.Attempts,
+		NextRetryAt:      ptrTime(event.NextRetryAt),
+		ReceivedAt:       event.ReceivedAt.UTC(),
+		ProcessedAt:      ptrTime(event.ProcessedAt),
+		LastError:        event.LastError,
+		OperatorAction:   operatorAction,
+		OperatorReason:   operatorReason,
+		OperatorMetadata: operatorMetadata,
 	}
 }
 

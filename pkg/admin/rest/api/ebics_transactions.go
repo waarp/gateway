@@ -13,6 +13,18 @@ type OutEbicsTransaction struct {
 	TransferID     *int64 `json:"transferID,omitempty" yaml:"transferID,omitempty"`
 }
 
+// OutEbicsTransactionDetail exposes the correlated operational view of one
+// EBICS transaction together with subscriber and operation identifiers.
+type OutEbicsTransactionDetail struct {
+	Transaction   *OutEbicsTransaction          `json:"transaction" yaml:"transaction"`
+	HostID        string                        `json:"hostID" yaml:"hostID"`
+	PartnerID     string                        `json:"partnerID,omitempty" yaml:"partnerID,omitempty"`
+	UserID        string                        `json:"userID,omitempty" yaml:"userID,omitempty"`
+	RequestID     string                        `json:"requestID,omitempty" yaml:"requestID,omitempty"`
+	CorrelationID string                        `json:"correlationID,omitempty" yaml:"correlationID,omitempty"`
+	Segments      []*OutEbicsTransactionSegment `json:"segments,omitempty" yaml:"segments,omitempty"`
+}
+
 // OutEbicsTransactionSegment exposes the technical view of a transaction segment.
 type OutEbicsTransactionSegment struct {
 	ID               int64  `json:"id" yaml:"id"`

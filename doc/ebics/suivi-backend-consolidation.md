@@ -673,7 +673,7 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot 5A - Normaliser les correlations et statuts EBICS
+- [x] Lot 5A - Normaliser les correlations et statuts EBICS
   Fichiers principaux: `pkg/protocols/modules/ebics/server.go`,
   `pkg/protocols/modules/ebics/client.go`,
   `pkg/protocols/modules/ebics/client_transfer.go`
@@ -682,7 +682,14 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
 
-- [ ] Lot 5B - Rendre explicites les return codes et messages operateur
+  2026-04-01: Lot 5A est maintenant ferme pour une premiere tranche
+  d'observabilite. Le detail de transaction REST/CLI expose maintenant
+  `HostID`, `PartnerID`, `UserID`, `RequestID` et `CorrelationID`, et la CLI
+  affiche aussi le `TransferID` archive quand il n'est plus porte directement
+  par l'operation. Cela renforce la correlation operateur sans changer les
+  modeles de persistance.
+
+- [x] Lot 5B - Rendre explicites les return codes et messages operateur
   Fichiers principaux: `pkg/protocols/modules/ebics/client_admin.go`,
   `pkg/protocols/modules/ebics/client_reporting.go`,
   `pkg/protocols/modules/ebics/client_key_rotation.go`,
@@ -693,7 +700,12 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
 
-- [ ] Lot 5C - Rendre exploitables les workflows sensibles et RTN
+  2026-04-01: Lot 5B est maintenant ferme. La CLI EBICS affiche
+  explicitement les codes et messages `technical` / `business`, ce qui aligne
+  enfin la lecture operateur avec les donnees deja exposees par le backend REST
+  et stockees dans `EbicsOperation`.
+
+- [x] Lot 5C - Rendre exploitables les workflows sensibles et RTN
   Fichiers principaux: `pkg/protocols/modules/ebics/client_admin.go`,
   `pkg/protocols/modules/ebics/client_key_rotation.go`,
   `pkg/admin/rest/ebics_initializations.go`,
@@ -704,12 +716,18 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client`
   puis `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client`
 
+  2026-04-01: Lot 5C est maintenant ferme. Les sorties REST/CLI exposent
+  desormais l'`evidence` structuree pour les `key lifecycles` et les
+  `initializations`, ainsi que les metadonnees d'action operateur RTN
+  (`operatorAction`, `operatorReason`, `operatorMetadata`). Les workflows
+  sensibles deviennent lisibles sans inspection directe de la base.
+
 Ordre d'execution recommande:
 
-1. [ ] Lot 5A
-2. [ ] Lot 5B
-3. [ ] Lot 5C
-4. [ ] Rejouer linter + tests observabilite
+1. [x] Lot 5A
+2. [x] Lot 5B
+3. [x] Lot 5C
+4. [x] Rejouer linter + tests observabilite
 
 ### Etape 6. Fermer les exigences d'exploitation transverses
 
