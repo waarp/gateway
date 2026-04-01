@@ -127,6 +127,9 @@ Note:
   Le motif principal restant est l'absence du passe-plat asynchrone metier et
   des protocoles natifs `AMQP 0.9.1` / `AMQP 1.0`, identifies comme attente
   minimale ou prealable architectural dans les documents de specification.
+  Arbitrage retenu: ces protocoles doivent etre implementes comme protocoles
+  Gateway autonomes hors perimetre EBICS strict, mais restent un pre-requis
+  imperatif du futur chantier de passe-plat metier.
 - ce point de situation doit maintenant etre relu contre
   `specifications-fonctionnelles.md`, `specifications-techniques.md` et
   `architecture-logicielle.md`, car une lecture centree seulement sur le code

@@ -36,7 +36,7 @@ L'implémentation EBICS de Waarp Gateway est un projet Go structuré autour de d
 
 Le **coeur protocolaire est solide et largement conforme** à EBICS 3.0.2 : ~89 fichiers Go pour le module EBICS, 25 modèles de données, 18+ endpoints REST, un système BTF complet.
 
-Les **écarts majeurs** sont concentrés sur l'**intégration métier et l'automatisation** : AMQP absent, RTN non opérationnel, pas de scheduler, pas de purge automatique.
+Les **écarts majeurs** sont concentrés sur l'**intégration métier et l'automatisation** : RTN non opérationnel, pas de scheduler, pas de purge automatique, et un prérequis d'architecture transverse (`AMQP 0.9.1` / `AMQP 1.0`) encore absent pour le futur passe-plat métier.
 
 ---
 
@@ -122,7 +122,7 @@ Les **écarts majeurs** sont concentrés sur l'**intégration métier et l'autom
 
 ## 5. Écarts critiques identifiés
 
-### 5.1 AMQP 0.9.1 et AMQP 1.0 — ABSENT
+### 5.1 AMQP 0.9.1 et AMQP 1.0 — ABSENT, MAIS HORS PÉRIMÈTRE EBICS STRICT
 
 **Références spec :**
 
@@ -139,6 +139,17 @@ Les **écarts majeurs** sont concentrés sur l'**intégration métier et l'autom
   - `doc/ebics/amqp-protocols-backlog.md`
   - `doc/ebics/amqp-protocols-architecture.md`
 
+**Positionnement retenu :**
+
+- `AMQP 0.9.1` et `AMQP 1.0` doivent etre implementes comme des protocoles
+  Gateway natifs autonomes, dans le strict respect de la philosophie
+  Waarp Gateway, et non comme une sous-partie du module EBICS.
+- Ils restent un **pre-requis imperatif** pour le chantier de passe-plat
+  asynchrone vers/depuis le metier.
+- Leur absence ne remet donc pas en cause, a elle seule, la consolidation du
+  backend EBICS strict; elle bloque en revanche la cible documentaire globale
+  integree "EBICS + passe-plat metier asynchrone".
+
 **Impact :**
 
 - Toute l'intégration métier asynchrone est impossible
@@ -147,7 +158,8 @@ Les **écarts majeurs** sont concentrés sur l'**intégration métier et l'autom
 - Découplage temporel entre collecte EBICS et consommation applicative : impossible
 - RTN vers broker de messages : impossible
 
-**Sévérité : CRITIQUE**
+**Sévérité : CRITIQUE** pour la cible d'architecture globale,
+**hors perimetre EBICS strict**.
 
 ---
 
@@ -207,7 +219,14 @@ La logique auto-pull (`runtime/rtn_autopull.go`) construit des plans de pull (BT
 | AMQP 0.9.1 | **ABSENT** |
 | AMQP 1.0 | **ABSENT** |
 
-Sans AMQP, le passe-plat est limité au mode synchrone (REST/CLI) et fichier (FS). Aucun découplage temporel possible entre la Gateway et le SI métier.
+Sans AMQP, le passe-plat est limite au mode synchrone (REST/CLI) et fichier
+(FS). Aucun decouplage temporel possible entre la Gateway et le SI metier.
+
+Positionnement retenu:
+
+- ce chantier ne doit pas etre absorbe par le module EBICS;
+- il doit reposer sur des protocoles Gateway autonomes (`amqp091`, `amqp10`)
+  puis etre reutilise par EBICS comme n'importe quel autre protocole.
 
 **Sévérité : MAJEUR**
 
@@ -343,17 +362,17 @@ La spec EBICS 3.0.2 prévoit que H3K peut remplacer INI+HIA en une seule étape.
 | Payload profiles réutilisables | Oui | **IMPL** | Aucun | - |
 | Serveur EBICS (HTTP/TLS) | Oui | **IMPL** | Aucun | - |
 | Client EBICS (HTTP/TLS) | Oui | **IMPL** | Aucun | - |
-| **AMQP 0.9.1** | Oui (Lot 0) | **ABSENT** | Total | **CRITIQUE** |
-| **AMQP 1.0** | Oui (Lot 0) | **ABSENT** | Total | **CRITIQUE** |
+| **AMQP 0.9.1** | Oui (Lot 0) | **ABSENT** | Total | **CRITIQUE - hors perimetre EBICS strict** |
+| **AMQP 1.0** | Oui (Lot 0) | **ABSENT** | Total | **CRITIQUE - hors perimetre EBICS strict** |
 | **RTN opérationnel (connexion + auto-pull)** | Oui | **DECONNECTE** | Service manquant | **MAJEUR** |
 | **Passe-plat asynchrone vers SI métier** | Oui | **ABSENT** | Dépend AMQP | **MAJEUR** |
 | **Scheduler / ordonnancement** | Implicite | **ABSENT** | Total | **MOYEN** |
 | **VEU (workflow signature distribuée)** | Oui | **ABSENT** | Workflow manquant | **MOYEN** |
-| **Purge / rétention automatique** | Oui | **ABSENT** | Total | **MOYEN** |
-| **Observabilité alignée specs** | Oui | **PARTIEL** | Normalisation en attente | **MOYEN** |
+| **Purge / rétention automatique** | Oui | **PARTIEL** | Base de purge codee, automatisation manquante | **MOYEN** |
+| **Observabilité alignée specs** | Oui | **PARTIEL** | Forte progression B4/B5, normalisation finale encore perfectible | **MOYEN** |
 | **Tests RTN** | Implicite | **ABSENT** | Total | **MOYEN** |
-| **Tests CLI EBICS** | Implicite | **ABSENT** | Total | **MINEUR** |
-| **Tests REST handlers EBICS** | Implicite | **EN COURS** | Partiel | **MINEUR** |
+| **Tests CLI EBICS** | Implicite | **IMPL** | Premiere vague presente, RTN reel non couvert | **MINEUR** |
+| **Tests REST handlers EBICS** | Implicite | **IMPL/PARTIEL** | Premiere vague large presente, RTN reel non couvert | **MINEUR** |
 
 ---
 
@@ -376,22 +395,28 @@ Le **coeur protocolaire EBICS est conforme à la spécification 3.0.2** et de qu
 
 Les écarts sont concentrés sur **l'intégration métier et l'automatisation** :
 
-1. **AMQP (0.9.1 + 1.0)** : Identifié comme prérequis architectural (Lot 0) dans les specs, pas une seule ligne de code n'existe. Bloque tout le passe-plat asynchrone vers le SI métier.
+1. **AMQP (0.9.1 + 1.0)** : Identifie comme prerequis architectural
+   transverse (Lot 0) dans les specs, pas une seule ligne de code n'existe.
+   Ce manque bloque tout le passe-plat asynchrone vers le SI metier, mais doit
+   etre traite comme chantier autonome hors module EBICS strict.
 
 2. **RTN non opérationnel** : Le code est écrit à ~60-70% (WSS provider, ingestion, auto-pull) mais les briques ne sont pas connectées entre elles. Le WSSProvider ne démarre jamais, les événements ne sont jamais ingérés automatiquement, l'auto-pull ne déclenche jamais de BTD. Actuellement une façade administrative sans exécution réelle.
 
 3. **Pas de scheduler** : Aucun mécanisme de déclenchement automatique périodique (rapports, refresh contrats, retry programmé).
 
-4. **Pas de purge** : Les nonces, transactions terminées et événements RTN s'accumulent sans limite.
+4. **Pas d'automatisation de purge** : une base de purge minimale existe
+   maintenant dans le code pour nonces, transactions et evenements RTN
+   terminaux, mais aucun job de fond ni politique configurable d'exploitation
+   n'est encore branche.
 
 ### Priorisation recommandée
 
 | Priorité | Action | Justification |
 |---|---|---|
 | P0 | Connecter le RTN (service de fond + boucle d'ingestion + déclenchement auto-pull) | Le code est à 60-70%, il faut principalement un service orchestrateur |
-| P1 | Implémenter AMQP 0.9.1 puis 1.0 comme protocoles Gateway natifs | Prérequis architectural pour l'intégration métier asynchrone |
-| P2 | Ajouter un mécanisme de purge/rétention automatique | Nécessaire avant mise en production |
-| P2 | Compléter les tests (RTN, CLI, client direct) | Couverture critique manquante |
-| P3 | Normaliser l'observabilité (logs, corrélations, messages opérateur) | Alignement avec specs fonctionnelles |
-| P3 | Implémenter le workflow VEU / signature distribuée | Dépend de la stratégie passe-plat métier |
-| P3 | Ajouter un scheduler intégré ou documenter l'utilisation d'un ordonnanceur externe | Peut être couvert par outillage existant |
+| P1 | Implementer AMQP 0.9.1 puis 1.0 comme protocoles Gateway natifs | Prerequis autonome du passe-plat metier asynchrone, hors EBICS strict |
+| P2 | Ajouter l'automatisation de purge/retention | La base de purge existe deja, il manque l'exploitation de fond |
+| P2 | Completer les tests (RTN reel, client direct) | Les premieres vagues REST/CLI existent, les trous critiques restants sont ailleurs |
+| P3 | Normaliser encore l'observabilite | Forte progression deja realisee pendant B4/B5 |
+| P3 | Implementer le workflow VEU / signature distribuee | Depend de la strategie passe-plat metier |
+| P3 | Ajouter un scheduler integre ou documenter l'utilisation d'un ordonnanceur externe | Peut etre couvert par outillage existant |

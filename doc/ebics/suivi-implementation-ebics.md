@@ -192,4 +192,7 @@ Point de situation:
   `backend pret frontend` a l'echelle de la cible documentaire complete:
   le backend EBICS strict est consolide, mais les protocoles natifs
   `AMQP 0.9.1` / `AMQP 1.0` et le socle de passe-plat asynchrone metier
-  restent absents.
+  restent absents. Arbitrage retenu: ces sujets AMQP/passe-plat sont hors
+  perimetre EBICS strict et doivent etre implementes comme protocoles Gateway
+  autonomes, tout en restant des pre-requis imperatifs du chantier metier
+  cible.

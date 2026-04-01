@@ -868,10 +868,12 @@ Sous-lots cochables:
   l'observabilite et la couverture de tests ajoutee pendant `B4`. En
   revanche, la cible documentaire complete inclut explicitement une couche de
   passe-plat metier et des connecteurs asynchrones `AMQP 0.9.1` / `AMQP 1.0`
-  comme attente minimale ou prealable architectural; ces capacites restent
-  absentes du code courant. La conclusion de sortie doit donc rester negative
-  a l'echelle de la cible documentaire globale, meme si le backend EBICS
-  strict est beaucoup plus mature.
+  comme attente minimale ou prealable architectural. Arbitrage retenu:
+  ces capacites doivent etre traitees comme protocoles Gateway autonomes, hors
+  perimetre EBICS strict, mais restent un pre-requis imperatif pour le futur
+  chantier de passe-plat metier. La conclusion de sortie reste donc negative a
+  l'echelle de la cible documentaire globale, meme si le backend EBICS strict
+  est beaucoup plus mature.
 
 - [x] Lot 7D - Prononcer ou refuser la gate "backend pret frontend"
   Attendus: decision explicite, motivee, tracee dans les documents de suivi
@@ -880,10 +882,12 @@ Sous-lots cochables:
   2026-04-01: Lot 7D est maintenant ferme avec une decision explicite de
   refus de la gate `backend pret frontend` a l'echelle de la cible
   documentaire complete. Motifs principaux:
-  absence des protocoles natifs `amqp091` / `amqp10`, absence de socle
-  `outbox / consumer workers` pour le passe-plat asynchrone metier, et
-  ecart restant entre le backend EBICS strict et l'architecture cible
-  documentee. Le backend EBICS seul peut etre considere tres avance et
+  absence des protocoles natifs `amqp091` / `amqp10` et du socle
+  `outbox / consumer workers` pour le passe-plat asynchrone metier, ainsi que
+  l'ecart restant entre le backend EBICS strict et l'architecture cible
+  documentee. Arbitrage retenu: ces sujets AMQP/passe-plat sont hors
+  perimetre EBICS strict mais restent des pre-requis imperatifs du chantier
+  metier cible. Le backend EBICS seul peut etre considere tres avance et
   techniquement consolide, mais pas encore conforme au perimetre complet
   annonce par les specs.
 
