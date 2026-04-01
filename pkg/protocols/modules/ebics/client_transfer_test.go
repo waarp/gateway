@@ -22,11 +22,10 @@ func TestTransferClientResolveTransactionIDOmitSyntheticValueForDownload(t *test
 			TransCtx: &model.TransferContext{
 				Transfer: &model.Transfer{
 					RemoteTransferID: "corr-download-001",
-					TransferInfo: map[string]any{
-						transferInfoKeyEbicsOrderType: "BTD",
-					},
+					TransferInfo:      map[string]any{},
 				},
-				Rule: &model.Rule{IsSend: false},
+				Rule:         &model.Rule{IsSend: false},
+				EbicsContext: &model.EbicsTransferContext{OrderType: "BTD"},
 			},
 		},
 	}
@@ -40,12 +39,10 @@ func TestTransferClientResolveTransactionIDKeepsPersistedValueForDownloadRecover
 			TransCtx: &model.TransferContext{
 				Transfer: &model.Transfer{
 					RemoteTransferID: "corr-download-002",
-					TransferInfo: map[string]any{
-						transferInfoKeyEbicsOrderType: "BTD",
-						"ebicsTransactionID":          "TX-REAL-002",
-					},
+					TransferInfo:      map[string]any{},
 				},
-				Rule: &model.Rule{IsSend: false},
+				Rule:         &model.Rule{IsSend: false},
+				EbicsContext: &model.EbicsTransferContext{OrderType: "BTD", TransactionID: "TX-REAL-002"},
 			},
 		},
 	}
@@ -79,10 +76,7 @@ func TestTransferClientCreateOperationReusesScheduledOperation(t *testing.T) {
 		SrcFilename:     "rtn-btd-request.xml",
 		Start:           time.Now().UTC(),
 		LocalPath:       t.TempDir(),
-		TransferInfo: map[string]any{
-			transferInfoKeyEbicsOrderType:  "BTD",
-			transferInfoKeyEbicsRTNEventID: 7001,
-		},
+		TransferInfo:    map[string]any{},
 	}
 	require.NoError(t, db.Insert(transfer).Run())
 
@@ -115,8 +109,8 @@ func TestTransferClientCreateOperationReusesScheduledOperation(t *testing.T) {
 	require.NoError(t, err)
 	existing.Status = model.EbicsOperationStatusWaitingPayloadTransferForRuntime()
 	existing.RTNEventID = utils.NewNullInt64(event.ID)
+	existing.TransferID = utils.NewNullInt64(transfer.ID)
 	require.NoError(t, db.Insert(existing).Run())
-	transfer.TransferInfo[transferInfoKeyEbicsOperationID] = existing.ID
 
 	client := &transferClient{
 		parent: &Client{
@@ -158,6 +152,92 @@ func TestTransferClientCreateOperationReusesScheduledOperation(t *testing.T) {
 	count, err := db.Count(&model.EbicsOperation{}).Run()
 	require.NoError(t, err)
 	require.EqualValues(t, 1, count)
+}
+
+func TestTransferClientResolveContextFromBoundOperation(t *testing.T) {
+	setEBICSConfigChecker(t)
+
+	db := dbtest.TestDatabase(t)
+
+	host := insertTestEbicsHost(t, db, "HOST-BOUND")
+	host.DefaultBankURL = "https://bank.bound.test/ebics"
+	require.NoError(t, db.Update(host).Run())
+	subscriber := insertTestEbicsSubscriber(t, db, host.ID, "PARTNER-BOUND", "USER-BOUND", true)
+	rule := insertTestRule(t, db, "bound-download", false)
+	account := insertTestRTNAutoPullRemoteAccount(t, db, "bound-account")
+	clientAccount := insertTestRTNAutoPullClient(t, db, "ebics-bound-client")
+	subscriber.RemoteAccountID = utils.NewNullInt64(account.ID)
+	require.NoError(t, db.Update(subscriber).Run())
+
+	profile := insertTestPayloadProfile(t, db, &model.EbicsPayloadProfile{
+		Name:          "bound-profile",
+		OrderType:     "BTD",
+		Direction:     "DOWNLOAD",
+		ServiceName:   "MCT",
+		MsgName:       "camt.054",
+		DefaultRuleID: utils.NewNullInt64(rule.ID),
+		IsEnabled:     true,
+	})
+
+	transfer := &model.Transfer{
+		RuleID:          rule.ID,
+		ClientID:        utils.NewNullInt64(clientAccount.ID),
+		RemoteAccountID: utils.NewNullInt64(account.ID),
+		SrcFilename:     "bound.xml",
+		Start:           time.Now().UTC(),
+		LocalPath:       t.TempDir(),
+		TransferInfo:    map[string]any{},
+	}
+	require.NoError(t, db.Insert(transfer).Run())
+
+	operation, err := ebicsruntime.NewPayloadOperation(&ebicsruntime.OperationMappingInput{
+		Owner:             conf.GlobalConfig.GatewayName,
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: subscriber.ID,
+		OrderType:         "BTD",
+		OperationType:     model.EbicsOperationTypePayloadForRuntime(),
+		Direction:         model.EbicsOperationDirectionInboundForRuntime(),
+		TransportMode:     model.EbicsTransportModeAsyncForRuntime(),
+		CorrelationID:     "corr-bound-001",
+		ResolvedRequest: &ebicsruntime.ResolvedPayloadRequest{
+			ProfileName:     profile.Name,
+			OrderType:       "BTD",
+			ResolvedService: ebicsruntime.PayloadServiceRef{OrderType: "BTD", ServiceName: "MCT"},
+		},
+	})
+	require.NoError(t, err)
+	operation.RequestID = "REQ-BOUND-001"
+	operation.TransactionID = "TX-BOUND-001"
+	operation.TransferID = utils.NewNullInt64(transfer.ID)
+	operation.MetadataMap["endpointURL"] = "https://bank.bound.override/ebics"
+	require.NoError(t, db.Insert(operation).Run())
+
+	client := &transferClient{
+		parent: &Client{db: db},
+		pip: &pipeline.Pipeline{
+			TransCtx: &model.TransferContext{
+				Transfer: transfer,
+				Rule:     rule,
+			},
+		},
+	}
+
+	resolvedHost, resolvedSubscriber, err := client.resolveSubscriber()
+	require.NoError(t, err)
+	require.Equal(t, host.ID, resolvedHost.ID)
+	require.Equal(t, subscriber.ID, resolvedSubscriber.ID)
+
+	resolvedProfile, err := client.resolvePayloadProfile()
+	require.NoError(t, err)
+	require.Equal(t, profile.ID, resolvedProfile.ID)
+
+	endpointURL, err := client.resolveEndpointURL(host, subscriber)
+	require.NoError(t, err)
+	require.Equal(t, "https://bank.bound.override/ebics", endpointURL)
+
+	require.Equal(t, "REQ-BOUND-001", client.resolveOrderID())
+	require.Equal(t, "corr-bound-001", client.resolveCorrelationID())
+	require.Equal(t, "TX-BOUND-001", client.resolveTransactionID())
 }
 
 func TestTransferClientSyncRTNEventExecutionStateMarksRetryableFailure(t *testing.T) {

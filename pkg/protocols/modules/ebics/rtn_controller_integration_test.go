@@ -195,7 +195,7 @@ func TestRTNControllerExecutesScheduledBTDToFinalPayload(t *testing.T) {
 
 	assert.Equal(t, types.StatusDone, history.Status)
 	assert.Equal(t, "rtn-controller-download.xml", history.DestFilename)
-	assert.Equal(t, operation.ID, requireInt64Value(t, history.TransferInfo[transferInfoKeyEbicsOperationID]))
+	assert.NotContains(t, history.TransferInfo, transferInfoKeyEbicsOperationID)
 
 	var event model.EbicsRTNEvent
 	require.NoError(t, clientDB.Get(&event, "event_id=?", "evt-controller-001").Run())

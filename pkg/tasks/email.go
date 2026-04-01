@@ -82,7 +82,7 @@ func (m *emailTask) Run(_ context.Context, params map[string]string, db *databas
 		return err
 	}
 
-	if err := m.replaceTemplateVars(transCtx); err != nil {
+	if err := m.replaceTemplateVars(db, transCtx); err != nil {
 		logger.Errorf("Failed to replace email template variables: %v", err)
 
 		return fmt.Errorf("failed to replace email template variables: %w", err)
@@ -134,19 +134,19 @@ func (*emailTask) copyFileFunc(name string) gomail.FileSetting {
 	})
 }
 
-func (m *emailTask) replaceTemplateVars(transCtx *model.TransferContext) error {
+func (m *emailTask) replaceTemplateVars(db database.ReadAccess, transCtx *model.TransferContext) error {
 	var err error
 
-	if m.template.Subject, err = replaceVars(m.template.Subject, transCtx); err != nil {
+	if m.template.Subject, err = replaceVars(m.template.Subject, db, transCtx); err != nil {
 		return err
 	}
 
-	if m.template.Body, err = replaceVars(m.template.Body, transCtx); err != nil {
+	if m.template.Body, err = replaceVars(m.template.Body, db, transCtx); err != nil {
 		return err
 	}
 
 	for i, attachement := range m.template.Attachments {
-		if m.template.Attachments[i], err = replaceVars(attachement, transCtx); err != nil {
+		if m.template.Attachments[i], err = replaceVars(attachement, db, transCtx); err != nil {
 			return err
 		}
 	}

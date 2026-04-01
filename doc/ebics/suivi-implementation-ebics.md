@@ -238,3 +238,50 @@ Point de situation:
   proprement l'espace metier/exploitant expose en `#TI_*#` des correlations
   techniques EBICS, quitte a redevelopper une partie importante du runtime et
   de la persistance de correlation.
+  2026-04-01: `P4A` est maintenant ferme.
+  La cartographie exhaustive montre deux problemes distincts:
+  les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,
+  `ebicsTransactionID`, identite protocolaire, profil, endpoint, service)
+  sont utilisees comme support runtime dans `TransferInfo`,
+  et le chemin RTN y deverse en plus le `PayloadMap` brut des evenements.
+  La suite `P4B` devra donc traiter a la fois le relogement des correlations
+  critiques et la suppression du pass-through RTN vers `TransferInfo`.
+  2026-04-01: `P4B` est maintenant ferme.
+  Le modele cible retenu interdit toute dependance runtime critique a
+  `TransferInfo`.
+  Les correlations passent par `EbicsOperation`, `EbicsTransaction` et
+  `EbicsRTNEvent`; les informations de resolution techniques vont dans
+  `ebics_operations.metadata`; le message RTN complet reste dans
+  `ebics_rtn_events.payload`; `TransferInfo` ne conserve, au mieux, qu'une
+  whitelist future de metadonnees explicitement assumees comme visibles pour
+  l'exploitant.
+  2026-04-01: premiere tranche technique engagee et validee.
+  Le client payload recharge maintenant son contexte critique depuis
+  `EbicsOperation`; le chemin RTN ne clone plus le `PayloadMap` brut dans
+  `TransferInfo`; un helper partage de contexte EBICS alimente un bloc REST
+  `ebicsContext` sur les transferts; et les taches disposent de variables
+  dediees `#EBICS_*#`.
+  Aucun fallback de compatibilite interne EBICS n'est retenu a ce stade:
+  l'implementation converge directement vers le modele cible propre.
+  Point de cadrage ajoute: cette remise en ordre vise les cles techniques
+  EBICS / RTN. Les metadonnees standard du moteur Gateway comme `__followID__`
+  restent hors de ce perimetre.
+  2026-04-01: `P4C` est maintenant ferme.
+  Les lectures techniques EBICS residuelles ont ete retirees du runtime
+  payload; les chemins non payload `admin/reporting/key rotation/init` ont ete
+  verifies et n'utilisent pas `TransferInfo` comme bus technique.
+  2026-04-01: `P4D` est maintenant ferme.
+  Les surfaces operateur, historique et CLI sont alignees sur le canal dedie
+  `ebicsContext` / `#EBICS_*#`, y compris apres archivage via
+  `metadata.archivedTransferID`.
+  `TransferInfo` ne porte plus de correlation technique EBICS; seules restent
+  les metadonnees natives du moteur Gateway comme `__followID__`.
+  2026-04-01: le point linter est maintenant qualifie.
+  L'echec ne venait pas du code EBICS ni de `golangci-lint`, mais du shell
+  sandboxe sans acces a `C:\\Users\\driss\\.config\\git\\ignore`.
+  Hors sandbox, sous `pwsh 7.6.0` et le compte utilisateur reel, la passe
+  linter fonctionne et redevient une gate qualite exploitable.
+  2026-04-01: `P4E` est maintenant ferme.
+  La passe de non-regression consolidee et la repasse linter hors sandbox sur
+  le perimetre EBICS/REST/CLI/model/gatewayd sont vertes. Le chantier `P4`
+  est maintenant considere comme ferme.

@@ -50,9 +50,9 @@ func printOutput(logger *log.Logger, output *bytes.Buffer) {
 
 // Run executes the task by executing the external program with the given parameters.
 func (e *execTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
-	output, runErr := runExec(parent, logger, transCtx, params)
+	output, runErr := runExec(parent, db, logger, transCtx, params)
 	if runErr != nil {
 		printOutput(logger, output)
 
@@ -100,7 +100,11 @@ func parseExecArgs(params map[string]string) (path, args string,
 	return path, args, delay, nil
 }
 
-func makeCmd(transCtx *model.TransferContext, script, args string) (*exec.Cmd, error) {
+func makeCmd(
+	db database.ReadAccess,
+	transCtx *model.TransferContext,
+	script, args string,
+) (*exec.Cmd, error) {
 	cmd, cmdErr := getCommand(script, args)
 	if cmdErr != nil {
 		return nil, cmdErr
@@ -109,7 +113,12 @@ func makeCmd(transCtx *model.TransferContext, script, args string) (*exec.Cmd, e
 	cmd.Env = os.Environ()
 	cmd.WaitDelay = execWaitDelay
 
-	for key, replaceFunc := range getReplacers() {
+	replacers, err := buildReplacers(db, transCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, replaceFunc := range replacers {
 		value, err := replaceFunc(transCtx, key)
 		if errors.Is(err, errNotImplemented) {
 			continue
@@ -180,7 +189,7 @@ func getCommand(path, argsStr string) (*exec.Cmd, error) {
 	return exec.Command(path, args...), nil
 }
 
-func runExec(ctx context.Context, logger *log.Logger, transCtx *model.TransferContext,
+func runExec(ctx context.Context, db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
 	params map[string]string,
 ) (*bytes.Buffer, error) {
 	script, args, delay, parsErr := parseExecArgs(params)
@@ -188,7 +197,7 @@ func runExec(ctx context.Context, logger *log.Logger, transCtx *model.TransferCo
 		return nil, fmt.Errorf("failed to parse task arguments: %w", parsErr)
 	}
 
-	cmd, cmdErr := makeCmd(transCtx, script, args)
+	cmd, cmdErr := makeCmd(db, transCtx, script, args)
 	if cmdErr != nil {
 		return nil, cmdErr
 	}

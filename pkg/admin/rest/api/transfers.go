@@ -54,6 +54,7 @@ type OutTransfer struct {
 	ErrorCode            string               `json:"errorCode,omitempty" yaml:"errorCode,omitempty"`
 	ErrorMsg             string               `json:"errorMsg,omitempty" yaml:"errorMsg,omitempty"`
 	TransferInfo         map[string]any       `json:"transferInfo,omitempty" yaml:"transferInfo,omitempty"`
+	EbicsContext         map[string]any       `json:"ebicsContext,omitempty" yaml:"ebicsContext,omitempty"`
 	RemainingAttempts    int8                 `json:"remainingAttempts,omitempty" yaml:"remainingAttempts,omitempty"`
 	NextAttempt          time.Time            `json:"nextAttempt,omitzero" yaml:"nextAttempt,omitzero"`
 	NextRetryDelay       int32                `json:"nextRetryDelay,omitempty" yaml:"nextRetryDelay,omitempty"`

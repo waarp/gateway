@@ -285,12 +285,7 @@ func TestResolveRuntimeCorrelationID(t *testing.T) {
 	})
 }
 
-func TestEnrichTransferInfo(t *testing.T) {
-	transfer := &model.Transfer{
-		TransferInfo: map[string]any{
-			"existing": "value",
-		},
-	}
+func TestEnrichOperationMetadata(t *testing.T) {
 	operation := &model.EbicsOperation{
 		ID:            42,
 		OrderType:     "BTU",
@@ -313,19 +308,9 @@ func TestEnrichTransferInfo(t *testing.T) {
 		},
 	}
 
-	enrichTransferInfo(transfer, operation, resolved)
+	enrichOperationMetadata(operation, resolved)
 
-	require.Equal(t, "value", transfer.TransferInfo["existing"])
-	require.EqualValues(t, 42, transfer.TransferInfo[transferInfoKeyEbicsOperationID])
-	require.Equal(t, "BTU", transfer.TransferInfo[transferInfoKeyEbicsOrderType])
-	require.Equal(t, "HOST1", transfer.TransferInfo[transferInfoKeyEbicsHostID])
-	require.Equal(t, "PARTNER1", transfer.TransferInfo[transferInfoKeyEbicsPartnerID])
-	require.Equal(t, "USER1", transfer.TransferInfo[transferInfoKeyEbicsUserID])
-	require.Equal(t, "REQ-42", transfer.TransferInfo[transferInfoKeyEbicsRequestID])
-	require.Equal(t, "CORR-42", transfer.TransferInfo[transferInfoKeyEbicsCorrelationID])
-	require.Equal(t, "H005", transfer.TransferInfo[transferInfoKeyEbicsProtocol])
-
-	serviceInfo, ok := transfer.TransferInfo[transferInfoKeyEbicsService].(map[string]any)
+	serviceInfo, ok := operation.MetadataMap["service"].(map[string]any)
 	require.True(t, ok)
 	require.Equal(t, "MCT", serviceInfo["serviceName"])
 	require.Equal(t, "SDD", serviceInfo["serviceOption"])

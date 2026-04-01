@@ -38,9 +38,9 @@ func getNewFileName(output string) string {
 
 // Run executes the task by executing an external program with the given parameters.
 func (e *execOutputTask) Run(parent context.Context, params map[string]string,
-	_ *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
+	db *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
-	output, runErr := runExec(parent, logger, transCtx, params)
+	output, runErr := runExec(parent, db, logger, transCtx, params)
 	msg := ""
 	if output != nil {
 		msg = output.String()

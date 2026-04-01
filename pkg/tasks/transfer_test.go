@@ -137,6 +137,47 @@ func TestTransferRun(t *testing.T) {
 			}, transfer.TransferInfo)
 		})
 
+		t.Run("EBICS parent context is not copied as transfer info", func(t *testing.T) {
+			ctx := transCtx(t)
+			ctx.EbicsContext = &model.EbicsTransferContext{
+				OperationID:     101,
+				RTNEventID:      202,
+				TransactionID:   "TX-EBICS-TASK-001",
+				OrderType:       "BTD",
+				HostID:          "HOST-TASK",
+				PartnerID:       "PARTNER-TASK",
+				UserID:          "USER-TASK",
+				RequestID:       "REQ-TASK",
+				CorrelationID:   "CORR-TASK",
+				ProtocolVersion: "H005",
+				ProfileName:     "profile-task",
+				EndpointURL:     "https://bank.task.test/ebics",
+				RTNProviderName: "provider-task",
+				RTNSource:       "source-task",
+			}
+
+			err := runner.Run(t.Context(), args, db, logger, ctx, nil)
+			require.NoError(t, err)
+
+			var transfer model.Transfer
+			require.NoError(t, db.Get(&transfer, "src_filename=?", filename).OrderBy("id", false).Run())
+
+			assert.Equal(t, map[string]any{
+				"foo":          "bar",
+				"baz":          "qux",
+				"real":         true,
+				"delay":        json.Number("10"),
+				model.FollowID: json.Number("12345"),
+			}, transfer.TransferInfo)
+			assert.NotContains(t, transfer.TransferInfo, "ebicsOperationID")
+			assert.NotContains(t, transfer.TransferInfo, "ebicsRTNEventID")
+			assert.NotContains(t, transfer.TransferInfo, "ebicsTransactionID")
+			assert.NotContains(t, transfer.TransferInfo, "ebicsProfile")
+			assert.NotContains(t, transfer.TransferInfo, "ebicsEndpointURL")
+			assert.NotContains(t, transfer.TransferInfo, "rtnProviderName")
+			assert.NotContains(t, transfer.TransferInfo, "rtnSource")
+		})
+
 		t.Run("Partner does not exist", func(t *testing.T) {
 			replaceArg(t, args, "to", "toto")
 

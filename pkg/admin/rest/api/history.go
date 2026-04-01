@@ -25,6 +25,7 @@ type OutHistory struct {
 	Start          time.Time               `json:"start"`
 	Stop           Nullable[time.Time]     `json:"stop,omitzero"`
 	TransferInfo   map[string]any          `json:"transferInfo,omitempty"`
+	EbicsContext   map[string]any          `json:"ebicsContext,omitempty"`
 	Status         types.TransferStatus    `json:"status"`
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`

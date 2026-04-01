@@ -161,10 +161,19 @@ func TestRTNServiceProcessesAutoPullEventIntoOperation(t *testing.T) {
 	assert.Equal(t, rule.ID, transfer.RuleID)
 	assert.Equal(t, client.ID, transfer.ClientID.Int64)
 	assert.Equal(t, account.ID, transfer.RemoteAccountID.Int64)
-	assert.EqualValues(t, event.ID, requireInt64Value(t, transfer.TransferInfo[transferInfoKeyEbicsRTNEventID]))
-	assert.EqualValues(t, operation.ID, requireInt64Value(t, transfer.TransferInfo[transferInfoKeyEbicsOperationID]))
+	assert.Equal(t, map[string]any{
+		model.FollowID: transfer.TransferInfo[model.FollowID],
+	}, transfer.TransferInfo)
 	assert.EqualValues(t, operation.ID, requireInt64Value(t, event.PayloadMap["autoPullOperationID"]))
 	assert.EqualValues(t, transfer.ID, requireInt64Value(t, event.PayloadMap["autoPullTransferID"]))
+	_, clonedOperationID := transfer.TransferInfo[transferInfoKeyEbicsOperationID]
+	assert.False(t, clonedOperationID, "EBICS operation correlation must not be stored in TransferInfo")
+	_, clonedEventID := transfer.TransferInfo[transferInfoKeyEbicsRTNEventID]
+	assert.False(t, clonedEventID, "EBICS RTN correlation must not be stored in TransferInfo")
+	_, clonedMsgName := transfer.TransferInfo["msgName"]
+	assert.False(t, clonedMsgName, "raw RTN metadata should not be cloned into TransferInfo")
+	_, clonedPolicy := transfer.TransferInfo["autoPullPolicy"]
+	assert.False(t, clonedPolicy, "raw RTN metadata should not be cloned into TransferInfo")
 
 	var refreshed model.EbicsRTNProvider
 	require.NoError(t, db.Get(&refreshed, "id=?", provider.ID).Run())

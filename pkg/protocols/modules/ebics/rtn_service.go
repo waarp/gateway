@@ -449,19 +449,8 @@ func (s *RTNService) prepareAutoPullRuntime(
 		DestFilename:    resolveRTNAutoPullOutputName(event, plan),
 		Start:           time.Now().UTC(),
 		Status:          types.StatusPlanned,
-		TransferInfo:    maps.Clone(event.PayloadMap),
+		TransferInfo:    map[string]any{},
 	}
-
-	if transfer.TransferInfo == nil {
-		transfer.TransferInfo = map[string]any{}
-	}
-
-	transfer.TransferInfo[transferInfoKeyEbicsRTNEventID] = event.ID
-	transfer.TransferInfo[transferInfoKeyEbicsOperationID] = operation.ID
-	transfer.TransferInfo[transferInfoKeyEbicsProfileName] = resolved.ProfileName
-	transfer.TransferInfo["rtnProviderName"] = managed.config.Name
-	transfer.TransferInfo["rtnSource"] = event.Source
-	enrichTransferInfo(transfer, operation, resolved)
 
 	if target := strings.TrimSpace(resolvedTargetDirectory(resolved)); target != "" {
 		transfer.LocalPath = path.Join(target, transfer.DestFilename)
@@ -489,7 +478,6 @@ func (s *RTNService) persistAutoPullRuntime(runtime *autoPullRuntime) error {
 			return fmt.Errorf("insert RTN auto-pull operation: %w", err)
 		}
 
-		runtime.transfer.TransferInfo[transferInfoKeyEbicsOperationID] = runtime.operation.ID
 		if err := ses.Insert(runtime.transfer).Run(); err != nil {
 			return fmt.Errorf("insert RTN auto-pull transfer: %w", err)
 		}

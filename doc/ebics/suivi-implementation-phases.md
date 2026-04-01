@@ -116,6 +116,55 @@ Note:
   Le chantier `P4` est quant a lui sequence apres `P0C` et vise explicitement
   a sortir les correlations structurelles EBICS de `TransferInfo`, qui reste
   un espace reutilisable par l'exploitant via les variables `#TI_*#`.
+  2026-04-01: `P4A` est maintenant ferme.
+  L'inventaire confirme que le probleme n'est pas limite a quelques cles
+  EBICS (`ebicsOperationID`, `ebicsTransactionID`, etc.): le chemin RTN clone
+  aussi le `PayloadMap` brut des evenements dans `TransferInfo`, ce qui expose
+  potentiellement des metadonnees techniques arbitraires via `#TI_*#`.
+  Le chantier `P4B` devra donc definir un modele cible complet, sans aucune
+  dependance runtime critique a `TransferInfo`.
+  2026-04-01: `P4B` est maintenant ferme.
+  Le modele cible est arrete:
+  `Transfer <-> EbicsOperation` via `ebics_operations.transfer_id`,
+  `EbicsOperation <-> EbicsRTNEvent` via `rtn_event_id`,
+  `EbicsOperation <-> EbicsTransaction` via `ebics_transactions`.
+  Les informations techniques de resolution migrent vers
+  `ebics_operations.metadata`, le message RTN complet reste dans
+  `ebics_rtn_events.payload`, et `TransferInfo` n'est plus autorise comme
+  support de correlation interne EBICS ni comme receptacle de clonage RTN.
+  2026-04-01: premiere tranche `P4C/P4D` engagee et validee.
+  Le runtime client payload relit maintenant son contexte critique via
+  l'operation liee et non plus via `TransferInfo`; le pass-through RTN brut
+  vers `TransferInfo` a ete coupe; un contexte dedie `ebicsContext` est expose
+  dans l'API `transfers`; et des variables de taches `#EBICS_*#` sont
+  disponibles via `replacer.go`.
+  Aucun fallback de compatibilite interne EBICS n'est retenu a ce stade:
+  l'implementation du protocole doit converger directement vers le modele
+  cible propre.
+  Point de cadrage ajoute: le nettoyage vise les cles techniques EBICS / RTN.
+  Les metadonnees standard du moteur Gateway comme `__followID__` restent hors
+  de ce perimetre et ne doivent pas etre confondues avec une derive EBICS.
+  2026-04-01: `P4C` est maintenant ferme.
+  Les lectures techniques EBICS residuelles ont ete retirees du runtime
+  payload; le contexte EBICS est recharge uniquement depuis les tables et
+  metadata dediees; les chemins non payload `admin/reporting/key rotation/init`
+  ont ete relus et n'utilisent pas `TransferInfo` a mauvais escient.
+  2026-04-01: `P4D` est maintenant ferme.
+  Les surfaces REST/CLI `history` sont alignees sur `transfers` avec un bloc
+  dedie `ebicsContext`, y compris pour les transferts archives via
+  `metadata.archivedTransferID`.
+  Les anciennes constantes EBICS `transferInfoKey*` ont ete retirees du code
+  de production. `TransferInfo` ne porte plus de correlation technique EBICS;
+  seules restent les metadonnees natives du moteur Gateway comme `__followID__`.
+  2026-04-01: la piste PowerShell/linter est maintenant clarifiee.
+  Le probleme venait du shell sandboxe execute sous un compte technique
+  (`CodexSandboxOffline`) sans acces a la config Git utilisateur, pas d'une
+  casse durable du depot. Hors sandbox, sous `pwsh 7.6.0` et le vrai compte
+  utilisateur, `golangci-lint` fonctionne normalement sur le depot.
+  2026-04-01: `P4E` est maintenant ferme.
+  La passe `go test` consolidee et la repasse `golangci-lint` hors sandbox sur
+  `pkg/protocols/modules/ebics/...`, `pkg/admin/rest/...`, `pkg/cmd/client`,
+  `pkg/model` et `pkg/gatewayd` sont vertes.
 - linter et compilations ciblees valides sur `pkg/model`, `pkg/protocols/modules/ebics/...`,
   `pkg/admin/rest/api` et `pkg/cmd/client`
 

@@ -46,6 +46,15 @@ func displayTransferInfo(w io.Writer, info map[string]any) {
 	displayMap(w, Style333, info)
 }
 
+func displayEbicsContext(w io.Writer, info map[string]any) {
+	if len(info) == 0 {
+		return
+	}
+
+	Style22.Printf(w, "EBICS context:")
+	displayMap(w, Style333, info)
+}
+
 func putTransferRequest(w io.Writer, id uint64, endpoint, action string) error {
 	addr.Path = fmt.Sprintf("/api/transfers/%d/%s", id, endpoint)
 

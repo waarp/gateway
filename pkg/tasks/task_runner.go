@@ -195,7 +195,7 @@ func (r *Runner) replace(t *model.Task) (map[string]string, error) {
 		return nil, fmt.Errorf("failed to serialize the task arguments: %w", jsonErr)
 	}
 
-	rawArgs, repErr := replaceVars(string(raw), r.transCtx)
+	rawArgs, repErr := replaceVars(string(raw), r.db, r.transCtx)
 	if repErr != nil {
 		return nil, repErr
 	}

@@ -88,6 +88,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) error {
 	}
 
 	displayTransferInfo(w, trans.TransferInfo)
+	displayEbicsContext(w, trans.EbicsContext)
 
 	return nil
 }

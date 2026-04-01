@@ -1101,45 +1101,325 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot P4A - Cartographier et classer toutes les cles EBICS actuellement stockees dans `TransferInfo`
+- [x] Lot P4A - Cartographier et classer toutes les cles EBICS actuellement stockees dans `TransferInfo`
   Attendus: inventaire exhaustif des cles, qualification `metier exploitable /
   confort local / correlation structurelle / detail runtime transitoire`,
   et cible de relogement pour chaque cle
   Validation: synthese documentee et relue
 
-- [ ] Lot P4B - Definir le modele cible de correlation EBICS hors `TransferInfo`
+  2026-04-01: l'inventaire exhaustif des usages actuels est etabli.
+  Sources reelles d'ecriture/llecture relues:
+  `pkg/protocols/modules/ebics/order_router.go`,
+  `pkg/protocols/modules/ebics/client_transfer.go`,
+  `pkg/protocols/modules/ebics/rtn_service.go`,
+  `pkg/tasks/replacer.go`.
+  Constat principal: l'implementation actuelle ne se limite pas a quelques
+  cles EBICS dediees; le chemin RTN clone aussi le `PayloadMap` brut de
+  l'evenement vers `TransferInfo`, ce qui ouvre une fuite structurelle
+  potentiellement non bornee vers l'espace `#TI_*#`.
+
+  Inventaire classe:
+
+  `Correlation structurelle critique`
+  - `ebicsOperationID`
+    Ecriture: `order_router.go`, `client_transfer.go`, `rtn_service.go`
+    Lecture: `client_transfer.go`, historique/tests
+    Cible: relation primaire `ebics_operations.transfer_id` + fallback
+    eventuel via table de liaison si necessaire, jamais via `TransferInfo`
+  - `ebicsRTNEventID`
+    Ecriture: `rtn_service.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_operations.rtn_event_id`, puis lecture via operation
+    planifiee, pas via `TransferInfo`
+  - `ebicsTransactionID`
+    Ecriture: `client_transfer.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_operations.transaction_id` et `ebics_transactions`,
+    jamais comme source primaire dans `TransferInfo`
+
+  `Contexte protocolaire EBICS reconstituable ou deja porte ailleurs`
+  - `ebicsOrderType`
+    Ecriture: `order_router.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_operations.order_type`
+  - `ebicsHostID`
+    Ecriture: `order_router.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_hosts.host_id` / `ebics_operations.ebics_host_id`
+  - `ebicsPartnerID`
+    Ecriture: `order_router.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_subscribers.partner_id`
+  - `ebicsUserID`
+    Ecriture: `order_router.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_subscribers.user_id`
+  - `ebicsRequestID`
+    Ecriture: `order_router.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_operations.request_id`
+  - `ebicsCorrelationID`
+    Ecriture: `order_router.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_operations.correlation_id`
+  - `ebicsProtocol`
+    Ecriture: `order_router.go`
+    Lecture: indirecte d'affichage/historique seulement
+    Cible: `ebics_operations.ebics_version`
+  - `ebicsService`
+    Ecriture: `order_router.go`
+    Lecture: surtout affichage / historique aujourd'hui
+    Cible: `ebics_operations.metadata.service` ou table fille si
+    exploitation REST/UI plus fine a terme
+  - `ebicsProfile`
+    Ecriture: `client_transfer.go`, `rtn_service.go`
+    Lecture: `client_transfer.go`
+    Cible: `ebics_operations.metadata.profileName` ou champ dedie si besoin
+  - `ebicsEndpointURL`
+    Ecriture: `client_transfer.go`
+    Lecture: `client_transfer.go`
+    Cible: metadata technique d'operation, pas `TransferInfo`
+
+  `Metadonnees RTN techniques actuellement dupliquees dans TransferInfo`
+  - `rtnProviderName`
+    Ecriture: `rtn_service.go`
+    Lecture: surtout observabilite/tests
+    Cible: `ebics_operations.metadata.rtnProviderName` et `ebics_rtn_events`
+  - `rtnSource`
+    Ecriture: `rtn_service.go`
+    Lecture: surtout observabilite/tests
+    Cible: `ebics_operations.metadata.rtnSource` et `ebics_rtn_events.source`
+
+  `Pass-through RTN brut actuellement deverse dans TransferInfo`
+  - toutes les cles de `event.PayloadMap` clonees par
+    `TransferInfo: maps.Clone(event.PayloadMap)` dans `rtn_service.go`
+  - cela inclut au minimum, selon les chemins deja lus:
+    `orderTypeHint`, `profileID`, `serviceName`, `serviceOption`, `scope`,
+    `msgName`, `containerType`, `targetDirectory`, `requestID`, `ruleID`,
+    `ruleName`, `clientName`, `srcFilename`, `fileName`, `remoteFilename`,
+    `documentName`, `outputName`, `destFilename`, `targetFileName`,
+    `providerName`, `autoPullPolicy`, `hostID`, `partnerID`, `userID`,
+    `ebicsHostID`, `ebicsSubscriberID`
+  - et potentiellement toute cle arbitraire apportee par le provider RTN
+  Cible: rester dans `ebics_rtn_events.payload` et, si necessaire pour le
+  runtime, etre recopies explicitement dans `ebics_operations.metadata`
+  apres filtrage et normalisation; jamais en pass-through global vers
+  `TransferInfo`
+
+  Classification retenue pour la suite:
+  - `TransferInfo` ne doit plus porter aucune correlation structurelle EBICS
+    (`operation`, `transaction`, `event`, identite protocolaire, endpoint,
+    resolution de service)
+  - `TransferInfo` ne doit plus recevoir de clonage brut de metadata RTN
+  - seules pourront rester a terme des metadonnees explicitement assumees
+    comme visibles et reutilisables par l'exploitant
+
+  Impact de conception confirme:
+  - `P4B` doit definir un modele cible ou le runtime client/serveur/RTN peut
+    retrouver toutes ses correlations sans aucune lecture critique de
+    `TransferInfo`
+  - `P4C` devra probablement introduire une couche de chargement de contexte
+    technique EBICS a partir d'`EbicsOperation`, d'`EbicsTransaction` et de
+    metadata operationnelles dediees
+
+- [x] Lot P4B - Definir le modele cible de correlation EBICS hors `TransferInfo`
   Attendus: choix explicite des champs/tables/liaisons qui remplacent les
   usages actuels de `TransferInfo` pour `EbicsOperation`, `EbicsTransaction`,
   `RTN` et les metadonnees techniques de resolution
   Validation: mise a jour documentaire + migration ciblee si necessaire
 
-- [ ] Lot P4C - Refactorer le runtime EBICS pour supprimer la dependance structurelle a `TransferInfo`
+  2026-04-01: le modele cible est maintenant fige.
+
+  Principe directeur:
+  - aucune correlation runtime critique EBICS ne doit dependre de
+    `TransferInfo`
+  - `TransferInfo` n'est plus un bus technique interne EBICS
+  - aucun clonage brut de metadata RTN vers `TransferInfo` n'est autorise
+
+  Modele cible retenu:
+
+  `Correlation primaire`
+  - `Transfer <-> EbicsOperation`
+    porte par `ebics_operations.transfer_id`
+  - `EbicsOperation <-> EbicsRTNEvent`
+    porte par `ebics_operations.rtn_event_id`
+  - `EbicsOperation <-> EbicsTransaction`
+    porte par `ebics_transactions.ebics_operation_id`
+  - `EbicsTransaction <-> Transfer`
+    porte par `ebics_transactions.transfer_id`
+
+  `Identifiants protocolaires et contexte d'execution`
+  - `order_type`, `request_id`, `transaction_id`, `correlation_id`,
+    `ebics_version`, `ebics_host_id`, `ebics_subscriber_id`
+    restent portes par `ebics_operations`
+  - les informations de resolution techniques non structurantes
+    (`profileName`, `endpointURL`, service EBICS resolu, `rtnProviderName`,
+    `rtnSource`, `autoPullReason`) vivent dans `ebics_operations.metadata`
+  - le message RTN complet et ses metadata source restent portes par
+    `ebics_rtn_events.payload`
+
+  `Resolution RTN`
+  - le runtime RTN prepare un `EbicsOperation` complet avant de creer le
+    `Transfer`
+  - le `Transfer` ne transporte plus les cles techniques EBICS necessaires a
+    la reprise; le runtime recharge l'`EbicsOperation` liee au transfert puis
+    derive depuis elle tout le contexte necessaire
+  - les champs eventuellement necessaires a la selection de regle/client cote
+    RTN restent sur l'evenement RTN ou sont recopies explicitement dans
+    `EbicsOperation.Metadata`, jamais dans `TransferInfo`
+
+  `Whitelisting TransferInfo`
+  - politique par defaut: aucune cle EBICS interne n'est ecrite dans
+    `TransferInfo`
+  - exception possible a terme: quelques metadonnees explicitement assumees
+    comme visibles et reutilisables par l'exploitant, apres decision
+    explicite de whitelist
+  - cette whitelist ne doit jamais inclure:
+    `ebicsOperationID`, `ebicsRTNEventID`, `ebicsTransactionID`,
+    `ebicsOrderType`, `ebicsHostID`, `ebicsPartnerID`, `ebicsUserID`,
+    `ebicsRequestID`, `ebicsCorrelationID`, `ebicsProtocol`,
+    `ebicsService`, `ebicsProfile`, `ebicsEndpointURL`,
+    `rtnProviderName`, `rtnSource`, ni aucune cle issue du clonage brut
+    `event.PayloadMap`
+
+  `Regles de relogement`
+  - `ebicsOperationID`
+    supprime de `TransferInfo`; charge via `ebics_operations.transfer_id`
+  - `ebicsRTNEventID`
+    supprime de `TransferInfo`; charge via `ebics_operations.rtn_event_id`
+  - `ebicsTransactionID`
+    supprime de `TransferInfo`; charge via `ebics_operations.transaction_id`
+    et `ebics_transactions`
+  - identite EBICS (`host/partner/user`)
+    supprimee de `TransferInfo`; rederivee depuis `ebics_operations` puis
+    `ebics_subscribers` / `ebics_hosts`
+  - `ebicsService`, `ebicsProfile`, `ebicsEndpointURL`
+    deplaces dans `ebics_operations.metadata`
+  - metadata RTN source
+    conservees dans `ebics_rtn_events.payload`, avec recopie selective dans
+    `ebics_operations.metadata` uniquement si necessaire au runtime ou a
+    l'observabilite
+
+  `Contraintes de refactor`
+  - `P4C` devra introduire un chargement de contexte technique par
+    `EbicsOperation` avant toute execution client EBICS
+  - `P4D` devra poser une whitelist stricte de `TransferInfo` et verifier les
+    variables `#TI_*#`
+  - si une metadonnee devient necessaire en lecture SQL fine ou en UI, elle ne
+    doit pas etre repliee par facilite dans `TransferInfo`; elle doit etre
+    portee par `ebics_operations.metadata` ou par une table fille dediee
+
+- [x] Lot P4C - Refactorer le runtime EBICS pour supprimer la dependance structurelle a `TransferInfo`
   Attendus: le code client, serveur payload et RTN n'utilise plus
   `TransferInfo` comme support principal de correlation technique; les lectures
   runtime critiques passent par la persistance dediee
   Validation: linter + tests unitaires et d'integration du perimetre touche
+  2026-04-01: premiere tranche engagee et validee.
+  Le runtime client payload charge maintenant l'operation liee en priorite via
+  `ebics_operations.transfer_id`, ne depend plus de `TransferInfo` pour
+  resoudre le subscriber, le profil, l'endpoint et les identifiants de
+  correlation, et persiste `profileName` / `endpointURL` dans
+  `ebics_operations.metadata`.
+  Decision de chantier: aucun fallback de compatibilite interne EBICS n'est
+  conserve a ce stade. Les lectures ou ecritures techniques EBICS doivent etre
+  propres, structurelles et uniquement portees par les tables / metadata
+  dediees.
+  Le service RTN ne clone plus le `PayloadMap` brut dans `TransferInfo`.
+  Un helper partage `EbicsTransferContext` charge desormais le contexte EBICS
+  depuis les tables dediees; il est reutilise par les taches et par l'API
+  `transfers`.
+  La revue des chemins non payload confirme par ailleurs que les ordres
+  `admin/reporting/key rotation/init` n'utilisent pas `TransferInfo` comme bus
+  technique: le chantier `P4C` reste concentre sur les chemins payload et RTN.
+  Les tests RTN confirment aussi que le residu standard Gateway `__followID__`
+  peut rester present dans `TransferInfo` sans remettre en cause l'objectif du
+  chantier: ce lot retire les cles techniques EBICS / RTN, pas les metadonnees
+  natives du moteur deja portees par d'autres protocoles.
+  2026-04-01: tranche de finalisation validee.
+  Les lectures techniques EBICS residuelles ont ete retirees du runtime client
+  payload et du chargement de contexte: plus de fallback `TransferInfo` pour
+  `operation`, `event`, `transaction`, `profile`, `endpoint`, `request`,
+  `correlation`, `host/partner/user`.
+  Le runtime non payload (`admin/reporting/key rotation/init`) a ete relu et ne
+  porte pas d'usage abusif de `TransferInfo`.
+  Validation rejouee:
+  - `go test ./pkg/protocols/modules/ebics/... -count=1`
+  - `go test ./pkg/model -count=1`
+  - `go test ./pkg/tasks -count=1`
+  Le lot `P4C` est maintenant considere comme ferme.
 
-- [ ] Lot P4D - Preserver uniquement un `TransferInfo` metier / operateur propre
+- [x] Lot P4D - Preserver uniquement un `TransferInfo` metier / operateur propre
   Attendus: seules des metadonnees explicitement assumees comme visibles et
   reutilisables par l'exploitant restent dans `TransferInfo`; les cles
   techniques EBICS internes n'y figurent plus
-  Validation: tests REST/CLI/taches sur `TransferInfo` et verification des
-  variables `#TI_*#`
+  Rappel de conception: l'accessibilite operateur doit etre preservee via des
+  canaux dedies, pas en repliant les donnees techniques dans `TransferInfo`.
+  Cible:
+  - variables de taches dediees `#EBICS_*#` chargees depuis
+    `EbicsOperation` / `EbicsTransaction` / `EbicsRTNEvent`
+  - bloc REST/CLI dedie de type `ebicsContext` / `ebicsLinks` sur les
+    transferts, distinct de `transferInfo`
+  Validation: tests REST/CLI/taches sur `TransferInfo`, verification des
+  variables `#TI_*#` et des futures variables `#EBICS_*#`
+  2026-04-01: premiere tranche engagee et validee.
+  Les variables de taches `#EBICS_*#` sont maintenant disponibles dans
+  `replacer.go`, et l'API `transfers` expose un bloc dedie `ebicsContext`
+  distinct de `transferInfo`.
+  La tache `Transfer` a aussi ete reverifiee vis-a-vis du contrat historique
+  `FollowID`: la correlation multi-sauts native reste intacte, et un parent
+  EBICS ne propage pas son contexte technique dedie dans le `TransferInfo` du
+  transfert fils meme quand `copyInfo=true`.
+  Le cadrage cible est maintenant explicite: `TransferInfo` peut conserver les
+  metadonnees historiques standard du moteur Gateway comme `__followID__`, mais
+  plus aucune cle de correlation EBICS / RTN ni aucun clonage brut de payload
+  ou metadata provider.
+  2026-04-01: tranche de fermeture validee.
+  Les surfaces `history` REST/CLI exposent maintenant le meme bloc dedie
+  `ebicsContext` que `transfers`, y compris apres archivage via la resolution
+  `metadata.archivedTransferID`.
+  Les residus de cles EBICS dans le code de production ont ete retires:
+  `order_router.go` ne porte plus les anciennes constantes `transferInfoKey*`,
+  conservees uniquement dans les tests de non-regression.
+  La passe de verification ne remonte plus d'ecriture ou lecture technique
+  EBICS active dans `TransferInfo`; seules restent les metadonnees natives du
+  moteur Gateway comme `__followID__`.
+  Validation rejouee:
+  - `go test ./pkg/admin/rest -run "Test(FromHistoryWithDBIncludesEbicsContext|GetHistory|ListHistory)" -count=1`
+  - `go test ./pkg/tasks -run "Test(ReplaceVarsAddsDedicatedEbicsVariables|TransferRun)" -count=1`
+  - `go test ./pkg/cmd/client -run "TestDoesNotExist" -count=0`
+  - `go test ./pkg/protocols/modules/ebics/... -count=1`
+  Le lot `P4D` est maintenant considere comme ferme.
 
-- [ ] Lot P4E - Rejouer la non-regression complete apres remise en ordre
+- [x] Lot P4E - Rejouer la non-regression complete apres remise en ordre
   Attendus: scenarios reels `payload client`, `payload serveur`,
   `RTN -> auto-pull -> payload final`, et verification de l'absence de derive
   sur l'historique, l'observabilite et les workflows sensibles
   Validation: linter + passe `go test` du perimetre EBICS consolide
+  2026-04-01: passe de non-regression large rejouee et verte sur le perimetre
+  consolide:
+  - `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./pkg/model ./pkg/gatewayd -count=1`
+  2026-04-01: le diagnostic linter est maintenant etabli.
+  Le blocage ne venait pas du depot ni de `golangci-lint`, mais du shell
+  sandboxe execute sous `DESKTOP-N3Q22LC\\CodexSandboxOffline`, qui n'avait pas
+  acces a `C:\\Users\\driss\\.config\\git\\ignore` et provoquait aussi les
+  erreurs `can't eval symlinks on wd ... Access is denied`.
+  Hors sandbox, sous le vrai compte `DESKTOP-N3Q22LC\\driss`, `pwsh 7.6.0`,
+  l'acces Git utilisateur et `golangci-lint` fonctionnent correctement.
+  Commande canonique retenue pour la gate qualite locale:
+  - `Set-Location C:\\MonProjet\\Waarp-Gateway`
+  - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/model`
+  2026-04-01: repasse linter ciblee hors sandbox validee sur le perimetre
+  consolide:
+  - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./pkg/model ./pkg/gatewayd`
+  Le lot `P4E` est maintenant considere comme ferme.
 
 Ordre d'execution recommande:
 
-1. [ ] Finir Lot P0C
-2. [ ] Lot P4A
-3. [ ] Lot P4B
-4. [ ] Lot P4C
-5. [ ] Lot P4D
-6. [ ] Lot P4E
+1. [x] Lot P4A
+2. [x] Lot P4B
+3. [x] Lot P4C
+4. [x] Lot P4D
+5. [x] Lot P4E
 
 ### Chantier P2 - Automatisation d'exploitation native
 

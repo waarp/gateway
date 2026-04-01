@@ -11,11 +11,12 @@ import (
 // TransferContext regroups all the information necessary for an outgoing
 // transfer.
 type TransferContext struct {
-	Transfer  *Transfer
-	Rule      *Rule
-	PreTasks  Tasks
-	PostTasks Tasks
-	ErrTasks  Tasks
+	Transfer     *Transfer
+	Rule         *Rule
+	PreTasks     Tasks
+	PostTasks    Tasks
+	ErrTasks     Tasks
+	EbicsContext *EbicsTransferContext
 
 	Client *Client
 
@@ -77,7 +78,21 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		return nil, fmt.Errorf("failed to retrieve transfer error-tasks: %w", err)
 	}
 
-	return makeAgentContext(db, logger, transCtx)
+	transCtx, err := makeAgentContext(db, logger, transCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	ebicsContext, err := LoadEbicsTransferContext(db, trans.ID, trans.TransferInfo)
+	if err != nil {
+		logger.Errorf("Failed to retrieve EBICS transfer context: %v", err)
+
+		return nil, fmt.Errorf("failed to retrieve EBICS transfer context: %w", err)
+	}
+
+	transCtx.EbicsContext = ebicsContext
+
+	return transCtx, nil
 }
 
 func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,

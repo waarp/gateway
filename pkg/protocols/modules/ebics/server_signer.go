@@ -11,6 +11,7 @@ import (
 )
 
 var errServerSignerNotAvailable = errors.New("ebics request signer not available")
+
 var errServerSignerMissingStaticHeader = errors.New("parse EBICS request signer context: missing static header")
 
 type providerRequestSigner struct {

@@ -73,7 +73,7 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 }
 
 // DBTransferToREST transforms the given database transfer into its JSON equivalent.
-func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
+func DBTransferToREST(db database.ReadAccess, trans *model.NormalizedTransferView) *api.OutTransfer {
 	src := path.Base(trans.RemotePath)
 	dst := trans.LocalPath
 
@@ -85,6 +85,11 @@ func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
 	var stop api.Nullable[time.Time]
 	if !trans.Stop.IsZero() {
 		stop = asNullable(trans.Stop)
+	}
+
+	ebicsContext, err := model.LoadEbicsTransferContext(db, trans.ID, trans.TransferInfo)
+	if err != nil {
+		ebicsContext = nil
 	}
 
 	return &api.OutTransfer{
@@ -115,6 +120,7 @@ func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
 		NextRetryDelay:       trans.NextRetryDelay,
 		RetryIncrementFactor: trans.RetryIncrementFactor,
 		TransferInfo:         trans.TransferInfo,
+		EbicsContext:         mapFromEbicsContext(ebicsContext),
 
 		TrueFilepath: trans.LocalPath,
 		SourcePath:   src,
@@ -125,14 +131,22 @@ func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
 
 // DBTransfersToREST transforms the given list of database transfers into its
 // JSON equivalent.
-func DBTransfersToREST(models []*model.NormalizedTransferView) []*api.OutTransfer {
+func DBTransfersToREST(db database.ReadAccess, models []*model.NormalizedTransferView) []*api.OutTransfer {
 	jsonArray := make([]*api.OutTransfer, len(models))
 
 	for i, trans := range models {
-		jsonArray[i] = DBTransferToREST(trans)
+		jsonArray[i] = DBTransferToREST(db, trans)
 	}
 
 	return jsonArray
+}
+
+func mapFromEbicsContext(ctx *model.EbicsTransferContext) map[string]any {
+	if ctx == nil {
+		return nil
+	}
+
+	return ctx.ToMap()
 }
 
 //nolint:dupl // dupicated code is about a different type
@@ -207,7 +221,7 @@ func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		json := DBTransferToREST(result)
+		json := DBTransferToREST(db, result)
 		handleError(w, logger, writeJSON(w, json))
 	}
 }
@@ -226,7 +240,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		json := DBTransfersToREST(transfers)
+		json := DBTransfersToREST(db, transfers)
 		resp := map[string][]*api.OutTransfer{"transfers": json}
 		handleError(w, logger, writeJSON(w, resp))
 	}

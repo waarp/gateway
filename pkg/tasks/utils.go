@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -18,9 +19,21 @@ func mapToStr(m map[string]string) string {
 	return "{" + strings.Join(args, ", ") + "}"
 }
 
-func replaceVars(orig string, transCtx *model.TransferContext) (string, error) {
+func buildReplacers(db database.ReadAccess, transCtx *model.TransferContext) (replacersMap, error) {
 	replacers := getReplacers()
 	replacers.addInfo(transCtx)
+	if err := replacers.addEbicsInfo(db, transCtx); err != nil {
+		return nil, err
+	}
+
+	return replacers, nil
+}
+
+func replaceVars(orig string, db database.ReadAccess, transCtx *model.TransferContext) (string, error) {
+	replacers, err := buildReplacers(db, transCtx)
+	if err != nil {
+		return "", err
+	}
 
 	for key, f := range replacers {
 		reg := regexp.MustCompile(key)

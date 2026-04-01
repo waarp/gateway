@@ -27,16 +27,6 @@ import (
 )
 
 const (
-	transferInfoKeyEbicsOperationID        = "ebicsOperationID"
-	transferInfoKeyEbicsRTNEventID         = "ebicsRTNEventID"
-	transferInfoKeyEbicsOrderType          = "ebicsOrderType"
-	transferInfoKeyEbicsHostID             = "ebicsHostID"
-	transferInfoKeyEbicsPartnerID          = "ebicsPartnerID"
-	transferInfoKeyEbicsUserID             = "ebicsUserID"
-	transferInfoKeyEbicsRequestID          = "ebicsRequestID"
-	transferInfoKeyEbicsCorrelationID      = "ebicsCorrelationID"
-	transferInfoKeyEbicsProtocol           = "ebicsProtocol"
-	transferInfoKeyEbicsService            = "ebicsService"
 	operationMetadataKeyArchivedTransferID = "archivedTransferID"
 )
 
@@ -123,7 +113,7 @@ func (r *payloadOrderRouter) Download(
 		return libebics.OrderResult{}, err
 	}
 
-	enrichTransferInfo(transfer, operation, route.resolved)
+	enrichOperationMetadata(operation, route.resolved)
 	if transfer.ID != 0 {
 		if updateErr := r.db.Update(transfer).Run(); updateErr != nil {
 			err = fmt.Errorf("update EBICS download transfer metadata: %w", updateErr)
@@ -479,7 +469,7 @@ func (r *payloadOrderRouter) newIncomingTransfer(
 		TransferInfo:   map[string]any{},
 	}
 
-	enrichTransferInfo(transfer, operation, route.resolved)
+	enrichOperationMetadata(operation, route.resolved)
 
 	return transfer
 }
@@ -928,24 +918,17 @@ func mappedOrderError(err error) error {
 	return fmt.Errorf("map EBICS order error: %w", liborders.MapOrderError(err))
 }
 
-func enrichTransferInfo(
-	transfer *model.Transfer,
+func enrichOperationMetadata(
 	operation *model.EbicsOperation,
 	resolved *ebicsruntime.ResolvedPayloadRequest,
 ) {
-	if transfer.TransferInfo == nil {
-		transfer.TransferInfo = map[string]any{}
+	if operation == nil {
+		return
 	}
-
-	transfer.TransferInfo[transferInfoKeyEbicsOperationID] = operation.ID
-	transfer.TransferInfo[transferInfoKeyEbicsOrderType] = operation.OrderType
-	transfer.TransferInfo[transferInfoKeyEbicsHostID] = resolved.Subscriber.HostID
-	transfer.TransferInfo[transferInfoKeyEbicsPartnerID] = resolved.Subscriber.PartnerID
-	transfer.TransferInfo[transferInfoKeyEbicsUserID] = resolved.Subscriber.UserID
-	transfer.TransferInfo[transferInfoKeyEbicsRequestID] = operation.RequestID
-	transfer.TransferInfo[transferInfoKeyEbicsCorrelationID] = operation.CorrelationID
-	transfer.TransferInfo[transferInfoKeyEbicsProtocol] = operation.EbicsVersion
-	transfer.TransferInfo[transferInfoKeyEbicsService] = map[string]any{
+	if operation.MetadataMap == nil {
+		operation.MetadataMap = map[string]any{}
+	}
+	operation.MetadataMap["service"] = map[string]any{
 		"serviceName":   resolved.ResolvedService.ServiceName,
 		"serviceOption": resolved.ResolvedService.ServiceOption,
 		"scope":         resolved.ResolvedService.Scope,

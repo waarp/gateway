@@ -93,10 +93,7 @@ func TestServerIntegrationUploadCreatesOperationAndHistory(t *testing.T) {
 	require.Equal(t, account.Login, history.Account)
 	require.Equal(t, service.server.Name, history.Agent)
 	require.Equal(t, EBICS, history.Protocol)
-	require.Equal(t, operation.ID, requireInt64Value(t, history.TransferInfo[transferInfoKeyEbicsOperationID]))
-	require.Equal(t, "HOST-UPLOAD", history.TransferInfo[transferInfoKeyEbicsHostID])
-	require.Equal(t, "PARTNER-UPLOAD", history.TransferInfo[transferInfoKeyEbicsPartnerID])
-	require.Equal(t, "USER-UPLOAD", history.TransferInfo[transferInfoKeyEbicsUserID])
+	require.NotContains(t, history.TransferInfo, transferInfoKeyEbicsOperationID)
 
 	storedPayload, readErr := os.ReadFile(history.LocalPath)
 	require.NoError(t, readErr)
@@ -187,10 +184,7 @@ func TestServerIntegrationDownloadReturnsPayloadAndArchivesTransfer(t *testing.T
 	require.Equal(t, types.StatusDone, history.Status)
 	require.Equal(t, "payload-download.xml", history.SrcFilename)
 	require.Equal(t, account.Login, history.Account)
-	require.Equal(t, operation.ID, requireInt64Value(t, history.TransferInfo[transferInfoKeyEbicsOperationID]))
-	require.Equal(t, "HOST-DOWNLOAD", history.TransferInfo[transferInfoKeyEbicsHostID])
-	require.Equal(t, "PARTNER-DOWNLOAD", history.TransferInfo[transferInfoKeyEbicsPartnerID])
-	require.Equal(t, "USER-DOWNLOAD", history.TransferInfo[transferInfoKeyEbicsUserID])
+	require.NotContains(t, history.TransferInfo, transferInfoKeyEbicsOperationID)
 }
 
 func startTestEBICSIntegrationServer(t *testing.T, db *database.DB, rootDir string) (*Server, *model.LocalAccount) {

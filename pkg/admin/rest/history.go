@@ -22,6 +22,14 @@ import (
 //
 //nolint:staticcheck //deprecated type used for retro-compatibility
 func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
+	return FromHistoryWithDB(nil, hist)
+}
+
+// FromHistoryWithDB transforms the given database history entry into its JSON equivalent
+// and enriches it with EBICS context when it can be resolved.
+//
+//nolint:staticcheck //deprecated type used for retro-compatibility
+func FromHistoryWithDB(db database.ReadAccess, hist *model.HistoryEntry) *api.OutHistory {
 	var stop api.Nullable[time.Time]
 	if !hist.Stop.IsZero() {
 		stop = asNullable(hist.Stop)
@@ -33,6 +41,11 @@ func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 	if hist.IsSend {
 		dst = path.Base(hist.RemotePath)
 		src = hist.LocalPath
+	}
+
+	ebicsContext, err := model.LoadEbicsTransferContext(db, hist.ID, hist.TransferInfo)
+	if err != nil {
+		ebicsContext = nil
 	}
 
 	return &api.OutHistory{
@@ -50,6 +63,7 @@ func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 		Start:          hist.Start.Local(),
 		Stop:           stop,
 		TransferInfo:   hist.TransferInfo,
+		EbicsContext:   mapFromEbicsContext(ebicsContext),
 		Status:         hist.Status,
 		ErrorCode:      hist.ErrCode,
 		ErrorMsg:       hist.ErrDetails,
@@ -65,11 +79,11 @@ func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 // JSON equivalent.
 //
 //nolint:staticcheck //deprecated type used for retro-compatibility
-func FromHistories(hs []*model.HistoryEntry) []*api.OutHistory {
+func FromHistories(db database.ReadAccess, hs []*model.HistoryEntry) []*api.OutHistory {
 	outHist := make([]*api.OutHistory, len(hs))
 
 	for i := range hs {
-		outHist[i] = FromHistory(hs[i])
+		outHist[i] = FromHistoryWithDB(db, hs[i])
 	}
 
 	return outHist
@@ -156,7 +170,7 @@ func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		hist := FromHistory(result)
+		hist := FromHistoryWithDB(db, result)
 
 		handleError(w, logger, writeJSON(w, hist))
 	}
@@ -199,7 +213,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		hist := FromHistories(results)
+		hist := FromHistories(db, results)
 
 		//nolint:staticcheck //deprecated type used for retro-compatibility
 		resp := map[string][]*api.OutHistory{"history": hist}

@@ -32,8 +32,6 @@ import (
 )
 
 const (
-	transferInfoKeyEbicsProfileName     = "ebicsProfile"
-	transferInfoKeyEbicsEndpointURL     = "ebicsEndpointURL"
 	ebicsClientTransactionStatusRunning = "RUNNING"
 	ebicsClientTransactionStatusFailed  = "FAILED"
 )
@@ -62,10 +60,12 @@ var (
 )
 
 type transferClient struct {
-	parent   *Client
-	pip      *pipeline.Pipeline
-	exec     *payloadExecution
-	finished bool
+	parent                   *Client
+	pip                      *pipeline.Pipeline
+	exec                     *payloadExecution
+	finished                 bool
+	scheduledOperation       *model.EbicsOperation
+	scheduledOperationLoaded bool
 }
 
 type payloadExecution struct {
@@ -267,7 +267,6 @@ func (c *transferClient) resolveExecution() (*payloadExecution, error) {
 
 	if persistErr := c.persistTransferCorrelation(
 		operation,
-		transaction,
 		profile,
 		endpointURL,
 		resolved,
@@ -324,26 +323,27 @@ func (c *transferClient) resolveExecution() (*payloadExecution, error) {
 
 func (c *transferClient) resolveSubscriber() (*model.EbicsHost, *model.EbicsSubscriber, error) {
 	trans := c.pip.TransCtx.Transfer
-	hostID := readTransferString(trans.TransferInfo, transferInfoKeyEbicsHostID)
-	partnerID := readTransferString(trans.TransferInfo, transferInfoKeyEbicsPartnerID)
-	userID := readTransferString(trans.TransferInfo, transferInfoKeyEbicsUserID)
-
-	if hostID != "" && partnerID != "" && userID != "" {
+	if operation, loadErr := c.loadBoundOperation(); loadErr != nil && !errors.Is(loadErr, errNoScheduledOperation) {
+		return nil, nil, loadErr
+	} else if loadErr == nil && operation.EbicsHostID > 0 && operation.EbicsSubscriberID > 0 {
 		var host model.EbicsHost
-		if err := c.parent.db.Get(&host, "owner=? AND host_id=?", conf.GlobalConfig.GatewayName, hostID).Run(); err != nil {
-			return nil, nil, fmt.Errorf("load EBICS host %q for transfer %d: %w", hostID, trans.ID, err)
+		if getErr := c.parent.db.Get(&host, "id=?", operation.EbicsHostID).Run(); getErr != nil {
+			return nil, nil, fmt.Errorf(
+				"load EBICS host %d for operation %d: %w",
+				operation.EbicsHostID,
+				operation.ID,
+				getErr,
+			)
 		}
 
 		var subscriber model.EbicsSubscriber
-		if err := c.parent.db.Get(
-			&subscriber,
-			"owner=? AND ebics_host_id=? AND partner_id=? AND user_id=?",
-			conf.GlobalConfig.GatewayName,
-			host.ID,
-			partnerID,
-			userID,
-		).Run(); err != nil {
-			return nil, nil, fmt.Errorf("load EBICS subscriber %q/%q on host %q: %w", partnerID, userID, hostID, err)
+		if getErr := c.parent.db.Get(&subscriber, "id=?", operation.EbicsSubscriberID).Run(); getErr != nil {
+			return nil, nil, fmt.Errorf(
+				"load EBICS subscriber %d for operation %d: %w",
+				operation.EbicsSubscriberID,
+				operation.ID,
+				getErr,
+			)
 		}
 
 		return &host, &subscriber, nil
@@ -385,21 +385,25 @@ func (c *transferClient) resolveSubscriber() (*model.EbicsHost, *model.EbicsSubs
 
 //nolint:nlreturn // keeping the immediate return next to the validation branch is clearer here.
 func (c *transferClient) resolvePayloadProfile() (*model.EbicsPayloadProfile, error) {
-	profileName := readTransferString(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsProfileName)
-	if profileName != "" {
-		var profile model.EbicsPayloadProfile
-		if err := c.parent.db.Get(
-			&profile,
-			"owner=? AND name=?",
-			conf.GlobalConfig.GatewayName,
-			profileName,
-		).Run(); err != nil {
-			return nil, fmt.Errorf("load EBICS payload profile %q: %w", profileName, err)
+	if operation, loadErr := c.loadBoundOperation(); loadErr != nil && !errors.Is(loadErr, errNoScheduledOperation) {
+		return nil, loadErr
+	} else if loadErr == nil {
+		if profileName := readTransferString(operation.MetadataMap, "profileName"); profileName != "" {
+			var profile model.EbicsPayloadProfile
+			if getErr := c.parent.db.Get(
+				&profile,
+				"owner=? AND name=?",
+				conf.GlobalConfig.GatewayName,
+				profileName,
+			).Run(); getErr != nil {
+				return nil, fmt.Errorf("load EBICS payload profile %q from operation %d: %w",
+					profileName, operation.ID, getErr)
+			}
+			if !profile.IsEnabled {
+				return nil, fmt.Errorf("%w: %q", errTransferDisabledProfile, profileName)
+			}
+			return &profile, nil
 		}
-		if !profile.IsEnabled {
-			return nil, fmt.Errorf("%w: %q", errTransferDisabledProfile, profileName)
-		}
-		return &profile, nil
 	}
 
 	orderType := model.NormalizeEbicsPayloadOrderType(c.defaultOrderType())
@@ -474,11 +478,12 @@ func (c *transferClient) resolveEndpointURL(
 	host *model.EbicsHost,
 	subscriber *model.EbicsSubscriber,
 ) (string, error) {
-	if endpoint := readTransferString(
-		c.pip.TransCtx.Transfer.TransferInfo,
-		transferInfoKeyEbicsEndpointURL,
-	); endpoint != "" {
-		return endpoint, nil
+	if operation, err := c.loadBoundOperation(); err != nil && !errors.Is(err, errNoScheduledOperation) {
+		return "", err
+	} else if err == nil {
+		if endpoint := readTransferString(operation.MetadataMap, "endpointURL"); endpoint != "" {
+			return endpoint, nil
+		}
 	}
 	if subscriber.TransportURL != "" {
 		return subscriber.TransportURL, nil
@@ -530,7 +535,7 @@ func (c *transferClient) createOperation(
 	}
 
 	transportMode := model.EbicsTransportModeAsyncForRuntime()
-	if readTransferInt64(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsRTNEventID) > 0 {
+	if c.pip.TransCtx.EbicsContext != nil && c.pip.TransCtx.EbicsContext.RTNEventID > 0 {
 		transportMode = model.EbicsTransportModeAutoTriggeredForRuntime()
 	}
 
@@ -558,10 +563,8 @@ func (c *transferClient) createOperation(
 	operation.EbicsVersion = c.parent.config.ProtocolVersion
 	operation.Status = ebicsClientTransactionStatusRunning
 	operation.StartedAt = time.Now().UTC()
-	if rtnEventID := readTransferInt64(
-		c.pip.TransCtx.Transfer.TransferInfo,
-		transferInfoKeyEbicsRTNEventID,
-	); rtnEventID > 0 {
+	if c.pip.TransCtx.EbicsContext != nil && c.pip.TransCtx.EbicsContext.RTNEventID > 0 {
+		rtnEventID := c.pip.TransCtx.EbicsContext.RTNEventID
 		operation.RTNEventID = nullableID(rtnEventID)
 	}
 
@@ -581,28 +584,52 @@ func (c *transferClient) createOperation(
 }
 
 func (c *transferClient) loadScheduledOperation() (*model.EbicsOperation, error) {
-	operationID := readTransferInt64(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsOperationID)
-	if operationID <= 0 {
-		return nil, errNoScheduledOperation
+	operation, err := c.loadBoundOperation()
+	if err != nil {
+		return nil, err
 	}
 
-	operation := &model.EbicsOperation{}
-	if err := c.parent.db.Get(operation, "id=?", operationID).Run(); err != nil {
-		return nil, fmt.Errorf("load scheduled EBICS operation %d: %w", operationID, err)
+	expectedOrderType := ""
+	if c.pip.TransCtx.EbicsContext != nil {
+		expectedOrderType = model.NormalizeEbicsPayloadOrderType(c.pip.TransCtx.EbicsContext.OrderType)
 	}
-
-	expectedOrderType := model.NormalizeEbicsPayloadOrderType(
-		readTransferString(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsOrderType),
-	)
 	if expectedOrderType == "" {
 		expectedOrderType = model.NormalizeEbicsPayloadOrderType(c.defaultOrderType())
 	}
 
 	if operation.OrderType != expectedOrderType {
-		return nil, fmt.Errorf("%w: operationID=%d", errScheduledOperationTypeMismatch, operationID)
+		return nil, fmt.Errorf("%w: operationID=%d", errScheduledOperationTypeMismatch, operation.ID)
 	}
 
 	return operation, nil
+}
+
+func (c *transferClient) loadBoundOperation() (*model.EbicsOperation, error) {
+	if c.scheduledOperationLoaded {
+		if c.scheduledOperation == nil {
+			return nil, errNoScheduledOperation
+		}
+
+		return c.scheduledOperation, nil
+	}
+
+	c.scheduledOperationLoaded = true
+	trans := c.pip.TransCtx.Transfer
+	if trans == nil {
+		return nil, errNoScheduledOperation
+	}
+
+	if trans.ID > 0 {
+		operation := &model.EbicsOperation{}
+		if err := c.parent.db.Get(operation, "transfer_id=?", trans.ID).Run(); err == nil {
+			c.scheduledOperation = operation
+			return operation, nil
+		} else if !database.IsNotFound(err) {
+			return nil, fmt.Errorf("load scheduled EBICS operation bound to transfer %d: %w", trans.ID, err)
+		}
+	}
+
+	return nil, errNoScheduledOperation
 }
 
 func (c *transferClient) createTransaction(
@@ -634,23 +661,19 @@ func (c *transferClient) createTransaction(
 
 func (c *transferClient) persistTransferCorrelation(
 	operation *model.EbicsOperation,
-	transaction *model.EbicsTransaction,
 	profile *model.EbicsPayloadProfile,
 	endpointURL string,
 	resolved *ebicsruntime.ResolvedPayloadRequest,
 ) error {
 	trans := c.pip.TransCtx.Transfer
-	if trans.TransferInfo == nil {
-		trans.TransferInfo = map[string]any{}
+	if operation.MetadataMap == nil {
+		operation.MetadataMap = map[string]any{}
 	}
-
-	enrichTransferInfo(trans, operation, resolved)
-	trans.TransferInfo[transferInfoKeyEbicsProfileName] = profile.Name
-	trans.TransferInfo[transferInfoKeyEbicsEndpointURL] = endpointURL
-	if transaction != nil && strings.TrimSpace(transaction.TransactionID) != "" {
-		trans.TransferInfo["ebicsTransactionID"] = transaction.TransactionID
-	} else {
-		delete(trans.TransferInfo, "ebicsTransactionID")
+	operation.MetadataMap["endpointURL"] = endpointURL
+	operation.MetadataMap["profileName"] = profile.Name
+	enrichOperationMetadata(operation, resolved)
+	if err := c.parent.db.Update(operation).Run(); err != nil {
+		return fmt.Errorf("update EBICS operation %d with runtime metadata: %w", operation.ID, err)
 	}
 
 	if err := c.parent.db.Update(trans).Run(); err != nil {
@@ -868,31 +891,45 @@ func (c *transferClient) resolveUploadFilename() string {
 }
 
 func (c *transferClient) resolveOrderID() string {
-	if value := readTransferString(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsRequestID); value != "" {
-		return value
+	if operation, err := c.loadBoundOperation(); err == nil {
+		if value := strings.TrimSpace(operation.RequestID); value != "" {
+			return value
+		}
+	}
+	if c.pip.TransCtx.EbicsContext != nil {
+		if value := strings.TrimSpace(c.pip.TransCtx.EbicsContext.RequestID); value != "" {
+			return value
+		}
 	}
 
 	return strings.TrimSpace(c.pip.TransCtx.Transfer.RemoteTransferID)
 }
 
 func (c *transferClient) resolveCorrelationID() string {
-	if value := readTransferString(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsCorrelationID); value != "" {
-		return value
+	if operation, err := c.loadBoundOperation(); err == nil {
+		if value := strings.TrimSpace(operation.CorrelationID); value != "" {
+			return value
+		}
+	}
+	if c.pip.TransCtx.EbicsContext != nil {
+		if value := strings.TrimSpace(c.pip.TransCtx.EbicsContext.CorrelationID); value != "" {
+			return value
+		}
 	}
 
 	return strings.TrimSpace(c.pip.TransCtx.Transfer.RemoteTransferID)
 }
 
 func (c *transferClient) resolveTransactionID() string {
-	if value := readTransferString(c.pip.TransCtx.Transfer.TransferInfo, "ebicsTransactionID"); value != "" {
-		return value
+	if operation, err := c.loadBoundOperation(); err == nil {
+		if value := strings.TrimSpace(operation.TransactionID); value != "" {
+			return value
+		}
 	}
-
-	orderType := model.NormalizeEbicsPayloadOrderType(
-		readTransferString(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsOrderType),
-	)
-	if orderType != "" && model.IsEbicsPayloadDownloadOrder(orderType) {
-		return ""
+	if c.pip.TransCtx.EbicsContext != nil {
+		if value := strings.TrimSpace(c.pip.TransCtx.EbicsContext.TransactionID); value != "" {
+			return value
+		}
 	}
 	if model.IsEbicsPayloadDownloadOrder(c.defaultOrderType()) {
 		return ""
@@ -972,44 +1009,7 @@ func (c *transferClient) handleEBICSError(action string, err error) *pipeline.Er
 
 func (c *transferClient) failPipeline(code types.TransferErrorCode, details string, cause error) *pipeline.Error {
 	if c.exec != nil {
-		c.exec.operation.Status = model.EbicsOperationStatusFailedForRuntime()
-		if strings.TrimSpace(c.exec.operation.GatewayOutcome) == "" ||
-			c.exec.operation.GatewayOutcome == model.EbicsGatewayOutcomePendingBankForRuntime() {
-			c.exec.operation.GatewayOutcome = model.EbicsGatewayOutcomeTechnicalFatalFailureForRuntime()
-		}
-		if strings.TrimSpace(c.exec.operation.RetryDecision) == "" {
-			c.exec.operation.RetryDecision = model.EbicsRetryDecisionNoRetryForRuntime()
-		}
-		if c.exec.operation.ManualActionRequired {
-			c.exec.operation.Severity = model.EbicsOperationSeverityWarningForRuntime()
-		} else {
-			c.exec.operation.Severity = model.EbicsOperationSeverityErrorForRuntime()
-		}
-		if cause != nil {
-			if strings.TrimSpace(c.exec.operation.TechnicalReturnMessage) == "" {
-				c.exec.operation.TechnicalReturnMessage = strings.TrimSpace(cause.Error())
-			}
-		} else {
-			if strings.TrimSpace(c.exec.operation.TechnicalReturnMessage) == "" {
-				c.exec.operation.TechnicalReturnMessage = strings.TrimSpace(details)
-			}
-		}
-		c.exec.operation.FinishedAt = time.Now().UTC()
-		if err := c.parent.db.Update(c.exec.operation).Run(); err != nil {
-			c.parent.logger.Warningf("Failed to persist EBICS operation failure state: %v", err)
-		}
-
-		if c.exec.transaction != nil {
-			c.exec.transaction.Status = ebicsClientTransactionStatusFailed
-			if err := c.parent.db.Update(c.exec.transaction).Run(); err != nil {
-				c.parent.logger.Warningf("Failed to persist EBICS transaction failure state: %v", err)
-			}
-		}
-		if err := c.syncRTNEventExecutionState(); err != nil {
-			c.parent.logger.Warningf("Failed to persist EBICS RTN auto-pull failure state: %v", err)
-		}
-
-		c.finished = true
+		c.persistFailedExecution(details, cause)
 	}
 
 	if cause != nil {
@@ -1017,6 +1017,50 @@ func (c *transferClient) failPipeline(code types.TransferErrorCode, details stri
 	}
 
 	return pipeline.NewError(code, details)
+}
+
+func (c *transferClient) persistFailedExecution(details string, cause error) {
+	c.exec.operation.Status = model.EbicsOperationStatusFailedForRuntime()
+	if strings.TrimSpace(c.exec.operation.GatewayOutcome) == "" ||
+		c.exec.operation.GatewayOutcome == model.EbicsGatewayOutcomePendingBankForRuntime() {
+		c.exec.operation.GatewayOutcome = model.EbicsGatewayOutcomeTechnicalFatalFailureForRuntime()
+	}
+
+	if strings.TrimSpace(c.exec.operation.RetryDecision) == "" {
+		c.exec.operation.RetryDecision = model.EbicsRetryDecisionNoRetryForRuntime()
+	}
+
+	if c.exec.operation.ManualActionRequired {
+		c.exec.operation.Severity = model.EbicsOperationSeverityWarningForRuntime()
+	} else {
+		c.exec.operation.Severity = model.EbicsOperationSeverityErrorForRuntime()
+	}
+
+	if strings.TrimSpace(c.exec.operation.TechnicalReturnMessage) == "" {
+		if cause != nil {
+			c.exec.operation.TechnicalReturnMessage = strings.TrimSpace(cause.Error())
+		} else {
+			c.exec.operation.TechnicalReturnMessage = strings.TrimSpace(details)
+		}
+	}
+
+	c.exec.operation.FinishedAt = time.Now().UTC()
+	if err := c.parent.db.Update(c.exec.operation).Run(); err != nil {
+		c.parent.logger.Warningf("Failed to persist EBICS operation failure state: %v", err)
+	}
+
+	if c.exec.transaction != nil {
+		c.exec.transaction.Status = ebicsClientTransactionStatusFailed
+		if err := c.parent.db.Update(c.exec.transaction).Run(); err != nil {
+			c.parent.logger.Warningf("Failed to persist EBICS transaction failure state: %v", err)
+		}
+	}
+
+	if err := c.syncRTNEventExecutionState(); err != nil {
+		c.parent.logger.Warningf("Failed to persist EBICS RTN auto-pull failure state: %v", err)
+	}
+
+	c.finished = true
 }
 
 func (c *transferClient) syncDownloadTransactionID(resp *ebicsxml.EbicsResponse) error {
@@ -1049,14 +1093,6 @@ func (c *transferClient) syncDownloadTransactionID(resp *ebicsxml.EbicsResponse)
 	}
 
 	c.exec.transactionID = txID
-	if c.pip.TransCtx.Transfer.TransferInfo == nil {
-		c.pip.TransCtx.Transfer.TransferInfo = map[string]any{}
-	}
-	c.pip.TransCtx.Transfer.TransferInfo["ebicsTransactionID"] = txID
-	if err := c.parent.db.Update(c.pip.TransCtx.Transfer).Run(); err != nil {
-		return fmt.Errorf("update transfer %d with EBICS transaction ID %q: %w",
-			c.pip.TransCtx.Transfer.ID, txID, err)
-	}
 
 	return nil
 }
@@ -1070,8 +1106,8 @@ func (c *transferClient) syncRTNEventExecutionState() error {
 	if c.exec.operation != nil && c.exec.operation.RTNEventID.Valid {
 		eventID = c.exec.operation.RTNEventID.Int64
 	}
-	if eventID <= 0 && c.pip != nil && c.pip.TransCtx != nil && c.pip.TransCtx.Transfer != nil {
-		eventID = readTransferInt64(c.pip.TransCtx.Transfer.TransferInfo, transferInfoKeyEbicsRTNEventID)
+	if eventID <= 0 && c.pip != nil && c.pip.TransCtx != nil && c.pip.TransCtx.EbicsContext != nil {
+		eventID = c.pip.TransCtx.EbicsContext.RTNEventID
 	}
 	if eventID <= 0 {
 		return nil

@@ -56,6 +56,7 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	}
 
 	displayTransferInfo(w, hist.TransferInfo)
+	displayEbicsContext(w, hist.EbicsContext)
 }
 
 // ######################## GET ##########################

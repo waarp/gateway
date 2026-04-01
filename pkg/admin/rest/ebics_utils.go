@@ -17,6 +17,8 @@ import (
 	ebicsruntime "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ebics/runtime"
 )
 
+const nilStringValue = "<nil>"
+
 func parseRESTInt64Param(r *http.Request, name, label string) (int64, error) {
 	raw, ok := mux.Vars(r)[name]
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -604,16 +606,16 @@ func DBEbicsRTNEventToREST(event *model.EbicsRTNEvent) *api.OutEbicsRTNEvent {
 	autoPullStatus := strings.TrimSpace(fmt.Sprint(event.PayloadMap["autoPullStatus"]))
 	autoPullOutcome := strings.TrimSpace(fmt.Sprint(event.PayloadMap["autoPullOutcome"]))
 	autoPullRetry := strings.TrimSpace(fmt.Sprint(event.PayloadMap["autoPullRetry"]))
-	if autoPullOrderType == "<nil>" {
+	if autoPullOrderType == nilStringValue {
 		autoPullOrderType = ""
 	}
-	if autoPullStatus == "<nil>" {
+	if autoPullStatus == nilStringValue {
 		autoPullStatus = ""
 	}
-	if autoPullOutcome == "<nil>" {
+	if autoPullOutcome == nilStringValue {
 		autoPullOutcome = ""
 	}
-	if autoPullRetry == "<nil>" {
+	if autoPullRetry == nilStringValue {
 		autoPullRetry = ""
 	}
 	if event.PayloadMap != nil {

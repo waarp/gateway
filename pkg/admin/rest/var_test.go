@@ -115,5 +115,5 @@ func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
 	var t model.NormalizedTransferView
 	convey.So(db.Get(&t, "id=?", trans.ID).Run(), convey.ShouldBeNil)
 
-	return DBTransferToREST(&t)
+	return DBTransferToREST(db, &t)
 }

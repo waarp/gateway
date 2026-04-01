@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -133,6 +134,68 @@ func (r replacersMap) addInfo(c *model.TransferContext) {
 	// }
 	for name, val := range c.Transfer.TransferInfo {
 		r[fmt.Sprintf("#TI_%s#", name)] = replaceInfo(val)
+	}
+}
+
+func (r replacersMap) addEbicsInfo(db database.ReadAccess, c *model.TransferContext) error {
+	if c == nil || c.Transfer == nil {
+		return nil
+	}
+
+	ebicsContext := c.EbicsContext
+	if ebicsContext == nil {
+		var err error
+		ebicsContext, err = model.LoadEbicsTransferContext(db, c.Transfer.ID, c.Transfer.TransferInfo)
+		if err != nil {
+			return fmt.Errorf("load EBICS transfer context: %w", err)
+		}
+	}
+	if ebicsContext == nil {
+		return nil
+	}
+
+	for name, val := range ebicsContext.ToMap() {
+		envName := normalizeEbicsReplacerKey(name)
+		r[fmt.Sprintf("#EBICS_%s#", envName)] = replaceInfo(val)
+	}
+
+	return nil
+}
+
+func normalizeEbicsReplacerKey(name string) string {
+	switch strings.TrimSpace(name) {
+	case "operationID":
+		return "OPERATION_ID"
+	case "rtnEventID":
+		return "RTN_EVENT_ID"
+	case "transactionID":
+		return "TRANSACTION_ID"
+	case "orderType":
+		return "ORDER_TYPE"
+	case "hostID":
+		return "HOST_ID"
+	case "partnerID":
+		return "PARTNER_ID"
+	case "userID":
+		return "USER_ID"
+	case "requestID":
+		return "REQUEST_ID"
+	case "correlationID":
+		return "CORRELATION_ID"
+	case "protocolVersion":
+		return "PROTOCOL_VERSION"
+	case "profileName":
+		return "PROFILE_NAME"
+	case "endpointURL":
+		return "ENDPOINT_URL"
+	case "rtnProviderName":
+		return "RTN_PROVIDER_NAME"
+	case "rtnSource":
+		return "RTN_SOURCE"
+	case "service":
+		return "SERVICE"
+	default:
+		return strings.ToUpper(strings.TrimSpace(name))
 	}
 }
 
