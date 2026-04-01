@@ -603,7 +603,7 @@ Sous-lots cochables:
   serialisation JSON a ete corrige sur les commandes `payload retry/recover`
   pour ne plus envoyer les arguments positionnels au backend.
 
-- [ ] Lot 4B - Couvrir les commandes CLI contract views / key lifecycles / initializations
+- [x] Lot 4B - Couvrir les commandes CLI contract views / key lifecycles / initializations
   Fichiers principaux: `pkg/cmd/client/ebics_contract_views.go`,
   `pkg/cmd/client/ebics_key_lifecycles.go`,
   `pkg/cmd/client/ebics_initializations.go`
@@ -611,6 +611,12 @@ Sous-lots cochables:
   REST expose
   Validation: `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
   puis `go test ./pkg/cmd/client ./cmd/waarp-gateway`
+
+  2026-04-01: Lot 4B est maintenant ferme. Une premiere vague de tests couvre
+  l'affichage detaille d'une contract view, la commande `refresh`, les actions
+  `key lifecycle` et `initialization`, ainsi que la preparation d'une rotation
+  de cles. Un defaut reel de contrat JSON a ete corrige sur `IncludeHEV`
+  pour aligner la CLI avec le backend et les specs.
 
 - [ ] Lot 4C - Couvrir les commandes CLI RTN / actions specialisees
   Fichiers principaux: `pkg/cmd/client/ebics_rtn.go`,
@@ -623,7 +629,7 @@ Sous-lots cochables:
 Ordre d'execution recommande:
 
 1. [x] Lot 4A
-2. [ ] Lot 4B
+2. [x] Lot 4B
 3. [ ] Lot 4C
 4. [ ] Rejouer linter + tests CLI complets
 

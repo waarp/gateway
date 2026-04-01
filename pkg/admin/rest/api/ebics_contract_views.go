@@ -34,5 +34,5 @@ type OutEbicsContractViewItem struct {
 // InEbicsContractRefresh defines a client-side contract refresh request.
 type InEbicsContractRefresh struct {
 	EbicsSubscriberID int64 `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
-	IncludeHEV        bool  `json:"includeHev" yaml:"includeHev"`
+	IncludeHEV        bool  `json:"includeHEV" yaml:"includeHEV"`
 }
