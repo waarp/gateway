@@ -228,7 +228,7 @@ func (c *EbicsRTNEventGet) execute(w io.Writer) error {
 type EbicsRTNEventRetry struct {
 	Args struct {
 		Event string `required:"yes" positional-arg-name:"event" description:"The RTN event identifier"`
-	} `positional-args:"yes"`
+	} `positional-args:"yes" json:"-"`
 
 	Reason string `long:"reason" description:"Operator reason for the retry" json:"reason,omitempty"`
 }
@@ -249,7 +249,7 @@ func (c *EbicsRTNEventRetry) execute(w io.Writer) error {
 type EbicsRTNEventQuarantine struct {
 	Args struct {
 		Event string `required:"yes" positional-arg-name:"event" description:"The RTN event identifier"`
-	} `positional-args:"yes"`
+	} `positional-args:"yes" json:"-"`
 
 	Reason string `long:"reason" description:"Operator reason for the quarantine" json:"reason,omitempty"`
 }

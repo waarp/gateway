@@ -618,7 +618,7 @@ Sous-lots cochables:
   de cles. Un defaut reel de contrat JSON a ete corrige sur `IncludeHEV`
   pour aligner la CLI avec le backend et les specs.
 
-- [ ] Lot 4C - Couvrir les commandes CLI RTN / actions specialisees
+- [x] Lot 4C - Couvrir les commandes CLI RTN / actions specialisees
   Fichiers principaux: `pkg/cmd/client/ebics_rtn.go`,
   `pkg/cmd/client/ebics_payload_profiles.go`
   Attendus: tests des actions specialisees `reporting`, `signature`, `retry`,
@@ -626,12 +626,19 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/cmd/client ./cmd/waarp-gateway`
   puis `go test ./pkg/cmd/client ./cmd/waarp-gateway`
 
+  2026-04-01: Lot 4C est maintenant ferme. Une premiere vague de tests couvre
+  `RTN provider add`, `RTN event retry/quarantine`, ainsi que les actions
+  specialisees `reporting` et `signature`, y compris la serialisation des
+  fichiers binaires HVS. Un deuxieme defaut reel de serialisation JSON a ete
+  corrige sur les actions RTN pour ne plus envoyer les arguments positionnels
+  au backend.
+
 Ordre d'execution recommande:
 
 1. [x] Lot 4A
 2. [x] Lot 4B
-3. [ ] Lot 4C
-4. [ ] Rejouer linter + tests CLI complets
+3. [x] Lot 4C
+4. [x] Rejouer linter + tests CLI complets
 
 ### Etape 5. Durcir l'observabilite et les statuts operateur
 

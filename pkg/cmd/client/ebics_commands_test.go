@@ -1,6 +1,7 @@
 package wg
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -513,4 +514,213 @@ func TestEbicsKeyRotationPrepareCommandBuildsRequest(t *testing.T) {
 	assert.Contains(t, w.String(), "EBICS key rotation \"coord-77\"")
 	assert.Contains(t, w.String(), "Operations: 1")
 	assert.Contains(t, w.String(), "EBICS key lifecycle #1 [ORDER_PLANNED]")
+}
+
+func TestEbicsRTNProviderAddCommandBuildsRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRTNProviderAdd{}
+
+	expected := &expectedRequest{
+		method: http.MethodPost,
+		path:   "/api/ebics/rtn/providers",
+		body: map[string]any{
+			"name":           "provider-a",
+			"transport":      "WSS",
+			"enabled":        true,
+			"subscriberID":   float64(81),
+			"autoPullPolicy": "AUTO",
+			"configuration": map[string]any{
+				"endpoint": "wss://bank.example/rtn",
+			},
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command,
+		"--name", "provider-a",
+		"--transport", "WSS",
+		"--enabled",
+		"--subscriber-id", "81",
+		"--auto-pull-policy", "AUTO",
+		"--config", "endpoint:wss://bank.example/rtn",
+	))
+
+	assert.Equal(t, "The EBICS RTN provider \"provider-a\" was successfully added.\n", w.String())
+}
+
+func TestEbicsRTNEventRetryCommandBuildsRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRTNEventRetry{}
+
+	expected := &expectedRequest{
+		method: http.MethodPut,
+		path:   "/api/ebics/rtn/events/31/retry",
+		body: map[string]any{
+			"reason": "temporary outage",
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "31", "--reason", "temporary outage"))
+	assert.Equal(t, "The EBICS RTN event \"31\" was successfully scheduled for retry.\n", w.String())
+}
+
+func TestEbicsRTNEventQuarantineCommandBuildsRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRTNEventQuarantine{}
+
+	expected := &expectedRequest{
+		method: http.MethodPut,
+		path:   "/api/ebics/rtn/events/32/quarantine",
+		body: map[string]any{
+			"reason": "manual review",
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "32", "--reason", "manual review"))
+	assert.Equal(t, "The EBICS RTN event \"32\" was successfully quarantined.\n", w.String())
+}
+
+func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsOperationReporting{}
+
+	expected := &expectedRequest{
+		method: http.MethodPost,
+		path:   "/api/ebics/operations/actions/reporting",
+		body: map[string]any{
+			"ebicsSubscriberID": float64(51),
+			"orderType":         "HVT",
+			"orderID":           "ORDER-51",
+			"completeOrderData": true,
+			"fetchLimit":        float64(10),
+			"fetchOffset":       float64(2),
+			"service": map[string]any{
+				"serviceName":   "STM",
+				"serviceOption": "ALL",
+				"scope":         "CH",
+				"msgName":       "camt.053",
+				"containerType": "ZIP",
+			},
+			"metadata": map[string]any{
+				"channel": "ops",
+			},
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":                  401,
+			"operationType":       "REPORTING",
+			"orderType":           "HVT",
+			"signatureState":      "NOT_APPLICABLE",
+			"direction":           "OUTBOUND",
+			"transportMode":       "ASYNC",
+			"status":              "PLANNED",
+			"severity":            "INFO",
+			"gatewayOutcome":      "PENDING_BANK",
+			"retryDecision":       "AUTO_RETRY_ALLOWED",
+			"manualActionRequired": false,
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command,
+		"--subscriber", "51",
+		"--order-type", "HVT",
+		"--order-id", "ORDER-51",
+		"--service-name", "STM",
+		"--service-option", "ALL",
+		"--scope", "CH",
+		"--msg-name", "camt.053",
+		"--container-type", "ZIP",
+		"--complete-order-data",
+		"--fetch-limit", "10",
+		"--fetch-offset", "2",
+		"--metadata", "channel:ops",
+	))
+
+	assert.Contains(t, w.String(), "EBICS operation #401 [PLANNED]")
+	assert.Contains(t, w.String(), "Order type: HVT")
+}
+
+func TestEbicsOperationSignatureCommandBuildsRequest(t *testing.T) {
+	orderData := writeFile(t, "order-data.bin", "order-data")
+	signatureData := writeFile(t, "signature-data.bin", "signature-data")
+
+	w := newTestOutput()
+	command := &EbicsOperationSignature{}
+
+	expected := &expectedRequest{
+		method: http.MethodPost,
+		path:   "/api/ebics/operations/actions/signature",
+		body: map[string]any{
+			"ebicsSubscriberID": float64(61),
+			"orderType":         "HVS",
+			"orderID":           "ORDER-61",
+			"service": map[string]any{
+				"serviceName": "MCT",
+			},
+			"orderData":     base64.StdEncoding.EncodeToString([]byte("order-data")),
+			"signatureData": base64.StdEncoding.EncodeToString([]byte("signature-data")),
+			"metadata": map[string]any{
+				"ticket": "SIG-61",
+			},
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":                  402,
+			"operationType":       "SIGNATURE",
+			"orderType":           "HVS",
+			"signatureState":      "PENDING_SIGNATURE",
+			"direction":           "OUTBOUND",
+			"transportMode":       "ASYNC",
+			"status":              "PLANNED",
+			"severity":            "INFO",
+			"gatewayOutcome":      "PENDING_BANK",
+			"retryDecision":       "NO_RETRY",
+			"manualActionRequired": false,
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command,
+		"--subscriber", "61",
+		"--order-type", "HVS",
+		"--order-id", "ORDER-61",
+		"--service-name", "MCT",
+		"--order-data", orderData,
+		"--signature-data", signatureData,
+		"--metadata", "ticket:SIG-61",
+	))
+
+	assert.Contains(t, w.String(), "EBICS operation #402 [PLANNED]")
+	assert.Contains(t, w.String(), "Order type: HVS")
 }
