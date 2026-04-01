@@ -66,6 +66,17 @@ func (*EbicsKeyLifecycle) Appellation() string { return NameEbicsKeyLifecycle }
 // GetID returns the database identifier of the lifecycle.
 func (l *EbicsKeyLifecycle) GetID() int64 { return l.ID }
 
+// BeforeDelete prevents removing an EBICS key lifecycle that is still active
+// from an operational standpoint.
+func (l *EbicsKeyLifecycle) BeforeDelete(database.Access) error {
+	if isProtectedEbicsKeyLifecycleDeleteStatus(l.Status) {
+		return database.NewValidationError(
+			"this EBICS key lifecycle is still active and cannot be deleted")
+	}
+
+	return nil
+}
+
 // BeforeWrite normalizes and validates an EBICS key lifecycle before persistence.
 func (l *EbicsKeyLifecycle) BeforeWrite(db database.Access) error {
 	l.Owner = conf.GlobalConfig.GatewayName
@@ -335,6 +346,16 @@ func requiresNextCredential(status string) bool {
 func isActiveEbicsKeyLifecycleStatus(status string) bool {
 	switch status {
 	case ebicsKeyLifecycleStatusRetired, ebicsKeyLifecycleStatusCancelled, ebicsKeyLifecycleStatusRejected:
+		return false
+	default:
+		return true
+	}
+}
+
+func isProtectedEbicsKeyLifecycleDeleteStatus(status string) bool {
+	switch status {
+	case ebicsKeyLifecycleStatusDraft, ebicsKeyLifecycleStatusRetired,
+		ebicsKeyLifecycleStatusCancelled, ebicsKeyLifecycleStatusRejected:
 		return false
 	default:
 		return true

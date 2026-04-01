@@ -758,7 +758,7 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot 6A - Durcir les protections de mutation / suppression
+- [x] Lot 6A - Durcir les protections de mutation / suppression
   Fichiers principaux: `pkg/model/credentials.go`,
   `pkg/model/ebics_key_lifecycle.go`,
   `pkg/model/ebics_initialization_workflow.go`,
@@ -767,7 +767,12 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/model ./pkg/database/migrations ./pkg/backup`
   puis `go test ./pkg/model ./pkg/database/migrations ./pkg/backup`
 
-- [ ] Lot 6B - Fermer la discipline multi-SGBD / XORM et migrations
+  2026-04-01: Lot 6A est maintenant ferme. La protection existante sur
+  `Credential` reference par un lifecycle actif est couverte par des tests
+  dedies, et des hooks `BeforeDelete` empechent desormais la suppression
+  directe de `key lifecycles` et `initializations` encore actifs.
+
+- [x] Lot 6B - Fermer la discipline multi-SGBD / XORM et migrations
   Fichiers principaux: `pkg/database/migrations/*.go`,
   `pkg/model/ebics_nonce.go`
   Attendus: tests de contraintes de persistance, migrations et comportements
@@ -775,7 +780,15 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/model ./pkg/database/migrations ./pkg/backup`
   puis `go test ./pkg/model ./pkg/database/migrations ./pkg/backup`
 
-- [ ] Lot 6C - Poser la retention / purge minimale EBICS
+  2026-04-01: Lot 6B est maintenant ferme. La migration `0.16.0` est
+  desormais couverte par `pkg/database/migrations/0.16.0_test.go` avec
+  verification de la creation/reversion des tables EBICS, de l'unicite
+  effective sur `RTN events`, `transactions`, `segments` et `nonces`, ainsi
+  que de la cascade transaction -> segments. En complement, le modele
+  `EbicsRTNEvent` est maintenant verrouille par des tests dedies sur l'unicite
+  de `idempotenceKey` et sur la coherence `host/subscriber`.
+
+- [x] Lot 6C - Poser la retention / purge minimale EBICS
   Fichiers principaux: `pkg/model/ebics_nonce.go`,
   `pkg/model/ebics_rtn_event.go`,
   `pkg/model/ebics_transaction.go`
@@ -783,12 +796,20 @@ Sous-lots cochables:
   Validation: `golangci-lint run ./pkg/model ./pkg/database/migrations ./pkg/backup`
   puis `go test ./pkg/model ./pkg/database/migrations ./pkg/backup`
 
+  2026-04-01: Lot 6C est maintenant ferme. Une retention minimale explicite
+  existe desormais dans `pkg/model/ebics_retention.go` pour les `nonces`,
+  `transactions` et `RTN events`, avec purge stricte avant cutoff et
+  conservation des evenements RTN non terminaux. La couverture associee dans
+  `pkg/model/ebics_retention_test.go` verrouille les cas
+  `ancien vs plus recent` et la preservation des statuts RTN encore
+  exploitables.
+
 Ordre d'execution recommande:
 
-1. [ ] Lot 6A
-2. [ ] Lot 6B
-3. [ ] Lot 6C
-4. [ ] Rejouer linter + tests transverses
+1. [x] Lot 6A
+2. [x] Lot 6B
+3. [x] Lot 6C
+4. [x] Rejouer linter + tests transverses
 
 ### Etape 7. Passe de sortie B5
 

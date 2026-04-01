@@ -65,6 +65,17 @@ func (*EbicsInitializationWorkflow) Appellation() string { return NameEbicsIniti
 // GetID returns the database identifier of the workflow.
 func (w *EbicsInitializationWorkflow) GetID() int64 { return w.ID }
 
+// BeforeDelete prevents removing an EBICS initialization workflow that still
+// represents an active or auditable state.
+func (w *EbicsInitializationWorkflow) BeforeDelete(database.Access) error {
+	if isProtectedEbicsInitializationDeleteStatus(w.Status) {
+		return database.NewValidationError(
+			"this EBICS initialization workflow is still active and cannot be deleted")
+	}
+
+	return nil
+}
+
 // BeforeWrite normalizes and validates an EBICS initialization workflow before persistence.
 func (w *EbicsInitializationWorkflow) BeforeWrite(db database.Access) error {
 	w.Owner = conf.GlobalConfig.GatewayName
@@ -277,4 +288,13 @@ func validateEbicsOperationExists(db database.Access, operationID int64, label s
 	}
 
 	return nil
+}
+
+func isProtectedEbicsInitializationDeleteStatus(status string) bool {
+	switch status {
+	case ebicsInitializationStatusDraft, ebicsInitializationStatusCancelled, ebicsInitializationStatusRejected:
+		return false
+	default:
+		return true
+	}
 }
