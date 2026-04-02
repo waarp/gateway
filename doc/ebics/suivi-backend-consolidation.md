@@ -1421,6 +1421,37 @@ Ordre d'execution recommande:
 4. [x] Lot P4D
 5. [x] Lot P4E
 
+### Feuille de route globale restante
+
+Ordre recommande a ce stade, en integrant tous les chantiers restants:
+
+1. [ ] `P2E` - selection de client EBICS explicite et multi-client
+2. [ ] `P2A` / `P2B` - retention automatisee minimale + scheduler/orchestration native
+3. [ ] `P2D` - historisation native des ordres EBICS non payload
+4. [ ] `P2C` - repasse de couverture runtime reelle apres orchestration
+5. [ ] `AMQP 0.9.1` comme protocole Gateway autonome
+6. [ ] `AMQP 1.0` comme protocole Gateway autonome
+7. [ ] chantier `passe-plat metier` sur les protocoles Gateway cibles
+8. [ ] `P5A` - cadrage du mode "Gateway serveur bancaire EBICS"
+9. [ ] `P5B` a `P5F` - implementation progressive du role banque
+10. [ ] `P3A` a `P3C` - workflow VEU / signature distribuee
+
+Rationale de l'ordre:
+
+- `P2E` passe avant l'automatisation lourde pour ne pas figer un mauvais
+  modele "client singleton" dans les jobs, le RTN et les actions admin;
+- `P2A/P2B/P2D/P2C` ferment d'abord le socle EBICS exploitable et observable,
+  avec scheduler, retention, historique durable et repasse runtime reelle;
+- `AMQP` vient avant le passe-plat, car il a ete arbitre comme protocole
+  Gateway autonome pre-requis de ce chantier;
+- le passe-plat metier doit s'appuyer sur des protocoles cibles reels et sur
+  une orchestration native deja posee;
+- le role banque EBICS (`P5`) peut etre cadre tot, mais son implementation
+  complete doit s'aligner sur le futur raccord metier interne et le RTN
+  sortant;
+- `VEU` vient apres ces fondations, car il depend fortement de
+  l'orchestration, de l'historisation et de l'observabilite deja stabilisees.
+
 ### Chantier P2 - Automatisation d'exploitation native
 
 Objectif:
@@ -1450,6 +1481,11 @@ Sous-lots cochables:
 - [ ] Lot P2B - Poser l'orchestration planifiee native
   Attendus: refresh, retries et taches de maintenance critiques ne reposent
   plus uniquement sur une action manuelle ou un ordonnanceur externe non trace
+  Portee minimale explicite:
+  - refresh planifie des vues contractuelles `HPD` / `HKD` / `HTD` / `HAA`
+    cote client EBICS;
+  - politique de declenchement bornee et observable pour ces refreshs
+    (periodicite, erreurs, reprise, statut du dernier succes).
   Validation: tests cibles du ou des services ajoutes
 
 - [ ] Lot P2C - Completer la couverture de tests runtime encore faible
@@ -1473,13 +1509,264 @@ Sous-lots cochables:
   codes retour et evidence operateur
   Validation: `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/model`
 
+- [ ] Lot P2E - Rendre la selection de client EBICS explicite et multi-client
+  Attendus: l'implementation EBICS n'impose plus artificiellement l'existence
+  d'un seul client `protocol=ebics` active pour les chemins non payload.
+  Regle cible:
+  - quand un `Transfer` existe, la reference canonique reste `Transfer.ClientID`,
+    comme dans le reste de Gateway;
+  - pour les actions admin/reporting/init/key-management hors `Transfer`, le
+    client doit etre resolu via une reference explicite Gateway de type
+    `ClientID` (ou equivalent REST/CLI stable), pas via "le seul client EBICS
+    active";
+  - pour RTN auto-pull, la selection doit converger vers la meme reference
+    canonique, sans dependre d'un singleton global ni d'un `clientName`
+    optionnel ambigu.
+  Contraintes de chantier:
+  - ne pas introduire un mecanisme specifique a EBICS si `ClientID` suffit;
+  - n'accepter un fallback singleton que si une contrainte absolue liee a EBICS
+    est demontree, ce qui n'est pas le cas aujourd'hui.
+  Validation: linter + tests cibles sur admin/RTN/multi-client
+
+  Backlog operationnel recommande:
+
+  - [x] Lot P2E.1 - Cartographier les points de resolution implicite du client
+    Fichiers cibles:
+    - `pkg/protocols/modules/ebics/client_admin.go`
+    - `pkg/protocols/modules/ebics/client_contracts.go`
+    - `pkg/protocols/modules/ebics/client_reporting.go`
+    - `pkg/protocols/modules/ebics/client_key_rotation.go`
+    - `pkg/protocols/modules/ebics/rtn_service.go`
+    - DTO REST/CLI des actions admin EBICS
+    Attendus: lister tous les chemins qui resolvent encore
+    "le seul client EBICS actif", et separer:
+    `payload via Transfer.ClientID`, `actions admin hors Transfer`,
+    `RTN auto-pull`.
+    Validation: revue documentaire + inventaire ferme
+    2026-04-02: inventaire principal etabli.
+    Resultat:
+    - `payload`:
+      le chemin nominal respecte deja la reference canonique Gateway via
+      `Transfer.ClientID`, rechargee par `TransferContext` puis utilisee par
+      `InitTransfer` / `client_transfer.go`.
+    - `admin hors Transfer`:
+      les familles suivantes passent toutes par `startOperationalClient(...)`
+      puis `resolveUniqueEnabledClientModel(...)`, donc imposent encore
+      artificiellement un singleton `protocol=ebics`:
+      `client_contracts.go` (`HEV`, `HPD/HKD/HTD/HAA`),
+      `client_reporting.go` (`HVD/HVU/HVZ/HVT/HAC`, `HVE/HVS`),
+      `client_admin.go` (initialisation `INI/HIA/H3K`, `HPB`),
+      `client_key_rotation.go` (`PUB/HCA/HCS/HSA/SPR`).
+    - `RTN auto-pull`:
+      `rtn_service.go` sait deja filtrer par `clientName`, mais en l'absence
+      de cette metadonnee retombe sur "tous les clients EBICS actifs" puis
+      echoue en cas d'ambiguite; la logique n'est donc pas encore alignee sur
+      une reference canonique `ClientID`.
+    - `surfaces REST/CLI`:
+      les DTO REST d'entree `InEbicsContractRefresh`,
+      `InEbicsReportingAction`, `InEbicsSignatureAction` et les actions
+      d'initialisation / rotation ne portent aujourd'hui qu'un
+      `EbicsSubscriberID` ou un workflow/lifecycle cible, sans reference
+      explicite au client.
+    Conclusion:
+    le probleme `P2E` est strictement localise aux chemins non payload et a la
+    selection RTN; le payload standard Gateway est deja aligne.
+
+  - [x] Lot P2E.2 - Arreter la reference canonique et le contrat REST/CLI
+    Fichiers cibles:
+    - `pkg/admin/rest/api/...` sur les families EBICS admin/reporting/init/key
+    - `pkg/cmd/client/...` sur les commandes EBICS concernees
+    Attendus: fixer la reference utilisateur cible:
+    `clientID` comme canonique, avec eventuel alias ergonomique `clientName`
+    resolu en amont mais jamais comme cle runtime principale.
+    Validation: cadrage relu + surfaces d'entree identifiees
+    2026-04-02: cadrage cible arrete.
+    Regle canonique:
+    - la cle fonctionnelle/runtime cible est `ClientID`;
+    - `clientName` ne peut exister qu'en alias ergonomique d'entree, resolu
+      immediatement en `ClientID` avant execution;
+    - `EbicsSubscriberID` reste necessaire pour designer l'identite EBICS
+      cible, mais ne suffit plus a choisir implicitement un client.
+    Regle d'API/CLI:
+    - toutes les actions non payload concernees doivent exposer un champ
+      d'entree explicite `clientID`;
+    - un alias `clientName` peut etre tolere en CLI/UI pour le confort
+      utilisateur, mais il doit etre transforme en `clientID` avant l'appel
+      runtime, et rejete s'il est ambigu;
+    - les payloads standards via `Transfer` restent inchanges:
+      `Transfer.ClientID` demeure la reference canonique deja en place.
+    Regle transitoire:
+    - tant que le refactor n'est pas totalement deploye, l'absence de
+      `clientID` sur les actions non payload ne doit plus conduire a une
+      selection singleton silencieuse;
+    - le comportement cible transitoire est un rejet explicite "client EBICS
+      manquant / ambigu" si aucun `clientID` n'est fourni.
+    Surfaces a faire converger:
+    - `InEbicsContractRefresh`
+    - `InEbicsReportingAction`
+    - `InEbicsSignatureAction`
+    - actions d'initialisation
+    - actions de rotation de cles
+    - resolution RTN auto-pull administree
+    Conclusion:
+    le contrat cible est donc:
+    `EbicsSubscriberID` + `ClientID` pour les actions non payload,
+    avec alias ergonomique `clientName` hors runtime si necessaire.
+
+  - [x] Lot P2E.3 - Refactorer les actions admin/reporting/init/key management
+    Fichiers cibles:
+    - `pkg/protocols/modules/ebics/client_admin.go`
+    - `pkg/protocols/modules/ebics/client_reporting.go`
+    - `pkg/protocols/modules/ebics/client_key_rotation.go`
+    - `pkg/protocols/modules/ebics/runtime/...` si necessaire
+    Attendus: ces chemins ne passent plus par
+    `resolveUniqueEnabledClientModel(...)` mais par une resolution explicite
+    du client cible.
+    Validation: tests unitaire/integration sur actions admin multi-client
+    2026-04-02: premiere tranche code fermee.
+    Resultat:
+    - les actions non payload `contract refresh`, `reporting`, `signature`,
+      `initialisation`, `HPB` et `key rotation` exigent maintenant un
+      `clientID` explicite dans les DTO REST/CLI cibles;
+    - `client_admin.go` ne resolve plus "le seul client EBICS actif", mais le
+      client exact par identifiant, avec rejet explicite si l'identifiant est
+      absent, inconnu, desactive ou non-EBICS;
+    - `client_contracts.go`, `client_reporting.go`,
+      `client_key_rotation.go` et les handlers REST associes sont aligns sur
+      cette resolution explicite;
+    - les tests `go test ./pkg/protocols/modules/ebics/... ./pkg/model`,
+      `go test ./pkg/admin/rest ./pkg/admin/rest/api` et
+      `go test ./pkg/cmd/client ./cmd/waarp-gateway` sont verts apres refactor;
+    - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./pkg/model ./pkg/gatewayd`
+      est vert.
+    Point restant:
+    - `P2E.4` doit encore aligner la resolution `RTN` sur la meme reference
+      canonique, sans dependre d'un `clientName` optionnel.
+
+  - [x] Lot P2E.4 - Aligner RTN auto-pull sur la meme reference canonique
+    Fichiers cibles:
+    - `pkg/protocols/modules/ebics/rtn_service.go`
+    - DTO / payloads RTN administres si necessaire
+    Attendus: le RTN ne depend plus d'un singleton global ni d'un
+    `clientName` ambigu; il converge vers la meme logique de selection
+    explicite que les autres chemins hors `Transfer`.
+    Validation: tests RTN multi-client dedies
+    2026-04-02: lot ferme.
+    Resultat:
+    - la reference canonique RTN est maintenant `clientID`, portee par la
+      configuration administree du provider RTN;
+    - `rtn_service.go` ne resolve plus un client par `clientName` optionnel ni
+      par balayage des clients EBICS actifs, mais relit explicitement le
+      `clientID` du provider puis applique la meme validation que les autres
+      chemins non payload;
+    - les DTO REST/CLI des `RTN providers` exposent maintenant `clientID`
+      explicitement;
+    - la validation modele interdit desormais un provider `AUTO` /
+      `AUTO_FILTERED` sans `clientID`, avec rejet explicite si le client est
+      absent, desactive ou non EBICS;
+    - les tests RTN, REST et CLI associes sont verts, ainsi que la passe
+      linter / tests consolidee du perimetre touche.
+
+  - [ ] Lot P2E.5 - Rendre l'etat activable lisible en REST/CLI/UI
+    Fichiers cibles:
+    - surfaces REST/CLI EBICS client/RTN
+    - documentation fonctionnelle `etat-activable-client-serveur-ebics.md`
+    Attendus: l'utilisateur voit clairement quel client est selectionne,
+    quand la selection est ambigue, et pourquoi un perimetre n'est pas
+    activable tant que le client n'est pas explicite.
+    Validation: tests REST/CLI + doc relue
+
+  Ordre d'execution specifique a `P2E`:
+
+  1. [x] Lot P2E.1
+  2. [x] Lot P2E.2
+  3. [x] Lot P2E.3
+  4. [x] Lot P2E.4
+  5. [ ] Lot P2E.5
+
 Ordre d'execution recommande:
 
-1. [ ] Lot P2A
-2. [ ] Lot P2B
-3. [ ] Lot P2C
+1. [ ] Lot P2E
+2. [ ] Lot P2A
+3. [ ] Lot P2B
 4. [ ] Lot P2D
-5. [ ] Ne lancer les evolutions structurelles connexes qu'apres `P4`
+5. [ ] Lot P2C
+6. [ ] Ne lancer les evolutions structurelles connexes qu'apres `P4`
+
+### Chantier P5 - Gateway en role serveur bancaire EBICS
+
+Objectif:
+
+- preparer explicitement le cas ou Waarp Gateway joue le role de serveur EBICS
+  cote banque, interfacé avec une application metier;
+- ne pas limiter le perimetre serveur aux seuls ordres payload `BTU/BTD`.
+
+Fichiers cibles:
+
+- `pkg/protocols/modules/ebics/server.go`
+- futurs handlers serveurs non payload / providers metier EBICS
+- modeles / REST / CLI necessaires a l'observabilite et au pilotage operateur
+
+Commande qualite minimale:
+
+- `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./pkg/model ./pkg/gatewayd`
+- `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/cmd/client ./pkg/model ./pkg/gatewayd -count=1`
+
+Sous-lots cochables:
+
+- [ ] Lot P5A - Cadrer le perimetre serveur non payload cible
+  Attendus: lister et prioriser les ordres serveur a supporter quand Gateway
+  joue le role banque.
+  Portee minimale explicite:
+  - ordres contractuels `HPD`, `HKD`, `HTD`, `HAA`;
+  - ordres d'initialisation et de gestion de cles;
+  - ordres de rotation de cles;
+  - ordres de reporting et de signature;
+  - RTN sortant permettant a Gateway, en role banque, de notifier les
+    partenaires qu'un ordre/document est disponible a la recuperation.
+  Le lot doit aussi clarifier l'articulation entre ces ordres serveur,
+  l'application metier interne et les modeles de donnees/contrats exposes.
+  Validation: cadrage fonctionnel/technique relu contre les specs
+
+- [ ] Lot P5B - Implementer le support serveur des ordres contractuels
+  Attendus: le serveur Gateway EBICS est capable d'exposer et servir
+  `HPD` / `HKD` / `HTD` / `HAA` a partir de donnees/policies internes
+  propres, sans detour ad hoc par le client.
+  Validation: tests serveur HTTP reels sur ces ordres
+
+- [ ] Lot P5C - Raccorder le serveur EBICS aux donnees metier/contrats internes
+  Attendus: les informations retournees par les ordres contractuels serveur
+  proviennent d'un modele metier/administratif borne, versionne et observable,
+  compatible avec le cas d'usage "banque sur Waarp Gateway".
+  Validation: tests d'integration serveur + persistance du perimetre touche
+
+- [ ] Lot P5D - Implementer les ordres serveur non payload hors contrats
+  Attendus: support serveur borne pour les ordres d'initialisation, gestion
+  de cles, rotations, reporting et signature retenus par `P5A`, avec
+  branchement explicite sur les donnees/workflows internes necessaires.
+  Validation: tests serveur HTTP reels sur le perimetre retenu
+
+- [ ] Lot P5E - Implementer le RTN sortant cote banque
+  Attendus: Gateway est capable, en role banque, de publier vers les
+  partenaires des notifications RTN/WSS ou equivalentes pour signaler qu'un
+  ordre/document est disponible a la recuperation, avec statuts, retries et
+  correlation observables.
+  Validation: tests d'integration du service RTN sortant + surfaces REST/CLI
+
+- [ ] Lot P5F - Completer observabilite, securite et non-regression serveur admin
+  Attendus: journalisation, statuts operateur, erreurs REST/CLI, tests de non
+  regression et verification de posture de securite pour les ordres serveur non
+  payload et le RTN sortant.
+  Validation: linter + passe `go test` du perimetre consolide
+
+Ordre d'execution recommande:
+
+1. [ ] Lot P5A
+2. [ ] Lot P5B
+3. [ ] Lot P5C
+4. [ ] Lot P5D
+5. [ ] Lot P5E
+6. [ ] Lot P5F
 
 ### Chantier P3 - Workflow VEU et signature distribuee
 

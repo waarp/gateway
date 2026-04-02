@@ -59,6 +59,7 @@ type InEbicsServiceRef struct {
 
 // InEbicsReportingAction defines one client-side reporting/admin read action.
 type InEbicsReportingAction struct {
+	ClientID          int64                `json:"clientID" yaml:"clientID"`
 	EbicsSubscriberID int64                `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
 	OrderType         string               `json:"orderType" yaml:"orderType"`
 	OrderID           string               `json:"orderID,omitempty" yaml:"orderID,omitempty"`
@@ -72,6 +73,7 @@ type InEbicsReportingAction struct {
 
 // InEbicsSignatureAction defines one client-side signature action.
 type InEbicsSignatureAction struct {
+	ClientID          int64              `json:"clientID" yaml:"clientID"`
 	EbicsSubscriberID int64              `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
 	OrderType         string             `json:"orderType" yaml:"orderType"`
 	OrderID           string             `json:"orderID,omitempty" yaml:"orderID,omitempty"`

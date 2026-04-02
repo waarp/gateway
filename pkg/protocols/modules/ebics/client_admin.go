@@ -29,12 +29,13 @@ import (
 )
 
 var (
-	errNoOperationalEBICSClient        = errors.New("no enabled EBICS client is available")
-	errAmbiguousOperationalEBICSClient = errors.New("multiple enabled EBICS clients are available")
-	errInitializationMissingAccount    = errors.New("the EBICS subscriber has no remote account for client execution")
-	errUnsupportedInitializationOrder  = errors.New("unsupported EBICS initialization order")
-	errMissingKeyVersion               = errors.New("missing key version")
-	errCredentialWithoutCertificate    = errors.New("credential does not contain an X.509 certificate")
+	errMissingOperationalEBICSClientID   = errors.New("the EBICS client identifier is missing")
+	errInitializationMissingAccount      = errors.New("the EBICS subscriber has no remote account for client execution")
+	errUnsupportedInitializationOrder    = errors.New("unsupported EBICS initialization order")
+	errMissingKeyVersion                 = errors.New("missing key version")
+	errCredentialWithoutCertificate      = errors.New("credential does not contain an X.509 certificate")
+	errOperationalEBICSClientIsDisabled  = errors.New("the EBICS client is disabled")
+	errOperationalEBICSClientBadProtocol = errors.New("the selected client does not use the EBICS protocol")
 )
 
 const adminClientStopTimeout = 5 * time.Second
@@ -57,10 +58,11 @@ type adminExecutionContext struct {
 func ExecuteInitializationWorkflowAction(
 	ctx context.Context,
 	db *database.DB,
+	clientID int64,
 	workflow *model.EbicsInitializationWorkflow,
 	action string,
 ) (map[string]any, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	service, stop, err := startOperationalClient(ctx, db, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,9 +76,10 @@ func ExecuteInitializationWorkflowAction(
 func SyncBankKeysForInitialization(
 	ctx context.Context,
 	db *database.DB,
+	clientID int64,
 	workflow *model.EbicsInitializationWorkflow,
 ) (*model.EbicsOperation, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	service, stop, err := startOperationalClient(ctx, db, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +88,8 @@ func SyncBankKeysForInitialization(
 	return service.syncBankKeysForSubscriber(workflow.EbicsSubscriberID)
 }
 
-func startOperationalClient(parentCtx context.Context, db *database.DB) (*Client, func(), error) {
-	dbClient, err := resolveUniqueEnabledClientModel(db)
+func startOperationalClient(parentCtx context.Context, db *database.DB, clientID int64) (*Client, func(), error) {
+	dbClient, err := resolveOperationalClientModel(db, clientID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,20 +111,30 @@ func startOperationalClient(parentCtx context.Context, db *database.DB) (*Client
 	return service, stop, nil
 }
 
-func resolveUniqueEnabledClientModel(db *database.DB) (*model.Client, error) {
-	var clients model.Clients
-	if err := db.Select(&clients).Where("protocol=? AND disabled=?", "ebics", false).Owner().Run(); err != nil {
-		return nil, fmt.Errorf("load enabled EBICS clients: %w", err)
+func resolveOperationalClientModel(db *database.DB, clientID int64) (*model.Client, error) {
+	if clientID == 0 {
+		return nil, database.NewValidationError(errMissingOperationalEBICSClientID.Error())
 	}
 
-	switch len(clients) {
-	case 0:
-		return nil, errNoOperationalEBICSClient
-	case 1:
-		return clients[0], nil
-	default:
-		return nil, errAmbiguousOperationalEBICSClient
+	client := &model.Client{}
+	if err := db.Get(client, "id=?", clientID).Owner().Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, database.NewValidationErrorf("the EBICS client %d does not exist", clientID)
+		}
+
+		return nil, fmt.Errorf("load EBICS client %d: %w", clientID, err)
 	}
+
+	if client.Protocol != "ebics" {
+		return nil, database.NewValidationErrorf("%s: clientID=%d protocol=%s",
+			errOperationalEBICSClientBadProtocol, clientID, client.Protocol)
+	}
+
+	if client.Disabled {
+		return nil, database.NewValidationErrorf("%s: clientID=%d", errOperationalEBICSClientIsDisabled, clientID)
+	}
+
+	return client, nil
 }
 
 func (c *Client) executeInitializationWorkflowAction(

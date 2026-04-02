@@ -182,6 +182,7 @@ func (c *EbicsKeyLifecycleAction) execute(w io.Writer) error {
 type EbicsKeyRotationPrepare struct {
 	OutputFormat
 
+	ClientID                       int64              `required:"yes" long:"client-id" description:"The Gateway client identifier"`
 	EbicsSubscriberID              int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
 	CoordinationID                 string             `long:"coordination-id" description:"Reuse an existing coordinated rotation identifier"`
 	RotationType                   string             `long:"rotation-type" choice:"ROTATION" choice:"REPLACEMENT" description:"The coordinated rotation type"`
@@ -199,6 +200,7 @@ func (c *EbicsKeyRotationPrepare) execute(w io.Writer) error {
 	addr.Path = "/api/ebics/key-lifecycles/actions/prepare-rotation"
 
 	req := api.InEbicsKeyRotationPrepare{
+		ClientID:                       c.ClientID,
 		EbicsSubscriberID:              c.EbicsSubscriberID,
 		CoordinationID:                 c.CoordinationID,
 		RotationType:                   c.RotationType,
@@ -224,6 +226,7 @@ type EbicsKeyRotationAction struct {
 	OutputFormat
 
 	Path               string             `json:"-" yaml:"-"`
+	ClientID           int64              `required:"yes" long:"client-id" description:"The Gateway client identifier"`
 	EbicsSubscriberID  int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
 	CoordinationID     string             `required:"yes" long:"coordination-id" description:"The coordinated rotation identifier"`
 	SignatureOrderType string             `long:"signature-order-type" choice:"PUB" choice:"HSA" description:"The signature order to use for signature-only rotations"`
@@ -238,6 +241,7 @@ func (c *EbicsKeyRotationAction) execute(w io.Writer) error {
 	addr.Path = c.Path
 
 	req := api.InEbicsKeyRotationAction{
+		ClientID:           c.ClientID,
 		EbicsSubscriberID:  c.EbicsSubscriberID,
 		CoordinationID:     c.CoordinationID,
 		SignatureOrderType: c.SignatureOrderType,
@@ -376,6 +380,8 @@ type EbicsInitializationAction struct {
 		Workflow string `required:"yes" positional-arg-name:"workflow" description:"The initialization workflow identifier"`
 	} `positional-args:"yes" json:"-"`
 
+	//nolint:lll // CLI tags are intentionally explicit
+	ClientID int64              `required:"yes" long:"client-id" description:"The Gateway client identifier" json:"clientID,omitempty"`
 	Action   string             `required:"yes" long:"action" description:"The init action" json:"action,omitempty"`
 	Operator string             `long:"operator" description:"The operator" json:"operator,omitempty"`
 	Reason   string             `long:"reason" description:"The action reason" json:"reason,omitempty"`

@@ -21,6 +21,7 @@ type OutEbicsInitializationWorkflow struct {
 
 // InEbicsInitializationAction defines an operator action on an EBICS initialization workflow.
 type InEbicsInitializationAction struct {
+	ClientID int64          `json:"clientID" yaml:"clientID"`
 	Action   string         `json:"action" yaml:"action"`
 	Operator string         `json:"operator,omitempty" yaml:"operator,omitempty"`
 	Reason   string         `json:"reason,omitempty" yaml:"reason,omitempty"`

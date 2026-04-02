@@ -664,6 +664,7 @@ func DBEbicsRTNProviderToREST(provider *model.EbicsRTNProvider) *api.OutEbicsRTN
 		Transport:        provider.Transport,
 		Enabled:          provider.Enabled,
 		SubscriberID:     provider.EbicsSubscriberID,
+		ClientID:         modelRTNProviderClientID(provider),
 		AutoPullPolicy:   provider.AutoPullPolicy,
 		LastConnectionAt: ptrTime(provider.LastConnectionAt),
 		LastError:        provider.LastError,

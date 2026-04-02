@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	auth "code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -533,9 +534,12 @@ func TestAddEbicsRTNProviderRequiresConfiguration(t *testing.T) {
 }
 
 func TestUpdateEbicsRTNProviderPreservesRuntimeFields(t *testing.T) {
+	setRESTEBICSConfigChecker(t)
+
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)
 	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-PROVIDER", "PARTNER-RTN-PROVIDER", "USER-RTN-PROVIDER")
+	client := insertRESTEbicsClient(t, db, "ebics-rtn-provider-client")
 
 	lastConnection := time.Date(2026, 3, 31, 16, 10, 0, 0, time.UTC)
 	provider := insertRESTEbicsRTNProvider(t, db, &model.EbicsRTNProvider{
@@ -543,14 +547,14 @@ func TestUpdateEbicsRTNProviderPreservesRuntimeFields(t *testing.T) {
 		Transport:         "WSS",
 		Enabled:           true,
 		EbicsSubscriberID: subscriber.ID,
-		ConfigurationMap:  map[string]any{"endpoint": "wss://bank.example/rtn", "clientID": "legacy"},
+		ConfigurationMap:  map[string]any{"endpoint": "wss://bank.example/rtn", "clientID": client.ID},
 		AutoPullPolicy:    "MANUAL",
 		LastConnectionAt:  lastConnection,
 		LastError:         "previous timeout",
 	})
 
 	req := httptest.NewRequest(http.MethodPatch, "/ebics/rtn/providers/"+provider.Name,
-		strings.NewReader(`{"autoPullPolicy":"AUTO","configuration":{"endpoint":"wss://bank.example/new","clientID":"fresh"}}`))
+		strings.NewReader(`{"autoPullPolicy":"AUTO","clientID":`+marshalID(client.ID)+`,"configuration":{"endpoint":"wss://bank.example/new"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_provider": provider.Name})
 	w := httptest.NewRecorder()
@@ -564,6 +568,7 @@ func TestUpdateEbicsRTNProviderPreservesRuntimeFields(t *testing.T) {
 	require.NoError(t, db.Get(&refreshed, "id=?", provider.ID).Run())
 	assert.Equal(t, "AUTO", refreshed.AutoPullPolicy)
 	assert.Equal(t, "wss://bank.example/new", refreshed.ConfigurationMap["endpoint"])
+	assert.EqualValues(t, client.ID, refreshed.ConfigurationMap["clientID"])
 	assert.Equal(t, lastConnection, refreshed.LastConnectionAt.UTC())
 	assert.Equal(t, "previous timeout", refreshed.LastError)
 }
@@ -657,6 +662,30 @@ func insertRESTEbicsRTNProvider(
 	t.Helper()
 	require.NoError(t, db.Insert(provider).Run())
 	return provider
+}
+
+func setRESTEBICSConfigChecker(t *testing.T) {
+	t.Helper()
+
+	oldChecker := model.ConfigChecker
+	model.ConfigChecker = nil
+	modeltest.AddDummyProtoConfig("ebics")
+	t.Cleanup(func() { model.ConfigChecker = oldChecker })
+}
+
+func insertRESTEbicsClient(t *testing.T, db *database.DB, name string) *model.Client {
+	t.Helper()
+
+	client := &model.Client{
+		Name:     name,
+		Protocol: "ebics",
+		ProtoConfig: map[string]any{
+			"endpointURL": "https://bank.example.test/ebics",
+		},
+	}
+	require.NoError(t, db.Insert(client).Run())
+
+	return client
 }
 
 func marshalID(id int64) string {

@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"maps"
 	"net/http"
 	"time"
 
@@ -11,11 +12,21 @@ import (
 )
 
 func ebicsRTNProviderRESTToDB(in *api.InEbicsRTNProvider) *model.EbicsRTNProvider {
+	config := maps.Clone(in.Configuration)
+	if config == nil {
+		config = map[string]any{}
+	}
+	if in.ClientID != nil {
+		config["clientID"] = *in.ClientID
+	} else {
+		delete(config, "clientID")
+	}
+
 	provider := &model.EbicsRTNProvider{
 		Name:              in.Name,
 		Transport:         in.Transport,
 		EbicsSubscriberID: in.SubscriberID,
-		ConfigurationMap:  in.Configuration,
+		ConfigurationMap:  config,
 		AutoPullPolicy:    in.AutoPullPolicy,
 	}
 
@@ -188,6 +199,7 @@ func updateEbicsRTNProvider(logger *log.Logger, db *database.DB) http.HandlerFun
 			Transport:      current.Transport,
 			Enabled:        &enabled,
 			SubscriberID:   current.EbicsSubscriberID,
+			ClientID:       modelRTNProviderClientID(current),
 			Configuration:  current.ConfigurationMap,
 			AutoPullPolicy: current.AutoPullPolicy,
 		}
@@ -286,6 +298,46 @@ func validateRTNProviderPayload(in *api.InEbicsRTNProvider) error {
 	if in.SubscriberID == 0 {
 		return badRequest("the EBICS RTN provider subscriber ID is missing")
 	}
+	if in.AutoPullPolicy == "AUTO" || in.AutoPullPolicy == "AUTO_FILTERED" {
+		if in.ClientID == nil || *in.ClientID == 0 {
+			return badRequest("the EBICS RTN provider client ID is missing")
+		}
+	}
 
 	return nil
+}
+
+func modelRTNProviderClientID(provider *model.EbicsRTNProvider) *int64 {
+	if provider == nil {
+		return nil
+	}
+
+	clientID, ok := readRTNProviderConfigInt64(provider.ConfigurationMap, "clientID")
+	if !ok {
+		return nil
+	}
+
+	return &clientID
+}
+
+func readRTNProviderConfigInt64(config map[string]any, key string) (int64, bool) {
+	if config == nil {
+		return 0, false
+	}
+
+	value, ok := config[key]
+	if !ok {
+		return 0, false
+	}
+
+	switch raw := value.(type) {
+	case int64:
+		return raw, true
+	case int:
+		return int64(raw), true
+	case float64:
+		return int64(raw), true
+	default:
+		return 0, false
+	}
 }

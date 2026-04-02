@@ -104,18 +104,61 @@ Note:
 - 2026-04-01: les restes a faire post-`B5` sont maintenant convertis en
   backlog explicite dans `suivi-backend-consolidation.md`:
   `P0A` a `P0C` pour RTN reel, `P2A` a `P2D` pour l'automatisation
-  d'exploitation native, `P3A` a `P3C` pour le workflow VEU, et un nouveau
-  chantier `P4A` a `P4E` pour remettre en ordre l'usage de `TransferInfo`
-  dans l'implementation EBICS.
+  d'exploitation native, `P3A` a `P3C` pour le workflow VEU, `P4A` a `P4E`
+  pour remettre en ordre l'usage de `TransferInfo` dans l'implementation
+  EBICS, et `P5A` a `P5D` pour preparer explicitement le mode
+  "Gateway serveur bancaire EBICS".
   `AMQP 0.9.1` / `AMQP 1.0` restent hors perimetre EBICS strict, mais traces
   comme pre-requis du futur passe-plat metier.
   Le lot `P2D` couvre explicitement l'historisation native des ordres EBICS
   non payload (`admin`, `reporting`, `initialisation`, `gestion de cles`),
   avec une exigence d'historique durable et interrogeable analogue a celle
   des transferts Gateway.
+  Un lot `P2E` est ajoute pour supprimer la limitation artificielle
+  "un seul client EBICS actif" sur les chemins non payload:
+  la selection doit converger vers la reference canonique deja utilisee dans
+  Gateway, a savoir `ClientID`, sauf contrainte absolue specifique a EBICS.
+  Le lot `P2B` couvre explicitement le refresh planifie des vues
+  contractuelles `HPD` / `HKD` / `HTD` / `HAA`, qui existe aujourd'hui comme
+  action client REST/CLI mais pas encore comme orchestration periodique
+  native.
   Le chantier `P4` est quant a lui sequence apres `P0C` et vise explicitement
   a sortir les correlations structurelles EBICS de `TransferInfo`, qui reste
   un espace reutilisable par l'exploitant via les variables `#TI_*#`.
+  Le chantier `P5` ouvre explicitement l'autre versant fonctionnel:
+  si Waarp Gateway doit un jour etre utilise cote banque, le serveur EBICS
+  devra depasser `BTU/BTD` et exposer aussi:
+  les ordres contractuels/admin (`HPD` / `HKD` / `HTD` / `HAA`),
+  les ordres d'initialisation, gestion/rotation de cles,
+  les ordres de reporting/signature,
+  ainsi qu'un RTN sortant permettant de notifier les partenaires qu'un ordre
+  ou document est disponible a la recuperation.
+  Une feuille de route globale restante est maintenant posee:
+  finir d'abord le socle EBICS exploitable (`P2E`, puis `P2A/B/D/C`),
+  traiter ensuite `AMQP 0.9.1` et `AMQP 1.0` comme protocoles Gateway
+  autonomes, ouvrir ensuite le passe-plat metier, puis seulement
+  l'implementation complete du role banque EBICS (`P5`) et enfin `VEU` (`P3`).
+  2026-04-02: `P2E` est maintenant decliné en backlog operationnel.
+  La sequence retenue est:
+  cartographie des resolutions implicites, choix du contrat REST/CLI cible
+  autour de `ClientID`, refactor des chemins admin, alignement RTN, puis
+  restitution claire de l'etat activable et des ambiguities de selection.
+  L'inventaire `P2E.1` montre deja que le payload standard est correctement
+  aligne sur `Transfer.ClientID`, et que l'ecart multi-client se concentre
+  sur les chemins non payload (`contract refresh`, reporting/signature,
+  initialisation, `HPB`, rotations) ainsi que sur la selection RTN.
+  2026-04-02: `P2E.3` est maintenant ferme pour les chemins non payload.
+  Les actions `contract refresh`, `reporting`, `signature`,
+  `initialisation`, `HPB` et `key rotation` exigent desormais un `clientID`
+  explicite en REST/CLI et ne passent plus par une resolution singleton
+  implicite du client EBICS. Le prochain lot restant sur ce sujet est `P2E.4`
+  pour l'alignement RTN.
+  2026-04-02: `P2E.4` est maintenant ferme.
+  L'auto-pull RTN converge lui aussi vers `clientID` comme reference
+  canonique: le provider RTN administre porte desormais un `clientID`
+  explicite, la resolution runtime ne depend plus d'un `clientName`
+  optionnel ni d'un balayage des clients EBICS actifs, et les surfaces
+  REST/CLI des providers RTN exposent cette reference explicitement.
   2026-04-01: `P4A` est maintenant ferme.
   L'inventaire confirme que le probleme n'est pas limite a quelques cles
   EBICS (`ebicsOperationID`, `ebicsTransactionID`, etc.): le chemin RTN clone

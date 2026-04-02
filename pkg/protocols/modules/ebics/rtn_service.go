@@ -32,14 +32,11 @@ const (
 )
 
 var (
-	errRTNAllProvidersFailed      = errors.New("failed to start all configured EBICS RTN providers")
-	errUnsupportedRTNProcessing   = errors.New("unsupported RTN processing plan")
-	errRTNAutoPullNoRule          = errors.New("no Gateway rule could be resolved for the RTN auto-pull")
-	errRTNAutoPullAmbiguousRule   = errors.New("multiple Gateway rules match the RTN auto-pull request")
-	errRTNAutoPullNoClient        = errors.New("no enabled EBICS client is available for the RTN auto-pull")
-	errRTNAutoPullAmbiguousClient = errors.New(
-		"multiple enabled EBICS clients match the RTN auto-pull request",
-	)
+	errRTNAllProvidersFailed    = errors.New("failed to start all configured EBICS RTN providers")
+	errUnsupportedRTNProcessing = errors.New("unsupported RTN processing plan")
+	errRTNAutoPullNoRule        = errors.New("no Gateway rule could be resolved for the RTN auto-pull")
+	errRTNAutoPullAmbiguousRule = errors.New("multiple Gateway rules match the RTN auto-pull request")
+	errRTNAutoPullNoClient      = errors.New("no EBICS client is configured for the RTN auto-pull")
 )
 
 type autoPullRuntime struct {
@@ -404,7 +401,7 @@ func (s *RTNService) prepareAutoPullRuntime(
 		return nil, err
 	}
 
-	client, err := s.resolveAutoPullClient(event.PayloadMap)
+	client, err := s.resolveAutoPullClient(managed.config)
 	if err != nil {
 		return nil, err
 	}
@@ -577,39 +574,22 @@ func (s *RTNService) resolveAutoPullRemoteAgent(remoteAgentID int64) (*model.Rem
 	return agent, nil
 }
 
-func (s *RTNService) resolveAutoPullClient(metadata map[string]any) (*model.Client, error) {
-	clientName := readMetadataString(metadata, "clientName")
-	var clients model.Clients
-
-	query := s.db.Select(&clients).Owner().Where("protocol=? AND disabled=?", EBICS, false)
-	if clientName != "" {
-		query = query.Where("name=?", clientName)
-	}
-
-	if err := query.Run(); err != nil {
-		if clientName != "" {
-			return nil, fmt.Errorf("load RTN auto-pull client %q: %w", clientName, err)
-		}
-
-		return nil, fmt.Errorf("load enabled EBICS clients for RTN auto-pull: %w", err)
-	}
-
-	switch len(clients) {
-	case 0:
-		if clientName != "" {
-			return nil, fmt.Errorf("%w: %q", errRTNAutoPullNoClient, clientName)
-		}
-
+func (s *RTNService) resolveAutoPullClient(provider *model.EbicsRTNProvider) (*model.Client, error) {
+	if provider == nil {
 		return nil, errRTNAutoPullNoClient
-	case 1:
-		return clients[0], nil
-	default:
-		if clientName != "" {
-			return nil, fmt.Errorf("%w: %q", errRTNAutoPullAmbiguousClient, clientName)
-		}
-
-		return nil, errRTNAutoPullAmbiguousClient
 	}
+
+	clientID, ok := readRTNConfigInt64(provider.ConfigurationMap, "clientID")
+	if !ok || clientID == 0 {
+		return nil, errRTNAutoPullNoClient
+	}
+
+	client, err := resolveOperationalClientModel(s.db, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("resolve RTN auto-pull client %d: %w", clientID, err)
+	}
+
+	return client, nil
 }
 
 func (s *RTNService) ensureAutoPullClientStarted(client *model.Client) error {
@@ -868,6 +848,28 @@ func readRTNConfigString(config map[string]any, key string) (string, bool) {
 	}
 
 	return strings.TrimSpace(raw), true
+}
+
+func readRTNConfigInt64(config map[string]any, key string) (int64, bool) {
+	if config == nil {
+		return 0, false
+	}
+
+	value, ok := config[key]
+	if !ok {
+		return 0, false
+	}
+
+	switch raw := value.(type) {
+	case int64:
+		return raw, true
+	case int:
+		return int64(raw), true
+	case float64:
+		return int64(raw), true
+	default:
+		return 0, false
+	}
 }
 
 func laterOfNowUTC(reference time.Time) time.Time {

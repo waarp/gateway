@@ -317,6 +317,7 @@ func (c *EbicsContractViewGet) execute(w io.Writer) error {
 type EbicsContractViewRefresh struct {
 	OutputFormat
 
+	ClientID          int64 `required:"yes" long:"client-id" description:"The Gateway EBICS client identifier"`
 	EbicsSubscriberID int64 `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
 	NoHEV             bool  `long:"no-hev" description:"Skip the HEV check before refreshing contract views" json:"-"`
 }
@@ -326,6 +327,7 @@ func (c *EbicsContractViewRefresh) execute(w io.Writer) error {
 	addr.Path = "/api/ebics/contract-views/actions/refresh"
 
 	req := api.InEbicsContractRefresh{
+		ClientID:          c.ClientID,
 		EbicsSubscriberID: c.EbicsSubscriberID,
 		IncludeHEV:        !c.NoHEV,
 	}

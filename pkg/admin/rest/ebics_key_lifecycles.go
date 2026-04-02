@@ -95,6 +95,7 @@ func prepareEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFu
 		}
 
 		result, err := ebicsmodule.PrepareCoordinatedKeyRotation(r.Context(), db, &ebicsmodule.KeyRotationPrepareInput{
+			ClientID:                       request.ClientID,
 			EbicsSubscriberID:              request.EbicsSubscriberID,
 			RotationType:                   request.RotationType,
 			CoordinationID:                 request.CoordinationID,
@@ -156,6 +157,7 @@ func actOnEbicsKeyRotationGroup(
 		}
 
 		result, err := action(r.Context(), db, &ebicsmodule.KeyRotationActionInput{
+			ClientID:           request.ClientID,
 			EbicsSubscriberID:  request.EbicsSubscriberID,
 			CoordinationID:     request.CoordinationID,
 			SignatureOrderType: request.SignatureOrderType,

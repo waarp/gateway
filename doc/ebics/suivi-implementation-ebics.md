@@ -226,18 +226,58 @@ Point de situation:
   `outcome`, `retry`) sont visibles en REST/CLI.
 - 2026-04-01: le reste a faire post-`B5` n'est plus seulement formule en
   analyse libre.
-  Il est maintenant decliné en lots cochables `P0`, `P2`, `P3` et `P4` dans
+  Il est maintenant decliné en lots cochables `P0`, `P2`, `P3`, `P4` et `P5` dans
   `suivi-backend-consolidation.md`, avec attendus, validations minimales et
   rappel explicite du hors-perimetre EBICS strict pour `AMQP 0.9.1` /
   `AMQP 1.0`.
   Le lot `P2D` ajoute en particulier l'historisation native des ordres EBICS
   non payload, pour ne pas limiter la tracabilite durable aux seuls
   transferts Gateway.
+  Un lot `P2E` est aussi ajoute pour remettre l'implementation EBICS en
+  conformite avec la philosophie Gateway sur la selection de client:
+  les chemins admin/RTN ne doivent plus reposer sur l'hypothese
+  "un seul client EBICS actif", mais converger vers une reference canonique
+  `ClientID` ou equivalente.
+  Le lot `P2B` couvre aussi desormais le refresh planifie des vues
+  contractuelles `HPD` / `HKD` / `HTD` / `HAA`, aujourd'hui disponible comme
+  action client mais pas encore automatise nativement.
   Le chantier `P4` est dedie a la remise en ordre architecturale de
   l'implementation EBICS autour de `TransferInfo`: l'objectif est de separer
   proprement l'espace metier/exploitant expose en `#TI_*#` des correlations
   techniques EBICS, quitte a redevelopper une partie importante du runtime et
   de la persistance de correlation.
+  Le chantier `P5` traite explicitement le cas ou Waarp Gateway joue le role
+  de serveur bancaire EBICS et doit donc exposer, au-dela de `BTU/BTD`,
+  des ordres contractuels/admin comme `HPD` / `HKD` / `HTD` / `HAA`,
+  mais aussi couvrir les ordres d'initialisation, de gestion/rotation de
+  cles, de reporting/signature, ainsi qu'un RTN sortant pour notifier aux
+  partenaires qu'un ordre/document est disponible a la recuperation.
+  L'ordre de traitement recommande est maintenant explicite:
+  terminer d'abord le socle EBICS exploitable et multi-client (`P2E`, puis
+  `P2A/B/D/C`), implementer ensuite `AMQP 0.9.1` et `AMQP 1.0` comme
+  protocoles Gateway autonomes, ouvrir ensuite le passe-plat metier, puis
+  seulement derouler le mode banque EBICS (`P5`) et enfin le workflow VEU
+  (`P3`).
+  2026-04-02: `P2E` est maintenant detaille en sous-lots operationnels dans
+  `suivi-backend-consolidation.md`:
+  inventaire des resolutions implicites, fixation du contrat `ClientID`,
+  refactor des chemins admin, alignement RTN, puis lisibilite REST/CLI de
+  l'etat activable et des ambiguities multi-client.
+  L'inventaire `P2E.1` est deja tranche:
+  le payload standard Gateway est bien aligne sur `Transfer.ClientID`,
+  tandis que l'ecart multi-client reste concentre sur les chemins
+  non payload et sur la resolution RTN.
+  2026-04-02: `P2E.3` est maintenant ferme pour les chemins non payload.
+  Les actions `contract refresh`, `reporting`, `signature`,
+  `initialisation`, `HPB` et `key rotation` exigent desormais un `clientID`
+  explicite en REST/CLI et n'utilisent plus de resolution singleton
+  implicite du client EBICS. Le lot restant sur ce sujet est `P2E.4` pour RTN.
+  2026-04-02: `P2E.4` est maintenant ferme.
+  Les providers RTN administres portent desormais eux aussi un `clientID`
+  explicite, et l'auto-pull ne depend plus d'un `clientName` optionnel ni
+  d'une resolution implicite parmi les clients EBICS actifs. La selection
+  multi-client est donc alignee sur `ClientID` pour tous les chemins EBICS
+  hors `Transfer`.
   2026-04-01: `P4A` est maintenant ferme.
   La cartographie exhaustive montre deux problemes distincts:
   les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,

@@ -35,6 +35,7 @@ type OutEbicsRTNProvider struct {
 	Transport        string     `json:"transport" yaml:"transport"`
 	Enabled          bool       `json:"enabled" yaml:"enabled"`
 	SubscriberID     int64      `json:"subscriberID" yaml:"subscriberID"`
+	ClientID         *int64     `json:"clientID,omitempty" yaml:"clientID,omitempty"`
 	AutoPullPolicy   string     `json:"autoPullPolicy" yaml:"autoPullPolicy"`
 	LastConnectionAt *time.Time `json:"lastConnectionAt,omitempty" yaml:"lastConnectionAt,omitempty"`
 	LastError        string     `json:"lastError,omitempty" yaml:"lastError,omitempty"`
@@ -46,6 +47,7 @@ type InEbicsRTNProvider struct {
 	Transport      string         `json:"transport" yaml:"transport"`
 	Enabled        *bool          `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	SubscriberID   int64          `json:"subscriberID" yaml:"subscriberID"`
+	ClientID       *int64         `json:"clientID,omitempty" yaml:"clientID,omitempty"`
 	Configuration  map[string]any `json:"configuration,omitempty" yaml:"configuration,omitempty"`
 	AutoPullPolicy string         `json:"autoPullPolicy,omitempty" yaml:"autoPullPolicy,omitempty"`
 }

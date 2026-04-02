@@ -33,6 +33,7 @@ const (
 
 // ReportingActionInput defines one client-side reporting/admin retrieval request.
 type ReportingActionInput struct {
+	ClientID          int64
 	EbicsSubscriberID int64
 	OrderType         string
 	OrderID           string
@@ -46,6 +47,7 @@ type ReportingActionInput struct {
 
 // SignatureActionInput defines one client-side signature request.
 type SignatureActionInput struct {
+	ClientID          int64
 	EbicsSubscriberID int64
 	OrderType         string
 	OrderID           string
@@ -71,7 +73,11 @@ func ExecuteReportingAction(
 	db *database.DB,
 	input *ReportingActionInput,
 ) (*model.EbicsOperation, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the EBICS reporting request is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +93,11 @@ func ExecuteSignatureAction(
 	db *database.DB,
 	input *SignatureActionInput,
 ) (*model.EbicsOperation, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the EBICS signature request is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -184,6 +194,16 @@ func (c *Client) executeSignatureAction(input *SignatureActionInput) (*model.Ebi
 }
 
 func validateReportingActionInput(orderType string, input *ReportingActionInput) error {
+	if input == nil {
+		return database.NewValidationError("the EBICS reporting request is missing")
+	}
+	if input.ClientID == 0 {
+		return database.NewValidationError(errMissingOperationalEBICSClientID.Error())
+	}
+	if input.EbicsSubscriberID == 0 {
+		return database.NewValidationError("the EBICS subscriber reference is missing")
+	}
+
 	switch orderType {
 	case "HVD", "HVT":
 		if strings.TrimSpace(input.OrderID) == "" {
@@ -208,6 +228,16 @@ func validateReportingActionInput(orderType string, input *ReportingActionInput)
 }
 
 func validateSignatureActionInput(orderType string, input *SignatureActionInput) error {
+	if input == nil {
+		return database.NewValidationError("the EBICS signature request is missing")
+	}
+	if input.ClientID == 0 {
+		return database.NewValidationError(errMissingOperationalEBICSClientID.Error())
+	}
+	if input.EbicsSubscriberID == 0 {
+		return database.NewValidationError("the EBICS subscriber reference is missing")
+	}
+
 	switch orderType {
 	case reportingOrderHVE:
 		if strings.TrimSpace(input.OrderID) == "" {

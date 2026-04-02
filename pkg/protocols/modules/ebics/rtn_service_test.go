@@ -102,7 +102,7 @@ func TestRTNServiceProcessesAutoPullEventIntoOperation(t *testing.T) {
 		MsgName:   "camt.054",
 		IsEnabled: true,
 	})
-	provider := insertTestRTNProvider(t, db, subscriber.ID, "AUTO")
+	provider := insertTestRTNProvider(t, db, subscriber.ID, "AUTO", client.ID)
 	fake := newFakeRTNProvider()
 
 	service := NewRTNService(db)
@@ -185,7 +185,7 @@ func TestRTNServiceManualPolicyKeepsEventForOperators(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 	host := insertTestEbicsHost(t, db, "HOST-MANUAL")
 	subscriber := insertTestEbicsSubscriber(t, db, host.ID, "PARTNER-MANUAL", "USER-MANUAL", true)
-	provider := insertTestRTNProvider(t, db, subscriber.ID, "MANUAL")
+	provider := insertTestRTNProvider(t, db, subscriber.ID, "MANUAL", 0)
 	fake := newFakeRTNProvider()
 
 	service := NewRTNService(db)
@@ -224,10 +224,14 @@ func TestRTNServiceManualPolicyKeepsEventForOperators(t *testing.T) {
 }
 
 func TestRTNServiceProviderErrorsArePersisted(t *testing.T) {
+	setEBICSConfigChecker(t)
+
 	db := dbtest.TestDatabase(t)
 	host := insertTestEbicsHost(t, db, "HOST-ERR")
 	subscriber := insertTestEbicsSubscriber(t, db, host.ID, "PARTNER-ERR", "USER-ERR", true)
-	provider := insertTestRTNProvider(t, db, subscriber.ID, "AUTO")
+	client := insertTestRTNAutoPullClient(t, db, "ebics-rtn-provider-errors")
+	t.Cleanup(func() { delete(services.Clients, client.Name) })
+	provider := insertTestRTNProvider(t, db, subscriber.ID, "AUTO", client.ID)
 	fake := newFakeRTNProvider()
 
 	service := NewRTNService(db)
@@ -258,18 +262,24 @@ func insertTestRTNProvider(
 	db *database.DB,
 	subscriberID int64,
 	autoPullPolicy string,
+	clientID int64,
 ) *model.EbicsRTNProvider {
 	t.Helper()
+
+	configuration := map[string]any{
+		"endpoint": "wss://127.0.0.1/rtn",
+	}
+	if clientID != 0 {
+		configuration["clientID"] = clientID
+	}
 
 	provider := &model.EbicsRTNProvider{
 		Name:              "rtn-" + autoPullPolicy,
 		Transport:         "WSS",
 		Enabled:           true,
 		EbicsSubscriberID: subscriberID,
-		ConfigurationMap: map[string]any{
-			"endpoint": "wss://127.0.0.1/rtn",
-		},
-		AutoPullPolicy: autoPullPolicy,
+		ConfigurationMap:  configuration,
+		AutoPullPolicy:    autoPullPolicy,
 	}
 	require.NoError(t, db.Insert(provider).Run())
 

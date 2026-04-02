@@ -34,6 +34,7 @@ type InEbicsKeyLifecycleAction struct {
 //
 //nolint:lll // JSON/YAML field names are intentionally explicit for admin APIs.
 type InEbicsKeyRotationPrepare struct {
+	ClientID                       int64          `json:"clientID" yaml:"clientID"`
 	EbicsSubscriberID              int64          `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
 	RotationType                   string         `json:"rotationType,omitempty" yaml:"rotationType,omitempty"`
 	CoordinationID                 string         `json:"coordinationID,omitempty" yaml:"coordinationID,omitempty"`
@@ -48,6 +49,7 @@ type InEbicsKeyRotationPrepare struct {
 
 // InEbicsKeyRotationAction defines a coordinated action on a prepared EBICS key rotation.
 type InEbicsKeyRotationAction struct {
+	ClientID           int64          `json:"clientID" yaml:"clientID"`
 	EbicsSubscriberID  int64          `json:"ebicsSubscriberID" yaml:"ebicsSubscriberID"`
 	CoordinationID     string         `json:"coordinationID" yaml:"coordinationID"`
 	SignatureOrderType string         `json:"signatureOrderType,omitempty" yaml:"signatureOrderType,omitempty"`

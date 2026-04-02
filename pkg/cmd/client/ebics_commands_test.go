@@ -403,6 +403,7 @@ func TestEbicsContractViewRefreshCommandBuildsRequest(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/api/ebics/contract-views/actions/refresh",
 		body: map[string]any{
+			"clientID":          float64(14),
 			"ebicsSubscriberID": float64(44),
 			"includeHEV":        false,
 		},
@@ -439,7 +440,7 @@ func TestEbicsContractViewRefreshCommandBuildsRequest(t *testing.T) {
 
 	testServer(t, expected, result)
 
-	require.NoError(t, executeCommand(t, w, command, "--subscriber", "44", "--no-hev"))
+	require.NoError(t, executeCommand(t, w, command, "--client-id", "14", "--subscriber", "44", "--no-hev"))
 	assert.Contains(t, w.String(), "EBICS operation #5 [COMPLETED]")
 	assert.Contains(t, w.String(), "=== EBICS contract views ===")
 }
@@ -487,6 +488,7 @@ func TestEbicsInitializationActionCommandBuildsRequest(t *testing.T) {
 		method: http.MethodPut,
 		path:   "/api/ebics/initializations/18/actions",
 		body: map[string]any{
+			"clientID": float64(24),
 			"action":   "CANCEL",
 			"operator": "ops",
 			"reason":   "aborted",
@@ -505,6 +507,7 @@ func TestEbicsInitializationActionCommandBuildsRequest(t *testing.T) {
 
 	require.NoError(t, executeCommand(t, w, command,
 		"18",
+		"--client-id", "24",
 		"--action", "CANCEL",
 		"--operator", "ops",
 		"--reason", "aborted",
@@ -522,6 +525,7 @@ func TestEbicsKeyRotationPrepareCommandBuildsRequest(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/api/ebics/key-lifecycles/actions/prepare-rotation",
 		body: map[string]any{
+			"clientID":                       float64(71),
 			"ebicsSubscriberID":              float64(77),
 			"coordinationID":                 "coord-77",
 			"rotationType":                   "ROTATION",
@@ -561,6 +565,7 @@ func TestEbicsKeyRotationPrepareCommandBuildsRequest(t *testing.T) {
 	testServer(t, expected, result)
 
 	require.NoError(t, executeCommand(t, w, command,
+		"--client-id", "71",
 		"--subscriber", "77",
 		"--coordination-id", "coord-77",
 		"--rotation-type", "ROTATION",
@@ -661,6 +666,7 @@ func TestEbicsRTNProviderAddCommandBuildsRequest(t *testing.T) {
 			"transport":      "WSS",
 			"enabled":        true,
 			"subscriberID":   float64(81),
+			"clientID":       float64(18),
 			"autoPullPolicy": "AUTO",
 			"configuration": map[string]any{
 				"endpoint": "wss://bank.example/rtn",
@@ -680,6 +686,7 @@ func TestEbicsRTNProviderAddCommandBuildsRequest(t *testing.T) {
 		"--transport", "WSS",
 		"--enabled",
 		"--subscriber-id", "81",
+		"--client-id", "18",
 		"--auto-pull-policy", "AUTO",
 		"--config", "endpoint:wss://bank.example/rtn",
 	))
@@ -788,6 +795,7 @@ func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/api/ebics/operations/actions/reporting",
 		body: map[string]any{
+			"clientID":          float64(31),
 			"ebicsSubscriberID": float64(51),
 			"orderType":         "HVT",
 			"orderID":           "ORDER-51",
@@ -828,6 +836,7 @@ func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {
 	testServer(t, expected, result)
 
 	require.NoError(t, executeCommand(t, w, command,
+		"--client-id", "31",
 		"--subscriber", "51",
 		"--order-type", "HVT",
 		"--order-id", "ORDER-51",
@@ -857,6 +866,7 @@ func TestEbicsOperationSignatureCommandBuildsRequest(t *testing.T) {
 		method: http.MethodPost,
 		path:   "/api/ebics/operations/actions/signature",
 		body: map[string]any{
+			"clientID":          float64(41),
 			"ebicsSubscriberID": float64(61),
 			"orderType":         "HVS",
 			"orderID":           "ORDER-61",
@@ -892,6 +902,7 @@ func TestEbicsOperationSignatureCommandBuildsRequest(t *testing.T) {
 	testServer(t, expected, result)
 
 	require.NoError(t, executeCommand(t, w, command,
+		"--client-id", "41",
 		"--subscriber", "61",
 		"--order-type", "HVS",
 		"--order-id", "ORDER-61",

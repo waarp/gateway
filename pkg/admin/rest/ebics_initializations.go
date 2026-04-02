@@ -70,7 +70,13 @@ func actOnEbicsInitialization(logger *log.Logger, db *database.DB) http.HandlerF
 		extraEvidence := map[string]any{}
 		switch action.Action {
 		case "SEND_INI", "SEND_HIA", "SEND_H3K":
-			extraEvidence, err = ebicsmodule.ExecuteInitializationWorkflowAction(r.Context(), db, workflow, action.Action)
+			extraEvidence, err = ebicsmodule.ExecuteInitializationWorkflowAction(
+				r.Context(),
+				db,
+				action.ClientID,
+				workflow,
+				action.Action,
+			)
 			if handleError(w, logger, err) {
 				return
 			}
@@ -99,7 +105,12 @@ func actOnEbicsInitialization(logger *log.Logger, db *database.DB) http.HandlerF
 		}
 
 		if action.Action == "CONFIRM_BANK_ACTIVATION" {
-			if _, err = ebicsmodule.SyncBankKeysForInitialization(r.Context(), db, workflow); handleError(w, logger, err) {
+			if _, err = ebicsmodule.SyncBankKeysForInitialization(
+				r.Context(),
+				db,
+				action.ClientID,
+				workflow,
+			); handleError(w, logger, err) {
 				return
 			}
 		}

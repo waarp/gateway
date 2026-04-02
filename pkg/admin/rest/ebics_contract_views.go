@@ -94,8 +94,12 @@ func refreshEbicsContractViews(logger *log.Logger, db *database.DB) http.Handler
 			handleError(w, logger, badRequestf("the EBICS subscriber identifier is missing"))
 			return
 		}
+		if req.ClientID == 0 {
+			handleError(w, logger, badRequestf("the EBICS client identifier is missing"))
+			return
+		}
 
-		result, err := ebicsmodule.RefreshContractViews(r.Context(), db, req.EbicsSubscriberID, req.IncludeHEV)
+		result, err := ebicsmodule.RefreshContractViews(r.Context(), db, req.ClientID, req.EbicsSubscriberID, req.IncludeHEV)
 		if handleError(w, logger, err) {
 			return
 		}

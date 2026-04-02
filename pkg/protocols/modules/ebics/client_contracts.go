@@ -40,10 +40,10 @@ var (
 func RefreshContractViews(
 	ctx context.Context,
 	db *database.DB,
-	subscriberID int64,
+	clientID, subscriberID int64,
 	includeHEV bool,
 ) (*ContractRefreshResult, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	service, stop, err := startOperationalClient(ctx, db, clientID)
 	if err != nil {
 		return nil, err
 	}

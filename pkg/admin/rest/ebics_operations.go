@@ -73,6 +73,7 @@ func executeEbicsReportingOperation(logger *log.Logger, db *database.DB) http.Ha
 		}
 
 		operation, err := ebicsmodule.ExecuteReportingAction(r.Context(), db, &ebicsmodule.ReportingActionInput{
+			ClientID:          request.ClientID,
 			EbicsSubscriberID: request.EbicsSubscriberID,
 			OrderType:         request.OrderType,
 			OrderID:           request.OrderID,
@@ -106,6 +107,7 @@ func executeEbicsSignatureOperation(logger *log.Logger, db *database.DB) http.Ha
 		}
 
 		operation, err := ebicsmodule.ExecuteSignatureAction(r.Context(), db, &ebicsmodule.SignatureActionInput{
+			ClientID:          request.ClientID,
 			EbicsSubscriberID: request.EbicsSubscriberID,
 			OrderType:         request.OrderType,
 			OrderID:           request.OrderID,

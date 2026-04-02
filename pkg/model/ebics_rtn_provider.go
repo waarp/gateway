@@ -76,6 +76,12 @@ func (p *EbicsRTNProvider) BeforeWrite(db database.Access) error {
 	if endpoint, ok := readRTNProviderConfigString(p.ConfigurationMap, "endpoint"); !ok || endpoint == "" {
 		return database.NewValidationError("the RTN provider endpoint is missing")
 	}
+	if p.AutoPullPolicy != ebicsRTNAutoPullPolicyManual {
+		clientID, ok := readRTNProviderConfigInt64(p.ConfigurationMap, "clientID")
+		if !ok || clientID == 0 {
+			return database.NewValidationError("the RTN provider client ID is missing")
+		}
+	}
 
 	if err := validateEbicsRTNProviderRefs(db, p); err != nil {
 		return err
@@ -157,6 +163,24 @@ func validateEbicsRTNProviderRefs(db database.Access, provider *EbicsRTNProvider
 		return fmt.Errorf("failed to retrieve EBICS subscriber for RTN provider: %w", err)
 	}
 
+	if provider.AutoPullPolicy != ebicsRTNAutoPullPolicyManual {
+		clientID, _ := readRTNProviderConfigInt64(provider.ConfigurationMap, "clientID")
+		var client Client
+		if err := db.Get(&client, "id=?", clientID).Run(); err != nil {
+			if database.IsNotFound(err) {
+				return database.NewValidationErrorf("the EBICS client %d does not exist", clientID)
+			}
+
+			return fmt.Errorf("failed to retrieve EBICS client for RTN provider: %w", err)
+		}
+		if client.Protocol != "ebics" {
+			return database.NewValidationErrorf("the RTN provider client %d does not use the EBICS protocol", clientID)
+		}
+		if client.Disabled {
+			return database.NewValidationErrorf("the RTN provider client %d is disabled", clientID)
+		}
+	}
+
 	return nil
 }
 
@@ -192,4 +216,26 @@ func readRTNProviderConfigString(config map[string]any, key string) (string, boo
 	}
 
 	return strings.TrimSpace(raw), true
+}
+
+func readRTNProviderConfigInt64(config map[string]any, key string) (int64, bool) {
+	if config == nil {
+		return 0, false
+	}
+
+	value, ok := config[key]
+	if !ok {
+		return 0, false
+	}
+
+	switch raw := value.(type) {
+	case int64:
+		return raw, true
+	case int:
+		return int64(raw), true
+	case float64:
+		return int64(raw), true
+	default:
+		return 0, false
+	}
 }

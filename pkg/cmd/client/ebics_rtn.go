@@ -72,6 +72,9 @@ func displayEbicsRTNProvider(w io.Writer, provider *api.OutEbicsRTNProvider) err
 	Style22.PrintL(w, "Transport", provider.Transport)
 	Style22.PrintL(w, "Enabled", provider.Enabled)
 	Style22.PrintL(w, "Subscriber ID", provider.SubscriberID)
+	if provider.ClientID != nil {
+		Style22.PrintL(w, "Client ID", *provider.ClientID)
+	}
 	Style22.PrintL(w, "Auto-pull policy", provider.AutoPullPolicy)
 	if provider.LastConnectionAt != nil {
 		Style22.PrintL(w, "Last connection", *provider.LastConnectionAt)
@@ -87,6 +90,7 @@ type EbicsRTNProviderAdd struct {
 	Transport      string             `long:"transport" choice:"WSS" default:"WSS" description:"The RTN provider transport" json:"transport,omitempty"`
 	Enabled        bool               `long:"enabled" description:"Whether the RTN provider is enabled" json:"enabled"`
 	SubscriberID   int64              `required:"yes" long:"subscriber-id" description:"The target EBICS subscriber ID" json:"subscriberID,omitempty"`
+	ClientID       *int64             `long:"client-id" description:"The Gateway client identifier" json:"clientID,omitempty"`
 	AutoPullPolicy string             `long:"auto-pull-policy" choice:"MANUAL" choice:"AUTO" choice:"AUTO_FILTERED" default:"MANUAL" description:"The RTN auto-pull policy" json:"autoPullPolicy,omitempty"`
 	Configuration  map[string]confVal `long:"config" description:"Provider configuration entries in key:value format. Can be repeated." json:"configuration,omitempty"`
 }
@@ -157,6 +161,7 @@ type EbicsRTNProviderUpdate struct {
 	Transport      *string             `long:"transport" choice:"WSS" description:"The RTN provider transport" json:"transport,omitempty"`
 	Enabled        *bool               `long:"enabled" description:"Whether the RTN provider is enabled" json:"enabled,omitempty"`
 	SubscriberID   *int64              `long:"subscriber-id" description:"The target EBICS subscriber ID" json:"subscriberID,omitempty"`
+	ClientID       *int64              `long:"client-id" description:"The Gateway client identifier" json:"clientID,omitempty"`
 	AutoPullPolicy *string             `long:"auto-pull-policy" choice:"MANUAL" choice:"AUTO" choice:"AUTO_FILTERED" description:"The RTN auto-pull policy" json:"autoPullPolicy,omitempty"`
 	Configuration  *map[string]confVal `long:"config" description:"Provider configuration entries in key:value format. Can be repeated." json:"configuration,omitempty"`
 }

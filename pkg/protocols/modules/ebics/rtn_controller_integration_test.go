@@ -126,7 +126,7 @@ func TestRTNControllerExecutesScheduledBTDToFinalPayload(t *testing.T) {
 	insertActiveLifecycle(t, clientDB, subscriber.ID, model.EbicsKeyUsageAuthenticationForRuntime(), authCred.ID)
 	insertActiveLifecycle(t, clientDB, subscriber.ID, model.EbicsKeyUsageEncryptionForRuntime(), encCred.ID)
 
-	provider := insertTestRTNProvider(t, clientDB, subscriber.ID, "AUTO")
+	provider := insertTestRTNProvider(t, clientDB, subscriber.ID, "AUTO", clientModel.ID)
 	fake := newFakeRTNProvider()
 
 	rtnService := NewRTNService(clientDB)

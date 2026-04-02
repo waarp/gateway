@@ -43,6 +43,7 @@ var (
 
 // KeyRotationPrepareInput defines one coordinated EBICS key rotation preparation.
 type KeyRotationPrepareInput struct {
+	ClientID                       int64
 	EbicsSubscriberID              int64
 	RotationType                   string
 	CoordinationID                 string
@@ -57,6 +58,7 @@ type KeyRotationPrepareInput struct {
 
 // KeyRotationActionInput defines one coordinated action on a prepared key rotation.
 type KeyRotationActionInput struct {
+	ClientID           int64
 	EbicsSubscriberID  int64
 	CoordinationID     string
 	SignatureOrderType string
@@ -84,7 +86,11 @@ func PrepareCoordinatedKeyRotation(
 	db *database.DB,
 	input *KeyRotationPrepareInput,
 ) (*KeyRotationGroupResult, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the coordinated EBICS key rotation request is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +105,11 @@ func SendCoordinatedKeyRotation(
 	db *database.DB,
 	input *KeyRotationActionInput,
 ) (*KeyRotationGroupResult, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the coordinated EBICS key rotation action is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +124,11 @@ func ConfirmCoordinatedKeyRotation(
 	db *database.DB,
 	input *KeyRotationActionInput,
 ) (*KeyRotationGroupResult, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the coordinated EBICS key rotation action is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +143,11 @@ func CancelCoordinatedKeyRotation(
 	db *database.DB,
 	input *KeyRotationActionInput,
 ) (*KeyRotationGroupResult, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the coordinated EBICS key rotation action is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +162,11 @@ func RejectCoordinatedKeyRotation(
 	db *database.DB,
 	input *KeyRotationActionInput,
 ) (*KeyRotationGroupResult, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the coordinated EBICS key rotation action is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +181,11 @@ func RevokeCoordinatedKeyRotation(
 	db *database.DB,
 	input *KeyRotationActionInput,
 ) (*KeyRotationGroupResult, error) {
-	service, stop, err := startOperationalClient(ctx, db)
+	if input == nil {
+		return nil, database.NewValidationError("the coordinated EBICS key rotation action is missing")
+	}
+
+	service, stop, err := startOperationalClient(ctx, db, input.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -259,6 +285,9 @@ func (c *Client) sendCoordinatedKeyRotation(input *KeyRotationActionInput) (*Key
 	if !c.state.IsRunning() {
 		return nil, utils.ErrNotRunning
 	}
+	if err := validateKeyRotationActionInput(input); err != nil {
+		return nil, err
+	}
 
 	lifecycles, err := c.loadPendingRotationGroup(input.EbicsSubscriberID, input.CoordinationID)
 	if err != nil {
@@ -345,6 +374,9 @@ func (c *Client) confirmCoordinatedKeyRotation(input *KeyRotationActionInput) (*
 	if !c.state.IsRunning() {
 		return nil, utils.ErrNotRunning
 	}
+	if err := validateKeyRotationActionInput(input); err != nil {
+		return nil, err
+	}
 
 	lifecycles, err := c.loadRotationGroup(input.EbicsSubscriberID, input.CoordinationID)
 	if err != nil {
@@ -416,6 +448,9 @@ func (c *Client) finalizeCoordinatedKeyRotation(
 	if !c.state.IsRunning() {
 		return nil, utils.ErrNotRunning
 	}
+	if err := validateKeyRotationActionInput(input); err != nil {
+		return nil, err
+	}
 
 	lifecycles, err := c.loadPendingRotationGroup(input.EbicsSubscriberID, input.CoordinationID)
 	if err != nil {
@@ -454,8 +489,8 @@ func (c *Client) revokeCoordinatedKeyRotation(input *KeyRotationActionInput) (*K
 	if !c.state.IsRunning() {
 		return nil, utils.ErrNotRunning
 	}
-	if strings.TrimSpace(input.CoordinationID) == "" {
-		return nil, errMissingRotationCoordinationID
+	if err := validateKeyRotationActionInput(input); err != nil {
+		return nil, err
 	}
 	if len(input.SignatureData) == 0 {
 		return nil, errMissingRotationSignatureData
@@ -537,6 +572,9 @@ func validateKeyRotationPrepareInput(input *KeyRotationPrepareInput) error {
 	if input == nil {
 		return database.NewValidationError("the coordinated EBICS key rotation request is missing")
 	}
+	if input.ClientID == 0 {
+		return database.NewValidationError(errMissingOperationalEBICSClientID.Error())
+	}
 	if input.EbicsSubscriberID == 0 {
 		return database.NewValidationError("the EBICS subscriber reference is missing")
 	}
@@ -573,6 +611,23 @@ func selectedRotationCredentials(input *KeyRotationPrepareInput) map[string]*int
 	}
 
 	return selected
+}
+
+func validateKeyRotationActionInput(input *KeyRotationActionInput) error {
+	if input == nil {
+		return database.NewValidationError("the coordinated EBICS key rotation action is missing")
+	}
+	if input.ClientID == 0 {
+		return database.NewValidationError(errMissingOperationalEBICSClientID.Error())
+	}
+	if input.EbicsSubscriberID == 0 {
+		return database.NewValidationError("the EBICS subscriber reference is missing")
+	}
+	if strings.TrimSpace(input.CoordinationID) == "" {
+		return errMissingRotationCoordinationID
+	}
+
+	return nil
 }
 
 func defaultRotationType(value string) string {

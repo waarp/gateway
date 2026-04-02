@@ -303,6 +303,7 @@ func (c *EbicsTransactionSegmentGet) execute(w io.Writer) error {
 type EbicsOperationReporting struct {
 	OutputFormat
 
+	ClientID          int64              `required:"yes" long:"client-id" description:"The Gateway EBICS client identifier"`
 	EbicsSubscriberID int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
 	OrderType         string             `required:"yes" long:"order-type" choice:"HVD" choice:"HVU" choice:"HVZ" choice:"HVT" choice:"HAC" description:"The reporting order type"`
 	OrderID           string             `long:"order-id" description:"The target EBICS order identifier"`
@@ -322,6 +323,7 @@ func (c *EbicsOperationReporting) execute(w io.Writer) error {
 	addr.Path = "/api/ebics/operations/actions/reporting"
 
 	req := api.InEbicsReportingAction{
+		ClientID:          c.ClientID,
 		EbicsSubscriberID: c.EbicsSubscriberID,
 		OrderType:         c.OrderType,
 		OrderID:           c.OrderID,
@@ -351,6 +353,7 @@ func (c *EbicsOperationReporting) execute(w io.Writer) error {
 type EbicsOperationSignature struct {
 	OutputFormat
 
+	ClientID          int64              `required:"yes" long:"client-id" description:"The Gateway EBICS client identifier"`
 	EbicsSubscriberID int64              `required:"yes" long:"subscriber" description:"The EBICS subscriber identifier"`
 	OrderType         string             `required:"yes" long:"order-type" choice:"HVE" choice:"HVS" description:"The signature order type"`
 	OrderID           string             `required:"yes" long:"order-id" description:"The target EBICS order identifier"`
@@ -369,6 +372,7 @@ func (c *EbicsOperationSignature) execute(w io.Writer) error {
 	addr.Path = "/api/ebics/operations/actions/signature"
 
 	req := api.InEbicsSignatureAction{
+		ClientID:          c.ClientID,
 		EbicsSubscriberID: c.EbicsSubscriberID,
 		OrderType:         c.OrderType,
 		OrderID:           c.OrderID,
