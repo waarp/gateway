@@ -18,8 +18,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	auth "code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -571,6 +571,74 @@ func TestUpdateEbicsRTNProviderPreservesRuntimeFields(t *testing.T) {
 	assert.EqualValues(t, client.ID, refreshed.ConfigurationMap["clientID"])
 	assert.Equal(t, lastConnection, refreshed.LastConnectionAt.UTC())
 	assert.Equal(t, "previous timeout", refreshed.LastError)
+}
+
+func TestGetEbicsRTNProviderExposesClientSelectionAndActivationState(t *testing.T) {
+	setRESTEBICSConfigChecker(t)
+
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-GET", "PARTNER-RTN-GET", "USER-RTN-GET")
+	client := insertRESTEbicsClient(t, db, "ebics-rtn-get-client")
+
+	provider := insertRESTEbicsRTNProvider(t, db, &model.EbicsRTNProvider{
+		Name:              "provider-get",
+		Transport:         "WSS",
+		Enabled:           true,
+		EbicsSubscriberID: subscriber.ID,
+		ConfigurationMap:  map[string]any{"endpoint": "wss://bank.example/rtn", "clientID": client.ID},
+		AutoPullPolicy:    "AUTO",
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/rtn/providers/"+provider.Name, nil)
+	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_provider": provider.Name})
+	w := httptest.NewRecorder()
+
+	getEbicsRTNProvider(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body api.OutEbicsRTNProvider
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.NotNil(t, body.ClientID)
+	assert.EqualValues(t, client.ID, *body.ClientID)
+	assert.Equal(t, client.Name, body.ClientName)
+	assert.Equal(t, "READY_AUTO", body.ActivationStatus)
+	assert.Empty(t, body.ActivationReason)
+}
+
+func TestGetEbicsRTNProviderExplainsBlockedActivationState(t *testing.T) {
+	setRESTEBICSConfigChecker(t)
+
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-BLOCKED", "PARTNER-RTN-BLOCKED", "USER-RTN-BLOCKED")
+	client := insertRESTEbicsClient(t, db, "ebics-rtn-blocked-client")
+
+	provider := insertRESTEbicsRTNProvider(t, db, &model.EbicsRTNProvider{
+		Name:              "provider-blocked",
+		Transport:         "WSS",
+		Enabled:           true,
+		EbicsSubscriberID: subscriber.ID,
+		ConfigurationMap:  map[string]any{"endpoint": "wss://bank.example/rtn", "clientID": client.ID},
+		AutoPullPolicy:    "AUTO",
+	})
+	client.Disabled = true
+	require.NoError(t, db.Update(client).Run())
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/rtn/providers/"+provider.Name, nil)
+	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_provider": provider.Name})
+	w := httptest.NewRecorder()
+
+	getEbicsRTNProvider(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body api.OutEbicsRTNProvider
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, "BLOCKED", body.ActivationStatus)
+	assert.Equal(t, "the RTN provider client "+marshalID(client.ID)+" is disabled", body.ActivationReason)
+	assert.Equal(t, client.Name, body.ClientName)
 }
 
 func insertRESTEbicsHostAndSubscriber(

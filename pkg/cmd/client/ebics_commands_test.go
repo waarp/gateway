@@ -787,6 +787,39 @@ func TestEbicsRTNEventGetCommandDisplaysOperatorMetadata(t *testing.T) {
 	assert.Contains(t, w.String(), "ticket: RTN-33")
 }
 
+func TestEbicsRTNProviderGetCommandDisplaysActivationState(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRTNProviderGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/rtn/providers/provider-a",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":               17,
+			"name":             "provider-a",
+			"transport":        "WSS",
+			"enabled":          true,
+			"subscriberID":     51,
+			"clientID":         31,
+			"clientName":       "ebics-prod-bank-a",
+			"autoPullPolicy":   "AUTO",
+			"activationStatus": "READY_AUTO",
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "provider-a"))
+	assert.Contains(t, w.String(), "Client ID: 31")
+	assert.Contains(t, w.String(), "Client name: ebics-prod-bank-a")
+	assert.Contains(t, w.String(), "Activation status: READY_AUTO")
+}
+
 func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {
 	w := newTestOutput()
 	command := &EbicsOperationReporting{}

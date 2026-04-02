@@ -75,7 +75,10 @@ func displayEbicsRTNProvider(w io.Writer, provider *api.OutEbicsRTNProvider) err
 	if provider.ClientID != nil {
 		Style22.PrintL(w, "Client ID", *provider.ClientID)
 	}
+	Style22.Option(w, "Client name", provider.ClientName)
 	Style22.PrintL(w, "Auto-pull policy", provider.AutoPullPolicy)
+	Style22.Option(w, "Activation status", provider.ActivationStatus)
+	Style22.Option(w, "Activation reason", provider.ActivationReason)
 	if provider.LastConnectionAt != nil {
 		Style22.PrintL(w, "Last connection", *provider.LastConnectionAt)
 	}

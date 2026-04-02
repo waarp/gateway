@@ -278,6 +278,10 @@ Point de situation:
   d'une resolution implicite parmi les clients EBICS actifs. La selection
   multi-client est donc alignee sur `ClientID` pour tous les chemins EBICS
   hors `Transfer`.
+  2026-04-02: `P2E.5` est maintenant ferme.
+  Les providers RTN exposes en REST/CLI rendent maintenant visible le client
+  selectionne (`clientID`, `clientName`) ainsi qu'un etat d'activation
+  operateur avec raison bloquante si le perimetre n'est pas activable.
   2026-04-01: `P4A` est maintenant ferme.
   La cartographie exhaustive montre deux problemes distincts:
   les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,

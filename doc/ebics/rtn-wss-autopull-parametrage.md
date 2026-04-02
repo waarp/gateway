@@ -257,6 +257,8 @@ Les informations utiles a consulter sont:
 Le diagnostic doit se faire via les surfaces `RTN` REST/CLI de Gateway:
 
 - consultation du detail de l'evenement `RTN`;
+- consultation du detail du provider RTN pour verifier `clientID`,
+  `clientName`, `activationStatus` et `activationReason`;
 - lecture du message `LastError`;
 - verification des champs `autoPullOperationID`, `autoPullTransferID`,
   `autoPullStatus`, `autoPullOutcome`, `autoPullRetry`.

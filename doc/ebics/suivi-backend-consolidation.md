@@ -1667,7 +1667,7 @@ Sous-lots cochables:
     - les tests RTN, REST et CLI associes sont verts, ainsi que la passe
       linter / tests consolidee du perimetre touche.
 
-  - [ ] Lot P2E.5 - Rendre l'etat activable lisible en REST/CLI/UI
+  - [x] Lot P2E.5 - Rendre l'etat activable lisible en REST/CLI/UI
     Fichiers cibles:
     - surfaces REST/CLI EBICS client/RTN
     - documentation fonctionnelle `etat-activable-client-serveur-ebics.md`
@@ -1675,6 +1675,19 @@ Sous-lots cochables:
     quand la selection est ambigue, et pourquoi un perimetre n'est pas
     activable tant que le client n'est pas explicite.
     Validation: tests REST/CLI + doc relue
+    2026-04-02: lot ferme.
+    Resultat:
+    - les providers RTN exposes en REST/CLI remontent maintenant le
+      `clientID` selectionne, le `clientName` resolu, un
+      `activationStatus` operateur (`READY_MANUAL`, `READY_AUTO`,
+      `READY_AUTO_FILTERED`, `BLOCKED`, `DISABLED`, `ERROR`) et un
+      `activationReason` lisible quand le perimetre n'est pas activable;
+    - les tests REST dedies couvrent maintenant le cas nominal et un cas
+      bloque (client RTN desactive);
+    - la CLI `ebics rtn provider get` affiche desormais ces informations de
+      selection et d'activation;
+    - la documentation fonctionnelle et la doc RTN sont alignees avec cette
+      lecture operateur.
 
   Ordre d'execution specifique a `P2E`:
 
@@ -1682,11 +1695,11 @@ Sous-lots cochables:
   2. [x] Lot P2E.2
   3. [x] Lot P2E.3
   4. [x] Lot P2E.4
-  5. [ ] Lot P2E.5
+  5. [x] Lot P2E.5
 
 Ordre d'execution recommande:
 
-1. [ ] Lot P2E
+1. [x] Lot P2E
 2. [ ] Lot P2A
 3. [ ] Lot P2B
 4. [ ] Lot P2D

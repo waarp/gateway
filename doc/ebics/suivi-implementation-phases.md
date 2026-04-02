@@ -159,6 +159,11 @@ Note:
   explicite, la resolution runtime ne depend plus d'un `clientName`
   optionnel ni d'un balayage des clients EBICS actifs, et les surfaces
   REST/CLI des providers RTN exposent cette reference explicitement.
+  2026-04-02: `P2E.5` est maintenant ferme.
+  Les surfaces REST/CLI des providers RTN exposent desormais un etat
+  d'activation lisible (`activationStatus`, `activationReason`) en plus du
+  `clientID` / `clientName` selectionne, ce qui rend visible le perimetre
+  activable et les cas bloques cote multi-client.
   2026-04-01: `P4A` est maintenant ferme.
   L'inventaire confirme que le probleme n'est pas limite a quelques cles
   EBICS (`ebicsOperationID`, `ebicsTransactionID`, etc.): le chemin RTN clone

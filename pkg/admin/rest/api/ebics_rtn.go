@@ -36,7 +36,10 @@ type OutEbicsRTNProvider struct {
 	Enabled          bool       `json:"enabled" yaml:"enabled"`
 	SubscriberID     int64      `json:"subscriberID" yaml:"subscriberID"`
 	ClientID         *int64     `json:"clientID,omitempty" yaml:"clientID,omitempty"`
+	ClientName       string     `json:"clientName,omitempty" yaml:"clientName,omitempty"`
 	AutoPullPolicy   string     `json:"autoPullPolicy" yaml:"autoPullPolicy"`
+	ActivationStatus string     `json:"activationStatus,omitempty" yaml:"activationStatus,omitempty"`
+	ActivationReason string     `json:"activationReason,omitempty" yaml:"activationReason,omitempty"`
 	LastConnectionAt *time.Time `json:"lastConnectionAt,omitempty" yaml:"lastConnectionAt,omitempty"`
 	LastError        string     `json:"lastError,omitempty" yaml:"lastError,omitempty"`
 }

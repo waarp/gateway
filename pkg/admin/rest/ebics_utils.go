@@ -95,6 +95,29 @@ func metadataInt64(metadata map[string]any, key string) *int64 {
 	return nil
 }
 
+func configStringValue(config map[string]any, key string) (string, bool) {
+	if config == nil {
+		return "", false
+	}
+
+	raw, ok := config[key]
+	if !ok {
+		return "", false
+	}
+
+	value, ok := raw.(string)
+	if !ok {
+		return "", false
+	}
+
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", false
+	}
+
+	return value, true
+}
+
 func operationTransferID(operation *model.EbicsOperation) *int64 {
 	if transferID := ptrInt64(operation.TransferID); transferID != nil {
 		return transferID
@@ -656,8 +679,96 @@ func DBEbicsRTNEventToREST(event *model.EbicsRTNEvent) *api.OutEbicsRTNEvent {
 	}
 }
 
+type ebicsRTNProviderActivation struct {
+	clientName string
+	status     string
+	reason     string
+}
+
+const (
+	ebicsRTNProviderActivationBlocked = "BLOCKED"
+	ebicsRTNProviderActivationError   = "ERROR"
+)
+
+func describeRTNProviderActivation(
+	db *database.DB,
+	provider *model.EbicsRTNProvider,
+) ebicsRTNProviderActivation {
+	activation := ebicsRTNProviderActivation{}
+
+	if !provider.Enabled {
+		activation.status = "DISABLED"
+		activation.reason = "the RTN provider is disabled"
+
+		return activation
+	}
+
+	if endpoint, ok := configStringValue(provider.ConfigurationMap, "endpoint"); !ok || endpoint == "" {
+		activation.status = ebicsRTNProviderActivationBlocked
+		activation.reason = "the RTN provider endpoint is missing"
+
+		return activation
+	}
+
+	if provider.AutoPullPolicy == "MANUAL" {
+		activation.status = "READY_MANUAL"
+
+		return activation
+	}
+
+	clientID := modelRTNProviderClientID(provider)
+	if clientID == nil || *clientID == 0 {
+		activation.status = ebicsRTNProviderActivationBlocked
+		activation.reason = "the RTN provider client ID is missing"
+
+		return activation
+	}
+
+	client := &model.Client{}
+	if err := db.Get(client, "id=?", *clientID).Owner().Run(); err != nil {
+		if database.IsNotFound(err) {
+			activation.status = ebicsRTNProviderActivationBlocked
+			activation.reason = fmt.Sprintf("the EBICS client %d does not exist", *clientID)
+
+			return activation
+		}
+
+		activation.status = ebicsRTNProviderActivationError
+		activation.reason = fmt.Sprintf("failed to retrieve EBICS client %d: %v", *clientID, err)
+
+		return activation
+	}
+
+	activation.clientName = client.Name
+	if client.Protocol != "ebics" {
+		activation.status = ebicsRTNProviderActivationBlocked
+		activation.reason = fmt.Sprintf("the RTN provider client %d does not use the EBICS protocol", *clientID)
+
+		return activation
+	}
+	if client.Disabled {
+		activation.status = ebicsRTNProviderActivationBlocked
+		activation.reason = fmt.Sprintf("the RTN provider client %d is disabled", *clientID)
+
+		return activation
+	}
+
+	switch provider.AutoPullPolicy {
+	case "AUTO":
+		activation.status = "READY_AUTO"
+	case "AUTO_FILTERED":
+		activation.status = "READY_AUTO_FILTERED"
+	default:
+		activation.status = "READY"
+	}
+
+	return activation
+}
+
 // DBEbicsRTNProviderToREST transforms an RTN provider into its REST representation.
-func DBEbicsRTNProviderToREST(provider *model.EbicsRTNProvider) *api.OutEbicsRTNProvider {
+func DBEbicsRTNProviderToREST(db *database.DB, provider *model.EbicsRTNProvider) *api.OutEbicsRTNProvider {
+	activation := describeRTNProviderActivation(db, provider)
+
 	return &api.OutEbicsRTNProvider{
 		ID:               provider.ID,
 		Name:             provider.Name,
@@ -665,7 +776,10 @@ func DBEbicsRTNProviderToREST(provider *model.EbicsRTNProvider) *api.OutEbicsRTN
 		Enabled:          provider.Enabled,
 		SubscriberID:     provider.EbicsSubscriberID,
 		ClientID:         modelRTNProviderClientID(provider),
+		ClientName:       activation.clientName,
 		AutoPullPolicy:   provider.AutoPullPolicy,
+		ActivationStatus: activation.status,
+		ActivationReason: activation.reason,
 		LastConnectionAt: ptrTime(provider.LastConnectionAt),
 		LastError:        provider.LastError,
 	}

@@ -153,7 +153,7 @@ func getEbicsRTNProvider(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		handleError(w, logger, writeJSON(w, DBEbicsRTNProviderToREST(provider)))
+		handleError(w, logger, writeJSON(w, DBEbicsRTNProviderToREST(db, provider)))
 	}
 }
 
@@ -179,7 +179,7 @@ func listEbicsRTNProviders(logger *log.Logger, db *database.DB) http.HandlerFunc
 
 		out := make([]*api.OutEbicsRTNProvider, len(providers))
 		for i, provider := range providers {
-			out[i] = DBEbicsRTNProviderToREST(provider)
+			out[i] = DBEbicsRTNProviderToREST(db, provider)
 		}
 
 		handleError(w, logger, writeJSON(w, map[string]any{"providers": out}))

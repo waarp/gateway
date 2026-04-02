@@ -161,6 +161,25 @@ Pour le RTN entrant et l'auto-pull:
 - la resolution du client doit etre explicite et non ambigue;
 - les profils payload et les regles necessaires au pull doivent etre connus.
 
+### 5.5 Visibilite operateur attendue sur RTN
+
+Pour qu'un provider RTN soit exploitable sans ambiguite, les surfaces REST/CLI
+doivent rendre visibles au minimum:
+
+- le `clientID` selectionne;
+- le `clientName` resolu;
+- un `activationStatus` lisible;
+- un `activationReason` explicite quand le perimetre est bloque.
+
+Exemples d'etats utiles:
+
+- `READY_MANUAL`
+- `READY_AUTO`
+- `READY_AUTO_FILTERED`
+- `BLOCKED`
+- `DISABLED`
+- `ERROR`
+
 ## 6. Etat activable cote serveur EBICS
 
 ### 6.1 Niveau 1 - Serveur payload activable
