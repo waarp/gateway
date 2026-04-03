@@ -158,6 +158,16 @@ Note:
   canonique: le provider RTN administre porte desormais un `clientID`
   explicite, la resolution runtime ne depend plus d'un `clientName`
   optionnel ni d'un balayage des clients EBICS actifs, et les surfaces
+  2026-04-02: `P2A` est maintenant ferme.
+  Une retention automatisee minimale est desormais branchee dans Gateway via
+  un service de maintenance technique EBICS dedie, distinct de la purge
+  manuelle d'historique des transferts. La politique active est stockee en
+  base dans `ebics_runtime_policies`, pas dans le fichier de configuration,
+  et couvre la purge des `nonces` expires, des transactions EBICS seulement
+  terminales et anciennes, ainsi que des evenements RTN seulement terminaux
+  et anciens. Les transactions encore actives restent explicitement hors
+  purge. La policy singleton `default` est maintenant administrable en
+  REST/CLI.
   REST/CLI des providers RTN exposent cette reference explicitement.
   2026-04-02: `P2E.5` est maintenant ferme.
   Les surfaces REST/CLI des providers RTN exposent desormais un etat

@@ -413,6 +413,7 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 		rtnEventActionPath       = "/ebics/rtn/events/{ebics_rtn_event}/actions"
 		rtnProvidersPath         = "/ebics/rtn/providers"
 		rtnProviderPath          = "/ebics/rtn/providers/{ebics_rtn_provider}"
+		runtimePolicyPath        = "/ebics/runtime-policy"
 	)
 
 	mkHandler(payloadBTUUploadPath, submitEbicsPayload, model.PermTransfersWrite, http.MethodPost)
@@ -466,4 +467,7 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 	mkHandler(rtnProviderPath, updateEbicsRTNProvider, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(rtnProviderPath, replaceEbicsRTNProvider, model.PermAdminWrite, http.MethodPut)
 	mkHandler(rtnProviderPath, deleteEbicsRTNProvider, model.PermAdminDelete, http.MethodDelete)
+
+	mkHandler(runtimePolicyPath, getEbicsRuntimePolicy, model.PermAdminRead, http.MethodGet)
+	mkHandler(runtimePolicyPath, setEbicsRuntimePolicy, model.PermAdminWrite, http.MethodPut)
 }

@@ -22,7 +22,14 @@ func PurgeEbicsNoncesBefore(db database.Access, cutoff time.Time) error {
 // PurgeEbicsTransactionsBefore removes EBICS transactions strictly older than the cutoff.
 func PurgeEbicsTransactionsBefore(db database.Access, cutoff time.Time) error {
 	if err := db.DeleteAll(&EbicsTransaction{}).
-		Where("owner=? AND updated_at<?", conf.GlobalConfig.GatewayName, cutoff.UTC()).
+		Where(
+			"owner=? AND status IN (?, ?, ?) AND updated_at<?",
+			conf.GlobalConfig.GatewayName,
+			ebicsTransactionStatusCompleted,
+			ebicsTransactionStatusFailed,
+			ebicsTransactionStatusCancelled,
+			cutoff.UTC(),
+		).
 		Run(); err != nil {
 		return fmt.Errorf("purge EBICS transactions: %w", err)
 	}

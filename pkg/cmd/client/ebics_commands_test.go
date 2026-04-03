@@ -820,6 +820,67 @@ func TestEbicsRTNProviderGetCommandDisplaysActivationState(t *testing.T) {
 	assert.Contains(t, w.String(), "Activation status: READY_AUTO")
 }
 
+func TestEbicsRuntimePolicyGetCommandDisplaysPolicy(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRuntimePolicyGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/runtime-policy",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"enabled":                     true,
+			"maintenanceIntervalSeconds":  21600,
+			"transactionRetentionSeconds": 604800,
+			"rtnEventRetentionSeconds":    2592000,
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command))
+	assert.Contains(t, w.String(), "EBICS runtime policy")
+	assert.Contains(t, w.String(), "Enabled: true")
+	assert.Contains(t, w.String(), "Maintenance interval (s): 21600")
+	assert.Contains(t, w.String(), "Transaction retention (s): 604800")
+	assert.Contains(t, w.String(), "RTN event retention (s): 2592000")
+}
+
+func TestEbicsRuntimePolicyUpdateCommandBuildsRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRuntimePolicyUpdate{}
+
+	expected := &expectedRequest{
+		method: http.MethodPut,
+		path:   "/api/ebics/runtime-policy",
+		body: map[string]any{
+			"enabled":                     false,
+			"maintenanceIntervalSeconds":  float64(900),
+			"transactionRetentionSeconds": float64(1200),
+			"rtnEventRetentionSeconds":    float64(1800),
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command,
+		"--enabled", "false",
+		"--maintenance-interval-seconds", "900",
+		"--transaction-retention-seconds", "1200",
+		"--rtn-event-retention-seconds", "1800",
+	))
+	assert.Equal(t, "The EBICS runtime policy was successfully updated.\n", w.String())
+}
+
 func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {
 	w := newTestOutput()
 	command := &EbicsOperationReporting{}

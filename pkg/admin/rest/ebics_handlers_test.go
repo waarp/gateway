@@ -641,6 +641,49 @@ func TestGetEbicsRTNProviderExplainsBlockedActivationState(t *testing.T) {
 	assert.Equal(t, client.Name, body.ClientName)
 }
 
+func TestGetEbicsRuntimePolicyCreatesAndReturnsDefaultPolicy(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/runtime-policy", nil)
+	w := httptest.NewRecorder()
+
+	getEbicsRuntimePolicy(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body api.OutEbicsRuntimePolicy
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.True(t, body.Enabled)
+	assert.EqualValues(t, model.DefaultEbicsMaintenanceIntervalSeconds, body.MaintenanceIntervalSeconds)
+	assert.EqualValues(t, model.DefaultEbicsTransactionRetentionSeconds, body.TransactionRetentionSeconds)
+	assert.EqualValues(t, model.DefaultEbicsRTNEventRetentionSeconds, body.RTNEventRetentionSeconds)
+}
+
+func TestSetEbicsRuntimePolicyUpdatesSingleton(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, err := model.EnsureDefaultEbicsRuntimePolicy(db)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPut, "/ebics/runtime-policy",
+		strings.NewReader(`{"enabled":false,"maintenanceIntervalSeconds":900,"transactionRetentionSeconds":1200,"rtnEventRetentionSeconds":1800}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	setEbicsRuntimePolicy(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, "/ebics/runtime-policy", w.Header().Get("Location"))
+
+	policy, err := model.EnsureDefaultEbicsRuntimePolicy(db)
+	require.NoError(t, err)
+	assert.False(t, policy.Enabled)
+	assert.EqualValues(t, 900, policy.MaintenanceIntervalSeconds)
+	assert.EqualValues(t, 1200, policy.TransactionRetentionSeconds)
+	assert.EqualValues(t, 1800, policy.RTNEventRetentionSeconds)
+}
+
 func insertRESTEbicsHostAndSubscriber(
 	t *testing.T,
 	db *database.DB,

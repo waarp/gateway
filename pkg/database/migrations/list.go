@@ -351,4 +351,9 @@ var Migrations = []Change{
 		Up:          ver0_16_2SeedEbicsStandardBTFCatalogsUp,
 		Down:        ver0_16_2SeedEbicsStandardBTFCatalogsDown,
 	},
+	{ // #67
+		Description: `Add the EBICS runtime policy table`,
+		Up:          ver0_16_3AddEbicsRuntimePoliciesUp,
+		Down:        ver0_16_3AddEbicsRuntimePoliciesDown,
+	},
 }

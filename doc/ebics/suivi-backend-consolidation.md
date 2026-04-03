@@ -1473,10 +1473,33 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot P2A - Poser une retention automatisee minimale
+- [x] Lot P2A - Poser une retention automatisee minimale
   Attendus: purge automatique bornee des `nonces`, transactions anciennes et
   evenements RTN selon politique explicite et testee
   Validation: `go test ./pkg/model -run "Test(PurgeEbics|EbicsRTNEvent)" -v`
+  2026-04-02: lot ferme, mais recadre pour rester dans la philosophie Gateway.
+  La purge manuelle native de Gateway reste la purge operateur de l'historique
+  des transferts. Le lot `P2A` couvre maintenant une maintenance technique
+  EBICS distincte, branchee dans le cycle de vie serveur, pour les tables
+  internes `nonces`, transactions EBICS et evenements RTN. Les delais ne sont
+  plus portes par le code ni par le fichier de configuration: ils sont
+  stockes en base dans `ebics_runtime_policies`, avec une policy singleton
+  `default` par instance Gateway, seedee avec des valeurs par defaut
+  raisonnables et administrables dynamiquement. La maintenance purge les
+  `nonces` expires, purge les transactions EBICS seulement si elles sont
+  terminales (`COMPLETED`, `FAILED`, `CANCELLED`) et assez anciennes, puis
+  purge les evenements RTN seulement s'ils sont terminaux et assez anciens.
+  Les transactions encore actives (`PLANNED`, `RUNNING`, `RECOVERING`) sont
+  explicitement exclues de la purge. La couverture est posee dans
+  `pkg/protocols/modules/ebics/maintenance_service_test.go`,
+  `pkg/model/ebics_retention_test.go`,
+  `pkg/model/ebics_runtime_policy_test.go`,
+  `pkg/database/migrations/0.16.3_test.go` et
+  `pkg/protocols/modules/ebics/provider_store_test.go`.
+  Le complement d'administration est maintenant expose en REST/CLI via
+  `/ebics/runtime-policy` et `ebics runtime-policy get/update`, ce qui permet
+  d'ajuster la policy active sans reintroduire un parametrage statique par
+  fichier de configuration.
 
 - [ ] Lot P2B - Poser l'orchestration planifiee native
   Attendus: refresh, retries et taches de maintenance critiques ne reposent

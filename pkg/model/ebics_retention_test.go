@@ -48,13 +48,21 @@ func TestPurgeEbicsTransactionsBeforeKeepsNewerTransaction(t *testing.T) {
 		EbicsSubscriberID: subscriber.ID,
 		TransactionID:     "TX-RET-OLD",
 		OrderType:         "BTU",
-		Status:            "RUNNING",
+		Status:            EbicsTransactionStatusCompletedForRuntime(),
 		Direction:         EbicsOperationDirectionInboundForRuntime(),
 	}).Run())
 	require.NoError(t, db.Insert(&EbicsTransaction{
 		EbicsHostID:       subscriber.EbicsHostID,
 		EbicsSubscriberID: subscriber.ID,
 		TransactionID:     "TX-RET-NEW",
+		OrderType:         "BTU",
+		Status:            "RUNNING",
+		Direction:         EbicsOperationDirectionInboundForRuntime(),
+	}).Run())
+	require.NoError(t, db.Insert(&EbicsTransaction{
+		EbicsHostID:       subscriber.EbicsHostID,
+		EbicsSubscriberID: subscriber.ID,
+		TransactionID:     "TX-RET-OLD-RUNNING",
 		OrderType:         "BTU",
 		Status:            "RUNNING",
 		Direction:         EbicsOperationDirectionInboundForRuntime(),
@@ -67,17 +75,31 @@ func TestPurgeEbicsTransactionsBeforeKeepsNewerTransaction(t *testing.T) {
 		"UPDATE ebics_transactions SET updated_at=? WHERE transaction_id=?",
 		cutoff.Add(time.Minute), "TX-RET-NEW",
 	))
+	require.NoError(t, db.Exec(
+		"UPDATE ebics_transactions SET updated_at=? WHERE transaction_id=?",
+		cutoff.Add(-time.Second), "TX-RET-OLD-RUNNING",
+	))
 
 	require.NoError(t, PurgeEbicsTransactionsBefore(db, cutoff))
 
 	count, err := db.Count(&EbicsTransaction{}).
-		Where("ebics_subscriber_id=? AND transaction_id IN (?, ?)", subscriber.ID, "TX-RET-OLD", "TX-RET-NEW").
+		Where(
+			"ebics_subscriber_id=? AND transaction_id IN (?, ?, ?)",
+			subscriber.ID,
+			"TX-RET-OLD",
+			"TX-RET-NEW",
+			"TX-RET-OLD-RUNNING",
+		).
 		Run()
 	require.NoError(t, err)
-	require.EqualValues(t, 1, count)
+	require.EqualValues(t, 2, count)
 
 	var kept EbicsTransaction
 	require.NoError(t, db.Get(&kept, "ebics_subscriber_id=? AND transaction_id=?", subscriber.ID, "TX-RET-NEW").Run())
+
+	var running EbicsTransaction
+	require.NoError(t, db.Get(&running, "ebics_subscriber_id=? AND transaction_id=?", subscriber.ID, "TX-RET-OLD-RUNNING").Run())
+	require.Equal(t, "RUNNING", running.Status)
 }
 
 func TestPurgeEbicsRTNEventsBeforePurgesOnlyTerminalStatuses(t *testing.T) {

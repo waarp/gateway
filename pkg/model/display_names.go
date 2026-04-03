@@ -37,6 +37,7 @@ const (
 	NameEbicsInitializationWorkflow = "ebics initialization workflow"
 	NameEbicsRTNEvent               = "ebics RTN event"
 	NameEbicsRTNProvider            = "ebics RTN provider"
+	NameEbicsRuntimePolicy          = "ebics runtime policy"
 )
 
 const authPassword = "password"

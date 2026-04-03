@@ -457,11 +457,20 @@ func TestProviderStorePurgeTransactionsBefore(t *testing.T) {
 		PartnerID: "PARTNER1",
 		UserID:    "USER1",
 		OrderType: "BTU",
-		Status:    "RUNNING",
+		Status:    "COMPLETED",
 		UpdatedAt: cutoff.Add(-time.Minute),
 	}))
 	require.NoError(t, store.CreateTransaction(context.Background(), libebics.Transaction{
 		ID:        "TX-NEW",
+		HostID:    "HOST1",
+		PartnerID: "PARTNER1",
+		UserID:    "USER1",
+		OrderType: "BTU",
+		Status:    "RUNNING",
+		UpdatedAt: cutoff.Add(time.Minute),
+	}))
+	require.NoError(t, store.CreateTransaction(context.Background(), libebics.Transaction{
+		ID:        "TX-OLD-RUNNING",
 		HostID:    "HOST1",
 		PartnerID: "PARTNER1",
 		UserID:    "USER1",
@@ -478,6 +487,10 @@ func TestProviderStorePurgeTransactionsBefore(t *testing.T) {
 		"UPDATE ebics_transactions SET updated_at=? WHERE transaction_id=?",
 		cutoff.Add(time.Minute), "TX-NEW",
 	))
+	require.NoError(t, db.Exec(
+		"UPDATE ebics_transactions SET updated_at=? WHERE transaction_id=?",
+		cutoff.Add(-time.Minute), "TX-OLD-RUNNING",
+	))
 
 	require.NoError(t, store.PurgeTransactionsBefore(context.Background(), cutoff))
 
@@ -489,7 +502,13 @@ func TestProviderStorePurgeTransactionsBefore(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, libebics.TransactionID("TX-NEW"), tx.ID)
 
-	count, err := db.Count(&model.EbicsTransaction{}).Where("transaction_id IN (?, ?)", "TX-OLD", "TX-NEW").Run()
+	tx, err = store.GetTransaction(context.Background(), "TX-OLD-RUNNING")
 	require.NoError(t, err)
-	require.EqualValues(t, 1, count)
+	require.Equal(t, libebics.TransactionID("TX-OLD-RUNNING"), tx.ID)
+
+	count, err := db.Count(&model.EbicsTransaction{}).
+		Where("transaction_id IN (?, ?, ?)", "TX-OLD", "TX-NEW", "TX-OLD-RUNNING").
+		Run()
+	require.NoError(t, err)
+	require.EqualValues(t, 2, count)
 }

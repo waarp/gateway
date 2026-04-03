@@ -304,6 +304,11 @@ type commands struct {
 				Quarantine wg.EbicsRTNEventQuarantine `command:"quarantine" description:"Quarantine an EBICS RTN event"`
 			} `command:"event" description:"Manage the EBICS RTN events"`
 		} `command:"rtn" description:"Manage the EBICS RTN"`
+
+		RuntimePolicy struct {
+			Get    wg.EbicsRuntimePolicyGet    `command:"get" description:"Retrieve the EBICS runtime policy"`
+			Update wg.EbicsRuntimePolicyUpdate `command:"update" description:"Update the EBICS runtime policy"`
+		} `command:"runtime-policy" description:"Manage the EBICS runtime policy"`
 	} `command:"ebics" description:"Manage EBICS"`
 
 	Version wg.Version `command:"version" description:"Print the program version and exit"`

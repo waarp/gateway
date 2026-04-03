@@ -282,6 +282,17 @@ Point de situation:
   Les providers RTN exposes en REST/CLI rendent maintenant visible le client
   selectionne (`clientID`, `clientName`) ainsi qu'un etat d'activation
   operateur avec raison bloquante si le perimetre n'est pas activable.
+  2026-04-02: `P2A` est maintenant ferme.
+  Une retention automatisee minimale est maintenant integree au runtime
+  Gateway via un service de maintenance technique EBICS dedie, distinct de la
+  purge manuelle de l'historique des transferts. La politique active est
+  stockee en base dans `ebics_runtime_policies`, pas dans le fichier de
+  configuration. Les `nonces` expires sont purges automatiquement, les
+  transactions EBICS ne sont purgees que si elles sont terminales et
+  anciennes, les evenements RTN ne sont purges que s'ils sont terminaux et
+  anciens, et les transactions encore actives restent explicitement hors
+  purge. La policy singleton `default` est maintenant administrable en
+  REST/CLI, sans detour par un parametrage statique de l'instance.
   2026-04-01: `P4A` est maintenant ferme.
   La cartographie exhaustive montre deux problemes distincts:
   les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,

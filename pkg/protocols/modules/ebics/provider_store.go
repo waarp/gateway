@@ -322,7 +322,14 @@ func (s *providerStore) UpdateTransaction(ctx context.Context, tx libebics.Trans
 
 func (s *providerStore) PurgeTransactionsBefore(_ context.Context, t time.Time) error {
 	if err := s.db.DeleteAll(&model.EbicsTransaction{}).
-		Where("owner=? AND updated_at<?", s.gatewayOwner(), t).
+		Where(
+			"owner=? AND status IN (?, ?, ?) AND updated_at<?",
+			s.gatewayOwner(),
+			model.EbicsTransactionStatusCompletedForRuntime(),
+			"FAILED",
+			"CANCELLED",
+			t,
+		).
 		Run(); err != nil {
 		return fmt.Errorf("purge EBICS transactions: %w", err)
 	}
