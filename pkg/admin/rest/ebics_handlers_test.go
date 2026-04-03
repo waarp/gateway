@@ -684,6 +684,73 @@ func TestSetEbicsRuntimePolicyUpdatesSingleton(t *testing.T) {
 	assert.EqualValues(t, 1800, policy.RTNEventRetentionSeconds)
 }
 
+func TestAddEbicsContractRefreshPolicyCreatesPolicy(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	client := insertRESTEbicsClient(t, db, "ebics-contract-refresh-client")
+	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-CRP", "PARTNER-CRP", "USER-CRP")
+	remoteAgent := &model.RemoteAgent{Name: "remote-agent-crp", Protocol: "https", Address: types.Addr("127.0.0.1", 443)}
+	require.NoError(t, db.Insert(remoteAgent).Run())
+	remoteAccount := &model.RemoteAccount{Login: "remote-account-crp", RemoteAgentID: remoteAgent.ID}
+	require.NoError(t, db.Insert(remoteAccount).Run())
+	subscriber.RemoteAccountID = sql.NullInt64{Int64: remoteAccount.ID, Valid: true}
+	require.NoError(t, db.Update(subscriber).Run())
+
+	req := httptest.NewRequest(http.MethodPost, "/ebics/contract-refresh-policies",
+		strings.NewReader(`{"name":"daily-bank-a","clientID":`+marshalID(client.ID)+`,"subscriberID":`+marshalID(subscriber.ID)+`,"includeHEV":false,"intervalSeconds":3600}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	addEbicsContractRefreshPolicy(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, "/ebics/contract-refresh-policies/daily-bank-a", w.Header().Get("Location"))
+
+	var policy model.EbicsContractRefreshPolicy
+	require.NoError(t, db.Get(&policy, "name=?", "daily-bank-a").Run())
+	assert.Equal(t, client.ID, policy.ClientID)
+	assert.Equal(t, subscriber.ID, policy.EbicsSubscriberID)
+	assert.EqualValues(t, 3600, policy.IntervalSeconds)
+	assert.False(t, policy.IncludeHEV)
+	assert.Equal(t, host.ID, subscriber.EbicsHostID)
+}
+
+func TestGetEbicsContractRefreshPolicyDisplaysActivationState(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	client := insertRESTEbicsClient(t, db, "ebics-contract-refresh-client-get")
+	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-CRP-GET", "PARTNER-CRP-GET", "USER-CRP-GET")
+	remoteAgent := &model.RemoteAgent{Name: "remote-agent-crp-get", Protocol: "https", Address: types.Addr("127.0.0.1", 443)}
+	require.NoError(t, db.Insert(remoteAgent).Run())
+	remoteAccount := &model.RemoteAccount{Login: "remote-account-crp-get", RemoteAgentID: remoteAgent.ID}
+	require.NoError(t, db.Insert(remoteAccount).Run())
+	subscriber.RemoteAccountID = sql.NullInt64{Int64: remoteAccount.ID, Valid: true}
+	require.NoError(t, db.Update(subscriber).Run())
+	require.NoError(t, db.Insert(&model.EbicsContractRefreshPolicy{
+		Name:              "daily-bank-b",
+		Enabled:           true,
+		ClientID:          client.ID,
+		EbicsSubscriberID: subscriber.ID,
+		IncludeHEV:        true,
+		IntervalSeconds:   7200,
+	}).Run())
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/contract-refresh-policies/daily-bank-b", nil)
+	req = mux.SetURLVars(req, map[string]string{"ebics_contract_refresh_policy": "daily-bank-b"})
+	w := httptest.NewRecorder()
+
+	getEbicsContractRefreshPolicy(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body api.OutEbicsContractRefreshPolicy
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, client.ID, body.ClientID)
+	assert.Equal(t, client.Name, body.ClientName)
+	assert.Equal(t, host.HostID, body.HostID)
+	assert.Equal(t, "READY", body.ActivationStatus)
+}
+
 func insertRESTEbicsHostAndSubscriber(
 	t *testing.T,
 	db *database.DB,

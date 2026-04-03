@@ -43,6 +43,7 @@ const (
 	TableEbicsRTNEvents               = "ebics_rtn_events"
 	TableEbicsRTNProviders            = "ebics_rtn_providers"
 	TableEbicsRuntimePolicies         = "ebics_runtime_policies"
+	TableEbicsContractRefreshPolicies = "ebics_contract_refresh_policies"
 
 	ViewNormalizedTransfers = "normalized_transfers"
 )

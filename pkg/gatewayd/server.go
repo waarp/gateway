@@ -49,6 +49,7 @@ type WG struct {
 	Analytics    *analytics.Service
 	EbicsRTN     *ebics.RTNService
 	EbicsMaint   *ebics.MaintenanceService
+	EbicsRefresh *ebics.ContractRefreshService
 }
 
 // NewWG creates a new application.
@@ -117,6 +118,7 @@ func (wg *WG) initServices() {
 	wg.Controller = &controller.Controller{DB: wg.DBService}
 	wg.EbicsRTN = ebics.NewRTNService(wg.DBService)
 	wg.EbicsMaint = ebics.NewMaintenanceService(wg.DBService)
+	wg.EbicsRefresh = ebics.NewContractRefreshService(wg.DBService)
 
 	snmp.GlobalService = wg.SnmpService
 	analytics.GlobalService = wg.Analytics
@@ -151,6 +153,10 @@ func (wg *WG) startServices() error {
 		return fmt.Errorf("cannot start EBICS maintenance service: %w", err)
 	}
 
+	if err := wg.EbicsRefresh.Start(); err != nil {
+		return fmt.Errorf("cannot start EBICS contract refresh service: %w", err)
+	}
+
 	if err := wg.makeDirs(); err != nil {
 		return err
 	}
@@ -162,6 +168,7 @@ func (wg *WG) startServices() error {
 	services.Core[analytics.ServiceName] = wg.Analytics
 	services.Core[ebics.RTNServiceName] = wg.EbicsRTN
 	services.Core[ebics.MaintenanceServiceName] = wg.EbicsMaint
+	services.Core[ebics.ContractRefreshServiceName] = wg.EbicsRefresh
 
 	if err := wg.startServers(); err != nil {
 		return err
@@ -292,6 +299,10 @@ func (wg *WG) stopServices() {
 
 	if err := wg.EbicsMaint.Stop(ctx); err != nil && !errors.Is(err, utils.ErrNotRunning) {
 		wg.Logger.Warningf("an error occurred while stopping the EBICS maintenance service: %v", err)
+	}
+
+	if err := wg.EbicsRefresh.Stop(ctx); err != nil && !errors.Is(err, utils.ErrNotRunning) {
+		wg.Logger.Warningf("an error occurred while stopping the EBICS contract refresh service: %v", err)
 	}
 
 	if err := wg.AdminService.Stop(ctx); err != nil {

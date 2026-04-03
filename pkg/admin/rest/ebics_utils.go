@@ -688,6 +688,8 @@ type ebicsRTNProviderActivation struct {
 const (
 	ebicsRTNProviderActivationBlocked = "BLOCKED"
 	ebicsRTNProviderActivationError   = "ERROR"
+	ebicsActivationDisabled           = "DISABLED"
+	ebicsActivationReady              = "READY"
 )
 
 func describeRTNProviderActivation(
@@ -697,7 +699,7 @@ func describeRTNProviderActivation(
 	activation := ebicsRTNProviderActivation{}
 
 	if !provider.Enabled {
-		activation.status = "DISABLED"
+		activation.status = ebicsActivationDisabled
 		activation.reason = "the RTN provider is disabled"
 
 		return activation
@@ -759,7 +761,7 @@ func describeRTNProviderActivation(
 	case "AUTO_FILTERED":
 		activation.status = "READY_AUTO_FILTERED"
 	default:
-		activation.status = "READY"
+		activation.status = ebicsActivationReady
 	}
 
 	return activation

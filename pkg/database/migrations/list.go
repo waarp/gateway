@@ -356,4 +356,9 @@ var Migrations = []Change{
 		Up:          ver0_16_3AddEbicsRuntimePoliciesUp,
 		Down:        ver0_16_3AddEbicsRuntimePoliciesDown,
 	},
+	{ // #68
+		Description: `Add the EBICS contract refresh policy table`,
+		Up:          ver0_16_4AddEbicsContractRefreshPoliciesUp,
+		Down:        ver0_16_4AddEbicsContractRefreshPoliciesDown,
+	},
 }

@@ -268,6 +268,14 @@ type commands struct {
 			Refresh wg.EbicsContractViewRefresh `command:"refresh" description:"Refresh EBICS contract views from the bank"`
 		} `command:"contract-view" description:"Manage the EBICS contract views"`
 
+		ContractRefreshPolicy struct {
+			Add    wg.EbicsContractRefreshPolicyAdd    `command:"add" description:"Add an EBICS contract refresh policy"`
+			List   wg.EbicsContractRefreshPolicyList   `command:"list" description:"List the EBICS contract refresh policies"`
+			Get    wg.EbicsContractRefreshPolicyGet    `command:"get" description:"Retrieve an EBICS contract refresh policy"`
+			Update wg.EbicsContractRefreshPolicyUpdate `command:"update" description:"Update an EBICS contract refresh policy"`
+			Delete wg.EbicsContractRefreshPolicyDelete `command:"delete" description:"Delete an EBICS contract refresh policy"`
+		} `command:"contract-refresh-policy" description:"Manage scheduled EBICS contract refresh policies"`
+
 		KeyLifecycle struct {
 			List   wg.EbicsKeyLifecycleList   `command:"list" description:"List the EBICS key lifecycles"`
 			Get    wg.EbicsKeyLifecycleGet    `command:"get" description:"Retrieve an EBICS key lifecycle"`

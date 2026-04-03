@@ -293,6 +293,19 @@ Point de situation:
   anciens, et les transactions encore actives restent explicitement hors
   purge. La policy singleton `default` est maintenant administrable en
   REST/CLI, sans detour par un parametrage statique de l'instance.
+  2026-04-03: `P2B` est maintenant ferme.
+  Le refresh planifie des vues contractuelles client est desormais natif:
+  une policy `EbicsContractRefreshPolicy` administree en base pilote
+  periodiquement `HEV` / `HPD` / `HKD` / `HTD` / `HAA` pour un couple explicite
+  `clientID` + `subscriberID`.
+  Le runtime expose l'etat d'orchestration (`status`, `nextRunAt`,
+  `lastAttemptAt`, `lastSuccessAt`, `lastError`) et une lecture operateur
+  `activationStatus` / `activationReason`.
+  L'administration correspondante est disponible en REST/CLI via
+  `/ebics/contract-refresh-policies` et
+  `ebics contract-refresh-policy add/list/get/update/delete`.
+  Les migrations, tests et la passe `golangci-lint` du perimetre touche sont
+  maintenant verts.
   2026-04-01: `P4A` est maintenant ferme.
   La cartographie exhaustive montre deux problemes distincts:
   les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,

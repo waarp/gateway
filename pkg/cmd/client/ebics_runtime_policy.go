@@ -47,7 +47,7 @@ func (c *EbicsRuntimePolicyUpdate) execute(w io.Writer) error {
 
 	body := map[string]any{}
 	if c.Enabled != nil {
-		body["enabled"] = *c.Enabled == "true"
+		body["enabled"] = *c.Enabled == cliBoolTrue
 	}
 	if c.MaintenanceIntervalSeconds != nil {
 		body["maintenanceIntervalSeconds"] = *c.MaintenanceIntervalSeconds

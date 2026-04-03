@@ -660,8 +660,8 @@ func (s *providerStore) gatewayOwner() string {
 
 func normalizeLibTransactionStatus(status string) string {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
-	case "RUNNING":
-		return "RUNNING"
+	case ebicsClientRecoveryStatusRunning:
+		return ebicsClientRecoveryStatusRunning
 	case "RECOVERING":
 		return "RECOVERING"
 	case model.EbicsTransactionStatusCompletedForRuntime():

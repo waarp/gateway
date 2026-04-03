@@ -168,6 +168,20 @@ Note:
   et anciens. Les transactions encore actives restent explicitement hors
   purge. La policy singleton `default` est maintenant administrable en
   REST/CLI.
+  2026-04-03: `P2B` est maintenant ferme.
+  Une orchestration planifiee native existe maintenant pour le refresh
+  contractuel client `HEV` / `HPD` / `HKD` / `HTD` / `HAA`.
+  Les executions sont pilotees par des objets administres
+  `EbicsContractRefreshPolicy` stockes en base, relies explicitement a
+  `clientID` + `subscriberID`, avec periodicite, statut, prochaine execution,
+  dernier essai, dernier succes et dernier message d'erreur.
+  Le service `EBICS Contract Refresh` est branche dans `gatewayd`, et la
+  surface operateur REST/CLI est exposee via
+  `/ebics/contract-refresh-policies` et
+  `ebics contract-refresh-policy ...`.
+  La passe linter/tests consolidee sur
+  `pkg/protocols/modules/ebics/...`, `pkg/admin/rest`, `pkg/cmd/client`,
+  `pkg/model`, `pkg/gatewayd` et `pkg/database/migrations` est verte.
   REST/CLI des providers RTN exposent cette reference explicitement.
   2026-04-02: `P2E.5` est maintenant ferme.
   Les surfaces REST/CLI des providers RTN exposent desormais un etat

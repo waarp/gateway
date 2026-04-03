@@ -72,4 +72,5 @@ type (
 	EbicsInitializationWorkflows = Slice[*EbicsInitializationWorkflow]
 	EbicsRTNEvents               = Slice[*EbicsRTNEvent]
 	EbicsRTNProviders            = Slice[*EbicsRTNProvider]
+	EbicsContractRefreshPolicies = Slice[*EbicsContractRefreshPolicy]
 )

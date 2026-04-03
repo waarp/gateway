@@ -881,6 +881,78 @@ func TestEbicsRuntimePolicyUpdateCommandBuildsRequest(t *testing.T) {
 	assert.Equal(t, "The EBICS runtime policy was successfully updated.\n", w.String())
 }
 
+func TestEbicsContractRefreshPolicyAddCommandBuildsRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsContractRefreshPolicyAdd{}
+
+	expected := &expectedRequest{
+		method: http.MethodPost,
+		path:   "/api/ebics/contract-refresh-policies",
+		body: map[string]any{
+			"name":            "daily-bank-a",
+			"clientID":        float64(15),
+			"subscriberID":    float64(45),
+			"includeHEV":      false,
+			"intervalSeconds": float64(3600),
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command,
+		"--name", "daily-bank-a",
+		"--client-id", "15",
+		"--subscriber", "45",
+		"--include-hev", "false",
+		"--interval-seconds", "3600",
+	))
+
+	assert.Equal(t, "The EBICS contract refresh policy \"daily-bank-a\" was successfully added.\n", w.String())
+}
+
+func TestEbicsContractRefreshPolicyGetCommandDisplaysDetail(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsContractRefreshPolicyGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/contract-refresh-policies/daily-bank-a",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":               18,
+			"name":             "daily-bank-a",
+			"enabled":          true,
+			"clientID":         15,
+			"clientName":       "ebics-prod-bank-a",
+			"subscriberID":     45,
+			"hostID":           "HOST-CRP",
+			"partnerID":        "PARTNER-CRP",
+			"userID":           "USER-CRP",
+			"includeHEV":       true,
+			"intervalSeconds":  3600,
+			"status":           "READY",
+			"activationStatus": "READY",
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "daily-bank-a"))
+	assert.Contains(t, w.String(), "EBICS contract refresh policy \"daily-bank-a\" [READY]")
+	assert.Contains(t, w.String(), "Client ID: 15")
+	assert.Contains(t, w.String(), "Client name: ebics-prod-bank-a")
+	assert.Contains(t, w.String(), "Activation status: READY")
+}
+
 func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {
 	w := newTestOutput()
 	command := &EbicsOperationReporting{}

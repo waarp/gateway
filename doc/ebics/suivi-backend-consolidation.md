@@ -1501,7 +1501,7 @@ Sous-lots cochables:
   d'ajuster la policy active sans reintroduire un parametrage statique par
   fichier de configuration.
 
-- [ ] Lot P2B - Poser l'orchestration planifiee native
+- [x] Lot P2B - Poser l'orchestration planifiee native
   Attendus: refresh, retries et taches de maintenance critiques ne reposent
   plus uniquement sur une action manuelle ou un ordonnanceur externe non trace
   Portee minimale explicite:
@@ -1510,6 +1510,28 @@ Sous-lots cochables:
   - politique de declenchement bornee et observable pour ces refreshs
     (periodicite, erreurs, reprise, statut du dernier succes).
   Validation: tests cibles du ou des services ajoutes
+  2026-04-03: lot ferme.
+  Resultat:
+  - une policy administree `EbicsContractRefreshPolicy` est maintenant stockee
+    en base, avec `clientID`, `subscriberID`, `includeHEV`,
+    `intervalSeconds`, `status`, `nextRunAt`, `lastAttemptAt`,
+    `lastSuccessAt` et `lastError`;
+  - un service de fond `EBICS Contract Refresh` est branche dans `gatewayd`
+    pour executer periodiquement les refreshs contractuels clients
+    `HEV` / `HPD` / `HKD` / `HTD` / `HAA` selon ces policies;
+  - l'execution est observable et bornee: statut `READY/RUNNING/ERROR/DISABLED`,
+    replanification apres succes ou erreur, et traces du dernier essai / succes;
+  - une surface d'administration REST/CLI existe maintenant via
+    `/ebics/contract-refresh-policies` et
+    `ebics contract-refresh-policy add/list/get/update/delete`;
+  - l'activation est rendue lisible pour l'exploitant avec
+    `activationStatus` / `activationReason`, sans reintroduire de selection
+    implicite de client: le lot reste aligne sur `clientID` comme reference
+    canonique.
+  Verification rejouee:
+  - `go test ./pkg/database/migrations -run "Test(SQLite|MySQL|PostgreSQL)Migrations" -count=1`
+  - `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./pkg/model ./pkg/gatewayd ./pkg/database/migrations -count=1`
+  - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./pkg/model ./pkg/gatewayd ./pkg/database/migrations`
 
 - [ ] Lot P2C - Completer la couverture de tests runtime encore faible
   Attendus: couverture mesurable sur le client EBICS direct, le runtime RTN
@@ -1723,8 +1745,8 @@ Sous-lots cochables:
 Ordre d'execution recommande:
 
 1. [x] Lot P2E
-2. [ ] Lot P2A
-3. [ ] Lot P2B
+2. [x] Lot P2A
+3. [x] Lot P2B
 4. [ ] Lot P2D
 5. [ ] Lot P2C
 6. [ ] Ne lancer les evolutions structurelles connexes qu'apres `P4`

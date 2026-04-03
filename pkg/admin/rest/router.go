@@ -377,43 +377,45 @@ func makeEmailHanddlers(mkHandler HandlerFactory) {
 
 func makeEbicsHandlers(mkHandler HandlerFactory) {
 	const (
-		payloadBTUUploadPath     = "/ebics/payloads/{order_type:btu|ful}/upload"
-		payloadBTDDownloadPath   = "/ebics/payloads/{order_type:btd|fdl}/download"
-		payloadsPath             = "/ebics/payloads"
-		payloadPath              = "/ebics/payloads/{ebics_operation}"
-		payloadRetryPath         = "/ebics/payloads/{ebics_operation}/retry"
-		payloadRecoverPath       = "/ebics/payloads/{ebics_operation}/recover"
-		payloadProfilesPath      = "/ebics/payload-profiles"
-		payloadProfilePath       = "/ebics/payload-profiles/{payload_profile}"
-		contractViewsPath        = "/ebics/contract-views"
-		contractViewRefreshPath  = "/ebics/contract-views/actions/refresh"
-		contractViewPath         = "/ebics/contract-views/{contract_view}"
-		operationsPath           = "/ebics/operations"
-		operationReportingPath   = "/ebics/operations/actions/reporting"
-		operationSignaturePath   = "/ebics/operations/actions/signature"
-		operationPath            = "/ebics/operations/{ebics_operation}"
-		transactionsPath         = "/ebics/transactions"
-		transactionPath          = "/ebics/transactions/{ebics_transaction}"
-		transactionSegmentsPath  = "/ebics/transactions/{ebics_transaction}/segments"
-		transactionSegmentPath   = "/ebics/transactions/{ebics_transaction}/segments/{segment_number}"
-		keyLifecyclesPath        = "/ebics/key-lifecycles"
-		keyLifecyclePath         = "/ebics/key-lifecycles/{ebics_key_lifecycle}"
-		keyLifecycleActionPath   = "/ebics/key-lifecycles/{ebics_key_lifecycle}/actions"
-		keyRotationPreparePath   = "/ebics/key-lifecycles/actions/prepare-rotation"
-		keyRotationSendPath      = "/ebics/key-lifecycles/actions/send-rotation"
-		keyRotationConfirmPath   = "/ebics/key-lifecycles/actions/confirm-rotation"
-		keyRotationCancelPath    = "/ebics/key-lifecycles/actions/cancel-rotation"
-		keyRotationRejectPath    = "/ebics/key-lifecycles/actions/reject-rotation"
-		keyRotationRevokePath    = "/ebics/key-lifecycles/actions/revoke-rotation"
-		initializationsPath      = "/ebics/initializations"
-		initializationPath       = "/ebics/initializations/{ebics_initialization}"
-		initializationActionPath = "/ebics/initializations/{ebics_initialization}/actions"
-		rtnEventsPath            = "/ebics/rtn/events"
-		rtnEventPath             = "/ebics/rtn/events/{ebics_rtn_event}"
-		rtnEventActionPath       = "/ebics/rtn/events/{ebics_rtn_event}/actions"
-		rtnProvidersPath         = "/ebics/rtn/providers"
-		rtnProviderPath          = "/ebics/rtn/providers/{ebics_rtn_provider}"
-		runtimePolicyPath        = "/ebics/runtime-policy"
+		payloadBTUUploadPath        = "/ebics/payloads/{order_type:btu|ful}/upload"
+		payloadBTDDownloadPath      = "/ebics/payloads/{order_type:btd|fdl}/download"
+		payloadsPath                = "/ebics/payloads"
+		payloadPath                 = "/ebics/payloads/{ebics_operation}"
+		payloadRetryPath            = "/ebics/payloads/{ebics_operation}/retry"
+		payloadRecoverPath          = "/ebics/payloads/{ebics_operation}/recover"
+		payloadProfilesPath         = "/ebics/payload-profiles"
+		payloadProfilePath          = "/ebics/payload-profiles/{payload_profile}"
+		contractViewsPath           = "/ebics/contract-views"
+		contractViewRefreshPath     = "/ebics/contract-views/actions/refresh"
+		contractViewPath            = "/ebics/contract-views/{contract_view}"
+		contractRefreshPoliciesPath = "/ebics/contract-refresh-policies"
+		contractRefreshPolicyPath   = "/ebics/contract-refresh-policies/{ebics_contract_refresh_policy}"
+		operationsPath              = "/ebics/operations"
+		operationReportingPath      = "/ebics/operations/actions/reporting"
+		operationSignaturePath      = "/ebics/operations/actions/signature"
+		operationPath               = "/ebics/operations/{ebics_operation}"
+		transactionsPath            = "/ebics/transactions"
+		transactionPath             = "/ebics/transactions/{ebics_transaction}"
+		transactionSegmentsPath     = "/ebics/transactions/{ebics_transaction}/segments"
+		transactionSegmentPath      = "/ebics/transactions/{ebics_transaction}/segments/{segment_number}"
+		keyLifecyclesPath           = "/ebics/key-lifecycles"
+		keyLifecyclePath            = "/ebics/key-lifecycles/{ebics_key_lifecycle}"
+		keyLifecycleActionPath      = "/ebics/key-lifecycles/{ebics_key_lifecycle}/actions"
+		keyRotationPreparePath      = "/ebics/key-lifecycles/actions/prepare-rotation"
+		keyRotationSendPath         = "/ebics/key-lifecycles/actions/send-rotation"
+		keyRotationConfirmPath      = "/ebics/key-lifecycles/actions/confirm-rotation"
+		keyRotationCancelPath       = "/ebics/key-lifecycles/actions/cancel-rotation"
+		keyRotationRejectPath       = "/ebics/key-lifecycles/actions/reject-rotation"
+		keyRotationRevokePath       = "/ebics/key-lifecycles/actions/revoke-rotation"
+		initializationsPath         = "/ebics/initializations"
+		initializationPath          = "/ebics/initializations/{ebics_initialization}"
+		initializationActionPath    = "/ebics/initializations/{ebics_initialization}/actions"
+		rtnEventsPath               = "/ebics/rtn/events"
+		rtnEventPath                = "/ebics/rtn/events/{ebics_rtn_event}"
+		rtnEventActionPath          = "/ebics/rtn/events/{ebics_rtn_event}/actions"
+		rtnProvidersPath            = "/ebics/rtn/providers"
+		rtnProviderPath             = "/ebics/rtn/providers/{ebics_rtn_provider}"
+		runtimePolicyPath           = "/ebics/runtime-policy"
 	)
 
 	mkHandler(payloadBTUUploadPath, submitEbicsPayload, model.PermTransfersWrite, http.MethodPost)
@@ -433,6 +435,12 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 	mkHandler(contractViewsPath, listEbicsContractViews, model.PermAdminRead, http.MethodGet)
 	mkHandler(contractViewRefreshPath, refreshEbicsContractViews, model.PermAdminWrite, http.MethodPost)
 	mkHandler(contractViewPath, getEbicsContractView, model.PermAdminRead, http.MethodGet)
+	mkHandler(contractRefreshPoliciesPath, listEbicsContractRefreshPolicies, model.PermAdminRead, http.MethodGet)
+	mkHandler(contractRefreshPoliciesPath, addEbicsContractRefreshPolicy, model.PermAdminWrite, http.MethodPost)
+	mkHandler(contractRefreshPolicyPath, getEbicsContractRefreshPolicy, model.PermAdminRead, http.MethodGet)
+	mkHandler(contractRefreshPolicyPath, updateEbicsContractRefreshPolicy, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(contractRefreshPolicyPath, replaceEbicsContractRefreshPolicy, model.PermAdminWrite, http.MethodPut)
+	mkHandler(contractRefreshPolicyPath, deleteEbicsContractRefreshPolicy, model.PermAdminDelete, http.MethodDelete)
 
 	mkHandler(operationsPath, listEbicsOperations, model.PermTransfersRead, http.MethodGet)
 	mkHandler(operationReportingPath, executeEbicsReportingOperation, model.PermTransfersWrite, http.MethodPost)
