@@ -307,6 +307,24 @@ func getDBEbicsRTNProvider(r *http.Request, db *database.DB) (*model.EbicsRTNPro
 	return provider, nil
 }
 
+func getDBEbicsHistoryEntry(r *http.Request, db *database.DB) (*model.EbicsHistoryEntry, error) {
+	id, err := parseRESTInt64Param(r, "ebics_history", "EBICS history entry")
+	if err != nil {
+		return nil, err
+	}
+
+	entry := &model.EbicsHistoryEntry{}
+	if err = db.Get(entry, "id=?", id).Owner().Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFoundf("EBICS history entry %d not found", id)
+		}
+
+		return nil, fmt.Errorf("failed to retrieve EBICS history entry %d: %w", id, err)
+	}
+
+	return entry, nil
+}
+
 // DBEbicsPayloadProfileToREST transforms an EBICS payload profile into its REST representation.
 func DBEbicsPayloadProfileToREST(
 	db database.ReadAccess,
@@ -785,4 +803,57 @@ func DBEbicsRTNProviderToREST(db *database.DB, provider *model.EbicsRTNProvider)
 		LastConnectionAt: ptrTime(provider.LastConnectionAt),
 		LastError:        provider.LastError,
 	}
+}
+
+// DBEbicsHistoryEntryToREST transforms one append-only EBICS history entry into its REST representation.
+func DBEbicsHistoryEntryToREST(
+	db database.ReadAccess,
+	entry *model.EbicsHistoryEntry,
+) (*api.OutEbicsHistoryEntry, error) {
+	host := &model.EbicsHost{}
+	if err := db.Get(host, "id=?", entry.EbicsHostID).Owner().Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve EBICS host for history entry %d: %w", entry.ID, err)
+	}
+
+	subscriber := &model.EbicsSubscriber{}
+	if err := db.Get(subscriber, "id=?", entry.EbicsSubscriberID).Owner().Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve EBICS subscriber for history entry %d: %w", entry.ID, err)
+	}
+
+	return &api.OutEbicsHistoryEntry{
+		ID:                     entry.ID,
+		HistoryType:            entry.HistoryType,
+		OperationType:          entry.OperationType,
+		Action:                 entry.Action,
+		OrderType:              entry.OrderType,
+		Direction:              entry.Direction,
+		TransportMode:          entry.TransportMode,
+		Status:                 entry.Status,
+		Severity:               entry.Severity,
+		TechnicalReturnCode:    entry.TechnicalReturnCode,
+		TechnicalReturnMessage: entry.TechnicalReturnMessage,
+		BusinessReturnCode:     entry.BusinessReturnCode,
+		BusinessReturnMessage:  entry.BusinessReturnMessage,
+		GatewayOutcome:         entry.GatewayOutcome,
+		RetryDecision:          entry.RetryDecision,
+		ClientID:               ptrInt64(entry.ClientID),
+		HostID:                 host.HostID,
+		PartnerID:              subscriber.PartnerID,
+		UserID:                 subscriber.UserID,
+		OperationID:            ptrInt64(entry.OperationID),
+		TransferID:             ptrInt64(entry.TransferID),
+		WorkflowID:             ptrInt64(entry.WorkflowID),
+		LifecycleID:            ptrInt64(entry.LifecycleID),
+		CoordinationID:         entry.CoordinationID,
+		RequestID:              entry.RequestID,
+		CorrelationID:          entry.CorrelationID,
+		TransactionID:          entry.TransactionID,
+		Operator:               entry.Operator,
+		Reason:                 entry.Reason,
+		Evidence:               entry.EvidenceMap,
+		Metadata:               entry.MetadataMap,
+		StartedAt:              ptrTime(entry.StartedAt),
+		FinishedAt:             ptrTime(entry.FinishedAt),
+		CreatedAt:              entry.CreatedAt.UTC(),
+	}, nil
 }

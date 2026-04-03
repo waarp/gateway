@@ -1547,12 +1547,24 @@ Sous-lots cochables:
   les tests directs de fonctions/routage restent maintenus comme unitaires,
   mais ne peuvent plus, a eux seuls, servir de preuve de fermeture runtime.
 
-- [ ] Lot P2D - Historiser nativement les ordres EBICS non payload
+- [x] Lot P2D - Historiser nativement les ordres EBICS non payload
   Attendus: les ordres d'administration, d'initialisation, de gestion de cles
   et de reporting disposent d'un historique durable et interrogeable, analogue
   a l'historique natif des transferts Gateway, avec statuts, horodatages,
   codes retour et evidence operateur
   Validation: `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/model`
+  2026-04-03: lot ferme.
+  Une table append-only `ebics_history_entries` est ajoutee avec migration,
+  surface REST/CLI dediee (`/api/ebics/history`, `waarp-gateway ebics history`)
+  et enregistrement durable des snapshots non payload:
+  - operations banque non payload terminales via `EbicsOperation`;
+  - actions locales sur `EbicsInitializationWorkflow`;
+  - actions locales sur `EbicsKeyLifecycle`;
+  - actions coordonnees de rotation de cles.
+  L'historique des transferts Gateway reste distinct; `P2D` ne le duplique pas.
+  Verification rejouee:
+  - `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./pkg/model ./pkg/gatewayd ./pkg/database/migrations -count=1`
+  - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./pkg/model ./pkg/gatewayd ./pkg/database/migrations`
 
 - [ ] Lot P2E - Rendre la selection de client EBICS explicite et multi-client
   Attendus: l'implementation EBICS n'impose plus artificiellement l'existence
@@ -1747,7 +1759,7 @@ Ordre d'execution recommande:
 1. [x] Lot P2E
 2. [x] Lot P2A
 3. [x] Lot P2B
-4. [ ] Lot P2D
+4. [x] Lot P2D
 5. [ ] Lot P2C
 6. [ ] Ne lancer les evolutions structurelles connexes qu'apres `P4`
 

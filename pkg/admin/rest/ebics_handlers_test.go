@@ -352,6 +352,13 @@ func TestActOnEbicsKeyLifecycleUpdatesStatusAndEvidence(t *testing.T) {
 	assert.Equal(t, "ops", body.Operator)
 	assert.Equal(t, "submitted", body.Reason)
 	assert.Equal(t, "INC-42", body.Evidence["ticket"])
+
+	var historyEntries model.EbicsHistoryEntries
+	require.NoError(t, db.Select(&historyEntries).Where("lifecycle_id=?", lifecycle.ID).OrderBy("id", true).Run())
+	require.Len(t, historyEntries, 1)
+	assert.Equal(t, "ACTION", historyEntries[0].HistoryType)
+	assert.Equal(t, "MARK_SENT", historyEntries[0].Action)
+	assert.Equal(t, "ORDER_SENT", historyEntries[0].Status)
 }
 
 func TestActOnEbicsInitializationCancelsWorkflow(t *testing.T) {
@@ -396,6 +403,49 @@ func TestActOnEbicsInitializationCancelsWorkflow(t *testing.T) {
 	assert.Equal(t, "ops", body.Operator)
 	assert.Equal(t, "abort", body.Reason)
 	assert.Equal(t, "INIT-9", body.Evidence["ticket"])
+
+	var historyEntries model.EbicsHistoryEntries
+	require.NoError(t, db.Select(&historyEntries).Where("workflow_id=?", workflow.ID).OrderBy("id", true).Run())
+	require.Len(t, historyEntries, 1)
+	assert.Equal(t, "ACTION", historyEntries[0].HistoryType)
+	assert.Equal(t, "CANCEL", historyEntries[0].Action)
+	assert.Equal(t, "CANCELLED", historyEntries[0].Status)
+}
+
+func TestGetEbicsHistoryEntryReturnsStructuredHistory(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-HIST", "PARTNER-HIST", "USER-HIST")
+
+	entry := &model.EbicsHistoryEntry{
+		HistoryType:       model.EbicsHistoryTypeActionForRuntime(),
+		OperationType:     "INITIALIZATION",
+		Action:            "CANCEL",
+		Status:            "CANCELLED",
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: subscriber.ID,
+		Operator:          "ops",
+		Reason:            "abort",
+		EvidenceMap:       map[string]any{"ticket": "HIST-1"},
+		MetadataMap:       map[string]any{"currentStep": "CANCELLED"},
+	}
+	require.NoError(t, db.Insert(entry).Run())
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/history/"+marshalID(entry.ID), nil)
+	req = mux.SetURLVars(req, map[string]string{"ebics_history": marshalID(entry.ID)})
+	w := httptest.NewRecorder()
+
+	getEbicsHistoryEntry(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var body api.OutEbicsHistoryEntry
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, "HOST-HIST", body.HostID)
+	assert.Equal(t, "PARTNER-HIST", body.PartnerID)
+	assert.Equal(t, "USER-HIST", body.UserID)
+	assert.Equal(t, "CANCEL", body.Action)
+	assert.Equal(t, "HIST-1", body.Evidence["ticket"])
+	assert.Equal(t, "CANCELLED", body.Metadata["currentStep"])
 }
 
 func TestActOnEbicsRTNEventRetryUpdatesStatusAttemptsAndMetadata(t *testing.T) {

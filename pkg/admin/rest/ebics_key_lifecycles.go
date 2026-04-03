@@ -2,6 +2,8 @@ package rest
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -82,6 +84,9 @@ func actOnEbicsKeyLifecycle(logger *log.Logger, db *database.DB) http.HandlerFun
 		if err = db.Update(lifecycle).Run(); handleError(w, logger, err) {
 			return
 		}
+		if err = ebicsmodule.RecordKeyLifecycleHistory(db, lifecycle, action.Action); handleError(w, logger, err) {
+			return
+		}
 
 		handleError(w, logger, writeJSON(w, DBEbicsKeyLifecycleToREST(lifecycle)))
 	}
@@ -110,6 +115,17 @@ func prepareEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFu
 		if handleError(w, logger, err) {
 			return
 		}
+		if err = recordEbicsKeyRotationHistory(
+			db,
+			result,
+			"PREPARE_ROTATION",
+			request.ClientID,
+			request.Operator,
+			request.Reason,
+			request.Evidence,
+		); handleError(w, logger, err) {
+			return
+		}
 
 		out, err := dbEbicsKeyRotationGroupToREST(result)
 		if handleError(w, logger, err) {
@@ -122,28 +138,29 @@ func prepareEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFu
 }
 
 func sendEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return actOnEbicsKeyRotationGroup(logger, db, ebicsmodule.SendCoordinatedKeyRotation)
+	return actOnEbicsKeyRotationGroup(logger, db, "SEND_ROTATION", ebicsmodule.SendCoordinatedKeyRotation)
 }
 
 func confirmEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return actOnEbicsKeyRotationGroup(logger, db, ebicsmodule.ConfirmCoordinatedKeyRotation)
+	return actOnEbicsKeyRotationGroup(logger, db, "CONFIRM_ROTATION", ebicsmodule.ConfirmCoordinatedKeyRotation)
 }
 
 func cancelEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return actOnEbicsKeyRotationGroup(logger, db, ebicsmodule.CancelCoordinatedKeyRotation)
+	return actOnEbicsKeyRotationGroup(logger, db, "CANCEL_ROTATION", ebicsmodule.CancelCoordinatedKeyRotation)
 }
 
 func rejectEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return actOnEbicsKeyRotationGroup(logger, db, ebicsmodule.RejectCoordinatedKeyRotation)
+	return actOnEbicsKeyRotationGroup(logger, db, "REJECT_ROTATION", ebicsmodule.RejectCoordinatedKeyRotation)
 }
 
 func revokeEbicsKeyRotation(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return actOnEbicsKeyRotationGroup(logger, db, ebicsmodule.RevokeCoordinatedKeyRotation)
+	return actOnEbicsKeyRotationGroup(logger, db, "REVOKE_ROTATION", ebicsmodule.RevokeCoordinatedKeyRotation)
 }
 
 func actOnEbicsKeyRotationGroup(
 	logger *log.Logger,
 	db *database.DB,
+	actionName string,
 	action func(
 		context.Context,
 		*database.DB,
@@ -167,6 +184,17 @@ func actOnEbicsKeyRotationGroup(
 			Evidence:           request.Evidence,
 		})
 		if handleError(w, logger, err) {
+			return
+		}
+		if err = recordEbicsKeyRotationHistory(
+			db,
+			result,
+			actionName,
+			request.ClientID,
+			request.Operator,
+			request.Reason,
+			request.Evidence,
+		); handleError(w, logger, err) {
 			return
 		}
 
@@ -204,4 +232,77 @@ func dbEbicsKeyRotationGroupToREST(
 	}
 
 	return out, nil
+}
+
+func recordEbicsKeyRotationHistory(
+	db *database.DB,
+	result *ebicsmodule.KeyRotationGroupResult,
+	action string,
+	clientID int64,
+	operator, reason string,
+	evidence map[string]any,
+) error {
+	if result == nil {
+		return nil
+	}
+
+	for _, lifecycle := range result.Lifecycles {
+		if lifecycle == nil {
+			continue
+		}
+
+		subscriber := &model.EbicsSubscriber{}
+		if err := db.Get(subscriber, "id=?", lifecycle.EbicsSubscriberID).Owner().Run(); err != nil {
+			return fmt.Errorf(
+				"load subscriber for coordinated EBICS key rotation history on lifecycle %d: %w",
+				lifecycle.ID,
+				err,
+			)
+		}
+
+		entry := &model.EbicsHistoryEntry{
+			HistoryType:       model.EbicsHistoryTypeActionForRuntime(),
+			OperationType:     "KEY_ROTATION",
+			Action:            action,
+			Status:            lifecycle.Status,
+			Severity:          model.EbicsOperationSeverityInfoForRuntime(),
+			ClientID:          sql.NullInt64{Int64: clientID, Valid: clientID > 0},
+			EbicsHostID:       subscriber.EbicsHostID,
+			EbicsSubscriberID: lifecycle.EbicsSubscriberID,
+			LifecycleID:       sql.NullInt64{Int64: lifecycle.ID, Valid: true},
+			CoordinationID:    result.CoordinationID,
+			Operator:          operator,
+			Reason:            reason,
+			EvidenceMap:       evidence,
+			MetadataMap: map[string]any{
+				"keyUsage":            lifecycle.KeyUsage,
+				"rotationType":        lifecycle.RotationType,
+				"currentCredentialID": lifecycle.CurrentCredentialID,
+				"nextCredentialID":    nullInt64ToRESTAny(lifecycle.NextCredentialID),
+				"triggerOperationID":  nullInt64ToRESTAny(lifecycle.TriggerOperationID),
+				"lastOperationID":     nullInt64ToRESTAny(lifecycle.LastOperationID),
+			},
+		}
+		if lifecycle.LastOperationID.Valid {
+			entry.OperationID = lifecycle.LastOperationID
+		}
+
+		if err := db.Insert(entry).Run(); err != nil {
+			return fmt.Errorf(
+				"insert coordinated EBICS key rotation history for lifecycle %d: %w",
+				lifecycle.ID,
+				err,
+			)
+		}
+	}
+
+	return nil
+}
+
+func nullInt64ToRESTAny(value sql.NullInt64) any {
+	if !value.Valid {
+		return nil
+	}
+
+	return value.Int64
 }

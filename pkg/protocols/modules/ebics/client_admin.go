@@ -600,7 +600,7 @@ func (c *Client) completeNonPayloadOperation(
 		return fmt.Errorf("persist successful EBICS non-payload operation %d: %w", operation.ID, err)
 	}
 
-	return nil
+	return RecordOperationHistory(c.db, operation)
 }
 
 func (c *Client) failNonPayloadOperation(
@@ -645,6 +645,9 @@ func (c *Client) failNonPayloadOperation(
 	operation.FinishedAt = time.Now().UTC()
 	if err := c.db.Update(operation).Run(); err != nil {
 		return fmt.Errorf("%s: %w (persist operation %d failure: %v)", phase, cause, operation.ID, err)
+	}
+	if err := RecordOperationHistory(c.db, operation); err != nil {
+		return fmt.Errorf("%s: %w (persist history for operation %d failure: %v)", phase, cause, operation.ID, err)
 	}
 
 	return fmt.Errorf("%s: %w", phase, cause)

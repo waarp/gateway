@@ -953,6 +953,49 @@ func TestEbicsContractRefreshPolicyGetCommandDisplaysDetail(t *testing.T) {
 	assert.Contains(t, w.String(), "Activation status: READY")
 }
 
+func TestEbicsHistoryGetCommandDisplaysDetail(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsHistoryGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/history/91",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"id":            91,
+			"historyType":   "ACTION",
+			"operationType": "INITIALIZATION",
+			"action":        "CANCEL",
+			"status":        "CANCELLED",
+			"hostID":        "HOST-HIST",
+			"partnerID":     "PARTNER-HIST",
+			"userID":        "USER-HIST",
+			"operator":      "ops",
+			"reason":        "abort",
+			"createdAt":     "2026-04-03T10:00:00Z",
+			"evidence": map[string]any{
+				"ticket": "HIST-91",
+			},
+			"metadata": map[string]any{
+				"currentStep": "CANCELLED",
+			},
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "91"))
+	assert.Contains(t, w.String(), "EBICS history #91 [CANCELLED]")
+	assert.Contains(t, w.String(), "History type: ACTION")
+	assert.Contains(t, w.String(), "Operation type: INITIALIZATION")
+	assert.Contains(t, w.String(), "Action: CANCEL")
+	assert.Contains(t, w.String(), "ticket: HIST-91")
+}
+
 func TestEbicsOperationReportingCommandBuildsHVTRequest(t *testing.T) {
 	w := newTestOutput()
 	command := &EbicsOperationReporting{}

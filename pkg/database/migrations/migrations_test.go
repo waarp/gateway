@@ -175,4 +175,5 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	apply(testVer0_16_0AddEbicsTables(t, eng))
 	apply(testVer0_16_3AddEbicsRuntimePolicies(t, eng))
 	apply(testVer0_16_4AddEbicsContractRefreshPolicies(t, eng))
+	apply(testVer0_16_5AddEbicsHistoryEntries(t, eng))
 }

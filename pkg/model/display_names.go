@@ -39,6 +39,7 @@ const (
 	NameEbicsRTNProvider            = "ebics RTN provider"
 	NameEbicsRuntimePolicy          = "ebics runtime policy"
 	NameEbicsContractRefreshPolicy  = "ebics contract refresh policy"
+	NameEbicsHistoryEntry           = "ebics history entry"
 )
 
 const authPassword = "password"

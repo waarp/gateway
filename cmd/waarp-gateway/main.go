@@ -276,6 +276,11 @@ type commands struct {
 			Delete wg.EbicsContractRefreshPolicyDelete `command:"delete" description:"Delete an EBICS contract refresh policy"`
 		} `command:"contract-refresh-policy" description:"Manage scheduled EBICS contract refresh policies"`
 
+		History struct {
+			List wg.EbicsHistoryList `command:"list" description:"List the EBICS non-payload history entries"`
+			Get  wg.EbicsHistoryGet  `command:"get" description:"Retrieve an EBICS non-payload history entry"`
+		} `command:"history" description:"Manage the EBICS non-payload history"`
+
 		KeyLifecycle struct {
 			List   wg.EbicsKeyLifecycleList   `command:"list" description:"List the EBICS key lifecycles"`
 			Get    wg.EbicsKeyLifecycleGet    `command:"get" description:"Retrieve an EBICS key lifecycle"`

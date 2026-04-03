@@ -233,6 +233,10 @@ Point de situation:
   Le lot `P2D` ajoute en particulier l'historisation native des ordres EBICS
   non payload, pour ne pas limiter la tracabilite durable aux seuls
   transferts Gateway.
+  2026-04-03: le lot `P2D` est ferme avec une persistance append-only
+  `ebics_history_entries`, exposee en REST/CLI, pour les operations non
+  payload terminales et les actions locales `initialisation / key lifecycle /
+  rotation`.
   Un lot `P2E` est aussi ajoute pour remettre l'implementation EBICS en
   conformite avec la philosophie Gateway sur la selection de client:
   les chemins admin/RTN ne doivent plus reposer sur l'hypothese

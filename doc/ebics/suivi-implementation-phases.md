@@ -114,6 +114,9 @@ Note:
   non payload (`admin`, `reporting`, `initialisation`, `gestion de cles`),
   avec une exigence d'historique durable et interrogeable analogue a celle
   des transferts Gateway.
+  2026-04-03: `P2D` est ferme avec une table append-only
+  `ebics_history_entries`, exposee en REST/CLI, sans dupliquer l'historique
+  transverse des transferts Gateway.
   Un lot `P2E` est ajoute pour supprimer la limitation artificielle
   "un seul client EBICS actif" sur les chemins non payload:
   la selection doit converger vers la reference canonique deja utilisee dans

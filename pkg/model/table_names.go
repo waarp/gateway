@@ -44,6 +44,7 @@ const (
 	TableEbicsRTNProviders            = "ebics_rtn_providers"
 	TableEbicsRuntimePolicies         = "ebics_runtime_policies"
 	TableEbicsContractRefreshPolicies = "ebics_contract_refresh_policies"
+	TableEbicsHistoryEntries          = "ebics_history_entries"
 
 	ViewNormalizedTransfers = "normalized_transfers"
 )

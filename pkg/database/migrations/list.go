@@ -361,4 +361,9 @@ var Migrations = []Change{
 		Up:          ver0_16_4AddEbicsContractRefreshPoliciesUp,
 		Down:        ver0_16_4AddEbicsContractRefreshPoliciesDown,
 	},
+	{ // #69
+		Description: `Add the EBICS non-payload history table`,
+		Up:          ver0_16_5AddEbicsHistoryEntriesUp,
+		Down:        ver0_16_5AddEbicsHistoryEntriesDown,
+	},
 }

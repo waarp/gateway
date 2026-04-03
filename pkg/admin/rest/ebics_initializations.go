@@ -103,6 +103,14 @@ func actOnEbicsInitialization(logger *log.Logger, db *database.DB) http.HandlerF
 		if err = db.Update(workflow).Run(); handleError(w, logger, err) {
 			return
 		}
+		if err = ebicsmodule.RecordInitializationHistory(
+			db,
+			action.ClientID,
+			workflow,
+			action.Action,
+		); handleError(w, logger, err) {
+			return
+		}
 
 		if action.Action == "CONFIRM_BANK_ACTIVATION" {
 			if _, err = ebicsmodule.SyncBankKeysForInitialization(
