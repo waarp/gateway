@@ -3,6 +3,7 @@ package ebics
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -475,6 +476,45 @@ func insertValidatedBankKey(
 	require.NoError(t, db.Insert(key).Run())
 
 	return key
+}
+
+func insertValidatedServerBankKey(
+	t *testing.T,
+	db *database.DB,
+	hostID int64,
+	keyType, version, certificatePEM string,
+) *model.EbicsBankKey {
+	t.Helper()
+
+	chain, err := utils.ParsePEMCertChain(certificatePEM)
+	require.NoError(t, err)
+	require.NotEmpty(t, chain)
+
+	var publicKey string
+	switch keyType {
+	case "AUTH":
+		publicKey = fmt.Sprintf(
+			`<AuthenticationPubKeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>%s</ds:X509Certificate></ds:X509Data><AuthenticationVersion>%s</AuthenticationVersion></AuthenticationPubKeyInfo>`,
+			base64.StdEncoding.EncodeToString(chain[0].Raw),
+			version,
+		)
+	case "ENCRYPT":
+		publicKey = fmt.Sprintf(
+			`<EncryptionPubKeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>%s</ds:X509Certificate></ds:X509Data><EncryptionVersion>%s</EncryptionVersion></EncryptionPubKeyInfo>`,
+			base64.StdEncoding.EncodeToString(chain[0].Raw),
+			version,
+		)
+	case "SIGNATURE":
+		publicKey = fmt.Sprintf(
+			`<ds:SignaturePubKeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>%s</ds:X509Certificate></ds:X509Data><SignatureVersion>%s</SignatureVersion></ds:SignaturePubKeyInfo>`,
+			base64.StdEncoding.EncodeToString(chain[0].Raw),
+			version,
+		)
+	default:
+		t.Fatalf("unsupported server bank key type %q", keyType)
+	}
+
+	return insertValidatedBankKey(t, db, hostID, keyType, version, publicKey)
 }
 
 func insertSubscriberKeyMaterial(

@@ -1887,11 +1887,38 @@ Sous-lots cochables:
   - `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/model ./pkg/database/migrations -count=1`
   - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/model ./pkg/database/migrations`
 
-- [ ] Lot P5D - Implementer les ordres serveur non payload hors contrats
+- [x] Lot P5D - Implementer les ordres serveur non payload hors contrats
   Attendus: support serveur borne pour les ordres d'initialisation, gestion
   de cles, rotations, reporting et signature retenus par `P5A`, avec
   branchement explicite sur les donnees/workflows internes necessaires.
   Validation: tests serveur HTTP reels sur le perimetre retenu
+  2026-04-03: lot ferme.
+  Resultat:
+  - les ordres serveur d'initialisation / key management ne reposent plus sur
+    un `AllowAllPolicy` implicite dans `adminhelper`;
+  - une policy serveur explicite borne maintenant `INI`, `HIA`, `HPB`,
+    `PUB`, `HSA`, `H3K`, `HCA`, `HCS`, `SPR` au seul subscriber serveur
+    operationnel (`host` existe, actif, `isServer=true`,
+    subscriber existe, actif, avec `LocalAccountID`, non `CLIENT`);
+  - des tests HTTP/TLS reels couvrent a present:
+    `INI` / `HIA` / `HPB` nominaux jusqu'a la persistance des materiaux
+    subscriber cote serveur, et le rejet d'un subscriber serveur desactive;
+  - deux defauts reels reveles par cette repasse ont ete corriges:
+    le builder client `INI/HIA` emettait un XML incomplet pour `X509Data`,
+    et les fixtures de cles banque serveur pour `HPB` utilisaient un PEM brut
+    au lieu des fragments XML attendus par `lib-ebics`.
+  - une seconde tranche couvre maintenant le reporting serveur
+  (`HVD`, `HVU`, `HVZ`, `HVT`, `HAC`) avec une projection dediee
+  `EbicsServerReportingSet/Item`, des handlers serves en HTTP/TLS reel, et
+  une observabilite minimale cote REST/CLI.
+  - le correctif dependance `lib-ebics` pour `HVT completeOrderData=true`
+    est maintenant integre proprement via la version poussee `a91b277`, sans
+    `replace` local;
+  - les ordres `HVE` / `HVS` sont maintenant bornes et valides en HTTP/TLS
+    reel, avec reference data explicite et matching strict `orderID/service`;
+  - le bornage des rotations serveur reste volontairement borne aux workflows
+    serveur explicites `PUB/HSA/H3K/HCA/HCS/SPR`, sans annoncer de logique
+    metier supplementaire non implemente.
 
 - [ ] Lot P5E - Implementer le RTN sortant cote banque
   Attendus: Gateway est capable, en role banque, de publier vers les
@@ -1911,7 +1938,7 @@ Ordre d'execution recommande:
 1. [x] Lot P5A
 2. [x] Lot P5B
 3. [x] Lot P5C
-4. [ ] Lot P5D
+4. [x] Lot P5D
 5. [ ] Lot P5E
 6. [ ] Lot P5F
 

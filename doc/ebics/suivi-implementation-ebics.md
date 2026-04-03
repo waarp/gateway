@@ -348,6 +348,27 @@ Point de situation:
   Une surface REST/CLI minimale permet d'inspecter ces projections
   via `server-contract-sets`, et la repasse
   `go test` / `golangci-lint` sur le perimetre touche est verte.
+  2026-04-03: premiere tranche `P5D` engagee et validee.
+  Les ordres serveur `INI/HIA/HPB/PUB/HSA/H3K/HCA/HCS/SPR`
+  sont maintenant explicitement bornes par une policy serveur dediee,
+  au lieu de reposer sur `AllowAllPolicy`.
+  Le perimetre reel valide est:
+  - `INI/HIA/HPB` nominaux sur HTTP/TLS avec client `lib-ebics` reel;
+  - rejet d'un subscriber serveur desactive;
+  - correction du XML `INI/HIA` emis cote client pour produire un
+    `ds:X509Data` conforme;
+  - correction des fixtures de cles banque serveur `HPB`,
+    qui doivent etre stockees comme fragments XML et non comme PEM bruts.
+  2026-04-03: seconde tranche `P5D` engagee sur le reporting serveur
+  `HVD/HVU/HVZ/HVT/HAC`, avec projection dediee
+  `EbicsServerReportingSet/Item`, integration HTTP/TLS reelle et lecture
+  REST/CLI minimale.
+  2026-04-03: `P5D` est maintenant ferme.
+  Les ordres serveur `HVE/HVS` sont couverts sur le vrai chemin HTTP/TLS, le
+  correctif `lib-ebics` necessaire a `HVT completeOrderData=true` est integre
+  proprement cote dependance, et le bornage des rotations serveur reste
+  explicitement limite aux workflows serveur deja exposes
+  (`PUB/HSA/H3K/HCA/HCS/SPR`).
   2026-04-01: `P4A` est maintenant ferme.
   La cartographie exhaustive montre deux problemes distincts:
   les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,

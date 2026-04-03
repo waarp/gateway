@@ -225,6 +225,31 @@ Note:
   `HKD/HTD` scopes subscriber.
   Une lecture REST/CLI minimale est disponible via
   `server-contract-sets`, et la repasse qualite ciblee est verte.
+  2026-04-03: premiere tranche `P5D` engagee et validee.
+  Le serveur borne maintenant explicitement les ordres
+  `INI/HIA/HPB/PUB/HSA/H3K/HCA/HCS/SPR` via une policy
+  `serverAdminPolicy`, au lieu de s'appuyer sur un `AllowAllPolicy`
+  implicite dans `adminhelper`.
+  Des tests HTTP/TLS reels couvrent deja `INI`, `HIA`, `HPB`
+  nominaux et le rejet d'un subscriber serveur desactive.
+  La repasse a aussi corrige deux defauts runtime:
+  le XML `INI/HIA` emis cote client ne construisait pas correctement
+  le bloc `ds:X509Data`, et les fixtures de cles banque serveur pour `HPB`
+  devaient etre injectees au format XML attendu par `lib-ebics`, pas en PEM
+  brut.
+  Une seconde tranche couvre maintenant les ordres serveur
+  `HVD/HVU/HVZ/HVT/HAC` via une projection dediee
+  `EbicsServerReportingSet/Item` et des tests HTTP/TLS reels.
+  Le lot reste toutefois ouvert: la repasse `HVT`
+  `completeOrderData=true` revele un defaut cote `lib-ebics`, qui encode
+  a tort le payload binaire original comme `HVTResponseOrderData` XML et
+  retourne `061099`.
+  2026-04-03: `P5D` est maintenant ferme.
+  Le correctif `lib-ebics` necessaire a
+  `HVT completeOrderData=true` est integre proprement cote dependance, la
+  projection serveur `HVE/HVS` est couverte en HTTP/TLS reel, et le bornage
+  fonctionnel des rotations serveur reste explicitement limite aux workflows
+  serveur deja implementes (`PUB/HSA/H3K/HCA/HCS/SPR`).
   REST/CLI des providers RTN exposent cette reference explicitement.
   2026-04-02: `P2E.5` est maintenant ferme.
   Les surfaces REST/CLI des providers RTN exposent desormais un etat

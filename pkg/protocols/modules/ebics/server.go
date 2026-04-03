@@ -83,7 +83,7 @@ func (s *Server) start() error {
 	s.config = cfg
 	s.providerStore = newProviderStore(s.db)
 
-	adminHandler, err := libadminhelper.NewWithDefaultKeyMgmt(s.providerStore, nil, libadminhelper.AllowAllPolicy{})
+	adminHandler, err := libadminhelper.NewWithDefaultKeyMgmt(s.providerStore, nil, newServerAdminPolicy(s.providerStore))
 	if err != nil {
 		return fmt.Errorf("initialize lib-ebics admin helper: %w", err)
 	}
@@ -94,6 +94,13 @@ func (s *Server) start() error {
 	hkdRouter := newContractOrderProvider(s.db, s.providerStore, s.server, "HKD")
 	htdRouter := newContractOrderProvider(s.db, s.providerStore, s.server, "HTD")
 	haaRouter := newContractOrderProvider(s.db, s.providerStore, s.server, "HAA")
+	hvdRouter := newServerReportingProvider(s.db, s.providerStore, "HVD")
+	hveRouter := newServerReportingProvider(s.db, s.providerStore, "HVE")
+	hvuRouter := newServerReportingProvider(s.db, s.providerStore, "HVU")
+	hvzRouter := newServerReportingProvider(s.db, s.providerStore, "HVZ")
+	hvtRouter := newServerReportingProvider(s.db, s.providerStore, "HVT")
+	hacRouter := newServerReportingProvider(s.db, s.providerStore, "HAC")
+	hvsRouter := newServerReportingProvider(s.db, s.providerStore, "HVS")
 	router.Register("FUL", liborders.FULHandler{Provider: payloadRouter})
 	router.Register("FDL", liborders.FDLHandler{Provider: payloadRouter})
 	router.Register("BTU", liborders.BTUHandler{Provider: payloadRouter})
@@ -102,11 +109,22 @@ func (s *Server) start() error {
 	router.Register("HKD", liborders.HKDHandler{Provider: hkdRouter})
 	router.Register("HTD", liborders.HTDHandler{Provider: htdRouter})
 	router.Register("HAA", liborders.HAAHandler{Provider: haaRouter})
+	router.Register("HVD", liborders.HVDHandler{Provider: hvdRouter})
+	router.Register("HVE", hveHandler{provider: hveRouter})
+	router.Register("HVU", liborders.HVUHandler{Provider: hvuProviderAdapter{hvuRouter}})
+	router.Register("HVZ", liborders.HVZHandler{Provider: hvzProviderAdapter{hvzRouter}})
+	router.Register("HVS", liborders.HVSHandler{Provider: hvsRouter})
+	router.Register("HVT", liborders.HVTHandler{
+		Provider:             hvtProviderAdapter{hvtRouter},
+		OriginalDataProvider: hvtRouter,
+	})
+	router.Register("HAC", liborders.HACHandler{DocumentProvider: hacRouter})
 
 	builder := libproviderserver.New().
 		KeyStore(s.providerStore).
 		SubscriberStore(s.providerStore).
 		OrderHandler(router).
+		Observer(newServerObserver(s.logger)).
 		TxStore(s.providerStore).
 		NonceStore(s.providerStore).
 		Logger(s.logger.AsStdLogger(log.LevelInfo)).
@@ -118,6 +136,7 @@ func (s *Server) start() error {
 		Option(libserver.WithSigner(newProviderRequestSigner(s.providerStore))).
 		Option(libserver.WithVerifyBankDigests(cfg.VerifyBankKeys)).
 		Option(libserver.WithMaxSegmentBytes(cfg.MaxSegmentSize)).
+		Option(libserver.WithEDSReferenceDataProvider(hveRouter)).
 		Option(libserver.WithRequireTxStore(true))
 
 	if xsdDir, ok := resolveEBICSXSDDir(); ok {

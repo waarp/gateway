@@ -3,7 +3,7 @@ module code.waarp.fr/apps/gateway/gateway
 go 1.26.1
 
 require (
-	code.waarp.fr/lib/ebics v0.0.0-20260326163504-771a9550a5be
+	code.waarp.fr/lib/ebics v0.0.0-20260403144513-a91b2772e77d
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/icap v1.0.0
 	code.waarp.fr/lib/log v1.4.0

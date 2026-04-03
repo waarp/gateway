@@ -76,4 +76,6 @@ type (
 	EbicsHistoryEntries          = Slice[*EbicsHistoryEntry]
 	EbicsServerContractSets      = Slice[*EbicsServerContractSet]
 	EbicsServerContractItems     = Slice[*EbicsServerContractItem]
+	EbicsServerReportingSets     = Slice[*EbicsServerReportingSet]
+	EbicsServerReportingItems    = Slice[*EbicsServerReportingItem]
 )

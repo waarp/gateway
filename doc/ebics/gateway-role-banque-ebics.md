@@ -227,6 +227,17 @@ Etat:
 3. `P5D`
 Ordres serveur non payload hors contrats
 
+Etat a date:
+- premiere tranche fermee sur `INI/HIA/HPB/PUB/HSA/H3K/HCA/HCS/SPR`
+  avec bornage serveur explicite;
+- seconde tranche fermee sur `HVD/HVU/HVZ/HVT/HAC/HVE/HVS` via une projection
+  serveur dediee et des tests HTTP/TLS reels;
+- le correctif `lib-ebics` necessaire a `HVT completeOrderData=true` est
+  maintenant integre proprement cote dependance;
+- les rotations serveur restent volontairement bornees aux workflows serveur
+  explicites deja exposes (`PUB/HSA/H3K/HCA/HCS/SPR`), sans annoncer de
+  logique metier supplementaire non implementee.
+
 4. `P5E`
 RTN sortant
 

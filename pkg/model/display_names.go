@@ -42,6 +42,8 @@ const (
 	NameEbicsHistoryEntry           = "ebics history entry"
 	NameEbicsServerContractSet      = "ebics server contract set"
 	NameEbicsServerContractItem     = "ebics server contract item"
+	NameEbicsServerReportingSet     = "ebics server reporting set"
+	NameEbicsServerReportingItem    = "ebics server reporting item"
 )
 
 const authPassword = "password"

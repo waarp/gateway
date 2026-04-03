@@ -12,6 +12,8 @@ code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 h1
 code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362/go.mod h1:9ox2QkeHD920voiwFU0S8h3Qp/pD67mW/czd7wZaxJI=
 code.waarp.fr/lib/ebics v0.0.0-20260326163504-771a9550a5be h1:pTa/XIO7+3nd0ZBO+EnPaPDaZ/jOjpidT32oUVGSYPM=
 code.waarp.fr/lib/ebics v0.0.0-20260326163504-771a9550a5be/go.mod h1:wq2dKyDF10gzVvVDxft6SkJoKIQ+C7EmVqMjua7/VWY=
+code.waarp.fr/lib/ebics v0.0.0-20260403144513-a91b2772e77d h1:JEzhcFAEeRAAJA9I+QKf4LtitoRZnZQHp0L6pC+g+so=
+code.waarp.fr/lib/ebics v0.0.0-20260403144513-a91b2772e77d/go.mod h1:wq2dKyDF10gzVvVDxft6SkJoKIQ+C7EmVqMjua7/VWY=
 code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7 h1:sCOGpisvQskRdr4OaDEg7yX0AxH8TcQesSvVfQzXyXQ=
 code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7/go.mod h1:PBTOX+UoynADfrbEowCU5KwdwA0z0tljVcneR1VFt6I=
 code.waarp.fr/lib/icap v1.0.0 h1:2XmosGoL3qccS2w/l/6bl20hBsJHssmcxC9+tamYh2E=

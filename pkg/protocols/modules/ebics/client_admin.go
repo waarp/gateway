@@ -951,12 +951,12 @@ func x509CertificateInnerXML(cert *tls.Certificate) string {
 }
 
 func signatureKeyInnerXML(cert *tls.Certificate, version string) string {
-	return x509CertificateInnerXML(cert) +
+	return "<ds:X509Data>" + x509CertificateInnerXML(cert) + "</ds:X509Data>" +
 		"<SignatureVersion>" + strings.TrimSpace(version) + "</SignatureVersion>"
 }
 
 func typedKeyInnerXML(cert *tls.Certificate, versionElement, version string) string {
-	return x509CertificateInnerXML(cert) +
+	return "<ds:X509Data>" + x509CertificateInnerXML(cert) + "</ds:X509Data>" +
 		"<" + versionElement + ">" + strings.TrimSpace(version) + "</" + versionElement + ">"
 }
 
