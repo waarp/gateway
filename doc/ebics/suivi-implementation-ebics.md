@@ -320,6 +320,34 @@ Point de situation:
   La repasse `go test` et `golangci-lint` sur
   `pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
   est verte.
+  2026-04-03: `P5A` est maintenant ferme comme cadrage fonctionnel/technique.
+  Le document `gateway-role-banque-ebics.md` fixe le perimetre cible quand
+  Waarp Gateway joue le role banque:
+  `HPD/HKD/HTD/HAA` et `RTN` sortant minimal en priorite,
+  puis initialisation / key management / rotations,
+  puis reporting / signature.
+  Il fixe aussi la doctrine de conception:
+  reponses serveur alimentees par des projections internes explicites,
+  aucun glissement metier cache dans les handlers EBICS,
+  et aucune reutilisation de `TransferInfo` comme bus technique.
+  2026-04-03: `P5B` est maintenant ferme.
+  Le serveur Gateway EBICS expose maintenant `HPD`, `HKD`, `HTD`, `HAA`
+  via les handlers `lib-ebics` natifs.
+  Les reponses sont alimentees par une projection contractuelle serveur
+  dediee, pas par un detour via le client.
+  Un test HTTP reel couvre le telechargement de `HPD/HKD/HTD/HAA`
+  depuis un client `lib-ebics` vers le serveur Gateway.
+  2026-04-03: `P5C` est maintenant ferme.
+  La projection contractuelle serveur est maintenant explicitement
+  separee des snapshots client:
+  `EbicsServerContractSet` / `EbicsServerContractItem` remplacent
+  l'usage de `EbicsContractView` pour les ordres serveur.
+  Le bornage fonctionnel est impose par le modele:
+  `HPD/HAA` restent host-scoped,
+  `HKD/HTD` restent subscriber-scoped.
+  Une surface REST/CLI minimale permet d'inspecter ces projections
+  via `server-contract-sets`, et la repasse
+  `go test` / `golangci-lint` sur le perimetre touche est verte.
   2026-04-01: `P4A` est maintenant ferme.
   La cartographie exhaustive montre deux problemes distincts:
   les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,

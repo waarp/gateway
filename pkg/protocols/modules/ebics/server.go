@@ -90,10 +90,18 @@ func (s *Server) start() error {
 
 	router := libadminhelper.NewRouter(adminHandler)
 	payloadRouter := newPayloadOrderRouter(s.db, s.logger)
+	hpdRouter := newContractOrderProvider(s.db, s.providerStore, s.server, "HPD")
+	hkdRouter := newContractOrderProvider(s.db, s.providerStore, s.server, "HKD")
+	htdRouter := newContractOrderProvider(s.db, s.providerStore, s.server, "HTD")
+	haaRouter := newContractOrderProvider(s.db, s.providerStore, s.server, "HAA")
 	router.Register("FUL", liborders.FULHandler{Provider: payloadRouter})
 	router.Register("FDL", liborders.FDLHandler{Provider: payloadRouter})
 	router.Register("BTU", liborders.BTUHandler{Provider: payloadRouter})
 	router.Register("BTD", liborders.BTDHandler{Provider: payloadRouter})
+	router.Register("HPD", liborders.HPDHandler{Provider: hpdRouter})
+	router.Register("HKD", liborders.HKDHandler{Provider: hkdRouter})
+	router.Register("HTD", liborders.HTDHandler{Provider: htdRouter})
+	router.Register("HAA", liborders.HAAHandler{Provider: haaRouter})
 
 	builder := libproviderserver.New().
 		KeyStore(s.providerStore).

@@ -388,6 +388,8 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 		contractViewsPath           = "/ebics/contract-views"
 		contractViewRefreshPath     = "/ebics/contract-views/actions/refresh"
 		contractViewPath            = "/ebics/contract-views/{contract_view}"
+		serverContractSetsPath      = "/ebics/server-contract-sets"
+		serverContractSetPath       = "/ebics/server-contract-sets/{ebics_server_contract_set}"
 		contractRefreshPoliciesPath = "/ebics/contract-refresh-policies"
 		contractRefreshPolicyPath   = "/ebics/contract-refresh-policies/{ebics_contract_refresh_policy}"
 		historyPath                 = "/ebics/history"
@@ -437,6 +439,8 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 	mkHandler(contractViewsPath, listEbicsContractViews, model.PermAdminRead, http.MethodGet)
 	mkHandler(contractViewRefreshPath, refreshEbicsContractViews, model.PermAdminWrite, http.MethodPost)
 	mkHandler(contractViewPath, getEbicsContractView, model.PermAdminRead, http.MethodGet)
+	mkHandler(serverContractSetsPath, listEbicsServerContractSets, model.PermAdminRead, http.MethodGet)
+	mkHandler(serverContractSetPath, getEbicsServerContractSet, model.PermAdminRead, http.MethodGet)
 	mkHandler(contractRefreshPoliciesPath, listEbicsContractRefreshPolicies, model.PermAdminRead, http.MethodGet)
 	mkHandler(contractRefreshPoliciesPath, addEbicsContractRefreshPolicy, model.PermAdminWrite, http.MethodPost)
 	mkHandler(contractRefreshPolicyPath, getEbicsContractRefreshPolicy, model.PermAdminRead, http.MethodGet)

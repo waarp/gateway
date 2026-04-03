@@ -1805,7 +1805,7 @@ Commande qualite minimale:
 
 Sous-lots cochables:
 
-- [ ] Lot P5A - Cadrer le perimetre serveur non payload cible
+- [x] Lot P5A - Cadrer le perimetre serveur non payload cible
   Attendus: lister et prioriser les ordres serveur a supporter quand Gateway
   joue le role banque.
   Portee minimale explicite:
@@ -1818,18 +1818,74 @@ Sous-lots cochables:
   Le lot doit aussi clarifier l'articulation entre ces ordres serveur,
   l'application metier interne et les modeles de donnees/contrats exposes.
   Validation: cadrage fonctionnel/technique relu contre les specs
+  2026-04-03: lot ferme.
+  Resultat:
+  - le cadrage cible est formalise dans
+    `doc/ebics/gateway-role-banque-ebics.md`;
+  - la priorisation fonctionnelle est arretee:
+    `HPD/HKD/HTD/HAA` + `RTN` sortant minimal d'abord,
+    puis initialisation / key management / rotations,
+    puis reporting / signature;
+  - la doctrine de conception est explicitee:
+    pas de detour ad hoc dans les handlers EBICS,
+    pas de surcharge de `TransferInfo`,
+    pas de confusion entre projection protocolaire, donnees metier internes
+    et etat runtime;
+  - le role du RTN sortant cote banque est borne comme notification
+    protocolaire observable, distincte du passe-plat metier et de `VEU`.
+  Aucun test rejoue: lot de cadrage documentaire uniquement.
 
-- [ ] Lot P5B - Implementer le support serveur des ordres contractuels
+- [x] Lot P5B - Implementer le support serveur des ordres contractuels
   Attendus: le serveur Gateway EBICS est capable d'exposer et servir
   `HPD` / `HKD` / `HTD` / `HAA` a partir de donnees/policies internes
   propres, sans detour ad hoc par le client.
   Validation: tests serveur HTTP reels sur ces ordres
+  2026-04-03: lot ferme.
+  Resultat:
+  - le serveur EBICS enregistre maintenant `HPD`, `HKD`, `HTD`, `HAA`
+    dans `server.go` via les handlers `lib-ebics` natifs;
+  - un provider contractuel serveur projette `EbicsHost`,
+    `EbicsSubscriber` et `EbicsContractViewItem` en reponses
+    `HPD/HKD/HTD/HAA`, sans XML manuel ad hoc;
+  - la couverture reelle est posee dans
+    `server_contract_integration_test.go` avec un client `lib-ebics`
+    reel qui telecharge `HPD`, `HKD`, `HTD`, `HAA` via HTTP/TLS
+    contre le serveur Gateway.
+  QA rejouee:
+  - `go test ./pkg/protocols/modules/ebics -run "TestServerHTTPContractOrdersServeConfiguredViews" -v -count=1 -timeout 10m`
+  - `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model -count=1`
+  - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
 
-- [ ] Lot P5C - Raccorder le serveur EBICS aux donnees metier/contrats internes
+- [x] Lot P5C - Raccorder le serveur EBICS aux donnees metier/contrats internes
   Attendus: les informations retournees par les ordres contractuels serveur
   proviennent d'un modele metier/administratif borne, versionne et observable,
   compatible avec le cas d'usage "banque sur Waarp Gateway".
   Validation: tests d'integration serveur + persistance du perimetre touche
+  2026-04-03: lot ferme.
+  Resultat:
+  - les ordres contractuels serveur ne lisent plus les snapshots
+    client `EbicsContractView`, mais une projection serveur dediee
+    `EbicsServerContractSet` / `EbicsServerContractItem`;
+  - le bornage fonctionnel est maintenant explicite et verifie au niveau
+    modele:
+    `HPD` / `HAA` sont des projections host-scoped,
+    `HKD` / `HTD` sont des projections subscriber-scoped;
+  - le provider serveur EBICS recharge donc un perimetre distinct selon
+    l'ordre, au lieu de reposer sur une mutualisation implicite avec
+    les vues client;
+  - une observabilite REST/CLI minimale est disponible via
+    `/api/ebics/server-contract-sets`,
+    `/api/ebics/server-contract-sets/{id}` et
+    `waarp-gateway ebics server-contract-set list/get`;
+  - les tests d'integration HTTP reels `HPD/HKD/HTD/HAA` ont ete convertis
+    vers cette projection serveur dediee, et des tests REST/CLI/modeles
+    complementaires couvrent la lecture et les invariants de scope.
+  QA rejouee:
+  - `go test ./pkg/protocols/modules/ebics -run "TestServerHTTPContractOrdersServeConfiguredViews" -v -count=1 -timeout 10m`
+  - `go test ./pkg/admin/rest -run "TestGetEbics(ServerContractSet|ContractView|RuntimePolicy|ContractRefreshPolicy)" -count=1`
+  - `go test ./pkg/cmd/client -run "TestEbics(ServerContractSetGetCommandDisplaysItems|ContractViewGetCommandDisplaysItems|ContractRefreshPolicyGetCommandDisplaysDetail)" -count=1`
+  - `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/model ./pkg/database/migrations -count=1`
+  - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./cmd/waarp-gateway ./pkg/model ./pkg/database/migrations`
 
 - [ ] Lot P5D - Implementer les ordres serveur non payload hors contrats
   Attendus: support serveur borne pour les ordres d'initialisation, gestion
@@ -1852,9 +1908,9 @@ Sous-lots cochables:
 
 Ordre d'execution recommande:
 
-1. [ ] Lot P5A
-2. [ ] Lot P5B
-3. [ ] Lot P5C
+1. [x] Lot P5A
+2. [x] Lot P5B
+3. [x] Lot P5C
 4. [ ] Lot P5D
 5. [ ] Lot P5E
 6. [ ] Lot P5F

@@ -304,6 +304,65 @@ func TestGetEbicsContractViewReturnsItemsOrderedByID(t *testing.T) {
 	assert.EqualValues(t, second.ID, body.Items[1].ID)
 }
 
+func TestGetEbicsServerContractSetReturnsItemsOrderedByID(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-SCV", "PARTNER-SCV", "USER-SCV")
+
+	set := &model.EbicsServerContractSet{
+		Name:              "hkd-bank-a",
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: sql.NullInt64{Int64: subscriber.ID, Valid: true},
+		SourceOrderType:   "HKD",
+		VersionTag:        "v1",
+		Status:            "ACTIVE",
+		PublishedAt:       time.Date(2026, 4, 3, 15, 0, 0, 0, time.UTC),
+	}
+	require.NoError(t, db.Insert(set).Run())
+
+	first := &model.EbicsServerContractItem{
+		ServerContractSetID: set.ID,
+		ItemType:            "BTF",
+		ItemKey:             "B",
+		OrderType:           "BTD",
+		ServiceName:         "MCT",
+		MsgName:             "camt.054",
+		IsEnabled:           true,
+	}
+	second := &model.EbicsServerContractItem{
+		ServerContractSetID: set.ID,
+		ItemType:            "BTF",
+		ItemKey:             "A",
+		OrderType:           "BTU",
+		ServiceName:         "MCT",
+		MsgName:             "pain.001",
+		IsEnabled:           true,
+	}
+	require.NoError(t, db.Insert(first).Run())
+	require.NoError(t, db.Insert(second).Run())
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/server-contract-sets/"+marshalID(set.ID), nil)
+	req = mux.SetURLVars(req, map[string]string{"ebics_server_contract_set": marshalID(set.ID)})
+	w := httptest.NewRecorder()
+
+	getEbicsServerContractSet(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body struct {
+		ServerContractSet *api.OutEbicsServerContractSet    `json:"serverContractSet"`
+		Items             []*api.OutEbicsServerContractItem `json:"items"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.NotNil(t, body.ServerContractSet)
+	assert.Equal(t, "HOST-SCV", body.ServerContractSet.HostID)
+	assert.Equal(t, "PARTNER-SCV", body.ServerContractSet.PartnerID)
+	assert.Equal(t, "SUBSCRIBER", body.ServerContractSet.Scope)
+	require.Len(t, body.Items, 2)
+	assert.EqualValues(t, first.ID, body.Items[0].ID)
+	assert.EqualValues(t, second.ID, body.Items[1].ID)
+}
+
 func TestActOnEbicsKeyLifecycleUpdatesStatusAndEvidence(t *testing.T) {
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)

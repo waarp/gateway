@@ -45,6 +45,8 @@ const (
 	TableEbicsRuntimePolicies         = "ebics_runtime_policies"
 	TableEbicsContractRefreshPolicies = "ebics_contract_refresh_policies"
 	TableEbicsHistoryEntries          = "ebics_history_entries"
+	TableEbicsServerContractSets      = "ebics_server_contract_sets"
+	TableEbicsServerContractItems     = "ebics_server_contract_items"
 
 	ViewNormalizedTransfers = "normalized_transfers"
 )

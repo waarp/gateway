@@ -162,6 +162,24 @@ func getDBEbicsContractView(r *http.Request, db *database.DB) (*model.EbicsContr
 	return view, nil
 }
 
+func getDBEbicsServerContractSet(r *http.Request, db *database.DB) (*model.EbicsServerContractSet, error) {
+	id, err := parseRESTInt64Param(r, "ebics_server_contract_set", "EBICS server contract set")
+	if err != nil {
+		return nil, err
+	}
+
+	set := &model.EbicsServerContractSet{}
+	if err = db.Get(set, "id=?", id).Owner().Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFoundf("EBICS server contract set %d not found", id)
+		}
+
+		return nil, fmt.Errorf("failed to retrieve EBICS server contract set %d: %w", id, err)
+	}
+
+	return set, nil
+}
+
 func getDBEbicsOperation(r *http.Request, db *database.DB) (*model.EbicsOperation, error) {
 	id, err := parseRESTInt64Param(r, "ebics_operation", "EBICS operation")
 	if err != nil {
@@ -414,6 +432,67 @@ func DBEbicsContractViewItemToREST(item *model.EbicsContractViewItem) *api.OutEb
 		MaxAmountValue:     item.MaxAmountValue,
 		MaxAmountCurrency:  item.MaxAmountCurrency,
 		IsEnabled:          item.IsEnabled,
+	}
+}
+
+// DBEbicsServerContractSetToREST transforms an EBICS server contract set into its REST representation.
+func DBEbicsServerContractSetToREST(
+	db database.ReadAccess,
+	set *model.EbicsServerContractSet,
+) (*api.OutEbicsServerContractSet, error) {
+	host := &model.EbicsHost{}
+	if err := db.Get(host, "id=?", set.EbicsHostID).Owner().Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve EBICS host for server contract set %d: %w", set.ID, err)
+	}
+
+	restSet := &api.OutEbicsServerContractSet{
+		ID:              set.ID,
+		Name:            set.Name,
+		Description:     set.Description,
+		HostID:          host.HostID,
+		SourceOrderType: set.SourceOrderType,
+		VersionTag:      set.VersionTag,
+		Status:          set.Status,
+		PublishedAt:     ptrTime(set.PublishedAt),
+	}
+	if set.EbicsSubscriberID.Valid {
+		subscriber := &model.EbicsSubscriber{}
+		if err := db.Get(subscriber, "id=?", set.EbicsSubscriberID.Int64).Owner().Run(); err != nil {
+			return nil, fmt.Errorf(
+				"failed to retrieve EBICS subscriber for server contract set %d: %w",
+				set.ID,
+				err,
+			)
+		}
+		restSet.Scope = "SUBSCRIBER"
+		restSet.PartnerID = subscriber.PartnerID
+		restSet.UserID = subscriber.UserID
+	} else {
+		restSet.Scope = "HOST"
+	}
+
+	return restSet, nil
+}
+
+// DBEbicsServerContractItemToREST transforms an EBICS server contract item into its REST representation.
+func DBEbicsServerContractItemToREST(item *model.EbicsServerContractItem) *api.OutEbicsServerContractItem {
+	return &api.OutEbicsServerContractItem{
+		ID:                 item.ID,
+		ItemType:           item.ItemType,
+		ItemKey:            item.ItemKey,
+		OrderType:          item.OrderType,
+		ServiceName:        item.ServiceName,
+		ServiceOption:      item.ServiceOption,
+		Scope:              item.Scope,
+		MsgName:            item.MsgName,
+		ContainerType:      item.ContainerType,
+		AdminOrderType:     item.AdminOrderType,
+		AuthorisationLevel: item.AuthorisationLevel,
+		AccountID:          item.AccountID,
+		MaxAmountValue:     item.MaxAmountValue,
+		MaxAmountCurrency:  item.MaxAmountCurrency,
+		IsEnabled:          item.IsEnabled,
+		Payload:            item.Payload,
 	}
 }
 

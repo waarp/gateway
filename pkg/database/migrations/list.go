@@ -366,4 +366,9 @@ var Migrations = []Change{
 		Up:          ver0_16_5AddEbicsHistoryEntriesUp,
 		Down:        ver0_16_5AddEbicsHistoryEntriesDown,
 	},
+	{ // #70
+		Description: `Add the EBICS server contract projection tables`,
+		Up:          ver0_16_6AddEbicsServerContractSetsUp,
+		Down:        ver0_16_6AddEbicsServerContractSetsDown,
+	},
 }

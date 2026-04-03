@@ -74,4 +74,6 @@ type (
 	EbicsRTNProviders            = Slice[*EbicsRTNProvider]
 	EbicsContractRefreshPolicies = Slice[*EbicsContractRefreshPolicy]
 	EbicsHistoryEntries          = Slice[*EbicsHistoryEntry]
+	EbicsServerContractSets      = Slice[*EbicsServerContractSet]
+	EbicsServerContractItems     = Slice[*EbicsServerContractItem]
 )

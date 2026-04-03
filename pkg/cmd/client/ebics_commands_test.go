@@ -445,6 +445,55 @@ func TestEbicsContractViewRefreshCommandBuildsRequest(t *testing.T) {
 	assert.Contains(t, w.String(), "=== EBICS contract views ===")
 }
 
+func TestEbicsServerContractSetGetCommandDisplaysItems(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsServerContractSetGet{}
+
+	expected := &expectedRequest{
+		method: http.MethodGet,
+		path:   "/api/ebics/server-contract-sets/21",
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusOK,
+		headers: http.Header{},
+		body: map[string]any{
+			"serverContractSet": map[string]any{
+				"id":              21,
+				"name":            "hkd-bank-a",
+				"hostID":          "HOST-SCV",
+				"partnerID":       "PARTNER-SCV",
+				"userID":          "USER-SCV",
+				"scope":           "SUBSCRIBER",
+				"sourceOrderType": "HKD",
+				"versionTag":      "v2026",
+				"status":          "ACTIVE",
+				"publishedAt":     "2026-04-03T15:00:00Z",
+			},
+			"items": []map[string]any{
+				{
+					"id":            1,
+					"itemType":      "BTF",
+					"itemKey":       "HKD:BTD:MCT",
+					"orderType":     "BTD",
+					"serviceName":   "MCT",
+					"serviceOption": "URGP",
+					"scope":         "BIL",
+					"msgName":       "camt.054",
+					"isEnabled":     true,
+				},
+			},
+		},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command, "21"))
+	assert.Contains(t, w.String(), "EBICS server contract set \"hkd-bank-a\" [ACTIVE]")
+	assert.Contains(t, w.String(), "Scope: SUBSCRIBER")
+	assert.Contains(t, w.String(), "HKD:BTD:MCT [BTF / BTD] service=MCT/URGP")
+}
+
 func TestEbicsKeyLifecycleActionCommandBuildsRequest(t *testing.T) {
 	w := newTestOutput()
 	command := &EbicsKeyLifecycleAction{}

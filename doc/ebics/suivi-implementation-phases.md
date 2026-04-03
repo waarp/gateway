@@ -197,6 +197,34 @@ Note:
   Les tests et le linter du perimetre
   `pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
   sont verts.
+  2026-04-03: `P5A` est maintenant ferme comme lot de cadrage.
+  Le perimetre "Gateway en role banque EBICS" est formalise dans
+  `gateway-role-banque-ebics.md`:
+  priorite aux ordres contractuels `HPD/HKD/HTD/HAA` et au RTN sortant
+  minimal, puis aux ordres serveur d'initialisation / gestion / rotation de
+  cles, puis aux ordres serveur de reporting / signature.
+  Le document fixe aussi les regles d'architecture:
+  pas de surcharge de `TransferInfo`,
+  pas de logique metier cachee dans les handlers EBICS,
+  et usage de projections internes explicites pour alimenter les reponses
+  serveur.
+  2026-04-03: `P5B` est maintenant ferme.
+  Le serveur Gateway EBICS sert desormais `HPD`, `HKD`, `HTD`, `HAA`
+  par les handlers `lib-ebics` natifs, alimentes par une projection
+  contractuelle serveur issue de `EbicsHost`, `EbicsSubscriber` et
+  `EbicsContractViewItem`.
+  La preuve passe par un test HTTP reel
+  `TestServerHTTPContractOrdersServeConfiguredViews` qui telecharge les
+  quatre ordres via un client `lib-ebics` reel contre le serveur Gateway.
+  2026-04-03: `P5C` est maintenant ferme.
+  La projection contractuelle serveur est maintenant isolee dans
+  `EbicsServerContractSet` / `EbicsServerContractItem`,
+  distincte des vues contractuelles client.
+  Le bornage fonctionnel est impose au niveau modele:
+  `HPD/HAA` scopes host,
+  `HKD/HTD` scopes subscriber.
+  Une lecture REST/CLI minimale est disponible via
+  `server-contract-sets`, et la repasse qualite ciblee est verte.
   REST/CLI des providers RTN exposent cette reference explicitement.
   2026-04-02: `P2E.5` est maintenant ferme.
   Les surfaces REST/CLI des providers RTN exposent desormais un etat

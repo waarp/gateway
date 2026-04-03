@@ -40,6 +40,8 @@ const (
 	NameEbicsRuntimePolicy          = "ebics runtime policy"
 	NameEbicsContractRefreshPolicy  = "ebics contract refresh policy"
 	NameEbicsHistoryEntry           = "ebics history entry"
+	NameEbicsServerContractSet      = "ebics server contract set"
+	NameEbicsServerContractItem     = "ebics server contract item"
 )
 
 const authPassword = "password"
