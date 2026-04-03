@@ -377,49 +377,54 @@ func makeEmailHanddlers(mkHandler HandlerFactory) {
 
 func makeEbicsHandlers(mkHandler HandlerFactory) {
 	const (
-		payloadBTUUploadPath        = "/ebics/payloads/{order_type:btu|ful}/upload"
-		payloadBTDDownloadPath      = "/ebics/payloads/{order_type:btd|fdl}/download"
-		payloadsPath                = "/ebics/payloads"
-		payloadPath                 = "/ebics/payloads/{ebics_operation}"
-		payloadRetryPath            = "/ebics/payloads/{ebics_operation}/retry"
-		payloadRecoverPath          = "/ebics/payloads/{ebics_operation}/recover"
-		payloadProfilesPath         = "/ebics/payload-profiles"
-		payloadProfilePath          = "/ebics/payload-profiles/{payload_profile}"
-		contractViewsPath           = "/ebics/contract-views"
-		contractViewRefreshPath     = "/ebics/contract-views/actions/refresh"
-		contractViewPath            = "/ebics/contract-views/{contract_view}"
-		serverContractSetsPath      = "/ebics/server-contract-sets"
-		serverContractSetPath       = "/ebics/server-contract-sets/{ebics_server_contract_set}"
-		contractRefreshPoliciesPath = "/ebics/contract-refresh-policies"
-		contractRefreshPolicyPath   = "/ebics/contract-refresh-policies/{ebics_contract_refresh_policy}"
-		historyPath                 = "/ebics/history"
-		historyEntryPath            = "/ebics/history/{ebics_history}"
-		operationsPath              = "/ebics/operations"
-		operationReportingPath      = "/ebics/operations/actions/reporting"
-		operationSignaturePath      = "/ebics/operations/actions/signature"
-		operationPath               = "/ebics/operations/{ebics_operation}"
-		transactionsPath            = "/ebics/transactions"
-		transactionPath             = "/ebics/transactions/{ebics_transaction}"
-		transactionSegmentsPath     = "/ebics/transactions/{ebics_transaction}/segments"
-		transactionSegmentPath      = "/ebics/transactions/{ebics_transaction}/segments/{segment_number}"
-		keyLifecyclesPath           = "/ebics/key-lifecycles"
-		keyLifecyclePath            = "/ebics/key-lifecycles/{ebics_key_lifecycle}"
-		keyLifecycleActionPath      = "/ebics/key-lifecycles/{ebics_key_lifecycle}/actions"
-		keyRotationPreparePath      = "/ebics/key-lifecycles/actions/prepare-rotation"
-		keyRotationSendPath         = "/ebics/key-lifecycles/actions/send-rotation"
-		keyRotationConfirmPath      = "/ebics/key-lifecycles/actions/confirm-rotation"
-		keyRotationCancelPath       = "/ebics/key-lifecycles/actions/cancel-rotation"
-		keyRotationRejectPath       = "/ebics/key-lifecycles/actions/reject-rotation"
-		keyRotationRevokePath       = "/ebics/key-lifecycles/actions/revoke-rotation"
-		initializationsPath         = "/ebics/initializations"
-		initializationPath          = "/ebics/initializations/{ebics_initialization}"
-		initializationActionPath    = "/ebics/initializations/{ebics_initialization}/actions"
-		rtnEventsPath               = "/ebics/rtn/events"
-		rtnEventPath                = "/ebics/rtn/events/{ebics_rtn_event}"
-		rtnEventActionPath          = "/ebics/rtn/events/{ebics_rtn_event}/actions"
-		rtnProvidersPath            = "/ebics/rtn/providers"
-		rtnProviderPath             = "/ebics/rtn/providers/{ebics_rtn_provider}"
-		runtimePolicyPath           = "/ebics/runtime-policy"
+		payloadBTUUploadPath              = "/ebics/payloads/{order_type:btu|ful}/upload"
+		payloadBTDDownloadPath            = "/ebics/payloads/{order_type:btd|fdl}/download"
+		payloadsPath                      = "/ebics/payloads"
+		payloadPath                       = "/ebics/payloads/{ebics_operation}"
+		payloadRetryPath                  = "/ebics/payloads/{ebics_operation}/retry"
+		payloadRecoverPath                = "/ebics/payloads/{ebics_operation}/recover"
+		payloadProfilesPath               = "/ebics/payload-profiles"
+		payloadProfilePath                = "/ebics/payload-profiles/{payload_profile}"
+		contractViewsPath                 = "/ebics/contract-views"
+		contractViewRefreshPath           = "/ebics/contract-views/actions/refresh"
+		contractViewPath                  = "/ebics/contract-views/{contract_view}"
+		serverContractSetsPath            = "/ebics/server-contract-sets"
+		serverContractSetPath             = "/ebics/server-contract-sets/{ebics_server_contract_set}"
+		contractRefreshPoliciesPath       = "/ebics/contract-refresh-policies"
+		contractRefreshPolicyPath         = "/ebics/contract-refresh-policies/{ebics_contract_refresh_policy}"
+		historyPath                       = "/ebics/history"
+		historyEntryPath                  = "/ebics/history/{ebics_history}"
+		operationsPath                    = "/ebics/operations"
+		operationReportingPath            = "/ebics/operations/actions/reporting"
+		operationSignaturePath            = "/ebics/operations/actions/signature"
+		operationPath                     = "/ebics/operations/{ebics_operation}"
+		transactionsPath                  = "/ebics/transactions"
+		transactionPath                   = "/ebics/transactions/{ebics_transaction}"
+		transactionSegmentsPath           = "/ebics/transactions/{ebics_transaction}/segments"
+		transactionSegmentPath            = "/ebics/transactions/{ebics_transaction}/segments/{segment_number}"
+		keyLifecyclesPath                 = "/ebics/key-lifecycles"
+		keyLifecyclePath                  = "/ebics/key-lifecycles/{ebics_key_lifecycle}"
+		keyLifecycleActionPath            = "/ebics/key-lifecycles/{ebics_key_lifecycle}/actions"
+		keyRotationPreparePath            = "/ebics/key-lifecycles/actions/prepare-rotation"
+		keyRotationSendPath               = "/ebics/key-lifecycles/actions/send-rotation"
+		keyRotationConfirmPath            = "/ebics/key-lifecycles/actions/confirm-rotation"
+		keyRotationCancelPath             = "/ebics/key-lifecycles/actions/cancel-rotation"
+		keyRotationRejectPath             = "/ebics/key-lifecycles/actions/reject-rotation"
+		keyRotationRevokePath             = "/ebics/key-lifecycles/actions/revoke-rotation"
+		initializationsPath               = "/ebics/initializations"
+		initializationPath                = "/ebics/initializations/{ebics_initialization}"
+		initializationActionPath          = "/ebics/initializations/{ebics_initialization}/actions"
+		rtnEventsPath                     = "/ebics/rtn/events"
+		rtnEventPath                      = "/ebics/rtn/events/{ebics_rtn_event}"
+		rtnEventActionPath                = "/ebics/rtn/events/{ebics_rtn_event}/actions"
+		rtnProvidersPath                  = "/ebics/rtn/providers"
+		rtnProviderPath                   = "/ebics/rtn/providers/{ebics_rtn_provider}"
+		rtnOutboundNotificationsPath      = "/ebics/rtn/outbound/notifications"
+		rtnOutboundNotificationPath       = "/ebics/rtn/outbound/notifications/{ebics_rtn_outbound_notification}"
+		rtnOutboundNotificationActionPath = "/ebics/rtn/outbound/notifications/{ebics_rtn_outbound_notification}/actions"
+		rtnOutboundProvidersPath          = "/ebics/rtn/outbound/providers"
+		rtnOutboundProviderPath           = "/ebics/rtn/outbound/providers/{ebics_rtn_outbound_provider}"
+		runtimePolicyPath                 = "/ebics/runtime-policy"
 	)
 
 	mkHandler(payloadBTUUploadPath, submitEbicsPayload, model.PermTransfersWrite, http.MethodPost)
@@ -483,6 +488,21 @@ func makeEbicsHandlers(mkHandler HandlerFactory) {
 	mkHandler(rtnProviderPath, updateEbicsRTNProvider, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(rtnProviderPath, replaceEbicsRTNProvider, model.PermAdminWrite, http.MethodPut)
 	mkHandler(rtnProviderPath, deleteEbicsRTNProvider, model.PermAdminDelete, http.MethodDelete)
+	mkHandler(rtnOutboundProvidersPath, listEbicsRTNOutboundProviders, model.PermAdminRead, http.MethodGet)
+	mkHandler(rtnOutboundProvidersPath, addEbicsRTNOutboundProvider, model.PermAdminWrite, http.MethodPost)
+	mkHandler(rtnOutboundProviderPath, getEbicsRTNOutboundProvider, model.PermAdminRead, http.MethodGet)
+	mkHandler(rtnOutboundProviderPath, updateEbicsRTNOutboundProvider, model.PermAdminWrite, http.MethodPatch)
+	mkHandler(rtnOutboundProviderPath, replaceEbicsRTNOutboundProvider, model.PermAdminWrite, http.MethodPut)
+	mkHandler(rtnOutboundProviderPath, deleteEbicsRTNOutboundProvider, model.PermAdminDelete, http.MethodDelete)
+	mkHandler(rtnOutboundNotificationsPath, listEbicsRTNOutboundNotifications, model.PermTransfersRead, http.MethodGet)
+	mkHandler(rtnOutboundNotificationsPath, addEbicsRTNOutboundNotification, model.PermTransfersWrite, http.MethodPost)
+	mkHandler(rtnOutboundNotificationPath, getEbicsRTNOutboundNotification, model.PermTransfersRead, http.MethodGet)
+	mkHandler(
+		rtnOutboundNotificationActionPath,
+		actOnEbicsRTNOutboundNotification,
+		model.PermTransfersWrite,
+		http.MethodPut,
+	)
 
 	mkHandler(runtimePolicyPath, getEbicsRuntimePolicy, model.PermAdminRead, http.MethodGet)
 	mkHandler(runtimePolicyPath, setEbicsRuntimePolicy, model.PermAdminWrite, http.MethodPut)

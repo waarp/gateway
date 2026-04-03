@@ -48,6 +48,7 @@ type WG struct {
 	Controller   *controller.Controller
 	Analytics    *analytics.Service
 	EbicsRTN     *ebics.RTNService
+	EbicsRTNOut  *ebics.RTNOutboundService
 	EbicsMaint   *ebics.MaintenanceService
 	EbicsRefresh *ebics.ContractRefreshService
 }
@@ -117,6 +118,7 @@ func (wg *WG) initServices() {
 	wg.AdminService = &admin.Server{DB: wg.DBService}
 	wg.Controller = &controller.Controller{DB: wg.DBService}
 	wg.EbicsRTN = ebics.NewRTNService(wg.DBService)
+	wg.EbicsRTNOut = ebics.NewRTNOutboundService(wg.DBService)
 	wg.EbicsMaint = ebics.NewMaintenanceService(wg.DBService)
 	wg.EbicsRefresh = ebics.NewContractRefreshService(wg.DBService)
 
@@ -149,6 +151,10 @@ func (wg *WG) startServices() error {
 		return fmt.Errorf("cannot start EBICS RTN service: %w", err)
 	}
 
+	if err := wg.EbicsRTNOut.Start(); err != nil {
+		return fmt.Errorf("cannot start EBICS outbound RTN service: %w", err)
+	}
+
 	if err := wg.EbicsMaint.Start(); err != nil {
 		return fmt.Errorf("cannot start EBICS maintenance service: %w", err)
 	}
@@ -167,6 +173,7 @@ func (wg *WG) startServices() error {
 	services.Core[snmp.ServiceName] = wg.SnmpService
 	services.Core[analytics.ServiceName] = wg.Analytics
 	services.Core[ebics.RTNServiceName] = wg.EbicsRTN
+	services.Core[ebics.RTNOutboundServiceName] = wg.EbicsRTNOut
 	services.Core[ebics.MaintenanceServiceName] = wg.EbicsMaint
 	services.Core[ebics.ContractRefreshServiceName] = wg.EbicsRefresh
 
@@ -295,6 +302,9 @@ func (wg *WG) stopServices() {
 
 	if err := wg.EbicsRTN.Stop(ctx); err != nil && !errors.Is(err, utils.ErrNotRunning) {
 		wg.Logger.Warningf("an error occurred while stopping the EBICS RTN service: %v", err)
+	}
+	if err := wg.EbicsRTNOut.Stop(ctx); err != nil && !errors.Is(err, utils.ErrNotRunning) {
+		wg.Logger.Warningf("an error occurred while stopping the EBICS outbound RTN service: %v", err)
 	}
 
 	if err := wg.EbicsMaint.Stop(ctx); err != nil && !errors.Is(err, utils.ErrNotRunning) {

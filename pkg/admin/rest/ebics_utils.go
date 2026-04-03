@@ -325,6 +325,45 @@ func getDBEbicsRTNProvider(r *http.Request, db *database.DB) (*model.EbicsRTNPro
 	return provider, nil
 }
 
+func getDBEbicsRTNOutboundProvider(r *http.Request, db *database.DB) (*model.EbicsRTNOutboundProvider, error) {
+	name, ok := mux.Vars(r)["ebics_rtn_outbound_provider"]
+	if !ok || strings.TrimSpace(name) == "" {
+		return nil, notFound("missing outbound RTN provider name")
+	}
+
+	provider := &model.EbicsRTNOutboundProvider{}
+	if err := db.Get(provider, "name=?", strings.TrimSpace(name)).Owner().Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFoundf("outbound RTN provider %q not found", name)
+		}
+
+		return nil, fmt.Errorf("failed to retrieve outbound RTN provider %q: %w", name, err)
+	}
+
+	return provider, nil
+}
+
+func getDBEbicsRTNOutboundNotification(
+	r *http.Request,
+	db *database.DB,
+) (*model.EbicsRTNOutboundNotification, error) {
+	id, err := parseRESTInt64Param(r, "ebics_rtn_outbound_notification", "outbound RTN notification")
+	if err != nil {
+		return nil, err
+	}
+
+	notification := &model.EbicsRTNOutboundNotification{}
+	if err = db.Get(notification, "id=?", id).Owner().Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFoundf("outbound RTN notification %d not found", id)
+		}
+
+		return nil, fmt.Errorf("failed to retrieve outbound RTN notification %d: %w", id, err)
+	}
+
+	return notification, nil
+}
+
 func getDBEbicsHistoryEntry(r *http.Request, db *database.DB) (*model.EbicsHistoryEntry, error) {
 	id, err := parseRESTInt64Param(r, "ebics_history", "EBICS history entry")
 	if err != nil {
@@ -881,6 +920,53 @@ func DBEbicsRTNProviderToREST(db *database.DB, provider *model.EbicsRTNProvider)
 		ActivationReason: activation.reason,
 		LastConnectionAt: ptrTime(provider.LastConnectionAt),
 		LastError:        provider.LastError,
+	}
+}
+
+func DBEbicsRTNOutboundProviderToREST(
+	provider *model.EbicsRTNOutboundProvider,
+) *api.OutEbicsRTNOutboundProvider {
+	status := "READY"
+	reason := ""
+	if !provider.Enabled {
+		status = ebicsActivationDisabled
+		reason = "the outbound RTN provider is disabled"
+	} else if endpoint, ok := configStringValue(provider.ConfigurationMap, "endpoint"); !ok || endpoint == "" {
+		status = ebicsRTNProviderActivationBlocked
+		reason = "the outbound RTN provider endpoint is missing"
+	}
+
+	return &api.OutEbicsRTNOutboundProvider{
+		ID:               provider.ID,
+		Name:             provider.Name,
+		Transport:        provider.Transport,
+		Enabled:          provider.Enabled,
+		SubscriberID:     provider.EbicsSubscriberID,
+		ActivationStatus: status,
+		ActivationReason: reason,
+		LastConnectionAt: ptrTime(provider.LastConnectionAt),
+		LastError:        provider.LastError,
+	}
+}
+
+func DBEbicsRTNOutboundNotificationToREST(
+	notification *model.EbicsRTNOutboundNotification,
+) *api.OutEbicsRTNOutboundNotification {
+	return &api.OutEbicsRTNOutboundNotification{
+		ID:                     notification.ID,
+		ProviderID:             notification.ProviderID,
+		EventType:              notification.EventType,
+		SourceOrderType:        notification.SourceOrderType,
+		CorrelationID:          notification.CorrelationID,
+		SubscriberID:           notification.EbicsSubscriberID,
+		ServerReportingSetID:   ptrInt64(notification.ServerReportingSetID),
+		ServerReportingItemKey: notification.ServerReportingItemKey,
+		Status:                 notification.Status,
+		Attempts:               notification.Attempts,
+		NextRetryAt:            ptrTime(notification.NextRetryAt),
+		SentAt:                 ptrTime(notification.SentAt),
+		LastError:              notification.LastError,
+		Payload:                notification.PayloadMap,
 	}
 }
 

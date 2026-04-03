@@ -263,6 +263,7 @@ Exemples cote serveur:
 - `Serveur payload actif`
 - `Serveur bancaire complet non disponible`
 - `RTN sortant non configure`
+- `RTN sortant pret`
 
 ## 9. Conclusion
 

@@ -321,6 +321,22 @@ type commands struct {
 				Retry      wg.EbicsRTNEventRetry      `command:"retry" description:"Retry an EBICS RTN event"`
 				Quarantine wg.EbicsRTNEventQuarantine `command:"quarantine" description:"Quarantine an EBICS RTN event"`
 			} `command:"event" description:"Manage the EBICS RTN events"`
+			Outbound struct {
+				Provider struct {
+					Add    wg.EbicsRTNOutboundProviderAdd    `command:"add" description:"Add an EBICS outbound RTN provider"`
+					List   wg.EbicsRTNOutboundProviderList   `command:"list" description:"List the EBICS outbound RTN providers"`
+					Get    wg.EbicsRTNOutboundProviderGet    `command:"get" description:"Retrieve an EBICS outbound RTN provider"`
+					Update wg.EbicsRTNOutboundProviderUpdate `command:"update" description:"Update an EBICS outbound RTN provider"`
+					Delete wg.EbicsRTNOutboundProviderDelete `command:"delete" description:"Delete an EBICS outbound RTN provider"`
+				} `command:"provider" description:"Manage the EBICS outbound RTN providers"`
+				Notification struct {
+					Add        wg.EbicsRTNOutboundNotificationAdd        `command:"add" description:"Queue an EBICS outbound RTN notification"`
+					List       wg.EbicsRTNOutboundNotificationList       `command:"list" description:"List the EBICS outbound RTN notifications"`
+					Get        wg.EbicsRTNOutboundNotificationGet        `command:"get" description:"Retrieve an EBICS outbound RTN notification"`
+					Retry      wg.EbicsRTNOutboundNotificationRetry      `command:"retry" description:"Retry an EBICS outbound RTN notification"`
+					Quarantine wg.EbicsRTNOutboundNotificationQuarantine `command:"quarantine" description:"Quarantine an EBICS outbound RTN notification"`
+				} `command:"notification" description:"Manage the EBICS outbound RTN notifications"`
+			} `command:"outbound" description:"Manage the EBICS outbound RTN"`
 		} `command:"rtn" description:"Manage the EBICS RTN"`
 
 		RuntimePolicy struct {

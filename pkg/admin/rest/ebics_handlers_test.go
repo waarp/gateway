@@ -750,6 +750,82 @@ func TestGetEbicsRTNProviderExplainsBlockedActivationState(t *testing.T) {
 	assert.Equal(t, client.Name, body.ClientName)
 }
 
+func TestAddEbicsRTNOutboundProviderCreatesProvider(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-OUT", "PARTNER-RTN-OUT", "USER-RTN-OUT")
+
+	req := httptest.NewRequest(http.MethodPost, "/ebics/rtn/outbound/providers",
+		strings.NewReader(`{"name":"outbound-a","transport":"WSS","enabled":true,"subscriberID":`+marshalID(subscriber.ID)+`,"configuration":{"endpoint":"ws://partner.example/rtn"}}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	addEbicsRTNOutboundProvider(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	var provider model.EbicsRTNOutboundProvider
+	require.NoError(t, db.Get(&provider, "name=?", "outbound-a").Run())
+	assert.Equal(t, "WSS", provider.Transport)
+	assert.Equal(t, subscriber.ID, provider.EbicsSubscriberID)
+	assert.Equal(t, "ws://partner.example/rtn", provider.ConfigurationMap["endpoint"])
+}
+
+func TestAddEbicsRTNOutboundNotificationQueuesReportingNotification(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-OUT-N", "PARTNER-RTN-OUT-N", "USER-RTN-OUT-N")
+
+	provider := &model.EbicsRTNOutboundProvider{
+		Name:              "outbound-n",
+		Transport:         "WSS",
+		Enabled:           true,
+		EbicsSubscriberID: subscriber.ID,
+		ConfigurationMap:  map[string]any{"endpoint": "ws://partner.example/rtn"},
+	}
+	require.NoError(t, db.Insert(provider).Run())
+
+	set := &model.EbicsServerReportingSet{
+		Name:              "hve-bank-rest",
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: sql.NullInt64{Int64: subscriber.ID, Valid: true},
+		SourceOrderType:   "HVE",
+		VersionTag:        "v1",
+		Status:            "ACTIVE",
+		PublishedAt:       time.Now().UTC(),
+	}
+	require.NoError(t, db.Insert(set).Run())
+
+	item := &model.EbicsServerReportingItem{
+		ServerReportingSetID: set.ID,
+		ItemKey:              "report-rest",
+		OrderID:              "ORDER-REST",
+		ServiceName:          "MCT",
+		MsgName:              "camt.054",
+		IsEnabled:            true,
+		ResponsePayload:      []byte("payload"),
+		OriginalPayload:      []byte("original"),
+	}
+	require.NoError(t, db.Insert(item).Run())
+
+	req := httptest.NewRequest(http.MethodPost, "/ebics/rtn/outbound/notifications",
+		strings.NewReader(`{"providerID":`+marshalID(provider.ID)+`,"serverReportingSetID":`+marshalID(set.ID)+`,"itemKey":"report-rest"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	addEbicsRTNOutboundNotification(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	var notifications model.EbicsRTNOutboundNotifications
+	require.NoError(t, db.Select(&notifications).Where("provider_id=?", provider.ID).Run())
+	require.Len(t, notifications, 1)
+	assert.Equal(t, "REPORT_AVAILABLE", notifications[0].EventType)
+	assert.Equal(t, "HVE", notifications[0].SourceOrderType)
+	assert.Equal(t, "report-rest", notifications[0].ServerReportingItemKey)
+	assert.Equal(t, model.EbicsRTNOutboundNotificationStatusPendingForRuntime(), notifications[0].Status)
+}
+
 func TestGetEbicsRuntimePolicyCreatesAndReturnsDefaultPolicy(t *testing.T) {
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)

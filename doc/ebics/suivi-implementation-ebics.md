@@ -262,6 +262,12 @@ Point de situation:
   protocoles Gateway autonomes, ouvrir ensuite le passe-plat metier, puis
   seulement derouler le mode banque EBICS (`P5`) et enfin le workflow VEU
   (`P3`).
+  2026-04-03: la premiere tranche `P5E` est maintenant fermee.
+  Gateway sait administrer des providers RTN sortants, persister des
+  notifications, les dispatcher en WSS avec retries/quarantaine, et exposer
+  ces objets en REST/CLI.
+  Le perimetre reste borne a la notification technique de disponibilite d'un
+  item de reporting serveur.
   2026-04-02: `P2E` est maintenant detaille en sous-lots operationnels dans
   `suivi-backend-consolidation.md`:
   inventaire des resolutions implicites, fixation du contrat `ClientID`,

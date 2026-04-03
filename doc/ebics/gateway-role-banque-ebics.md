@@ -191,6 +191,18 @@ Le RTN sortant ne remplace pas:
 - AMQP;
 - le futur workflow VEU.
 
+Etat a date:
+
+- ferme au 2026-04-03;
+- providers sortants administres en base via `EbicsRTNOutboundProvider`;
+- notifications persistees dans `EbicsRTNOutboundNotification` avec statuts
+  `PENDING/PROCESSING/SENT/RETRYABLE/QUARANTINED/FAILED`;
+- service de dispatch WSS sortant avec retries bornes et quarantaine;
+- surfaces REST/CLI dediees pour administrer providers et notifications;
+- premiere tranche volontairement bornee a la notification technique
+  `REPORT_AVAILABLE` pour un item de reporting serveur, sans transporter
+  le report lui-meme.
+
 ## 6. Regles de conception a respecter
 
 - ne pas surcharger `TransferInfo`;
@@ -240,6 +252,12 @@ Etat a date:
 
 4. `P5E`
 RTN sortant
+Etat:
+- ferme au 2026-04-03
+- providers sortants administres en base
+- notifications persistees avec retries/quarantaine
+- dispatch WSS sortant teste sur un scenario reel
+- perimetre borne a la notification de disponibilite de reporting serveur
 
 5. `P5F`
 Observabilite, securite, non-regression

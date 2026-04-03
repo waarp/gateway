@@ -218,6 +218,13 @@ Note:
   quatre ordres via un client `lib-ebics` reel contre le serveur Gateway.
   2026-04-03: `P5C` est maintenant ferme.
   La projection contractuelle serveur est maintenant isolee dans
+  2026-04-03: `P5E` est maintenant ferme sur une premiere tranche bornee.
+  Gateway dispose maintenant de providers RTN sortants administres en base,
+  d'une file persistante de notifications, d'un dispatch WSS sortant avec
+  retries/quarantaine, et de surfaces REST/CLI dediees.
+  Le perimetre reste volontairement borne a la notification technique de
+  disponibilite d'un item de reporting serveur, sans confondre RTN sortant,
+  payload et passe-plat metier.
   `EbicsServerContractSet` / `EbicsServerContractItem`,
   distincte des vues contractuelles client.
   Le bornage fonctionnel est impose au niveau modele:

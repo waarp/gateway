@@ -869,6 +869,71 @@ func TestEbicsRTNProviderGetCommandDisplaysActivationState(t *testing.T) {
 	assert.Contains(t, w.String(), "Activation status: READY_AUTO")
 }
 
+func TestEbicsRTNOutboundProviderAddCommandBuildsRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRTNOutboundProviderAdd{}
+
+	expected := &expectedRequest{
+		method: http.MethodPost,
+		path:   "/api/ebics/rtn/outbound/providers",
+		body: map[string]any{
+			"name":         "outbound-a",
+			"transport":    "WSS",
+			"enabled":      true,
+			"subscriberID": float64(81),
+			"configuration": map[string]any{
+				"endpoint": "ws://partner.example/rtn",
+			},
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command,
+		"--name", "outbound-a",
+		"--enabled",
+		"--subscriber-id", "81",
+		"--config", "endpoint:ws://partner.example/rtn",
+	))
+
+	assert.Equal(t, "The outbound RTN provider \"outbound-a\" was successfully added.\n", w.String())
+}
+
+func TestEbicsRTNOutboundNotificationAddCommandBuildsRequest(t *testing.T) {
+	w := newTestOutput()
+	command := &EbicsRTNOutboundNotificationAdd{}
+
+	expected := &expectedRequest{
+		method: http.MethodPost,
+		path:   "/api/ebics/rtn/outbound/notifications",
+		body: map[string]any{
+			"providerID":           float64(7),
+			"serverReportingSetID": float64(21),
+			"itemKey":              "report-1",
+		},
+	}
+
+	result := &expectedResponse{
+		status:  http.StatusCreated,
+		headers: http.Header{},
+	}
+
+	testServer(t, expected, result)
+
+	require.NoError(t, executeCommand(t, w, command,
+		"--provider-id", "7",
+		"--server-reporting-set-id", "21",
+		"--item-key", "report-1",
+	))
+
+	assert.Equal(t, "The outbound RTN notification was successfully queued.\n", w.String())
+}
+
 func TestEbicsRuntimePolicyGetCommandDisplaysPolicy(t *testing.T) {
 	w := newTestOutput()
 	command := &EbicsRuntimePolicyGet{}

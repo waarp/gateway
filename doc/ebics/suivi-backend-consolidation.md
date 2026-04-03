@@ -1920,12 +1920,22 @@ Sous-lots cochables:
     serveur explicites `PUB/HSA/H3K/HCA/HCS/SPR`, sans annoncer de logique
     metier supplementaire non implemente.
 
-- [ ] Lot P5E - Implementer le RTN sortant cote banque
+- [x] Lot P5E - Implementer le RTN sortant cote banque
   Attendus: Gateway est capable, en role banque, de publier vers les
   partenaires des notifications RTN/WSS ou equivalentes pour signaler qu'un
   ordre/document est disponible a la recuperation, avec statuts, retries et
   correlation observables.
   Validation: tests d'integration du service RTN sortant + surfaces REST/CLI
+  2026-04-03: lot ferme.
+  Une premiere tranche bornee est maintenant en place:
+  providers sortants administres en base
+  (`EbicsRTNOutboundProvider`), file persistante de notifications
+  (`EbicsRTNOutboundNotification`), service de dispatch WSS sortant avec
+  retries/quarantaine, et surfaces REST/CLI associees.
+  Le perimetre fonctionnel est volontairement borne a la notification
+  explicite de disponibilite d'un item de reporting serveur
+  (`REPORT_AVAILABLE`), sans confondre ce RTN sortant avec le payload lui-meme,
+  le passe-plat metier ou un bus applicatif.
 
 - [ ] Lot P5F - Completer observabilite, securite et non-regression serveur admin
   Attendus: journalisation, statuts operateur, erreurs REST/CLI, tests de non
@@ -1939,7 +1949,7 @@ Ordre d'execution recommande:
 2. [x] Lot P5B
 3. [x] Lot P5C
 4. [x] Lot P5D
-5. [ ] Lot P5E
+5. [x] Lot P5E
 6. [ ] Lot P5F
 
 ### Chantier P3 - Workflow VEU et signature distribuee
