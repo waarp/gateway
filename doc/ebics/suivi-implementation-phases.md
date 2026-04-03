@@ -185,6 +185,18 @@ Note:
   La passe linter/tests consolidee sur
   `pkg/protocols/modules/ebics/...`, `pkg/admin/rest`, `pkg/cmd/client`,
   `pkg/model`, `pkg/gatewayd` et `pkg/database/migrations` est verte.
+  2026-04-03: `P2C` est maintenant ferme.
+  La repasse runtime reelle est desormais posee sur deux maillons qui
+  manquaient encore:
+  un scenario client payload hors RTN qui passe par le vrai
+  `controller` + `ClientPipeline`,
+  et un scenario serveur payload qui passe par le vrai serveur HTTP EBICS
+  via un client `lib-ebics` reel.
+  Le scenario RTN auto-pull de bout en bout reste couvert en parallele par
+  `rtn_controller_integration_test.go`.
+  Les tests et le linter du perimetre
+  `pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
+  sont verts.
   REST/CLI des providers RTN exposent cette reference explicitement.
   2026-04-02: `P2E.5` est maintenant ferme.
   Les surfaces REST/CLI des providers RTN exposent desormais un etat

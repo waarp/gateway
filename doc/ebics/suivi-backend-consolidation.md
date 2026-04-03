@@ -1533,7 +1533,7 @@ Sous-lots cochables:
   - `go test ./pkg/protocols/modules/ebics/... ./pkg/admin/rest ./pkg/admin/rest/api ./pkg/cmd/client ./pkg/model ./pkg/gatewayd ./pkg/database/migrations -count=1`
   - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/cmd/client ./pkg/model ./pkg/gatewayd ./pkg/database/migrations`
 
-- [ ] Lot P2C - Completer la couverture de tests runtime encore faible
+- [x] Lot P2C - Completer la couverture de tests runtime encore faible
   Attendus: couverture mesurable sur le client EBICS direct, le runtime RTN
   reel et les chemins de reprise encore peu testes
   Validation: `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
@@ -1546,6 +1546,27 @@ Sous-lots cochables:
   -> controller -> client EBICS -> serveur EBICS -> payload final`;
   les tests directs de fonctions/routage restent maintenus comme unitaires,
   mais ne peuvent plus, a eux seuls, servir de preuve de fermeture runtime.
+  2026-04-03: lot ferme.
+  Resultat:
+  - un scenario client payload passe maintenant par le vrai `controller` et
+    le vrai `ClientPipeline` hors RTN dans
+    `pkg/protocols/modules/ebics/runtime_integration_test.go`
+    (`TestControllerExecutesPlannedBTDToFinalPayload`);
+  - un scenario serveur payload passe maintenant par le vrai serveur HTTP
+    EBICS via un client `lib-ebics` reel, et pas seulement par des appels
+    directs au routeur payload, dans
+    `pkg/protocols/modules/ebics/runtime_integration_test.go`
+    (`TestServerHTTPDownloadThroughLibEBICSCreatesOperationAndHistory`);
+  - le scenario RTN auto-pull de bout en bout reste couvert par
+    `pkg/protocols/modules/ebics/rtn_controller_integration_test.go`;
+  - les correctifs de fixture reveles par cette repasse ont ete absorbes sans
+    changer le runtime de production: enregistrement explicite du client dans
+    `services.Clients`, alignement du `HostID` client sur le host bancaire
+    reel, et attente de l'archivage effectif pour la lecture d'historique.
+  Verification rejouee:
+  - `go test ./pkg/protocols/modules/ebics -run "Test(ControllerExecutesPlannedBTDToFinalPayload|ServerHTTPDownloadThroughLibEBICSCreatesOperationAndHistory)" -v -count=1 -timeout 15m`
+  - `go test ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model -count=1`
+  - `golangci-lint run ./pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
 
 - [x] Lot P2D - Historiser nativement les ordres EBICS non payload
   Attendus: les ordres d'administration, d'initialisation, de gestion de cles
@@ -1760,7 +1781,7 @@ Ordre d'execution recommande:
 2. [x] Lot P2A
 3. [x] Lot P2B
 4. [x] Lot P2D
-5. [ ] Lot P2C
+5. [x] Lot P2C
 6. [ ] Ne lancer les evolutions structurelles connexes qu'apres `P4`
 
 ### Chantier P5 - Gateway en role serveur bancaire EBICS

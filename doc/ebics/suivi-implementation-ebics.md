@@ -310,6 +310,16 @@ Point de situation:
   `ebics contract-refresh-policy add/list/get/update/delete`.
   Les migrations, tests et la passe `golangci-lint` du perimetre touche sont
   maintenant verts.
+  2026-04-03: `P2C` est maintenant ferme.
+  La preuve runtime ne repose plus seulement sur des tests directs du routeur
+  payload ou sur le scenario RTN:
+  un test passe maintenant par le vrai `controller` et le vrai
+  `ClientPipeline` pour un `BTD` planifie hors RTN,
+  et un autre passe par le vrai serveur HTTP EBICS avec un client
+  `lib-ebics` reel.
+  La repasse `go test` et `golangci-lint` sur
+  `pkg/protocols/modules/ebics/... ./pkg/gatewayd ./pkg/model`
+  est verte.
   2026-04-01: `P4A` est maintenant ferme.
   La cartographie exhaustive montre deux problemes distincts:
   les cles EBICS structurelles (`ebicsOperationID`, `ebicsRTNEventID`,
