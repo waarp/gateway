@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+
+* :bug:`542` L'utilitaire *updateconf* place désormais correctement le fichier 'get-file.list'
+  dans le dossier 'etc'.
+
 * :release:`0.15.4 <2026-03-31>`
 * :bug:`540` Les variables d'environnement ``WAARP_CONFIG_FILE`` et ``WAARP_CONFIG_DIR``
   introduites en version 0.14.2 sont désormais toujours des chemins absolus.
