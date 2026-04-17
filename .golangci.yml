@@ -439,7 +439,13 @@ linters:
       find-duplicates: false
       # Evaluates of constant expressions like Prefix + "suffix".
       # Default: false
-      eval-const-expressions: false
+      eval-const-expressions: true
+      # Ignore strings from test files.
+      # Default: false
+      ignore-tests: true
+      # Ignore string literals in calls to these functions
+      # Default: []
+      ignore-functions: []
 
     gocritic:
       # Enable all checks.
@@ -2562,6 +2568,7 @@ linters:
             initialism-overrides:
               URL: true # add a new initialism
               SNMP: true
+              MDN: true
           yaml:
             # Required
             case: goCamel
@@ -2574,6 +2581,7 @@ linters:
             initialism-overrides:
               URL: true # add a new initialism
               SNMP: true
+              MDN: true
 
         # Uses the struct field name to check the name of the struct tag.
         # Default: false
@@ -2857,6 +2865,7 @@ linters:
       # Default: []
       extra-ignore-sigs:
         - utils.RunWithCtx(
+        - utils.RunWithCtx2[
         - utils.CheckCtx(
         - utils.RWWithCtx(
         - utils.RWatWithCtx(
@@ -2872,7 +2881,8 @@ linters:
       ignore-sig-regexps: []
       # An array of strings that specify globs of packages to ignore.
       # Default: []
-      ignore-package-globs: []
+      ignore-package-globs:
+        - code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils
       # An array of strings that specify regular expressions of interfaces to ignore.
       # Default: []
       ignore-interface-regexps: []
@@ -3010,7 +3020,17 @@ linters:
       # Disable "contextcheck" on the database "Transaction" method.
       - linters:
           - contextcheck
-        text: "Function `.*Transaction`"
+        text: "Function `.*->TransactionWithTimeout`"
+
+      # Disable "tagliatelle" on the MACs keyword (MAC is an acronym).
+      - linters:
+          - tagliatelle
+        text: "got 'macs' want 'maCs'"
+
+      # Exclude "goconst" on the old Webui module (it's going to be redone).
+      - linters:
+          - goconst
+        path: pkg/admin/gui/
 
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.

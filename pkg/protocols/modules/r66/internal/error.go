@@ -142,13 +142,13 @@ func FromR66Error(err error, pip *pipeline.Pipeline) *pipeline.Error {
 		return pipeline.NewError(types.TeForbidden, details)
 	case r66.StoppedTransfer:
 		if pErr := pip.Pause(context.Background()); pErr != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", pErr)
+			return pipeline.NewErrorWith(pErr, types.TeInternal, "failed to pause transfer")
 		}
 
 		return nil
 	case r66.CanceledTransfer:
 		if cErr := pip.Cancel(context.Background()); cErr != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", cErr)
+			return pipeline.NewErrorWith(cErr, types.TeInternal, "failed to cancel transfer")
 		}
 
 		return nil

@@ -11,8 +11,8 @@ type ServerConfigTLS struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (s *ServerConfigTLS) ValidServer() error {
-	return s.ServerConfig.ValidServer()
+func (s *ServerConfigTLS) ValidConf() error {
+	return s.ServerConfig.ValidConf()
 }
 
 type PartnerConfigTLS struct {
@@ -24,8 +24,8 @@ type PartnerConfigTLS struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (p *PartnerConfigTLS) ValidPartner() error {
-	return p.PartnerConfig.ValidPartner()
+func (p *PartnerConfigTLS) ValidConf() error {
+	return p.PartnerConfig.ValidConf()
 }
 
 type ClientConfigTLS struct {
@@ -37,6 +37,6 @@ type ClientConfigTLS struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (c *ClientConfigTLS) ValidClient() error {
-	return c.ClientConfig.ValidClient()
+func (c *ClientConfigTLS) ValidConf() error {
+	return c.ClientConfig.ValidConf()
 }

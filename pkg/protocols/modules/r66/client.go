@@ -109,8 +109,7 @@ func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipelin
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
 		pip.Logger.Errorf("Failed to parse R66 partner proto config: %v", err)
 
-		return nil, pipeline.NewErrorWith(types.TeInternal,
-			"failed to parse R66 partner proto config", err)
+		return nil, pipeline.NewErrorWith(err, types.TeInternal, "failed to parse R66 partner proto config")
 	}
 
 	var blockSize uint32 = 65536

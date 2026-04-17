@@ -328,5 +328,5 @@ func wrapRemoteError(msg string, err error) *Error {
 		return pErr
 	}
 
-	return pipeline.NewErrorWith(types.TeUnknownRemote, msg, err)
+	return pipeline.NewErrorWith(err, types.TeUnknownRemote, msg)
 }

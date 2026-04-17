@@ -27,7 +27,7 @@ type ServerConfigTLS struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (c *ServerConfigTLS) ValidServer() error {
+func (c *ServerConfigTLS) ValidConf() error {
 	if c.TLSRequirement == "" {
 		c.TLSRequirement = TLSOptional
 	}
@@ -36,7 +36,7 @@ func (c *ServerConfigTLS) ValidServer() error {
 		return fmt.Errorf("invalid TLS requirement %q: %w", c.TLSRequirement, errSupportedTLSRequirements)
 	}
 
-	return c.ServerConfig.ValidServer()
+	return c.ServerConfig.ValidConf()
 }
 
 type ClientConfigTLS struct {
@@ -48,8 +48,8 @@ type ClientConfigTLS struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (c *ClientConfigTLS) ValidClient() error {
-	return c.ClientConfig.ValidClient()
+func (c *ClientConfigTLS) ValidConf() error {
+	return c.ClientConfig.ValidConf()
 }
 
 type PartnerConfigTLS struct {
@@ -74,8 +74,8 @@ type PartnerConfigTLS struct {
 	DisableTLSSessionReuse bool `json:"disableTLSSessionReuse"`
 }
 
-func (c *PartnerConfigTLS) ValidPartner() error {
-	return c.PartnerConfig.ValidPartner()
+func (c *PartnerConfigTLS) ValidConf() error {
+	return c.PartnerConfig.ValidConf()
 }
 
 type TLSRequirement string

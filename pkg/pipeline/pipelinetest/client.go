@@ -39,18 +39,15 @@ type ClientContext struct {
 	protoFeatures *ProtoFeatures
 }
 
-func initClient(c convey.C, proto string, clientConf protocol.ClientConfig,
-	partConf protocol.PartnerConfig,
+func initClient(c convey.C, proto string, clientConf, partConf any,
 ) *ClientContext {
-	feat, ok := Protocols[proto]
+	feat, ok := protocols[proto]
 	c.So(ok, convey.ShouldBeTrue)
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
 	cli, partner, remAcc := makeClientConf(c, t.DB, port, proto, clientConf, partConf)
 
-	constr := Protocols[proto].MakeClient
-
-	client := constr(t.DB, cli)
+	client := protocols[proto].NewClient(t.DB, cli)
 	c.So(client.Start(), convey.ShouldBeNil)
 
 	services.Clients.Add(cli, client)
@@ -75,8 +72,7 @@ func initClient(c convey.C, proto string, clientConf protocol.ClientConfig,
 // InitClientPush creates a database and fills it with all the elements necessary
 // for a push client transfer test of the given protocol. It then returns all these
 // elements inside a ClientContext.
-func InitClientPush(c convey.C, proto string, clientConf protocol.ClientConfig,
-	partConf protocol.PartnerConfig,
+func InitClientPush(c convey.C, proto string, clientConf, partConf any,
 ) *ClientContext {
 	ctx := initClient(c, proto, clientConf, partConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
@@ -88,8 +84,7 @@ func InitClientPush(c convey.C, proto string, clientConf protocol.ClientConfig,
 // InitClientPull creates a database and fills it with all the elements necessary
 // for a pull client transfer test of the given protocol. It then returns all these
 // element inside a ClientContext.
-func InitClientPull(c convey.C, proto string, cont []byte,
-	clientConf protocol.ClientConfig, partConf protocol.PartnerConfig,
+func InitClientPull(c convey.C, proto string, cont []byte, clientConf, partConf any,
 ) *ClientContext {
 	ctx := initClient(c, proto, clientConf, partConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)
@@ -113,7 +108,7 @@ func makeClientPush(c convey.C, db *database.DB, proto string) *model.Rule {
 		RemoteDir: "cli_push_rem",
 	}
 
-	if !Protocols[proto].RuleName {
+	if !protocols[proto].RuleName {
 		rule.RemoteDir = path.Join("push", rule.RemoteDir)
 	}
 
@@ -132,7 +127,7 @@ func makeClientPull(c convey.C, db *database.DB, proto string) *model.Rule {
 		RemoteDir:      "cli_pull_rem",
 	}
 
-	if !Protocols[proto].RuleName {
+	if !protocols[proto].RuleName {
 		rule.RemoteDir = path.Join("pull", rule.RemoteDir)
 	}
 
@@ -142,8 +137,7 @@ func makeClientPull(c convey.C, db *database.DB, proto string) *model.Rule {
 	return rule
 }
 
-func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
-	clientConf protocol.ClientConfig, partConf protocol.PartnerConfig,
+func makeClientConf(c convey.C, db *database.DB, port uint16, proto string, clientConf, partConf any,
 ) (*model.Client, *model.RemoteAgent, *model.RemoteAccount) {
 	jsonClientConf := map[string]any{}
 	jsonPartConf := map[string]any{}

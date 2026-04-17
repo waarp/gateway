@@ -4,12 +4,12 @@ import (
 	"runtime"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/authtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"

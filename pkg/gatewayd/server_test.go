@@ -68,10 +68,10 @@ func checkState(wg *WG, code utils.StateCode, s1, s2 *model.LocalAgent) {
 	So(adState, ShouldEqual, code)
 	So(contState, ShouldEqual, code)
 
-	serv1, ok := services.Servers.Get(s1)
+	serv1, ok := services.Servers.Load(s1)
 	So(ok, ShouldBeTrue)
 
-	serv2, ok := services.Servers.Get(s2)
+	serv2, ok := services.Servers.Load(s2)
 	So(ok, ShouldBeTrue)
 
 	s1State, _ := serv1.State()

@@ -65,7 +65,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Er
 		if err := json.Unmarshal(uContent, &info); err != nil {
 			pip.Logger.Errorf("Failed to unmarshall transfer info: %s", err)
 
-			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse transfer info")
 		}
 
 		maps.Copy(pip.TransCtx.Transfer.TransferInfo, info)
@@ -154,7 +154,7 @@ func MakeUserContent(logger *log.Logger, transInfo map[string]any) (string, *pip
 		if err != nil {
 			logger.Errorf("Failed to marshal transfer info: %v", err)
 
-			return "", pipeline.NewErrorWith(types.TeInternal, "failed to make transfer info", err)
+			return "", pipeline.NewErrorWith(err, types.TeInternal, "failed to make transfer info")
 		}
 
 		userContent = string(cont)

@@ -64,8 +64,7 @@ func TestExportRemoteAgents(t *testing.T) {
 				Convey("Then it should have exported the first agent", func() {
 					So(res[0].Protocol, ShouldEqual, agent1.Protocol)
 					So(res[0].Address, ShouldEqual, agent1.Address.String())
-					So(res[0].Configuration, ShouldResemble,
-						agent1.ProtoConfig)
+					So(res[0].Configuration, ShouldResemble, agent1.ProtoConfig.Map())
 
 					So(res[0].Credentials, ShouldHaveLength, 1)
 					So(res[0].Credentials[0].Name, ShouldEqual, cert.Name)
@@ -82,8 +81,7 @@ func TestExportRemoteAgents(t *testing.T) {
 				Convey("Then it should have exported the second agent", func() {
 					So(res[1].Protocol, ShouldEqual, agent2.Protocol)
 					So(res[1].Address, ShouldEqual, agent2.Address.String())
-					So(res[1].Configuration, ShouldResemble,
-						agent2.ProtoConfig)
+					So(res[1].Configuration, ShouldResemble, agent2.ProtoConfig.Map())
 
 					So(res[1].Credentials, ShouldHaveLength, 0)
 					So(res[1].Certificates, ShouldHaveLength, 0)

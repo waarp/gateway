@@ -59,7 +59,7 @@ func MakeHash(ctx context.Context, hashAlgo string, logger *log.Logger, path str
 	if opErr != nil {
 		logger.Errorf("Failed to open file for hash calculation: %v", opErr)
 
-		return nil, pipeline.NewErrorWith(types.TeInternal, "failed to open file for hash", opErr)
+		return nil, pipeline.NewErrorWith(opErr, types.TeInternal, "failed to open file for hash")
 	}
 
 	defer func() {
@@ -75,14 +75,14 @@ func ComputeHash(ctx context.Context, hashAlgo string, logger *log.Logger, file 
 ) ([]byte, *pipeline.Error) {
 	hasher, hashErr := GetHasher(hashAlgo)
 	if hashErr != nil {
-		return nil, pipeline.NewErrorWith(types.TeInternal, "unknown hash algorithm", hashErr)
+		return nil, pipeline.NewErrorWith(hashErr, types.TeInternal, "unknown hash algorithm")
 	}
 
 	if err := utils.RunWithCtx(ctx, func() error {
 		if _, err := io.Copy(hasher, file); err != nil {
 			logger.Errorf("Failed to read file content to hash: %v", err)
 
-			return pipeline.NewErrorWith(types.TeInternal, "failed to read file", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to read file")
 		}
 
 		return nil

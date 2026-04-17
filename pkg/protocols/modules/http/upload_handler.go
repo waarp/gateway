@@ -98,7 +98,7 @@ func (u *uploadHandler) run() {
 	if _, err := io.Copy(file, u.reqBody); err != nil {
 		var cErr *pipeline.Error
 		if !errors.As(err, &cErr) {
-			cErr = pipeline.NewErrorWith(types.TeDataTransfer, "failed to copy data", err)
+			cErr = pipeline.NewErrorWith(err, types.TeDataTransfer, "failed to copy data")
 		}
 
 		u.handleError(cErr)

@@ -7,8 +7,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -27,21 +25,13 @@ var (
 )
 
 func init() {
-	pipelinetest.Protocols[R66TLS] = pipelinetest.ProtoFeatures{
-		MakeClient: func(db *database.DB, cli *model.Client) services.Client {
-			return &Client{db: db, cli: cli}
-		},
-		MakeServer: func(db *database.DB, agent *model.LocalAgent) services.Server {
-			return &service{db: db, agent: agent}
-		},
-		MakeServerConfig:  Module{}.MakeServerConfig,
-		MakeClientConfig:  Module{}.MakeClientConfig,
-		MakePartnerConfig: Module{}.MakePartnerConfig,
-		TransID:           true,
-		RuleName:          true,
-		Size:              true,
-		TransferInfo:      true,
-	}
+	pipelinetest.Register(R66TLS, pipelinetest.ProtoFeatures{
+		Protocol:     ModuleTLS{},
+		TransID:      true,
+		RuleName:     true,
+		Size:         true,
+		TransferInfo: true,
+	})
 }
 
 func TestTLS(t *testing.T) {

@@ -18,6 +18,8 @@ func JSONConvert(from, to any) error {
 		decoder = json.NewDecoder(&buf)
 	)
 
+	decoder.UseNumber()
+
 	if err := encoder.Encode(from); err != nil {
 		return fmt.Errorf("failed to re-encode the JSON object: %w", err)
 	}

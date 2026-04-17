@@ -116,7 +116,7 @@ func (h *httpService) stop(ctx context.Context) error {
 	h.logger.Debug("Interrupting transfers...")
 
 	if err := pipeline.List.StopAllFromServer(ctx, h.agent.ID); err != nil {
-		h.logger.Errorf("Failed to interrupt R66 transfers: %v", err)
+		h.logger.Errorf("Failed to interrupt HTTP transfers: %v", err)
 
 		return fmt.Errorf("could not halt the service gracefully: %w", err)
 	}

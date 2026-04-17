@@ -21,7 +21,7 @@ func GetOldTransferByRemoteID(db database.ReadAccess, remoteID string,
 		And("rule_id=?", rule.ID).
 		OrderBy("start", false).
 		Run(); err != nil {
-		return nil, NewErrorWith(types.TeInternal, "failed to retrieve old server transfer", err)
+		return nil, NewErrorWith(err, types.TeInternal, "failed to retrieve old server transfer")
 	}
 
 	if oldTrans.Status == types.StatusRunning {
@@ -50,7 +50,7 @@ func GetOldTransferByFilename(db database.ReadAccess, filepath string, offset in
 	}
 
 	if err := query.Run(); err != nil {
-		return nil, NewErrorWith(types.TeInternal, "failed to retrieve old server transfer", err)
+		return nil, NewErrorWith(err, types.TeInternal, "failed to retrieve old server transfer")
 	}
 
 	return &oldTrans, nil
@@ -73,7 +73,7 @@ func GetAvailableTransferByFilename(db database.ReadAccess, filepath, remoteID s
 	}
 
 	if err := query.Run(); err != nil {
-		return nil, NewErrorWith(types.TeInternal, "failed to retrieve server transfer", err)
+		return nil, NewErrorWith(err, types.TeInternal, "failed to retrieve server transfer")
 	}
 
 	if remoteID != "" {
@@ -93,7 +93,7 @@ func GetAvailableTransferByRule(db database.ReadAccess, remoteID string,
 		In("status", types.StatusAvailable, types.StatusError).
 		OrderBy("start", false).
 		Run(); err != nil {
-		return nil, NewErrorWith(types.TeInternal, "failed to retrieve server transfer", err)
+		return nil, NewErrorWith(err, types.TeInternal, "failed to retrieve server transfer")
 	}
 
 	if remoteID != "" {

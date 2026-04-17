@@ -8,15 +8,11 @@ import (
 )
 
 func init() {
-	pipelinetest.Protocols[SFTP] = pipelinetest.ProtoFeatures{
-		MakeClient:        Module{}.NewClient,
-		MakeServer:        Module{}.NewServer,
-		MakeServerConfig:  Module{}.MakeServerConfig,
-		MakePartnerConfig: Module{}.MakePartnerConfig,
-		MakeClientConfig:  Module{}.MakeClientConfig,
-		TransID:           false,
-		RuleName:          false,
-	}
+	pipelinetest.Register(SFTP, pipelinetest.ProtoFeatures{
+		Protocol: Module{},
+		TransID:  false,
+		RuleName: false,
+	})
 }
 
 const (

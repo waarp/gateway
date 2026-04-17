@@ -31,7 +31,7 @@ type LocalAgent struct {
 	TmpReceiveDir string `xorm:"tmp_receive_dir"` // The server's temporary directory for partially received files.
 
 	// The server's protocol configuration as a map.
-	ProtoConfig map[string]any `xorm:"proto_config"`
+	ProtoConfig ProtoConfigMap `xorm:"proto_config"`
 }
 
 func (*LocalAgent) TableName() string          { return TableLocAgents }
@@ -42,7 +42,7 @@ func (*LocalAgent) IsServer() bool             { return true }
 func (l *LocalAgent) Host() string             { return "" }
 
 func (l *LocalAgent) validateProtoConfig() error {
-	if err := ConfigChecker.CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
+	if err := CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
 		return database.WrapAsValidationError(err)
 	}
 

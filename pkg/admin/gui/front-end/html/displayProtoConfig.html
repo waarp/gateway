@@ -586,3 +586,73 @@
     </div>
     {{ end }}
 {{ end }}
+
+{{ define "displayAs2Partner" }}
+<div>
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "as2SignAlgo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2SignAlgo" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (toUpper .ProtoConfig.signatureAlgorithm) (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "as2EncryptAlgo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2EncryptAlgo" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (toUpper .ProtoConfig.encryptionAlgorithm) (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "as2MDNURL" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2MDNURL" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.asyncMDNAddress (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2 align-items-center">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "as2AsyncMDNHandling" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2MDNHandling" }}"></i> :</label>
+        <div class="form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.handleAsyncMDN true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    {{ if eq .Protocol "as2-tls" }}
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayAs2Server" }}
+<div>
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "as2MaxFileSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAS2MaxFileSize" }}"></i> :</label>
+        <input type="number" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.maxFileSize (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "as2MDNSignAlgo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2MDNSignAlgo" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault (toUpper .ProtoConfig.mdnSignatureAlgorithm) (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ if eq .Protocol "as2-tls" }}
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "displayAs2Client" }}
+<div>
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "as2MaxFileSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAS2MaxFileSize" }}"></i> :</label>
+        <input type="number" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.maxFileSize (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ if eq .Protocol "as2-tls" }}
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+    </div>
+    {{ end }}
+</div>
+{{ end }}

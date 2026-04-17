@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`491` Ajout du support pour le protocole AS2. Compte tenu des nombreuses
+  spécificités du protocole, il est fortement recommandé de lire :doc:`la rubrique
+  <reference/protocols/as2>` spécifiant les détails d'implémentation du protocole avant
+  de commencer à l'utiliser.
 * :bug:`560` La taille et le format des articles PeSIT est désormais configurable
   via les informations de transfert. Voir :ref:`le chapitre <ref-pesit-articles>`
   de la documentation PeSIT sur les articles pour plus de détails.

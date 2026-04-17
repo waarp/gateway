@@ -2,6 +2,7 @@ package r66
 
 import (
 	"context"
+	"encoding/json"
 	"path"
 	"testing"
 	"time"
@@ -25,10 +26,13 @@ func TestValidAuth(t *testing.T) {
 		logger := testhelpers.TestLogger(c, "test_valid_auth")
 		db := database.TestDatabase(c)
 		r66Server := &model.LocalAgent{
-			Name:        "r66 server",
-			Protocol:    R66,
-			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     types.Addr("localhost", 0),
+			Name:     "r66 server",
+			Protocol: R66,
+			ProtoConfig: map[string]any{
+				"blockSize":      json.Number("512"),
+				"serverPassword": "c2VzYW1l",
+			},
+			Address: types.Addr("localhost", 0),
 		}
 		So(db.Insert(r66Server).Run(), ShouldBeNil)
 
@@ -147,11 +151,14 @@ func TestValidRequest(t *testing.T) {
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		server := &model.LocalAgent{
-			Name:        "r66 server",
-			Protocol:    R66,
-			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     types.Addr("localhost", 0),
-			RootDir:     path.Join(root, "server_root"),
+			Name:     "r66 server",
+			Protocol: R66,
+			ProtoConfig: model.ProtoConfigMap{
+				"blockSize":      json.Number("512"),
+				"serverPassword": "c2VzYW1l",
+			},
+			Address: types.Addr("localhost", 0),
+			RootDir: path.Join(root, "server_root"),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -282,11 +289,14 @@ func TestUpdateTransferInfo(t *testing.T) {
 		So(db.Insert(recv).Run(), ShouldBeNil)
 
 		server := &model.LocalAgent{
-			Name:        "r66 server",
-			Protocol:    R66,
-			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     types.Addr("localhost", 0),
-			RootDir:     "server_root",
+			Name:     "r66 server",
+			Protocol: R66,
+			ProtoConfig: map[string]any{
+				"blockSize":      json.Number("512"),
+				"serverPassword": "c2VzYW1l",
+			},
+			Address: types.Addr("localhost", 0),
+			RootDir: "server_root",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 

@@ -24,7 +24,7 @@ func (db *DB) checkVersion() error {
 
 	ok, err := db.engine.IsTableExist(dbVer.TableName())
 	if err != nil {
-		db.logger.Errorf("Failed to query database version table: %v", err)
+		db.Logger.Errorf("Failed to query database version table: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -34,13 +34,13 @@ func (db *DB) checkVersion() error {
 	}
 
 	if err = db.Get(dbVer, "").Run(); err != nil {
-		db.logger.Errorf("Failed to retrieve database version: %v", err)
+		db.Logger.Errorf("Failed to retrieve database version: %v", err)
 
 		return err
 	}
 
 	if dbVer.Current != vers.Num {
-		db.logger.Criticalf("Mismatch between database (%s) and program (%s) versions.",
+		db.Logger.Criticalf("Mismatch between database (%s) and program (%s) versions.",
 			dbVer.Current, vers.Num)
 
 		return errBadVersion
@@ -92,7 +92,7 @@ func exec(ses *xorm.Session, logger *log.Logger, query string, args ...any) erro
 }
 
 func (db *DB) setLogger(engine *xorm.Engine) {
-	xormLogger := xlog.NewSimpleLogger2(db.logger.AsStdLogger(log.LevelTrace).
+	xormLogger := xlog.NewSimpleLogger2(db.Logger.AsStdLogger(log.LevelTrace).
 		Writer(), "", 0)
 
 	xormLogger.ERR.SetPrefix("xorm: ")

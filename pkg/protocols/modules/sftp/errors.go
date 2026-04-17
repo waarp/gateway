@@ -124,14 +124,14 @@ func checkTransferErrorString(errMsg string, pip *pipeline.Pipeline) *pipeline.E
 		defer cancel()
 
 		if err := pip.Pause(ctx); err != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to pause transfer")
 		}
 	case types.TeCanceled:
 		ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
 		defer cancel()
 
 		if err := pip.Cancel(ctx); err != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to cancel transfer")
 		}
 
 	default:

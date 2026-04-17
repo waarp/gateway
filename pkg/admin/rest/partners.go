@@ -143,7 +143,7 @@ func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		dbPartner := &model.RemoteAgent{
 			Name:        restPartner.Name.Value,
 			Protocol:    restPartner.Protocol.Value,
-			ProtoConfig: restPartner.ProtoConfig,
+			ProtoConfig: model.ProtoConfigMap(restPartner.ProtoConfig),
 		}
 
 		if err := dbPartner.Address.Set(restPartner.Address.Value); handleError(w, logger, err) {

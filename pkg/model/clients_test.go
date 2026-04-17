@@ -52,7 +52,7 @@ func TestClientBeforeWrite(t *testing.T) {
 				client.Protocol = "foobar"
 
 				Convey("Then the 'BeforeWrite' method should return an error", func() {
-					So(client.BeforeWrite(db), ShouldBeError, `"foobar" is not a protocol`)
+					So(client.BeforeWrite(db), ShouldBeError, `unknown protocol "foobar"`)
 				})
 			})
 

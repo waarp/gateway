@@ -20,7 +20,7 @@ type ServerConfig struct {
 	PassiveModeMaxPort uint16 `json:"passiveModeMaxPort,omitempty"`
 }
 
-func (s *ServerConfig) ValidServer() error {
+func (s *ServerConfig) ValidConf() error {
 	if s.DisablePassiveMode {
 		s.PassiveModeMinPort = 0
 		s.PassiveModeMaxPort = 0
@@ -49,7 +49,7 @@ type ClientConfig struct {
 	ActiveModeMaxPort uint16 `json:"activeModeMaxPort,omitempty"`
 }
 
-func (c *ClientConfig) ValidClient() error {
+func (c *ClientConfig) ValidConf() error {
 	if !c.EnableActiveMode {
 		c.ActiveModeMinPort = 0
 		c.ActiveModeMaxPort = 0
@@ -73,6 +73,6 @@ type PartnerConfig struct {
 	DisableEPSV bool `json:"disableEPSV,omitempty"`
 }
 
-func (p *PartnerConfig) ValidPartner() error {
+func (p *PartnerConfig) ValidConf() error {
 	return nil
 }

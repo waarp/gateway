@@ -26,3 +26,4 @@ de configuration approprié doit être fourni.
    ftp
    pesit
    webdav
+   as2

@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 const (
@@ -29,6 +30,8 @@ func init() {
 
 type Module struct{}
 
+func (Module) CanMakeTransfer(*model.TransferContext) error { return nil }
+
 func (Module) NewServer(db *database.DB, server *model.LocalAgent) protocol.Server {
 	return &service{db: db, agent: server}
 }
@@ -37,12 +40,28 @@ func (Module) NewClient(db *database.DB, cli *model.Client) protocol.Client {
 	return &Client{db: db, cli: cli}
 }
 
-func (Module) MakeServerConfig() protocol.ServerConfig   { return new(serverConfig) }
-func (Module) MakeClientConfig() protocol.ClientConfig   { return new(clientConfig) }
-func (Module) MakePartnerConfig() protocol.PartnerConfig { return new(PartnerConfig) }
+func (Module) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &serverConfig{})
+}
+
+func (Module) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &clientConfig{})
+}
+
+func (Module) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &PartnerConfig{})
+}
 
 type ModuleTLS struct{ Module }
 
-func (ModuleTLS) MakeServerConfig() protocol.ServerConfig   { return new(tlsServerConfig) }
-func (ModuleTLS) MakeClientConfig() protocol.ClientConfig   { return new(tlsClientConfig) }
-func (ModuleTLS) MakePartnerConfig() protocol.PartnerConfig { return new(tlsPartnerConfig) }
+func (ModuleTLS) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &tlsServerConfig{})
+}
+
+func (ModuleTLS) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &tlsClientConfig{})
+}
+
+func (ModuleTLS) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &tlsPartnerConfig{})
+}
