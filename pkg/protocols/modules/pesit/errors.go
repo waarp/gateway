@@ -13,7 +13,7 @@ func toPipErr(defaultCode types.TransferErrorCode, msg string, err error,
 ) *pipeline.Error {
 	var pErr pesit.Diagnostic
 	if !errors.As(err, &pErr) {
-		return pipeline.NewErrorWith(defaultCode, msg, err)
+		return pipeline.NewErrorWith(err, defaultCode, msg)
 	}
 
 	return pesitErrToPipErr(msg, pErr)

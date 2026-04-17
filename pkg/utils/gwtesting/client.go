@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -33,10 +34,10 @@ type TestClientCtx struct {
 }
 
 func NewTestClientCtx(tb testing.TB, protocol, partnerAddr string,
-	clientConf, serverConf map[string]any,
+	clientConf, partnerConf map[string]any,
 ) *TestClientCtx {
 	tb.Helper()
-	require.Contains(tb, Protocols, protocol)
+	require.Contains(tb, protocolsList, protocol)
 
 	ctx := &TestClientCtx{
 		Root: tb.TempDir(),
@@ -60,7 +61,7 @@ func NewTestClientCtx(tb testing.TB, protocol, partnerAddr string,
 		Name:        protocol + "-test-partner",
 		Address:     Addr(tb, partnerAddr),
 		Protocol:    protocol,
-		ProtoConfig: serverConf,
+		ProtoConfig: partnerConf,
 	}
 	require.NoError(tb, ctx.DB.Insert(ctx.Partner).Run())
 
@@ -78,7 +79,7 @@ func NewTestClientCtx(tb testing.TB, protocol, partnerAddr string,
 	require.NoError(tb, ctx.DB.Insert(ctx.RulePull).Run())
 	require.NoError(tb, fs.MkdirAll(fs.JoinPath(ctx.Root, ctx.RulePull.LocalDir)))
 
-	ctx.Service = Protocols[protocol].MakeClient(ctx.DB, ctx.Client)
+	ctx.Service = protocolsList[protocol].NewClient(ctx.DB, ctx.Client)
 	require.NoError(tb, ctx.Service.Start())
 
 	tb.Cleanup(func() {
@@ -103,9 +104,21 @@ func (ctx *TestClientCtx) AddCert(tb testing.TB, cert string) {
 	tb.Helper()
 
 	cred := &model.Credential{
-		RemoteAgentID: utils.NewNullInt64(ctx.Account.ID),
+		RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
 		Type:          auth.TLSTrustedCertificate,
 		Value:         cert,
+	}
+	require.NoError(tb, ctx.DB.Insert(cred).Run())
+}
+
+func (ctx *TestClientCtx) AddClientCert(tb testing.TB, cert, key string) {
+	tb.Helper()
+
+	cred := &model.Credential{
+		RemoteAccountID: utils.NewNullInt64(ctx.Account.ID),
+		Type:            auth.TLSCertificate,
+		Value:           cert,
+		Value2:          key,
 	}
 	require.NoError(tb, ctx.DB.Insert(cred).Run())
 }
@@ -130,10 +143,14 @@ func (ctx *TestClientCtx) run(tb testing.TB, file string, rule *model.Rule) erro
 	tb.Helper()
 	trans := ctx.makeTransfer(tb, file, rule)
 
-	logger := Logger(tb)
-	transCtx, ctxErr := model.GetTransferContext(ctx.DB, logger, trans)
+	dbLogger := Logger(tb)
+	transCtx, ctxErr := model.GetTransferContext(ctx.DB, dbLogger, trans)
 	require.NoError(tb, ctxErr)
 
+	logger := Logger(tb,
+		logtest.WithName(fmt.Sprintf("Pipeline %d (client)", trans.ID)),
+		logtest.WithLevel("WARNING"),
+	)
 	pip, cErr := pipeline.NewClientPipeline(ctx.DB, logger, transCtx, nil)
 	requireNoError(tb, cErr)
 
@@ -189,7 +206,7 @@ func (ctx *TestClientCtx) AddPullPreTaskError(tb testing.TB) (types.TransferErro
 	return addTaskError(tb, ctx.DB, ctx.RulePull, model.ChainPre)
 }
 
-func (ctx *TestClientCtx) AddPostTaskError(tb testing.TB) (types.TransferErrorCode, string) {
+func (ctx *TestClientCtx) AddPushPostTaskError(tb testing.TB) (types.TransferErrorCode, string) {
 	tb.Helper()
 
 	return addTaskError(tb, ctx.DB, ctx.RulePush, model.ChainPost)

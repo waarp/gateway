@@ -114,9 +114,8 @@ func initTestDB(c C, rootPath string) *testContext {
 	cliService := &protocolstest.TestService{}
 	So(cliService.Start(), ShouldBeNil)
 
-	services.Clients[client.Name] = cliService
-
-	Reset(func() { delete(services.Clients, client.Name) })
+	services.Clients.Add(client, cliService)
+	Reset(func() { services.Clients.Remove(client) })
 
 	return &testContext{
 		root:          rootPath,

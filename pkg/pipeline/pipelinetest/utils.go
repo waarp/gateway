@@ -261,27 +261,33 @@ func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule) {
 }
 
 func (t *testData) ClientShouldHavePreTasked(c convey.C) {
-	c.So(t.cliPreTasksNb, convey.ShouldNotBeZeroValue)
+	c.SoMsg("Client did not execute pre-tasks",
+		t.cliPreTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ServerShouldHavePreTasked(c convey.C) {
-	c.So(t.servPreTasksNb, convey.ShouldNotBeZeroValue)
+	c.SoMsg("Server did not execute pre-tasks",
+		t.servPreTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ClientShouldHavePostTasked(c convey.C) {
-	c.So(t.cliPostTasksNb, convey.ShouldNotBeZeroValue)
+	c.SoMsg("Client did not execute post-tasks",
+		t.cliPostTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ServerShouldHavePostTasked(c convey.C) {
-	c.So(t.servPostTasksNb, convey.ShouldNotBeZeroValue)
+	c.SoMsg("Server did not execute post-tasks",
+		t.servPostTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ClientShouldHaveErrorTasked(c convey.C) {
-	c.So(t.cliErrTasksNb, convey.ShouldNotBeZeroValue)
+	c.SoMsg("Client did not execute error-tasks",
+		t.cliErrTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) ServerShouldHaveErrorTasked(c convey.C) {
-	c.So(t.servErrTasksNb, convey.ShouldNotBeZeroValue)
+	c.SoMsg("Server did not execute error-tasks",
+		t.servErrTasksNb, convey.ShouldNotBeZeroValue)
 }
 
 func (t *testData) GetClientErrTaskNb() uint32 {

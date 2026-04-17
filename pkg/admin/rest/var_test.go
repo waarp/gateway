@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"github.com/gorilla/mux"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
@@ -16,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
@@ -49,17 +49,17 @@ func mustAddr(s string) types.Address {
 
 type testModule struct{}
 
-func (t testModule) NewServer(*database.DB, *model.LocalAgent) protocol.Server { return &testService{} }
-func (t testModule) NewClient(*database.DB, *model.Client) protocol.Client     { return &testService{} }
-func (t testModule) MakeServerConfig() protocol.ServerConfig                   { return &testProtoConfig{} }
-func (t testModule) MakeClientConfig() protocol.ClientConfig                   { return &testProtoConfig{} }
-func (t testModule) MakePartnerConfig() protocol.PartnerConfig                 { return &testProtoConfig{} }
+func (testModule) CanMakeTransfer(*model.TransferContext) error { return nil }
+func (testModule) CheckServerConfig(map[string]any) error       { return nil }
+func (testModule) CheckClientConfig(map[string]any) error       { return nil }
+func (testModule) CheckPartnerConfig(map[string]any) error      { return nil }
+func (testModule) NewServer(_ *database.DB, s *model.LocalAgent) protocol.Server {
+	return &testService{name: s.Name}
+}
 
-type testProtoConfig map[string]any
-
-func (*testProtoConfig) ValidServer() error  { return nil }
-func (*testProtoConfig) ValidPartner() error { return nil }
-func (*testProtoConfig) ValidClient() error  { return nil }
+func (testModule) NewClient(_ *database.DB, c *model.Client) protocol.Client {
+	return &testService{name: c.Name}
+}
 
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)

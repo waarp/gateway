@@ -7,6 +7,7 @@ function showProtoConfig (selectElem) {
         (proto === 'http'  && (selected === 'http'   || selected === 'https')) ||
         (proto === 'pesit' && (selected === 'pesit' || selected === 'pesit-tls')) ||
         (proto === 'webdav' && (selected === 'webdav'   || selected === 'webdav-tls')) ||
+        (proto === 'as2' && (selected === 'as2'   || selected === 'as2-tls')) ||
         (proto === selected)
     );
 
@@ -34,6 +35,7 @@ function showProtoConfig (selectElem) {
     container.querySelector('#r66-tlsForm')?.style.setProperty('display', selected === 'r66-tls' ? 'block' : 'none');
     container.querySelector('#httpsForm')?.style.setProperty('display', selected === 'https' ? 'block' : 'none');
     container.querySelector('#webdavTLSForm')?.style.setProperty('display', selected === 'webdav-tls' ? 'block' : 'none');
+    container.querySelector('#as2tlsForm')?.style.setProperty('display', selected === 'as2-tls' ? 'block' : 'none');
 }
 
 function addField(button, fieldName) {

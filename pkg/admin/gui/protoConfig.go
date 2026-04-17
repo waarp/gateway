@@ -442,3 +442,96 @@ func protoConfigWebdavTLSClient(r *http.Request) map[string]any {
 
 	return conf
 }
+
+func protoConfigAS2Partner(r *http.Request) map[string]any {
+	conf := make(map[string]any)
+
+	if signAlgo := r.FormValue("protoConfigAS2SignAlgo"); signAlgo != "" {
+		conf["signatureAlgorithm"] = signAlgo
+	}
+
+	if encrAlgo := r.FormValue("protoConfigAS2EncryptAlgo"); encrAlgo != "" {
+		conf["encryptionAlgorithm"] = encrAlgo
+	}
+
+	if asyncURL := r.FormValue("protoConfigAS2AsyncMDNURL"); asyncURL != "" {
+		conf["asyncMDNAddress"] = asyncURL
+	}
+
+	conf["handleAsyncMDN"] = r.FormValue("protoConfigAS2HandleAsyncMDN") == True
+
+	return conf
+}
+
+func protoConfigAS2TLSPartner(r *http.Request) map[string]any {
+	conf := protoConfigAS2Partner(r)
+	if conf == nil {
+		return nil
+	}
+
+	if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
+		conf["minTLSVersion"] = minTLSVersion
+	}
+
+	return conf
+}
+
+func protoConfigAS2Server(r *http.Request) map[string]any {
+	conf := make(map[string]any)
+
+	if fileLimit := r.FormValue("protoConfigAS2MaxFileSize"); fileLimit != "" {
+		size, err := internal.ParseInt[int64](fileLimit)
+		if err != nil {
+			return nil
+		}
+
+		conf["maxFileSize"] = size
+	}
+
+	if signAlgo := r.FormValue("protoConfigAS2MDNSignAlgo"); signAlgo != "" {
+		conf["mdnSignatureAlgorithm"] = signAlgo
+	}
+
+	return conf
+}
+
+func protoConfigAS2TLSServer(r *http.Request) map[string]any {
+	conf := protoConfigAS2Server(r)
+	if conf == nil {
+		return nil
+	}
+
+	if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
+		conf["minTLSVersion"] = minTLSVersion
+	}
+
+	return conf
+}
+
+func protoConfigAS2Client(r *http.Request) map[string]any {
+	conf := make(map[string]any)
+
+	if fileLimit := r.FormValue("protoConfigAS2MaxFileSize"); fileLimit != "" {
+		size, err := internal.ParseInt[int64](fileLimit)
+		if err != nil {
+			return nil
+		}
+
+		conf["maxFileSize"] = size
+	}
+
+	return conf
+}
+
+func protoConfigAS2TLSClient(r *http.Request) map[string]any {
+	conf := protoConfigAS2Client(r)
+	if conf == nil {
+		return nil
+	}
+
+	if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
+		conf["minTLSVersion"] = minTLSVersion
+	}
+
+	return conf
+}

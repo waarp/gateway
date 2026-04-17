@@ -58,7 +58,7 @@ func restServerToDB(restServer *api.InServer, logger *log.Logger,
 		SendDir:       sndDir,
 		TmpReceiveDir: tmpDir,
 		Protocol:      restServer.Protocol.Value,
-		ProtoConfig:   restServer.ProtoConfig,
+		ProtoConfig:   model.ProtoConfigMap(restServer.ProtoConfig),
 	}
 
 	if err := dbServer.Address.Set(restServer.Address.Value); err != nil {
@@ -73,7 +73,7 @@ func restPartnerToDB(restPartner *api.InPartner) (*model.RemoteAgent, error) {
 	dbPartner := &model.RemoteAgent{
 		Name:        restPartner.Name.Value,
 		Protocol:    restPartner.Protocol.Value,
-		ProtoConfig: restPartner.ProtoConfig,
+		ProtoConfig: model.ProtoConfigMap(restPartner.ProtoConfig),
 	}
 
 	if err := dbPartner.Address.Set(restPartner.Address.Value); err != nil {
@@ -188,7 +188,7 @@ func parseProtoParam(r *http.Request, query *database.SelectQuery) error {
 		protos := make([]string, len(r.Form["protocol"]))
 
 		for i, p := range r.Form["protocol"] {
-			if protocols.Get(p) == nil {
+			if !protocols.Exists(p) {
 				return badRequestf("%q is not a valid protocol", p)
 			}
 

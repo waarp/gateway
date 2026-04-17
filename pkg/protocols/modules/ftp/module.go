@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 const (
@@ -15,20 +16,38 @@ const (
 
 type Module struct{}
 
-func (Module) NewServer(db *database.DB, serv *model.LocalAgent) protocol.Server {
-	return newServer(db, serv)
+func (Module) CanMakeTransfer(*model.TransferContext) error { return nil }
+
+func (Module) NewServer(db *database.DB, server *model.LocalAgent) protocol.Server {
+	return newServer(db, server)
 }
 
 func (Module) NewClient(_ *database.DB, cli *model.Client) protocol.Client {
 	return newClient(cli)
 }
 
-func (Module) MakeServerConfig() protocol.ServerConfig   { return new(ServerConfig) }
-func (Module) MakeClientConfig() protocol.ClientConfig   { return new(ClientConfig) }
-func (Module) MakePartnerConfig() protocol.PartnerConfig { return new(PartnerConfig) }
+func (Module) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ServerConfig{})
+}
+
+func (Module) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ClientConfig{})
+}
+
+func (Module) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &PartnerConfig{})
+}
 
 type ModuleFTPS struct{ Module }
 
-func (ModuleFTPS) MakeServerConfig() protocol.ServerConfig   { return new(ServerConfigTLS) }
-func (ModuleFTPS) MakeClientConfig() protocol.ClientConfig   { return new(ClientConfigTLS) }
-func (ModuleFTPS) MakePartnerConfig() protocol.PartnerConfig { return new(PartnerConfigTLS) }
+func (ModuleFTPS) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ServerConfigTLS{})
+}
+
+func (ModuleFTPS) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ClientConfigTLS{})
+}
+
+func (ModuleFTPS) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &PartnerConfigTLS{})
+}

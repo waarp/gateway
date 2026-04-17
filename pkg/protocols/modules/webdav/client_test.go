@@ -142,7 +142,7 @@ func TestClientTLS(t *testing.T) {
 	serv := makeServer(t)
 	ctx := gwtesting.NewTestClientCtx(t, webdav.WebdavTLS, serv.addr, nil, nil)
 	ctx.AddPassword(t, password)
-	ctx.AddCert(t, gwtesting.LocalhostCertPEM)
+	ctx.AddCert(t, gwtesting.ServerCertPEM)
 
 	// Setup Data
 	filename := "upload.txt"

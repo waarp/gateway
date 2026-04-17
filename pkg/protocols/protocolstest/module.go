@@ -10,14 +10,15 @@ import (
 
 type TestModule struct{}
 
-func (TestModule) NewServer(*database.DB, *model.LocalAgent) protocol.Server {
+func (t TestModule) CanMakeTransfer(*model.TransferContext) error { return nil }
+func (t TestModule) CheckServerConfig(map[string]any) error       { return nil }
+func (t TestModule) CheckClientConfig(map[string]any) error       { return nil }
+func (t TestModule) CheckPartnerConfig(map[string]any) error      { return nil }
+
+func (t TestModule) NewServer(*database.DB, *model.LocalAgent) protocol.Server {
 	return &TestService{}
 }
 
-func (TestModule) NewClient(*database.DB, *model.Client) protocol.Client {
+func (t TestModule) NewClient(*database.DB, *model.Client) protocol.Client {
 	return &TestService{}
 }
-
-func (TestModule) MakeServerConfig() protocol.ServerConfig   { return &TestConfig{} }
-func (TestModule) MakeClientConfig() protocol.ClientConfig   { return &TestConfig{} }
-func (TestModule) MakePartnerConfig() protocol.PartnerConfig { return &TestConfig{} }

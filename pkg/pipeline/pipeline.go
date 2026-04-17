@@ -67,7 +67,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 	}
 
 	if err := pipeline.setFilePaths(); err != nil {
-		return nil, NewErrorWith(types.TeInternal, "failed to build the file paths", err)
+		return nil, NewErrorWith(err, types.TeInternal, "failed to build the file paths")
 	}
 
 	if transCtx.Rule.IsSend {
@@ -102,12 +102,12 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		if err := db.Insert(transCtx.Transfer).Run(); err != nil {
 			logger.Errorf("failed to insert the new transfer entry: %v", err)
 
-			return nil, NewErrorWith(types.TeInternal, "failed to insert the new transfer entry", err)
+			return nil, NewErrorWith(err, types.TeInternal, "failed to insert the new transfer entry")
 		}
 	} else if err := pipeline.UpdateTrans(); err != nil {
 		logger.Errorf("Failed to update the transfer details: %v", err)
 
-		return nil, NewErrorWith(types.TeInternal, "Failed to update the transfer details", err)
+		return nil, NewErrorWith(err, types.TeInternal, "Failed to update the transfer details")
 	}
 
 	if transCtx.Transfer.IsServer() {
@@ -145,7 +145,7 @@ func (p *Pipeline) SetProtocolAgent(agent any) {
 
 func (p *Pipeline) forceUpdateTrans() *Error {
 	if dbErr := p.DB.Update(p.TransCtx.Transfer).Run(); dbErr != nil {
-		return NewErrorWith(types.TeInternal, "Failed to update transfer", dbErr)
+		return NewErrorWith(dbErr, types.TeInternal, "Failed to update transfer")
 	}
 
 	return nil
@@ -339,7 +339,7 @@ func (p *Pipeline) EndTransfer() *Error {
 		}
 
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
-			sErr = NewErrorWith(types.TeInternal, "Failed to move transfer to history", err)
+			sErr = NewErrorWith(err, types.TeInternal, "Failed to move transfer to history")
 			p.Logger.Errorf("Failed to move transfer to history: %v", err)
 
 			if mErr := p.machine.Transition(stateError); mErr != nil {

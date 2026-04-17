@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -16,27 +15,22 @@ import (
 func GetLocalPort(tb testing.TB) uint16 {
 	tb.Helper()
 
+	addr := GetLocalAddr(tb)
+
+	//nolint:forcetypeassert //no need, the type assertion will always succeed
+	return uint16(addr.(*net.TCPAddr).Port)
+}
+
+func GetLocalAddr(tb testing.TB) net.Addr {
+	tb.Helper()
+
 	//nolint:gosec //this is just for testing
-	list, err := net.Listen("tcp", ":0")
+	list, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(tb, err, "Failed to start listener")
 
 	defer require.NoError(tb, list.Close(), "Failed to stop listener")
 
-	addr, err := types.NewAddress(list.Addr().String())
-	require.NoError(tb, err, "Failed to parse listener address")
-
-	return addr.Port
-}
-
-// HashPassword takes the given password and hashes it using the Bcrypt
-// algorithm with the minimum allowed cost (for better performance).
-func HashPassword(tb testing.TB, password string) string {
-	tb.Helper()
-
-	h, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	require.NoErrorf(tb, err, "Failed to hash password %q", password)
-
-	return string(h)
+	return list.Addr()
 }
 
 func Addr(tb testing.TB, addr string) types.Address {

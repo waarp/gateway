@@ -35,8 +35,8 @@ func TestControllerListen(t *testing.T) {
 		cliService := &protocolstest.TestService{}
 		So(cliService.Start(), ShouldBeNil)
 
-		services.Clients[client.Name] = cliService
-		defer delete(services.Clients, client.Name)
+		services.Clients.Add(client, cliService)
+		defer services.Clients.Remove(client)
 
 		remote := &model.RemoteAgent{
 			Name: "test remote", Protocol: client.Protocol,

@@ -61,8 +61,10 @@ func (s *server) listen() (string, error) {
 
 	go func() {
 		if err := s.server.Serve(list); err != nil {
-			s.logger.Errorf("unexpected error: %v", err)
-			s.state.Set(utils.StateError, err.Error())
+			if !errors.Is(err, net.ErrClosed) {
+				s.logger.Errorf("unexpected error: %v", err)
+				s.state.Set(utils.StateError, err.Error())
+			}
 		}
 	}()
 

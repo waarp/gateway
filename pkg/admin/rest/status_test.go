@@ -17,15 +17,21 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
+type id int64
+
+func (t id) GetID() int64 { return int64(t) }
+
 type testService struct {
+	name    string
 	state   utils.State
 	stopped bool
 }
 
-func makeAndStartTestService() *testService {
-	return &testService{state: utils.NewState(utils.StateRunning, "")}
+func makeAndStartTestService(name string) *testService {
+	return &testService{state: utils.NewState(utils.StateRunning, ""), name: name}
 }
 
+func (t *testService) Name() string                     { return t.name }
 func (t *testService) State() (utils.StateCode, string) { return t.state.Get() }
 func (t *testService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	panic("should not be called")
@@ -46,17 +52,13 @@ func (t *testService) Stop(context.Context) error {
 
 func TestStatus(t *testing.T) {
 	Convey("Given a gateway with some services", t, func(c C) {
-		services.Core = map[string]services.Service{
-			"Running Core Service": &testService{state: utils.NewState(utils.StateRunning, "")},
-			"Offline Core Service": &testService{state: utils.NewState(utils.StateOffline, "")},
-			"Error Core Service":   &testService{state: utils.NewState(utils.StateError, "Test Reason")},
-		}
+		services.Core.Add(&testService{name: "Running Core Service", state: utils.NewState(utils.StateRunning, "")})
+		services.Core.Add(&testService{name: "Offline Core Service", state: utils.NewState(utils.StateOffline, "")})
+		services.Core.Add(&testService{name: "Error Core Service", state: utils.NewState(utils.StateError, "Test Reason")})
 
-		services.Servers = map[string]services.Server{
-			"Running Server": &testService{state: utils.NewState(utils.StateRunning, "")},
-			"Offline Server": &testService{state: utils.NewState(utils.StateOffline, "")},
-			"Error Server":   &testService{state: utils.NewState(utils.StateError, "Test Reason")},
-		}
+		services.Servers.Add(id(1), &testService{name: "Running Server", state: utils.NewState(utils.StateRunning, "")})
+		services.Servers.Add(id(2), &testService{name: "Offline Server", state: utils.NewState(utils.StateOffline, "")})
+		services.Servers.Add(id(3), &testService{name: "Error Server", state: utils.NewState(utils.StateError, "Test Reason")})
 
 		statuses := map[string]api.Status{
 			"Error Core Service":   {State: utils.StateError.String(), Reason: "Test Reason"},

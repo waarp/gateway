@@ -997,3 +997,111 @@
     </div>
 </div>
 {{ end }}
+
+{{ define "editAs2Partner" }}
+<div id="protoConfig_as2" class="protoConfigBlock" style="display:none;">
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "as2SignAlgo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2SignAlgo" }}"></i> :</label>
+        <select name="protoConfigAS2SignAlgo" id="protoConfigAS2SignAlgo" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2SignAlgo") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectAs2SignAlgo" }}</option>
+            {{ range $.as2SignAlgos }}
+            <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2SignAlgo") . }}selected{{ end }}{{ else if eq $.ProtoConfig.signatureAlgorithm . }}selected{{ end }}>{{ toUpper . }}</option>
+            {{ end }}
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "as2EncryptAlgo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2EncryptAlgo" }}"></i> :</label>
+        <select name="protoConfigAS2EncryptAlgo" id="protoConfigAS2EncryptAlgo" class="form-select">
+            <option value="" disabled {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2EncryptAlgo") "" }}selected{{ end }}{{ else }}selected{{ end }}>{{ index .tab "selectAs2EncryptAlgo" }}</option>
+            {{ range $.as2EncryptAlgos }}
+            <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2EncryptAlgo") . }}selected{{ end }}{{ else if eq $.ProtoConfig.encryptionAlgorithm . }}selected{{ end }}>{{ toUpper . }}</option>
+            {{ end }}
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "as2MDNURL" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2MDNURL" }}"></i> :</label>
+        <input type="text" name="protoConfigAS2AsyncMDNURL" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigAS2AsyncMDNURL" }}{{ else }}{{ .ProtoConfig.asyncMDNAddress }}{{ end }}">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "as2AsyncMDNHandling" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2MDNHandling" }}"></i> :</label>
+        <div class="form-check-inline">
+            <input class="form-check-input" type="checkbox" name="protoConfigAS2HandleAsyncMDN" id="protoConfigAS2HandleAsyncMDN" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "protoConfigAS2HandleAsyncMDN" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.handleAsyncMDN true }}checked{{ end }}>
+        </div>
+    </div>
+
+    <div id="as2tlsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigAS2MinTLSVersion" class="form-select" required>
+                {{ range $.TLSVersions }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2MinTLSVersion") . }}selected{{ end }}{{ else if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "editAs2Server" }}
+<div id="protoConfig_as2" class="protoConfigBlock" style="display:none;">
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "as2MaxFileSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAS2MaxFileSize" }}"></i> :</label>
+        <input type="number" step="1" name="protoConfigAS2MaxFileSize" class="form-control" placeholder="1000000" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigAS2MaxFileSize" }}{{ else }}{{ .ProtoConfig.maxFileSize }}{{ end }}" required>
+    </div>
+
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input">
+        <label class="col-form-label">{{ index .tab "as2MDNSignAlgo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAs2MDNSignAlgo" }}"></i> :</label>
+        <select name="protoConfigAS2MDNSignAlgo" id="protoConfigAS2MDNSignAlgo" class="form-select">
+            {{ range $.as2SignAlgos }}
+            <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2MDNSignAlgo") . }}selected{{ end }}{{ else if eq $.ProtoConfig.mdnSignatureAlgorithm . }}selected{{ end }}>{{ toUpper . }}</option>
+            {{ end }}
+        </select>
+    </div>
+
+    <div id="as2tlsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigAS2MinTLSVersion" class="form-select" required>
+                {{ range $.TLSVersions }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2MinTLSVersion") . }}selected{{ end }}{{ else if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}
+
+{{ define "editAs2Client" }}
+<div id="protoConfig_as2" class="protoConfigBlock" style="display:none;">
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="mt-4 mb-2 text-start"><strong>{{ index .tab "protocolConfiguration" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolConfiguration" }}"></i> :</strong></div>
+
+    <div class="form-input mt-4">
+        <label class="col-form-label">{{ index .tab "as2MaxFileSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipAS2MaxFileSize" }}"></i> :</label>
+        <input type="number" step="1" name="protoConfigAS2MaxFileSize" class="form-control" placeholder="1000000" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigAS2MaxFileSize" }}{{ else }}{{ .ProtoConfig.maxFileSize }}{{ end }}" required>
+    </div>
+
+    <div id="as2tlsForm">
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-4">
+            <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <select name="protoConfigAS2MinTLSVersion" class="form-select" required>
+                {{ range $.TLSVersions }}
+                <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigAS2MinTLSVersion") . }}selected{{ end }}{{ else if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+</div>
+{{ end }}

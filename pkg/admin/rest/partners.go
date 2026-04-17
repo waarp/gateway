@@ -133,7 +133,7 @@ func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			Name:        asNullable(oldPartner.Name),
 			Protocol:    asNullable(oldPartner.Protocol),
 			Address:     asNullable(oldPartner.Address.String()),
-			ProtoConfig: oldPartner.ProtoConfig,
+			ProtoConfig: api.UpdateObject[any](oldPartner.ProtoConfig),
 		}
 		if err := readJSON(r, restPartner); handleError(w, logger, err) {
 			return
@@ -142,7 +142,7 @@ func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		dbPartner := &model.RemoteAgent{
 			Name:        restPartner.Name.Value,
 			Protocol:    restPartner.Protocol.Value,
-			ProtoConfig: restPartner.ProtoConfig,
+			ProtoConfig: model.ProtoConfigMap(restPartner.ProtoConfig),
 		}
 
 		if err := dbPartner.Address.Set(restPartner.Address.Value); handleError(w, logger, err) {

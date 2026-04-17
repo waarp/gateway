@@ -42,6 +42,27 @@ func RunWithCtx(ctx context.Context, f func() error) error {
 	}
 }
 
+func RunWithCtx2[T any](ctx context.Context, f func() (T, error)) (T, error) {
+	type pair struct {
+		val T
+		err error
+	}
+
+	done := make(chan pair)
+	go func() {
+		defer close(done)
+		val, err := f()
+		done <- pair{val, err}
+	}()
+
+	select {
+	case res := <-done:
+		return res.val, res.err
+	case <-ctx.Done():
+		return *new(T), context.Cause(ctx) //nolint:wrapcheck //wrapping adds nothing here
+	}
+}
+
 func CheckCtx(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
@@ -101,4 +122,47 @@ func TryRecv[T any](c <-chan T) (T, bool) {
 	default:
 		return *new(T), false
 	}
+}
+
+func Collect[T any](c chan T) []T {
+	out := make([]T, 0, cap(c))
+	for elem := range c {
+		out = append(out, elem)
+	}
+
+	return out
+}
+
+type NullableChan[T any] struct {
+	c chan T
+}
+
+func (c *NullableChan[T]) Init() {
+	c.c = make(chan T)
+}
+
+func (c *NullableChan[T]) Send(v T) {
+	if c.c == nil {
+		return
+	}
+
+	c.c <- v
+}
+
+func (c *NullableChan[T]) Recv() (T, bool) {
+	if c.c == nil {
+		return *new(T), false
+	}
+
+	v, ok := <-c.c
+
+	return v, ok
+}
+
+func (c *NullableChan[T]) Close() {
+	if c.c == nil {
+		return
+	}
+
+	close(c.c)
 }

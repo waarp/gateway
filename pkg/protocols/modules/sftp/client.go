@@ -36,6 +36,8 @@ type client struct {
 	conns   *protoutils.ConnPool[*clientConn]
 }
 
+func (c *client) Name() string { return c.client.Name }
+
 func (c *client) State() (utils.StateCode, string) {
 	return c.state.Get()
 }

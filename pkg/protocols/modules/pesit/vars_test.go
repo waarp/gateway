@@ -11,27 +11,19 @@ import (
 )
 
 func init() {
-	gwtesting.Protocols[Pesit] = gwtesting.ProtoFeatures{
-		MakeClient:        Module{}.NewClient,
-		MakeServer:        Module{}.NewServer,
-		MakeServerConfig:  Module{}.MakeServerConfig,
-		MakeClientConfig:  Module{}.MakeClientConfig,
-		MakePartnerConfig: Module{}.MakePartnerConfig,
-		TransID:           true,
-		RuleName:          false,
-		Size:              true,
-	}
+	gwtesting.Register(Pesit, gwtesting.ProtoFeatures{
+		Protocol: Module{},
+		TransID:  true,
+		RuleName: false,
+		Size:     true,
+	})
 
-	gwtesting.Protocols[PesitTLS] = gwtesting.ProtoFeatures{
-		MakeClient:        ModuleTLS{}.NewClient,
-		MakeServer:        ModuleTLS{}.NewServer,
-		MakeServerConfig:  ModuleTLS{}.MakeServerConfig,
-		MakeClientConfig:  ModuleTLS{}.MakeClientConfig,
-		MakePartnerConfig: ModuleTLS{}.MakePartnerConfig,
-		TransID:           true,
-		RuleName:          false,
-		Size:              true,
-	}
+	gwtesting.Register(PesitTLS, gwtesting.ProtoFeatures{
+		Protocol: ModuleTLS{},
+		TransID:  true,
+		RuleName: false,
+		Size:     true,
+	})
 }
 
 func requireNoError(tb testing.TB, err *pipeline.Error, msgAndArgs ...interface{}) {

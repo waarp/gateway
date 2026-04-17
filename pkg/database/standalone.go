@@ -15,7 +15,7 @@ func (db *DB) newSession() *Session {
 		id:      time.Now().UnixNano(),
 		db:      db,
 		session: db.engine.NewSession(),
-		logger:  db.logger,
+		logger:  db.Logger,
 	}
 }
 
@@ -35,7 +35,7 @@ func (db *DB) Transaction(fun TransactionFunc) error {
 	ses := db.newSession()
 
 	if err := ses.session.Begin(); err != nil {
-		db.logger.Errorf("Failed to start transaction: %v", err)
+		db.Logger.Errorf("Failed to start transaction: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -52,24 +52,24 @@ func (db *DB) Transaction(fun TransactionFunc) error {
 
 	defer func() {
 		if err := ses.session.Close(); err != nil {
-			db.logger.Warningf("an error occurred while closing the session: %v", err)
+			db.Logger.Warningf("an error occurred while closing the session: %v", err)
 		}
 
 		close(done)
 	}()
 
 	if err := fun(ses); err != nil {
-		db.logger.Trace("Transaction failed, changes have been rolled back")
+		db.Logger.Trace("Transaction failed, changes have been rolled back")
 
 		if rbErr := ses.session.Rollback(); rbErr != nil {
-			db.logger.Warningf("an error occurred while rolling back the transaction: %v", rbErr)
+			db.Logger.Warningf("an error occurred while rolling back the transaction: %v", rbErr)
 		}
 
 		return err
 	}
 
 	if err := ses.session.Commit(); err != nil {
-		db.logger.Errorf("Failed to commit changes: %v", err)
+		db.Logger.Errorf("Failed to commit changes: %v", err)
 
 		return NewInternalError(err)
 	}
@@ -83,7 +83,7 @@ func (db *DB) getUnderlying() xorm.Interface {
 
 // GetLogger returns the database logger instance.
 func (db *DB) GetLogger() *log.Logger {
-	return db.logger
+	return db.Logger
 }
 
 func (db *DB) AsDB() *DB { return db }
@@ -173,7 +173,7 @@ func (db *DB) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
 func (db *DB) Exec(query string, args ...any) error {
-	return exec(db.engine.NewSession(), db.logger, query, args...)
+	return exec(db.engine.NewSession(), db.Logger, query, args...)
 }
 
 // QueryRow returns a single row from the database, which can then be scanned.

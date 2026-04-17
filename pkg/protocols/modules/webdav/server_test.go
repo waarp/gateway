@@ -178,7 +178,7 @@ func TestServerTLS(t *testing.T) {
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, webdav.WebdavTLS, nil)
 	ctx.AddPassword(t, password)
-	ctx.AddCert(t, gwtesting.LocalhostCertPEM, gwtesting.LocalhostKeyPEM)
+	ctx.AddCert(t, gwtesting.ServerCertPEM, gwtesting.ServerKeyPEM)
 	client := makeClient(ctx)
 
 	// Do transfer

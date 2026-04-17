@@ -50,8 +50,7 @@ func (c *Client) dialClientConn(pip *pipeline.Pipeline, dialer *protoutils.Trace
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
 		pip.Logger.Errorf("Failed to parse R66 partner proto config: %v", err)
 
-		return nil, pipeline.NewErrorWith(types.TeInternal,
-			"failed to parse R66 partner proto config", err)
+		return nil, pipeline.NewErrorWith(err, types.TeInternal, "failed to parse R66 partner proto config")
 	}
 
 	var tlsConf *tls.Config
@@ -60,7 +59,7 @@ func (c *Client) dialClientConn(pip *pipeline.Pipeline, dialer *protoutils.Trace
 		if tlsConf, err = makeClientTLSConfig(pip, &partConf, c.clientConfig); err != nil {
 			c.logger.Errorf("Failed to parse R66 TLS config: %v", err)
 
-			return nil, pipeline.NewErrorWith(types.TeInternal, "invalid R66 TLS config", err)
+			return nil, pipeline.NewErrorWith(err, types.TeInternal, "invalid R66 TLS config")
 		}
 	}
 

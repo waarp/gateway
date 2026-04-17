@@ -91,6 +91,12 @@
                     {{ if in $.protocolsList "webdav-tls" }}
                         <option value="webdav-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "webdav-tls" }}selected{{ end }}{{ end }}>WebDAV over HTTPS</option>
                     {{ end }}
+                    {{ if in $.protocolsList "as2" }}
+                        <option value="as2" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "as2" }}selected{{ end }}{{ end }}>AS2</option>
+                    {{ end }}
+                    {{ if in $.protocolsList "as2-tls" }}
+                        <option value="as2-tls" {{ if $.modalElement }}{{ if eq (index $.modalElement "addLocalClientProtocol") "as2-tls" }}selected{{ end }}{{ end }}>AS2 over HTTPS</option>
+                    {{ end }}
                 </select>
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
@@ -133,6 +139,7 @@
                 {{ template "addPesitClient" . }}
                 {{ template "addHttpClient" . }}
                 {{ template "addWebdavClient" . }}
+                {{ template "addAs2Client" . }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index .tab "close" }}</button>
@@ -216,6 +223,14 @@
             <div class="form-check form-check-inline">
               <input class="form-check-input" type="checkbox" name="filterProtocolWebdavTLS" id="filterProtocolWebdavTLS" value="true" {{ if .filter.Protocols.WebdavTLS }}checked{{ end }}>
               <label class="form-check-label" for="filterProtocolWebdavTLS">WebDAV over HTTPS</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="filterProtocolAS2" id="filterProtocolAS2" value="true" {{ if .filter.Protocols.AS2 }}checked{{ end }}>
+                <label class="form-check-label" for="filterProtocolAS2">AS2</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="filterProtocolAS2TLS" id="filterProtocolAS2TLS" value="true" {{ if .filter.Protocols.AS2TLS }}checked{{ end }}>
+                <label class="form-check-label" for="filterProtocolAS2TLS">AS2 over HTTPS</label>
             </div>
         </div>
       </form>
@@ -301,6 +316,9 @@
                         {{ end }}
                         {{ if eq .Protocol "webdav-tls" }}
                           {{ template "displayWebdavClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
+                        {{ end }}
+                        {{ if or (eq .Protocol "as2") (eq .Protocol "as2-tls") }}
+                          {{ template "displayAs2Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                         {{ end }}
                         </div>
                         <div class="modal-footer">
@@ -430,6 +448,12 @@
                               {{ if in $.protocolsList "webdav-tls" }}
                                   <option value="webdav-tls" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "webdav-tls" }}selected{{ end }}{{ else if eq .Protocol "webdav-tls" }}selected{{ end }}>WebDAV over HTTPS</option>
                               {{ end }}
+                              {{ if in $.protocolsList "as2" }}
+                                  <option value="as2" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "as2" }}selected{{ end }}{{ else if eq .Protocol "as2" }}selected{{ end }}>AS2</option>
+                              {{ end }}
+                              {{ if in $.protocolsList "as2-tls" }}
+                                  <option value="as2-tls" {{ if $me }}{{ if eq (index $me "editLocalClientProtocol") "as2-tls" }}selected{{ end }}{{ else if eq .Protocol "as2-tls" }}selected{{ end }}>AS2 over HTTPS</option>
+                              {{ end }}
                             </select>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
@@ -471,6 +495,7 @@
                             {{ template "editSftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
                             {{ template "editHttpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                             {{ template "editWebdavClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                            {{ template "editAs2Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

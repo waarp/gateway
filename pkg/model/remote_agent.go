@@ -24,7 +24,7 @@ type RemoteAgent struct {
 	Address  types.Address `xorm:"address"`  // The partner's address (including the port)
 
 	// The partner's protocol configuration as a map.
-	ProtoConfig map[string]any `xorm:"proto_config"`
+	ProtoConfig ProtoConfigMap `xorm:"proto_config"`
 }
 
 func (*RemoteAgent) TableName() string          { return TableRemAgents }
@@ -35,7 +35,7 @@ func (*RemoteAgent) IsServer() bool             { return true }
 func (r *RemoteAgent) Host() string             { return r.Address.Host }
 
 func (r *RemoteAgent) validateProtoConfig() error {
-	if err := ConfigChecker.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
+	if err := CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
 		return database.WrapAsValidationError(err)
 	}
 

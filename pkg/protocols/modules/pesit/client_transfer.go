@@ -101,7 +101,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 	if err := utils.JSONConvert(c.pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
 		c.pip.Logger.Errorf("Failed to parse the pesit partner's proto config: %v", err)
 
-		return pipeline.NewErrorWith(types.TeInternal, "failed to parse the pesit partner's proto config", err)
+		return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse the pesit partner's proto config")
 	}
 
 	// connect to partner
@@ -112,7 +112,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 	if connErr != nil {
 		c.pip.Logger.Errorf("Failed to connect to partner: %v", connErr)
 
-		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to partner", connErr)
+		return pipeline.NewErrorWith(connErr, types.TeConnection, "failed to connect to partner")
 	}
 
 	if err := c.request(fileInfo, &partConf, conn); err != nil {
@@ -148,7 +148,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		if tlsErr != nil {
 			c.pip.Logger.Errorf("Failed to parse TLS config: %v", tlsErr)
 
-			return pipeline.NewErrorWith(types.TeInternal, "failed to parse TLS config", tlsErr)
+			return pipeline.NewErrorWith(tlsErr, types.TeInternal, "failed to parse TLS config")
 		}
 
 		conn = tls.Client(conn, tlsConfig)
@@ -157,7 +157,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	if err := c.client.Connect(conn); err != nil {
 		c.pip.Logger.Errorf("Failed to open PeSIT connection: %v", err)
 
-		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to partner", err)
+		return pipeline.NewErrorWith(err, types.TeConnection, "failed to connect to partner")
 	}
 
 	if err := c.authenticateServer(); err != nil {
@@ -279,7 +279,7 @@ func (c *clientTransfer) authenticateServer() *pipeline.Error {
 		c.pip.Logger.Errorf("Failed to retrieve partner password: %v", err)
 		c.SendError(types.TeInternal, "database error")
 
-		return pipeline.NewErrorWith(types.TeInternal, "failed to retrieve partner password", err)
+		return pipeline.NewErrorWith(err, types.TeInternal, "failed to retrieve partner password")
 	}
 
 	return nil
