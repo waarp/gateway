@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 const (
@@ -16,20 +17,38 @@ const (
 
 type Module struct{}
 
-func (Module) NewServer(db *database.DB, serv *model.LocalAgent) protocol.Server {
-	return newService(db, serv)
+func (Module) CanMakeTransfer(*model.TransferContext) error { return nil }
+
+func (Module) NewServer(db *database.DB, server *model.LocalAgent) protocol.Server {
+	return newService(db, server)
 }
 
-func (Module) NewClient(_ *database.DB, client *model.Client) protocol.Client {
-	return newClient(client)
+func (Module) NewClient(_ *database.DB, cli *model.Client) protocol.Client {
+	return newClient(cli)
 }
 
-func (Module) MakeServerConfig() protocol.ServerConfig   { return new(ServerConfig) }
-func (Module) MakeClientConfig() protocol.ClientConfig   { return new(ClientConfig) }
-func (Module) MakePartnerConfig() protocol.PartnerConfig { return new(PartnerConfig) }
+func (Module) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ServerConfig{})
+}
+
+func (Module) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ClientConfig{})
+}
+
+func (Module) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &PartnerConfig{})
+}
 
 type ModuleTLS struct{ Module }
 
-func (ModuleTLS) MakeServerConfig() protocol.ServerConfig   { return new(ServerConfigTLS) }
-func (ModuleTLS) MakeClientConfig() protocol.ClientConfig   { return new(ClientConfigTLS) }
-func (ModuleTLS) MakePartnerConfig() protocol.PartnerConfig { return new(PartnerConfigTLS) }
+func (ModuleTLS) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ServerConfigTLS{})
+}
+
+func (ModuleTLS) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &ClientConfigTLS{})
+}
+
+func (ModuleTLS) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &PartnerConfigTLS{})
+}

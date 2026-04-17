@@ -93,7 +93,7 @@ type ServerConfig struct {
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
 }
 
-func (s *ServerConfig) ValidServer() error {
+func (s *ServerConfig) ValidConf() error {
 	s.validCheckpoints()
 
 	if s.MaxMessageSize == 0 {
@@ -107,7 +107,7 @@ type ClientConfig struct {
 	CheckPointConfig
 }
 
-func (c *ClientConfig) ValidClient() error {
+func (c *ClientConfig) ValidConf() error {
 	c.validCheckpoints()
 
 	return nil
@@ -148,7 +148,7 @@ type PartnerConfig struct {
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
 }
 
-func (p *PartnerConfig) ValidPartner() error {
+func (p *PartnerConfig) ValidConf() error {
 	if p.DisableCheckpoints.Valid && p.DisableCheckpoints.Value {
 		p.DisableRestart = api.Nullable[bool]{Value: true, Valid: true}
 	}

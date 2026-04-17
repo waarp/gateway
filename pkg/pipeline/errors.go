@@ -25,7 +25,7 @@ func FileErrToTransferErr(err error) *Error {
 		return NewError(types.TeForbidden, "file operation not allowed")
 	}
 
-	return NewErrorWith(types.TeUnknown, "file operation failed", err)
+	return NewErrorWith(err, types.TeUnknown, "file operation failed")
 }
 
 type Error struct {
@@ -42,8 +42,12 @@ func NewErrorf(code types.TransferErrorCode, details string, args ...any) *Error
 	return &Error{code: code, details: fmt.Sprintf(details, args...)}
 }
 
-func NewErrorWith(code types.TransferErrorCode, details string, cause error) *Error {
+func NewErrorWith(cause error, code types.TransferErrorCode, details string) *Error {
 	return &Error{code: code, details: details, cause: cause}
+}
+
+func NewErrorWithf(cause error, code types.TransferErrorCode, details string, args ...any) *Error {
+	return &Error{code: code, details: fmt.Sprintf(details, args...), cause: cause}
 }
 
 func (e *Error) Code() types.TransferErrorCode { return e.code }

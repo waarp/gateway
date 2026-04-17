@@ -14,3 +14,4 @@ ainsi que leurs détails d'implémentation spécifiques à cette dernière.
    ftp
    pesit
    webdav
+   as2

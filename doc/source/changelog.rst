@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`491` Ajout du support pour le protocole AS2. Compte tenu des nombreuses
+  spécificités du protocole, il est fortement recommandé de lire :doc:`la rubrique
+  <reference/protocols/as2>` spécifiant les détails d'implémentation du protocole avant
+  de commencer à l'utiliser.
+
 * :release:`0.15.8 <2026-06-09>`
 * :bug:`585` Si le *filesystem* cible d'un transfert ne supporte pas la pose de
   verrous sur les fichiers, alors les fichiers de transfert seront ouverts sans

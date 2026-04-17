@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -26,6 +28,23 @@ const (
 
 	DefaultTLSVersion = tls.VersionTLS12
 )
+
+func TLSVersionFromString(v string) (TLSVersion, error) {
+	switch v {
+	case "", "null":
+		return DefaultTLSVersion, nil
+	case TLSv10:
+		return tls.VersionTLS10, nil
+	case TLSv11:
+		return tls.VersionTLS11, nil
+	case TLSv12:
+		return tls.VersionTLS12, nil
+	case TLSv13:
+		return tls.VersionTLS13, nil
+	default:
+		return 0, UnsupportedTLSVersionError(v)
+	}
+}
 
 func (t TLSVersion) TLS() uint16 { return uint16(t) }
 
@@ -52,22 +71,10 @@ func (t *TLSVersion) UnmarshalJSON(b []byte) error {
 		return err //nolint:wrapcheck //no need to wrap here
 	}
 
-	switch v {
-	case "", "null":
-		*t = DefaultTLSVersion
-	case TLSv10:
-		*t = tls.VersionTLS10
-	case TLSv11:
-		*t = tls.VersionTLS11
-	case TLSv12:
-		*t = tls.VersionTLS12
-	case TLSv13:
-		*t = tls.VersionTLS13
-	default:
-		return UnsupportedTLSVersionError(v)
-	}
+	var err error
+	*t, err = TLSVersionFromString(v)
 
-	return nil
+	return err
 }
 
 func (t TLSVersion) MarshalJSON() ([]byte, error) {
@@ -121,4 +128,45 @@ func GetServerTLSConfig(db database.ReadAccess, logger *log.Logger,
 			VerifyConnection:      compatibility.LogSha1(logger),
 		}, nil
 	}
+}
+
+func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger, minVersion TLSVersion,
+) (*tls.Config, error) {
+	config := &tls.Config{
+		ServerName:       ctx.RemoteAgent.Address.Host,
+		RootCAs:          utils.TLSCertPool(),
+		VerifyConnection: compatibility.LogSha1(logger),
+		MinVersion:       minVersion.TLS(),
+	}
+
+	for _, cred := range ctx.RemoteAccountCreds {
+		if cred.Type != auth.TLSCertificate {
+			continue
+		}
+
+		cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse client certificate %s: %w", cred.Name, err)
+		}
+
+		config.Certificates = append(config.Certificates, cert)
+	}
+
+	for _, cred := range ctx.RemoteAgentCreds {
+		if cred.Type != auth.TLSTrustedCertificate {
+			continue
+		}
+
+		config.RootCAs.AppendCertsFromPEM([]byte(cred.Value))
+	}
+
+	for _, authority := range ctx.Authorities {
+		if len(authority.ValidHosts) != 0 && !slices.Contains(authority.ValidHosts, config.ServerName) {
+			continue
+		}
+
+		config.RootCAs.AppendCertsFromPEM([]byte(authority.PublicIdentity))
+	}
+
+	return config, nil
 }

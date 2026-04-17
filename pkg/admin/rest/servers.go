@@ -172,7 +172,7 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				ReceiveDir:    asNullable(dbServer.ReceiveDir),
 				SendDir:       asNullable(dbServer.SendDir),
 				TmpReceiveDir: asNullable(dbServer.TmpReceiveDir),
-				ProtoConfig:   dbServer.ProtoConfig,
+				ProtoConfig:   api.UpdateObject[any](dbServer.ProtoConfig),
 			}
 		})
 	}

@@ -62,10 +62,6 @@ func (s serviceMap[T]) Remove(obj database.Identifier) {
 	s.m.Delete(obj.GetID())
 }
 
-func (s serviceMap[T]) Delete(obj database.Identifier) {
-	s.Remove(obj)
-}
-
 func (s serviceMap[T]) Start(obj database.Identifier) (retErr error) {
 	s.m.Compute(obj.GetID(), func(service T, loaded bool) (_ T, op xsync.ComputeOp) {
 		if !loaded {

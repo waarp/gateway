@@ -11,7 +11,7 @@ type httpsServerConfig struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (h *httpsServerConfig) ValidServer() error { return nil }
+func (h *httpsServerConfig) ValidConf() error { return nil }
 
 // httpsPartnerConfig represents the configuration of a remote HTTP partner.
 type httpsPartnerConfig struct {
@@ -21,7 +21,7 @@ type httpsPartnerConfig struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (h *httpsPartnerConfig) ValidPartner() error { return nil }
+func (h *httpsPartnerConfig) ValidConf() error { return nil }
 
 // httpsClientConfig represents the configuration of a local HTTP client.
 type httpsClientConfig struct {
@@ -31,4 +31,4 @@ type httpsClientConfig struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (h *httpsClientConfig) ValidClient() error { return nil }
+func (h *httpsClientConfig) ValidConf() error { return nil }

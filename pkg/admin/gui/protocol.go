@@ -5,6 +5,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -26,6 +27,8 @@ type Protocols struct {
 	PeSITTLS  string
 	Webdav    string
 	WebdavTLS string
+	AS2       string
+	AS2TLS    string
 }
 
 func applyProtocolsFilter(filter *Filters) []string {
@@ -74,6 +77,14 @@ func applyProtocolsFilter(filter *Filters) []string {
 		filterProtocol = append(filterProtocol, webdav.WebdavTLS)
 	}
 
+	if filter.Protocols.AS2 == True {
+		filterProtocol = append(filterProtocol, as2.AS2)
+	}
+
+	if filter.Protocols.AS2TLS == True {
+		filterProtocol = append(filterProtocol, as2.AS2TLS)
+	}
+
 	return filterProtocol
 }
 
@@ -107,6 +118,8 @@ func supportedProtocolServer(protocol string) []string {
 		ftp.FTPS:         {auth.TLSCertificate},
 		webdav.Webdav:    {},
 		webdav.WebdavTLS: {auth.TLSCertificate},
+		as2.AS2:          {},
+		as2.AS2TLS:       {auth.TLSCertificate},
 	}
 
 	return supportedProtocolsExternal[protocol]
@@ -125,6 +138,8 @@ func supportedProtocolPartner(protocol string) []string {
 		ftp.FTPS:         {auth.TLSTrustedCertificate},
 		webdav.Webdav:    {},
 		webdav.WebdavTLS: {auth.TLSTrustedCertificate},
+		as2.AS2:          {},
+		as2.AS2TLS:       {auth.TLSTrustedCertificate},
 	}
 
 	return supportedProtocolsInternal[protocol]
@@ -143,6 +158,8 @@ func supportedProtocolLocalAccount(protocol string) []string {
 		ftp.FTPS:         {auth.Password, auth.TLSTrustedCertificate},
 		webdav.Webdav:    {auth.Password},
 		webdav.WebdavTLS: {auth.Password, auth.TLSTrustedCertificate},
+		as2.AS2:          {auth.Password},
+		as2.AS2TLS:       {auth.Password, auth.TLSTrustedCertificate},
 	}
 
 	return supportedProtocolsInternal[protocol]
@@ -161,6 +178,8 @@ func supportedProtocolRemoteAccount(protocol string) []string {
 		ftp.FTPS:         {auth.Password, auth.TLSCertificate},
 		webdav.Webdav:    {auth.Password},
 		webdav.WebdavTLS: {auth.Password, auth.TLSCertificate},
+		as2.AS2:          {auth.Password},
+		as2.AS2TLS:       {auth.Password, auth.TLSCertificate},
 	}
 
 	return supportedProtocolsExternal[protocol]
@@ -168,7 +187,7 @@ func supportedProtocolRemoteAccount(protocol string) []string {
 
 func ProtocolsList() []string {
 	var protocolsList []string
-	for protocol := range protocols.List {
+	for protocol := range protocols.List() {
 		protocolsList = append(protocolsList, protocol)
 	}
 
@@ -230,6 +249,14 @@ func protocolsFilter(r *http.Request, filter *Filters) (*Filters, []string) {
 		filterProtocol = append(filterProtocol, webdav.WebdavTLS)
 	}
 
+	if filter.Protocols.AS2 = urlParams.Get("filterProtocolAS2"); filter.Protocols.AS2 == True {
+		filterProtocol = append(filterProtocol, as2.AS2)
+	}
+
+	if filter.Protocols.AS2TLS = urlParams.Get("filterProtocolAS2TLS"); filter.Protocols.AS2TLS == True {
+		filterProtocol = append(filterProtocol, as2.AS2TLS)
+	}
+
 	return filter, filterProtocol
 }
 
@@ -257,6 +284,10 @@ func protocolDisplayName(protocol string) string {
 		return "WebDAV"
 	case webdav.WebdavTLS:
 		return "WebDAV over HTTPS"
+	case as2.AS2:
+		return "AS2"
+	case as2.AS2TLS:
+		return "AS2 over HTTPS"
 	default:
 		return protocol
 	}

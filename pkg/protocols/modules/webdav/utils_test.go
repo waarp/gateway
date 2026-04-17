@@ -29,7 +29,7 @@ func makeTransport(ctx *gwtesting.TestServerCtx) http.RoundTripper {
 
 	if ctx.Server.Protocol == webdav.WebdavTLS {
 		rootCAs := utils.TLSCertPool()
-		rootCAs.AddCert(gwtesting.LocalhostCert.Leaf)
+		rootCAs.AddCert(gwtesting.ServerCert.Leaf)
 		transport.TLSClientConfig = &tls.Config{RootCAs: rootCAs}
 	}
 
@@ -68,6 +68,8 @@ func makeServer(tb testing.TB) *servCtx {
 	list, err := net.Listen("tcp", "localhost:0")
 	require.NoError(tb, err)
 
+	const expLogin = webdav.Webdav + "-test-account"
+
 	handler := &weblib.Handler{
 		Prefix:     "",
 		FileSystem: fs,
@@ -81,19 +83,34 @@ func makeServer(tb testing.TB) *servCtx {
 		},
 	}
 
-	const expLogin = "test-partner-account"
-	serv := http.Server{
-		Addr: list.Addr().String(),
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			login, pswd, ok := r.BasicAuth()
-			if !ok || login != expLogin || pswd != password {
-				w.Header().Add("WWW-Authenticate", "Basic")
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
+	authHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("WWW-Authenticate", "Basic")
 
+		if r.Method == http.MethodOptions {
 			handler.ServeHTTP(w, r)
-		}),
+			return
+		}
+
+		login, pswd, ok := r.BasicAuth()
+		switch {
+		case !ok:
+			tb.Error("no basic auth credentials found")
+			w.WriteHeader(http.StatusUnauthorized)
+		case login != expLogin:
+			tb.Errorf("wrong login, expected %q, got %q", expLogin, login)
+			w.WriteHeader(http.StatusUnauthorized)
+		case pswd != password:
+			tb.Errorf("wrong password, expected %q, got %q", password, pswd)
+			w.WriteHeader(http.StatusUnauthorized)
+		default:
+			handler.ServeHTTP(w, r)
+			return
+		}
+	}
+
+	serv := http.Server{
+		Addr:    list.Addr().String(),
+		Handler: http.HandlerFunc(authHandler),
 	}
 
 	go serv.Serve(list)

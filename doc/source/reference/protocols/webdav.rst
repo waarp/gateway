@@ -16,7 +16,7 @@ Authentification
 
 L'authentification se fait via le mécanisme d'authentification basique de HTTP
 où les identifiants sont transmis encodés en base64 via l'entête "Authorization"
-(voir :rfc:`7617` pour plus de détails).
+(voir la :rfc:`7617` pour plus de détails).
 
 Fonctionnalités
 ---------------

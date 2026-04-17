@@ -4,10 +4,9 @@ package gwtesting
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 )
 
 const testLogLevel = "DEBUG"
@@ -19,17 +18,8 @@ func init() {
 	}
 }
 
-func Logger(tb testing.TB) *log.Logger {
+func Logger(tb testing.TB, opts ...logtest.LogOpt) *log.Logger {
 	tb.Helper()
 
-	return LoggerWithName(tb, tb.Name())
-}
-
-func LoggerWithName(tb testing.TB, name string) *log.Logger {
-	tb.Helper()
-
-	back, err := log.NewBackend(log.LevelDebug, log.Stdout, "", "")
-	require.NoError(tb, err)
-
-	return back.NewLogger(name)
+	return logtest.GetTestLogger(tb, opts...)
 }

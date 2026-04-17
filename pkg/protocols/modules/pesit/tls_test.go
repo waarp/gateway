@@ -19,14 +19,14 @@ func TestTLS(t *testing.T) {
 		Name:         "pesit_server_cert",
 		LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
 		Type:         auth.TLSCertificate,
-		Value2:       gwtesting.LocalhostKeyPEM,
-		Value:        gwtesting.LocalhostCertPEM,
+		Value2:       gwtesting.ServerKeyPEM,
+		Value:        gwtesting.ServerCertPEM,
 	})
 	ctx.AddCred(t, &model.Credential{
 		Name:          "pesit_partner_cert",
 		RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
 		Type:          auth.TLSTrustedCertificate,
-		Value:         gwtesting.LocalhostCertPEM,
+		Value:         gwtesting.ServerCertPEM,
 	})
 
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {

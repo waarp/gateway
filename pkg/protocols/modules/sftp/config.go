@@ -7,7 +7,7 @@ type serverConfig struct {
 	MACs         []string `json:"macs,omitempty"`
 }
 
-func (s *serverConfig) ValidServer() error {
+func (s *serverConfig) ValidConf() error {
 	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, true)
 }
 
@@ -20,7 +20,7 @@ type partnerConfig struct {
 	UseStat                      bool     `json:"useStat,omitempty"`
 }
 
-func (s *partnerConfig) ValidPartner() error {
+func (s *partnerConfig) ValidConf() error {
 	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, false)
 }
 
@@ -31,6 +31,6 @@ type clientConfig struct {
 	MACs         []string `json:"macs,omitempty"`
 }
 
-func (s *clientConfig) ValidClient() error {
+func (s *clientConfig) ValidConf() error {
 	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, false)
 }

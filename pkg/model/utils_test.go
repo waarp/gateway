@@ -22,18 +22,13 @@ const (
 	testLocalPath = "/test/local/file"
 )
 
-var (
-	errInvalidProtoConfig = errors.New("invalid protocol configuration")
-	errUnknownProtocol    = errors.New("unknown protocol")
-)
+var errInvalidProtoConfig = errors.New("invalid protocol configuration")
 
 //nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	ConfigChecker = testConfigChecker{
-		testProtocol:        nil,
-		testProtocolInvalid: errInvalidProtoConfig,
-		protoR66:            nil,
-	}
+	Protocols[testProtocol] = dummyProtocol{}
+	Protocols[testProtocolInvalid] = dummyProtocol{err: errInvalidProtoConfig}
+	Protocols[protoR66] = dummyProtocol{}
 
 	authentication.AddInternalCredentialType(testInternalAuth, &intAuth{})
 	authentication.AddExternalCredentialType(testExternalAuth, &extAuth{})
@@ -58,33 +53,12 @@ func localPath(fPath string) string {
 	return fPath
 }
 
-type testConfigChecker map[string]error
+type dummyProtocol struct{ err error }
 
-func (t testConfigChecker) checkConfig(proto string) error {
-	if err, ok := t[proto]; ok {
-		return err
-	}
-
-	return fmt.Errorf("%w %q", errUnknownProtocol, proto)
-}
-
-func (t testConfigChecker) IsValidProtocol(proto string) bool {
-	_, ok := t[proto]
-
-	return ok
-}
-
-func (t testConfigChecker) CheckServerConfig(proto string, _ map[string]any) error {
-	return t.checkConfig(proto)
-}
-
-func (t testConfigChecker) CheckClientConfig(proto string, _ map[string]any) error {
-	return t.checkConfig(proto)
-}
-
-func (t testConfigChecker) CheckPartnerConfig(proto string, _ map[string]any) error {
-	return t.checkConfig(proto)
-}
+func (dummyProtocol) CanMakeTransfer(*TransferContext) error    { return nil }
+func (d dummyProtocol) CheckServerConfig(map[string]any) error  { return d.err }
+func (d dummyProtocol) CheckClientConfig(map[string]any) error  { return d.err }
+func (d dummyProtocol) CheckPartnerConfig(map[string]any) error { return d.err }
 
 type intAuth struct{}
 

@@ -82,8 +82,7 @@ func TestExportLocalAgents(t *testing.T) {
 						So(res[0].SendDir, ShouldEqual, agent1.SendDir)
 						So(res[0].TmpReceiveDir, ShouldEqual, agent1.TmpReceiveDir)
 						So(res[0].Address, ShouldEqual, agent1.Address.String())
-						So(res[0].Configuration, ShouldResemble,
-							agent1.ProtoConfig)
+						So(res[0].Configuration, ShouldResemble, agent1.ProtoConfig.Map())
 
 						So(res[0].Credentials, ShouldHaveLength, 1)
 						So(res[0].Credentials[0].Name, ShouldEqual, cert.Name)
@@ -106,8 +105,7 @@ func TestExportLocalAgents(t *testing.T) {
 						So(res[1].SendDir, ShouldEqual, agent2.SendDir)
 						So(res[1].TmpReceiveDir, ShouldEqual, agent2.TmpReceiveDir)
 						So(res[1].Address, ShouldEqual, agent2.Address.String())
-						So(res[1].Configuration, ShouldResemble,
-							agent2.ProtoConfig)
+						So(res[1].Configuration, ShouldResemble, agent2.ProtoConfig.Map())
 
 						So(res[1].Credentials, ShouldHaveLength, 0)
 						So(res[1].Accounts, ShouldHaveLength, 2)

@@ -4,6 +4,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 const (
@@ -13,24 +14,38 @@ const (
 
 type Module struct{}
 
-func (Module) NewServer(db *database.DB, serv *model.LocalAgent) protocol.Server {
-	return &httpService{db: db, agent: serv}
+func (Module) CanMakeTransfer(*model.TransferContext) error { return nil }
+
+func (Module) NewServer(db *database.DB, server *model.LocalAgent) protocol.Server {
+	return &httpService{db: db, agent: server}
 }
 
 func (Module) NewClient(db *database.DB, cli *model.Client) protocol.Client {
 	return &httpClient{db: db, client: cli}
 }
 
-func (Module) MakeServerConfig() protocol.ServerConfig   { return new(serverConfig) }
-func (Module) MakeClientConfig() protocol.ClientConfig   { return new(clientConfig) }
-func (Module) MakePartnerConfig() protocol.PartnerConfig { return new(partnerConfig) }
+func (Module) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &serverConfig{})
+}
+
+func (Module) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &clientConfig{})
+}
+
+func (Module) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &partnerConfig{})
+}
 
 type ModuleHTTPS struct{ Module }
 
-func (ModuleHTTPS) NewClient(db *database.DB, cli *model.Client) protocol.Client {
-	return &httpsClient{httpClient: &httpClient{db: db, client: cli}}
+func (ModuleHTTPS) CheckServerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &httpsServerConfig{})
 }
 
-func (ModuleHTTPS) MakeServerConfig() protocol.ServerConfig   { return new(httpsServerConfig) }
-func (ModuleHTTPS) MakeClientConfig() protocol.ClientConfig   { return new(httpsClientConfig) }
-func (ModuleHTTPS) MakePartnerConfig() protocol.PartnerConfig { return new(httpsPartnerConfig) }
+func (ModuleHTTPS) CheckClientConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &httpsClientConfig{})
+}
+
+func (ModuleHTTPS) CheckPartnerConfig(conf map[string]any) error {
+	return protoutils.ValidateProtoConfig(conf, &httpsPartnerConfig{})
+}

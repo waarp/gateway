@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestClientUpload(t *testing.T) {
@@ -142,7 +143,7 @@ func TestClientTLS(t *testing.T) {
 	serv := makeServer(t)
 	ctx := gwtesting.NewTestClientCtx(t, webdav.WebdavTLS, serv.addr, nil, nil)
 	ctx.AddPassword(t, password)
-	ctx.AddCert(t, gwtesting.LocalhostCertPEM)
+	ctx.AddCert(t, gwtesting.ServerCertPEM)
 
 	// Setup Data
 	filename := "upload.txt"

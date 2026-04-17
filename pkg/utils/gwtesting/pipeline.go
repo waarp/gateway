@@ -41,7 +41,7 @@ func (p Pipeline) Run() error {
 func (ctx *TransferCtx) PushPipeline(tb testing.TB) Pipeline {
 	tb.Helper()
 
-	pip, err := controller.NewClientPipeline(ctx.db, ctx.TransferPush)
+	pip, err := controller.NewClientPipeline(ctx.DB, ctx.TransferPush)
 	require.NoError(tb, err, "Failed to initialize the test push pipeline")
 
 	return Pipeline(*pip)
@@ -50,7 +50,7 @@ func (ctx *TransferCtx) PushPipeline(tb testing.TB) Pipeline {
 func (ctx *TransferCtx) PullPipeline(tb testing.TB) Pipeline {
 	tb.Helper()
 
-	pip, err := controller.NewClientPipeline(ctx.db, ctx.TransferPull)
+	pip, err := controller.NewClientPipeline(ctx.DB, ctx.TransferPull)
 	require.NoError(tb, err, "Failed to initialize the test pull pipeline")
 
 	return Pipeline(*pip)
@@ -58,7 +58,7 @@ func (ctx *TransferCtx) PullPipeline(tb testing.TB) Pipeline {
 
 func (ctx *TransferCtx) RetryPush(tb testing.TB) Pipeline {
 	tb.Helper()
-	require.NoError(tb, ctx.db.DeleteAll(&model.Task{}).In("rule_id",
+	require.NoError(tb, ctx.DB.DeleteAll(&model.Task{}).In("rule_id",
 		ctx.ClientRulePush.ID, ctx.ServerRulePush.ID).Where("type=?", taskstest.TaskErr).Run())
 	ctx.ServerService.SetTracer(func() pipeline.Trace { return pipeline.Trace{} })
 
@@ -67,7 +67,7 @@ func (ctx *TransferCtx) RetryPush(tb testing.TB) Pipeline {
 
 func (ctx *TransferCtx) RetryPull(tb testing.TB) Pipeline {
 	tb.Helper()
-	require.NoError(tb, ctx.db.DeleteAll(&model.Task{}).In("rule_id",
+	require.NoError(tb, ctx.DB.DeleteAll(&model.Task{}).In("rule_id",
 		ctx.ClientRulePull.ID, ctx.ServerRulePull.ID).Where("type=?", taskstest.TaskErr).Run())
 	ctx.ServerService.SetTracer(func() pipeline.Trace { return pipeline.Trace{} })
 
@@ -91,14 +91,14 @@ func (ctx *TransferCtx) checkTransfersOK(tb testing.TB, trans *model.Transfer,
 
 	var clientTrans model.HistoryEntry
 
-	require.NoError(tb, ctx.db.Get(&clientTrans, "id=?", trans.ID).Run(),
+	require.NoError(tb, ctx.DB.Get(&clientTrans, "id=?", trans.ID).Run(),
 		"Failed retrieve the client history entry")
 
 	ctx.checkTransferOK(tb, &clientTrans)
 
 	var serverTrans model.HistoryEntry
 
-	require.NoError(tb, ctx.db.Get(&serverTrans,
+	require.NoError(tb, ctx.DB.Get(&serverTrans,
 		"is_server=true AND is_send=? AND agent=? AND account=?",
 		serverRule.IsSend, ctx.Server.Name, ctx.LocalAccount.Login).Run(),
 		"Failed retrieve the server history entry")
@@ -106,7 +106,7 @@ func (ctx *TransferCtx) checkTransfersOK(tb testing.TB, trans *model.Transfer,
 	ctx.checkTransferOK(tb, &serverTrans)
 
 	var check model.NormalizedTransfers
-	require.NoError(tb, ctx.db.Select(&check).Run())
+	require.NoError(tb, ctx.DB.Select(&check).Run())
 
 	assert.Equal(tb, clientTrans.RemoteTransferID, serverTrans.RemoteTransferID)
 }

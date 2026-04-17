@@ -52,7 +52,7 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 			if _, err := file.Seek(trans.Progress, io.SeekStart); err != nil {
 				f.Logger.Errorf("Failed to seek inside file: %v", err)
 
-				return nil, NewErrorWith(types.TeForbidden, "failed to seek inside file", err)
+				return nil, NewErrorWith(err, types.TeForbidden, "failed to seek inside file")
 			}
 		}
 

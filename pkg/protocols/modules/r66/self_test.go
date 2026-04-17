@@ -486,8 +486,10 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 
 func TestTransOnHold(t *testing.T) {
 	db := gwtesting.Database(t)
-	ctx := gwtesting.TestTransferCtx(t, db, R66, servConf, cliConf, partConf)
+	ctx := gwtesting.TestTransferCtxUnstarted(t, db, R66, servConf, cliConf, partConf)
+	ctx.AddCred(t, serverPassword(ctx.Server))
 	ctx.AddCred(t, partnerPassword(ctx.Partner))
+	ctx.StartServices(t)
 
 	t.Run("Given a R66 pull transfer", func(t *testing.T) {
 		serverPullTrans := &model.Transfer{

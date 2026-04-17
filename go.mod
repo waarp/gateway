@@ -3,6 +3,7 @@ module code.waarp.fr/apps/gateway/gateway
 go 1.26.4
 
 require (
+	code.waarp.fr/lib/as2 v0.0.0-20260416131903-c311ae8ece42
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
 	code.waarp.fr/lib/icap v1.0.0
 	code.waarp.fr/lib/log v1.4.0
@@ -31,6 +32,7 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/klauspost/compress v1.18.6
 	github.com/mattn/go-colorable v0.1.15
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v4 v4.5.0
 	github.com/rclone/rclone v1.74.3
@@ -275,6 +277,7 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
+	github.com/smallstep/pkcs7 v0.2.1 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/sony/gobreaker v1.0.0 // indirect
 	github.com/sony/gobreaker/v2 v2.4.0 // indirect

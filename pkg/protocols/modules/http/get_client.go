@@ -38,8 +38,7 @@ func (g *getClient) Request() *pipeline.Error {
 	if reqErr != nil {
 		g.pip.Logger.Errorf("Failed to make HTTP request: %v", reqErr)
 
-		return pipeline.NewErrorWith(types.TeInternal,
-			"failed to make HTTP request", reqErr)
+		return pipeline.NewErrorWith(reqErr, types.TeInternal, "failed to make HTTP request")
 	}
 
 	var pwd string
@@ -66,7 +65,7 @@ func (g *getClient) Request() *pipeline.Error {
 	if reqErr != nil {
 		g.pip.Logger.Errorf("Failed to connect to remote host: %v", reqErr)
 
-		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", reqErr)
+		return pipeline.NewErrorWith(reqErr, types.TeConnection, "failed to connect to remote host")
 	}
 
 	switch g.resp.StatusCode {

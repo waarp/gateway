@@ -65,7 +65,7 @@ func (e *Executor) Query(query string, args ...any) ([]map[string]any, error) {
 func (db *DB) initDatabase() error {
 	sqlDB := db.engine.DB().DB
 	dialect := conf.GlobalConfig.Database.Type
-	logger := db.logger
+	logger := db.Logger
 
 	dbExist, existErr := db.engine.IsTableExist(&version{})
 	if existErr != nil {

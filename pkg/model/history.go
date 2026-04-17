@@ -125,7 +125,7 @@ func (h *HistoryEntry) BeforeWrite(_ database.Access) error {
 			"to the start date")
 	}
 
-	if !ConfigChecker.IsValidProtocol(h.Protocol) {
+	if !IsValidProtocol(h.Protocol) {
 		return database.NewValidationErrorf("%q is not a valid protocol", h.Protocol)
 	}
 

@@ -35,8 +35,7 @@ func (c *client) newClientConn(pip *pipeline.Pipeline, dialer *protoutils.TraceD
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partnerConf); err != nil {
 		pip.Logger.Errorf("Failed to parse SFTP partner protocol configuration: %v", err)
 
-		return nil, pipeline.NewErrorWith(types.TeInternal,
-			"failed to parse SFTP partner protocol configuration", err)
+		return nil, pipeline.NewErrorWith(err, types.TeInternal, "failed to parse SFTP partner protocol configuration")
 	}
 
 	sshPartnerConf := &ssh.Config{
@@ -84,16 +83,16 @@ func openSSHConn(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer, sshConf
 	if dialErr != nil {
 		pip.Logger.Errorf("Failed to connect to the SFTP partner: %v", dialErr)
 
-		return nil, pipeline.NewErrorWith(types.TeConnection,
-			"failed to connect to the SFTP partner", dialErr)
+		return nil, pipeline.NewErrorWith(dialErr, types.TeConnection,
+			"failed to connect to the SFTP partner")
 	}
 
 	sshConn, chans, reqs, sshErr := ssh.NewClientConn(conn, addr, sshClientConf)
 	if sshErr != nil {
 		pip.Logger.Errorf("Failed to start the SSH session: %v", sshErr)
 
-		return nil, pipeline.NewErrorWith(types.TeConnection,
-			"failed to start the SSH session", sshErr)
+		return nil, pipeline.NewErrorWith(sshErr, types.TeConnection,
+			"failed to start the SSH session")
 	}
 
 	return ssh.NewClient(sshConn, chans, reqs), nil

@@ -7,6 +7,7 @@ type tlsServerConfig struct {
 	sharedServerConfig
 
 	// The server's password for server authentication.
+	//
 	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
@@ -16,7 +17,7 @@ type tlsServerConfig struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (c *tlsServerConfig) ValidServer() error {
+func (c *tlsServerConfig) ValidConf() error {
 	if err := encryptServerPassword(&c.ServerPassword); err != nil {
 		return err
 	}
@@ -29,6 +30,7 @@ type tlsPartnerConfig struct {
 	sharedPartnerConfig
 
 	// The server's password for server authentication.
+	//
 	// Deprecated: use model.Credential instead.
 	ServerPassword string `json:"serverPassword,omitempty"`
 
@@ -39,7 +41,7 @@ type tlsPartnerConfig struct {
 }
 
 //nolint:dupl //it's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
-func (c *tlsPartnerConfig) ValidPartner() error {
+func (c *tlsPartnerConfig) ValidConf() error {
 	if err := hashServerPassword(&c.ServerPassword); err != nil {
 		return err
 	}
@@ -57,6 +59,6 @@ type tlsClientConfig struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (c *tlsClientConfig) ValidClient() error {
+func (c *tlsClientConfig) ValidConf() error {
 	return c.ValidShared()
 }

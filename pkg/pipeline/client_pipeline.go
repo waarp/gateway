@@ -31,7 +31,7 @@ func NewClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 	if dbErr := pip.UpdateTrans(); dbErr != nil {
 		logger.Errorf("Failed to update the transfer details: %v", dbErr)
 
-		return nil, NewErrorWith(types.TeInternal, "Failed to update the transfer details", dbErr)
+		return nil, NewErrorWith(dbErr, types.TeInternal, "Failed to update the transfer details")
 	}
 
 	return pip, nil
