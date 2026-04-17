@@ -43,6 +43,8 @@ type service struct {
 	server  *r66.Server
 }
 
+func (s *service) Name() string { return s.agent.Name }
+
 func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		MinVersion:       s.r66Conf.MinTLSVersion.TLS(),

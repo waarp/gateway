@@ -63,8 +63,7 @@ func TestImportRemoteAgents(t *testing.T) {
 
 							So(dbAgent.Name, ShouldEqual, newPartner.Name)
 							So(dbAgent.Protocol, ShouldEqual, newPartner.Protocol)
-							So(dbAgent.ProtoConfig, ShouldResemble,
-								newPartner.Configuration)
+							So(dbAgent.ProtoConfig.Map(), ShouldResemble, newPartner.Configuration)
 
 							Convey("Then the new accounts should have been imported", func() {
 								var accounts model.RemoteAccounts
@@ -97,8 +96,7 @@ func TestImportRemoteAgents(t *testing.T) {
 
 							So(dbAgent.Name, ShouldEqual, newPartner.Name)
 							So(dbAgent.Protocol, ShouldEqual, newPartner.Protocol)
-							So(dbAgent.ProtoConfig, ShouldResemble,
-								newPartner.Configuration)
+							So(dbAgent.ProtoConfig.Map(), ShouldResemble, newPartner.Configuration)
 						})
 					})
 				})
@@ -142,8 +140,7 @@ func TestImportRemoteAgents(t *testing.T) {
 						Convey("Then it should have updated the agent", func() {
 							So(dbAgent.Name, ShouldEqual, agent1.Name)
 							So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
-							So(dbAgent.ProtoConfig, ShouldResemble,
-								agent1.Configuration)
+							So(dbAgent.ProtoConfig.Map(), ShouldResemble, agent1.Configuration)
 
 							var accounts model.RemoteAccounts
 							So(db.Select(&accounts).Where("remote_agent_id=?",

@@ -9,7 +9,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -17,13 +16,13 @@ type dummyConf map[string]any
 
 func (*dummyConf) ValidPartner() error { return nil }
 
-type transferContext[T protocol.PartnerConfig] struct {
+type transferContext[T any] struct {
 	partnerCreds, accountCreds []api.OutCred
 	realAddr                   string
 	partnerConf                T
 }
 
-func getTransferContext[confType protocol.PartnerConfig](partner *api.OutPartner,
+func getTransferContext[confType any](partner *api.OutPartner,
 	account *api.OutRemoteAccount, restAddr string, insecure bool,
 ) (*transferContext[confType], error) {
 	restPath, err := url.JoinPath(restAddr, "/api/partners", partner.Name, "credentials")

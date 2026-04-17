@@ -11,6 +11,8 @@ import (
 
 type TestService struct{ state utils.State }
 
+func (t *TestService) Name() string { return "test" }
+
 func (t *TestService) Start() error {
 	if t.state.IsRunning() {
 		return utils.ErrAlreadyRunning

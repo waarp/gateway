@@ -42,10 +42,12 @@ type DB struct {
 	sessions *xsync.Map[int64, *Session]
 
 	// The service Logger
-	logger *log.Logger
+	Logger *log.Logger
 	// The state of the database service
 	state utils.State
 }
+
+func (db *DB) Name() string { return ServiceName }
 
 func (db *DB) loadAESKey() error {
 	if GCM != nil {
@@ -54,7 +56,7 @@ func (db *DB) loadAESKey() error {
 
 	filename := conf.GlobalConfig.Database.AESPassphrase
 	if _, statErr := os.Stat(filepath.Clean(filename)); os.IsNotExist(statErr) {
-		db.logger.Infof("Creating AES passphrase file at %q", filename)
+		db.Logger.Infof("Creating AES passphrase file at %q", filename)
 
 		key := make([]byte, aesKeySize)
 
@@ -118,14 +120,14 @@ var SupportedRBMS = map[string]func() *DBInfo{}
 func (db *DB) initEngine() error {
 	connInfo, err := db.createConnectionInfo()
 	if err != nil {
-		db.logger.Criticalf("Database configuration invalid: %v", err)
+		db.Logger.Criticalf("Database configuration invalid: %v", err)
 
 		return err
 	}
 
 	engine, err := xorm.NewEngine(connInfo.Driver, connInfo.DSN)
 	if err != nil {
-		db.logger.Criticalf("Failed to open database: %v", err)
+		db.Logger.Criticalf("Failed to open database: %v", err)
 
 		return fmt.Errorf("cannot initialize database access: %w", err)
 	}
@@ -134,7 +136,7 @@ func (db *DB) initEngine() error {
 	engine.SetMapper(xnames.GonicMapper{})
 
 	if err = engine.Ping(); err != nil {
-		db.logger.Errorf("Failed to access database: %v", err)
+		db.Logger.Errorf("Failed to access database: %v", err)
 
 		return fmt.Errorf("cannot access database: %w", err)
 	}
@@ -170,11 +172,13 @@ func (db *DB) Start() error {
 }
 
 func (db *DB) start(withInit bool) error {
-	db.logger = logging.NewLogger(ServiceName)
-	db.logger.Info("Starting database service...")
+	if db.Logger == nil {
+		db.Logger = logging.NewLogger(ServiceName)
+	}
+	db.Logger.Info("Starting database service...")
 
 	if err := db.loadAESKey(); err != nil {
-		db.logger.Criticalf("Failed to load AES key: %v", err)
+		db.Logger.Criticalf("Failed to load AES key: %v", err)
 
 		return err
 	}
@@ -185,7 +189,7 @@ func (db *DB) start(withInit bool) error {
 
 	if err1 := db.checkVersion(); err1 != nil {
 		if err2 := db.engine.Close(); err2 != nil {
-			db.logger.Warningf("an error occurred while closing the database: %v", err2)
+			db.Logger.Warningf("an error occurred while closing the database: %v", err2)
 		}
 
 		return err1
@@ -194,14 +198,14 @@ func (db *DB) start(withInit bool) error {
 	if withInit {
 		if err1 := db.initDatabase(); err1 != nil {
 			if err2 := db.engine.Close(); err2 != nil {
-				db.logger.Warningf("an error occurred while closing the database: %v", err2)
+				db.Logger.Warningf("an error occurred while closing the database: %v", err2)
 			}
 
 			return err1
 		}
 	}
 
-	db.logger.Info("Startup successful")
+	db.Logger.Info("Startup successful")
 
 	return nil
 }
@@ -228,24 +232,24 @@ func (db *DB) Stop(ctx context.Context) error {
 func (db *DB) stop(ctx context.Context) error {
 	defer func() { db.engine = nil }()
 
-	db.logger.Info("Shutting down...")
+	db.Logger.Info("Shutting down...")
 
 	if err := db.engine.Close(); err != nil {
-		db.logger.Infof("Error while closing the database: %v", err)
+		db.Logger.Infof("Error while closing the database: %v", err)
 
 		return fmt.Errorf("an error occurred while closing the database: %w", err)
 	}
 
 	select {
 	case <-ctx.Done():
-		db.logger.Warning("Failed to close the pending transactions")
-		db.logger.Warning("Force closing the database")
+		db.Logger.Warning("Failed to close the pending transactions")
+		db.Logger.Warning("Force closing the database")
 	case <-func() chan bool {
 		done := make(chan bool)
 
 		db.sessions.Range(func(_ int64, ses *Session) bool {
 			if err := ses.session.Close(); err != nil {
-				db.logger.Warningf("Failed to close session: %v", err)
+				db.Logger.Warningf("Failed to close session: %v", err)
 			}
 
 			return true
@@ -257,7 +261,7 @@ func (db *DB) stop(ctx context.Context) error {
 	}():
 	}
 
-	db.logger.Info("Shutdown complete")
+	db.Logger.Info("Shutdown complete")
 	db.engine = nil
 
 	return nil

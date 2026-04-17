@@ -22,8 +22,7 @@ type serverConfig struct {
 	IsTLS *bool `json:"isTLS,omitempty"`
 }
 
-// ValidServer checks if the configuration is valid for a R66 server.
-func (c *serverConfig) ValidServer() error {
+func (c *serverConfig) ValidConf() error {
 	if err := encryptServerPassword(&c.ServerPassword); err != nil {
 		return err
 	}
@@ -46,10 +45,8 @@ type PartnerConfig struct {
 	IsTLS *bool `json:"isTLS,omitempty"` //nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
 }
 
-// ValidPartner checks if the configuration is valid for a R66 partner.
-//
 //nolint:dupl //It's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
-func (c *PartnerConfig) ValidPartner() error {
+func (c *PartnerConfig) ValidConf() error {
 	if c.ServerPassword == "" {
 		return nil
 	}
@@ -75,7 +72,7 @@ type clientConfig struct {
 	sharedClientConfig
 }
 
-// ValidClient checks if the configuration is valid for an R66 client.
-func (c *clientConfig) ValidClient() error {
+// ValidConf checks if the configuration is valid for an R66 client.
+func (c *clientConfig) ValidConf() error {
 	return c.ValidShared()
 }

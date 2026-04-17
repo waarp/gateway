@@ -35,6 +35,8 @@ type Controller struct {
 	cancel context.CancelFunc
 }
 
+func (c *Controller) Name() string { return ServiceName }
+
 func (c *Controller) listen() error {
 	c.wg = &sync.WaitGroup{}
 	c.done = make(chan struct{})

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -38,8 +39,9 @@ type TestService interface {
 }
 
 type TransferCtx struct {
-	db *database.DB
+	DB *database.DB
 
+	startOnce     sync.Once
 	ClientService protocol.Client
 	ServerService TestService
 
@@ -57,14 +59,13 @@ type TransferCtx struct {
 }
 
 //nolint:funlen //function length is fine (for now)
-func TestTransferCtx(tb testing.TB, db *database.DB, proto string,
-	serverProtoConfig protocol.ServerConfig, clientProtoConfig protocol.ClientConfig,
-	partnerProtoConfig protocol.PartnerConfig,
+func TestTransferCtxUnstarted(tb testing.TB, db *database.DB, proto string,
+	serverProtoConfig, clientProtoConfig, partnerProtoConfig any,
 ) *TransferCtx {
 	tb.Helper()
 	tb.Cleanup(pipeline.List.Reset)
 
-	ctx := &TransferCtx{db: db}
+	ctx := &TransferCtx{DB: db}
 	port := GetLocalPort(tb)
 
 	conf.GlobalConfig.Paths = conf.PathsConfig{
@@ -122,14 +123,32 @@ func TestTransferCtx(tb testing.TB, db *database.DB, proto string,
 	}
 	require.NoError(tb, db.Insert(ctx.TransferPull).Run(), "Failed to insert the test push transfer")
 
-	ctx.startClient(tb)
-	ctx.startServer(tb)
+	return ctx
+}
+
+func TestTransferCtx(tb testing.TB, db *database.DB, proto string,
+	serverProtoConfig, clientProtoConfig, partnerProtoConfig any,
+) *TransferCtx {
+	tb.Helper()
+
+	ctx := TestTransferCtxUnstarted(tb, db, proto, serverProtoConfig,
+		clientProtoConfig, partnerProtoConfig)
+	ctx.StartServices(tb)
 
 	return ctx
 }
 
+func (ctx *TransferCtx) StartServices(tb testing.TB) {
+	tb.Helper()
+
+	ctx.startOnce.Do(func() {
+		ctx.startClient(tb)
+		ctx.startServer(tb)
+	})
+}
+
 func (ctx *TransferCtx) makeServer(tb testing.TB,
-	proto string, port uint16, serverProtoConf protocol.ServerConfig,
+	proto string, port uint16, serverProtoConf any,
 ) {
 	tb.Helper()
 
@@ -146,13 +165,13 @@ func (ctx *TransferCtx) makeServer(tb testing.TB,
 		Protocol:    proto,
 		ProtoConfig: rawServConf,
 	}
-	require.NoError(tb, ctx.db.Insert(ctx.Server).Run(), "Failed to insert test server")
+	require.NoError(tb, ctx.DB.Insert(ctx.Server).Run(), "Failed to insert test server")
 
 	ctx.LocalAccount = &model.LocalAccount{
 		LocalAgentID: ctx.Server.ID,
 		Login:        Login,
 	}
-	require.NoError(tb, ctx.db.Insert(ctx.LocalAccount).Run(), "Failed to insert test local account")
+	require.NoError(tb, ctx.DB.Insert(ctx.LocalAccount).Run(), "Failed to insert test local account")
 
 	locAccountCred := &model.Credential{
 		LocalAccountID: utils.NewNullInt64(ctx.LocalAccount.ID),
@@ -160,7 +179,7 @@ func (ctx *TransferCtx) makeServer(tb testing.TB,
 		Type:           auth.Password,
 		Value:          Password,
 	}
-	require.NoError(tb, ctx.db.Insert(locAccountCred).Run(), "Failed to insert test local account password")
+	require.NoError(tb, ctx.DB.Insert(locAccountCred).Run(), "Failed to insert test local account password")
 }
 
 //nolint:dupl //factorizing would be too complicated for no gain in maintainability
@@ -168,33 +187,32 @@ func (ctx *TransferCtx) makeServerRules(tb testing.TB) {
 	tb.Helper()
 
 	ctx.ServerRulePush = &model.Rule{Name: "push", Comment: "server push", IsSend: false}
-	require.NoError(tb, ctx.db.Insert(ctx.ServerRulePush).Run(), "Failed to insert test server push rule")
+	require.NoError(tb, ctx.DB.Insert(ctx.ServerRulePush).Run(), "Failed to insert test server push rule")
 
 	pushPreTask := &model.Task{RuleID: ctx.ServerRulePush.ID, Chain: model.ChainPre, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pushPreTask).Run(), "Failed to insert test server push pre-task")
+	require.NoError(tb, ctx.DB.Insert(pushPreTask).Run(), "Failed to insert test server push pre-task")
 
 	pushPostTask := &model.Task{RuleID: ctx.ServerRulePush.ID, Chain: model.ChainPost, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pushPostTask).Run(), "Failed to insert test server push post-task")
+	require.NoError(tb, ctx.DB.Insert(pushPostTask).Run(), "Failed to insert test server push post-task")
 
 	pushErrTask := &model.Task{RuleID: ctx.ServerRulePush.ID, Chain: model.ChainError, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pushErrTask).Run(), "Failed to insert test server push error-task")
+	require.NoError(tb, ctx.DB.Insert(pushErrTask).Run(), "Failed to insert test server push error-task")
 
 	ctx.ServerRulePull = &model.Rule{Name: "pull", Comment: "server pull", IsSend: true}
-	require.NoError(tb, ctx.db.Insert(ctx.ServerRulePull).Run(), "Failed to insert test server pull rule")
+	require.NoError(tb, ctx.DB.Insert(ctx.ServerRulePull).Run(), "Failed to insert test server pull rule")
 
 	pullPreTask := &model.Task{RuleID: ctx.ServerRulePull.ID, Chain: model.ChainPre, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pullPreTask).Run(), "Failed to insert test server pull pre-task")
+	require.NoError(tb, ctx.DB.Insert(pullPreTask).Run(), "Failed to insert test server pull pre-task")
 
 	pullPostTask := &model.Task{RuleID: ctx.ServerRulePull.ID, Chain: model.ChainPost, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pullPostTask).Run(), "Failed to insert test server pull post-task")
+	require.NoError(tb, ctx.DB.Insert(pullPostTask).Run(), "Failed to insert test server pull post-task")
 
 	pullErrTask := &model.Task{RuleID: ctx.ServerRulePull.ID, Chain: model.ChainError, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pullErrTask).Run(), "Failed to insert test server pull error-task")
+	require.NoError(tb, ctx.DB.Insert(pullErrTask).Run(), "Failed to insert test server pull error-task")
 }
 
 func (ctx *TransferCtx) makeClient(tb testing.TB,
-	proto string, port uint16, clientProtoConf protocol.ClientConfig,
-	partnerProtoConf protocol.PartnerConfig,
+	proto string, port uint16, clientProtoConf, partnerProtoConf any,
 ) {
 	tb.Helper()
 
@@ -206,18 +224,18 @@ func (ctx *TransferCtx) makeClient(tb testing.TB,
 			proto, clientProtoConf)
 	}
 
-	ctx.Client = &model.Client{
-		Name:        proto + "-client",
-		Protocol:    proto,
-		ProtoConfig: rawClientConf,
-	}
-	require.NoError(tb, ctx.db.Insert(ctx.Client).Run(), "Failed to insert test client")
-
 	if partnerProtoConf != nil {
 		err := utils.JSONConvert(partnerProtoConf, &rawPartConf)
 		require.NoErrorf(tb, err, "Failed to serialize %s partner proto config %+v",
 			proto, partnerProtoConf)
 	}
+
+	ctx.Client = &model.Client{
+		Name:        proto + "-client",
+		Protocol:    proto,
+		ProtoConfig: rawClientConf,
+	}
+	require.NoError(tb, ctx.DB.Insert(ctx.Client).Run(), "Failed to insert test client")
 
 	ctx.Partner = &model.RemoteAgent{
 		Name:        proto + "-server",
@@ -225,13 +243,13 @@ func (ctx *TransferCtx) makeClient(tb testing.TB,
 		Address:     types.Addr("127.0.0.1", port),
 		ProtoConfig: rawPartConf,
 	}
-	require.NoError(tb, ctx.db.Insert(ctx.Partner).Run(), "Failed to insert test partner")
+	require.NoError(tb, ctx.DB.Insert(ctx.Partner).Run(), "Failed to insert test partner")
 
 	ctx.RemoteAccount = &model.RemoteAccount{
 		RemoteAgentID: ctx.Partner.ID,
 		Login:         Login,
 	}
-	require.NoError(tb, ctx.db.Insert(ctx.RemoteAccount).Run(), "Failed to insert test remote account")
+	require.NoError(tb, ctx.DB.Insert(ctx.RemoteAccount).Run(), "Failed to insert test remote account")
 
 	locAccountCred := &model.Credential{
 		RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
@@ -239,54 +257,54 @@ func (ctx *TransferCtx) makeClient(tb testing.TB,
 		Type:            auth.Password,
 		Value:           Password,
 	}
-	require.NoError(tb, ctx.db.Insert(locAccountCred).Run(), "Failed to insert test remote account password")
+	require.NoError(tb, ctx.DB.Insert(locAccountCred).Run(), "Failed to insert test remote account password")
 }
 
 //nolint:dupl //factorizing would be too complicated for no gain in maintainability
 func (ctx *TransferCtx) makeClientRules(tb testing.TB) {
 	tb.Helper()
 
-	features := Protocols[ctx.Server.Protocol]
+	features := protocolsList[ctx.Server.Protocol]
 
 	ctx.ClientRulePush = &model.Rule{Name: "push", Comment: "client push", IsSend: true}
 	if !features.RuleName {
 		ctx.ClientRulePush.RemoteDir = "push"
 	}
 
-	require.NoError(tb, ctx.db.Insert(ctx.ClientRulePush).Run(), "Failed to insert test client push rule")
+	require.NoError(tb, ctx.DB.Insert(ctx.ClientRulePush).Run(), "Failed to insert test client push rule")
 
 	pushPreTask := &model.Task{RuleID: ctx.ClientRulePush.ID, Chain: model.ChainPre, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pushPreTask).Run(), "Failed to insert test client push pre-task")
+	require.NoError(tb, ctx.DB.Insert(pushPreTask).Run(), "Failed to insert test client push pre-task")
 
 	pushPostTask := &model.Task{RuleID: ctx.ClientRulePush.ID, Chain: model.ChainPost, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pushPostTask).Run(), "Failed to insert test client push post-task")
+	require.NoError(tb, ctx.DB.Insert(pushPostTask).Run(), "Failed to insert test client push post-task")
 
 	pushErrTask := &model.Task{RuleID: ctx.ClientRulePush.ID, Chain: model.ChainError, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pushErrTask).Run(), "Failed to insert test client push error-task")
+	require.NoError(tb, ctx.DB.Insert(pushErrTask).Run(), "Failed to insert test client push error-task")
 
 	ctx.ClientRulePull = &model.Rule{Name: "pull", Comment: "client pull", IsSend: false}
 	if !features.RuleName {
 		ctx.ClientRulePull.RemoteDir = "pull"
 	}
 
-	require.NoError(tb, ctx.db.Insert(ctx.ClientRulePull).Run(), "Failed to insert test client pull rule")
+	require.NoError(tb, ctx.DB.Insert(ctx.ClientRulePull).Run(), "Failed to insert test client pull rule")
 
 	pullPreTask := &model.Task{RuleID: ctx.ClientRulePull.ID, Chain: model.ChainPre, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pullPreTask).Run(), "Failed to insert test client pull pre-task")
+	require.NoError(tb, ctx.DB.Insert(pullPreTask).Run(), "Failed to insert test client pull pre-task")
 
 	pullPostTask := &model.Task{RuleID: ctx.ClientRulePull.ID, Chain: model.ChainPost, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pullPostTask).Run(), "Failed to insert test client pull post-task")
+	require.NoError(tb, ctx.DB.Insert(pullPostTask).Run(), "Failed to insert test client pull post-task")
 
 	pullErrTask := &model.Task{RuleID: ctx.ClientRulePull.ID, Chain: model.ChainError, Type: taskstest.TaskOK}
-	require.NoError(tb, ctx.db.Insert(pullErrTask).Run(), "Failed to insert test client pull error-task")
+	require.NoError(tb, ctx.DB.Insert(pullErrTask).Run(), "Failed to insert test client pull error-task")
 }
 
 func (ctx *TransferCtx) startClient(tb testing.TB) {
 	tb.Helper()
 
-	module := Protocols[ctx.Client.Protocol]
-	ctx.ClientService = module.MakeClient(ctx.db, ctx.Client)
-	services.Clients[ctx.Client.Name] = ctx.ClientService
+	module := protocolsList[ctx.Client.Protocol]
+	ctx.ClientService = module.NewClient(ctx.DB, ctx.Client)
+	services.Clients.Add(ctx.Client, ctx.ClientService)
 
 	require.NoError(tb, ctx.ClientService.Start(), "Failed to start the client")
 
@@ -301,9 +319,9 @@ func (ctx *TransferCtx) startClient(tb testing.TB) {
 func (ctx *TransferCtx) startServer(tb testing.TB) {
 	tb.Helper()
 
-	module := Protocols[ctx.Server.Protocol]
-	service := module.MakeServer(ctx.db, ctx.Server)
-	services.Servers[ctx.Server.Name] = service
+	module := protocolsList[ctx.Server.Protocol]
+	service := module.NewServer(ctx.DB, ctx.Server)
+	services.Servers.Add(ctx.Server, service)
 
 	require.Implements(tb, (*TestService)(nil), service,
 		"The service must implement the interface for test services")
@@ -322,7 +340,7 @@ func (ctx *TransferCtx) startServer(tb testing.TB) {
 func (ctx *TransferCtx) AddTaskError(tb testing.TB, rule *model.Rule, chain model.Chain) {
 	tb.Helper()
 
-	require.NoError(tb, ctx.db.Insert(&model.Task{
+	require.NoError(tb, ctx.DB.Insert(&model.Task{
 		RuleID: rule.ID,
 		Chain:  chain,
 		Rank:   1,
@@ -361,5 +379,5 @@ func (ctx *TransferCtx) AddServerDataError(tb testing.TB, rule *model.Rule) {
 func (ctx *TransferCtx) AddCred(tb testing.TB, cred *model.Credential) {
 	tb.Helper()
 
-	require.NoError(tb, ctx.db.Insert(cred).Run())
+	require.NoError(tb, ctx.DB.Insert(cred).Run())
 }

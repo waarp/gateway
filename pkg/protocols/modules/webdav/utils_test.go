@@ -29,7 +29,7 @@ func makeTransport(ctx *gwtesting.TestServerCtx) http.RoundTripper {
 
 	if ctx.Server.Protocol == webdav.WebdavTLS {
 		rootCAs := utils.TLSCertPool()
-		rootCAs.AddCert(gwtesting.LocalhostCert.Leaf)
+		rootCAs.AddCert(gwtesting.ServerCert.Leaf)
 		transport.TLSClientConfig = &tls.Config{RootCAs: rootCAs}
 	}
 

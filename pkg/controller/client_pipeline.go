@@ -78,7 +78,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 ) (*ClientPipeline, *Error) {
 	dbClient := transCtx.Client
 
-	client, ok := services.Clients[dbClient.Name]
+	client, ok := services.Clients.Load(dbClient)
 	if !ok {
 		logger.Errorf("No client %q found", dbClient.Name)
 
@@ -328,5 +328,5 @@ func wrapRemoteError(msg string, err error) *Error {
 		return pErr
 	}
 
-	return pipeline.NewErrorWith(types.TeUnknownRemote, msg, err)
+	return pipeline.NewErrorWith(err, types.TeUnknownRemote, msg)
 }

@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"sync"
 	"syscall"
 	"time"
 
@@ -26,9 +25,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var ErrNonLocalTmpDir = errors.New("the tmp dir must be local")
@@ -142,11 +139,11 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	services.Core[database.ServiceName] = wg.DBService
-	services.Core[controller.ServiceName] = wg.Controller
-	services.Core[admin.ServiceName] = wg.AdminService
-	services.Core[snmp.ServiceName] = wg.SnmpService
-	services.Core[analytics.ServiceName] = wg.Analytics
+	services.Core.Add(wg.DBService)
+	services.Core.Add(wg.Controller)
+	services.Core.Add(wg.AdminService)
+	services.Core.Add(wg.SnmpService)
+	services.Core.Add(wg.Analytics)
 
 	if err := wg.startServers(); err != nil {
 		return err
@@ -167,15 +164,14 @@ func (wg *WG) startServers() error {
 	}
 
 	for _, server := range servers {
-		module := protocols.Get(server.Protocol)
-		if module == nil {
-			wg.Logger.Errorf("Unknown protocol %q for server %q", server.Protocol, server.Name)
+		serverService, mkErr := protocols.MakeServer(wg.DBService, server)
+		if mkErr != nil {
+			wg.Logger.Errorf("Failed to instantiate server %q: %v", server.Name, mkErr)
 
 			continue
 		}
 
-		serverService := module.NewServer(wg.DBService, server)
-		services.Servers[server.Name] = serverService
+		services.Servers.Add(server, serverService)
 
 		if !server.Disabled {
 			if err := serverService.Start(); err != nil {
@@ -195,15 +191,14 @@ func (wg *WG) startClients() error {
 	}
 
 	for _, client := range dbClients {
-		module := protocols.Get(client.Protocol)
-		if module == nil {
-			wg.Logger.Errorf("Unknown protocol %q for client %q", client.Protocol, client.Name)
+		clientService, mkErr := protocols.MakeClient(wg.DBService, client)
+		if mkErr != nil {
+			wg.Logger.Errorf("Failed to instantiate client %q: %v", client.Name, mkErr)
 
 			continue
 		}
 
-		clientService := module.NewClient(wg.DBService, client)
-		services.Clients[client.Name] = clientService
+		services.Clients.Add(client, clientService)
 
 		if !client.Disabled {
 			if err := clientService.Start(); err != nil {
@@ -238,34 +233,24 @@ func (wg *WG) stopServices() {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultStopTimeout)
 	defer cancel()
 
-	w := sync.WaitGroup{}
-	stop := func(name string, s protocol.Server) {
-		defer w.Done()
+	errCli := make(chan error)
+	errSrv := make(chan error)
 
-		if err := s.Stop(ctx); err != nil {
-			wg.Logger.Warningf("an error occurred while stopping the %q service: %v", name, err)
-		}
+	go func() {
+		errCli <- services.Clients.StopAll(ctx)
+	}()
+
+	go func() {
+		errSrv <- services.Servers.StopAll(ctx)
+	}()
+
+	if err := <-errCli; err != nil {
+		wg.Logger.Warningf("an error occurred while stopping the clients services: %v", err)
 	}
 
-	for name, clientService := range services.Clients {
-		if code, _ := clientService.State(); code != utils.StateRunning {
-			continue
-		}
-
-		w.Add(1)
-		stop(name, clientService)
+	if err := <-errSrv; err != nil {
+		wg.Logger.Warningf("an error occurred while stopping the servers services: %v", err)
 	}
-
-	for name, serverService := range services.Servers {
-		if code, _ := serverService.State(); code != utils.StateRunning {
-			continue
-		}
-
-		w.Add(1)
-		stop(name, serverService)
-	}
-
-	w.Wait()
 
 	if err := wg.Controller.Stop(ctx); err != nil {
 		wg.Logger.Warningf("an error occurred while stopping the controller service: %v", err)

@@ -2561,6 +2561,7 @@ linters:
             initialism-overrides:
               URL: true # add a new initialism
               SNMP: true
+              MDN: true
           yaml:
             # Required
             case: goCamel
@@ -2573,6 +2574,7 @@ linters:
             initialism-overrides:
               URL: true # add a new initialism
               SNMP: true
+              MDN: true
 
         # Uses the struct field name to check the name of the struct tag.
         # Default: false
@@ -2856,6 +2858,7 @@ linters:
       # Default: []
       extra-ignore-sigs:
         - utils.RunWithCtx(
+        - utils.RunWithCtx2[
         - utils.CheckCtx(
         - utils.RWWithCtx(
         - utils.RWatWithCtx(
@@ -2871,7 +2874,8 @@ linters:
       ignore-sig-regexps: []
       # An array of strings that specify globs of packages to ignore.
       # Default: []
-      ignore-package-globs: []
+      ignore-package-globs:
+        - code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils
       # An array of strings that specify regular expressions of interfaces to ignore.
       # Default: []
       ignore-interface-regexps: []
@@ -3010,6 +3014,10 @@ linters:
       - linters:
           - contextcheck
         text: "Function `.*Transaction`"
+
+      - linters:
+          - tagliatelle
+        text: "got 'macs' want 'maCs'"
 
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.

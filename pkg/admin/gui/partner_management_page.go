@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -73,6 +74,10 @@ func editPartner(db *database.DB, r *http.Request) error {
 		editPartner.ProtoConfig = protoConfigWebdavPartner(r)
 	case webdav.WebdavTLS:
 		editPartner.ProtoConfig = protoConfigWebdavTLSPartner(r)
+	case as2.AS2:
+		editPartner.ProtoConfig = protoConfigAS2Partner(r)
+	case as2.AS2TLS:
+		editPartner.ProtoConfig = protoConfigAS2TLSPartner(r)
 	}
 
 	if err = internal.UpdatePartner(db, editPartner); err != nil {
@@ -125,6 +130,10 @@ func addPartner(db *database.DB, r *http.Request) error {
 		newPartner.ProtoConfig = protoConfigWebdavPartner(r)
 	case webdav.WebdavTLS:
 		newPartner.ProtoConfig = protoConfigWebdavTLSPartner(r)
+	case as2.AS2:
+		newPartner.ProtoConfig = protoConfigAS2Partner(r)
+	case as2.AS2TLS:
+		newPartner.ProtoConfig = protoConfigAS2TLSPartner(r)
 	}
 
 	if err := internal.InsertPartner(db, &newPartner); err != nil {
@@ -362,6 +371,8 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"as2SignAlgos":           as2.SignatureAlgorithms(),
+			"as2EncryptAlgos":        as2.EncryptionAlgorithms(),
 			"protocolsList":          ProtocolsList(),
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,

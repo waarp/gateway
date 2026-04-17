@@ -53,10 +53,9 @@ func TestClientAdd(t *testing.T) {
 				})
 
 				Convey("Then it should have added (but not started) the service", func() {
-					const name = "new_client"
-
-					So(services.Clients, ShouldContainKey, name)
-					So(stateCode(services.Clients[name]), ShouldEqual, utils.StateOffline)
+					newService, ok := services.Clients.Get(id(1))
+					So(ok, ShouldBeTrue)
+					So(stateCode(newService), ShouldEqual, utils.StateOffline)
 				})
 			})
 		})
@@ -96,7 +95,7 @@ func TestClientList(t *testing.T) {
 								"enabled":              !dbClient1.Disabled,
 								"protocol":             dbClient1.Protocol,
 								"localAddress":         dbClient1.LocalAddress.String(),
-								"protoConfig":          dbClient1.ProtoConfig,
+								"protoConfig":          dbClient1.ProtoConfig.Map(),
 								"firstRetryDelay":      0.0,
 								"nbOfAttempts":         0.0,
 								"retryIncrementFactor": 0.0,
@@ -106,7 +105,7 @@ func TestClientList(t *testing.T) {
 								"enabled":              !dbClient2.Disabled,
 								"protocol":             dbClient2.Protocol,
 								"localAddress":         dbClient2.LocalAddress.String(),
-								"protoConfig":          dbClient2.ProtoConfig,
+								"protoConfig":          dbClient2.ProtoConfig.Map(),
 								"firstRetryDelay":      0.0,
 								"nbOfAttempts":         0.0,
 								"retryIncrementFactor": 0.0,
@@ -152,7 +151,7 @@ func TestClientGet(t *testing.T) {
 						"enabled":              !dbClient.Disabled,
 						"protocol":             dbClient.Protocol,
 						"localAddress":         dbClient.LocalAddress.String(),
-						"protoConfig":          dbClient.ProtoConfig,
+						"protoConfig":          dbClient.ProtoConfig.Map(),
 						"firstRetryDelay":      float64(dbClient.FirstRetryDelay),
 						"nbOfAttempts":         float64(dbClient.NbOfAttempts),
 						"retryIncrementFactor": float64(dbClient.RetryIncrementFactor),
@@ -175,9 +174,9 @@ func TestClientUpdate(t *testing.T) {
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
 
-		service := makeAndStartTestService()
-		services.Clients[dbClient.Name] = service
-		defer delete(services.Clients, dbClient.Name)
+		service := makeAndStartTestService(dbClient.Name)
+		services.Clients.Add(dbClient, service)
+		defer services.Clients.Remove(dbClient)
 
 		Convey("When updating a client", func() {
 			jsonClient := map[string]any{
@@ -211,9 +210,10 @@ func TestClientUpdate(t *testing.T) {
 			Convey("Then it should have restarted the service", func() {
 				So(stateCode(service), ShouldEqual, utils.StateOffline)
 
-				const newName = "new_client"
-				So(services.Clients, ShouldContainKey, newName)
-				So(stateCode(services.Clients[newName]), ShouldEqual, utils.StateRunning)
+				newService, ok := services.Clients.Get(dbClient)
+				So(ok, ShouldBeTrue)
+				So(newService.Name(), ShouldEqual, jsonClient["name"])
+				So(stateCode(newService), ShouldEqual, utils.StateRunning)
 			})
 		})
 	})
@@ -229,9 +229,9 @@ func TestClientReplace(t *testing.T) {
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
 
-		service := makeAndStartTestService()
-		services.Clients[dbClient.Name] = service
-		defer delete(services.Clients, dbClient.Name)
+		service := makeAndStartTestService(dbClient.Name)
+		services.Clients.Add(dbClient, service)
+		defer services.Clients.Remove(dbClient)
 
 		Convey("When replacing a client", func() {
 			jsonClient := map[string]any{
@@ -264,9 +264,9 @@ func TestClientReplace(t *testing.T) {
 				Convey("Then it should have restarted the service", func() {
 					So(stateCode(service), ShouldEqual, utils.StateOffline)
 
-					const newName = "new_client"
-					So(services.Clients, ShouldContainKey, newName)
-					So(stateCode(services.Clients[newName]), ShouldEqual, utils.StateRunning)
+					newService, ok := services.Clients.Get(dbClient)
+					So(ok, ShouldBeTrue)
+					So(stateCode(newService), ShouldEqual, utils.StateRunning)
 				})
 			})
 		})
@@ -289,9 +289,9 @@ func TestClientDelete(t *testing.T) {
 		}
 		So(test.db.Insert(dbClient2).Run(), ShouldBeNil)
 
-		service := makeAndStartTestService()
-		services.Clients[dbClient.Name] = service
-		defer delete(services.Clients, dbClient.Name)
+		service := makeAndStartTestService(dbClient.Name)
+		services.Clients.Add(dbClient, service)
+		defer services.Clients.Remove(dbClient)
 
 		Convey("When deleting the client", func() {
 			url := fmt.Sprintf(test.URL+clientPathFormat, dbClient.Name)
@@ -310,7 +310,7 @@ func TestClientDelete(t *testing.T) {
 
 				Convey("Then it should have stopped the service", func() {
 					So(stateCode(service), ShouldEqual, utils.StateOffline)
-					So(services.Clients, ShouldNotContainKey, dbClient.Name)
+					So(services.Clients.Exists(dbClient), ShouldBeFalse)
 				})
 			})
 		})

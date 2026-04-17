@@ -72,3 +72,13 @@ func (l *LocalFS) RemoveAll(path string) error {
 	//nolint:wrapcheck //no need to wrap here
 	return os.RemoveAll(path)
 }
+
+func (l *LocalFS) WriteFile(path string, data []byte, perm FileMode) error {
+	//nolint:wrapcheck //no need to wrap here
+	return os.WriteFile(path, data, perm)
+}
+
+func (l *LocalFS) ReadFile(path string) ([]byte, error) {
+	//nolint:wrapcheck //no need to wrap here
+	return os.ReadFile(path)
+}

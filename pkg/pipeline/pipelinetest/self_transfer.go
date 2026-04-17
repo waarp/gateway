@@ -39,10 +39,9 @@ type SelfContext struct {
 	protoFeatures *ProtoFeatures
 }
 
-func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig,
-	partConf protocol.PartnerConfig, servConf protocol.ServerConfig,
+func initSelfTransfer(c convey.C, proto string, clientConf, partConf, servConf any,
 ) *SelfContext {
-	feat, protoExists := Protocols[proto]
+	feat, protoExists := protocols[proto]
 	c.SoMsg("the protocol should exist", protoExists, convey.ShouldBeTrue)
 
 	test := initTestData(c)
@@ -50,12 +49,12 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 	cli, remAg, remAcc := makeClientConf(c, test.DB, port, proto, clientConf, partConf)
 	locAg, locAcc := makeServerConf(c, test, port, proto, servConf)
 
-	client := feat.MakeClient(test.DB, cli)
+	client := feat.NewClient(test.DB, cli)
 	c.So(client.Start(), convey.ShouldBeNil)
-	services.Clients[cli.Name] = client
+	services.Clients.Add(cli, client)
 
 	c.Reset(func() {
-		delete(services.Clients, cli.Name)
+		services.Clients.Remove(cli)
 
 		//nolint:mnd //this is just for tests
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -67,7 +66,7 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 		}
 	})
 
-	server := feat.MakeServer(test.DB, locAg)
+	server := feat.NewServer(test.DB, locAg)
 
 	testServer, ok := server.(testService)
 	c.So(ok, convey.ShouldBeTrue)
@@ -94,8 +93,7 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 // InitSelfPushTransfer creates a database and fills it with all the elements
 // necessary for a push self-transfer test of the given protocol. It then returns
 // all these elements inside a SelfContext.
-func InitSelfPushTransfer(c convey.C, proto string, clientConf protocol.ClientConfig,
-	partConf protocol.PartnerConfig, servConf protocol.ServerConfig,
+func InitSelfPushTransfer(c convey.C, proto string, clientConf, partConf, servConf any,
 ) *SelfContext {
 	ctx := initSelfTransfer(c, proto, clientConf, partConf, servConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB, proto)
@@ -108,8 +106,7 @@ func InitSelfPushTransfer(c convey.C, proto string, clientConf protocol.ClientCo
 // InitSelfPullTransfer creates a database and fills it with all the elements
 // necessary for a pull self-transfer test of the given protocol. It then returns
 // all these elements inside a SelfContext.
-func InitSelfPullTransfer(c convey.C, proto string, clientConf protocol.ClientConfig,
-	partConf protocol.PartnerConfig, servConf protocol.ServerConfig,
+func InitSelfPullTransfer(c convey.C, proto string, clientConf, partConf, servConf any,
 ) *SelfContext {
 	ctx := initSelfTransfer(c, proto, clientConf, partConf, servConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB, proto)

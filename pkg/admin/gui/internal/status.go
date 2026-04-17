@@ -11,35 +11,39 @@ type Service struct {
 }
 
 func ListServices() (core, servers, clients []Service) {
-	for name, serv := range services.Core {
+	for _, serv := range services.Core {
 		code, reason := serv.State()
 
 		core = append(core, Service{
-			Name:   name,
+			Name:   serv.Name(),
 			State:  code.String(),
 			Reason: reason,
 		})
 	}
 
-	for name, serv := range services.Servers {
+	services.Servers.Range(func(_ int64, serv services.Server) bool {
 		code, reason := serv.State()
 
 		servers = append(servers, Service{
-			Name:   name,
+			Name:   serv.Name(),
 			State:  code.String(),
 			Reason: reason,
 		})
-	}
 
-	for name, client := range services.Clients {
+		return true
+	})
+
+	services.Clients.Range(func(_ int64, client services.Client) bool {
 		code, reason := client.State()
 
 		clients = append(clients, Service{
-			Name:   name,
+			Name:   client.Name(),
 			State:  code.String(),
 			Reason: reason,
 		})
-	}
+
+		return true
+	})
 
 	return core, servers, clients
 }

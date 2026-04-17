@@ -23,8 +23,7 @@ func toPipelineError(ftpErr error, context string) *pipeline.Error {
 	if errors.As(ftpErr, &netErr) {
 		switch netErr.Op {
 		case "dial":
-			return pipeline.NewErrorWith(types.TeConnection,
-				"could not connect to FTP server", netErr.Err)
+			return pipeline.NewErrorWith(netErr.Err, types.TeConnection, "could not connect to FTP server")
 		case "read", "write":
 			return pipeline.NewErrorf(types.TeConnectionReset,
 				"connection closed unexpectedly")
@@ -36,7 +35,7 @@ func toPipelineError(ftpErr error, context string) *pipeline.Error {
 
 	var goftpErr goftp.Error
 	if !errors.As(ftpErr, &goftpErr) {
-		return pipeline.NewErrorWith(types.TeConnection, "FTP error", ftpErr)
+		return pipeline.NewErrorWith(ftpErr, types.TeConnection, "FTP error")
 	}
 
 	if errors.Is(goftpErr, goftp.ErrInvalidFileSize) {

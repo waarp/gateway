@@ -53,7 +53,7 @@ func ClientRESTToDB(client *api.InClient) (*model.Client, error) {
 	setIfValid(&cli.RetryIncrementFactor, client.RetryIncrementFactor)
 
 	if client.ProtoConfig != nil {
-		cli.ProtoConfig = client.ProtoConfig
+		cli.ProtoConfig = model.ProtoConfigMap(client.ProtoConfig)
 	}
 
 	if client.LocalAddress.Valid {
@@ -150,7 +150,7 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		services.Clients[dbClient.Name] = service
+		services.Clients.Add(dbClient, service)
 
 		w.Header().Set("Location", location(r.URL, dbClient.Name))
 		w.WriteHeader(http.StatusCreated)
@@ -180,7 +180,7 @@ func deleteClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		delete(services.Clients, dbClient.Name)
+		services.Clients.Remove(dbClient)
 
 		w.WriteHeader(http.StatusNoContent)
 	}
@@ -197,7 +197,7 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			Name:                 asNullable(oldDBClient.Name),
 			Protocol:             asNullable(oldDBClient.Protocol),
 			LocalAddress:         asNullable(oldDBClient.LocalAddress.String()),
-			ProtoConfig:          oldDBClient.ProtoConfig,
+			ProtoConfig:          api.UpdateObject[any](oldDBClient.ProtoConfig),
 			Disabled:             asNullableBool(oldDBClient.Disabled),
 			NbOfAttempts:         asNullable(oldDBClient.NbOfAttempts),
 			FirstRetryDelay:      asNullable(oldDBClient.FirstRetryDelay),
@@ -223,8 +223,8 @@ func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		delete(services.Clients, oldDBClient.Name)
-		services.Clients[dbClient.Name] = newService
+		services.Clients.Remove(oldDBClient)
+		services.Clients.Add(dbClient, newService)
 
 		if state, _ := oldService.State(); state == utils.StateRunning {
 			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
@@ -273,8 +273,8 @@ func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		delete(services.Clients, oldDBClient.Name)
-		services.Clients[dbClient.Name] = newService
+		services.Clients.Remove(oldDBClient)
+		services.Clients.Add(dbClient, newService)
 
 		if state, _ := oldService.State(); state == utils.StateRunning {
 			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
@@ -300,7 +300,7 @@ func getClientService(r *http.Request, db *database.DB) (*model.Client, protocol
 		return nil, nil, getErr
 	}
 
-	client, ok := services.Clients[dbClient.Name]
+	client, ok := services.Clients.Load(dbClient)
 	if !ok {
 		return nil, nil, fmt.Errorf("%w %q", ErrServiceNotFound, dbClient.Name)
 	}
@@ -309,14 +309,8 @@ func getClientService(r *http.Request, db *database.DB) (*model.Client, protocol
 }
 
 func makeClientService(db *database.DB, dbClient *model.Client) (services.Client, error) {
-	module := protocols.Get(dbClient.Protocol)
-	if module == nil {
-		return nil, errModuleNotFound
-	}
-
-	service := module.NewClient(db, dbClient)
-
-	return service, nil
+	//nolint:wrapcheck //wrapping adds nothing here
+	return protocols.MakeClient(db, dbClient)
 }
 
 //nolint:dupl //duplicate is for servers, best keep separate
@@ -327,14 +321,14 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		client, ok := services.Clients[dbClient.Name]
+		client, ok := services.Clients.Load(dbClient)
 		if !ok {
 			var err error
 			if client, err = makeClientService(db, dbClient); handleError(w, logger, err) {
 				return
 			}
 
-			services.Clients[dbClient.Name] = client
+			services.Clients.Add(dbClient, client)
 		}
 
 		if code, _ := client.State(); code == utils.StateRunning {
@@ -355,19 +349,12 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for servers, best keep separate
 func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbClient, client, getErr := getClientService(r, db)
+		dbClient, getErr := getDBClient(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if code, _ := client.State(); code == utils.StateOffline || code == utils.StateError {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Cannot stop client %q, it isn't running.", dbClient.Name)
-
-			return
-		}
-
-		if err := haltService(r, client); handleError(w, logger, err) {
+		if err := services.Clients.Stop(r.Context(), dbClient, false); handleError(w, logger, err) {
 			return
 		}
 
@@ -377,16 +364,12 @@ func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func restartClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, client, getErr := getClientService(r, db)
+		dbClient, client, getErr := getClientService(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if err := haltService(r, client); handleError(w, logger, err) {
-			return
-		}
-
-		if err := client.Start(); handleError(w, logger, err) {
+		if err := services.Clients.Restart(r.Context(), dbClient, client); handleError(w, logger, err) {
 			return
 		}
 

@@ -23,7 +23,7 @@ type Client struct {
 	RetryIncrementFactor float32       `xorm:"retry_increment_factor"` // The factor by which the delay will be multiplied at each re-attempt.
 
 	// The client's protocol configuration as a map.
-	ProtoConfig map[string]any `xorm:"proto_config"`
+	ProtoConfig ProtoConfigMap `xorm:"proto_config"`
 
 	Disabled bool // Should the client be launched at startup.
 }
@@ -49,8 +49,6 @@ func (c *Client) BeforeWrite(db database.Access) error {
 
 	if strings.TrimSpace(c.Protocol) == "" {
 		return database.NewValidationError("the client's protocol is missing")
-	} else if !ConfigChecker.IsValidProtocol(c.Protocol) {
-		return database.NewValidationErrorf("%q is not a protocol", c.Protocol)
 	}
 
 	if c.LocalAddress.IsSet() {
@@ -63,7 +61,7 @@ func (c *Client) BeforeWrite(db database.Access) error {
 		c.ProtoConfig = map[string]any{}
 	}
 
-	if err := ConfigChecker.CheckClientConfig(c.Protocol, c.ProtoConfig); err != nil {
+	if err := CheckClientConfig(c.Protocol, c.ProtoConfig); err != nil {
 		return database.WrapAsValidationError(err)
 	}
 

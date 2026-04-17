@@ -4,7 +4,9 @@ package gui
 import (
 	"encoding/json"
 	"html/template"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/Masterminds/sprig/v3"
@@ -128,15 +130,7 @@ var funcs = template.FuncMap{
 			return ""
 		}
 	},
-	"in": func(list []string, val string) bool {
-		for _, v := range list {
-			if v == val {
-				return true
-			}
-		}
-
-		return false
-	},
+	"in": slices.Contains[[]string, string],
 	"secondFormat": func(second int32) []int32 {
 		if second == 0 {
 			return []int32{0, 0, 0}
@@ -164,17 +158,14 @@ var funcs = template.FuncMap{
 		return []int32{h, m, s, res}
 	},
 	"protocolDisplayName": protocolDisplayName,
+	"toUpper":             strings.ToUpper,
+	"toLower":             strings.ToLower,
 }
 
 func CombinedFuncMap(db *database.DB) template.FuncMap {
 	funcMap := template.FuncMap{}
-	for k, v := range funcs {
-		funcMap[k] = v
-	}
-
-	for k, v := range NewFuncMap(db) {
-		funcMap[k] = v
-	}
+	maps.Copy(funcMap, funcs)
+	maps.Copy(funcMap, NewFuncMap(db))
 
 	return funcMap
 }

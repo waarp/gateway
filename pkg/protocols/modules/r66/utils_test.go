@@ -2,10 +2,10 @@ package r66
 
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
@@ -23,52 +23,35 @@ var (
 )
 
 func init() {
-	pipelinetest.Protocols[R66] = pipelinetest.ProtoFeatures{
-		MakeClient: func(db *database.DB, cli *model.Client) services.Client {
-			return &Client{db: db, cli: cli, disableConnGrace: true}
-		},
-		MakeServer:        Module{}.NewServer,
-		MakeServerConfig:  Module{}.MakeServerConfig,
-		MakeClientConfig:  Module{}.MakeClientConfig,
-		MakePartnerConfig: Module{}.MakePartnerConfig,
-		TransID:           true,
-		RuleName:          true,
-		Size:              true,
-		TransferInfo:      true,
-	}
+	pipelinetest.Register(R66, pipelinetest.ProtoFeatures{
+		Protocol:     TestModule{},
+		TransID:      true,
+		RuleName:     true,
+		Size:         true,
+		TransferInfo: true,
+	})
 }
 
 func init() {
-	gwtesting.Protocols[R66] = gwtesting.ProtoFeatures{
-		MakeClient:        Module{}.NewClient,
-		MakeServer:        makeTestServer,
-		MakeServerConfig:  Module{}.MakeServerConfig,
-		MakeClientConfig:  Module{}.MakeClientConfig,
-		MakePartnerConfig: Module{}.MakePartnerConfig,
-		TransID:           true,
-		RuleName:          true,
-		Size:              true,
-	}
+	gwtesting.Register(R66, gwtesting.ProtoFeatures{
+		Protocol: Module{},
+		TransID:  true,
+		RuleName: true,
+		Size:     true,
+	})
 
-	gwtesting.Protocols[R66TLS] = gwtesting.ProtoFeatures{
-		MakeClient:        ModuleTLS{}.NewClient,
-		MakeServer:        makeTestServer,
-		MakeServerConfig:  ModuleTLS{}.MakeServerConfig,
-		MakeClientConfig:  ModuleTLS{}.MakeClientConfig,
-		MakePartnerConfig: ModuleTLS{}.MakePartnerConfig,
-		TransID:           true,
-		RuleName:          true,
-		Size:              true,
-	}
+	gwtesting.Register(R66TLS, gwtesting.ProtoFeatures{
+		Protocol: ModuleTLS{},
+		TransID:  true,
+		RuleName: true,
+		Size:     true,
+	})
 }
 
-func makeTestServer(db *database.DB, agent *model.LocalAgent) services.Server {
-	pswd := serverPassword(agent)
-	if err := db.Insert(pswd).Run(); err != nil {
-		panic(err)
-	}
+type TestModule struct{ Module }
 
-	return Module{}.NewServer(db, agent)
+func (t TestModule) NewClient(db *database.DB, cli *model.Client) protocol.Client {
+	return &Client{db: db, cli: cli, disableConnGrace: true}
 }
 
 func serverPassword(server *model.LocalAgent) *model.Credential {

@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -27,14 +26,14 @@ type TestServerCtx struct {
 	RulePush *model.Rule
 	RulePull *model.Rule
 
-	Service services.Server
+	Service TestService
 
 	endChan chan bool
 }
 
 func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any) *TestServerCtx {
 	tb.Helper()
-	require.Contains(tb, Protocols, protocol)
+	require.Contains(tb, protocolsList, protocol)
 	const chanBuf = 10
 
 	port := GetLocalPort(tb)
@@ -60,7 +59,7 @@ func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any)
 
 	ctx.Account = &model.LocalAccount{
 		LocalAgentID: ctx.Server.ID,
-		Login:        "test-server-account",
+		Login:        protocol + "-test-account",
 	}
 	require.NoError(tb, ctx.DB.Insert(ctx.Account).Run())
 
@@ -72,19 +71,22 @@ func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any)
 	require.NoError(tb, ctx.DB.Insert(ctx.RulePull).Run())
 	require.NoError(tb, fs.MkdirAll(fs.JoinPath(ctx.Root, ctx.RulePull.LocalDir)))
 
-	service, ok := Protocols[protocol].MakeServer(ctx.DB, ctx.Server).(TestService)
-	require.True(tb, ok)
-	service.SetTracer(func() pipeline.Trace {
+	service := protocolsList[protocol].NewServer(ctx.DB, ctx.Server)
+	require.Implements(tb, (*TestService)(nil), service)
+
+	//nolint:forcetypeassert //type is checked above
+	ctx.Service = service.(TestService)
+	ctx.Service.SetTracer(func() pipeline.Trace {
 		return pipeline.Trace{
 			OnTransferEnd: func() { ctx.endChan <- true },
 		}
 	})
 
-	require.NoError(tb, service.Start())
+	require.NoError(tb, ctx.Service.Start())
 	tb.Cleanup(func() {
 		stopCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		require.NoError(tb, service.Stop(stopCtx))
+		require.NoError(tb, ctx.Service.Stop(stopCtx))
 	})
 
 	return ctx
@@ -145,4 +147,11 @@ func (ctx *TestServerCtx) AddPullPostTaskError(tb testing.TB) (types.TransferErr
 	tb.Helper()
 
 	return addTaskError(tb, ctx.DB, ctx.RulePull, model.ChainPost)
+}
+
+func (ctx *TestServerCtx) RestartServer(tb testing.TB) {
+	tb.Helper()
+
+	require.NoError(tb, ctx.Service.Stop(tb.Context()))
+	require.NoError(tb, ctx.Service.Start())
 }

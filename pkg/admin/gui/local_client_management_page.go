@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -106,6 +107,10 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 		newLocalClient.ProtoConfig = protoConfigWebdavClient(r)
 	case webdav.WebdavTLS:
 		newLocalClient.ProtoConfig = protoConfigWebdavTLSClient(r)
+	case as2.AS2:
+		newLocalClient.ProtoConfig = protoConfigAS2Client(r)
+	case as2.AS2TLS:
+		newLocalClient.ProtoConfig = protoConfigAS2TLSClient(r)
 	}
 
 	if err := internal.AddClient(db, &newLocalClient); err != nil {
@@ -203,6 +208,10 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 		editLocalClient.ProtoConfig = protoConfigWebdavClient(r)
 	case webdav.WebdavTLS:
 		editLocalClient.ProtoConfig = protoConfigWebdavTLSClient(r)
+	case as2.AS2:
+		editLocalClient.ProtoConfig = protoConfigAS2Client(r)
+	case as2.AS2TLS:
+		editLocalClient.ProtoConfig = protoConfigAS2TLSClient(r)
 	}
 
 	if err = internal.UpdateClient(db, editLocalClient); err != nil {

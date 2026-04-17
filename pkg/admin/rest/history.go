@@ -117,7 +117,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	protos := r.Form["protocol"]
 	// Validate requested protocols
 	for _, p := range protos {
-		if protocols.Get(p) == nil {
+		if !protocols.Exists(p) {
 			return badRequestf("%q is not a valid protocol", p)
 		}
 	}

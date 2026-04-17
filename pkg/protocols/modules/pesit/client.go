@@ -29,6 +29,8 @@ func newClient(cli *model.Client) *client {
 	return &client{dbClient: cli}
 }
 
+func (c *client) Name() string { return c.dbClient.Name }
+
 func (c *client) Start() error {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
@@ -105,7 +107,7 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*clientTransfer, *pipelin
 	if pip.TransCtx.Rule.IsSend || pip.TransCtx.Transfer.Step > types.StepSetup {
 		pesitID64, convErr := strconv.ParseUint(pip.TransCtx.Transfer.RemoteTransferID, 10, 32)
 		if convErr != nil {
-			return nil, pipeline.NewErrorWith(types.TeInternal, "failed to parse PeSIT transfer ID", convErr)
+			return nil, pipeline.NewErrorWith(convErr, types.TeInternal, "failed to parse PeSIT transfer ID")
 		}
 
 		pesitID = uint32(pesitID64)

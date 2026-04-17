@@ -33,7 +33,7 @@ func (c *clientTransfer) handleError(_ string, rq *http.Request) {
 
 func (c *clientTransfer) Request() *pipeline.Error {
 	if err := c.client.Connect(); err != nil {
-		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to WebDAV server", err)
+		return pipeline.NewErrorWith(err, types.TeConnection, "failed to connect to WebDAV server")
 	}
 
 	return nil
@@ -50,16 +50,16 @@ func (c *clientTransfer) Send(file protocol.SendFile) *pipeline.Error {
 
 	if dirInfo, err := c.client.Stat(dir); errors.Is(err, os.ErrNotExist) {
 		if err = c.client.MkdirAll(dir, dirPerms); err != nil {
-			return pipeline.NewErrorWith(types.TeDataTransfer, "failed to create parent directory", err)
+			return pipeline.NewErrorWith(err, types.TeDataTransfer, "failed to create parent directory")
 		}
 	} else if err != nil {
-		return pipeline.NewErrorWith(types.TeDataTransfer, "failed to check parent directory", err)
+		return pipeline.NewErrorWith(err, types.TeDataTransfer, "failed to check parent directory")
 	} else if !dirInfo.IsDir() {
 		return pipeline.NewError(types.TeDataTransfer, "parent path is not a directory")
 	}
 
 	if err := c.client.WriteStream(filepath, file, filePerms); err != nil {
-		return pipeline.NewErrorWith(types.TeDataTransfer, "WebDAV PUT request failed", err)
+		return pipeline.NewErrorWith(err, types.TeDataTransfer, "WebDAV PUT request failed")
 	}
 
 	return nil
@@ -83,12 +83,12 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	}
 
 	if err != nil {
-		return pipeline.NewErrorWith(types.TeDataTransfer, "WebDAV GET request failed", err)
+		return pipeline.NewErrorWith(err, types.TeDataTransfer, "WebDAV GET request failed")
 	}
 	defer rd.Close()
 
 	if _, err = io.Copy(file, rd); err != nil {
-		return pipeline.NewErrorWith(types.TeDataTransfer, "failed to retrieve data", err)
+		return pipeline.NewErrorWith(err, types.TeDataTransfer, "failed to retrieve data")
 	}
 
 	return nil

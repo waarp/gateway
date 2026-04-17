@@ -31,7 +31,8 @@ type TransferContext struct {
 	LocalAccount      *LocalAccount
 	LocalAccountCreds Credentials
 
-	Paths *conf.PathsConfig
+	Paths       *conf.PathsConfig
+	Authorities Authorities
 }
 
 // GetTransferContext retrieves all the information regarding the given transfer
@@ -48,6 +49,12 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		RemoteAccount: &RemoteAccount{},
 		LocalAgent:    &LocalAgent{},
 		LocalAccount:  &LocalAccount{},
+	}
+
+	if err := db.Select(&transCtx.Authorities).Run(); err != nil {
+		logger.Errorf("Failed to retrieve authorities: %v", err)
+
+		return nil, fmt.Errorf("failed to retrieve authorities: %w", err)
 	}
 
 	if err := db.Get(transCtx.Rule, "id=?", trans.RuleID).Run(); err != nil {

@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -12,13 +11,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httptransport"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const schemeHTTP = "http://"
+const (
+	schemeHTTP  = "http://"
+	schemeHTTPS = "https://"
+)
 
 var (
 	errPause    = pipeline.NewError(types.TeStopped, "transfer paused by remote host")
@@ -31,12 +33,12 @@ type httpClient struct {
 	client *model.Client
 	conf   httpsClientConfig
 
-	logger    *log.Logger
-	transport *http.Transport
-	state     utils.State
-
-	disableKeepAlive bool
+	logger      *log.Logger
+	transporter httptransport.Transporter
+	state       utils.State
 }
+
+func (h *httpClient) Name() string { return h.client.Name }
 
 func (h *httpClient) Start() error {
 	if h.state.IsRunning() {
@@ -58,7 +60,6 @@ func (h *httpClient) Start() error {
 
 func (h *httpClient) start() error {
 	h.logger = logging.NewLogger(h.client.Name)
-	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
 
 	if err := utils.JSONConvert(h.client.ProtoConfig, &h.conf); err != nil {
 		h.logger.Errorf("Failed to parse the HTTP client's configuration: %v", err)
@@ -66,27 +67,25 @@ func (h *httpClient) start() error {
 		return fmt.Errorf("failed to parse the HTTP client's configuration: %w", err)
 	}
 
-	if h.client.LocalAddress.IsSet() {
-		localAddr, err := net.ResolveTCPAddr("tcp", h.client.LocalAddress.String())
-		if err != nil {
-			h.logger.Errorf("Failed to parse the HTTP client's local address: %v", err)
+	var err error
+	if h.transporter, err = httptransport.NewTransport(h.client.Protocol == HTTPS,
+		h.client.LocalAddress.String()); err != nil {
+		h.logger.Errorf("Failed to initialize the HTTP client's transport: %v", err)
 
-			return fmt.Errorf("failed to parse the HTTP client's local address: %w", err)
-		}
-
-		dialer.LocalAddr = localAddr
-	}
-
-	h.transport = &http.Transport{
-		DialContext:       dialer.DialContext,
-		DisableKeepAlives: h.disableKeepAlive,
+		return fmt.Errorf("failed to initialize the HTTP client's transport: %w", err)
 	}
 
 	return nil
 }
 
 func (h *httpClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
-	return newTransferClient(pip, h.transport, false), nil
+	transport, err := h.transporter.Get(pip)
+	if err != nil {
+		return nil, pipeline.NewErrorWith(err, types.TeInternal,
+			"failed to initialize the HTTP client's transport")
+	}
+
+	return newTransferClient(pip, transport, h.client.Protocol == HTTPS), nil
 }
 
 func (h *httpClient) Stop(ctx context.Context) error {

@@ -9,25 +9,17 @@ import (
 )
 
 func init() {
-	pipelinetest.Protocols[FTP] = pipelinetest.ProtoFeatures{
-		MakeClient:        Module{}.NewClient,
-		MakeServer:        Module{}.NewServer,
-		MakeServerConfig:  Module{}.MakeServerConfig,
-		MakePartnerConfig: Module{}.MakePartnerConfig,
-		MakeClientConfig:  Module{}.MakeClientConfig,
-		TransID:           false,
-		RuleName:          false,
-	}
+	pipelinetest.Register(FTP, pipelinetest.ProtoFeatures{
+		Protocol: Module{},
+		TransID:  false,
+		RuleName: false,
+	})
 
-	pipelinetest.Protocols[FTPS] = pipelinetest.ProtoFeatures{
-		MakeClient:        ModuleFTPS{}.NewClient,
-		MakeServer:        ModuleFTPS{}.NewServer,
-		MakeServerConfig:  ModuleFTPS{}.MakeServerConfig,
-		MakePartnerConfig: ModuleFTPS{}.MakePartnerConfig,
-		MakeClientConfig:  ModuleFTPS{}.MakeClientConfig,
-		TransID:           false,
-		RuleName:          false,
-	}
+	pipelinetest.Register(FTPS, pipelinetest.ProtoFeatures{
+		Protocol: ModuleFTPS{},
+		TransID:  false,
+		RuleName: false,
+	})
 }
 
 type testClientContext struct {

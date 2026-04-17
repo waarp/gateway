@@ -145,7 +145,7 @@ func TestDatabase(c convey.C) *DB {
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
-	db.logger.Noticef("%s database started", conf.GlobalConfig.Database.Type)
+	db.Logger.Noticef("%s database started", conf.GlobalConfig.Database.Type)
 
 	return db
 }
@@ -163,7 +163,7 @@ func initTestDatabase(c convey.C) *DB {
 		dbname = filepath.Base(conf.GlobalConfig.Database.Address)
 	}
 
-	db := &DB{logger: testhelpers.TestLoggerWithLevel(c,
+	db := &DB{Logger: testhelpers.TestLoggerWithLevel(c,
 		fmt.Sprintf("%s-database-%s", dbtype, dbname), log.LevelNotice)}
 
 	return db

@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -97,7 +98,9 @@ func TestDatabase(tb testing.TB) *database.DB {
 
 	makeTestGCM(tb)
 
-	db := &database.DB{}
+	db := &database.DB{
+		Logger: logtest.GetTestLogger(tb, logtest.WithLevel("WARNING")),
+	}
 	require.NoError(tb, db.Start(), "cannot start database")
 
 	tb.Cleanup(func() {
