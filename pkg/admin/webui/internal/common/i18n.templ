@@ -1,0 +1,18 @@
+package common
+
+import (
+	"github.com/templui/templui/components/dropdown"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/webui/internal/translations"
+)
+
+templ LanguageSelectorItems(printer *translations.Printer) {
+    for _, lang := range translations.Options {
+        @dropdown.Item(dropdown.ItemProps{
+            Href: "set-language?lang=" + translations.Languages[lang],
+            Class: "h-10",
+        }) {
+            { lang }
+        }
+    }
+}

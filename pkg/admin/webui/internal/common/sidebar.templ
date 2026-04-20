@@ -1,0 +1,124 @@
+package common
+
+import (
+	"github.com/templui/templui/components/button"
+	"github.com/templui/templui/components/icon"
+	"github.com/templui/templui/components/sidebar"
+	"github.com/templui/templui/components/tooltip"
+)
+
+templ Sidebar(data *PageData) {
+    <style>
+        [data-tui-sidebar-wrapper] aside[data-sidebar="sidebar"] {
+            top: 3.5rem;
+            height: calc(100svh - 3.5rem);
+        }
+    </style>
+    @sidebar.Sidebar(sidebar.Props{
+        Collapsible: sidebar.CollapsibleIcon,
+        Collapsed: data.Sidebar.Collapsed,
+        ID: "main-sidebar",
+        Attributes: templ.Attributes{
+            "style": "--sidebar-width:14rem",
+        },
+    }) {
+        @sidebar.Header() {
+            @sidebarMenuButton("/", data.Sprintf("Home"), icon.House)
+        }
+        @sidebar.Content() {
+            @sidebar.Menu() {
+                @sidebar.Group() {
+                    @sidebar.GroupLabel() {
+                        { data.Sprintf("Connectivity") }
+                    }
+                    @sidebarMenuButton("/servers", data.Sprintf("Local servers"), icon.Server)
+                    @sidebarMenuButton("/clients", data.Sprintf("Local clients"), icon.Router)
+                    @sidebarMenuButton("/partners", data.Sprintf("Remote partners"), icon.Contact)
+                }
+                @sidebar.Group() {
+                    @sidebar.GroupLabel() {
+                        { data.Sprintf("Automation") }
+                    }
+                    @sidebar.MenuItem() {
+                        @sidebarMenuButton("/rules", data.Sprintf("Rules"), icon.SquareTerminal)
+                        @sidebar.MenuSub() {
+                            @sidebarMenuButton("/rules/crypto", data.Sprintf("Cryptography"), icon.KeySquare)
+                            @sidebarMenuButton("/rules/email", data.Sprintf("Email"), icon.MailWarning)
+                        }
+                    }
+                }
+                @sidebar.Group() {
+                    @sidebar.GroupLabel() {
+                        { data.Sprintf("Monitoring") }
+                    }
+                    @sidebarMenuButton("/transfers", data.Sprintf("Transfers"), icon.ArrowUpDown)
+                    @sidebarMenuButton("/snmp", data.Sprintf("SNMP"), icon.MessageCircleWarning)
+                }
+
+                @sidebar.Group() {
+                    @sidebar.GroupLabel() {
+                        { data.Sprintf("Administration") }
+                    }
+                    @sidebar.MenuItem() {
+                        @sidebarMenuButton("/users", data.Sprintf("Users"), icon.User)
+                    }
+                }
+            }
+        }
+        @sidebar.Footer() {
+            <img src="/assets/img/banner.png" class="w-full dark:hidden" alt="Waarp Banner"/>
+            <img src="/assets/img/banner-dark.png" class="w-full hidden dark:block" alt="Waarp Banner"/>
+
+            <div class="flex justify-evenly group-data-[tui-sidebar-state=collapsed]:group-data-[tui-sidebar-collapsible=icon]:hidden">
+                @sidebarFooterButton(
+                    "https://doc.waarp.org/",
+                    data.Sprintf("Documentation"),
+                    icon.BookOpen,
+                )
+                @sidebarFooterButton(
+                    "https://waarp.fr",
+                    data.Sprintf("Website"),
+                    icon.Globe,
+                )
+                @sidebarFooterButton(
+                    "https://code.waarp.fr",
+                    data.Sprintf("Code repository"),
+                    icon.FileCode,
+                )
+                @sidebarFooterButton(
+                    "https://alm.waarp.fr/login",
+                    data.Sprintf("Professional support"),
+                    icon.Headset,
+                )
+            </div>
+        }
+    }
+}
+
+templ sidebarMenuButton(link, label string, buttonIcon Icon) {
+    @sidebar.MenuButton(sidebar.MenuButtonProps{
+        Href:    link,
+        Tooltip: label,
+    }) {
+        @buttonIcon()
+        <span>{ label }</span>
+    }
+}
+
+templ sidebarFooterButton(link, tooltipText string, buttonIcon Icon) {
+    @tooltip.Tooltip() {
+        @tooltip.Trigger() {
+            @button.Button(button.Props{
+                Size: button.SizeIcon,
+                Href: link,
+                Variant: button.VariantOutline,
+                Class: "text-primary",
+            }) {
+                @buttonIcon(icon.Props{Class: "size-6"})
+            }
+        }
+        @tooltip.Content() {
+            { tooltipText }
+        }
+    }
+}

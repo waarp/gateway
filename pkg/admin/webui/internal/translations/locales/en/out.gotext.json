@@ -1,0 +1,243 @@
+{
+    "language": "en",
+    "messages": [
+        {
+            "id": "About",
+            "message": "About",
+            "translation": "About",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "About Waarp Gateway",
+            "message": "About Waarp Gateway",
+            "translation": "About Waarp Gateway",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Waarp Gateway is distributed under the terms of the [hyperlink]GPLv3 license[/hyperlink].",
+            "message": "Waarp Gateway is distributed under the terms of the [hyperlink]GPLv3 license[/hyperlink].",
+            "translation": "Waarp Gateway is distributed under the terms of the [hyperlink]GPLv3 license[/hyperlink].",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Version:",
+            "message": "Version:",
+            "translation": "Version:",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Built on:",
+            "message": "Built on:",
+            "translation": "Built on:",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Runtime:",
+            "message": "Runtime:",
+            "translation": "Runtime:",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Waarp Gateway and the Waarp logo are trademarks of Waarp SAS.",
+            "message": "Waarp Gateway and the Waarp logo are trademarks of Waarp SAS.",
+            "translation": "Waarp Gateway and the Waarp logo are trademarks of Waarp SAS.",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Home",
+            "message": "Home",
+            "translation": "Home",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Connectivity",
+            "message": "Connectivity",
+            "translation": "Connectivity",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Local servers",
+            "message": "Local servers",
+            "translation": "Local servers",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Local clients",
+            "message": "Local clients",
+            "translation": "Local clients",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Remote partners",
+            "message": "Remote partners",
+            "translation": "Remote partners",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Automation",
+            "message": "Automation",
+            "translation": "Automation",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Rules",
+            "message": "Rules",
+            "translation": "Rules",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Cryptography",
+            "message": "Cryptography",
+            "translation": "Cryptography",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Email",
+            "message": "Email",
+            "translation": "Email",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Monitoring",
+            "message": "Monitoring",
+            "translation": "Monitoring",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Transfers",
+            "message": "Transfers",
+            "translation": "Transfers",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "SNMP",
+            "message": "SNMP",
+            "translation": "SNMP",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Administration",
+            "message": "Administration",
+            "translation": "Administration",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Users",
+            "message": "Users",
+            "translation": "Users",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Documentation",
+            "message": "Documentation",
+            "translation": "Documentation",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Website",
+            "message": "Website",
+            "translation": "Website",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Code repository",
+            "message": "Code repository",
+            "translation": "Code repository",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Professional support",
+            "message": "Professional support",
+            "translation": "Professional support",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Internal database error.",
+            "message": "Internal database error.",
+            "translation": "Internal database error.",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Invalid credentials.",
+            "message": "Invalid credentials.",
+            "translation": "Invalid credentials.",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Login",
+            "message": "Login",
+            "translation": "Login",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Enter your credentials to access the Gateway",
+            "message": "Enter your credentials to access the Gateway",
+            "translation": "Enter your credentials to access the Gateway",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Username",
+            "message": "Username",
+            "translation": "Username",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Enter your username",
+            "message": "Enter your username",
+            "translation": "Enter your username",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Password",
+            "message": "Password",
+            "translation": "Password",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Enter your password",
+            "message": "Enter your password",
+            "translation": "Enter your password",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        },
+        {
+            "id": "Sign in",
+            "message": "Sign in",
+            "translation": "Sign in",
+            "translatorComment": "Copied from source.",
+            "fuzzy": true
+        }
+    ]
+}

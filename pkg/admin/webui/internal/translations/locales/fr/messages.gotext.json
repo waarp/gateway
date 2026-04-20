@@ -1,0 +1,175 @@
+{
+    "language": "fr",
+    "messages": [
+        {
+            "id": "About",
+            "message": "About",
+            "translation": "À propos"
+        },
+        {
+            "id": "About Waarp Gateway",
+            "message": "About Waarp Gateway",
+            "translation": "À propos de Waarp Gateway"
+        },
+        {
+            "id": "Waarp Gateway is distributed under the terms of the [hyperlink]GPLv3 license[/hyperlink].",
+            "message": "Waarp Gateway is distributed under the terms of the [hyperlink]GPLv3 license[/hyperlink].",
+            "translation": "Waarp Gateway est distribuée sous les termes de la [hyperlink]licence GPLv3[/hyperlink]."
+        },
+        {
+            "id": "Version:",
+            "message": "Version:",
+            "translation": "Version :"
+        },
+        {
+            "id": "Built on:",
+            "message": "Built on:",
+            "translation": "Compilé le :"
+        },
+        {
+            "id": "Runtime:",
+            "message": "Runtime:",
+            "translation": "Runtime :"
+        },
+        {
+            "id": "Waarp Gateway and the Waarp logo are trademarks of Waarp SAS.",
+            "message": "Waarp Gateway and the Waarp logo are trademarks of Waarp SAS.",
+            "translation": "Waarp Gateway et le logo Waarp sont des marques déposées de Waarp SAS."
+        },
+        {
+            "id": "Home",
+            "message": "Home",
+            "translation": "Accueil"
+        },
+        {
+            "id": "Connectivity",
+            "message": "Connectivity",
+            "translation": "Connectivité"
+        },
+        {
+            "id": "Local servers",
+            "message": "Local servers",
+            "translation": "Serveurs locaux"
+        },
+        {
+            "id": "Local clients",
+            "message": "Local clients",
+            "translation": "Clients locaux"
+        },
+        {
+            "id": "Remote partners",
+            "message": "Remote partners",
+            "translation": "Partenaires distants"
+        },
+        {
+            "id": "Automation",
+            "message": "Automation",
+            "translation": "Automatisation"
+        },
+        {
+            "id": "Rules",
+            "message": "Rules",
+            "translation": "Règles"
+        },
+        {
+            "id": "Cryptography",
+            "message": "Cryptography",
+            "translation": "Cryptographie"
+        },
+        {
+            "id": "Email",
+            "message": "Email",
+            "translation": "Email"
+        },
+        {
+            "id": "Monitoring",
+            "message": "Monitoring",
+            "translation": "Supervision"
+        },
+        {
+            "id": "Transfers",
+            "message": "Transfers",
+            "translation": "Transferts"
+        },
+        {
+            "id": "SNMP",
+            "message": "SNMP",
+            "translation": "SNMP"
+        },
+        {
+            "id": "Administration",
+            "message": "Administration",
+            "translation": "Administration"
+        },
+        {
+            "id": "Users",
+            "message": "Users",
+            "translation": "Utilisateurs"
+        },
+        {
+            "id": "Documentation",
+            "message": "Documentation",
+            "translation": "Documentation"
+        },
+        {
+            "id": "Website",
+            "message": "Website",
+            "translation": "Site Web"
+        },
+        {
+            "id": "Code repository",
+            "message": "Code repository",
+            "translation": "Dépôt de code"
+        },
+        {
+            "id": "Professional support",
+            "message": "Professional support",
+            "translation": "Support professionnel"
+        },
+        {
+            "id": "Internal database error.",
+            "message": "Internal database error.",
+            "translation": "Erreur interne de la base de données."
+        },
+        {
+            "id": "Invalid credentials.",
+            "message": "Invalid credentials.",
+            "translation": "Identifiants invalides."
+        },
+        {
+            "id": "Login",
+            "message": "Login",
+            "translation": "Authentification"
+        },
+        {
+            "id": "Enter your credentials to access the Gateway",
+            "message": "Enter your credentials to access the Gateway",
+            "translation": "Entrez vos identifiants pour accéder à la Gateway"
+        },
+        {
+            "id": "Username",
+            "message": "Username",
+            "translation": "Nom d'utilisateur"
+        },
+        {
+            "id": "Enter your username",
+            "message": "Enter your username",
+            "translation": "Entrez votre nom d'utilisateur"
+        },
+        {
+            "id": "Password",
+            "message": "Password",
+            "translation": "Mot de passe"
+        },
+        {
+            "id": "Enter your password",
+            "message": "Enter your password",
+            "translation": "Entrez votre mot de passe"
+        },
+        {
+            "id": "Sign in",
+            "message": "Sign in",
+            "translation": "Se connecter"
+        }
+    ]
+}

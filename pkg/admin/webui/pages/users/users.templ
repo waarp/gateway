@@ -1,0 +1,32 @@
+package users
+
+import (
+    "fmt"
+
+	"github.com/templui/templui/components/button"
+	"github.com/templui/templui/components/card"
+	"github.com/templui/templui/components/icon"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/webui/internal/common"
+
+)
+
+templ Users(data *common.PageData) {
+	@common.Page("Users", data) {
+		<div class="p-6">
+			@card.Card(card.Props{Class: "w-fit"}) {
+				@card.Content(card.ContentProps{Class: "flex items-center gap-4 pt-6"}) {
+					@icon.CircleUserRound(icon.Props{Class: "size-8"})
+					<span class="font-medium">{ data.User.Username }</span>
+					@button.Button(button.Props{
+						Variant: button.VariantGhost,
+						Size:    button.SizeIcon,
+						Href:    "/users/edit?id=" + fmt.Sprint(data.User.ID),
+					}) {
+						@icon.Pencil(icon.Props{Class: "size-4"})
+					}
+				}
+			}
+		</div>
+	}
+}

@@ -1,0 +1,163 @@
+package common
+
+import (
+    "time"
+
+	"github.com/templui/templui/components/button"
+	"github.com/templui/templui/components/dialog"
+	"github.com/templui/templui/components/dropdown"
+	"github.com/templui/templui/components/icon"
+	"github.com/templui/templui/components/sidebar"
+	"github.com/templui/templui/components/table"
+	"github.com/templui/templui/components/tooltip"
+	"github.com/templui/templui/components/separator"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/webui/internal/translations"
+)
+
+templ Navbar(data *PageData) {
+    <nav class="sticky top-0 z-20 bg-primary px-3 h-14 flex items-center gap-3
+        shadow-sm [&_button]:h-10 [&_button_svg]:!size-5">
+        @sidebar.Trigger(sidebar.TriggerProps{
+            Class:  "text-primary-foreground",
+            Target: "main-sidebar",
+        })
+
+        <span class="text-primary-foreground text-xl">{ data.App.Name }</span>
+
+        <div class="ml-auto flex gap-1">
+            @tooltip.Tooltip() {
+                @tooltip.Trigger() {
+                    @button.Button(button.Props{
+                        Variant:    button.VariantGhost,
+                        Attributes: templ.Attributes{"onclick": "toggleTheme()"},
+                        Class:      "text-primary-foreground",
+                    }) {
+                        @icon.Sun(icon.Props{Class: "hidden dark:block"})
+                        @icon.Moon(icon.Props{Class: "dark:hidden"})
+                    }
+                }
+                @tooltip.Content() {
+                    { data.Sprintf("Switch theme") }
+                }
+            }
+            @dialog.Trigger(dialog.TriggerProps{
+                For: "about-dialog",
+            }) {
+                @tooltip.Tooltip() {
+                    @tooltip.Trigger() {
+                        @button.Button(button.Props{
+                            Variant: button.VariantGhost,
+                            Class:   "text-primary-foreground",
+                        }) {
+                            @icon.Info()
+                        }
+                    }
+                    @tooltip.Content() {
+                        { data.Sprintf("About Waarp Gateway") }
+                    }
+                }
+            }
+            @dropdown.Dropdown() {
+                @dropdown.Trigger() {
+                    @button.Button(button.Props{
+                        Variant: button.VariantGhost,
+                        Class:   "text-primary-foreground",
+                    }) {
+                        @icon.CircleUserRound()
+                        { data.User.Username }
+                    }
+                }
+                @dropdown.Content(dropdown.ContentProps{
+                    Class: "[&_a]:h-10",
+                }) {
+                    @dropdown.Item() {
+                        { "@"+data.User.Username }
+                    }
+                    @dropdown.Separator()
+                    @dropdown.Sub() {
+                        @dropdown.SubTrigger() {
+                            @userMenuEntry(icon.Languages, data.Sprintf("Language"))
+                        }
+                        @dropdown.SubContent() {
+                            @LanguageSelectorItems(data.Printer)
+                        }
+                    }
+                    @dropdown.Separator()
+                    @dropdown.Item(dropdown.ItemProps{Href: "/logout"}) {
+                        @userMenuEntry(icon.LogOut, data.Sprintf("Log out"))
+                    }
+                }
+            }
+        </div>
+    </nav>
+
+    @dialog.Dialog(dialog.Props{
+        ID: "about-dialog",
+    }) {
+        @dialog.Content() {
+            @dialog.Header() {
+                @dialog.Title() {
+                    { data.Sprintf("About Waarp Gateway") }
+                }
+            }
+            @separator.Separator()
+            @dialog.Description() {
+                {{
+                    link := "https://www.gnu.org/licenses/gpl-3.0.html"
+                    sentence := data.Sprintf("Waarp Gateway is distributed under the terms of the [hyperlink]GPLv3 license[/hyperlink].")
+                    fullText := translations.RenderLink(sentence, "hyperlink", link)
+                }}
+                @templ.Raw(fullText)
+            }
+
+            <div class="flex gap-2">
+                <div class="flex w-30 items-center">
+                    <img src="/assets/img/icon-dark.png" class="w-full" alt="Waarp Gateway Logo"/>
+                </div>
+                @table.Table(table.Props{
+                    Class: "text-primary-foreground",
+                }) {
+                    <tr>
+                        @table.Head() {
+                            { data.Sprintf("Version") }
+                        }
+                        @table.Cell() {
+                            { data.App.Version }
+                        }
+                    </tr>
+                    <tr>
+                        @table.Head() {
+                            { data.Sprintf("Built on") }
+                        }
+                        @table.Cell() {
+                            { data.App.BuildDate.Format(time.DateTime) }
+                        }
+                    </tr>
+                    <tr>
+                        @table.Head() {
+                            { data.Sprintf("Runtime") }
+                        }
+                        @table.Cell() {
+                            { data.App.Runtime }
+                        }
+                    </tr>
+                }
+            </div>
+
+            @dialog.Footer() {
+                @dialog.Description() {
+                    { data.Sprintf("Waarp Gateway and the Waarp logo are trademarks of Waarp SAS.") }
+                }
+            }
+        }
+    }
+}
+
+
+templ userMenuEntry(menuIcon Icon, text string) {
+    <span class="flex items-center">
+        @menuIcon(icon.Props{Class: "size-5 mr-2"})
+        { text }
+    </span>
+}

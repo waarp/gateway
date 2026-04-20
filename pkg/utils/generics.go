@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 )
 
@@ -72,4 +74,11 @@ func Clone[T any](orig *T) *T {
 	*clone = *orig
 
 	return clone
+}
+
+func SortedKeys[K cmp.Ordered, V any](m map[K]V) []K {
+	keys := slices.Collect(maps.Keys(m))
+	slices.Sort(keys)
+
+	return keys
 }

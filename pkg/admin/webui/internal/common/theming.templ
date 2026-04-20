@@ -1,0 +1,21 @@
+package common
+
+import (
+    "github.com/templui/templui/components/dialog"
+    "github.com/templui/templui/components/dropdown"
+    "github.com/templui/templui/components/icon"
+    "github.com/templui/templui/components/sidebar"
+)
+
+type Icon func(...icon.Props) templ.Component
+
+// Must be placed in <head>
+templ Theming() {
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico">
+    <script src="/assets/js/theming.js"></script>
+    <link rel="stylesheet" href="/assets/css/output.css"/>
+
+    @dropdown.Script()
+    @sidebar.Script()
+    @dialog.Script()
+}

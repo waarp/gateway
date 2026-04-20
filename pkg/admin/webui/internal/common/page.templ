@@ -1,0 +1,26 @@
+package common
+
+import (
+	"github.com/templui/templui/components/sidebar"
+)
+
+templ Page(title string, data *PageData) {
+	<head>
+		<title>{ data.App.Name } - { data.Sprintf(title) }</title>
+		@Theming()
+
+	</head>
+	<body class="bg-background text-foreground">
+	    @Navbar(data)
+	    <div>
+	        @sidebar.Layout() {
+                @Sidebar(data)
+                @sidebar.Inset() {
+                    <main>
+                        { children... }
+                    </main>
+                }
+            }
+        </div>
+	</body>
+}

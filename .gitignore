@@ -1,16 +1,18 @@
+# BUILD
+build/
+
+# DOC
 doc/.venv
 doc/build
-*.ini
-.idea
-waarp_gatewayd_test.db
-*.goconvey
+
+# IDE
+.idea/
 *.iml
-build/
+
+# CI
 .vagrant
-pkg/admin/.DS_Store
-pkg/admin/gui/.DS_Store
-pkg/admin/gui/front_end/.DS_Store
-pkg/admin/gui/front_end/javaScript/LICENSE
-pkg/admin/gui/front_end/javaScript/README.md
-pkg/.DS_Store
-.DS_Store
+
+# TEST ARTIFACTS
+*.ini
+*.db
+*.goconvey
