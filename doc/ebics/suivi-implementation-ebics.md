@@ -426,3 +426,18 @@ Point de situation:
   La passe de non-regression consolidee et la repasse linter hors sandbox sur
   le perimetre EBICS/REST/CLI/model/gatewayd sont vertes. Le chantier `P4`
   est maintenant considere comme ferme.
+  2026-04-21: `AMQP 0.9.1` est maintenant ferme hors perimetre EBICS strict,
+  comme protocole Gateway autonome.
+  Le protocole Gateway `amqp091` couvre maintenant:
+  validation de ses `ProtoConfig` client / partenaire / serveur,
+  chemin client minimal `publish/consume`,
+  service serveur `local-agent` consommateur raccorde au pipeline standard
+  Gateway,
+  et preuve `backup/import/export` explicite pour les objets administres
+  `Client`, `RemoteAgent` et `LocalAgent`.
+  La QA ciblee de fermeture est verte sur
+  `pkg/backup`, `pkg/protocols/modules/amqp091`, `pkg/protocols` et
+  `pkg/model`.
+  La repasse plus large `pkg/protocols/...` reste rouge uniquement a cause
+  d'un flake Windows deja observe dans le module HTTP, hors perimetre
+  `amqp091`.

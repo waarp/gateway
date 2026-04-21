@@ -1,4 +1,12 @@
 {
+  "clients": [
+    {
+      "name": "ebics-main-client",
+      "protocol": "ebics",
+      "localAddress": "127.0.0.1:0",
+      "protoConfig": {}
+    }
+  ],
   "locals": [
     {
       "name": "local-gw",
@@ -157,6 +165,7 @@
       "userID": "USER1",
       "autoPullPolicy": "AUTO",
       "configuration": {
+        "clientID": 1,
         "endpoint": "wss://127.0.0.1/rtn",
         "heartbeatSeconds": 30
       }

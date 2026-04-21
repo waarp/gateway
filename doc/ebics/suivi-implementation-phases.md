@@ -416,3 +416,16 @@ Note:
   strictement `specific > country > GLB`;
   si un contrat specifique actif existe et qu'un tuple n'y est pas trouve,
   l'echange est rejete sans fallback vers le catalogue standard
+- 2026-04-21: `AMQP 0.9.1` est maintenant ferme comme protocole Gateway
+  autonome.
+  Le protocole `amqp091` couvre maintenant:
+  validation de `ProtoConfig` client / partenaire / serveur,
+  chemin client minimal `publish/consume`,
+  service `local-agent` consommateur cote serveur via le pipeline standard
+  Gateway,
+  et preuve explicite `backup/import/export` sur `Client`, `RemoteAgent` et
+  `LocalAgent`.
+  La QA ciblee du perimetre `pkg/backup`, `pkg/protocols/modules/amqp091`,
+  `pkg/protocols` et `pkg/model` est verte; la passe plus large sur
+  `pkg/protocols/...` reste seulement affectee par un flake Windows connu
+  dans le module HTTP, hors perimetre `amqp091`.

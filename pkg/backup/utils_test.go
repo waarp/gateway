@@ -23,6 +23,7 @@ const testProtocol = "test_proto"
 func init() {
 	modeltest.AddDummyProtoConfig(testProtocol)
 	modeltest.AddDummyProtoConfig(r66TLS)
+	modeltest.AddDummyProtoConfig("ebics")
 
 	modeltest.AddDummyTask("COPY")
 	modeltest.AddDummyTask("MOVE")

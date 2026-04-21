@@ -2004,7 +2004,28 @@ Ordre d'execution recommande:
 
 ### Hors perimetre EBICS strict mais pre-requis metier
 
-- [ ] `AMQP 0.9.1` implemente comme protocole Gateway autonome
+- [x] `AMQP 0.9.1` implemente comme protocole Gateway autonome
 - [ ] `AMQP 1.0` implemente comme protocole Gateway autonome
 - [ ] chantier `passe-plat metier` ouvert sur ces protocoles et sur les autres
   connecteurs Gateway cibles
+
+Notes:
+
+- 2026-04-21: `AMQP 0.9.1` est maintenant ferme comme protocole Gateway autonome.
+  Le protocole `amqp091` est enregistre dans Gateway avec un module dedie
+  `pkg/protocols/modules/amqp091/`, une validation de `ProtoConfig`
+  client / partenaire / serveur, un vrai chemin client minimal
+  `publish/consume`, et un vrai service `local-agent` consommateur cote
+  serveur qui transforme les messages broker en vrais transferts Gateway
+  via le pipeline serveur standard.
+  La preuve `backup/import/export` est maintenant posee explicitement pour
+  `amqp091`, avec round-trip de `Client`, `RemoteAgent` et `LocalAgent`.
+  La dependance `github.com/rabbitmq/amqp091-go` est integree sans `replace`.
+  QA verte sur le perimetre de fermeture:
+  `go test ./pkg/backup ./pkg/protocols/modules/amqp091 ./pkg/protocols ./pkg/model -count=1`
+  et
+  `golangci-lint run ./pkg/backup ./pkg/protocols/modules/amqp091 ./pkg/protocols ./pkg/model`.
+  La passe plus large
+  `go test ./pkg/protocols/... ./pkg/model ./pkg/backup -count=1`
+  reste rouge uniquement sur un flake Windows deja observe dans
+  `pkg/protocols/modules/http`, hors perimetre `amqp091`.
