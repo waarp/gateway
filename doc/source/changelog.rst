@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`491` Ajout du support pour le protocole AS2. Compte tenu des nombreuses
+  spécificités du protocole, il est fortement recommandé de lire :doc:`la rubrique
+  <reference/protocols/as2>` spécifiant les détails d'implémentation du protocole avant
+  de commencer à l'utiliser.
+
 * :release:`0.15.4 <2026-03-31>`
 * :bug:`540` Les variables d'environnement ``WAARP_CONFIG_FILE`` et ``WAARP_CONFIG_DIR``
   introduites en version 0.14.2 sont désormais toujours des chemins absolus.
