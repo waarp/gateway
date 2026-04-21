@@ -225,6 +225,13 @@ Note:
   Le perimetre reste volontairement borne a la notification technique de
   disponibilite d'un item de reporting serveur, sans confondre RTN sortant,
   payload et passe-plat metier.
+  2026-04-21: `P5F` est maintenant ferme.
+  Le RTN sortant est durci:
+  `wss` obligatoire pour les endpoints distants,
+  blocage explicite des providers desactives/incoherents,
+  refus de notifier un reporting set inactif ou un item desactive.
+  La repasse `go test` et `golangci-lint` du perimetre serveur admin + RTN
+  sortant est verte.
   `EbicsServerContractSet` / `EbicsServerContractItem`,
   distincte des vues contractuelles client.
   Le bornage fonctionnel est impose au niveau modele:

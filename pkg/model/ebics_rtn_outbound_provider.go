@@ -2,6 +2,8 @@ package model
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -52,8 +54,12 @@ func (p *EbicsRTNOutboundProvider) BeforeWrite(db database.Access) error {
 	if err := p.hydrateConfiguration(); err != nil {
 		return err
 	}
-	if endpoint, ok := readRTNOutboundProviderConfigString(p.ConfigurationMap, "endpoint"); !ok || endpoint == "" {
+	endpoint, ok := readRTNOutboundProviderConfigString(p.ConfigurationMap, "endpoint")
+	if !ok || endpoint == "" {
 		return database.NewValidationError("the outbound RTN provider endpoint is missing")
+	}
+	if err := ValidateEbicsRTNOutboundEndpoint(endpoint); err != nil {
+		return err
 	}
 	if err := validateEbicsRTNOutboundProviderRefs(db, p); err != nil {
 		return err
@@ -119,6 +125,10 @@ func validateEbicsRTNOutboundProviderRefs(db database.Access, provider *EbicsRTN
 
 		return fmt.Errorf("failed to retrieve EBICS subscriber for outbound RTN provider: %w", err)
 	}
+	if !subscriber.Enabled {
+		return database.NewValidationErrorf(
+			"the EBICS subscriber %d is disabled", provider.EbicsSubscriberID)
+	}
 
 	return nil
 }
@@ -155,4 +165,36 @@ func readRTNOutboundProviderConfigString(config map[string]any, key string) (str
 	}
 
 	return strings.TrimSpace(raw), true
+}
+
+func ValidateEbicsRTNOutboundEndpoint(endpoint string) error {
+	raw := strings.TrimSpace(endpoint)
+	if raw == "" {
+		return database.NewValidationError("the outbound RTN provider endpoint is missing")
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return database.NewValidationErrorf("invalid outbound RTN endpoint: %v", err)
+	}
+
+	switch strings.ToLower(parsed.Scheme) {
+	case "wss":
+		return nil
+	case "ws":
+		host := strings.TrimSpace(parsed.Hostname())
+		if host == "localhost" {
+			return nil
+		}
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			return nil
+		}
+
+		return database.NewValidationError(
+			"the outbound RTN provider endpoint must use wss (ws is only allowed for localhost tests)")
+	case "":
+		return database.NewValidationError("the outbound RTN provider endpoint scheme is missing")
+	default:
+		return database.NewValidationError("the outbound RTN provider endpoint must use ws or wss")
+	}
 }

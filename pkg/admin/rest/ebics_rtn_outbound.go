@@ -32,6 +32,7 @@ func ebicsRTNOutboundProviderRESTToDB(in *api.InEbicsRTNOutboundProvider) *model
 	return provider
 }
 
+//nolint:dupl // explicit list handlers stay separate per RTN family
 func listEbicsRTNOutboundProviders(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{col: "name", asc: true},
@@ -52,7 +53,7 @@ func listEbicsRTNOutboundProviders(logger *log.Logger, db *database.DB) http.Han
 
 		out := make([]*api.OutEbicsRTNOutboundProvider, len(providers))
 		for i, provider := range providers {
-			out[i] = DBEbicsRTNOutboundProviderToREST(provider)
+			out[i] = DBEbicsRTNOutboundProviderToREST(db, provider)
 		}
 
 		handleError(w, logger, writeJSON(w, map[string]any{"providers": out}))
@@ -86,7 +87,7 @@ func getEbicsRTNOutboundProvider(logger *log.Logger, db *database.DB) http.Handl
 			return
 		}
 
-		handleError(w, logger, writeJSON(w, DBEbicsRTNOutboundProviderToREST(provider)))
+		handleError(w, logger, writeJSON(w, DBEbicsRTNOutboundProviderToREST(db, provider)))
 	}
 }
 

@@ -756,7 +756,7 @@ func TestAddEbicsRTNOutboundProviderCreatesProvider(t *testing.T) {
 	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-OUT", "PARTNER-RTN-OUT", "USER-RTN-OUT")
 
 	req := httptest.NewRequest(http.MethodPost, "/ebics/rtn/outbound/providers",
-		strings.NewReader(`{"name":"outbound-a","transport":"WSS","enabled":true,"subscriberID":`+marshalID(subscriber.ID)+`,"configuration":{"endpoint":"ws://partner.example/rtn"}}`))
+		strings.NewReader(`{"name":"outbound-a","transport":"WSS","enabled":true,"subscriberID":`+marshalID(subscriber.ID)+`,"configuration":{"endpoint":"wss://partner.example/rtn"}}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -768,7 +768,53 @@ func TestAddEbicsRTNOutboundProviderCreatesProvider(t *testing.T) {
 	require.NoError(t, db.Get(&provider, "name=?", "outbound-a").Run())
 	assert.Equal(t, "WSS", provider.Transport)
 	assert.Equal(t, subscriber.ID, provider.EbicsSubscriberID)
-	assert.Equal(t, "ws://partner.example/rtn", provider.ConfigurationMap["endpoint"])
+	assert.Equal(t, "wss://partner.example/rtn", provider.ConfigurationMap["endpoint"])
+}
+
+func TestAddEbicsRTNOutboundProviderRejectsNonSecureRemoteWSEndpoint(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-OUT-BAD", "PARTNER-RTN-OUT-BAD", "USER-RTN-OUT-BAD")
+
+	req := httptest.NewRequest(http.MethodPost, "/ebics/rtn/outbound/providers",
+		strings.NewReader(`{"name":"outbound-bad","transport":"WSS","enabled":true,"subscriberID":`+marshalID(subscriber.ID)+`,"configuration":{"endpoint":"ws://partner.example/rtn"}}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	addEbicsRTNOutboundProvider(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "must use wss")
+}
+
+func TestGetEbicsRTNOutboundProviderReturnsBlockedWhenSubscriberDisabled(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	_, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-OUT-DIS", "PARTNER-RTN-OUT-DIS", "USER-RTN-OUT-DIS")
+
+	provider := &model.EbicsRTNOutboundProvider{
+		Name:              "outbound-disabled-subscriber",
+		Transport:         "WSS",
+		Enabled:           true,
+		EbicsSubscriberID: subscriber.ID,
+		ConfigurationMap:  map[string]any{"endpoint": "wss://partner.example/rtn"},
+	}
+	require.NoError(t, db.Insert(provider).Run())
+	subscriber.Enabled = false
+	require.NoError(t, db.Update(subscriber).Run())
+
+	req := httptest.NewRequest(http.MethodGet, "/ebics/rtn/outbound/providers/"+provider.Name, nil)
+	req = mux.SetURLVars(req, map[string]string{"ebics_rtn_outbound_provider": provider.Name})
+	w := httptest.NewRecorder()
+
+	getEbicsRTNOutboundProvider(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var body api.OutEbicsRTNOutboundProvider
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, "BLOCKED", body.ActivationStatus)
+	assert.Equal(t, "the outbound RTN provider subscriber is disabled", body.ActivationReason)
 }
 
 func TestAddEbicsRTNOutboundNotificationQueuesReportingNotification(t *testing.T) {
@@ -781,7 +827,7 @@ func TestAddEbicsRTNOutboundNotificationQueuesReportingNotification(t *testing.T
 		Transport:         "WSS",
 		Enabled:           true,
 		EbicsSubscriberID: subscriber.ID,
-		ConfigurationMap:  map[string]any{"endpoint": "ws://partner.example/rtn"},
+		ConfigurationMap:  map[string]any{"endpoint": "wss://partner.example/rtn"},
 	}
 	require.NoError(t, db.Insert(provider).Run())
 
@@ -824,6 +870,54 @@ func TestAddEbicsRTNOutboundNotificationQueuesReportingNotification(t *testing.T
 	assert.Equal(t, "HVE", notifications[0].SourceOrderType)
 	assert.Equal(t, "report-rest", notifications[0].ServerReportingItemKey)
 	assert.Equal(t, model.EbicsRTNOutboundNotificationStatusPendingForRuntime(), notifications[0].Status)
+}
+
+func TestAddEbicsRTNOutboundNotificationRejectsDisabledReportingItem(t *testing.T) {
+	logger := testhelpers.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+	host, subscriber := insertRESTEbicsHostAndSubscriber(t, db, "HOST-RTN-OUT-N2", "PARTNER-RTN-OUT-N2", "USER-RTN-OUT-N2")
+
+	provider := &model.EbicsRTNOutboundProvider{
+		Name:              "outbound-n2",
+		Transport:         "WSS",
+		Enabled:           true,
+		EbicsSubscriberID: subscriber.ID,
+		ConfigurationMap:  map[string]any{"endpoint": "wss://partner.example/rtn"},
+	}
+	require.NoError(t, db.Insert(provider).Run())
+
+	set := &model.EbicsServerReportingSet{
+		Name:              "hve-bank-rest-disabled",
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: sql.NullInt64{Int64: subscriber.ID, Valid: true},
+		SourceOrderType:   "HVE",
+		VersionTag:        "v1",
+		Status:            "ACTIVE",
+		PublishedAt:       time.Now().UTC(),
+	}
+	require.NoError(t, db.Insert(set).Run())
+
+	item := &model.EbicsServerReportingItem{
+		ServerReportingSetID: set.ID,
+		ItemKey:              "report-disabled",
+		OrderID:              "ORDER-REST-DISABLED",
+		ServiceName:          "MCT",
+		MsgName:              "camt.054",
+		IsEnabled:            false,
+		ResponsePayload:      []byte("payload"),
+		OriginalPayload:      []byte("original"),
+	}
+	require.NoError(t, db.Insert(item).Run())
+
+	req := httptest.NewRequest(http.MethodPost, "/ebics/rtn/outbound/notifications",
+		strings.NewReader(`{"providerID":`+marshalID(provider.ID)+`,"serverReportingSetID":`+marshalID(set.ID)+`,"itemKey":"report-disabled"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	addEbicsRTNOutboundNotification(logger, db).ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "reporting item is disabled")
 }
 
 func TestGetEbicsRuntimePolicyCreatesAndReturnsDefaultPolicy(t *testing.T) {

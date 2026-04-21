@@ -162,6 +162,14 @@ func (s *RTNOutboundService) dispatchOne(
 	if err := s.db.Get(&provider, "id=?", notification.ProviderID).Owner().Run(); err != nil {
 		return fmt.Errorf("load outbound RTN provider %d: %w", notification.ProviderID, err)
 	}
+	if !provider.Enabled {
+		return s.failDispatch(
+			notification,
+			&provider,
+			now,
+			database.NewValidationError("the outbound RTN provider is disabled"),
+		)
+	}
 
 	notification.Status = model.EbicsRTNOutboundNotificationStatusProcessingForRuntime()
 	notification.Attempts++
@@ -226,7 +234,7 @@ func (s *RTNOutboundService) failDispatch(
 	}
 
 	notification.LastError = strings.TrimSpace(cause.Error())
-	if notification.Attempts >= maxAttempts {
+	if database.IsValidationError(cause) || notification.Attempts >= maxAttempts {
 		notification.Status = model.EbicsRTNOutboundNotificationStatusFailedForRuntime()
 		notification.NextRetryAt = time.Time{}
 	} else {

@@ -261,6 +261,12 @@ Etat:
 
 5. `P5F`
 Observabilite, securite, non-regression
+Etat:
+- ferme au 2026-04-21
+- RTN sortant borne a `wss` pour les endpoints distants
+- providers incoherents ou desactives explicitement bloques cote runtime/REST
+- impossibilite de notifier un reporting set inactif ou un item desactive
+- passe de non-regression consolidee serveur admin + RTN sortant rejouee
 
 ## 8. Hors perimetre immediat
 

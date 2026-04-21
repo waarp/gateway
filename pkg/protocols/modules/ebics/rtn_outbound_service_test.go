@@ -104,6 +104,83 @@ func TestRTNOutboundServiceDispatchesQueuedNotificationOverWSS(t *testing.T) {
 	assert.Empty(t, refreshedProvider.LastError)
 }
 
+func TestRTNOutboundServiceFailsDisabledProviderWithoutSending(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+
+	received := make(chan []byte, 1)
+	server := newTestWSServer(t, received)
+
+	host := &model.EbicsHost{
+		Name:            "HOST-OUT-DISABLED",
+		HostID:          "HOST-OUT-DISABLED",
+		Enabled:         true,
+		IsServer:        true,
+		ProtocolVersion: "H005",
+		Transport:       "https",
+	}
+	require.NoError(t, db.Insert(host).Run())
+
+	subscriber := &model.EbicsSubscriber{
+		EbicsHostID: host.ID,
+		Name:        "PARTNER-OUT-DISABLED:USER-OUT-DISABLED",
+		PartnerID:   "PARTNER-OUT-DISABLED",
+		UserID:      "USER-OUT-DISABLED",
+		Enabled:     true,
+	}
+	require.NoError(t, db.Insert(subscriber).Run())
+
+	set := &model.EbicsServerReportingSet{
+		Name:              "hve-bank-out-disabled",
+		EbicsHostID:       host.ID,
+		EbicsSubscriberID: sql.NullInt64{Int64: subscriber.ID, Valid: true},
+		SourceOrderType:   "HVE",
+		VersionTag:        "v1",
+		Status:            "ACTIVE",
+		PublishedAt:       time.Now().UTC(),
+	}
+	require.NoError(t, db.Insert(set).Run())
+
+	item := &model.EbicsServerReportingItem{
+		ServerReportingSetID: set.ID,
+		ItemKey:              "report-disabled-provider",
+		OrderID:              "ORDER-DISABLED",
+		ServiceName:          "MCT",
+		MsgName:              "camt.054",
+		IsEnabled:            true,
+		ResponsePayload:      []byte("response-payload"),
+		OriginalPayload:      []byte("original-payload"),
+	}
+	require.NoError(t, db.Insert(item).Run())
+
+	provider := &model.EbicsRTNOutboundProvider{
+		Name:              "outbound-disabled",
+		Transport:         "WSS",
+		Enabled:           false,
+		EbicsSubscriberID: subscriber.ID,
+		ConfigurationMap: map[string]any{
+			"endpoint": server,
+		},
+	}
+	require.NoError(t, db.Insert(provider).Run())
+
+	notification, err := QueueRTNOutboundNotification(db, provider.ID, set, item)
+	require.NoError(t, err)
+
+	service := NewRTNOutboundService(db)
+	require.NoError(t, service.dispatchDueNotificationsAt(context.Background(), time.Now().UTC()))
+
+	select {
+	case raw := <-received:
+		t.Fatalf("unexpected outbound RTN notification sent: %s", string(raw))
+	default:
+	}
+
+	var refreshed model.EbicsRTNOutboundNotification
+	require.NoError(t, db.Get(&refreshed, "id=?", notification.ID).Run())
+	assert.Equal(t, model.EbicsRTNOutboundNotificationStatusFailedForRuntime(), refreshed.Status)
+	assert.Contains(t, refreshed.LastError, "disabled")
+}
+
 func newTestWSServer(t *testing.T, received chan<- []byte) string {
 	t.Helper()
 

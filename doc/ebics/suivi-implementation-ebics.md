@@ -268,6 +268,10 @@ Point de situation:
   ces objets en REST/CLI.
   Le perimetre reste borne a la notification technique de disponibilite d'un
   item de reporting serveur.
+  2026-04-21: `P5F` est maintenant ferme.
+  Le RTN sortant est maintenant borne a `wss` pour les endpoints distants,
+  les incoherences provider/reporting sont bloquees explicitement,
+  et la non-regression consolidee serveur admin + RTN sortant est verte.
   2026-04-02: `P2E` est maintenant detaille en sous-lots operationnels dans
   `suivi-backend-consolidation.md`:
   inventaire des resolutions implicites, fixation du contrat `ClientID`,

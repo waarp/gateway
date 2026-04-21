@@ -175,6 +175,10 @@ func validateEbicsRTNOutboundNotificationRefs(db database.Access, notification *
 		return database.NewValidationError(
 			"the outbound RTN notification reporting set does not belong to the provider subscriber")
 	}
+	if set.Status != ebicsServerReportingSetStatusActive {
+		return database.NewValidationError(
+			"the outbound RTN notification reporting set must be active")
+	}
 
 	if NormalizeEbicsOrderType(set.SourceOrderType) != NormalizeEbicsOrderType(notification.SourceOrderType) {
 		return database.NewValidationError(
@@ -201,6 +205,10 @@ func validateEbicsRTNOutboundNotificationRefs(db database.Access, notification *
 		}
 
 		return fmt.Errorf("failed to retrieve EBICS server reporting item: %w", err)
+	}
+	if !item.IsEnabled {
+		return database.NewValidationError(
+			"the outbound RTN notification reporting item is disabled")
 	}
 
 	return nil

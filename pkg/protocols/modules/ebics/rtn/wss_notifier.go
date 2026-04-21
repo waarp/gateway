@@ -3,10 +3,11 @@ package rtn
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"golang.org/x/net/websocket"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 type WSSNotifier struct {
@@ -53,12 +54,8 @@ func (n *WSSNotifier) validate() error {
 		return errRTNProviderMissingEndpoint
 	}
 
-	endpoint, err := url.Parse(n.endpoint)
-	if err != nil {
-		return fmt.Errorf("failed to parse the outbound RTN WSS endpoint: %w", err)
-	}
-	if endpoint.Scheme != "ws" && endpoint.Scheme != "wss" {
-		return errRTNProviderInvalidEndpoint
+	if err := model.ValidateEbicsRTNOutboundEndpoint(n.endpoint); err != nil {
+		return fmt.Errorf("failed to validate the outbound RTN WSS endpoint: %w", err)
 	}
 
 	return nil

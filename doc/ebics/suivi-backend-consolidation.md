@@ -1937,11 +1937,20 @@ Sous-lots cochables:
   (`REPORT_AVAILABLE`), sans confondre ce RTN sortant avec le payload lui-meme,
   le passe-plat metier ou un bus applicatif.
 
-- [ ] Lot P5F - Completer observabilite, securite et non-regression serveur admin
+- [x] Lot P5F - Completer observabilite, securite et non-regression serveur admin
   Attendus: journalisation, statuts operateur, erreurs REST/CLI, tests de non
   regression et verification de posture de securite pour les ordres serveur non
   payload et le RTN sortant.
   Validation: linter + passe `go test` du perimetre consolide
+  2026-04-21: lot ferme.
+  Le RTN sortant est maintenant durci sur trois points:
+  endpoint distant borne a `wss` (avec seule tolerance `ws://localhost` pour les tests),
+  blocage explicite des providers incoherents/desactives,
+  et refus de notifier un reporting set non `ACTIVE` ou un item desactive.
+  Les statuts operateur REST/CLI exposent ces cas bloques de maniere explicite,
+  et la passe consolidee `go test` + `golangci-lint` du perimetre
+  `pkg/protocols/modules/ebics/... ./pkg/admin/rest/... ./pkg/model ./pkg/gatewayd ./pkg/database/migrations`
+  est verte.
 
 Ordre d'execution recommande:
 
@@ -1950,7 +1959,7 @@ Ordre d'execution recommande:
 3. [x] Lot P5C
 4. [x] Lot P5D
 5. [x] Lot P5E
-6. [ ] Lot P5F
+6. [x] Lot P5F
 
 ### Chantier P3 - Workflow VEU et signature distribuee
 

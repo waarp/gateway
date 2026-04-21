@@ -924,6 +924,7 @@ func DBEbicsRTNProviderToREST(db *database.DB, provider *model.EbicsRTNProvider)
 }
 
 func DBEbicsRTNOutboundProviderToREST(
+	db *database.DB,
 	provider *model.EbicsRTNOutboundProvider,
 ) *api.OutEbicsRTNOutboundProvider {
 	status := "READY"
@@ -934,6 +935,18 @@ func DBEbicsRTNOutboundProviderToREST(
 	} else if endpoint, ok := configStringValue(provider.ConfigurationMap, "endpoint"); !ok || endpoint == "" {
 		status = ebicsRTNProviderActivationBlocked
 		reason = "the outbound RTN provider endpoint is missing"
+	} else if err := model.ValidateEbicsRTNOutboundEndpoint(endpoint); err != nil {
+		status = ebicsRTNProviderActivationBlocked
+		reason = err.Error()
+	} else if db != nil {
+		subscriber := &model.EbicsSubscriber{}
+		if getErr := db.Get(subscriber, "id=?", provider.EbicsSubscriberID).Owner().Run(); getErr != nil {
+			status = ebicsRTNProviderActivationError
+			reason = getErr.Error()
+		} else if !subscriber.Enabled {
+			status = ebicsRTNProviderActivationBlocked
+			reason = "the outbound RTN provider subscriber is disabled"
+		}
 	}
 
 	return &api.OutEbicsRTNOutboundProvider{

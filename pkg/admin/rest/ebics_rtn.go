@@ -157,6 +157,7 @@ func getEbicsRTNProvider(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl // explicit list handlers stay separate per RTN family
 func listEbicsRTNProviders(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{col: "name", asc: true},
