@@ -59,6 +59,11 @@ require (
 replace xorm.io/xorm => xorm.io/xorm v1.3.2
 
 require (
+	github.com/Azure/go-amqp v1.5.1
+	github.com/rabbitmq/amqp091-go v1.10.0
+)
+
+require (
 	cloud.google.com/go/auth v0.18.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
@@ -182,7 +187,6 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.0 // indirect
 	github.com/puzpuzpuz/xsync v1.5.2 // indirect
-	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rfjakob/eme v1.2.0 // indirect
 	github.com/russellhaering/goxmldsig v1.4.0 // indirect

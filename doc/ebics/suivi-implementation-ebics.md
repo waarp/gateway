@@ -272,6 +272,14 @@ Point de situation:
   Le RTN sortant est maintenant borne a `wss` pour les endpoints distants,
   les incoherences provider/reporting sont bloquees explicitement,
   et la non-regression consolidee serveur admin + RTN sortant est verte.
+  `AMQP 0.9.1` est de son cote ferme comme protocole autonome, avec un
+  reste a faire explicite pour atteindre un niveau "production-grade"
+  (durcissement retry/ack/observabilite et vrais tests broker).
+  `AMQP 1.0` est maintenant lui aussi ferme comme protocole autonome:
+  `ProtoConfig` client / partenaire / serveur valides,
+  chemin client `send/receive`,
+  `local-agent` serveur consommateur via le pipeline Gateway,
+  et round-trip `backup/import/export` des objets d'administration.
   2026-04-02: `P2E` est maintenant detaille en sous-lots operationnels dans
   `suivi-backend-consolidation.md`:
   inventaire des resolutions implicites, fixation du contrat `ClientID`,

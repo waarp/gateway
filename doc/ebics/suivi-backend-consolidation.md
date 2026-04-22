@@ -2005,7 +2005,7 @@ Ordre d'execution recommande:
 ### Hors perimetre EBICS strict mais pre-requis metier
 
 - [x] `AMQP 0.9.1` implemente comme protocole Gateway autonome
-- [ ] `AMQP 1.0` implemente comme protocole Gateway autonome
+- [x] `AMQP 1.0` implemente comme protocole Gateway autonome
 - [ ] chantier `passe-plat metier` ouvert sur ces protocoles et sur les autres
   connecteurs Gateway cibles
 
@@ -2029,3 +2029,24 @@ Notes:
   `go test ./pkg/protocols/... ./pkg/model ./pkg/backup -count=1`
   reste rouge uniquement sur un flake Windows deja observe dans
   `pkg/protocols/modules/http`, hors perimetre `amqp091`.
+- reste a faire pour un niveau "production-grade" `amqp091`:
+  reconnexion/retry plus riches,
+  confirmations publisher et ack/nack mieux bornes,
+  cadrage plus fin des proprietes/headers AMQP,
+  observabilite operateur et diagnostic de connectivite plus complets,
+  et tests d'integration sur vrai broker avec reprises et erreurs reseau.
+- 2026-04-22: `AMQP 1.0` est maintenant ferme comme protocole Gateway autonome.
+  Le protocole `amqp10` couvre maintenant:
+  validation de `ProtoConfig` client / partenaire / serveur,
+  chemin client minimal `send/receive` via `github.com/Azure/go-amqp`,
+  service `local-agent` consommateur cote serveur via le pipeline standard
+  Gateway,
+  et preuve explicite `backup/import/export` sur `Client`, `RemoteAgent` et
+  `LocalAgent`.
+  QA verte sur le perimetre de fermeture:
+  `go test ./pkg/backup ./pkg/protocols/modules/amqp10 ./pkg/protocols ./pkg/model -count=1`
+  et
+  `golangci-lint run ./pkg/backup ./pkg/protocols/modules/amqp10 ./pkg/protocols ./pkg/model`.
+  La passe plus large
+  `go test ./pkg/protocols/... ./pkg/model ./pkg/backup -count=1`
+  est maintenant elle aussi verte.

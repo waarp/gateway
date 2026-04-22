@@ -429,3 +429,19 @@ Note:
   `pkg/protocols` et `pkg/model` est verte; la passe plus large sur
   `pkg/protocols/...` reste seulement affectee par un flake Windows connu
   dans le module HTTP, hors perimetre `amqp091`.
+- le reste a faire `amqp091` pour un niveau "production-grade" est maintenant
+  trace dans `suivi-backend-consolidation.md`:
+  retry/reconnexion, confirms/ack/nack plus stricts, observabilite et tests
+  sur vrai broker.
+- 2026-04-22: `AMQP 1.0` est maintenant ferme comme protocole Gateway
+  autonome.
+  Le protocole `amqp10` couvre:
+  validation de `ProtoConfig` client / partenaire / serveur,
+  chemin client `send/receive`,
+  service `local-agent` consommateur cote serveur via le pipeline standard,
+  et preuve `backup/import/export` sur les objets d'administration Gateway.
+  Les passes
+  `go test ./pkg/protocols/... ./pkg/model ./pkg/backup -count=1`
+  et
+  `golangci-lint run ./pkg/protocols/... ./pkg/model ./pkg/backup`
+  sont vertes.

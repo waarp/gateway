@@ -10,8 +10,6 @@ code.bcarlin.net/go/logging v0.5.1 h1:VgDZM7TQziNe+unbp/glEhX/yhrZqnq3lFqW0ML5vc
 code.bcarlin.net/go/logging v0.5.1/go.mod h1:NqT60Qh36v0qyyJ2mr2d6aIgWt+Whv+d6snnV74AzIU=
 code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362 h1:TE7nB3dxksquS/JEb56LDS5408T0/Xhc+eqcPakiRx4=
 code.waarp.fr/lib/Sqlite3CreateTableParser v0.0.0-20221122183218-24f478e49362/go.mod h1:9ox2QkeHD920voiwFU0S8h3Qp/pD67mW/czd7wZaxJI=
-code.waarp.fr/lib/ebics v0.0.0-20260326163504-771a9550a5be h1:pTa/XIO7+3nd0ZBO+EnPaPDaZ/jOjpidT32oUVGSYPM=
-code.waarp.fr/lib/ebics v0.0.0-20260326163504-771a9550a5be/go.mod h1:wq2dKyDF10gzVvVDxft6SkJoKIQ+C7EmVqMjua7/VWY=
 code.waarp.fr/lib/ebics v0.0.0-20260403144513-a91b2772e77d h1:JEzhcFAEeRAAJA9I+QKf4LtitoRZnZQHp0L6pC+g+so=
 code.waarp.fr/lib/ebics v0.0.0-20260403144513-a91b2772e77d/go.mod h1:wq2dKyDF10gzVvVDxft6SkJoKIQ+C7EmVqMjua7/VWY=
 code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7 h1:sCOGpisvQskRdr4OaDEg7yX0AxH8TcQesSvVfQzXyXQ=
@@ -51,6 +49,8 @@ github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4 h1:jWQK1GI+LeGGUKBAD
 github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4/go.mod h1:8mwH4klAm9DUgR2EEHyEEAQlRDvLPyg5fQry3y+cDew=
 github.com/Azure/azure-sdk-for-go/sdk/storage/azfile v1.5.4 h1:tZh20RjgfMxKBxJiIS75iTVAKIUxrST5X2dVHMTptL4=
 github.com/Azure/azure-sdk-for-go/sdk/storage/azfile v1.5.4/go.mod h1:vGYAk36rhMVCfTP7v+RVruCR0zmPe6S+36KRpDCLySw=
+github.com/Azure/go-amqp v1.5.1 h1:WyiPTz2C3zVvDL7RLAqwWdeoYhMtX62MZzQoP09fzsU=
+github.com/Azure/go-amqp v1.5.1/go.mod h1:vZAogwdrkbyK3Mla8m/CxSc/aKdnTZ4IbPxl51Y5WZE=
 github.com/Azure/go-ntlmssp v0.1.0 h1:DjFo6YtWzNqNvQdrwEyr/e4nhU3vRiwenz5QX7sFz+A=
 github.com/Azure/go-ntlmssp v0.1.0/go.mod h1:NYqdhxd/8aAct/s4qSYZEerdPuH1liG2/X9DiVTbhpk=
 github.com/AzureAD/microsoft-authentication-extensions-for-go/cache v0.1.1 h1:WJTmL004Abzc5wDB5VtZG2PJk5ndYDgVacGqfirKxjM=
@@ -266,6 +266,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/flynn/noise v1.1.0 h1:KjPQoQCEFdZDiP03phOvGi11+SVVhBG2wOWAorLsstg=
 github.com/flynn/noise v1.1.0/go.mod h1:xbMo+0i6+IGbYdJhF31t2eR1BIU0CYc12+BNAKwUTag=
+github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
+github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db/go.mod h1:7dvUGVsVBjqR7JHJk0brhHOZYGmfBYOrK0ZhYMEtBr4=
 github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8/go.mod h1:ZhphrRTfi2rbfLwlschooIH4+wKKDR4Pdxhh+TRoA20=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
