@@ -3,6 +3,7 @@ package tasks
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -43,7 +44,12 @@ func makeAESEncryptor(cryptoKey *model.CryptoKey,
 		return nil, ErrEncryptNotAESKey
 	}
 
-	block, aesErr := aes.NewCipher([]byte(cryptoKey.Key))
+	key, err := base64.StdEncoding.DecodeString(string(cryptoKey.Key))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode AES key: %w", err)
+	}
+
+	block, aesErr := aes.NewCipher(key)
 	if aesErr != nil {
 		return nil, fmt.Errorf("failed to create AES cipher: %w", aesErr)
 	}

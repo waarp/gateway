@@ -31,7 +31,7 @@ Ajoute une nouvelle clé cryptographique avec les attributs donnés.
 
    Le chemin vers le fichier contenant la clé. Celle-ci doit impérativement être
    en format textuel. Si la clé est en format binaire, celle-ci doit alors
-   impérativement être convertie en format Base64 au préalable.
+   impérativement être convertie en format textuel (typiquement base64) au préalable.
 
 **Exemple**
 
