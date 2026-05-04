@@ -48,7 +48,7 @@ func newVFS(name, clientID, clientSecret string, optsMap map[string]string) (*vf
 
 	vfsOpts := internal.VFSOpts()
 
-	return vfs.New(odfs, vfsOpts), nil
+	return vfs.New(context.Background(), odfs, vfsOpts), nil
 }
 
 type tokenRefresher struct {

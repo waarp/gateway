@@ -2,6 +2,7 @@
 package fstest
 
 import (
+	"context"
 	"errors"
 	"maps"
 	"testing"
@@ -17,8 +18,8 @@ func MakeDummyBackend(tb testing.TB) string {
 	tb.Helper()
 
 	kind := tb.Name()
-	fs.Register(kind, func(name, key, secret string, opts map[string]string) (fs.FS, error) {
-		return &fs.VFS{VFS: vfs.New(object.MemoryFs, &vfscommon.Options{})}, nil
+	fs.Register(kind, func(string, string, string, map[string]string) (fs.FS, error) {
+		return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
 	})
 	tb.Cleanup(func() { fs.Unregister(kind) })
 
@@ -39,7 +40,7 @@ func MakeStaticBackend(tb testing.TB, expName, expKey, expSecret string,
 			return nil, ErrInvalidConfig
 		}
 
-		return &fs.VFS{VFS: vfs.New(object.MemoryFs, &vfscommon.Options{})}, nil
+		return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
 	})
 	tb.Cleanup(func() { fs.Unregister(kind) })
 

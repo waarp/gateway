@@ -55,7 +55,7 @@ func newVFS(name, key, secret string, confMap map[string]string) (*vfs.VFS, erro
 
 	vfsOpts := internal.VFSOpts()
 
-	return vfs.New(gcfs, vfsOpts), nil
+	return vfs.New(context.Background(), gcfs, vfsOpts), nil
 }
 
 func NewFS(name, key, secret string, opts map[string]string) (fs.FS, error) {
