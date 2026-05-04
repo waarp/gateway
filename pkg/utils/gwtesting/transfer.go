@@ -142,7 +142,7 @@ func (ctx *TransferCtx) makeServer(tb testing.TB,
 
 	ctx.Server = &model.LocalAgent{
 		Name:        proto + "-server",
-		Address:     types.Addr("", port),
+		Address:     types.Addr("localhost", port),
 		Protocol:    proto,
 		ProtoConfig: rawServConf,
 	}

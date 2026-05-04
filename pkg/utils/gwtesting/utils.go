@@ -17,7 +17,7 @@ func GetLocalPort(tb testing.TB) uint16 {
 	tb.Helper()
 
 	//nolint:gosec //this is just for testing
-	list, err := net.Listen("tcp", ":0")
+	list, err := net.Listen("tcp", "localhost:0")
 	require.NoError(tb, err, "Failed to start listener")
 
 	defer require.NoError(tb, list.Close(), "Failed to stop listener")
