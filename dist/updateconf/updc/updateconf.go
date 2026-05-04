@@ -152,7 +152,8 @@ func execImport(confReader io.Reader) error {
 
 func moveToConf(arch *zip.Reader, file string) error {
 	envConfDir := os.Getenv("WAARP_CONFIG_DIR")
-	confDir, dirErr := getConfDir(envConfDir, "etc/", "/etc/"+DirName)
+	//nolint: gocritic // filepathJoin: /etc is needed to find package configuration.
+	confDir, dirErr := getConfDir(envConfDir, "etc", filepath.Join("/etc", DirName))
 	if dirErr != nil {
 		return dirErr
 	}
@@ -164,14 +165,15 @@ func moveToConf(arch *zip.Reader, file string) error {
 		return err
 	}
 
-	dst, err := os.Create(filepath.Clean(confDir + file))
+	dstPath := filepath.Clean(filepath.Join(confDir, file))
+	dst, err := os.Create(dstPath)
 	if err != nil {
-		return fmt.Errorf("cannot open file %q: %w", confDir+file, err)
+		return fmt.Errorf("cannot open file %q: %w", dstPath, err)
 	}
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
-		return fmt.Errorf("cannot write to file %q: %w", confDir+file, err)
+		return fmt.Errorf("cannot write to file %q: %w", dstPath, err)
 	}
 
 	return nil

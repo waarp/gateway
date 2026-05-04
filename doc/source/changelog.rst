@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`542` L'utilitaire *updateconf* place désormais correctement le fichier 'get-file.list'
+  dans le dossier 'etc'.
 * :bug:`546` Correction d'un bug des tâches ENCRYPT et DECRYPT qui faisait que
   les tâches ne décodaient pas correctement les clés AES utilisées, pouvant
   résulter en l'échec de la tâche, ou bien en l'utilisation du mauvais algorithme.
