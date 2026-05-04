@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`543` Les composants externes de l'interface Web (js, css...) sont désormais
+  embarqués dans l'exécutable lui-même au lieu d'être récupérés depuis des CDNs.
+  Par conséquent, l'interface Web peut désormais être utilisée normalement même
+  si les connexions externes sont bloquées.
+
 * :release:`0.15.4 <2026-03-31>`
 * :bug:`540` Les variables d'environnement ``WAARP_CONFIG_FILE`` et ``WAARP_CONFIG_DIR``
   introduites en version 0.14.2 sont désormais toujours des chemins absolus.
