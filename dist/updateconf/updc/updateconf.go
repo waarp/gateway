@@ -152,7 +152,8 @@ func execImport(confReader io.Reader) error {
 
 func moveToConf(arch *zip.Reader, file string) error {
 	envConfDir := os.Getenv("WAARP_CONFIG_DIR")
-	confDir, dirErr := getConfDir(envConfDir, "etc/", filepath.Join("/etc/", DirName))
+	//nolint: gocritic // filepathJoin: /etc is needed to find package configuration.
+	confDir, dirErr := getConfDir(envConfDir, "etc", filepath.Join("/etc", DirName))
 	if dirErr != nil {
 		return dirErr
 	}
