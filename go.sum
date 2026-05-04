@@ -22,6 +22,8 @@ code.waarp.fr/lib/migration v1.5.0 h1:WltX1vXhQpqU7tZIfN6R5qYqCwZFe6ZuspfBEXsPjE
 code.waarp.fr/lib/migration v1.5.0/go.mod h1:6mpsrRY3g/XWUAYhareOo+luuFle68eAaAbsyp6jfCs=
 code.waarp.fr/lib/pesit v0.1.5 h1:HWtlisPXEQY22ZU01gkqb6b0hjtNz6j9IJMgC1idG5g=
 code.waarp.fr/lib/pesit v0.1.5/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.6-0.20260504135833-8112588d40a6 h1:RcSiTqYaydVB54MSX5a1qIPe3MjVLW9K1SUP0SgaQmQ=
+code.waarp.fr/lib/pesit v0.1.6-0.20260504135833-8112588d40a6/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
 code.waarp.fr/lib/r66 v1.0.8 h1:RHNbOzY95eKPA/yYHU559tdY2eAqQvjR+Fz+R3WTS7w=
 code.waarp.fr/lib/r66 v1.0.8/go.mod h1:APiI1uK3RliA/0opgYWCzS7q3GxdypkRiaesjhclUZI=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=

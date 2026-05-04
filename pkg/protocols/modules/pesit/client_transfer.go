@@ -138,6 +138,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	c.client = pesit.NewClient(c.pip.TransCtx.RemoteAccount.Login,
 		getPassword(c.pip.TransCtx), serverLogin)
 	c.client.Logger = c.pip.Logger.AsStdLogger(log.LevelDebug)
+	c.client.NetworkTrace = c.pip.Logger.AsStdLogger(log.LevelTrace)
 
 	if err := c.configureClient(&partConf.PartnerConfig); err != nil {
 		return err
@@ -217,6 +218,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	}
 
 	if c.pip.TransCtx.Rule.IsSend {
+		c.pTrans.SetFilename(c.pip.TransCtx.Transfer.RemotePath)
 		c.pTrans.SetCreationDate(fileInfo.ModTime())
 		c.pTrans.SetReservationSpace(makeReservationSpaceKB(fileInfo), pesit.UnitKB)
 

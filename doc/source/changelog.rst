@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`544` Ajout du *file label* (contenant le nom du fichier) qui était manquant
+  côté client dans les transferts PeSIT *push* lorsque le mode de compatibilité
+  "non-standard" était utilisé.
+* :support:`-` Des logs de trace réseau pour PeSIT sont désormais disponibles en
+  passant les logs en niveau *TRACE*.
 * :bug:`542` L'utilitaire *updateconf* place désormais correctement le fichier 'get-file.list'
   dans le dossier 'etc'.
 * :bug:`546` Correction d'un bug des tâches ENCRYPT et DECRYPT qui faisait que
