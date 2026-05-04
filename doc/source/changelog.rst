@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`546` Correction d'un bug des tâches ENCRYPT et DECRYPT qui faisait que
+  les tâches ne décodaient pas correctement les clés AES utilisées, pouvant
+  résulter en l'échec de la tâche, ou bien en l'utilisation du mauvais algorithme.
+  Il est à noter que ce bug ne concerne que le chiffrement AES. PGP n'est pas
+  affecté.
 * :bug:`543` Les composants externes de l'interface Web (js, css...) sont désormais
   embarqués dans l'exécutable lui-même au lieu d'être récupérés depuis des CDNs.
   Par conséquent, l'interface Web peut désormais être utilisée normalement même
