@@ -40,7 +40,7 @@ func newFilesVFS(name, account, key string, confMap map[string]string) (*vfs.VFS
 		return nil, fmt.Errorf("failed to instantiate azure files filesystem: %w", err)
 	}
 
-	return vfs.New(affs, vfsOpts), nil
+	return vfs.New(context.Background(), affs, vfsOpts), nil
 }
 
 func NewFilesFS(name, account, key string, opts map[string]string) (fs.FS, error) {

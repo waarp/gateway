@@ -64,11 +64,11 @@ func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any)
 	}
 	require.NoError(tb, ctx.DB.Insert(ctx.Account).Run())
 
-	ctx.RulePush = &model.Rule{Name: "push", LocalDir: "push", IsSend: false}
+	ctx.RulePush = &model.Rule{Name: PushRuleName, LocalDir: PushRuleDir, IsSend: false}
 	require.NoError(tb, ctx.DB.Insert(ctx.RulePush).Run())
 	require.NoError(tb, fs.MkdirAll(fs.JoinPath(ctx.Root, ctx.RulePush.LocalDir)))
 
-	ctx.RulePull = &model.Rule{Name: "pull", LocalDir: "pull", IsSend: true}
+	ctx.RulePull = &model.Rule{Name: PullRuleName, LocalDir: PullRuleDir, IsSend: true}
 	require.NoError(tb, ctx.DB.Insert(ctx.RulePull).Run())
 	require.NoError(tb, fs.MkdirAll(fs.JoinPath(ctx.Root, ctx.RulePull.LocalDir)))
 

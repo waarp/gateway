@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	clientConfActive  = &ClientConfig{EnableActiveMode: true}
+	clientConfActive  = &ClientConfig{EnableActiveMode: true, ActiveModeAddress: "127.0.0.1"}
 	serverConfActive  = &ServerConfig{DisablePassiveMode: true}
 	partnerConfActive = &PartnerConfig{DisableEPSV: true}
 )

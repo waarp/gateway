@@ -43,7 +43,7 @@ func newBlobVFS(name, account, key, root string, confMap map[string]string) (*vf
 		return nil, fmt.Errorf("failed to instantiate azure blob filesystem: %w", err)
 	}
 
-	return vfs.New(abfs, vfsOpts), nil
+	return vfs.New(context.Background(), abfs, vfsOpts), nil
 }
 
 func NewBlobFS(name, account, key string, opts map[string]string) (fs.FS, error) {

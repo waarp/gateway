@@ -75,7 +75,7 @@ func newVFS(name, key, secret string, confMap map[string]string) (*vfs.VFS, erro
 	}
 
 	vfsOpts := internal.VFSOpts()
-	s3vfs := vfs.New(s3fs, vfsOpts)
+	s3vfs := vfs.New(context.Background(), s3fs, vfsOpts)
 
 	return s3vfs, nil
 }

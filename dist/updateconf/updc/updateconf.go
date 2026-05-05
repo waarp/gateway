@@ -102,12 +102,7 @@ func importConf(arch *zip.Reader, file string) error {
 
 	defer func() { _ = rc.Close() }() //nolint:errcheck //no need to check error
 
-	err = execImport(rc)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return execImport(rc)
 }
 
 func getFileFromArch(arch *zip.Reader, file string) (io.ReadCloser, error) {
@@ -139,10 +134,11 @@ func execImport(confReader io.Reader) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if out != nil {
-			fmt.Print(string(out))
+			//nolint:err113 //dynamical error is better here for readability
+			return fmt.Errorf("subprocess returned an error: %s", string(out))
 		}
 
-		return fmt.Errorf("cannot read subprocess output: %w", err)
+		return fmt.Errorf("subprocess returned an error: %w", err)
 	}
 
 	fmt.Print(string(out))
