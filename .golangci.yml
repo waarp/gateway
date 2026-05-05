@@ -28,6 +28,7 @@ linters:
     - wsl
     - wsl_v5
     - gocyclo
+    - gomodguard
 
   # All available settings of specific linters.
   settings:

@@ -70,11 +70,11 @@ func NewTestClientCtx(tb testing.TB, protocol, partnerAddr string,
 	}
 	require.NoError(tb, ctx.DB.Insert(ctx.Account).Run())
 
-	ctx.RulePush = &model.Rule{Name: "push", LocalDir: "push", IsSend: true}
+	ctx.RulePush = &model.Rule{Name: PushRuleName, LocalDir: PushRuleDir, IsSend: true}
 	require.NoError(tb, ctx.DB.Insert(ctx.RulePush).Run())
 	require.NoError(tb, fs.MkdirAll(fs.JoinPath(ctx.Root, ctx.RulePush.LocalDir)))
 
-	ctx.RulePull = &model.Rule{Name: "pull", LocalDir: "pull", IsSend: false}
+	ctx.RulePull = &model.Rule{Name: PullRuleName, LocalDir: PullRuleDir, IsSend: false}
 	require.NoError(tb, ctx.DB.Insert(ctx.RulePull).Run())
 	require.NoError(tb, fs.MkdirAll(fs.JoinPath(ctx.Root, ctx.RulePull.LocalDir)))
 
