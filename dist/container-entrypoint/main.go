@@ -6,13 +6,10 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
-	"time"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 const (
@@ -27,10 +24,9 @@ const (
 	ExitGatewayError      = 5
 	// ExitDBMigrateError    = 6.
 
-	decimal                  = 10
-	bits16                   = 16
-	bits64                   = 64
-	sleepDurationBeforeRetry = 5 * time.Second
+	decimal = 10
+	bits16  = 16
+	bits64  = 64
 )
 
 var (
@@ -54,52 +50,32 @@ func main() {
 	// }
 
 	// get conf from manager
-	retryConfDownload := false
 	managerURL := os.Getenv("WAARP_GATEWAY_MANAGER_URL")
 
-	if managerURL != "" {
-		if err := verifyCertificates(serverConf); err != nil {
-			logger.Criticalf("there is an issue with the certificates: %v", err)
-			os.Exit(ExitCannotCreateCerts)
-		}
+	if managerURL == "" {
+		// start server
+		startGatewayServer()
 
-		if err := importConfFromManager(serverConf, managerURL); err != nil {
-			if errors.Is(err, errConfURLNotFound) {
-				retryConfDownload = true
+		return
+	}
+	if err := verifyCertificates(serverConf); err != nil {
+		logger.Criticalf("there is an issue with the certificates: %v", err)
+		os.Exit(ExitCannotCreateCerts)
+	}
 
-				logger.Info("This Gateway has not been found in Manager. We will try to register it")
-			} else {
-				logger.Criticalf("Cannot synchronize the gateway with Manager: %v", err)
-				os.Exit(ExitManagerConfError)
-			}
+	var shouldInitialize bool
+
+	if err := importConfFromManager(serverConf, managerURL); err != nil {
+		if errors.Is(err, errConfURLNotFound) {
+			logger.Info("This Gateway has not been found in Manager. We will try to register it")
+			shouldInitialize = true
+		} else {
+			logger.Criticalf("Cannot synchronize the gateway with Manager: %v", err)
+			os.Exit(ExitManagerConfError)
 		}
 	}
 
-	// start server
-	startGatewayServer(serverConf, managerURL, retryConfDownload)
-}
-
-func startGatewayServer(serverConf *conf.ServerConfig, managerURL string, retryConfDownload bool) {
-	logger := getLogger()
-
-	var wg sync.WaitGroup
-
-	restart := make(chan struct{})
-
-	wg.Add(1)
-
-	go func(restart <-chan struct{}) {
-		if err := startGatewayProccess(restart); err != nil {
-			logger.Critical(err.Error())
-			os.Exit(ExitGatewayError)
-		}
-
-		wg.Done()
-	}(restart)
-
-	if retryConfDownload {
-		time.Sleep(sleepDurationBeforeRetry)
-
+	if shouldInitialize {
 		err2 := initializeGatewayInManager(serverConf, managerURL)
 		if err2 != nil {
 			logger.Criticalf("cannot register this Gateway in manager: %v", err2)
@@ -112,14 +88,22 @@ func startGatewayServer(serverConf *conf.ServerConfig, managerURL string, retryC
 			logger.Criticalf("Cannot synchronize the gateway with Manager: %v", err)
 			os.Exit(ExitManagerConfError)
 		}
-
-		restart <- struct{}{}
 	}
 
-	wg.Wait()
+	// start server
+	startGatewayServer()
 }
 
-func startGatewayProccess(restart <-chan struct{}) error {
+func startGatewayServer() {
+	logger := getLogger()
+
+	if err := startGatewayProccess(); err != nil {
+		logger.Critical(err.Error())
+		os.Exit(ExitGatewayError)
+	}
+}
+
+func startGatewayProccess() error {
 	logger := getLogger()
 
 	cmdArgs := []string{"server", "--config", defaultConfigFile}
@@ -131,21 +115,15 @@ func startGatewayProccess(restart <-chan struct{}) error {
 	logger.Debugf("Command used to start Waarp Gateway: %s %s",
 		gatewaydBin, strings.Join(cmdArgs, " "))
 
-	for {
-		ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 
-		cmd := exec.CommandContext(ctx, gatewaydBin, cmdArgs...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+	cmd := exec.CommandContext(ctx, gatewaydBin, cmdArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-		go func() {
-			if err := cmd.Run(); err != nil {
-				logger.Errorf("Waarp Gateway exited abnormally: %v", err)
-			}
-		}()
-
-		<-restart
-		cancel()
-		logger.Info("Restarting Waarp Gateway...")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("waarp Gateway exited abnormally: %w", err)
 	}
+
+	return nil
 }
