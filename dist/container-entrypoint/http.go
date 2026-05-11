@@ -85,10 +85,6 @@ func (h *httpClient) postJSON(address string, data, respObj any) error {
 	return h.xxxJSON(http.MethodPost, address, data, respObj)
 }
 
-func (h *httpClient) putJSON(address string, data, respObj any) error {
-	return h.xxxJSON(http.MethodPut, address, data, respObj)
-}
-
 func (h *httpClient) xxxJSON(method, address string, data, respObj any) error {
 	logger := getLogger()
 
@@ -96,6 +92,8 @@ func (h *httpClient) xxxJSON(method, address string, data, respObj any) error {
 	if jErr != nil {
 		return fmt.Errorf("cannot prepare data for the request to create a partner: %w", jErr)
 	}
+
+	logger.Debugf("request body: %s", string(msgBytes))
 
 	req, reqErr := http.NewRequestWithContext(context.Background(),
 		method, address, bytes.NewReader(msgBytes))

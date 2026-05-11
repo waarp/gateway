@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -13,7 +14,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -29,6 +29,7 @@ const (
 	defaultR66MonitPort   = 8066
 	defaultR66AdminPort   = 8067
 	defaultConfigTemplate = 2
+	aesKeySize            = 32
 	defaultR66TLSCert     = `-----BEGIN CERTIFICATE-----
 MIID8zCCAtugAwIBAgIUMnBOwx9aTHRZ/hQUpJDWsLsUS+kwDQYJKoZIhvcNAQEL
 BQAwgYgxCzAJBgNVBAYTAkZSMQ8wDQYDVQQIDAZGcmFuY2UxETAPBgNVBAcMCE5h
@@ -86,7 +87,6 @@ wvThKXCE78uQIzRIyp9X6W+enbMKesrtprpsZlBHU/lZ5m/bh3EXBuCFV1Q2rrVc
 var (
 	errConfURLNotFound    = errors.New("configuration URL not found in Manager")
 	errBadInitConfig      = errors.New("bad configuration to register Gateway in Manager")
-	errNoInterfaceFound   = errors.New("cannot find the interface for the gateway in Manager")
 	errManagerBadResponse = errors.New("manager answered with a bad response")
 )
 
@@ -128,11 +128,33 @@ func verifyCertificates(serverConf *conf.ServerConfig) error {
 
 	logger.Info("Verifying the certificates for the admin interface")
 
+	address := serverConf.Admin.Host
+	if address == "0.0.0.0" {
+		setStringFromEnvDefault("MANAGER_IP", &address, "127.0.0.1")
+	}
+
 	if !certificatesExist(serverConf.Admin.TLSKey, serverConf.Admin.TLSCert) {
 		logger.Warning("Manager requires that the admin interface of the Gateway is protected with HTTPS")
 		logger.Warning("Self-signed certificates will be generated")
 
-		err := generateCertificates(serverConf.Admin.TLSKey, serverConf.Admin.TLSCert)
+		err := generateCertificates(serverConf.Admin.TLSKey, serverConf.Admin.TLSCert, address)
+		if err != nil {
+			return fmt.Errorf("cannot generate certificates: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func verifyR66Certificates(managerConf *managerConfigData) error {
+	logger := getLogger()
+
+	logger.Info("Verifying the certificates for the r66-tls interface")
+
+	if !certificatesExist(managerConf.R66TLSKeyPath, managerConf.R66TLSCertPath) {
+		logger.Warning("No certificate found, self-signed certificates will be generated")
+
+		err := generateCertificates(managerConf.R66TLSKeyPath, managerConf.R66TLSCertPath, managerConf.RESTAddress)
 		if err != nil {
 			return fmt.Errorf("cannot generate certificates: %w", err)
 		}
@@ -251,29 +273,36 @@ func importConf(r io.Reader) error {
 	return nil
 }
 
+type managerConfigData struct {
+	ID                                  int
+	Type                                string
+	Site                                int
+	RESTAddress                         string
+	RESTPort                            uint16
+	RESTUsername                        string
+	RESTPassword                        string
+	Password                            string
+	R66Port                             uint16
+	R66TLSPort                          uint16
+	SFTPPort                            uint16
+	SSHPublicKey                        string
+	SSHPrivateKey                       string
+	SSHPublicKeyPath, SSHPrivateKeyPath string
+	R66TLSKeyPath, R66TLSCertPath       string
+	R66TLSKey, R66TLSCert               string
+}
+
 //nolint:tagliatelle // json names must follow manager names
 type gwPartner struct {
-	ID                                  int           `json:"id"`
-	Type                                string        `json:"type"`
-	Site                                int           `json:"site"`
-	IsClient                            bool          `json:"isClient"`
-	IsServer                            bool          `json:"isServer"`
-	HostID                              string        `json:"hostid"`
-	HostIDTLS                           string        `json:"hostidssl"`
-	IP                                  string        `json:"ip"`
-	Password                            string        `json:"password"`
-	R66Port                             uint16        `json:"portR66"`
-	R66TLSPort                          uint16        `json:"portR66Ssl"`
-	RESTPort                            uint16        `json:"portR66Rest"`
-	SFTPPort                            uint16        `json:"GwsftpPort"`
-	R66AdminPort                        uint16        `json:"portR66Admin"`
-	R66MonitPort                        uint16        `json:"portR66Monitoring"`
-	SSHPublicKey                        string        `json:"gwsftpPublicKey"`
-	SSHPrivateKey                       string        `json:"gwsftpPrivateKey"`
-	SSHPublicKeyPath, SSHPrivateKeyPath string        `json:"-"`
-	R66TLSKeyPath, R66TLSCertPath       string        `json:"-"`
-	R66TLSKey, R66TLSCert               string        `json:"-"`
-	Data                                gwPartnerData `json:"additionalData"`
+	ID          int           `json:"id"`
+	Type        string        `json:"type"`
+	Site        int           `json:"site"`
+	IsClient    bool          `json:"isClient"`
+	IsServer    bool          `json:"isServer"`
+	Name        string        `json:"name"`
+	RESTAddress string        `json:"restAddress"`
+	RESTPort    uint16        `json:"restPort"`
+	Data        gwPartnerData `json:"config"`
 }
 
 type gwPartnerData map[string]string
@@ -295,27 +324,94 @@ type flowDest struct {
 
 //nolint:tagliatelle // json names must follow manager names
 type gwInterface struct {
-	Data     gwPartnerData `json:"additionalData"`
+	Data     gwPartnerData `json:"config"`
 	Protocol string        `json:"protocol"`
 	ID       int64         `json:"id"`
 	Partner  int64         `json:"partner"`
 	IsClient bool          `json:"isClient"`
 	IsServer bool          `json:"isServer"`
-	HostID   string        `json:"hostId"`
-	IP       string        `json:"ip"`
+	Name     string        `json:"name"`
+	Address  string        `json:"address"`
 	Port     int64         `json:"port"`
 	Priority int64         `json:"priority"`
 }
 
-func initializeGatewayInManager(serverConfig *conf.ServerConfig, managerURL string) error {
-	partner := getDefaultPartner(serverConfig)
-
-	if err := updatePartnerFromEnv(&partner); err != nil {
-		return fmt.Errorf("cannot generate partner from environment: %w", err)
+func getConfigFromEnv() (*managerConfigData, error) {
+	cfg := managerConfigData{}
+	if err := setIntFromEnv("MANAGER_SITE", &cfg.Site); err != nil {
+		return nil, fmt.Errorf("the value for WAARP_TRANSFER_MANAGER_SITE must be a number: %w", err)
 	}
 
-	if err := verifyPartner(&partner); err != nil {
-		return err
+	setStringFromEnv("MANAGER_IP", &cfg.RESTAddress)
+	setStringFromEnv("MANAGER_PASSWORD", &cfg.Password)
+
+	if cfg.Password == "" {
+		cfg.Password = generateRandomPassword()
+	}
+
+	if err := setPortFromEnvDefault("MANAGER_R66_PORT", &cfg.R66Port, defaultR66Port); err != nil {
+		return nil, fmt.Errorf("the value for WAARP_TRANSFER_MANAGER_R66_PORT must be a valid port: %w", err)
+	}
+
+	if err := setPortFromEnvDefault("MANAGER_R66TLS_PORT", &cfg.R66TLSPort, defaultR66TLSPort); err != nil {
+		return nil, fmt.Errorf("the value for WAARP_TRANSFER_MANAGER_R66TLS_PORT must be a valid port: %w", err)
+	}
+
+	// if err := setPortFromEnv("MANAGER_SFTP_PORT", &partner.SFTPPort); err != nil {
+	// 	return fmt.Errorf("the value for WAARP_TRANSFER_MANAGER_SFTP_PORT must be a valid port: %w", err)
+	// }
+
+	if err := setPortFromEnv("ADMIN_PORT", &cfg.RESTPort); err != nil {
+		return nil, fmt.Errorf("the value for WAARP_TRANSFER_ADMIN_PORT must be a valid port: %w", err)
+	}
+
+	setStringFromEnv("MANAGER_REST_USERNAME", &cfg.RESTUsername)
+	setStringFromEnv("MANAGER_REST_PASSWORD", &cfg.RESTPassword)
+
+	// setStringFromEnv("MANAGER_SSH_PUBLIC_KEY_PATH", &partner.SSHPublicKeyPath)
+	// setStringFromEnv("MANAGER_SSH_PRIVATE_KEY_PATH", &partner.SSHPrivateKeyPath)
+	setStringFromEnvDefault("MANAGER_R66_TLS_CERT_PATH", &cfg.R66TLSKeyPath, "/app/etc/r66.crt")
+	setStringFromEnvDefault("MANAGER_R66_TLS_KEY_PATH", &cfg.R66TLSCertPath, "/app/etc/r66.key")
+
+	return &cfg, nil
+}
+
+func initializeGatewayInManager(serverConfig *conf.ServerConfig, managerURL string) error {
+	managerConfig, err := getConfigFromEnv()
+	if err != nil {
+		return fmt.Errorf("cannot get the configuration from environment: %w", err)
+	}
+
+	if errVerif := verifyR66Certificates(managerConfig); errVerif != nil {
+		logger := getLogger()
+		logger.Criticalf("there is an issue with the certificates: %v", errVerif)
+		os.Exit(ExitCannotCreateCerts)
+	}
+
+	partner := generatePartner(managerConfig, serverConfig)
+
+	if errVerify := verifyPartner(&partner); errVerify != nil {
+		return errVerify
+	}
+
+	if _, errStat := os.Stat(serverConfig.Database.AESPassphrase); os.IsNotExist(errStat) {
+		logger := getLogger()
+		logger.Infof(
+			"The AES passphrase file %q does not exist, creating it",
+			serverConfig.Database.AESPassphrase,
+		)
+
+		aesPassphrase := make([]byte, aesKeySize)
+		if _, errRandRead := rand.Read(aesPassphrase); errRandRead != nil {
+			return fmt.Errorf("cannot generate the AES passphrase: %w", errRandRead)
+		}
+
+		if errWrite := os.WriteFile(serverConfig.Database.AESPassphrase, aesPassphrase, 0o600); errWrite != nil {
+			return fmt.Errorf(
+				"cannot write the AES passphrase file %q: %w",
+				serverConfig.Database.AESPassphrase, errWrite,
+			)
+		}
 	}
 
 	// Read aes passphrase from file
@@ -327,7 +423,7 @@ func initializeGatewayInManager(serverConfig *conf.ServerConfig, managerURL stri
 	partner.Data["gwAESKey"] = base64.StdEncoding.EncodeToString(aesPassphrase)
 
 	// Read R66TLS cert and key
-	if err2 := handleR66KeyCert(&partner); err2 != nil {
+	if err2 := handleR66KeyCert(managerConfig); err2 != nil {
 		return fmt.Errorf("cannot prepare certificates for the R66TLS server of Gateway: %w", err2)
 	}
 
@@ -336,53 +432,7 @@ func initializeGatewayInManager(serverConfig *conf.ServerConfig, managerURL stri
 	// 	return fmt.Errorf("cannot prepare SSH keys for the Gateway: %w", err2)
 	// }
 
-	return registerGatewayInManager(&partner, managerURL)
-}
-
-func updatePartnerFromEnv(partner *gwPartner) error {
-	if err := setIntFromEnv("MANAGER_SITE", &partner.Site); err != nil {
-		return fmt.Errorf("the value for WAARP_GATEWAY_MANAGER_SITE must be a number: %w", err)
-	}
-
-	setStringFromEnv("MANAGER_IP", &partner.IP)
-	setStringFromEnv("MANAGER_PASSWORD", &partner.Password)
-
-	if err := setPortFromEnv("MANAGER_R66_PORT", &partner.R66Port); err != nil {
-		return fmt.Errorf("the value for WAARP_GATEWAY_MANAGER_R66_PORT must be a valid port: %w", err)
-	}
-
-	if err := setPortFromEnv("MANAGER_R66TLS_PORT", &partner.R66TLSPort); err != nil {
-		return fmt.Errorf("the value for WAARP_GATEWAY_MANAGER_R66TLS_PORT must be a valid port: %w", err)
-	}
-
-	// if err := setPortFromEnv("MANAGER_SFTP_PORT", &partner.SFTPPort); err != nil {
-	// 	return fmt.Errorf("the value for WAARP_GATEWAY_MANAGER_SFTP_PORT must be a valid port: %w", err)
-	// }
-
-	if err := setPortFromEnv("ADMIN_PORT", &partner.RESTPort); err != nil {
-		return fmt.Errorf("the value for WAARP_GATEWAY_ADMIN_PORT must be a valid port: %w", err)
-	}
-
-	var str string
-
-	setStringFromEnv("MANAGER_REST_USERNAME", &str)
-
-	if str != "" {
-		partner.Data["username"] = str
-	}
-
-	setStringFromEnv("MANAGER_REST_PASSWORD", &str)
-
-	if str != "" {
-		partner.Data["password"] = str
-	}
-
-	// setStringFromEnv("MANAGER_SSH_PUBLIC_KEY_PATH", &partner.SSHPublicKeyPath)
-	// setStringFromEnv("MANAGER_SSH_PRIVATE_KEY_PATH", &partner.SSHPrivateKeyPath)
-	setStringFromEnv("MANAGER_R66_TLS_CERT_PATH", &partner.R66TLSKeyPath)
-	setStringFromEnv("MANAGER_R66_TLS_KEY_PATH", &partner.R66TLSCertPath)
-
-	return nil
+	return registerGatewayInManager(&partner, managerURL, managerConfig)
 }
 
 func generateRandomPassword() string {
@@ -407,27 +457,18 @@ func generateRandomPassword() string {
 	return pwd
 }
 
-func getDefaultPartner(serverConfig *conf.ServerConfig) gwPartner {
+func generatePartner(cfg *managerConfigData, serverConfig *conf.ServerConfig) gwPartner {
 	partner := gwPartner{
-		Type:         "gw",
-		IsClient:     true,
-		IsServer:     true,
-		HostID:       serverConfig.GatewayName,
-		HostIDTLS:    serverConfig.GatewayName + "-ssl",
-		R66MonitPort: defaultR66MonitPort,
-		R66AdminPort: defaultR66AdminPort,
-
-		// default values
-		R66Port:    defaultR66Port,
-		R66TLSPort: defaultR66TLSPort,
-		RESTPort:   defaultRESTPort,
-		SFTPPort:   defaultSFTPPort,
-		R66TLSCert: defaultR66TLSCert,
-		R66TLSKey:  defaultR66TLSKey,
-
+		Type:        "gw",
+		Site:        cfg.Site,
+		IsClient:    true,
+		IsServer:    true,
+		Name:        serverConfig.GatewayName,
+		RESTAddress: cfg.RESTAddress,
+		RESTPort:    cfg.RESTPort,
 		Data: gwPartnerData{
-			"restUser":     "admin",
-			"restPassword": "admin_password",
+			"restUser":     cmp.Or(cfg.RESTUsername, "admin"),
+			"restPassword": cmp.Or(cfg.RESTPassword, "admin_password"),
 		},
 	}
 
@@ -440,30 +481,30 @@ func getDefaultFlow(partner *gwPartner) gwFlow {
 		Destination: make([]flowDest, 1),
 
 		// default values
-		Name:     fmt.Sprintf("conf-%s", partner.HostID),
+		Name:     fmt.Sprintf("conf-%s", partner.Name),
 		Template: defaultConfigTemplate,
 	}
 
 	return flow
 }
 
-func handleR66KeyCert(partner *gwPartner) error {
-	if partner.R66TLSKeyPath != "" {
-		tlsKey, err2 := os.ReadFile(partner.R66TLSKeyPath)
+func handleR66KeyCert(cfg *managerConfigData) error {
+	if cfg.R66TLSKeyPath != "" {
+		tlsKey, err2 := os.ReadFile(cfg.R66TLSKeyPath)
 		if err2 != nil {
-			return fmt.Errorf("cannot read the R66 TLS key file %q: %w", partner.R66TLSKeyPath, err2)
+			return fmt.Errorf("cannot read the R66 TLS key file %q: %w", cfg.R66TLSKeyPath, err2)
 		}
 
-		partner.R66TLSKey = string(tlsKey)
+		cfg.R66TLSKey = string(tlsKey)
 	}
 
-	if partner.R66TLSCertPath != "" {
-		tlsCert, err2 := os.ReadFile(partner.R66TLSCertPath)
+	if cfg.R66TLSCertPath != "" {
+		tlsCert, err2 := os.ReadFile(cfg.R66TLSCertPath)
 		if err2 != nil {
-			return fmt.Errorf("cannot read the R66 TLS certificate file %q: %w", partner.R66TLSCertPath, err2)
+			return fmt.Errorf("cannot read the R66 TLS certificate file %q: %w", cfg.R66TLSCertPath, err2)
 		}
 
-		partner.R66TLSCert = string(tlsCert)
+		cfg.R66TLSCert = string(tlsCert)
 	}
 
 	return nil
@@ -475,13 +516,8 @@ func verifyPartner(partner *gwPartner) error {
 		return fmt.Errorf("the variable WAARP_GATEWAY_MANAGER_SITE is required: %w", errBadInitConfig)
 	}
 	// Verify required IP
-	if partner.IP == "" {
+	if partner.RESTAddress == "" {
 		return fmt.Errorf("the variable WAARP_GATEWAY_MANAGER_IP is required: %w", errBadInitConfig)
-	}
-
-	// Generate random passord if none is given
-	if partner.Password == "" {
-		partner.Password = generateRandomPassword()
 	}
 
 	return nil
@@ -508,40 +544,46 @@ func authenticate(c *httpClient, u *url.URL) error {
 	return nil
 }
 
-func updateR66TLSInterface(client *httpClient, reqURL *url.URL, partner *gwPartner) error {
+func createR66TLSInterface(
+	client *httpClient,
+	reqURL *url.URL,
+	cfg *managerConfigData,
+	partner *gwPartner,
+) error {
+	ifaceTLS := gwInterface{
+		Protocol: "r66-tls",
+		Partner:  int64(partner.ID),
+		IsClient: partner.IsClient,
+		IsServer: partner.IsServer,
+		Name:     partner.Name + "-r66-tls",
+		Address:  cfg.RESTAddress,
+		Port:     int64(cfg.R66TLSPort),
+		Priority: 0,
+		Data: gwPartnerData{
+			"clientLogin":       partner.Name + "-r66-tls",
+			"clientPassword":    cfg.Password,
+			"serverLogin":       partner.Name + "-r66-tls",
+			"serverPassword":    cfg.Password,
+			"serverPrivateKey":  cfg.R66TLSKey,
+			"serverCertificate": cfg.R66TLSCert,
+			"authentMode":       "password",
+		},
+	}
+
 	reqURL.Path = "/api/local_servers"
-	query := reqURL.Query()
-	query.Set("partner_id", strconv.Itoa(partner.ID))
-	query.Set("protocol", "r66-ssl")
-	reqURL.RawQuery = query.Encode()
-	interfacesResp := map[string][]gwInterface{}
+	interfacesResp := map[string]gwInterface{}
+	ifaceTLSMsg := map[string]gwInterface{"localServer": ifaceTLS}
 
-	err := client.getJSON(reqURL.String(), &interfacesResp)
+	err := client.postJSON(reqURL.String(), ifaceTLSMsg, &interfacesResp)
 	if err != nil {
-		return fmt.Errorf("cannot create partner in manager: %w", err)
-	}
-
-	if len(interfacesResp["localServers"]) != 1 {
-		return errNoInterfaceFound
-	}
-
-	iface := interfacesResp["localServers"][0]
-
-	iface.Data["tlsKey"] = partner.R66TLSKey
-	iface.Data["tlsCert"] = partner.R66TLSCert
-
-	reqURL.RawQuery = ""
-	reqURL.Path = fmt.Sprintf("/api/local_servers/%d", iface.ID)
-
-	if err2 := client.putJSON(reqURL.String(), map[string]gwInterface{"localServer": iface}, nil); err2 != nil {
-		return fmt.Errorf("cannot update the certificate for the R66 TLS interface of the Gateway: %w", err2)
+		return fmt.Errorf("cannot create the r66-tls interface in manager: %w", err)
 	}
 
 	return nil
 }
 
 func getManagerClientID(client *httpClient, reqURL *url.URL) (int, error) {
-	managerClient := "wmclient"
+	managerClient := "wm_client"
 	setStringFromEnv("MANAGER_CLIENT", &managerClient)
 
 	partnersResp := map[string][]gwPartner{}
@@ -560,7 +602,7 @@ func getManagerClientID(client *httpClient, reqURL *url.URL) (int, error) {
 	for i := range partners {
 		p := partners[i]
 
-		if p.HostID == managerClient {
+		if p.Name == managerClient {
 			originID = p.ID
 		}
 	}
@@ -591,7 +633,7 @@ func addConfigFlow(client *httpClient, reqURL *url.URL, partner *gwPartner, orig
 	return nil
 }
 
-func registerGatewayInManager(partner *gwPartner, managerURL string) error {
+func registerGatewayInManager(partner *gwPartner, managerURL string, cfg *managerConfigData) error {
 	logger := getLogger()
 
 	parsedURL, err := url.Parse(managerURL)
@@ -630,7 +672,7 @@ func registerGatewayInManager(partner *gwPartner, managerURL string) error {
 	logger.Info("Adding the certificates for the Gateway R66 server in Manager")
 
 	urlCopy = *parsedURL
-	if err2 := updateR66TLSInterface(client, &urlCopy, partner); err2 != nil {
+	if err2 := createR66TLSInterface(client, &urlCopy, cfg, partner); err2 != nil {
 		return err2
 	}
 

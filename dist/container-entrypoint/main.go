@@ -22,6 +22,7 @@ const (
 	ExitManagerConfError  = 3
 	ExitCannotCreateCerts = 4
 	ExitGatewayError      = 5
+	exitLogBackendError   = 7
 	// ExitDBMigrateError    = 6.
 
 	decimal = 10
@@ -116,8 +117,11 @@ func startGatewayProccess() error {
 		gatewaydBin, strings.Join(cmdArgs, " "))
 
 	ctx := context.Background()
+	path := os.Getenv("PATH")
+	path = "/app:/app/bin:/app/share:" + path
 
 	cmd := exec.CommandContext(ctx, gatewaydBin, cmdArgs...)
+	cmd.Env = append(cmd.Environ(), "PATH="+path)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
