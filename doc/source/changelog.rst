@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`550` Le point d'entrée du container est ajoute les dossiers bin et share
+  à la liste des dossiers dans lesquels sont recherchés les executables
+* :bug:`550` Le point d'entrée du container est compatible avec Manager 1.0+
 * :bug:`549` Le point d'entrée du container pouvait engendrer un interblocage
   (*deadlock*) au démarrage sous certaines conditions.
 

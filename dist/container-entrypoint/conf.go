@@ -86,6 +86,23 @@ func setPortFromEnv(envKey string, target *uint16) error {
 	return nil
 }
 
+func setPortFromEnvDefault(envKey string, target *uint16, defaultValue uint16) error {
+	val := os.Getenv("WAARP_GATEWAY_" + envKey)
+
+	if val != "" {
+		p, err := strconv.ParseUint(val, decimal, bits16)
+		if err != nil {
+			return fmt.Errorf("invalid port from environment: %w", err)
+		}
+
+		*target = uint16(p)
+	}
+
+	*target = defaultValue
+
+	return nil
+}
+
 func setUint64FromEnv(envKey string, target *uint64) error {
 	val := os.Getenv("WAARP_GATEWAY_" + envKey)
 	if val != "" {

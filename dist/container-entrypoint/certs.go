@@ -9,12 +9,13 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-func generateCertificates(key, cert string) error {
+func generateCertificates(key, cert, address string) error {
 	logger := getLogger()
 
 	priv, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
@@ -22,7 +23,7 @@ func generateCertificates(key, cert string) error {
 		return fmt.Errorf("cannot generate an ECDSA key: %w", err)
 	}
 
-	template := makeCertificateTemplate()
+	template := makeCertificateTemplate(address)
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
@@ -69,7 +70,7 @@ func generateCertificates(key, cert string) error {
 	return nil
 }
 
-func makeCertificateTemplate() x509.Certificate {
+func makeCertificateTemplate(address string) x509.Certificate {
 	const defaultCertValidity = time.Hour * 24 * 365
 
 	template := x509.Certificate{
@@ -84,6 +85,15 @@ func makeCertificateTemplate() x509.Certificate {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
+
+	ip := net.ParseIP(address)
+	if ip != nil {
+		template.IPAddresses = []net.IP{ip}
+
+		return template
+	}
+
+	template.DNSNames = []string{address}
 
 	return template
 }
