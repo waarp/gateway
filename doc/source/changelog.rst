@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`549` Le point d'entrée du container pouvait engendrer un interblocage
+  (*deadlock*) au démarrage sous certaines conditions.
+
 * :release:`0.15.5 <2026-05-04>`
 * :bug:`544` Ajout du *file label* (contenant le nom du fichier) qui était manquant
   côté client dans les transferts PeSIT *push* lorsque le mode de compatibilité
