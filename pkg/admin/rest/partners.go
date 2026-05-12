@@ -57,6 +57,7 @@ func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 //nolint:dupl //duplicate is for completely different type (history), keep separate
 func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //too specific, keep separate
 	validSorting := orders{
 		"default": order{"name", true},
 		"proto+":  order{"protocol", true},
@@ -133,7 +134,7 @@ func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			Name:        asNullable(oldPartner.Name),
 			Protocol:    asNullable(oldPartner.Protocol),
 			Address:     asNullable(oldPartner.Address.String()),
-			ProtoConfig: oldPartner.ProtoConfig,
+			ProtoConfig: api.UpdateObject[any](oldPartner.ProtoConfig),
 		}
 		if err := readJSON(r, restPartner); handleError(w, logger, err) {
 			return

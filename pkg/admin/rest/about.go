@@ -16,35 +16,39 @@ func makeAbout(logger *log.Logger) http.HandlerFunc {
 			clients []api.Service
 		)
 
-		for name, serv := range services.Core {
+		for _, serv := range services.Core {
 			code, reason := serv.State()
 
 			core = append(core, api.Service{
-				Name:   name,
+				Name:   serv.Name(),
 				State:  code.String(),
 				Reason: reason,
 			})
 		}
 
-		for name, serv := range services.Servers {
+		services.Servers.Range(func(_ int64, serv services.Server) bool {
 			code, reason := serv.State()
 
 			servers = append(servers, api.Service{
-				Name:   name,
+				Name:   serv.Name(),
 				State:  code.String(),
 				Reason: reason,
 			})
-		}
 
-		for name, client := range services.Clients {
-			code, reason := client.State()
+			return true
+		})
+
+		services.Clients.Range(func(_ int64, cli services.Client) bool {
+			code, reason := cli.State()
 
 			clients = append(clients, api.Service{
-				Name:   name,
+				Name:   cli.Name(),
 				State:  code.String(),
 				Reason: reason,
 			})
-		}
+
+			return true
+		})
 
 		w.WriteHeader(http.StatusOK)
 

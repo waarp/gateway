@@ -52,10 +52,10 @@ func initSelfTransfer(c convey.C, proto string, clientConf protocol.ClientConfig
 
 	client := feat.MakeClient(test.DB, cli)
 	c.So(client.Start(), convey.ShouldBeNil)
-	services.Clients[cli.Name] = client
+	services.Clients.Add(cli, client)
 
 	c.Reset(func() {
-		delete(services.Clients, cli.Name)
+		services.Clients.Remove(cli)
 
 		//nolint:mnd //this is just for tests
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

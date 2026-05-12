@@ -24,6 +24,8 @@ type Service struct {
 	state  utils.State
 }
 
+func (s *Service) Name() string { return ServiceName }
+
 func (s *Service) Start() error {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning

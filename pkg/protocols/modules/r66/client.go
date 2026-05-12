@@ -31,6 +31,8 @@ type Client struct {
 	state        utils.State
 }
 
+func (c *Client) Name() string { return c.cli.Name }
+
 func (c *Client) Start() error {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning

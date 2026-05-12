@@ -35,6 +35,8 @@ type httpService struct {
 	shutdown chan struct{}
 }
 
+func (h *httpService) Name() string { return h.agent.Name }
+
 func (h *httpService) Start() error {
 	if h.state.IsRunning() {
 		return utils.ErrAlreadyRunning

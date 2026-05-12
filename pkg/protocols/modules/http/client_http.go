@@ -38,6 +38,8 @@ type httpClient struct {
 	disableKeepAlive bool
 }
 
+func (h *httpClient) Name() string { return h.client.Name }
+
 func (h *httpClient) Start() error {
 	if h.state.IsRunning() {
 		return utils.ErrAlreadyRunning

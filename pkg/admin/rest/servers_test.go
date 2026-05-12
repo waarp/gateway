@@ -313,9 +313,9 @@ func TestCreateServer(t *testing.T) {
 						})
 
 						Convey("Then it should have added (but not started) the server to the service list", func() {
-							const name = "new_server"
-							So(services.Servers, ShouldContainKey, name)
-							So(stateCode(services.Servers[name]), ShouldEqual, utils.StateOffline)
+							newService, ok := services.Servers.Get(id(2))
+							So(ok, ShouldBeTrue)
+							So(stateCode(newService), ShouldEqual, utils.StateOffline)
 						})
 
 						Convey("Then the existing server should still be "+
@@ -341,14 +341,15 @@ func TestDeleteServer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 server", func() {
-			existing := model.LocalAgent{
+			existing := &model.LocalAgent{
 				Name: "existing1", Protocol: testProto1,
 				Address: types.Addr("localhost", 1),
 			}
-			So(db.Insert(&existing).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			protoService := &testService{}
-			services.Servers[existing.Name] = protoService
+			services.Servers.Add(existing, protoService)
+			defer services.Servers.Remove(existing)
 
 			Convey("Given a request with the valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, testServersURI+existing.Name, nil)
@@ -375,7 +376,7 @@ func TestDeleteServer(t *testing.T) {
 					})
 
 					Convey("Then it should have stopped the service", func() {
-						So(services.Servers, ShouldNotContainKey, existing.Name)
+						So(services.Servers.Exists(existing), ShouldBeFalse)
 						So(stateCode(protoService), ShouldEqual, utils.StateOffline)
 					})
 				})
@@ -415,7 +416,7 @@ func TestDeleteServer(t *testing.T) {
 				})
 
 				Convey("Then it should have removed the server from the service list", func() {
-					So(services.Servers, ShouldNotContainKey, existing.Name)
+					So(services.Servers.Exists(existing), ShouldBeFalse)
 				})
 			})
 		})
@@ -441,9 +442,9 @@ func TestUpdateServer(t *testing.T) {
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 
-			protoService := makeAndStartTestService()
-			services.Servers[old.Name] = protoService
-			defer delete(services.Servers, old.Name)
+			protoService := makeAndStartTestService(old.Name)
+			services.Servers.Add(old, protoService)
+			defer services.Servers.Remove(old)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -496,9 +497,10 @@ func TestUpdateServer(t *testing.T) {
 
 						const newName = "update"
 
-						So(services.Servers, ShouldNotContainKey, old.Name)
-						So(services.Servers, ShouldContainKey, newName)
-						So(stateCode(services.Servers[newName]), ShouldEqual, utils.StateRunning)
+						newService, ok := services.Servers.Get(old)
+						So(ok, ShouldBeTrue)
+						So(newService.Name(), ShouldEqual, newName)
+						So(stateCode(newService), ShouldEqual, utils.StateRunning)
 					})
 				})
 
@@ -551,9 +553,9 @@ func TestReplaceServer(t *testing.T) {
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 
-			protoService := makeAndStartTestService()
-			services.Servers[old.Name] = protoService
-			defer delete(services.Servers, old.Name)
+			protoService := makeAndStartTestService(old.Name)
+			services.Servers.Add(old, protoService)
+			defer services.Servers.Remove(old)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -610,9 +612,10 @@ func TestReplaceServer(t *testing.T) {
 
 						const newName = "update"
 
-						So(services.Servers, ShouldNotContainKey, old.Name)
-						So(services.Servers, ShouldContainKey, newName)
-						So(stateCode(services.Servers[newName]), ShouldEqual, utils.StateRunning)
+						newService, ok := services.Servers.Get(old)
+						So(ok, ShouldBeTrue)
+						So(newService.Name(), ShouldEqual, newName)
+						So(stateCode(newService), ShouldEqual, utils.StateRunning)
 					})
 				})
 
@@ -704,6 +707,9 @@ func TestStartServer(t *testing.T) {
 			}
 			So(db.Insert(&agent).Run(), ShouldBeNil)
 
+			services.Servers.Add(&agent, &testService{name: agent.Name})
+			defer services.Servers.Remove(&agent)
+
 			Convey("Given a valid name parameter", func() {
 				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/start", nil)
 				r = mux.SetURLVars(r, map[string]string{"server": agent.Name})
@@ -716,8 +722,9 @@ func TestStartServer(t *testing.T) {
 				})
 
 				Convey("Then it should have started the service", func() {
-					So(services.Servers, ShouldContainKey, agent.Name)
-					So(stateCode(services.Servers[agent.Name]), ShouldEqual, utils.StateRunning)
+					service, ok := services.Servers.Get(&agent)
+					So(ok, ShouldBeTrue)
+					So(stateCode(service), ShouldEqual, utils.StateRunning)
 				})
 			})
 
@@ -744,14 +751,14 @@ func TestStopServer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 agent", func() {
-			agent := model.LocalAgent{
+			agent := &model.LocalAgent{
 				Name: "local server", Protocol: testProto1,
 				Address: types.Addr("localhost", 1),
 			}
-			So(db.Insert(&agent).Run(), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
-			services.Servers[agent.Name] = makeAndStartTestService()
-			defer delete(services.Servers, agent.Name)
+			services.Servers.Add(agent, makeAndStartTestService(agent.Name))
+			defer services.Servers.Remove(agent)
 
 			Convey("Given a valid name parameter", func() {
 				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/stop", nil)
@@ -765,8 +772,9 @@ func TestStopServer(t *testing.T) {
 				})
 
 				Convey("Then it should have stopped the service", func() {
-					So(services.Servers, ShouldContainKey, agent.Name)
-					So(stateCode(services.Servers[agent.Name]), ShouldEqual, utils.StateOffline)
+					service, ok := services.Servers.Get(agent)
+					So(ok, ShouldBeTrue)
+					So(stateCode(service), ShouldEqual, utils.StateOffline)
 				})
 			})
 
@@ -793,15 +801,15 @@ func TestRestartServer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 agent", func() {
-			agent := model.LocalAgent{
+			agent := &model.LocalAgent{
 				Name: "local server", Protocol: testProto1,
 				Address: types.Addr("localhost", 1),
 			}
-			So(db.Insert(&agent).Run(), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
-			serv := makeAndStartTestService()
-			services.Servers[agent.Name] = serv
-			defer delete(services.Servers, agent.Name)
+			serv := makeAndStartTestService(agent.Name)
+			services.Servers.Add(agent, serv)
+			defer services.Servers.Remove(agent)
 
 			Convey("Given a valid name parameter", func() {
 				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/restart", nil)
@@ -815,8 +823,9 @@ func TestRestartServer(t *testing.T) {
 				})
 
 				Convey("Then it should have restarted the service", func() {
-					So(services.Servers, ShouldContainKey, agent.Name)
-					So(stateCode(serv), ShouldEqual, utils.StateRunning)
+					newService, ok := services.Servers.Get(agent)
+					So(ok, ShouldBeTrue)
+					So(stateCode(newService), ShouldEqual, utils.StateRunning)
 					So(serv.stopped, ShouldBeTrue)
 				})
 			})

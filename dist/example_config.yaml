@@ -17,7 +17,7 @@ locals:
   # An R66-TLS local server, listening on port 10066.
   - name: wg-r66-tls-server
     protocol: r66-tls
-    address: ":10066"
+    address: "127.0.0.1:10066"
 
     # The list of accounts for the R66 server. These can be used to authenticate
     # with the server. In this example, it contains a single account "waarp".
@@ -91,7 +91,7 @@ locals:
   # An SFTP local server, listening on port 10022.
   - name: wg-sftp-server
     protocol: sftp
-    address: ":10022"
+    address: "127.0.0.1:10022"
 
     # The list of accounts for the SFTP server. These can be used to authenticate
     # with the server. In this example, it contains a single account "waarp".
@@ -132,7 +132,7 @@ locals:
   # An HTTPS local server, listening on port 10080.
   - name: wg-https-server
     protocol: https
-    address: ":10080"
+    address: "127.0.0.1:10080"
 
     # The list of accounts for the HTTP server. These can be used to authenticate
     # with the server. In this example, it contains a single account "waarp".
@@ -202,7 +202,7 @@ locals:
   # An FTPS local server, listening on port 10021.
   - name: wg-ftps-server
     protocol: ftps
-    address: ":10021"
+    address: "127.0.0.1:10021"
 
     # The FTP server's configuration. In this example, the server uses optional,
     # explicit TLS. This server allows both active and passive modes. When using
@@ -281,7 +281,7 @@ locals:
   # An PESIT-TLS local server, listening on port 10010.
   - name: wg-pesit-tls-server
     protocol: pesit-tls
-    address: ":10010"
+    address: "127.0.0.1:10010"
 
     # The list of accounts for the PeSIT server. These can be used to authenticate
     # with the server. In this example, it contains a single account "waarp".
@@ -351,7 +351,7 @@ locals:
   # An WebDAV over HTTPS local server, listening on port 10043.
   - name: wg-webdav-tls-server
     protocol: webdav-tls
-    address: ":10043"
+    address: "127.0.0.1:10043"
 
     # The list of accounts for the WebDAV server. These can be used to authenticate
     # with the server. In this example, it contains a single account "waarp".

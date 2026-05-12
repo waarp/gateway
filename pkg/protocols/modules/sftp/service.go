@@ -26,6 +26,8 @@ type service struct {
 	listener *sshListener
 }
 
+func (s *service) Name() string { return s.server.Name }
+
 func (s *service) start() error {
 	var protoConfig serverConfig
 	if err := utils.JSONConvert(s.server.ProtoConfig, &protoConfig); err != nil {
