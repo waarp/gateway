@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :release:`0.15.6 <2026-05-12>`
+* :support:`548` Le certificat TLS du fichier d'exemple est désormais valide
+  pour 100 ans et ne changera plus d'une release à l'autre.
 * :bug:`552` Les serveurs et clients rechargent désormais correctement leur
   configuration quand ceux-ci sont redémarrés (que ce soit via REST ou via
   l'interface Web).

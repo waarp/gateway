@@ -1,6 +1,6 @@
 module code.waarp.fr/apps/gateway/gateway
 
-go 1.26.2
+go 1.26.3
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
@@ -10,7 +10,7 @@ require (
 	code.waarp.fr/lib/migration v1.5.0
 	code.waarp.fr/lib/pesit v0.1.6
 	code.waarp.fr/lib/r66 v1.0.8
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.1
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.2
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
 	github.com/bwmarrin/snowflake v0.3.0
@@ -33,23 +33,23 @@ require (
 	github.com/mattn/go-colorable v0.1.14
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v4 v4.5.0
-	github.com/rclone/rclone v1.74.0
+	github.com/rclone/rclone v1.74.1
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1
 	github.com/studio-b12/gowebdav v0.12.0
 	github.com/ulikunitz/xz v0.5.15
-	golang.org/x/crypto v0.50.0
-	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
-	golang.org/x/net v0.53.0
+	golang.org/x/crypto v0.51.0
+	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
+	golang.org/x/net v0.54.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sys v0.43.0
-	golang.org/x/term v0.42.0
-	golang.org/x/text v0.36.0
+	golang.org/x/sys v0.44.0
+	golang.org/x/term v0.43.0
+	golang.org/x/text v0.37.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.50.0
+	modernc.org/sqlite v1.50.1
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2
 )
@@ -210,7 +210,7 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
-	modernc.org/libc v1.72.0 // indirect
+	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	moul.io/http2curl/v2 v2.3.0 // indirect
