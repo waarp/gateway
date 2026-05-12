@@ -53,7 +53,11 @@ func initClient(c convey.C, proto string, clientConf protocol.ClientConfig,
 	client := constr(t.DB, cli)
 	c.So(client.Start(), convey.ShouldBeNil)
 
-	services.Clients[cli.Name] = client
+	services.Clients.Add(cli, client)
+
+	c.Reset(func() {
+		services.Clients.Remove(cli)
+	})
 
 	return &ClientContext{
 		testData: t,

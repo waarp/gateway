@@ -36,6 +36,8 @@ type Server struct {
 	server http.Server
 }
 
+func (s *Server) Name() string { return ServiceName }
+
 // listen starts the HTTP server listener on the configured port.
 func (s *Server) listen() error {
 	list, lErr := net.Listen("tcp", s.server.Addr)

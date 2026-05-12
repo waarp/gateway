@@ -291,7 +291,11 @@ func (ctx *TransferCtx) startClient(tb testing.TB) {
 
 	module := Protocols[ctx.Client.Protocol]
 	ctx.ClientService = module.MakeClient(ctx.db, ctx.Client)
-	services.Clients[ctx.Client.Name] = ctx.ClientService
+	services.Clients.Add(ctx.Client, ctx.ClientService)
+
+	tb.Cleanup(func() {
+		services.Clients.Remove(ctx.Client)
+	})
 
 	require.NoError(tb, ctx.ClientService.Start(), "Failed to start the client")
 
@@ -308,7 +312,11 @@ func (ctx *TransferCtx) startServer(tb testing.TB) {
 
 	module := Protocols[ctx.Server.Protocol]
 	service := module.MakeServer(ctx.db, ctx.Server)
-	services.Servers[ctx.Server.Name] = service
+	services.Servers.Add(ctx.Server, service)
+
+	tb.Cleanup(func() {
+		services.Servers.Remove(ctx.Server)
+	})
 
 	require.Implements(tb, (*TestService)(nil), service,
 		"The service must implement the interface for test services")

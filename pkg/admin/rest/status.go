@@ -15,21 +15,23 @@ func getStatus(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		statuses := make(api.Statuses)
 
-		for name, serv := range services.Core {
+		for _, serv := range services.Core {
 			code, reason := serv.State()
-			statuses[name] = api.Status{
+			statuses[serv.Name()] = api.Status{
 				State:  code.String(),
 				Reason: reason,
 			}
 		}
 
-		for name, serv := range services.Servers {
+		services.Servers.Range(func(_ int64, serv services.Server) bool {
 			code, reason := serv.State()
-			statuses[name] = api.Status{
+			statuses[serv.Name()] = api.Status{
 				State:  code.String(),
 				Reason: reason,
 			}
-		}
+
+			return true
+		})
 
 		handleError(w, logger, writeJSON(w, statuses))
 	}

@@ -1,12 +1,15 @@
 package protocols
 
 import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 )
 
 // Register registers a new protocol module.
@@ -33,4 +36,22 @@ var List = map[string]Module{
 	pesit.PesitTLS:   &pesit.ModuleTLS{},  // Pesit-TLS
 	webdav.Webdav:    &webdav.Module{},    // WebDAV
 	webdav.WebdavTLS: &webdav.ModuleTLS{}, // WebDAV over HTTPS
+}
+
+func MakeServer(db *database.DB, dbServer *model.LocalAgent) (protocol.Server, error) {
+	module := Get(dbServer.Protocol)
+	if module == nil {
+		return nil, ErrUnknownProtocol
+	}
+
+	return module.NewServer(db, dbServer), nil
+}
+
+func MakeClient(db *database.DB, dbClient *model.Client) (protocol.Client, error) {
+	module := Get(dbClient.Protocol)
+	if module == nil {
+		return nil, ErrUnknownProtocol
+	}
+
+	return module.NewClient(db, dbClient), nil
 }

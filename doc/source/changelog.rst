@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`552` Les serveurs et clients rechargent désormais correctement leur
+  configuration quand ceux-ci sont redémarrés (que ce soit via REST ou via
+  l'interface Web).
 * :bug:`550` Le point d'entrée du container est ajoute les dossiers bin et share
   à la liste des dossiers dans lesquels sont recherchés les executables
 * :bug:`550` Le point d'entrée du container est compatible avec Manager 1.0+

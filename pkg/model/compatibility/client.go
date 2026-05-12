@@ -40,9 +40,12 @@ func GetDefaultTransferClient(db database.Access, protocol string) (*model.Clien
 		return nil, fmt.Errorf("failed to create new transfer client: %w", err)
 	}
 
-	module := protocols.Get(client.Protocol)
-	service := module.NewClient(db.AsDB(), client) // Give the client its own db connection.
-	services.Clients[client.Name] = service
+	service, cliErr := protocols.MakeClient(db.AsDB(), client)
+	if cliErr != nil {
+		return nil, fmt.Errorf("failed to create transfer client service: %w", cliErr)
+	}
+
+	services.Clients.Add(client, service)
 
 	// Start the new client. This should be fine as long as the client does not
 	// start a transaction while starting. It normally shouldn't need to, but

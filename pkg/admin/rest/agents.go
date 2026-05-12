@@ -14,11 +14,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
-// RestServerToDB transforms the JSON local agent into its database equivalent.
-func RestServerToDB(restServer *api.InServer, logger *log.Logger) (*model.LocalAgent, error) {
-	return restServerToDB(restServer, logger)
-}
-
 func restServerToDB(restServer *api.InServer, logger *log.Logger,
 ) (*model.LocalAgent, error) {
 	root := restServer.RootDir.Value

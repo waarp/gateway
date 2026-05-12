@@ -78,7 +78,7 @@ func newClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 ) (*ClientPipeline, *Error) {
 	dbClient := transCtx.Client
 
-	client, ok := services.Clients[dbClient.Name]
+	client, ok := services.Clients.Load(dbClient)
 	if !ok {
 		logger.Errorf("No client %q found", dbClient.Name)
 

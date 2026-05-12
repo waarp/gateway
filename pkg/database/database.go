@@ -47,6 +47,8 @@ type DB struct {
 	state utils.State
 }
 
+func (db *DB) Name() string { return ServiceName }
+
 func (db *DB) loadAESKey() error {
 	if GCM != nil {
 		return nil

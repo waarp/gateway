@@ -25,6 +25,8 @@ func newService(db *database.DB, serv *model.LocalAgent) *Service {
 	}
 }
 
+func (s *Service) Name() string { return s.localAgent.Name }
+
 func (s *Service) Start() error {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning
@@ -52,9 +54,9 @@ func (s *Service) start() (string, error) {
 		return "", fmt.Errorf("failed to parse the pesit agent's proto config: %w", err)
 	}
 
-	s.server.conf = &conf
+	s.conf = &conf
 
-	return s.server.listen()
+	return s.listen()
 }
 
 func (s *Service) Stop(ctx context.Context) error {
@@ -64,7 +66,7 @@ func (s *Service) Stop(ctx context.Context) error {
 
 	s.logger.Info("Stopping Pesit service...")
 
-	if err := s.server.stop(ctx); err != nil {
+	if err := s.stop(ctx); err != nil {
 		s.logger.Errorf("Failed to stop Pesit server: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 

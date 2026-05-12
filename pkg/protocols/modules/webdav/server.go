@@ -42,6 +42,8 @@ func NewServer(db *database.DB, dbServer *model.LocalAgent) services.Server {
 	return &server{db: db, agent: dbServer}
 }
 
+func (s *server) Name() string { return s.agent.Name }
+
 func (s *server) Start() error {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning

@@ -38,6 +38,8 @@ func NewClient(db *database.DB, dbClient *model.Client) services.Client {
 	}
 }
 
+func (c *client) Name() string { return c.agent.Name }
+
 func (c *client) Start() error {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning

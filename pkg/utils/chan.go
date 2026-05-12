@@ -102,3 +102,12 @@ func TryRecv[T any](c <-chan T) (T, bool) {
 		return *new(T), false
 	}
 }
+
+func Collect[T any](c chan T) []T {
+	out := make([]T, 0, cap(c))
+	for elem := range c {
+		out = append(out, elem)
+	}
+
+	return out
+}

@@ -37,6 +37,8 @@ func newClient(dbClient *model.Client) *client {
 	return c
 }
 
+func (c *client) Name() string { return c.dbClient.Name }
+
 func (c *client) Start() error {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning

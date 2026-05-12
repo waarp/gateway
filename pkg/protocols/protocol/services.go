@@ -12,6 +12,7 @@ import (
 )
 
 type StartStopper interface {
+	Name() string
 	Start() error
 	Stop(ctx context.Context) error
 	State() (utils.StateCode, string)

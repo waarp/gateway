@@ -2,8 +2,6 @@ package internal
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
@@ -12,13 +10,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var (
-	ErrServerNotRunning = errors.New("server is not running")
-	ErrClientNotRunning = errors.New("client is not running")
-)
-
 func GetServerStatus(server *model.LocalAgent) (state utils.StateCode, reason string) {
-	service, hasService := services.Servers[server.Name]
+	service, hasService := services.Servers.Load(server)
 	if !hasService {
 		return utils.StateOffline, ""
 	}
@@ -27,7 +20,7 @@ func GetServerStatus(server *model.LocalAgent) (state utils.StateCode, reason st
 }
 
 func GetClientStatus(client *model.Client) (state utils.StateCode, reason string) {
-	service, hasService := services.Clients[client.Name]
+	service, hasService := services.Clients.Load(client)
 	if !hasService {
 		return utils.StateOffline, ""
 	}
@@ -35,31 +28,17 @@ func GetClientStatus(client *model.Client) (state utils.StateCode, reason string
 	return service.State()
 }
 
-func restartService(ctx context.Context, service services.Service) error {
-	if code, _ := service.State(); code == utils.StateRunning {
-		if err := service.Stop(ctx); err != nil {
-			return fmt.Errorf("failed to stop server: %w", err)
-		}
-	}
-
-	if err := service.Start(); err != nil {
-		return fmt.Errorf("failed to start server: %w", err)
-	}
-
-	return nil
-}
-
 func AddServer(db *database.DB, server *model.LocalAgent) error {
 	if err := InsertServer(db, server); err != nil {
 		return err
 	}
 
-	module := protocols.Get(server.Protocol)
-	if module == nil {
-		return fmt.Errorf("%w %q", ErrUnknownProtocol, server.Protocol)
+	service, err := protocols.MakeServer(db, server)
+	if err != nil {
+		return err
 	}
 
-	services.Servers[server.Name] = module.NewServer(db, server)
+	services.Servers.Add(server, service)
 
 	return nil
 }
@@ -69,94 +48,54 @@ func AddClient(db *database.DB, client *model.Client) error {
 		return err
 	}
 
-	module := protocols.Get(client.Protocol)
-	if module == nil {
-		return fmt.Errorf("%w %q", ErrUnknownProtocol, client.Protocol)
+	service, err := protocols.MakeClient(db, client)
+	if err != nil {
+		return err
 	}
 
-	services.Clients[client.Name] = module.NewClient(db, client)
+	services.Clients.Add(client, service)
 
 	return nil
 }
 
 func RestartServer(ctx context.Context, db *database.DB, server *model.LocalAgent) error {
-	service, hasService := services.Servers[server.Name]
-	if !hasService {
-		module := protocols.Get(server.Protocol)
-		if module == nil {
-			return fmt.Errorf("%w %q", ErrUnknownProtocol, server.Protocol)
-		}
-
-		service = module.NewServer(db, server)
-	}
-
-	return restartService(ctx, service)
-}
-
-func RestartClient(ctx context.Context, db *database.DB, client *model.Client) error {
-	service, hasService := services.Clients[client.Name]
-	if !hasService {
-		module := protocols.Get(client.Protocol)
-		if module == nil {
-			return fmt.Errorf("%w %q", ErrUnknownProtocol, client.Protocol)
-		}
-
-		service = module.NewClient(db, client)
-	}
-
-	return restartService(ctx, service)
-}
-
-func StopServer(ctx context.Context, server *model.LocalAgent) error {
-	service, hasService := services.Servers[server.Name]
-	if !hasService {
-		return ErrServerNotRunning
-	}
-
-	if status, _ := service.State(); status != utils.StateRunning {
-		return ErrServerNotRunning
-	}
-
-	if err := service.Stop(ctx); err != nil {
-		return fmt.Errorf("failed to stop server: %w", err)
-	}
-
-	return nil
-}
-
-func StopClient(ctx context.Context, client *model.Client) error {
-	service, hasService := services.Clients[client.Name]
-	if !hasService {
-		return ErrClientNotRunning
-	}
-
-	if status, _ := service.State(); status != utils.StateRunning {
-		return ErrClientNotRunning
-	}
-
-	if err := service.Stop(ctx); err != nil {
-		return fmt.Errorf("failed to stop client: %w", err)
-	}
-
-	return nil
-}
-
-func RemoveServer(ctx context.Context, db *database.DB, server *model.LocalAgent) error {
-	if err := StopServer(ctx, server); err != nil && !errors.Is(err, ErrServerNotRunning) {
+	newService, err := protocols.MakeServer(db, server)
+	if err != nil {
 		return err
 	}
 
-	delete(services.Servers, server.Name)
+	return services.Servers.Restart(ctx, server, newService)
+}
+
+func RestartClient(ctx context.Context, db *database.DB, client *model.Client) error {
+	newService, err := protocols.MakeClient(db, client)
+	if err != nil {
+		return err
+	}
+
+	return services.Clients.Restart(ctx, client, newService)
+}
+
+func StopServer(ctx context.Context, server *model.LocalAgent) error {
+	return services.Servers.Stop(ctx, server, false)
+}
+
+func StopClient(ctx context.Context, client *model.Client) error {
+	return services.Clients.Stop(ctx, client, false)
+}
+
+func RemoveServer(ctx context.Context, db *database.DB, server *model.LocalAgent) error {
+	if err := services.Servers.Stop(ctx, server, true); err != nil {
+		return err
+	}
 
 	return DeleteServer(db, server)
 }
 
 func RemoveClient(ctx context.Context, db *database.DB, client *model.Client) error {
-	if err := StopClient(ctx, client); err != nil && !errors.Is(err, ErrClientNotRunning) {
+	if err := services.Clients.Stop(ctx, client, false); err != nil {
 		return err
 	}
-
-	delete(services.Clients, client.Name)
 
 	return DeleteClient(db, client)
 }
