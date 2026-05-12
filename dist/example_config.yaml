@@ -37,8 +37,56 @@ locals:
       # is a self-signed certificate and should NOT be used in production.
       - name: r66-cert
         type: tls_certificate
-        value: {{.r66Certificate}}
-        value2: {{.r66PrivateKey}}
+        value: |
+          -----BEGIN CERTIFICATE-----
+          MIIDNzCCAh+gAwIBAgIQaOHaukR+8q0Fd3PaG2qLATANBgkqhkiG9w0BAQsFADAS
+          MRAwDgYDVQQKEwdBY21lIENvMCAXDTI2MDUxMjEyMTE1MFoYDzIxNDAwNjEwMDQx
+          MTUwWjASMRAwDgYDVQQKEwdBY21lIENvMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+          MIIBCgKCAQEAud73vBG1RuRVS/GCsINWeirhM6reVsBVoBsvuqDgl/IHdOxvwcfF
+          HTEdV4u6LmFDE1j/hLkKsaivfNi5gBLvNg                                                                                                                                                                                                                                                                                                                                                                                                                                                              XAzGj9CUl3eRP8ljofaHsmIxVHSv+x
+          rCvP0RpVFmarDcj7qOkIwjLpTxrHk7DZGKBjyA6MNSxKFJ+tKfwyNfL6zq9xBki/
+          yGd3UbcqBopEQR6BLUVIU3D9Ejn0bDMh9yl5OFfNec5BXgnIm+3+4FqZ1U9Tr4s7
+          NWSRLxJWPzmHCv+qTJ7m03C7AGdRtRcWrqrzT8yT2dC3gRwHR6VIGwmqIoTfm5bO
+          jg+ZOWYYWnCPglUWMxF4eFAtfTfvH4mw1QIDAQABo4GGMIGDMA4GA1UdDwEB/wQE
+          AwICpDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1Ud
+          DgQWBBRB+w+Gx3it5ejJjAi6Xe2oGRJx7jAsBgNVHREEJTAjgglsb2NhbGhvc3SH
+          BH8AAAGHEAAAAAAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBALKdNkUN
+          bgsWs4xsKnNVERALU8ZB+IZm2AxUL+cBfikL/34DDFzEBT1H0MJL7AF5qC6YBZGv
+          T5weF7Z0hUXebldJZsm0LIv455qa1S354nnRL93p4/MFwsj1GBP5yD0gvw9PESUo
+          28jIdypIWi4jKKTkRqEH5gVpZhKXAgMKRQlMcBM4ijR2tdJ9wvGJhraaoV7MbT0Q
+          ip6bbLqte/s2uqlv7trER5sRBOt1kGQ+xLpV3hfw6BLZ31KnV8P5oARSGNIuDav4
+          aB+vzRjZRmJg2W5iNfyw9jHk/b49RtvR/Y7ovncsrWnqkUvwn1p/bO6Au7x+3/p/
+          p+628hTDHn4PX80=
+          -----END CERTIFICATE-----
+        value2: |
+          -----BEGIN PRIVATE KEY-----
+          MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC53ve8EbVG5FVL
+          8YKwg1Z6KuEzqt5WwFWgGy+6oOCX8gd07G/Bx8UdMR1Xi7ouYUMTWP+EuQqxqK98
+          2LmAEu82BcDMaP0JSXd5E/yWOh9oeyYjFUdK/7GsK8/RGlUWZqsNyPuo6QjCMulP
+          GseTsNkYoGPIDow1LEoUn60p/DI18vrOr3EGSL/IZ3dRtyoGikRBHoEtRUhTcP0S
+          OfRsMyH3KXk4V815zkFeCcib7f7gWpnVT1Ovizs1ZJEvElY/OYcK/6pMnubTcLsA
+          Z1G1FxauqvNPzJPZ0LeBHAdHpUgbCaoihN+bls6OD5k5ZhhacI+CVRYzEXh4UC19
+          N+8fibDVAgMBAAECggEATs8KtEu/1HCg9+PNWWE+q+r9dIZI4niHdazBRnzK7bH5
+          1mofkobM/W0jN0jv5pVnts7f/Frm/V/8FE/iCzs8AOhckG8dhrAHP6epS9sWERtS
+          FsMBaPvUTh9/bHYhSK+8bEpg5gP0qj6i7N76axUrX4U1+Y+thCgkuuzfI7OiaHvF
+          E2ls638IFYO0yf5P+CUnhlK+GUJT2gMhALvtqlLHieVidgsugakgkREg9psr7jMz
+          wECDsxqt+x3UBrmHrSpJ56qx3v0S3RczzlYQhwYBIvvDgs6F8nTMnWbhMfVRLu6I
+          bMwNPalwc63b3FkeSqJZ/oz9egLkZMgJoI9KuRKxSwKBgQD0JNZqXap7sz6ZMVez
+          iF6htW8lTkYrOYRiwiFfq68CO44aGweGRCe36IBR32JwSQU5Sqt1vxbV4OWqfLwt
+          pLnAoFi/HasT2q9JAW0jr6mDefeZ4U79a9Ox/vP/oQGwicEvyQ8CDwX23WfHaocA
+          KrhrARKeUK+s6E6US6W5Q6BtxwKBgQDC5bB345XFYi9a8/+mfLkQNJzS0AbF6I7I
+          yucny3h5xbRvq6d9jXX7yITtHlZnTx4xayvigyfJRHxUWLpcvc2ENG3nswShK6fW
+          3vWe5mF0QqBpm8x3DkPufQsXd1X/A/Y1i5/K2+eQ4lnbKDsg+kitERlOLGc8dqc/
+          44HmsxJcgwKBgQDXwOYrQXMztgeP4ecbJVxbk7cRRMcF0+KGVACiR1p1oqPFtjVE
+          Fl7zS2h68epQSHdxVeeIOsK3Z/QOYgT6YSQ2cn17B4D0HsHgxn3ol4g6RELnnhDs
+          K6n9Fs4SDfssQ9CRpiC5NQWUT70yoZWENDydc2k8txlIuFMZAnEF9BmGaQKBgQCU
+          rv/SZpgizgXMgGqfS3UvjMO6/CK+pu0O9+Qi8tIFLDO8IZsUaHAC1nW6I7PM+onR
+          L656Do6yuAGVo18BU3dPDWRvJ543ioNvpAaD48OjGxUfnFD+3q4qadClZVAAzbfu
+          H4eXDe56FIRych2xyd7Z0TqZ7bwQX4C2d8zo/+HZGwKBgHsSTvgYS7phNyjPqVkc
+          cGrEchtqTDdQpmfR3Vgit9urHSM3kRBIjex3qhWXmo/WtbkfkeYJEegoWtGLaO0w
+          6Fdr1PLzAsrI+VDpsJn5Xc5gftJyxb+yhAv2xaXUj1Uf8vdCeMJmEVEjMnsuQF3e
+          OK3iOCIHIRb34rSx2KNeQdr/
+          -----END PRIVATE KEY-----
 
   # An SFTP local server, listening on port 10022.
   - name: wg-sftp-server
@@ -100,8 +148,56 @@ locals:
       # is a self-signed certificate and should NOT be used in production.
       - name: https-cert
         type: tls_certificate
-        value: {{.httpsCertificate}}
-        value2: {{.httpsPrivateKey}}
+        value: |
+          -----BEGIN CERTIFICATE-----
+          MIIDNzCCAh+gAwIBAgIQaOHaukR+8q0Fd3PaG2qLATANBgkqhkiG9w0BAQsFADAS
+          MRAwDgYDVQQKEwdBY21lIENvMCAXDTI2MDUxMjEyMTE1MFoYDzIxNDAwNjEwMDQx
+          MTUwWjASMRAwDgYDVQQKEwdBY21lIENvMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+          MIIBCgKCAQEAud73vBG1RuRVS/GCsINWeirhM6reVsBVoBsvuqDgl/IHdOxvwcfF
+          HTEdV4u6LmFDE1j/hLkKsaivfNi5gBLvNg                                                                                                                                                                                                                                                                                                                                                                                                                                                              XAzGj9CUl3eRP8ljofaHsmIxVHSv+x
+          rCvP0RpVFmarDcj7qOkIwjLpTxrHk7DZGKBjyA6MNSxKFJ+tKfwyNfL6zq9xBki/
+          yGd3UbcqBopEQR6BLUVIU3D9Ejn0bDMh9yl5OFfNec5BXgnIm+3+4FqZ1U9Tr4s7
+          NWSRLxJWPzmHCv+qTJ7m03C7AGdRtRcWrqrzT8yT2dC3gRwHR6VIGwmqIoTfm5bO
+          jg+ZOWYYWnCPglUWMxF4eFAtfTfvH4mw1QIDAQABo4GGMIGDMA4GA1UdDwEB/wQE
+          AwICpDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1Ud
+          DgQWBBRB+w+Gx3it5ejJjAi6Xe2oGRJx7jAsBgNVHREEJTAjgglsb2NhbGhvc3SH
+          BH8AAAGHEAAAAAAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBALKdNkUN
+          bgsWs4xsKnNVERALU8ZB+IZm2AxUL+cBfikL/34DDFzEBT1H0MJL7AF5qC6YBZGv
+          T5weF7Z0hUXebldJZsm0LIv455qa1S354nnRL93p4/MFwsj1GBP5yD0gvw9PESUo
+          28jIdypIWi4jKKTkRqEH5gVpZhKXAgMKRQlMcBM4ijR2tdJ9wvGJhraaoV7MbT0Q
+          ip6bbLqte/s2uqlv7trER5sRBOt1kGQ+xLpV3hfw6BLZ31KnV8P5oARSGNIuDav4
+          aB+vzRjZRmJg2W5iNfyw9jHk/b49RtvR/Y7ovncsrWnqkUvwn1p/bO6Au7x+3/p/
+          p+628hTDHn4PX80=
+          -----END CERTIFICATE-----
+        value2: |
+          -----BEGIN PRIVATE KEY-----
+          MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC53ve8EbVG5FVL
+          8YKwg1Z6KuEzqt5WwFWgGy+6oOCX8gd07G/Bx8UdMR1Xi7ouYUMTWP+EuQqxqK98
+          2LmAEu82BcDMaP0JSXd5E/yWOh9oeyYjFUdK/7GsK8/RGlUWZqsNyPuo6QjCMulP
+          GseTsNkYoGPIDow1LEoUn60p/DI18vrOr3EGSL/IZ3dRtyoGikRBHoEtRUhTcP0S
+          OfRsMyH3KXk4V815zkFeCcib7f7gWpnVT1Ovizs1ZJEvElY/OYcK/6pMnubTcLsA
+          Z1G1FxauqvNPzJPZ0LeBHAdHpUgbCaoihN+bls6OD5k5ZhhacI+CVRYzEXh4UC19
+          N+8fibDVAgMBAAECggEATs8KtEu/1HCg9+PNWWE+q+r9dIZI4niHdazBRnzK7bH5
+          1mofkobM/W0jN0jv5pVnts7f/Frm/V/8FE/iCzs8AOhckG8dhrAHP6epS9sWERtS
+          FsMBaPvUTh9/bHYhSK+8bEpg5gP0qj6i7N76axUrX4U1+Y+thCgkuuzfI7OiaHvF
+          E2ls638IFYO0yf5P+CUnhlK+GUJT2gMhALvtqlLHieVidgsugakgkREg9psr7jMz
+          wECDsxqt+x3UBrmHrSpJ56qx3v0S3RczzlYQhwYBIvvDgs6F8nTMnWbhMfVRLu6I
+          bMwNPalwc63b3FkeSqJZ/oz9egLkZMgJoI9KuRKxSwKBgQD0JNZqXap7sz6ZMVez
+          iF6htW8lTkYrOYRiwiFfq68CO44aGweGRCe36IBR32JwSQU5Sqt1vxbV4OWqfLwt
+          pLnAoFi/HasT2q9JAW0jr6mDefeZ4U79a9Ox/vP/oQGwicEvyQ8CDwX23WfHaocA
+          KrhrARKeUK+s6E6US6W5Q6BtxwKBgQDC5bB345XFYi9a8/+mfLkQNJzS0AbF6I7I
+          yucny3h5xbRvq6d9jXX7yITtHlZnTx4xayvigyfJRHxUWLpcvc2ENG3nswShK6fW
+          3vWe5mF0QqBpm8x3DkPufQsXd1X/A/Y1i5/K2+eQ4lnbKDsg+kitERlOLGc8dqc/
+          44HmsxJcgwKBgQDXwOYrQXMztgeP4ecbJVxbk7cRRMcF0+KGVACiR1p1oqPFtjVE
+          Fl7zS2h68epQSHdxVeeIOsK3Z/QOYgT6YSQ2cn17B4D0HsHgxn3ol4g6RELnnhDs
+          K6n9Fs4SDfssQ9CRpiC5NQWUT70yoZWENDydc2k8txlIuFMZAnEF9BmGaQKBgQCU
+          rv/SZpgizgXMgGqfS3UvjMO6/CK+pu0O9+Qi8tIFLDO8IZsUaHAC1nW6I7PM+onR
+          L656Do6yuAGVo18BU3dPDWRvJ543ioNvpAaD48OjGxUfnFD+3q4qadClZVAAzbfu
+          H4eXDe56FIRych2xyd7Z0TqZ7bwQX4C2d8zo/+HZGwKBgHsSTvgYS7phNyjPqVkc
+          cGrEchtqTDdQpmfR3Vgit9urHSM3kRBIjex3qhWXmo/WtbkfkeYJEegoWtGLaO0w
+          6Fdr1PLzAsrI+VDpsJn5Xc5gftJyxb+yhAv2xaXUj1Uf8vdCeMJmEVEjMnsuQF3e
+          OK3iOCIHIRb34rSx2KNeQdr/
+          -----END PRIVATE KEY-----
 
   # An FTPS local server, listening on port 10021.
   - name: wg-ftps-server
@@ -131,8 +227,56 @@ locals:
       # is a self-signed certificate and should NOT be used in production.
       - name: ftps-cert
         type: tls_certificate
-        value: {{.ftpsCertificate}}
-        value2: {{.ftpsPrivateKey}}
+        value: |
+          -----BEGIN CERTIFICATE-----
+          MIIDNzCCAh+gAwIBAgIQaOHaukR+8q0Fd3PaG2qLATANBgkqhkiG9w0BAQsFADAS
+          MRAwDgYDVQQKEwdBY21lIENvMCAXDTI2MDUxMjEyMTE1MFoYDzIxNDAwNjEwMDQx
+          MTUwWjASMRAwDgYDVQQKEwdBY21lIENvMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+          MIIBCgKCAQEAud73vBG1RuRVS/GCsINWeirhM6reVsBVoBsvuqDgl/IHdOxvwcfF
+          HTEdV4u6LmFDE1j/hLkKsaivfNi5gBLvNg                                                                                                                                                                                                                                                                                                                                                                                                                                                              XAzGj9CUl3eRP8ljofaHsmIxVHSv+x
+          rCvP0RpVFmarDcj7qOkIwjLpTxrHk7DZGKBjyA6MNSxKFJ+tKfwyNfL6zq9xBki/
+          yGd3UbcqBopEQR6BLUVIU3D9Ejn0bDMh9yl5OFfNec5BXgnIm+3+4FqZ1U9Tr4s7
+          NWSRLxJWPzmHCv+qTJ7m03C7AGdRtRcWrqrzT8yT2dC3gRwHR6VIGwmqIoTfm5bO
+          jg+ZOWYYWnCPglUWMxF4eFAtfTfvH4mw1QIDAQABo4GGMIGDMA4GA1UdDwEB/wQE
+          AwICpDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1Ud
+          DgQWBBRB+w+Gx3it5ejJjAi6Xe2oGRJx7jAsBgNVHREEJTAjgglsb2NhbGhvc3SH
+          BH8AAAGHEAAAAAAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBALKdNkUN
+          bgsWs4xsKnNVERALU8ZB+IZm2AxUL+cBfikL/34DDFzEBT1H0MJL7AF5qC6YBZGv
+          T5weF7Z0hUXebldJZsm0LIv455qa1S354nnRL93p4/MFwsj1GBP5yD0gvw9PESUo
+          28jIdypIWi4jKKTkRqEH5gVpZhKXAgMKRQlMcBM4ijR2tdJ9wvGJhraaoV7MbT0Q
+          ip6bbLqte/s2uqlv7trER5sRBOt1kGQ+xLpV3hfw6BLZ31KnV8P5oARSGNIuDav4
+          aB+vzRjZRmJg2W5iNfyw9jHk/b49RtvR/Y7ovncsrWnqkUvwn1p/bO6Au7x+3/p/
+          p+628hTDHn4PX80=
+          -----END CERTIFICATE-----
+        value2: |
+          -----BEGIN PRIVATE KEY-----
+          MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC53ve8EbVG5FVL
+          8YKwg1Z6KuEzqt5WwFWgGy+6oOCX8gd07G/Bx8UdMR1Xi7ouYUMTWP+EuQqxqK98
+          2LmAEu82BcDMaP0JSXd5E/yWOh9oeyYjFUdK/7GsK8/RGlUWZqsNyPuo6QjCMulP
+          GseTsNkYoGPIDow1LEoUn60p/DI18vrOr3EGSL/IZ3dRtyoGikRBHoEtRUhTcP0S
+          OfRsMyH3KXk4V815zkFeCcib7f7gWpnVT1Ovizs1ZJEvElY/OYcK/6pMnubTcLsA
+          Z1G1FxauqvNPzJPZ0LeBHAdHpUgbCaoihN+bls6OD5k5ZhhacI+CVRYzEXh4UC19
+          N+8fibDVAgMBAAECggEATs8KtEu/1HCg9+PNWWE+q+r9dIZI4niHdazBRnzK7bH5
+          1mofkobM/W0jN0jv5pVnts7f/Frm/V/8FE/iCzs8AOhckG8dhrAHP6epS9sWERtS
+          FsMBaPvUTh9/bHYhSK+8bEpg5gP0qj6i7N76axUrX4U1+Y+thCgkuuzfI7OiaHvF
+          E2ls638IFYO0yf5P+CUnhlK+GUJT2gMhALvtqlLHieVidgsugakgkREg9psr7jMz
+          wECDsxqt+x3UBrmHrSpJ56qx3v0S3RczzlYQhwYBIvvDgs6F8nTMnWbhMfVRLu6I
+          bMwNPalwc63b3FkeSqJZ/oz9egLkZMgJoI9KuRKxSwKBgQD0JNZqXap7sz6ZMVez
+          iF6htW8lTkYrOYRiwiFfq68CO44aGweGRCe36IBR32JwSQU5Sqt1vxbV4OWqfLwt
+          pLnAoFi/HasT2q9JAW0jr6mDefeZ4U79a9Ox/vP/oQGwicEvyQ8CDwX23WfHaocA
+          KrhrARKeUK+s6E6US6W5Q6BtxwKBgQDC5bB345XFYi9a8/+mfLkQNJzS0AbF6I7I
+          yucny3h5xbRvq6d9jXX7yITtHlZnTx4xayvigyfJRHxUWLpcvc2ENG3nswShK6fW
+          3vWe5mF0QqBpm8x3DkPufQsXd1X/A/Y1i5/K2+eQ4lnbKDsg+kitERlOLGc8dqc/
+          44HmsxJcgwKBgQDXwOYrQXMztgeP4ecbJVxbk7cRRMcF0+KGVACiR1p1oqPFtjVE
+          Fl7zS2h68epQSHdxVeeIOsK3Z/QOYgT6YSQ2cn17B4D0HsHgxn3ol4g6RELnnhDs
+          K6n9Fs4SDfssQ9CRpiC5NQWUT70yoZWENDydc2k8txlIuFMZAnEF9BmGaQKBgQCU
+          rv/SZpgizgXMgGqfS3UvjMO6/CK+pu0O9+Qi8tIFLDO8IZsUaHAC1nW6I7PM+onR
+          L656Do6yuAGVo18BU3dPDWRvJ543ioNvpAaD48OjGxUfnFD+3q4qadClZVAAzbfu
+          H4eXDe56FIRych2xyd7Z0TqZ7bwQX4C2d8zo/+HZGwKBgHsSTvgYS7phNyjPqVkc
+          cGrEchtqTDdQpmfR3Vgit9urHSM3kRBIjex3qhWXmo/WtbkfkeYJEegoWtGLaO0w
+          6Fdr1PLzAsrI+VDpsJn5Xc5gftJyxb+yhAv2xaXUj1Uf8vdCeMJmEVEjMnsuQF3e
+          OK3iOCIHIRb34rSx2KNeQdr/
+          -----END PRIVATE KEY-----
 
   # An PESIT-TLS local server, listening on port 10010.
   - name: wg-pesit-tls-server
@@ -153,8 +297,56 @@ locals:
       # is a self-signed certificate and should NOT be used in production.
       - name: pesit-cert
         type: tls_certificate
-        value: {{.pesitCertificate}}
-        value2: {{.pesitPrivateKey}}
+        value: |
+          -----BEGIN CERTIFICATE-----
+          MIIDNzCCAh+gAwIBAgIQaOHaukR+8q0Fd3PaG2qLATANBgkqhkiG9w0BAQsFADAS
+          MRAwDgYDVQQKEwdBY21lIENvMCAXDTI2MDUxMjEyMTE1MFoYDzIxNDAwNjEwMDQx
+          MTUwWjASMRAwDgYDVQQKEwdBY21lIENvMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+          MIIBCgKCAQEAud73vBG1RuRVS/GCsINWeirhM6reVsBVoBsvuqDgl/IHdOxvwcfF
+          HTEdV4u6LmFDE1j/hLkKsaivfNi5gBLvNg                                                                                                                                                                                                                                                                                                                                                                                                                                                              XAzGj9CUl3eRP8ljofaHsmIxVHSv+x
+          rCvP0RpVFmarDcj7qOkIwjLpTxrHk7DZGKBjyA6MNSxKFJ+tKfwyNfL6zq9xBki/
+          yGd3UbcqBopEQR6BLUVIU3D9Ejn0bDMh9yl5OFfNec5BXgnIm+3+4FqZ1U9Tr4s7
+          NWSRLxJWPzmHCv+qTJ7m03C7AGdRtRcWrqrzT8yT2dC3gRwHR6VIGwmqIoTfm5bO
+          jg+ZOWYYWnCPglUWMxF4eFAtfTfvH4mw1QIDAQABo4GGMIGDMA4GA1UdDwEB/wQE
+          AwICpDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1Ud
+          DgQWBBRB+w+Gx3it5ejJjAi6Xe2oGRJx7jAsBgNVHREEJTAjgglsb2NhbGhvc3SH
+          BH8AAAGHEAAAAAAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBALKdNkUN
+          bgsWs4xsKnNVERALU8ZB+IZm2AxUL+cBfikL/34DDFzEBT1H0MJL7AF5qC6YBZGv
+          T5weF7Z0hUXebldJZsm0LIv455qa1S354nnRL93p4/MFwsj1GBP5yD0gvw9PESUo
+          28jIdypIWi4jKKTkRqEH5gVpZhKXAgMKRQlMcBM4ijR2tdJ9wvGJhraaoV7MbT0Q
+          ip6bbLqte/s2uqlv7trER5sRBOt1kGQ+xLpV3hfw6BLZ31KnV8P5oARSGNIuDav4
+          aB+vzRjZRmJg2W5iNfyw9jHk/b49RtvR/Y7ovncsrWnqkUvwn1p/bO6Au7x+3/p/
+          p+628hTDHn4PX80=
+          -----END CERTIFICATE-----
+        value2: |
+          -----BEGIN PRIVATE KEY-----
+          MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC53ve8EbVG5FVL
+          8YKwg1Z6KuEzqt5WwFWgGy+6oOCX8gd07G/Bx8UdMR1Xi7ouYUMTWP+EuQqxqK98
+          2LmAEu82BcDMaP0JSXd5E/yWOh9oeyYjFUdK/7GsK8/RGlUWZqsNyPuo6QjCMulP
+          GseTsNkYoGPIDow1LEoUn60p/DI18vrOr3EGSL/IZ3dRtyoGikRBHoEtRUhTcP0S
+          OfRsMyH3KXk4V815zkFeCcib7f7gWpnVT1Ovizs1ZJEvElY/OYcK/6pMnubTcLsA
+          Z1G1FxauqvNPzJPZ0LeBHAdHpUgbCaoihN+bls6OD5k5ZhhacI+CVRYzEXh4UC19
+          N+8fibDVAgMBAAECggEATs8KtEu/1HCg9+PNWWE+q+r9dIZI4niHdazBRnzK7bH5
+          1mofkobM/W0jN0jv5pVnts7f/Frm/V/8FE/iCzs8AOhckG8dhrAHP6epS9sWERtS
+          FsMBaPvUTh9/bHYhSK+8bEpg5gP0qj6i7N76axUrX4U1+Y+thCgkuuzfI7OiaHvF
+          E2ls638IFYO0yf5P+CUnhlK+GUJT2gMhALvtqlLHieVidgsugakgkREg9psr7jMz
+          wECDsxqt+x3UBrmHrSpJ56qx3v0S3RczzlYQhwYBIvvDgs6F8nTMnWbhMfVRLu6I
+          bMwNPalwc63b3FkeSqJZ/oz9egLkZMgJoI9KuRKxSwKBgQD0JNZqXap7sz6ZMVez
+          iF6htW8lTkYrOYRiwiFfq68CO44aGweGRCe36IBR32JwSQU5Sqt1vxbV4OWqfLwt
+          pLnAoFi/HasT2q9JAW0jr6mDefeZ4U79a9Ox/vP/oQGwicEvyQ8CDwX23WfHaocA
+          KrhrARKeUK+s6E6US6W5Q6BtxwKBgQDC5bB345XFYi9a8/+mfLkQNJzS0AbF6I7I
+          yucny3h5xbRvq6d9jXX7yITtHlZnTx4xayvigyfJRHxUWLpcvc2ENG3nswShK6fW
+          3vWe5mF0QqBpm8x3DkPufQsXd1X/A/Y1i5/K2+eQ4lnbKDsg+kitERlOLGc8dqc/
+          44HmsxJcgwKBgQDXwOYrQXMztgeP4ecbJVxbk7cRRMcF0+KGVACiR1p1oqPFtjVE
+          Fl7zS2h68epQSHdxVeeIOsK3Z/QOYgT6YSQ2cn17B4D0HsHgxn3ol4g6RELnnhDs
+          K6n9Fs4SDfssQ9CRpiC5NQWUT70yoZWENDydc2k8txlIuFMZAnEF9BmGaQKBgQCU
+          rv/SZpgizgXMgGqfS3UvjMO6/CK+pu0O9+Qi8tIFLDO8IZsUaHAC1nW6I7PM+onR
+          L656Do6yuAGVo18BU3dPDWRvJ543ioNvpAaD48OjGxUfnFD+3q4qadClZVAAzbfu
+          H4eXDe56FIRych2xyd7Z0TqZ7bwQX4C2d8zo/+HZGwKBgHsSTvgYS7phNyjPqVkc
+          cGrEchtqTDdQpmfR3Vgit9urHSM3kRBIjex3qhWXmo/WtbkfkeYJEegoWtGLaO0w
+          6Fdr1PLzAsrI+VDpsJn5Xc5gftJyxb+yhAv2xaXUj1Uf8vdCeMJmEVEjMnsuQF3e
+          OK3iOCIHIRb34rSx2KNeQdr/
+          -----END PRIVATE KEY-----
 
   # An WebDAV over HTTPS local server, listening on port 10043.
   - name: wg-webdav-tls-server
@@ -175,8 +367,56 @@ locals:
       # is a self-signed certificate and should NOT be used in production.
       - name: webdav-cert
         type: tls_certificate
-        value: {{.webdavCertificate}}
-        value2: {{.webdavPrivateKey}}
+        value: |
+          -----BEGIN CERTIFICATE-----
+          MIIDNzCCAh+gAwIBAgIQaOHaukR+8q0Fd3PaG2qLATANBgkqhkiG9w0BAQsFADAS
+          MRAwDgYDVQQKEwdBY21lIENvMCAXDTI2MDUxMjEyMTE1MFoYDzIxNDAwNjEwMDQx
+          MTUwWjASMRAwDgYDVQQKEwdBY21lIENvMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+          MIIBCgKCAQEAud73vBG1RuRVS/GCsINWeirhM6reVsBVoBsvuqDgl/IHdOxvwcfF
+          HTEdV4u6LmFDE1j/hLkKsaivfNi5gBLvNg                                                                                                                                                                                                                                                                                                                                                                                                                                                              XAzGj9CUl3eRP8ljofaHsmIxVHSv+x
+          rCvP0RpVFmarDcj7qOkIwjLpTxrHk7DZGKBjyA6MNSxKFJ+tKfwyNfL6zq9xBki/
+          yGd3UbcqBopEQR6BLUVIU3D9Ejn0bDMh9yl5OFfNec5BXgnIm+3+4FqZ1U9Tr4s7
+          NWSRLxJWPzmHCv+qTJ7m03C7AGdRtRcWrqrzT8yT2dC3gRwHR6VIGwmqIoTfm5bO
+          jg+ZOWYYWnCPglUWMxF4eFAtfTfvH4mw1QIDAQABo4GGMIGDMA4GA1UdDwEB/wQE
+          AwICpDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1Ud
+          DgQWBBRB+w+Gx3it5ejJjAi6Xe2oGRJx7jAsBgNVHREEJTAjgglsb2NhbGhvc3SH
+          BH8AAAGHEAAAAAAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBALKdNkUN
+          bgsWs4xsKnNVERALU8ZB+IZm2AxUL+cBfikL/34DDFzEBT1H0MJL7AF5qC6YBZGv
+          T5weF7Z0hUXebldJZsm0LIv455qa1S354nnRL93p4/MFwsj1GBP5yD0gvw9PESUo
+          28jIdypIWi4jKKTkRqEH5gVpZhKXAgMKRQlMcBM4ijR2tdJ9wvGJhraaoV7MbT0Q
+          ip6bbLqte/s2uqlv7trER5sRBOt1kGQ+xLpV3hfw6BLZ31KnV8P5oARSGNIuDav4
+          aB+vzRjZRmJg2W5iNfyw9jHk/b49RtvR/Y7ovncsrWnqkUvwn1p/bO6Au7x+3/p/
+          p+628hTDHn4PX80=
+          -----END CERTIFICATE-----
+        value2: |
+          -----BEGIN PRIVATE KEY-----
+          MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC53ve8EbVG5FVL
+          8YKwg1Z6KuEzqt5WwFWgGy+6oOCX8gd07G/Bx8UdMR1Xi7ouYUMTWP+EuQqxqK98
+          2LmAEu82BcDMaP0JSXd5E/yWOh9oeyYjFUdK/7GsK8/RGlUWZqsNyPuo6QjCMulP
+          GseTsNkYoGPIDow1LEoUn60p/DI18vrOr3EGSL/IZ3dRtyoGikRBHoEtRUhTcP0S
+          OfRsMyH3KXk4V815zkFeCcib7f7gWpnVT1Ovizs1ZJEvElY/OYcK/6pMnubTcLsA
+          Z1G1FxauqvNPzJPZ0LeBHAdHpUgbCaoihN+bls6OD5k5ZhhacI+CVRYzEXh4UC19
+          N+8fibDVAgMBAAECggEATs8KtEu/1HCg9+PNWWE+q+r9dIZI4niHdazBRnzK7bH5
+          1mofkobM/W0jN0jv5pVnts7f/Frm/V/8FE/iCzs8AOhckG8dhrAHP6epS9sWERtS
+          FsMBaPvUTh9/bHYhSK+8bEpg5gP0qj6i7N76axUrX4U1+Y+thCgkuuzfI7OiaHvF
+          E2ls638IFYO0yf5P+CUnhlK+GUJT2gMhALvtqlLHieVidgsugakgkREg9psr7jMz
+          wECDsxqt+x3UBrmHrSpJ56qx3v0S3RczzlYQhwYBIvvDgs6F8nTMnWbhMfVRLu6I
+          bMwNPalwc63b3FkeSqJZ/oz9egLkZMgJoI9KuRKxSwKBgQD0JNZqXap7sz6ZMVez
+          iF6htW8lTkYrOYRiwiFfq68CO44aGweGRCe36IBR32JwSQU5Sqt1vxbV4OWqfLwt
+          pLnAoFi/HasT2q9JAW0jr6mDefeZ4U79a9Ox/vP/oQGwicEvyQ8CDwX23WfHaocA
+          KrhrARKeUK+s6E6US6W5Q6BtxwKBgQDC5bB345XFYi9a8/+mfLkQNJzS0AbF6I7I
+          yucny3h5xbRvq6d9jXX7yITtHlZnTx4xayvigyfJRHxUWLpcvc2ENG3nswShK6fW
+          3vWe5mF0QqBpm8x3DkPufQsXd1X/A/Y1i5/K2+eQ4lnbKDsg+kitERlOLGc8dqc/
+          44HmsxJcgwKBgQDXwOYrQXMztgeP4ecbJVxbk7cRRMcF0+KGVACiR1p1oqPFtjVE
+          Fl7zS2h68epQSHdxVeeIOsK3Z/QOYgT6YSQ2cn17B4D0HsHgxn3ol4g6RELnnhDs
+          K6n9Fs4SDfssQ9CRpiC5NQWUT70yoZWENDydc2k8txlIuFMZAnEF9BmGaQKBgQCU
+          rv/SZpgizgXMgGqfS3UvjMO6/CK+pu0O9+Qi8tIFLDO8IZsUaHAC1nW6I7PM+onR
+          L656Do6yuAGVo18BU3dPDWRvJ543ioNvpAaD48OjGxUfnFD+3q4qadClZVAAzbfu
+          H4eXDe56FIRych2xyd7Z0TqZ7bwQX4C2d8zo/+HZGwKBgHsSTvgYS7phNyjPqVkc
+          cGrEchtqTDdQpmfR3Vgit9urHSM3kRBIjex3qhWXmo/WtbkfkeYJEegoWtGLaO0w
+          6Fdr1PLzAsrI+VDpsJn5Xc5gftJyxb+yhAv2xaXUj1Uf8vdCeMJmEVEjMnsuQF3e
+          OK3iOCIHIRb34rSx2KNeQdr/
+          -----END PRIVATE KEY-----
 
 # The list of the Gateway's local clients. These are used when the Gateway
 # connects to a partner.
@@ -230,7 +470,27 @@ remotes:
       # certificate and should NOT be used in production.
       - name: wt-cert
         type: trusted_tls_certificate
-        value: {{.wtCertificate}}
+        value: |
+          -----BEGIN CERTIFICATE-----
+          MIIDNzCCAh+gAwIBAgIQaOHaukR+8q0Fd3PaG2qLATANBgkqhkiG9w0BAQsFADAS
+          MRAwDgYDVQQKEwdBY21lIENvMCAXDTI2MDUxMjEyMTE1MFoYDzIxNDAwNjEwMDQx
+          MTUwWjASMRAwDgYDVQQKEwdBY21lIENvMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+          MIIBCgKCAQEAud73vBG1RuRVS/GCsINWeirhM6reVsBVoBsvuqDgl/IHdOxvwcfF
+          HTEdV4u6LmFDE1j/hLkKsaivfNi5gBLvNg                                                                                                                                                                                                                                                                                                                                                                                                                                                              XAzGj9CUl3eRP8ljofaHsmIxVHSv+x
+          rCvP0RpVFmarDcj7qOkIwjLpTxrHk7DZGKBjyA6MNSxKFJ+tKfwyNfL6zq9xBki/
+          yGd3UbcqBopEQR6BLUVIU3D9Ejn0bDMh9yl5OFfNec5BXgnIm+3+4FqZ1U9Tr4s7
+          NWSRLxJWPzmHCv+qTJ7m03C7AGdRtRcWrqrzT8yT2dC3gRwHR6VIGwmqIoTfm5bO
+          jg+ZOWYYWnCPglUWMxF4eFAtfTfvH4mw1QIDAQABo4GGMIGDMA4GA1UdDwEB/wQE
+          AwICpDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1Ud
+          DgQWBBRB+w+Gx3it5ejJjAi6Xe2oGRJx7jAsBgNVHREEJTAjgglsb2NhbGhvc3SH
+          BH8AAAGHEAAAAAAAAAAAAAAAAAAAAAEwDQYJKoZIhvcNAQELBQADggEBALKdNkUN
+          bgsWs4xsKnNVERALU8ZB+IZm2AxUL+cBfikL/34DDFzEBT1H0MJL7AF5qC6YBZGv
+          T5weF7Z0hUXebldJZsm0LIv455qa1S354nnRL93p4/MFwsj1GBP5yD0gvw9PESUo
+          28jIdypIWi4jKKTkRqEH5gVpZhKXAgMKRQlMcBM4ijR2tdJ9wvGJhraaoV7MbT0Q
+          ip6bbLqte/s2uqlv7trER5sRBOt1kGQ+xLpV3hfw6BLZ31KnV8P5oARSGNIuDav4
+          aB+vzRjZRmJg2W5iNfyw9jHk/b49RtvR/Y7ovncsrWnqkUvwn1p/bO6Au7x+3/p/
+          p+628hTDHn4PX80=
+          -----END CERTIFICATE-----
 
 
 # The list of usable transfer rules. When making a transfer, the requester must

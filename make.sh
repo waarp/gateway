@@ -191,8 +191,6 @@ EOW
   GOOS=linux GOARCH=amd64 build_static_binaries
   #GOOS=linux GOARCH=386 build_static_binaries
   GOOS=windows GOARCH=amd64 build_static_binaries
-
-  go run ./dist/generate_example_file.go
 }
 
 t_package() {
