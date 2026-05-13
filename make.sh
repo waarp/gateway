@@ -253,7 +253,7 @@ build_portable_linux_archive() {
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
   cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
   cp ./build/updateconf_linux_amd64 "$dest/share/updateconf"
-  cp ./build/dist/example_config.yaml "$dest/share/example_config.yaml"
+  cp ./dist/example_config.yaml "$dest/share/example_config.yaml"
   cp ./doc/source/reference/waarp-gateway.mib "$dest/share/waarp-gateway.mib"
 
   ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
@@ -282,7 +282,7 @@ build_portable_windows_archive() {
   cp ./build/waarp-gateway_windows_amd64 "$dest/bin/waarp-gateway.exe"
   cp ./build/get-remote_windows_amd64 "$dest/share/get-remote.exe"
   cp ./build/updateconf_windows_amd64 "$dest/share/updateconf.exe"
-  cp ./build/dist/example_config.yaml "$dest/share/example_config.yaml"
+  cp ./dist/example_config.yaml "$dest/share/example_config.yaml"
   cp ./doc/source/reference/waarp-gateway.mib "$dest/share/waarp-gateway.mib"
 
   ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
@@ -316,7 +316,7 @@ build_container() {
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
   cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
   cp ./build/updateconf_linux_amd64 "$dest/share/updateconf"
-  cp ./build/dist/example_config.yaml "$dest/share/example_config.yaml"
+  cp ./dist/example_config.yaml "$dest/share/example_config.yaml"
   cp ./build/container-entrypoint_linux_amd64  "$dest/bin/container-entrypoint"
 
   # generate config
