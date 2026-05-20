@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`554` Les identifiants (*credentials*) des partenaires importés via la
+  commande d'import sont désormais correctement ajoutés en base de données. À
+  noter que ce bug ne concernait que le champ ``credentials``. L'ancien champ
+  déprécié ``certificates`` n'était pas affecté.
+
 * :release:`0.15.8 <2026-06-09>`
 * :bug:`585` Si le *filesystem* cible d'un transfert ne supporte pas la pose de
   verrous sur les fichiers, alors les fichiers de transfert seront ouverts sans

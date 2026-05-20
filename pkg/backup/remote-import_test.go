@@ -155,7 +155,7 @@ func TestImportRemoteAgents(t *testing.T) {
 							So(db.Select(&credentials).Where("remote_agent_id=?",
 								dbAgent.ID).Run(), ShouldBeNil)
 
-							So(len(accounts), ShouldEqual, 1)
+							So(len(credentials), ShouldEqual, 1)
 						})
 					})
 				})
