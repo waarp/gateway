@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`554` Les identifiants (*credentials*) des partenaires importés via la
+  commande d'import sont désormais correctement ajoutés en base de données. À
+  noter que ce bug ne concernait que le champ ``credentials``. L'ancien champ
+  déprécié ``certificates`` n'était pas affecté.
+
 * :release:`0.15.6 <2026-05-12>`
 * :support:`548` Le certificat TLS du fichier d'exemple est désormais valide
   pour 100 ans et ne changera plus d'une release à l'autre.
