@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -11,11 +12,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+//nolint:gochecknoglobals //same pattern as NewClientPipeline - breaks import cycle
+var SendPeSITMessage func(db *database.DB, partnerName, accountLogin string,
+	transferID uint32, message string, logger *log.Logger) error
+
 var (
-	ErrSendMessageNoPartner      = errors.New(`missing "partner" argument`)
+	ErrSendMessageNoPartner       = errors.New(`missing "partner" argument`)
 	ErrSendMessagePartnerNotFound = errors.New("sendmessage partner not found")
 	ErrSendMessageAccountNotFound = errors.New("sendmessage account not found")
 	ErrSendMessageNotPeSIT        = errors.New("sendmessage only works with PeSIT partners")
+	ErrSendMessageNotWired        = errors.New("SENDMESSAGE not available: PeSIT module not loaded")
 )
 
 // sendMessageTask is a post-task that sends a F.MESSAGE (PeSIT) to a remote
@@ -112,25 +118,26 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 	logger.Infof("SENDMESSAGE: sending F.MESSAGE to partner %q as %q: %q",
 		t.Partner, account.Login, t.Message)
 
-	// Create a lightweight transfer to use the existing PeSIT ConnPool.
-	// The SENDMESSAGE task schedules a special "message-only" transfer that
-	// opens a PeSIT connection and calls SendMessage instead of SelectFile.
-	//
-	// For the MVP, we use the TRANSFER task infrastructure to create a
-	// proper outbound transfer, then the pipeline's PeSIT client will detect
-	// the message flag and call SendMessage instead.
-	//
-	// TODO: implement the actual PeSIT connection + SendMessage call.
-	// This requires access to the PeSIT client ConnPool which is not
-	// directly available from the task context. Options:
-	// 1. Expose a SendMessage function on the protocol service registry
-	// 2. Create a mini-pipeline that only does Connect + SendMessage + Release
-	// 3. Use the EXEC task pattern with a CLI command
-	//
-	// For now, log the intent and store it for manual verification.
+	if SendPeSITMessage == nil {
+		return ErrSendMessageNotWired
+	}
 
-	logger.Infof("SENDMESSAGE: would send F.MESSAGE(transferId=%s, message=%q) to %s/%s",
-		t.TransferID, t.Message, t.Partner, account.Login)
+	// Parse transferID
+	var tid uint32
+	if t.TransferID != "" {
+		tid64, convErr := strconv.ParseUint(t.TransferID, 10, 32)
+		if convErr != nil {
+			logger.Warningf("SENDMESSAGE: invalid transferId %q, using 0", t.TransferID)
+		} else {
+			tid = uint32(tid64)
+		}
+	}
+
+	if err := SendPeSITMessage(db, t.Partner, account.Login, tid, t.Message, logger); err != nil {
+		return fmt.Errorf("SENDMESSAGE failed: %w", err)
+	}
+
+	logger.Infof("SENDMESSAGE: F.MESSAGE sent successfully to %s/%s", t.Partner, account.Login)
 
 	return nil
 }
