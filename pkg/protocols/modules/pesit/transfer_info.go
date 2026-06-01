@@ -17,6 +17,12 @@ const (
 	customerIDKey   = "__customerID__"
 	bankIDKey       = "__bankID__"
 
+	// Store-and-Forward keys: propagated via copyInfo=true in TRANSFER tasks
+	ackRequestedKey       = "__ackRequested__"       // "1" if an ACK F.MESSAGE is expected
+	ackPartnerKey         = "__ackPartner__"          // partner name to send the ACK to
+	ackMessageKey         = "__ackMessage__"          // pre-configured ACK message content
+	originalTransferIDKey = "__originalTransferID__"  // transfer ID from the original sender
+
 	clientConnFreetextKey  = "__clientConnFreetext__"
 	clientTransFreetextKey = "__clientTransFreetext__"
 	serverConnFreetextKey  = "__serverConnFreetext__"

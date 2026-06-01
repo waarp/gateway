@@ -195,3 +195,16 @@ func (s *server) authenticate(login, password string) (*model.LocalAccount, erro
 
 	return &user, nil
 }
+
+// HandleMessage implements pesit.MessageHandler. It is called when a remote
+// partner sends a F.MESSAGE on an established connection. The message metadata
+// is logged and stored for potential use by post-tasks or Store-and-Forward.
+func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageRequest) error {
+	s.logger.Infof("F.MESSAGE received from %q: transferID=%d message=%q customerID=%q bankID=%q",
+		msg.ClientLogin, msg.TransferID, msg.Message, msg.CustomerID, msg.BankID)
+
+	// TODO: persist the message in the database or trigger a post-processing action
+	// For now, accept the message and log it.
+
+	return nil
+}
