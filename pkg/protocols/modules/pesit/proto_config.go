@@ -26,20 +26,26 @@ type CompatibilityMode string
 
 const (
 	CompatibilityModeStandard    = "standard"
-	CompatibilityModeNonStandard = "non-standard"
+	CompatibilityModeNonStandard = "non-standard" // Deprecated: use CompatibilityModeHistorique
+	CompatibilityModeHistorique  = "historique"
 )
 
 func (m *CompatibilityMode) UnmarshalJSON(b []byte) error {
 	val := strings.Trim(string(b), "\"")
 
 	switch val {
-	case CompatibilityModeStandard, CompatibilityModeNonStandard:
+	case CompatibilityModeStandard, CompatibilityModeHistorique, CompatibilityModeNonStandard:
+		// Accept "non-standard" as an alias for "historique" for backward compatibility
+		if val == CompatibilityModeNonStandard {
+			val = CompatibilityModeHistorique
+		}
+
 		*m = CompatibilityMode(val)
 
 		return nil
 	default:
 		//nolint:err113 // this is a base error
-		return fmt.Errorf("unknown compatibility mode %q", val)
+		return fmt.Errorf("unknown compatibility mode %q (accepted: \"standard\", \"historique\")", val)
 	}
 }
 
@@ -80,7 +86,10 @@ type ServerConfig struct {
 	CheckPointConfig
 
 	// The PeSIT compatibility mode to use when communicating with this server.
-	// Accepted values are: "standard" or "non-standard". Default is "standard".
+	// Accepted values are: "standard" or "historique". Default is "standard".
+	// The "historique" mode uses the market convention inherited from the SIT
+	// banking era: PI 12 = logical flow ID (rule name), PI 37 = physical filename.
+	// "non-standard" is accepted as a deprecated alias for "historique".
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// DisablePreConnection disables the pre-connection authentication when
 	// connecting to this server. By default, the pre-connection authentication
@@ -144,7 +153,10 @@ type PartnerConfig struct {
 	// transfers with that partner. By default, NSDU packets are used.
 	UseNSDU api.Nullable[bool] `json:"useNSDU"` //nolint:tagliatelle //does not recognize NSDU as an acronym
 	// The PeSIT compatibility mode to use when communicating with this partner.
-	// Accepted values are: "standard" or "non-standard". Default is "standard".
+	// Accepted values are: "standard" or "historique". Default is "standard".
+	// The "historique" mode uses the market convention inherited from the SIT
+	// banking era: PI 12 = logical flow ID (rule name), PI 37 = physical filename.
+	// "non-standard" is accepted as a deprecated alias for "historique".
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
 	// this partner. Default is 65535.

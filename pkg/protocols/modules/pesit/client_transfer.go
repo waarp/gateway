@@ -64,7 +64,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		c.client.SetNSDUUsage(true)
 	}
 
-	if config.CompatibilityMode == CompatibilityModeNonStandard {
+	if config.CompatibilityMode == CompatibilityModeHistorique {
 		c.client.SetCFTCompatibilityUsage(true)
 	}
 

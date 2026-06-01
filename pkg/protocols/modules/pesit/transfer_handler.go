@@ -113,7 +113,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		remoteTransferID string
 	)
 
-	if t.conf.CompatibilityMode == CompatibilityModeNonStandard {
+	if t.conf.CompatibilityMode == CompatibilityModeHistorique {
 		rule, ruleErr = t.getRuleByName(req.FilenamePI12(), isSend)
 	} else {
 		rule, ruleErr = t.getRuleByPrefix(req.Filename(), isSend)
