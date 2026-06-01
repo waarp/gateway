@@ -17,10 +17,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const bytesPerKB int64 = 1024
+
+var _ tasks.MessageSender = &transferHandler{}
 
 type transferHandler struct {
 	db      *database.DB
@@ -212,11 +215,15 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		return tErr
 	}
 
-	pip, pipErr := pipeline.NewServerPipeline(t.db, t.logger, trans, snmp.GlobalService)
+	pip, pipErr := pipeline.NewServerPipeline(t.db, t.logger, trans, t, snmp.GlobalService)
 	if pipErr != nil {
 		t.logger.Errorf("Failed to initialize pipeline: %v", pipErr)
 
 		return transErrToPesitErr(pipErr)
+	}
+
+	if expectsAck(pip) {
+		pip.WaitAck = true
 	}
 
 	pip.SetInterruptionHandlers(t.Pause, t.Interrupt, t.Cancel)

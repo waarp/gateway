@@ -49,7 +49,8 @@ type Pipeline struct {
 	storedErr *Error
 	errOnce   sync.Once
 
-	Runner *tasks.Runner
+	Runner  *tasks.Runner
+	WaitAck bool
 }
 
 //nolint:funlen //function is fine as is
@@ -326,17 +327,25 @@ func (p *Pipeline) EndTransfer() *Error {
 
 	p.errOnce.Do(func() {
 		p.Runner.Stop()
-		p.TransCtx.Transfer.Status = types.StatusDone
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
 
-		if err := p.TransCtx.Transfer.AfterUpdate(p.DB); err != nil {
-			p.Logger.Errorf("Failed to update transfer infos: %v", err)
-			p.errorTasks()
-			p.storedErr = sErr
+		// If transfer is waiting for acknowledgement, do not mark it as done yet
+		if p.WaitAck {
+			if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
+				p.Logger.Errorf("Failed to update transfer: %v", err)
+				p.errorTasks()
+				p.storedErr = sErr
+
+				return
+			}
+
+			p.doneWaitAck()
 
 			return
 		}
+
+		p.TransCtx.Transfer.Status = types.StatusDone
 
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
 			sErr = NewErrorWith(err, types.TeInternal, "Failed to move transfer to history")
@@ -532,6 +541,15 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 	}
 
 	p.done(stateInError)
+}
+
+func (p *Pipeline) doneWaitAck() {
+	defer func() {
+		p.Logger.Infof("Transfer finished in %s, awaiting acknowledgement",
+			time.Since(p.TransCtx.Transfer.Start))
+	}()
+
+	p.done(stateAllDone)
 }
 
 func (p *Pipeline) doneOK() {

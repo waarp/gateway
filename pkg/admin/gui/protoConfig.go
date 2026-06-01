@@ -318,6 +318,7 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 	}
 
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
+	pesitProtoConfig["expectsAck"] = r.FormValue("expectsAck") == True
 
 	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {

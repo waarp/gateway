@@ -244,7 +244,7 @@ func (h *httpHandler) handle(isSend bool) {
 		op = "Download"
 	}
 
-	pip, err := pipeline.NewServerPipeline(h.db, h.logger, trans, snmp.GlobalService)
+	pip, err := pipeline.NewServerPipeline(h.db, h.logger, trans, h, snmp.GlobalService)
 	if err != nil {
 		h.sendError(http.StatusInternalServerError, err.Code(), err.Redacted())
 

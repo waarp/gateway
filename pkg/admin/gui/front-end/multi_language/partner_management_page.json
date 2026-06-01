@@ -128,5 +128,7 @@
     "tooltipDisablePreConnection": { "fr": "Permet de désactiver le processus de pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.", "en": "Allows you to disable the pre-connection process (and the associated pre-authentication) for this partner. By default, a pre-connection exchange is expected for each new connection." },
     "tooltipMinPesitTLSVersion": { "fr": "Spécifie la version minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur « v1.2 » (pour TLS 1.2) est utilisée.", "en": "Specifies the minimum TLS version allowed for this partner. By default, the value « v1.2 » (for TLS 1.2) is used." },
     "tooltipPartnerAuthentication": { "fr": "Authentification du partenaire", "en": "Partner authentication" },
-    "tooltipRemoteAccountManagement": { "fr": "Gestion des comptes distants", "en": "Remote account management" }
+    "tooltipRemoteAccountManagement": { "fr": "Gestion des comptes distants", "en": "Remote account management" },
+    "expectsAck": { "fr": "Attend un acquittement", "en": "Expects acknowledgement" },
+    "tooltipExpectsAck": { "fr": "Spécifie que le partenaire attend un acquittement pour les transferts en réception. Si cette option est activée, les transferts en réception ne seront pas finalisés tant qu'un acquittement n'a pas été reçu.", "en": "Specifies that the partner expects an acknowledgement for pull transfers. If this is set, then pull transfers will not be finalized until an acknowledgement is received." }
 }

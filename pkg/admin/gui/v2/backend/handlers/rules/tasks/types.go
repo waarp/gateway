@@ -67,6 +67,7 @@ var formFiles = []taskCategory{
 		Tasks: []taskInfo{
 			{tasknames.Icap, "tasks/icap/icap.gohtml", "tasks/icap/icap.yaml"},
 			{tasknames.Email, "tasks/email/email.gohtml", "tasks/email/email.yaml"},
+			{tasknames.SendMessage, "tasks/sendmessage/sendmessage.gohtml", "tasks/sendmessage/sendmessage.yaml"},
 		},
 	}, {
 		Name: "crypto",

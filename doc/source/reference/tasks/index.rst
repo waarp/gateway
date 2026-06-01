@@ -49,6 +49,7 @@ Liste des traitements
    extract
    icap
    email
+   sendmessage
    encrypt
    decrypt
    sign

@@ -14,8 +14,8 @@ func trimRequestPath(path string, rule *model.Rule) string {
 	return strings.TrimLeft(strings.TrimPrefix(path, rule.Path), "/")
 }
 
-func getPassword(transCtx *model.TransferContext) string {
-	for _, cred := range transCtx.RemoteAccountCreds {
+func getPassword(creds []*model.Credential) string {
+	for _, cred := range creds {
 		if cred.Type == auth.Password {
 			return cred.Value
 		}

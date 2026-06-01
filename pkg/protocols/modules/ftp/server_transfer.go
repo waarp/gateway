@@ -90,7 +90,7 @@ func (s *serverFS) mkNewServerTransfer(path string, isSend bool, offset int64,
 		}
 	}
 
-	pip, pipErr := pipeline.NewServerPipeline(s.db, s.logger, trans, snmp.GlobalService)
+	pip, pipErr := pipeline.NewServerPipeline(s.db, s.logger, trans, s, snmp.GlobalService)
 	if pipErr != nil {
 		return nil, pipErr
 	}

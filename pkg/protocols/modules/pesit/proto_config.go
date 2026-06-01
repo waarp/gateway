@@ -151,6 +151,10 @@ type PartnerConfig struct {
 	// connecting to this partner. By default, the pre-connection authentication
 	// is activated.
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
+	// ExpectsAck specifies that the partner expects an acknowledgement for pull
+	// transfers. If this is set, then pull transfers will not be finalized until
+	// an acknowledgement is received.
+	ExpectsAck bool `json:"expectsAck,omitempty"`
 }
 
 func (p *PartnerConfig) ValidConf() error {

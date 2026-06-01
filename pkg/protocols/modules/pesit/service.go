@@ -13,12 +13,12 @@ import (
 )
 
 type Service struct {
-	*server
+	*service
 }
 
 func newService(db *database.DB, serv *model.LocalAgent) *Service {
 	return &Service{
-		server: &server{
+		service: &service{
 			db:         db,
 			localAgent: serv,
 			logger:     logging.NewLogger(serv.Name),

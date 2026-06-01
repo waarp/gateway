@@ -38,6 +38,7 @@ const (
 	Icap         = "ICAP"
 	Email        = "EMAIL"
 	RemoteDelete = "REMOTEDELETE"
+	SendMessage  = "SENDMESSAGE"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -80,6 +81,9 @@ func init() {
 	model.ValidTasks[Icap] = newRunner[*icapTask]
 	model.ValidTasks[Email] = newRunner[*emailTask]
 	model.ValidTasks[RemoteDelete] = newRunner[*remoteDelete]
+
+	// PeSIT messaging
+	model.ValidTasks[SendMessage] = newRunner[*sendMessageTask]
 }
 
 func newRunner[T model.TaskRunner]() model.TaskRunner {

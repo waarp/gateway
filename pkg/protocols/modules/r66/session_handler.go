@@ -50,7 +50,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 
 	s.setProgress(req, trans)
 
-	pip, pErr := pipeline.NewServerPipeline(s.db, s.logger, trans, snmp.GlobalService)
+	pip, pErr := pipeline.NewServerPipeline(s.db, s.logger, trans, s, snmp.GlobalService)
 	if pErr != nil {
 		return nil, internal.ToR66Error(pErr)
 	}

@@ -39,6 +39,8 @@
         </td>
         <td><strong>{{ .ID }}</strong></td>
         <td data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ .ErrCode }}{{ if .ErrDetails }} : {{ .ErrDetails }}{{ end }}">
+          {{ if and (eq .Status "RUNNING") (index .TransferInfo "__ackExpected__") }}
+              <span class="fw-bold text-info">{{ index $.tab "waitingAck" }}</span>
           {{ if eq .Status "DONE" }}
               <span class="fw-bold text-success">{{ index $.tab "done" }}</span>
           {{ else if eq .Status "ERROR" }}

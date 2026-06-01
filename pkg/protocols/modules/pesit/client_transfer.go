@@ -18,14 +18,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-// Ensures Client implements the optional client interfaces.
+// Ensures Client implements the optional clientService interfaces.
 var _ interface {
 	protocol.TransferClient
 	protocol.PauseHandler
 	protocol.CancelHandler
+	tasks.MessageSender
 } = &clientTransfer{}
 
 type clientTransfer struct {
@@ -103,6 +105,11 @@ func (c *clientTransfer) Request() *pipeline.Error {
 		return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse the pesit partner's proto config")
 	}
 
+	if partConf.ExpectsAck || expectsAck(c.pip) {
+		c.pip.WaitAck = true
+		c.pip.TransCtx.Transfer.TransferInfo[ackExpectedKey] = true
+	}
+
 	// connect to partner
 	realAddr := c.pip.DB.Config.Overrides.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
@@ -135,7 +142,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	}
 
 	c.client = pesit.NewClient(c.pip.TransCtx.RemoteAccount.Login,
-		getPassword(c.pip.TransCtx), serverLogin)
+		getPassword(c.pip.TransCtx.RemoteAccountCreds), serverLogin)
 	c.client.Logger = c.pip.Logger.AsStdLogger(log.LevelDebug)
 	c.client.NetworkTrace = c.pip.Logger.AsStdLogger(log.LevelTrace)
 

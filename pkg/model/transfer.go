@@ -341,6 +341,7 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 		Step:             t.Step,
 		Progress:         t.Progress,
 		TaskNumber:       t.TaskNumber,
+		TransferInfo:     t.TransferInfo,
 	}
 
 	return &hist, nil
@@ -360,28 +361,13 @@ func (t *Transfer) CopyToHistory(db database.Access, logger *log.Logger, end tim
 		return fmt.Errorf("failed to create new history entry: %w", err)
 	}
 
-	if err := db.Exec(`UPDATE transfer_info SET history_id=transfer_id, 
-			transfer_id=null WHERE transfer_id=?`, t.ID); err != nil {
-		logger.Errorf("Failed to update transfer info target: %v", err)
-
-		return fmt.Errorf("failed to update transfer info target: %w", err)
-	}
-
-	/*
-		if err := ses.Exec(`UPDATE file_info SET history_id=transfer_id, transfer_id=null`); err != nil {
-			logger.Errorf("Failed to update file info target: %v", err)
-
-			return err
-		}
-	*/
-
 	return nil
 }
 
 // MoveToHistory removes the transfer entry from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
-func (t *Transfer) MoveToHistory(db *database.DB, logger *log.Logger, end time.Time) error {
+func (t *Transfer) MoveToHistory(db database.Access, logger *log.Logger, end time.Time) error {
 	if err := db.Transaction(func(ses *database.Session) error {
 		if err := t.CopyToHistory(ses, logger, end); err != nil {
 			return err

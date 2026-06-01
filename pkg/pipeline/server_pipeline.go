@@ -125,7 +125,7 @@ func MakeServerTransfer(remoteID, filepath string, account *model.LocalAccount, 
 // NewServerPipeline initializes and returns a new pipeline suitable for a
 // server transfer.
 func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	snmpService *snmp.Service,
+	remote any, snmpService *snmp.Service,
 ) (*Pipeline, *Error) {
 	transCtx, ctxErr := model.GetTransferContext(db, logger, trans)
 	if ctxErr != nil {
@@ -139,6 +139,8 @@ func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfe
 
 		return nil, pipErr
 	}
+
+	pipeline.SetProtocolAgent(remote)
 
 	if transCtx.Rule.IsSend {
 		pipeline.Logger.Infof(
