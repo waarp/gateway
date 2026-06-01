@@ -275,9 +275,9 @@ func TestErrorDataServer(t *testing.T) {
 func TestCFT(t *testing.T) {
 	db := gwtesting.Database(t)
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit,
-		&ServerConfig{CompatibilityMode: CompatibilityModeNonStandard},
+		&ServerConfig{CompatibilityMode: CompatibilityModeHistorique},
 		nil,
-		&PartnerConfig{CompatibilityMode: CompatibilityModeNonStandard},
+		&PartnerConfig{CompatibilityMode: CompatibilityModeHistorique},
 	)
 
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
