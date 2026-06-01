@@ -108,9 +108,29 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 			"clients are not allowed to change their password")
 	}
 
-	user, authErr := s.authenticate(conn.ClientLogin(), conn.ClientPassword())
-	if authErr != nil {
-		return nil, authErr
+	// In PeSIT-TLS with mutual authentication, some products (e.g. Axway CFT)
+	// consider the client certificate sufficient and send an empty password in
+	// PI 5. Accept the connection based on the TLS certificate validation
+	// (already done in VerifyPeerCertificate) when the password is empty.
+	var user *model.LocalAccount
+	if s.localAgent.Protocol == PesitTLS && conn.ClientPassword() == "" {
+		var acc model.LocalAccount
+		if err := s.db.Get(&acc, "local_agent_id=? AND login=?",
+			s.localAgent.ID, conn.ClientLogin()).Run(); err != nil {
+			s.logger.Warningf("TLS mutual auth: unknown login %q", conn.ClientLogin())
+
+			return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "unknown login")
+		}
+
+		s.logger.Debugf("TLS mutual auth accepted for %q (no password, certificate validated)", conn.ClientLogin())
+
+		user = &acc
+	} else {
+		var authErr error
+		user, authErr = s.authenticate(conn.ClientLogin(), conn.ClientPassword())
+		if authErr != nil {
+			return nil, authErr
+		}
 	}
 
 	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
