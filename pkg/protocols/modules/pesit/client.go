@@ -3,7 +3,6 @@ package pesit
 import (
 	"context"
 	"fmt"
-	"net"
 	"strconv"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
@@ -20,7 +19,8 @@ type client struct {
 	dbClient *model.Client
 	state    utils.State
 	logger   *log.Logger
-	dialer   *protoutils.TraceDialer
+	isTLS    bool
+	conns    *pesitConnPool
 
 	conf *ClientConfigTLS
 }
@@ -55,14 +55,13 @@ func (c *client) start() error {
 		return fmt.Errorf("invalid client config: %w", err)
 	}
 
-	c.dialer = &protoutils.TraceDialer{Dialer: &net.Dialer{}}
-
-	if c.dbClient.LocalAddress.IsSet() {
-		var err error
-		if c.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", c.dbClient.LocalAddress.String()); err != nil {
-			return fmt.Errorf("failed to parse the PeSIT client's local address: %w", err)
-		}
-	}
+	c.isTLS = c.dbClient.Protocol == PesitTLS
+	dialer := makePesitDialer(c.dbClient)
+	c.conns = protoutils.NewConnPool[*pesitClientConn](dialer, c.dialPesitConn)
+	// PeSIT connections are sequential (one transfer at a time), so we use
+	// exclusive mode: concurrent transfers get their own connections instead
+	// of sharing. Sequential reuse via the grace period still works.
+	c.conns.SetExclusive(true)
 
 	return nil
 }
@@ -84,6 +83,9 @@ func (c *client) Stop(ctx context.Context) error {
 }
 
 func (c *client) stop(ctx context.Context) error {
+	//nolint:errcheck //we don't care about the error here
+	defer c.conns.Stop()
+
 	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
 		c.logger.Errorf("Failed to stop the PeSIT client: %v", err)
 
@@ -114,10 +116,10 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*clientTransfer, *pipelin
 	}
 
 	return &clientTransfer{
-		isTLS:      c.dbClient.Protocol == PesitTLS,
+		isTLS:      c.isTLS,
 		pip:        pip,
 		clientConf: c.conf,
-		dialer:     c.dialer,
+		conns:      c.conns,
 		pesitID:    pesitID,
 	}, nil
 }

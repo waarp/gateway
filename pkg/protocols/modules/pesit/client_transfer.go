@@ -1,24 +1,16 @@
 package pesit
 
 import (
-	"crypto/tls"
 	"errors"
 	"io"
-	"net"
 
 	"code.waarp.fr/lib/pesit"
-	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -33,57 +25,12 @@ type clientTransfer struct {
 	isTLS      bool
 	pip        *pipeline.Pipeline
 	clientConf *ClientConfigTLS
-	client     *pesit.Client
-	dialer     *protoutils.TraceDialer
+	conn       *pesitClientConn // connection (pooled or standalone)
+	conns      *pesitConnPool   // reference to pool for Connect/CloseConn
+	pooled     bool             // true if conn came from pool, false if standalone
 	pesitID    uint32
 
 	pTrans *pesit.ClientTransfer
-}
-
-func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error {
-	// configure checkpoints
-	if utils.If(config.DisableCheckpoints.Valid,
-		config.DisableCheckpoints.Value,
-		c.clientConf.DisableCheckpoints) {
-		c.client.AllowCheckpoints(pesit.CheckpointDisabled, 0)
-	} else {
-		c.client.AllowCheckpoints(
-			utils.If(config.CheckpointSize != 0,
-				config.CheckpointSize,
-				c.clientConf.CheckpointSize),
-			utils.If(config.CheckpointWindow != 0,
-				config.CheckpointWindow,
-				c.clientConf.CheckpointWindow))
-
-		// configure restarts
-		c.client.AllowRestart(!utils.If(config.DisableRestart.Valid,
-			config.DisableRestart.Value, c.clientConf.DisableRestart))
-	}
-
-	if config.UseNSDU.Valid && config.UseNSDU.Value {
-		c.client.SetNSDUUsage(true)
-	}
-
-	if config.CompatibilityMode == CompatibilityModeHistorique {
-		c.client.SetHistoriqueMode(true)
-	}
-
-	// Pre-connection is disabled by default in PeSIT-TLS mode because most
-	// TLS partners do not expect the 24-byte EBCDIC pre-connection message.
-	// It can be explicitly enabled via pre-connection credentials.
-	usePreConn := !config.DisablePreConnection && !c.isTLS
-	for _, cred := range c.pip.TransCtx.RemoteAccountCreds {
-		if cred.Type == PreConnectionAuth {
-			usePreConn = true
-			c.client.SetPreConnectLogin(cred.Value)
-			c.client.SetPreConnectPassword(cred.Value2)
-
-			break
-		}
-	}
-	c.client.SetPreConnectionUsage(usePreConn)
-
-	return setFreetext(c.pip, clientConnFreetextKey, c.client)
 }
 
 func (c *clientTransfer) Request() *pipeline.Error {
@@ -104,21 +51,20 @@ func (c *clientTransfer) Request() *pipeline.Error {
 		return pipeline.NewErrorWith(types.TeInternal, "failed to parse the pesit partner's proto config", err)
 	}
 
-	// connect to partner
-	realAddr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
-		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
-
-	conn, connErr := c.dialer.Dial("tcp", realAddr)
+	// Get a PeSIT connection from the pool (or create a standalone one
+	// if the pool is in exclusive mode and the existing conn is busy).
+	pooledConn, connErr := c.conns.Connect(c.pip)
 	if connErr != nil {
-		c.pip.Logger.Errorf("Failed to connect to partner: %v", connErr)
+		c.pip.Logger.Errorf("Failed to get PeSIT connection: %v", connErr)
 
-		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to partner", connErr)
+		return pipeline.NewErrorWith(types.TeConnection, "failed to get PeSIT connection", connErr)
 	}
 
-	if err := c.request(fileInfo, &partConf, conn); err != nil {
-		if closeErr := conn.Close(); closeErr != nil {
-			c.pip.Logger.Warningf("Failed to close connection: %v", closeErr)
-		}
+	c.conn = pooledConn
+	c.pooled = c.conns.Exists(c.pip.TransCtx.RemoteAccount)
+
+	if err := c.request(fileInfo, &partConf); err != nil {
+		c.releaseConn()
 
 		return err
 	}
@@ -128,53 +74,18 @@ func (c *clientTransfer) Request() *pipeline.Error {
 
 //nolint:funlen,gocognit,gocyclo,cyclop //no easy way to split the function for now
 func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
-	conn net.Conn,
 ) *pipeline.Error {
-	serverLogin := c.pip.TransCtx.RemoteAgent.Name
-	if partConf.Login != "" {
-		serverLogin = partConf.Login
-	}
-
-	c.client = pesit.NewClient(c.pip.TransCtx.RemoteAccount.Login,
-		getPassword(c.pip.TransCtx), serverLogin)
-	c.client.Logger = c.pip.Logger.AsStdLogger(log.LevelDebug)
-	c.client.NetworkTrace = c.pip.Logger.AsStdLogger(log.LevelTrace)
-
-	if err := c.configureClient(&partConf.PartnerConfig); err != nil {
-		return err
-	}
-
-	if c.isTLS {
-		tlsConfig, tlsErr := c.makeTLSConfig(c.pip.TransCtx.RemoteAgent.Address.Host, partConf)
-		if tlsErr != nil {
-			c.pip.Logger.Errorf("Failed to parse TLS config: %v", tlsErr)
-
-			return pipeline.NewErrorWith(types.TeInternal, "failed to parse TLS config", tlsErr)
-		}
-
-		conn = tls.Client(conn, tlsConfig)
-	}
-
-	if err := c.client.Connect(conn); err != nil {
-		c.pip.Logger.Errorf("Failed to open PeSIT connection: %v", err)
-
-		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to partner", err)
-	}
-
-	if err := c.authenticateServer(); err != nil {
-		return err
-	}
-
-	setTransInfo(c.pip, serverConnFreetextKey, c.client.FreeText())
+	// Connection is already established via ConnPool (c.conn)
+	setTransInfo(c.pip, serverConnFreetextKey, c.conn.FreeText())
 
 	// initialize transfer
 	method := pesit.MethodRecv
 
 	if c.pip.TransCtx.Rule.IsSend {
-		c.client.SetAccessType(pesit.AccessWrite)
+		c.conn.Client.SetAccessType(pesit.AccessWrite)
 		method = pesit.MethodSend
 	} else {
-		c.client.SetAccessType(pesit.AccessRead)
+		c.conn.Client.SetAccessType(pesit.AccessRead)
 	}
 
 	c.pTrans = pesit.NewTransfer(method, c.pip.TransCtx.Transfer.RemotePath)
@@ -182,15 +93,15 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	// configure recovery if transfer is resumed
 	if prog := c.pip.TransCtx.Transfer.Progress; prog != 0 ||
 		c.pip.TransCtx.Transfer.Step > types.StepSetup {
-		if !c.client.HasRestart() {
+		if !c.conn.Client.HasRestart() {
 			return pipeline.NewError(types.TeForbidden,
 				"cannot resume transfer, server does not allow restarts")
 		}
 
 		c.pTrans.SetRecovered(true)
 
-		if c.pip.TransCtx.Rule.IsSend && c.client.HasCheckpoints() {
-			checkpointNb := prog / int64(c.client.CheckpointSize())
+		if c.pip.TransCtx.Rule.IsSend && c.conn.Client.HasCheckpoints() {
+			checkpointNb := prog / int64(c.conn.Client.CheckpointSize())
 			c.pTrans.SetRecoveryPoint(uint32(checkpointNb))
 		}
 	}
@@ -235,12 +146,12 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		}
 	}
 
-	if c.client.UseHistoriqueMode() {
+	if c.conn.Client.UseHistoriqueMode() {
 		c.pTrans.SetFilenamePI12(c.pip.TransCtx.Rule.Name)
 	}
 
 	// request transfer
-	if err := c.client.SelectFile(c.pTrans); err != nil {
+	if err := c.conn.Client.SelectFile(c.pTrans); err != nil {
 		c.pip.Logger.Errorf("Failed to make transfer request: %v", err)
 
 		return toPipErr(types.TeForbidden, "failed to make transfer request", err)
@@ -256,33 +167,6 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	}
 
 	setTransInfo(c.pip, serverTransFreetextKey, c.pTrans.FreeText())
-
-	return nil
-}
-
-func (c *clientTransfer) authenticateServer() *pipeline.Error {
-	if c.client.NewServerPassword() != "" {
-		c.pip.Logger.Error("Server is not allowed to change its password")
-		c.SendError(types.TeForbidden, "changing password is not allowed")
-
-		return pipeline.NewError(types.TeForbidden, "changing password is not allowed")
-	}
-
-	var servPwd model.Credential
-	if err := c.pip.DB.Get(&servPwd, "remote_agent_id=? AND type=?",
-		c.pip.TransCtx.RemoteAgent.ID, auth.Password).Run(); err == nil {
-		if bcrypt.CompareHashAndPassword([]byte(servPwd.Value), []byte(c.client.ServerPassword())) != nil {
-			c.pip.Logger.Error("Server authentication failed: bad password")
-			c.SendError(types.TeBadAuthentication, "server authentication failed")
-
-			return pipeline.NewError(types.TeBadAuthentication, "server authentication failed: bad password")
-		}
-	} else if !database.IsNotFound(err) {
-		c.pip.Logger.Errorf("Failed to retrieve partner password: %v", err)
-		c.SendError(types.TeInternal, "database error")
-
-		return pipeline.NewErrorWith(types.TeInternal, "failed to retrieve partner password", err)
-	}
 
 	return nil
 }
@@ -410,6 +294,24 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 	return nil
 }
 
+// releaseConn returns the connection to the pool (if pooled) or closes it
+// directly (if standalone, i.e. created because the pooled one was busy).
+func (c *clientTransfer) releaseConn() {
+	if c.conn == nil {
+		return
+	}
+
+	if c.pooled {
+		c.conns.CloseConn(c.pip)
+	} else {
+		if err := c.conn.Close(); err != nil {
+			c.pip.Logger.Warningf("failed to close standalone PeSIT connection: %v", err)
+		}
+	}
+
+	c.conn = nil
+}
+
 func (c *clientTransfer) EndTransfer() *pipeline.Error {
 	if err := c.pTrans.DeselectFile(nil); err != nil {
 		c.pip.Logger.Errorf("Failed to end transfer: %v", err)
@@ -417,9 +319,8 @@ func (c *clientTransfer) EndTransfer() *pipeline.Error {
 		return toPipErr(types.TeFinalization, "failed to end transfer", err)
 	}
 
-	if err := c.client.Close(nil); err != nil {
-		c.pip.Logger.Warningf("failed to close client: %v", err)
-	}
+	// Return the connection to the pool (or close standalone connection).
+	c.releaseConn()
 
 	return nil
 }
@@ -459,9 +360,22 @@ func (c *clientTransfer) Cancel() *pipeline.Error {
 
 func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pipeline.Error {
 	defer func() {
-		if err := c.client.Close(pErr); err != nil {
+		if c.conn == nil {
+			return
+		}
+
+		// Send ABORT/RELEASE to the partner
+		if err := c.conn.Client.Close(pErr); err != nil {
 			c.pip.Logger.Warningf("failed to close connection: %v", err)
 		}
+
+		// Remove from pool without re-closing (already closed above).
+		// Use Evict, not CloseConn, to avoid grace period keeping a dead conn.
+		if c.pooled {
+			c.conns.Evict(c.pip.TransCtx.RemoteAccount)
+		}
+
+		c.conn = nil
 	}()
 
 	var retErr *pipeline.Error

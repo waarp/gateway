@@ -172,7 +172,7 @@ func TestClientPreConn(t *testing.T) {
 			_ = pip.Pip.Cancel(context.Background())
 		})
 
-		assert.Equal(t, preConnCreds.Value, trans.client.PreConnectLogin())
-		assert.Equal(t, preConnCreds.Value2, trans.client.PreConnectPassword())
+		assert.Equal(t, preConnCreds.Value, trans.conn.PreConnectLogin())
+		assert.Equal(t, preConnCreds.Value2, trans.conn.PreConnectPassword())
 	})
 }

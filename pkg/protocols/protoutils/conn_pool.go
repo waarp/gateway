@@ -64,6 +64,13 @@ type ConnPool[T io.Closer] struct {
 	openConn    OpenConnFunc[T]
 	gracePeriod time.Duration
 	closed      atomic.Bool
+	// exclusive controls whether a pooled connection can be shared between
+	// concurrent users. When false (default), multiple Connect() calls for
+	// the same key return the same connection (suitable for R66/SFTP which
+	// support concurrent sessions). When true, if a connection is already
+	// in use (count > 0), a new standalone connection is created instead
+	// (suitable for PeSIT which is sequential per-connection).
+	exclusive bool
 }
 
 func NewConnPool[T io.Closer](dialer *TraceDialer, openConn OpenConnFunc[T]) *ConnPool[T] {
@@ -79,8 +86,45 @@ func (c *ConnPool[T]) SetGracePeriod(duration time.Duration) {
 	c.gracePeriod = duration
 }
 
+// SetExclusive enables exclusive mode where each Connect() gets its own
+// connection. When a pooled connection is already in use, a new standalone
+// connection is created. This is needed for protocols like PeSIT where a
+// single connection only supports one transfer at a time.
+// When the connection is not in use (count == 0, during grace period),
+// it is reused normally (sequential reuse).
+func (c *ConnPool[T]) SetExclusive(exclusive bool) {
+	c.exclusive = exclusive
+}
+
 func (c *ConnPool[T]) Connect(pip *pipeline.Pipeline) (T, error) {
+	if c.isClosed() {
+		return *new(T), ErrConnectionPoolClosed
+	}
+
 	key := pip.TransCtx.RemoteAccount.ID
+
+	// In exclusive mode, check if the connection is currently in use.
+	// If so, create a standalone (non-pooled) connection instead.
+	if c.exclusive {
+		var inUse bool
+
+		c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
+			if loaded && info.count > 0 {
+				inUse = true
+			}
+
+			return info, xsync.CancelOp // read-only check
+		})
+
+		if inUse {
+			conn, err := c.openConn(pip, c.dialer)
+			if err != nil {
+				return *new(T), err
+			}
+
+			return conn, nil
+		}
+	}
 
 	var err error
 	info, _ := c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
@@ -139,6 +183,42 @@ func (c *ConnPool[T]) CloseConnFor(account *model.RemoteAccount) {
 		}
 
 		return info, xsync.UpdateOp
+	})
+}
+
+// ForceDisconnect immediately removes and closes the connection for the
+// given account from the pool, bypassing the grace period. Use this when
+// a connection is known to be in an invalid state (e.g., after an ABORT).
+func (c *ConnPool[T]) ForceDisconnect(account *model.RemoteAccount) {
+	key := account.ID
+
+	c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
+		if !loaded || info == nil {
+			return info, xsync.CancelOp
+		}
+
+		_ = info.forceClose()
+
+		return nil, xsync.DeleteOp
+	})
+}
+
+// Evict removes the connection for the given account from the pool WITHOUT
+// closing it. Use this when the connection has already been closed externally
+// (e.g., after sending an ABORT) and you just need to clean up the pool entry.
+func (c *ConnPool[T]) Evict(account *model.RemoteAccount) {
+	key := account.ID
+
+	c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
+		if !loaded || info == nil {
+			return info, xsync.CancelOp
+		}
+
+		if info.grace != nil {
+			info.grace.Stop()
+		}
+
+		return nil, xsync.DeleteOp
 	})
 }
 
