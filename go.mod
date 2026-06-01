@@ -338,3 +338,5 @@ require (
 	storj.io/picobuf v0.0.4 // indirect
 	storj.io/uplink v1.14.2 // indirect
 )
+
+replace code.waarp.fr/lib/pesit => ../PESIT/lib-pesit

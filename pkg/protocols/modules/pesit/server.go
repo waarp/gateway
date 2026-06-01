@@ -34,6 +34,12 @@ func (s *server) listen() (string, error) {
 	s.server = pesit.NewServer(s)
 	s.server.Logger = s.logger.AsStdLogger(log.LevelDebug)
 	s.server.NetworkTrace = s.logger.AsStdLogger(log.LevelTrace)
+
+	// Disable pre-connection in PeSIT-TLS mode or when explicitly configured.
+	// Most TLS partners do not send the 24-byte EBCDIC pre-connection message.
+	if s.localAgent.Protocol == PesitTLS || s.conf.DisablePreConnection {
+		s.server.SetPreConnectionUsage(false)
+	}
 	realAddr := conf.GetRealAddress(s.localAgent.Address.Host,
 		utils.FormatUint(s.localAgent.Address.Port))
 

@@ -68,20 +68,20 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		c.client.SetCFTCompatibilityUsage(true)
 	}
 
-	if config.DisablePreConnection {
-		c.client.SetPreConnectionUsage(false)
-	} else {
-		c.client.SetPreConnectionUsage(true)
+	// Pre-connection is disabled by default in PeSIT-TLS mode because most
+	// TLS partners do not expect the 24-byte EBCDIC pre-connection message.
+	// It can be explicitly enabled via pre-connection credentials.
+	usePreConn := !config.DisablePreConnection && !c.isTLS
+	for _, cred := range c.pip.TransCtx.RemoteAccountCreds {
+		if cred.Type == PreConnectionAuth {
+			usePreConn = true
+			c.client.SetPreConnectLogin(cred.Value)
+			c.client.SetPreConnectPassword(cred.Value2)
 
-		for _, cred := range c.pip.TransCtx.RemoteAccountCreds {
-			if cred.Type == PreConnectionAuth {
-				c.client.SetPreConnectLogin(cred.Value)
-				c.client.SetPreConnectPassword(cred.Value2)
-
-				break
-			}
+			break
 		}
 	}
+	c.client.SetPreConnectionUsage(usePreConn)
 
 	return setFreetext(c.pip, clientConnFreetextKey, c.client)
 }
