@@ -1,0 +1,90 @@
+description:
+  en: >
+    Send a PeSIT F.MESSAGE to a remote partner. Typically used for Store-and-Forward
+    acknowledgments. The task can be conditional based on a TransferInfo key.
+  fr: >
+    Envoie un F.MESSAGE PeSIT a un partenaire distant. Utilise principalement pour
+    les acquittements Store-and-Forward. La tache peut etre conditionnelle selon une
+    cle TransferInfo.
+
+partner:
+  en: Partner
+  fr: Partenaire
+
+partnerTooltip:
+  en: >
+    The name of the remote PeSIT partner to send the message to.
+    Supports variable substitution (e.g. #TI___ackPartner__#).
+  fr: >
+    Le nom du partenaire PeSIT distant vers lequel envoyer le message.
+    Supporte la substitution de variables (ex: #TI___ackPartner__#).
+
+partnerPlaceholder:
+  en: Partner name or variable
+  fr: Nom du partenaire ou variable
+
+account:
+  en: Account
+  fr: Compte
+
+accountTooltip:
+  en: >
+    The login of the remote account to use for authentication.
+    If empty, the first account of the partner is used.
+  fr: >
+    Le login du compte distant a utiliser pour l'authentification.
+    Si vide, le premier compte du partenaire est utilise.
+
+accountPlaceholder:
+  en: Account login (optional)
+  fr: Login du compte (optionnel)
+
+message:
+  en: Message
+  fr: Message
+
+messageTooltip:
+  en: >
+    The content of the F.MESSAGE to send. Supports variable substitution
+    (e.g. #TRUEFILENAME#, #TRANSFERID#). Max 4096 characters.
+  fr: >
+    Le contenu du F.MESSAGE a envoyer. Supporte la substitution de variables
+    (ex: #TRUEFILENAME#, #TRANSFERID#). 4096 caracteres max.
+
+messagePlaceholder:
+  en: Message content (optional)
+  fr: Contenu du message (optionnel)
+
+transferId:
+  en: Transfer ID
+  fr: ID du transfert
+
+transferIdTooltip:
+  en: >
+    The PeSIT transfer ID to reference in the F.MESSAGE. Supports variable
+    substitution (e.g. #TI___originalTransferID__#).
+  fr: >
+    L'identifiant de transfert PeSIT a referencer dans le F.MESSAGE. Supporte
+    la substitution de variables (ex: #TI___originalTransferID__#).
+
+transferIdPlaceholder:
+  en: Transfer ID or variable (optional)
+  fr: ID transfert ou variable (optionnel)
+
+condition:
+  en: Condition
+  fr: Condition
+
+conditionTooltip:
+  en: >
+    A TransferInfo key to check before sending. If the key exists and its value
+    is "1", the message is sent. Otherwise, the task is silently skipped.
+    Example: __ackRequested__
+  fr: >
+    Une cle TransferInfo a verifier avant l'envoi. Si la cle existe et sa valeur
+    est "1", le message est envoye. Sinon, la tache est silencieusement ignoree.
+    Exemple : __ackRequested__
+
+conditionPlaceholder:
+  en: TransferInfo key (optional)
+  fr: Cle TransferInfo (optionnel)

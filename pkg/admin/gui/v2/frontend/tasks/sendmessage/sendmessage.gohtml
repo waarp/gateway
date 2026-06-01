@@ -1,0 +1,56 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Partner (required) -->
+{{ template "textInputRow" dict
+    "label" .Text.partner
+    "tooltip" .Text.partnerTooltip
+    "fieldName" "partner"
+    "fieldType" "text"
+    "value" .Task.Args.partner
+    "placeholder" .Text.partnerPlaceholder
+}}
+
+<!-- Account (optional) -->
+{{ template "textInputRow" dict
+    "label" .Text.account
+    "tooltip" .Text.accountTooltip
+    "fieldName" "account"
+    "fieldType" "text"
+    "value" .Task.Args.account
+    "placeholder" .Text.accountPlaceholder
+    "optional" true
+}}
+
+<!-- Message content (optional) -->
+{{ template "textInputRow" dict
+    "label" .Text.message
+    "tooltip" .Text.messageTooltip
+    "fieldName" "message"
+    "fieldType" "text"
+    "value" .Task.Args.message
+    "placeholder" .Text.messagePlaceholder
+    "optional" true
+}}
+
+<!-- Transfer ID (optional) -->
+{{ template "textInputRow" dict
+    "label" .Text.transferId
+    "tooltip" .Text.transferIdTooltip
+    "fieldName" "transferId"
+    "fieldType" "text"
+    "value" .Task.Args.transferId
+    "placeholder" .Text.transferIdPlaceholder
+    "optional" true
+}}
+
+<!-- Condition (optional) -->
+{{ template "textInputRow" dict
+    "label" .Text.condition
+    "tooltip" .Text.conditionTooltip
+    "fieldName" "condition"
+    "fieldType" "text"
+    "value" .Task.Args.condition
+    "placeholder" .Text.conditionPlaceholder
+    "optional" true
+}}
