@@ -65,7 +65,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 	}
 
 	if config.CompatibilityMode == CompatibilityModeHistorique {
-		c.client.SetCFTCompatibilityUsage(true)
+		c.client.SetHistoriqueMode(true)
 	}
 
 	// Pre-connection is disabled by default in PeSIT-TLS mode because most
@@ -235,7 +235,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		}
 	}
 
-	if c.client.UseCFTCompatibility() {
+	if c.client.UseHistoriqueMode() {
 		c.pTrans.SetFilenamePI12(c.pip.TransCtx.Rule.Name)
 	}
 
