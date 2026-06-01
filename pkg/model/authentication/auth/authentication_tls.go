@@ -290,9 +290,10 @@ func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.
 			}
 		}
 
-		login := certs[0].Subject.CommonName
+		leaf := certs[0]
+		login := GetClientCertLogin(leaf)
 		if login == "" {
-			return errors.New("tls: missing client certificate common name")
+			return errors.New("tls: client certificate has no subject")
 		}
 
 		var acc model.LocalAccount
@@ -321,4 +322,16 @@ func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.
 
 		return nil
 	}
+}
+
+func GetClientCertLogin(cert *x509.Certificate) (login string) {
+	for _, dns := range cert.DNSNames {
+		return dns
+	}
+
+	for _, email := range cert.EmailAddresses {
+		return email
+	}
+
+	return cert.Subject.CommonName
 }

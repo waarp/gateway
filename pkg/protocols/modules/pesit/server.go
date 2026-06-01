@@ -101,12 +101,10 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 			"clients are not allowed to change their password")
 	}
 
-	user, authErr := s.authenticate(conn.ClientLogin(), conn.ClientPassword())
-	if authErr != nil {
-		return nil, authErr
+	user, usErr := s.authenticate(conn)
+	if usErr != nil {
+		return nil, usErr
 	}
-
-	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
 
 	return &transferHandler{
 		db:           s.db,
@@ -140,24 +138,41 @@ func (s *server) getPassword() (string, error) {
 	return pass.Value, nil
 }
 
-func (s *server) authenticate(login, password string) (*model.LocalAccount, error) {
-	user, err := s.localAgent.GetAccount(s.db, login)
-	if err != nil && !database.IsNotFound(err) {
-		s.logger.Errorf("Failed to retrieve the local account: %v", err)
+func (s *server) authenticate(conn *pesit.ServerConnection) (*model.LocalAccount, error) {
+	authenticated := false
+	login := conn.ClientLogin()
+	password := conn.ClientPassword()
 
-		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to check the authentication")
+	user, usErr := s.localAgent.GetAccount(s.db, conn.ClientLogin())
+	if usErr != nil && !database.IsNotFound(usErr) {
+		s.logger.Errorf("Failed to retrieve account from database: %v", usErr)
+
+		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "database error")
 	}
 
-	res, authErr := user.Authenticate(s.db, auth.Password, password)
-	if authErr != nil {
-		s.logger.Errorf("Failed to authenticate account %q: %v", login, authErr)
+	if tlsState, isTLS := conn.TLSConnectionState(); isTLS {
+		if len(tlsState.PeerCertificates) > 0 {
+			if protoutils.CheckClientCert(user, tlsState.PeerCertificates) {
+				authenticated = true
+			}
+		}
+	}
+
+	if pwdRes, pwdErr := user.Authenticate(s.db, auth.Password, password); pwdErr != nil {
+		s.logger.Errorf("Failed to authenticate account %q: %v", login, pwdErr)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to check the authentication")
-	} else if !res.Success {
-		s.logger.Warningf("authentication of account %q failed: %s", login, res.Reason)
+	} else if pwdRes.Success {
+		authenticated = true
+	}
+
+	if !authenticated {
+		s.logger.Warningf("authentication of account %q failed", login)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "invalid credentials")
 	}
+
+	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
 
 	return user, nil
 }

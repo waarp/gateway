@@ -49,7 +49,7 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		c.client.AllowCheckpoints(
 			utils.If(config.CheckpointSize != 0,
 				config.CheckpointSize,
-				c.clientConf.CheckpointSize),
+				uint(c.clientConf.CheckpointSize)),
 			utils.If(config.CheckpointWindow != 0,
 				config.CheckpointWindow,
 				c.clientConf.CheckpointWindow))

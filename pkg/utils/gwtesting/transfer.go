@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	Login    = "foobar"
+	Login    = "foo"
 	Password = "sesame"
 
 	PushRuleName = "push"

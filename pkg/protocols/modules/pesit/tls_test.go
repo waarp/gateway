@@ -7,26 +7,41 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
 func TestTLS(t *testing.T) {
 	db := gwtesting.Database(t)
-	ctx := gwtesting.TestTransferCtx(t, db, PesitTLS, nil, nil, nil)
+	ctx := gwtesting.TestTransferCtx(t, db, PesitTLS, nil, nil, map[string]any{
+		"useNSDU": false,
+	})
+	require.NoError(t, db.DeleteAll(&model.Credential{}).Run())
 
 	ctx.AddCred(t, &model.Credential{
 		Name:         "pesit_server_cert",
-		LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+		LocalAgentID: ctx.Server.NullableID(),
 		Type:         auth.TLSCertificate,
-		Value2:       gwtesting.ServerKeyPEM,
 		Value:        gwtesting.ServerCertPEM,
+		Value2:       gwtesting.ServerKeyPEM,
 	})
 	ctx.AddCred(t, &model.Credential{
 		Name:          "pesit_partner_cert",
-		RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+		RemoteAgentID: ctx.Partner.NullableID(),
 		Type:          auth.TLSTrustedCertificate,
 		Value:         gwtesting.ServerCertPEM,
+	})
+	ctx.AddCred(t, &model.Credential{
+		Name:           "pesit_loc_acc_cert",
+		LocalAccountID: ctx.LocalAccount.NullableID(),
+		Type:           auth.TLSTrustedCertificate,
+		Value:          gwtesting.ClientCertPEM,
+	})
+	ctx.AddCred(t, &model.Credential{
+		Name:            "pesit_rem_acc_cert",
+		RemoteAccountID: ctx.RemoteAccount.NullableID(),
+		Type:            auth.TLSCertificate,
+		Value:           gwtesting.ClientCertPEM,
+		Value2:          gwtesting.ClientKeyPEM,
 	})
 
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
