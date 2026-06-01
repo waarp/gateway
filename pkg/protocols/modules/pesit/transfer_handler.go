@@ -467,6 +467,10 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 
 	if pErr != nil {
 		t.handleError(pErr)
+		t.pip = nil
+		t.file = nil
+		t.ctx = nil
+		t.cancel = nil
 
 		return nil
 	}
@@ -488,6 +492,13 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 	}
 
 	t.pip.Logger.Debug("Transfer finalization successful")
+
+	// Reset transfer-specific state so the handler is ready for another
+	// transfer cycle on the same connection (multi-file support).
+	t.pip = nil
+	t.file = nil
+	t.ctx = nil
+	t.cancel = nil
 
 	return nil
 }
