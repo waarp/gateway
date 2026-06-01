@@ -80,7 +80,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
 
 	req.SetArticleFormat(pesit.FormatVariable)
-	req.SetArticleSize(defaultArticleSize)
+	req.SetArticleSize(t.conf.ArticleSize)
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
 		req.SetMessageSize(t.conf.MaxMessageSize)
