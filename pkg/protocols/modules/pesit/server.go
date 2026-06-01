@@ -198,13 +198,72 @@ func (s *server) authenticate(login, password string) (*model.LocalAccount, erro
 
 // HandleMessage implements pesit.MessageHandler. It is called when a remote
 // partner sends a F.MESSAGE on an established connection. The message metadata
-// is logged and stored for potential use by post-tasks or Store-and-Forward.
+// is logged and persisted as TransferInfo on the referenced transfer (if found).
 func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageRequest) error {
 	s.logger.Infof("F.MESSAGE received from %q: transferID=%d message=%q customerID=%q bankID=%q",
 		msg.ClientLogin, msg.TransferID, msg.Message, msg.CustomerID, msg.BankID)
 
-	// TODO: persist the message in the database or trigger a post-processing action
-	// For now, accept the message and log it.
+	if msg.TransferID == 0 {
+		s.logger.Debug("F.MESSAGE has no transferID, accepted without persistence")
+
+		return nil
+	}
+
+	// Try to correlate with an existing transfer in history
+	remoteID := fmt.Sprintf("%d", msg.TransferID)
+
+	var hist model.HistoryEntry
+	if err := s.db.Get(&hist, "remote_transfer_id=?", remoteID).Run(); err != nil {
+		s.logger.Debugf("F.MESSAGE: no history entry found for remote_transfer_id=%s, trying active transfers", remoteID)
+
+		// Try active transfers
+		var trans model.Transfer
+		if err := s.db.Get(&trans, "remote_transfer_id=?", remoteID).Run(); err != nil {
+			s.logger.Warningf("F.MESSAGE: no transfer found for remote_transfer_id=%s, message accepted but not persisted", remoteID)
+
+			return nil
+		}
+
+		// Persist on active transfer
+		for name, value := range map[string]string{
+			"__ackReceived__": "1",
+			"__ackContent__":  msg.Message,
+			"__ackFrom__":     msg.ClientLogin,
+		} {
+			info := &model.TransferInfo{
+				TransferID: utils.NewNullInt64(trans.ID),
+				Name:       name,
+				Value:      value,
+			}
+
+			if err := s.db.Insert(info).Run(); err != nil {
+				s.logger.Warningf("F.MESSAGE: failed to save TransferInfo %s: %v", name, err)
+			}
+		}
+
+		s.logger.Infof("F.MESSAGE: acknowledgment persisted on active transfer #%d", trans.ID)
+
+		return nil
+	}
+
+	// Persist on history entry
+	for name, value := range map[string]string{
+		"__ackReceived__": "1",
+		"__ackContent__":  msg.Message,
+		"__ackFrom__":     msg.ClientLogin,
+	} {
+		info := &model.TransferInfo{
+			HistoryID: utils.NewNullInt64(hist.ID),
+			Name:      name,
+			Value:     value,
+		}
+
+		if err := s.db.Insert(info).Run(); err != nil {
+			s.logger.Warningf("F.MESSAGE: failed to save TransferInfo %s: %v", name, err)
+		}
+	}
+
+	s.logger.Infof("F.MESSAGE: acknowledgment persisted on history entry #%d", hist.ID)
 
 	return nil
 }
