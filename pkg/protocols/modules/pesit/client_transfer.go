@@ -82,10 +82,10 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	method := pesit.MethodRecv
 
 	if c.pip.TransCtx.Rule.IsSend {
-		c.conn.Client.SetAccessType(pesit.AccessWrite)
+		c.conn.SetAccessType(pesit.AccessWrite)
 		method = pesit.MethodSend
 	} else {
-		c.conn.Client.SetAccessType(pesit.AccessRead)
+		c.conn.SetAccessType(pesit.AccessRead)
 	}
 
 	c.pTrans = pesit.NewTransfer(method, c.pip.TransCtx.Transfer.RemotePath)
@@ -93,15 +93,15 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	// configure recovery if transfer is resumed
 	if prog := c.pip.TransCtx.Transfer.Progress; prog != 0 ||
 		c.pip.TransCtx.Transfer.Step > types.StepSetup {
-		if !c.conn.Client.HasRestart() {
+		if !c.conn.HasRestart() {
 			return pipeline.NewError(types.TeForbidden,
 				"cannot resume transfer, server does not allow restarts")
 		}
 
 		c.pTrans.SetRecovered(true)
 
-		if c.pip.TransCtx.Rule.IsSend && c.conn.Client.HasCheckpoints() {
-			checkpointNb := prog / int64(c.conn.Client.CheckpointSize())
+		if c.pip.TransCtx.Rule.IsSend && c.conn.HasCheckpoints() {
+			checkpointNb := prog / int64(c.conn.CheckpointSize())
 			c.pTrans.SetRecoveryPoint(uint32(checkpointNb))
 		}
 	}
@@ -146,12 +146,12 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		}
 	}
 
-	if c.conn.Client.UseHistoriqueMode() {
+	if c.conn.UseHistoriqueMode() {
 		c.pTrans.SetFilenamePI12(c.pip.TransCtx.Rule.Name)
 	}
 
 	// request transfer
-	if err := c.conn.Client.SelectFile(c.pTrans); err != nil {
+	if err := c.conn.SelectFile(c.pTrans); err != nil {
 		c.pip.Logger.Errorf("Failed to make transfer request: %v", err)
 
 		return toPipErr(types.TeForbidden, "failed to make transfer request", err)

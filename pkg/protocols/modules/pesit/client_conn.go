@@ -2,6 +2,7 @@ package pesit
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -86,17 +87,17 @@ func (c *client) dialPesitConn(pip *pipeline.Pipeline, dialer *protoutils.TraceD
 	configurePesitClient(pesitClient, &partConf.PartnerConfig, c.conf, pip, c.isTLS)
 
 	// Perform F.CONNECT handshake
-	if err := pesitClient.Connect(conn); err != nil {
+	if connErr := pesitClient.Connect(conn); connErr != nil {
 		conn.Close()
 
-		return nil, fmt.Errorf("failed to establish PeSIT connection: %w", err)
+		return nil, fmt.Errorf("failed to establish PeSIT connection: %w", connErr)
 	}
 
 	// Authenticate server
-	if err := authenticateServerConn(pesitClient, pip); err != nil {
+	if authErr := authenticateServerConn(pesitClient, pip); authErr != nil {
 		pesitClient.Close(nil)
 
-		return nil, fmt.Errorf("server authentication failed: %w", err)
+		return nil, fmt.Errorf("server authentication failed: %w", authErr)
 	}
 
 	pip.Logger.Debug("PeSIT connection established and pooled")
@@ -105,7 +106,10 @@ func (c *client) dialPesitConn(pip *pipeline.Pipeline, dialer *protoutils.TraceD
 }
 
 // configurePesitClient applies the partner and client config to a pesit.Client.
-func configurePesitClient(client *pesit.Client, config *PartnerConfig, clientConf *ClientConfigTLS, pip *pipeline.Pipeline, isTLS bool) {
+func configurePesitClient(
+	client *pesit.Client, config *PartnerConfig,
+	clientConf *ClientConfigTLS, pip *pipeline.Pipeline, isTLS bool,
+) {
 	if utils.If(config.DisableCheckpoints.Valid,
 		config.DisableCheckpoints.Value, clientConf.DisableCheckpoints) {
 		client.AllowCheckpoints(pesit.CheckpointDisabled, 0)
@@ -116,7 +120,8 @@ func configurePesitClient(client *pesit.Client, config *PartnerConfig, clientCon
 				clientConf.CheckpointSize),
 			utils.If(config.CheckpointWindow != 0,
 				config.CheckpointWindow,
-				clientConf.CheckpointWindow))
+				clientConf.CheckpointWindow),
+		)
 
 		client.AllowRestart(!utils.If(config.DisableRestart.Valid,
 			config.DisableRestart.Value, clientConf.DisableRestart))
@@ -132,30 +137,38 @@ func configurePesitClient(client *pesit.Client, config *PartnerConfig, clientCon
 
 	usePreConn := !config.DisablePreConnection && !isTLS
 	for _, cred := range pip.TransCtx.RemoteAccountCreds {
-		if cred.Type == PreConnectionAuth {
-			usePreConn = true
-			client.SetPreConnectLogin(cred.Value)
-			client.SetPreConnectPassword(cred.Value2)
-
-			break
+		if cred.Type != PreConnectionAuth {
+			continue
 		}
+
+		usePreConn = true
+		client.SetPreConnectLogin(cred.Value)
+		client.SetPreConnectPassword(cred.Value2)
+
+		break
 	}
 	client.SetPreConnectionUsage(usePreConn)
 
-	_ = setFreetext(pip, clientConnFreetextKey, client)
+	//nolint:errcheck // freetext is best-effort
+	setFreetext(pip, clientConnFreetextKey, client)
 }
+
+var (
+	errServerPasswordChange = errors.New("server password change not allowed")
+	errServerAuthFailed     = errors.New("server authentication failed: bad password")
+)
 
 // authenticateServerConn checks the server password returned in ACONNECT.
 func authenticateServerConn(client *pesit.Client, pip *pipeline.Pipeline) error {
 	if client.NewServerPassword() != "" {
-		return fmt.Errorf("server password change not allowed")
+		return errServerPasswordChange
 	}
 
 	var servPwd model.Credential
 	if err := pip.DB.Get(&servPwd, "remote_agent_id=? AND type=?",
 		pip.TransCtx.RemoteAgent.ID, auth.Password).Run(); err == nil {
 		if bcrypt.CompareHashAndPassword([]byte(servPwd.Value), []byte(client.ServerPassword())) != nil {
-			return fmt.Errorf("server authentication failed: bad password")
+			return errServerAuthFailed
 		}
 	}
 

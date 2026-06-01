@@ -8,7 +8,7 @@ require (
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/log/v2 v2.4.0
 	code.waarp.fr/lib/migration v1.5.0
-	code.waarp.fr/lib/pesit v0.1.6
+	code.waarp.fr/lib/pesit v0.1.7-0.20260601101011-2b4ee9f7a0a1
 	code.waarp.fr/lib/r66 v1.0.8
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.2
 	github.com/Masterminds/sprig/v3 v3.3.0
@@ -338,5 +338,3 @@ require (
 	storj.io/picobuf v0.0.4 // indirect
 	storj.io/uplink v1.14.2 // indirect
 )
-
-replace code.waarp.fr/lib/pesit => ../PESIT/lib-pesit

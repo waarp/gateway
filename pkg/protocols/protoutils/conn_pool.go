@@ -19,8 +19,10 @@ var ErrConnectionPoolClosed = errors.New("connection pool is closed")
 type OpenConnFunc[T io.Closer] func(*pipeline.Pipeline, *TraceDialer) (T, error)
 
 type counter[T io.Closer] struct {
-	conn  T
+	conn T
+
 	count uint
+
 	grace *time.Timer
 }
 
@@ -30,6 +32,7 @@ func newCounter[T io.Closer](conn T) *counter[T] {
 
 func (c *counter[T]) inc() {
 	c.count++
+
 	if c.grace != nil {
 		c.grace.Stop()
 	}
@@ -55,29 +58,44 @@ func (c *counter[T]) forceClose() error {
 	}
 
 	//nolint:wrapcheck //no need to wrap here
+
 	return c.conn.Close()
 }
 
 type ConnPool[T io.Closer] struct {
-	pool        *xsync.Map[int64, *counter[T]]
-	dialer      *TraceDialer
-	openConn    OpenConnFunc[T]
+	pool *xsync.Map[int64, *counter[T]]
+
+	dialer *TraceDialer
+
+	openConn OpenConnFunc[T]
+
 	gracePeriod time.Duration
-	closed      atomic.Bool
+
+	closed atomic.Bool
+
 	// exclusive controls whether a pooled connection can be shared between
+
 	// concurrent users. When false (default), multiple Connect() calls for
+
 	// the same key return the same connection (suitable for R66/SFTP which
+
 	// support concurrent sessions). When true, if a connection is already
+
 	// in use (count > 0), a new standalone connection is created instead
+
 	// (suitable for PeSIT which is sequential per-connection).
+
 	exclusive bool
 }
 
 func NewConnPool[T io.Closer](dialer *TraceDialer, openConn OpenConnFunc[T]) *ConnPool[T] {
 	return &ConnPool[T]{
-		pool:        xsync.NewMap[int64, *counter[T]](),
-		dialer:      dialer,
-		openConn:    openConn,
+		pool: xsync.NewMap[int64, *counter[T]](),
+
+		dialer: dialer,
+
+		openConn: openConn,
+
 		gracePeriod: DefaultConnGracePeriod,
 	}
 }
@@ -87,11 +105,17 @@ func (c *ConnPool[T]) SetGracePeriod(duration time.Duration) {
 }
 
 // SetExclusive enables exclusive mode where each Connect() gets its own
+
 // connection. When a pooled connection is already in use, a new standalone
+
 // connection is created. This is needed for protocols like PeSIT where a
+
 // single connection only supports one transfer at a time.
+
 // When the connection is not in use (count == 0, during grace period),
+
 // it is reused normally (sequential reuse).
+
 func (c *ConnPool[T]) SetExclusive(exclusive bool) {
 	c.exclusive = exclusive
 }
@@ -104,8 +128,11 @@ func (c *ConnPool[T]) Connect(pip *pipeline.Pipeline) (T, error) {
 	key := pip.TransCtx.RemoteAccount.ID
 
 	// In exclusive mode, check if the connection is currently in use.
+
 	// If so, create a standalone (non-pooled) connection instead.
+
 	if c.exclusive {
+
 		var inUse bool
 
 		c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
@@ -117,30 +144,39 @@ func (c *ConnPool[T]) Connect(pip *pipeline.Pipeline) (T, error) {
 		})
 
 		if inUse {
+
 			conn, err := c.openConn(pip, c.dialer)
 			if err != nil {
 				return *new(T), err
 			}
 
 			return conn, nil
+
 		}
+
 	}
 
 	var err error
+
 	info, _ := c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
 		if c.isClosed() {
+
 			err = ErrConnectionPoolClosed
 
 			return info, xsync.CancelOp
+
 		}
 
 		if loaded {
+
 			info.inc()
 
 			return info, xsync.UpdateOp
+
 		}
 
 		var conn T
+
 		conn, err = c.openConn(pip, c.dialer)
 		if err != nil {
 			return info, xsync.CancelOp
@@ -187,8 +223,11 @@ func (c *ConnPool[T]) CloseConnFor(account *model.RemoteAccount) {
 }
 
 // ForceDisconnect immediately removes and closes the connection for the
+
 // given account from the pool, bypassing the grace period. Use this when
+
 // a connection is known to be in an invalid state (e.g., after an ABORT).
+
 func (c *ConnPool[T]) ForceDisconnect(account *model.RemoteAccount) {
 	key := account.ID
 
@@ -204,8 +243,11 @@ func (c *ConnPool[T]) ForceDisconnect(account *model.RemoteAccount) {
 }
 
 // Evict removes the connection for the given account from the pool WITHOUT
+
 // closing it. Use this when the connection has already been closed externally
+
 // (e.g., after sending an ABORT) and you just need to clean up the pool entry.
+
 func (c *ConnPool[T]) Evict(account *model.RemoteAccount) {
 	key := account.ID
 
@@ -226,6 +268,7 @@ func (c *ConnPool[T]) Stop() error {
 	c.closed.Store(true)
 
 	errs := make([]error, 0, c.pool.Size())
+
 	c.pool.Range(func(key int64, _ *counter[T]) bool {
 		c.pool.Compute(key, func(value *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
 			if loaded {
