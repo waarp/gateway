@@ -19,7 +19,7 @@ const (
 	// omitted by the user in the proto config.
 	DefaultMessageSize uint16 = math.MaxUint16
 
-	defaultArticleSize = 0xFF00
+	defaultArticleSize uint16 = 4096 // Matches Axway CFT default for interop
 )
 
 type CompatibilityMode string
@@ -91,6 +91,9 @@ type ServerConfig struct {
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
 	// this server. Default is 65535.
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
+	// ArticleSize defines the article size (PI 32) announced in the protocol
+	// negotiation. Default is 4096 (matching Axway CFT default).
+	ArticleSize uint16 `json:"articleSize,omitempty"`
 }
 
 func (s *ServerConfig) ValidServer() error {
@@ -98,6 +101,10 @@ func (s *ServerConfig) ValidServer() error {
 
 	if s.MaxMessageSize == 0 {
 		s.MaxMessageSize = DefaultMessageSize
+	}
+
+	if s.ArticleSize == 0 {
+		s.ArticleSize = defaultArticleSize
 	}
 
 	return nil
@@ -146,6 +153,9 @@ type PartnerConfig struct {
 	// connecting to this partner. By default, the pre-connection authentication
 	// is activated.
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
+	// ArticleSize defines the article size (PI 32) used when communicating
+	// with this partner. Default is 4096 (matching Axway CFT default).
+	ArticleSize uint16 `json:"articleSize,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {
@@ -163,6 +173,10 @@ func (p *PartnerConfig) ValidPartner() error {
 
 	if p.MaxMessageSize == 0 {
 		p.MaxMessageSize = DefaultMessageSize
+	}
+
+	if p.ArticleSize == 0 {
+		p.ArticleSize = defaultArticleSize
 	}
 
 	return nil
