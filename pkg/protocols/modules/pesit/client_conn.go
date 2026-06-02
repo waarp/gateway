@@ -149,6 +149,10 @@ func configurePesitClient(
 	}
 	client.SetPreConnectionUsage(usePreConn)
 
+	if config.ProtocolTimeout > 0 {
+		client.SetMonitoringTimeout(config.ProtocolTimeout)
+	}
+
 	//nolint:errcheck // freetext is best-effort
 	setFreetext(pip, clientConnFreetextKey, client)
 }

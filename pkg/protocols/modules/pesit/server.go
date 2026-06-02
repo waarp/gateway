@@ -106,6 +106,10 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 		conn.AllowRestart(true)
 	}
 
+	if s.conf.ProtocolTimeout > 0 {
+		conn.SetMonitoringTimeout(s.conf.ProtocolTimeout)
+	}
+
 	if conn.NewClientPassword() != "" {
 		s.logger.Warningf("Connection from %q refused, clients are not allowed to change their password",
 			conn.ClientLogin())

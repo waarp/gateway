@@ -103,6 +103,11 @@ type ServerConfig struct {
 	// ArticleSize defines the article size (PI 32) announced in the protocol
 	// negotiation. Default is 4096 (matching Axway CFT default).
 	ArticleSize uint16 `json:"articleSize,omitempty"`
+	// ProtocolTimeout defines the protocol surveillance timeout in seconds
+	// (PI 26). When set, the server will abort the connection if no FPDU is
+	// received within this delay during active protocol phases. Default is 0
+	// (no timeout).
+	ProtocolTimeout uint16 `json:"protocolTimeout,omitempty"`
 }
 
 func (s *ServerConfig) ValidServer() error {
@@ -168,6 +173,11 @@ type PartnerConfig struct {
 	// ArticleSize defines the article size (PI 32) used when communicating
 	// with this partner. Default is 4096 (matching Axway CFT default).
 	ArticleSize uint16 `json:"articleSize,omitempty"`
+	// ProtocolTimeout defines the protocol surveillance timeout in seconds
+	// (PI 26) proposed to the server during connection. When set, both sides
+	// will abort if no FPDU is received within this delay. Default is 0
+	// (no timeout).
+	ProtocolTimeout uint16 `json:"protocolTimeout,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {
