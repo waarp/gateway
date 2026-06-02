@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"path"
 
 	"code.waarp.fr/lib/pesit"
 	"golang.org/x/crypto/bcrypt"
@@ -247,6 +248,24 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	if !c.pip.TransCtx.Rule.IsSend {
 		c.pip.TransCtx.Transfer.RemoteTransferID = utils.FormatUint(c.pTrans.TransferID())
 		c.pip.TransCtx.Transfer.Filesize = model.UnknownSize
+
+		// When the server resolved a glob pattern (e.g. "data-*" -> "data-003.txt"),
+		// update the local transfer filenames and reset the local path so the
+		// pipeline creates the file with the resolved name instead of the pattern.
+		resolvedName := c.pTrans.Filename()
+		if resolvedName != "" && !pipeline.ContainsWildcard(resolvedName) {
+			resolvedBase := path.Base(resolvedName)
+			if pipeline.ContainsWildcard(c.pip.TransCtx.Transfer.DestFilename) ||
+				pipeline.ContainsWildcard(c.pip.TransCtx.Transfer.SrcFilename) {
+				c.pip.Logger.Infof("Pattern resolved by server: %q -> %q",
+					c.pip.TransCtx.Transfer.DestFilename, resolvedBase)
+				c.pip.TransCtx.Transfer.DestFilename = resolvedBase
+				c.pip.TransCtx.Transfer.SrcFilename = resolvedName
+				c.pip.TransCtx.Transfer.RemotePath = resolvedName
+				// Reset LocalPath so it will be recomputed with the resolved name.
+				c.pip.TransCtx.Transfer.LocalPath = ""
+			}
+		}
 
 		setTransInfo(c.pip, fileEncodingKey, c.pTrans.DataCoding().String())
 		setTransInfo(c.pip, fileTypeKey, c.pTrans.FileType())

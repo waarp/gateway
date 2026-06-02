@@ -6,6 +6,7 @@ import (
 	"io"
 	"path"
 	"strconv"
+	"strings"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -142,6 +143,21 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		return err
 	}
 
+	// When a glob pattern was used, update the response with the resolved
+	// filename so the client receives the actual name (not the pattern).
+	if pipeline.ContainsWildcard(filepath) {
+		resolved := t.pip.TransCtx.Transfer.SrcFilename
+		if !isSend {
+			resolved = t.pip.TransCtx.Transfer.DestFilename
+		}
+
+		if resolved != "" && !pipeline.ContainsWildcard(resolved) {
+			resolvedPath := path.Join(rule.Path, resolved)
+			t.logger.Infof("Pattern %q resolved to %q in SELECT ACK", filepath, resolvedPath)
+			req.SetFilename(resolvedPath)
+		}
+	}
+
 	req.StopReceived = stopReceived(t.pip)
 	req.ConnectionAborted = connectionAborted(t.pip)
 	req.RestartReceived = restartReceived(t.pip)
@@ -188,6 +204,7 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 		filepath = generateDestFilename(remoteID, t.account, rule)
 	}
 
+	// Try exact match first against AVAILABLE transfers.
 	if trans, err := pipeline.GetAvailableTransferByFilename(t.db, filepath, remoteID,
 		t.account, rule); err == nil {
 		return trans, nil
@@ -195,7 +212,49 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 		return nil, transErrToPesitErr(err)
 	}
 
+	// If the filepath contains a glob pattern (e.g. "data-*", "*.csv"),
+	// try pattern matching against AVAILABLE transfers.
+	if pipeline.ContainsWildcard(filepath) {
+		if trans, err := pipeline.GetAvailableTransferByPattern(t.db, filepath, remoteID,
+			t.account, rule); err == nil {
+			t.logger.Infof("Pattern %q matched available transfer for file %q",
+				filepath, trans.SrcFilename)
+
+			return trans, nil
+		}
+
+		// Fallback: resolve the pattern against the filesystem.
+		if resolved := t.resolveGlobPattern(filepath, rule); resolved != "" {
+			t.logger.Infof("Pattern %q resolved to file %q on filesystem", filepath, resolved)
+
+			return pipeline.MakeServerTransfer(remoteID, resolved, t.account, rule), nil
+		}
+
+		return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists,
+			"no file matches pattern")
+	}
+
 	return pipeline.MakeServerTransfer(remoteID, filepath, t.account, rule), nil
+}
+
+// resolveGlobPattern resolves a glob pattern to the first matching file
+// on the local filesystem, relative to the rule's send directory.
+func (t *transferHandler) resolveGlobPattern(pattern string, rule *model.Rule) string {
+	fullPattern := fs.JoinPath(rule.LocalDir, pattern)
+
+	matches, err := fs.Glob(fullPattern)
+	if err != nil || len(matches) == 0 {
+		return ""
+	}
+
+	// Return the path relative to the rule's localDir, as expected by the pipeline.
+	resolved := matches[0]
+	if prefix := rule.LocalDir; prefix != "" {
+		resolved = strings.TrimPrefix(resolved, prefix+"/")
+		resolved = strings.TrimPrefix(resolved, prefix+"\\")
+	}
+
+	return resolved
 }
 
 func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
