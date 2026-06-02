@@ -264,6 +264,56 @@ toujours dans le sens de la connexion (donc du client vers le serveur).
 Comme pour le texte libre, ces informations peuvent être référencées dans les traitements
 en utilisant leurs clés respectives.
 
+Formats de fichier (PI 31/32/33)
+---------------------------------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT transmet les attributs de format du fichier via les paramètres
+PI 31 (format d'article), PI 32 (taille d'article) et PI 33 (organisation du
+fichier). Ces attributs sont importants pour l'interopérabilité avec les systèmes
+mainframe (z/OS, AS/400) qui utilisent des fichiers à enregistrements fixes.
+
+**À l'émission**, le format d'article peut être configuré via :
+
+- La :ref:`configuration protocolaire <proto-config-pesit>` du partenaire ou du
+  serveur (champ ``articleFormat`` : ``variable`` ou ``fixed``)
+- L'info de transfert ``__articleFormat__`` (surcharge par transfert)
+
+**À la réception**, les attributs PI 31/32/33 envoyés par le partenaire sont
+stockés dans les :term:`infos de transfert` :
+
+- ``__articleFormat__`` : ``variable`` ou ``fixed`` (PI 31)
+- ``__fileType__`` : type de fichier (PI 11)
+- ``__organization__`` : organisation du fichier (PI 33) — ``Sequential``,
+  ``Relative`` ou ``Indexed``
+
+Ces informations peuvent être exploitées par des tâches de post-traitement pour
+adapter le fichier reçu (ex: ajout de séparateurs entre enregistrements fixes,
+transcodage EBCDIC → UTF-8 via une tâche EXEC, etc.).
+
+**Cas d'usage courants** :
+
+.. list-table::
+   :header-rows: 1
+
+   * - Cas
+     - articleFormat
+     - PI 32
+     - PI 33
+   * - Fichier COBOL (z/OS)
+     - ``fixed``
+     - 80
+     - Sequential
+   * - Fichier CSV / texte Unix
+     - ``variable``
+     - 4096
+     - Sequential
+   * - Fichier binaire
+     - ``variable``
+     - 4096
+     - Sequential
+
 Articles
 --------
 

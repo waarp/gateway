@@ -215,7 +215,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 
 	c.pTrans.SetTransferID(c.pesitID)
 	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
-	c.pTrans.SetArticleFormat(pesit.FormatVariable)
+	c.pTrans.SetArticleFormat(resolveArticleFormat(partConf.ArticleFormat))
 	c.pTrans.SetArticleSize(defaultArticleSize)
 
 	c.pTrans.StopReceived = stopReceived(c.pip)

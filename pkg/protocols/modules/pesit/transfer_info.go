@@ -23,6 +23,7 @@ const (
 	serverTransFreetextKey = "__serverTransFreetext__"
 
 	articlesLengthsKey = "__articlesLengths__"
+	articleFormatKey   = "__articleFormat__"
 )
 
 type valueTypes interface {
@@ -127,6 +128,18 @@ func setTransInfo[T valueTypes](pip *pipeline.Pipeline, key string, val T) {
 	if !reflect.ValueOf(val).IsZero() {
 		pip.TransCtx.Transfer.TransferInfo[key] = val
 	}
+}
+
+// getArticleFormat returns the article format for a transfer, checking
+// TransferInfo override first, then falling back to the config value.
+func getArticleFormat(pip *pipeline.Pipeline, configValue string) pesit.ArticleFormat {
+	if val, ok := pip.TransCtx.Transfer.TransferInfo[articleFormatKey]; ok {
+		if str, isStr := val.(string); isStr {
+			return resolveArticleFormat(str)
+		}
+	}
+
+	return resolveArticleFormat(configValue)
 }
 
 func isMultiArticles(pip *pipeline.Pipeline) ([]int64, bool) {

@@ -96,6 +96,11 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par
   défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.
+* **articleFormat** (*string*) - Spécifie le format des articles pour les transferts
+  sortants vers ce partenaire (PI 31). Les valeurs acceptées sont ``variable``
+  (par défaut) et ``fixed``. Surcharge la configuration du client/serveur si renseigné.
+  Peut également être surchargé par transfert via l'info de transfert
+  ``__articleFormat__``.
 * **maxConnections** (*integer*) - Limite le nombre de connexions PeSIT
   simultanées vers ce partenaire. Lorsque la limite est atteinte, les nouveaux
   transferts attendent qu'une connexion se libère. La valeur par défaut est 0
@@ -145,6 +150,11 @@ est la suivante :
   pour les paquets PeSIT envoyés à (et reçus depuis) ce serveur. Si un client se
   connectant au serveur demande une taille plus grande, celle-ci sera rabaissée
   à ce maximum. La valeur par défaut est de 65535 octets.
+* **articleFormat** (*string*) - Spécifie le format des articles pour les transferts
+  sortants (PI 31). Les valeurs acceptées sont ``variable`` (par défaut) et ``fixed``.
+  Le format fixe est utilisé pour les fichiers à enregistrements de taille constante
+  (ex: fichiers mainframe COBOL de 80 octets). Cette valeur peut être surchargée
+  par transfert via l'info de transfert ``__articleFormat__``.
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) si le partenaire client
   ne le supporte pas. Lorsque ce paramètre est activé, le serveur assume

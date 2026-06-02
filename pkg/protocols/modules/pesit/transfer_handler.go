@@ -80,7 +80,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
 
-	req.SetArticleFormat(pesit.FormatVariable)
+	req.SetArticleFormat(resolveArticleFormat(t.conf.ArticleFormat))
 	req.SetArticleSize(defaultArticleSize)
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
@@ -308,6 +308,11 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
 		setTransInfo(t.pip, fileTypeKey, req.FileType())
 		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
+		if req.ArticleFormat() == pesit.FormatFixed {
+			setTransInfo(t.pip, articleFormatKey, ArticleFormatFixed)
+		} else {
+			setTransInfo(t.pip, articleFormatKey, ArticleFormatVariable)
+		}
 	}
 
 	return utils.RunWithCtx(t.ctx, func() error {
@@ -425,7 +430,7 @@ func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 		return nil
 	}
 
-	trans.SetArticleFormat(pesit.FormatVariable)
+	trans.SetArticleFormat(resolveArticleFormat(t.conf.ArticleFormat))
 	trans.SetManualArticleHandling(true)
 
 	for _, length := range lengths {

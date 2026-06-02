@@ -5,8 +5,25 @@ import (
 	"math"
 	"strings"
 
+	"code.waarp.fr/lib/pesit"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
+
+const (
+	ArticleFormatVariable = "variable"
+	ArticleFormatFixed    = "fixed"
+)
+
+// resolveArticleFormat converts a config string to a lib-pesit ArticleFormat.
+// Returns FormatVariable by default (standard PeSIT behavior).
+func resolveArticleFormat(configValue string) pesit.ArticleFormat {
+	if strings.EqualFold(configValue, ArticleFormatFixed) {
+		return pesit.FormatFixed
+	}
+
+	return pesit.FormatVariable
+}
 
 const (
 	// DefaultCheckpointSize defines the default checkpoint size (in bytes) if
@@ -91,6 +108,10 @@ type ServerConfig struct {
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
 	// this server. Default is 65535.
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
+
+	// ArticleFormat defines the article format used for outgoing transfers.
+	// Accepted values are: "variable" (default) and "fixed".
+	ArticleFormat string `json:"articleFormat,omitempty"`
 }
 
 func (s *ServerConfig) ValidServer() error {
@@ -151,6 +172,11 @@ type PartnerConfig struct {
 	// partner. When the limit is reached, new transfers wait until a connection
 	// is released. Default is 0 (unlimited).
 	MaxConnections uint16 `json:"maxConnections,omitempty"`
+
+	// ArticleFormat defines the article format used for outgoing transfers to
+	// this partner. Accepted values are: "variable" (default) and "fixed".
+	// Overrides the server/client configuration if set.
+	ArticleFormat string `json:"articleFormat,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {
