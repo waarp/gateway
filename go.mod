@@ -8,7 +8,7 @@ require (
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/log/v2 v2.4.0
 	code.waarp.fr/lib/migration v1.5.0
-	code.waarp.fr/lib/pesit v0.1.7-0.20260601123737-cac113ff5f72
+	code.waarp.fr/lib/pesit v0.1.7-0.20260602130225-1bfb2496e8cd
 	code.waarp.fr/lib/r66 v1.0.8
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.2
 	github.com/Masterminds/sprig/v3 v3.3.0
