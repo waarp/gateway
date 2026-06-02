@@ -5,6 +5,8 @@ import (
 	"math"
 	"strings"
 
+	libpesit "code.waarp.fr/lib/pesit"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
@@ -21,6 +23,30 @@ const (
 
 	defaultArticleSize uint16 = 4096 // Matches Axway CFT default for interop
 )
+
+// CompressionMode defines the PeSIT compression type for PI 21.
+type CompressionMode string
+
+const (
+	CompressionNone       CompressionMode = "none"
+	CompressionHorizontal CompressionMode = "horizontal"
+	CompressionVertical   CompressionMode = "vertical"
+	CompressionBoth       CompressionMode = "both"
+)
+
+// ToPeSIT converts a CompressionMode to the lib/pesit Compression type.
+func (m CompressionMode) ToPeSIT() libpesit.Compression {
+	switch m {
+	case CompressionHorizontal:
+		return libpesit.Horizontal
+	case CompressionVertical:
+		return libpesit.Vertical
+	case CompressionBoth:
+		return libpesit.HorizontalVertical
+	default:
+		return libpesit.NoCompression
+	}
+}
 
 type CompatibilityMode string
 
@@ -108,6 +134,10 @@ type ServerConfig struct {
 	// received within this delay during active protocol phases. Default is 0
 	// (no timeout).
 	ProtocolTimeout uint16 `json:"protocolTimeout,omitempty"`
+	// Compression defines the compression mode proposed during the file open
+	// phase (PI 21). Accepted values: "none", "horizontal", "vertical", "both".
+	// Default is "none".
+	Compression CompressionMode `json:"compression,omitempty"`
 }
 
 func (s *ServerConfig) ValidServer() error {
@@ -178,6 +208,10 @@ type PartnerConfig struct {
 	// will abort if no FPDU is received within this delay. Default is 0
 	// (no timeout).
 	ProtocolTimeout uint16 `json:"protocolTimeout,omitempty"`
+	// Compression defines the compression mode proposed during the file open
+	// phase (PI 21). Accepted values: "none", "horizontal", "vertical", "both".
+	// Default is "none".
+	Compression CompressionMode `json:"compression,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {

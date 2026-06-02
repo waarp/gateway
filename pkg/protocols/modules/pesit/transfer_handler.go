@@ -276,11 +276,9 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 func (t *transferHandler) OpenFile(st *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("Opening file")
 
-	// Force no compression until compression is implemented in the library.
-	// Without this, a partner that negotiates compression successfully will
-	// send compressed data that the Gateway writes as-is, causing silent
-	// data corruption.
-	st.SetCompression(pesit.NoCompression)
+	// Apply the configured compression mode (PI 21). The algorithms are
+	// implemented in the library (Annexe A). Default is NoCompression.
+	st.SetCompression(t.conf.Compression.ToPeSIT())
 	if err := utils.RunWithCtx(t.ctx, func() error {
 		stream, stErr := t.pip.StartData()
 		if stErr != nil {

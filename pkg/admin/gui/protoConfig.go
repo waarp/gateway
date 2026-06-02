@@ -325,6 +325,10 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["protocolTimeout"] = timeout
 	}
 
+	if compression := r.FormValue("protoConfigPeSITcompression"); compression != "" {
+		pesitProtoConfig["compression"] = compression
+	}
+
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
 
 	if protocol == pesit.PesitTLS {
@@ -380,6 +384,10 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["protocolTimeout"] = timeout
 	}
 
+	if compression := r.FormValue("protoConfigPeSITcompression"); compression != "" {
+		pesitProtoConfig["compression"] = compression
+	}
+
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
 
 	if protocol == pesit.PesitTLS {
@@ -420,6 +428,10 @@ func protoConfigPeSITClient(r *http.Request) map[string]any {
 			return nil
 		}
 		pesitProtoConfig["protocolTimeout"] = timeout
+	}
+
+	if compression := r.FormValue("protoConfigPeSITcompression"); compression != "" {
+		pesitProtoConfig["compression"] = compression
 	}
 
 	return pesitProtoConfig

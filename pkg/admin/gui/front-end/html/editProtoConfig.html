@@ -314,6 +314,16 @@
         <input type="text" name="protoConfigPeSITprotocolTimeout" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITprotocolTimeout" }}{{ else }}{{ .ProtoConfig.protocolTimeout }}{{ end }}">
     </div>
     <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "compression" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompression" }}"></i> :</label>
+        <select name="protoConfigPeSITcompression" class="form-select">
+            <option value="none" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "none" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "none" }}selected{{ end }}>{{ index $.tab "compressionNone" }}</option>
+            <option value="horizontal" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "horizontal" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "horizontal" }}selected{{ end }}>{{ index $.tab "compressionHorizontal" }}</option>
+            <option value="vertical" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "vertical" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "vertical" }}selected{{ end }}>{{ index $.tab "compressionVertical" }}</option>
+            <option value="both" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "both" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "both" }}selected{{ end }}>{{ index $.tab "compressionBoth" }}</option>
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "disablePreConnection" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisablePreConnection" }}"></i> :</label>
         <div class="form-check form-check-inline">
@@ -427,6 +437,16 @@
     <div class="form-input mt-2">
         <label class="col-form-label">{{ index .tab "protocolTimeout" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolTimeout" }}"></i> :</label>
         <input type="text" name="protoConfigPeSITprotocolTimeout" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITprotocolTimeout" }}{{ else }}{{ .ProtoConfig.protocolTimeout }}{{ end }}">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "compression" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCompression" }}"></i> :</label>
+        <select name="protoConfigPeSITcompression" class="form-select">
+            <option value="none" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "none" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "none" }}selected{{ end }}>{{ index $.tab "compressionNone" }}</option>
+            <option value="horizontal" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "horizontal" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "horizontal" }}selected{{ end }}>{{ index $.tab "compressionHorizontal" }}</option>
+            <option value="vertical" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "vertical" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "vertical" }}selected{{ end }}>{{ index $.tab "compressionVertical" }}</option>
+            <option value="both" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "both" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "both" }}selected{{ end }}>{{ index $.tab "compressionBoth" }}</option>
+        </select>
     </div>
 </div>
 {{ end }}

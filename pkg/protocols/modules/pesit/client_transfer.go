@@ -110,6 +110,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
 	c.pTrans.SetArticleFormat(pesit.FormatVariable)
 	c.pTrans.SetArticleSize(partConf.ArticleSize)
+	c.pTrans.SetCompression(partConf.Compression.ToPeSIT())
 
 	c.pTrans.StopReceived = stopReceived(c.pip)
 	c.pTrans.ConnectionAborted = connectionAborted(c.pip)
