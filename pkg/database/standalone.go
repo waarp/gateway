@@ -32,6 +32,10 @@ type TransactionFunc func(*Session) error
 // The transaction will be then be roll-backed or committed, depending on whether
 // the function returned an error or not.
 func (db *DB) Transaction(fun TransactionFunc) error {
+	return db.TransactionWithTimeout(warnDuration, fun)
+}
+
+func (db *DB) TransactionWithTimeout(dur time.Duration, fun TransactionFunc) error {
 	ses := db.newSession()
 
 	if err := ses.session.Begin(); err != nil {
@@ -40,10 +44,11 @@ func (db *DB) Transaction(fun TransactionFunc) error {
 		return NewInternalError(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), warnDuration)
-	defer cancel()
-
-	ses.session.Context(ctx)
+	if dur > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), dur)
+		defer cancel()
+		ses.session.Context(ctx)
+	}
 
 	db.sessions.Store(ses.id, ses)
 	defer db.sessions.Delete(ses.id)

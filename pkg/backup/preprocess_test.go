@@ -122,12 +122,14 @@ func TestPreprocess(t *testing.T) {
 			t.Parallel()
 			confPassword := data.Remotes[0]
 			assertHasHashOf(t, confPassword.Credentials, "sesame")
+			assert.NotContains(t, confPassword.Configuration, "serverPassword")
 		})
 
 		t.Run("With conf hash", func(t *testing.T) {
 			t.Parallel()
 			confHash := data.Remotes[1]
 			assertHasHash(t, confHash.Credentials, sesameHash)
+			assert.NotContains(t, confHash.Configuration, "serverPassword")
 		})
 
 		t.Run("With credential password", func(t *testing.T) {

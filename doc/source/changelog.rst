@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`570` Correction d'un bug causant le *timeout* de la commande d'import
+  sous certaines conditions, notamment en présence d'un grand nombre de
+  partenaires R66.
+
 * :release:`0.15.6 <2026-05-12>`
 * :support:`548` Le certificat TLS du fichier d'exemple est désormais valide
   pour 100 ans et ne changera plus d'une release à l'autre.
