@@ -33,6 +33,10 @@ type server struct {
 func (s *server) listen() (string, error) {
 	s.server = pesit.NewServer(s)
 	s.server.Logger = s.logger.AsStdLogger(log.LevelDebug)
+
+	if s.conf.DisablePreConnection {
+		s.server.SetPreConnectionUsage(false)
+	}
 	realAddr := conf.GetRealAddress(s.localAgent.Address.Host,
 		utils.FormatUint(s.localAgent.Address.Port))
 
