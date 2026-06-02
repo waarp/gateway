@@ -6,6 +6,8 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/puzpuzpuz/xsync/v4"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -17,16 +19,37 @@ import (
 )
 
 type client struct {
-	dbClient *model.Client
-	state    utils.State
-	logger   *log.Logger
-	dialer   *protoutils.TraceDialer
+	dbClient   *model.Client
+	state      utils.State
+	logger     *log.Logger
+	dialer     *protoutils.TraceDialer
+	semaphores *xsync.Map[int64, chan struct{}]
 
 	conf *ClientConfigTLS
 }
 
 func newClient(cli *model.Client) *client {
-	return &client{dbClient: cli}
+	return &client{
+		dbClient:   cli,
+		semaphores: xsync.NewMap[int64, chan struct{}](),
+	}
+}
+
+// acquireConnSlot blocks until a connection slot is available for the
+// given partner. Returns a release function to call when done.
+// If maxConnections is 0, no limit is applied.
+func (c *client) acquireConnSlot(partnerID int64, maxConnections uint16) func() {
+	if maxConnections == 0 {
+		return func() {} // no-op
+	}
+
+	sem, _ := c.semaphores.LoadOrCompute(partnerID, func() (chan struct{}, bool) {
+		return make(chan struct{}, maxConnections), false
+	})
+
+	sem <- struct{}{} // blocks if full
+
+	return func() { <-sem }
 }
 
 func (c *client) Start() error {
@@ -112,10 +135,11 @@ func (c *client) initTransfer(pip *pipeline.Pipeline) (*clientTransfer, *pipelin
 	}
 
 	return &clientTransfer{
-		isTLS:      c.dbClient.Protocol == PesitTLS,
-		pip:        pip,
-		clientConf: c.conf,
-		dialer:     c.dialer,
-		pesitID:    pesitID,
+		isTLS:          c.dbClient.Protocol == PesitTLS,
+		pip:            pip,
+		clientConf:     c.conf,
+		dialer:         c.dialer,
+		pesitID:        pesitID,
+		acquireConnFn:  c.acquireConnSlot,
 	}, nil
 }

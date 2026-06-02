@@ -31,14 +31,23 @@ var _ interface {
 } = &clientTransfer{}
 
 type clientTransfer struct {
-	isTLS      bool
-	pip        *pipeline.Pipeline
-	clientConf *ClientConfigTLS
-	client     *pesit.Client
-	dialer     *protoutils.TraceDialer
-	pesitID    uint32
+	isTLS         bool
+	pip           *pipeline.Pipeline
+	clientConf    *ClientConfigTLS
+	client        *pesit.Client
+	dialer        *protoutils.TraceDialer
+	pesitID       uint32
+	acquireConnFn func(partnerID int64, max uint16) func()
+	releaseConn   func()
 
 	pTrans *pesit.ClientTransfer
+}
+
+func (c *clientTransfer) releaseConnSlot() {
+	if c.releaseConn != nil {
+		c.releaseConn()
+		c.releaseConn = nil
+	}
 }
 
 func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error {
@@ -105,6 +114,12 @@ func (c *clientTransfer) Request() *pipeline.Error {
 		return pipeline.NewErrorWith(types.TeInternal, "failed to parse the pesit partner's proto config", err)
 	}
 
+	// acquire connection slot (blocks if maxConnections reached)
+	if c.acquireConnFn != nil {
+		c.releaseConn = c.acquireConnFn(
+			c.pip.TransCtx.RemoteAgent.ID, partConf.MaxConnections)
+	}
+
 	// connect to partner
 	realAddr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
@@ -112,6 +127,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 	conn, connErr := c.dialer.Dial("tcp", realAddr)
 	if connErr != nil {
 		c.pip.Logger.Errorf("Failed to connect to partner: %v", connErr)
+		c.releaseConnSlot()
 
 		return pipeline.NewErrorWith(types.TeConnection, "failed to connect to partner", connErr)
 	}
@@ -120,6 +136,8 @@ func (c *clientTransfer) Request() *pipeline.Error {
 		if closeErr := conn.Close(); closeErr != nil {
 			c.pip.Logger.Warningf("Failed to close connection: %v", closeErr)
 		}
+
+		c.releaseConnSlot()
 
 		return err
 	}
@@ -428,6 +446,8 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 }
 
 func (c *clientTransfer) EndTransfer() *pipeline.Error {
+	defer c.releaseConnSlot()
+
 	if err := c.pTrans.DeselectFile(nil); err != nil {
 		c.pip.Logger.Errorf("Failed to end transfer: %v", err)
 
@@ -475,6 +495,7 @@ func (c *clientTransfer) Cancel() *pipeline.Error {
 }
 
 func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pipeline.Error {
+	defer c.releaseConnSlot()
 	defer func() {
 		if err := c.client.Close(pErr); err != nil {
 			c.pip.Logger.Warningf("failed to close connection: %v", err)

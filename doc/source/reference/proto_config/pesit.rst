@@ -96,6 +96,11 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par
   défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.
+* **maxConnections** (*integer*) - Limite le nombre de connexions PeSIT
+  simultanées vers ce partenaire. Lorsque la limite est atteinte, les nouveaux
+  transferts attendent qu'une connexion se libère. La valeur par défaut est 0
+  (illimité). Une valeur de 4 est un compromis raisonnable entre parallélisme
+  et protection du partenaire distant.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
@@ -112,6 +117,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
      "useNSDU": true,
      "compatibilityMode": "axway",
      "maxMessageSize": 65535,
+     "maxConnections": 4,
      "minTLSVersion": "v1.2"
    }
 

@@ -146,6 +146,11 @@ type PartnerConfig struct {
 	// connecting to this partner. By default, the pre-connection authentication
 	// is activated.
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
+
+	// MaxConnections limits the number of concurrent PeSIT connections to this
+	// partner. When the limit is reached, new transfers wait until a connection
+	// is released. Default is 0 (unlimited).
+	MaxConnections uint16 `json:"maxConnections,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {
