@@ -319,6 +319,20 @@
             <input class="form-check-input" type="checkbox" name="disablePreConnection" id="disablePreConnection" value="true" {{ if eq (index .modalElement "disablePreConnection") "true" }}checked{{ end }}>
         </div>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">Max Connections <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Maximum number of concurrent PeSIT connections to this partner (0 = unlimited)"></i> :</label>
+        <input type="text" name="protoConfigPeSITmaxConnections" class="form-control" value="{{ index .modalElement "protoConfigPeSITmaxConnections" }}" placeholder="0">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">Article Format <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Article format for outgoing transfers (PI 31). Use 'fixed' for mainframe interop."></i> :</label>
+        <select name="protoConfigPeSITarticleFormat" class="form-select">
+            <option value="" {{ if not (index .modalElement "protoConfigPeSITarticleFormat") }}selected{{ end }}>variable (default)</option>
+            <option value="variable" {{ if eq (index .modalElement "protoConfigPeSITarticleFormat") "variable" }}selected{{ end }}>variable</option>
+            <option value="fixed" {{ if eq (index .modalElement "protoConfigPeSITarticleFormat") "fixed" }}selected{{ end }}>fixed</option>
+        </select>
+    </div>
     <div id="pesit-tlsForm">
         <hr style="border-top: 1px solid #ababab;">
         <div class="form-input mt-2">
@@ -374,6 +388,15 @@
             {{ range .CompatibilityModePeSIT }}
             <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
             {{ end }}
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">Article Format <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Article format for outgoing transfers (PI 31). Use 'fixed' for mainframe interop."></i> :</label>
+        <select name="protoConfigPeSITarticleFormat" class="form-select">
+            <option value="" {{ if not (index .modalElement "protoConfigPeSITarticleFormat") }}selected{{ end }}>variable (default)</option>
+            <option value="variable" {{ if eq (index .modalElement "protoConfigPeSITarticleFormat") "variable" }}selected{{ end }}>variable</option>
+            <option value="fixed" {{ if eq (index .modalElement "protoConfigPeSITarticleFormat") "fixed" }}selected{{ end }}>fixed</option>
         </select>
     </div>
     <div id="pesit-tlsForm">

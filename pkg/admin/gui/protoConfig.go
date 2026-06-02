@@ -319,6 +319,18 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
 
+	if maxConnections := r.FormValue("protoConfigPeSITmaxConnections"); maxConnections != "" {
+		size, err := internal.ParseUint[uint32](maxConnections)
+		if err != nil {
+			return nil
+		}
+		pesitProtoConfig["maxConnections"] = size
+	}
+
+	if articleFormat := r.FormValue("protoConfigPeSITarticleFormat"); articleFormat != "" {
+		pesitProtoConfig["articleFormat"] = articleFormat
+	}
+
 	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
@@ -365,6 +377,10 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	}
 
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
+
+	if articleFormat := r.FormValue("protoConfigPeSITarticleFormat"); articleFormat != "" {
+		pesitProtoConfig["articleFormat"] = articleFormat
+	}
 
 	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {

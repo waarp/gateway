@@ -264,6 +264,16 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }} disabled>
         </div>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">Max Connections <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Maximum number of concurrent PeSIT connections to this partner (0 = unlimited)"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.maxConnections (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">Article Format <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Article format for outgoing transfers (PI 31). Use 'fixed' for mainframe interop."></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.articleFormat (index $.tab "undefined") }}" disabled>
+    </div>
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
@@ -315,6 +325,11 @@
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }} disabled>
         </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">Article Format <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Article format for outgoing transfers (PI 31). Use 'fixed' for mainframe interop."></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.articleFormat (index $.tab "undefined") }}" disabled>
     </div>
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
