@@ -3,12 +3,14 @@
 Configuration PeSIT & PeSIT-TLS
 ###############################
 
-.. deprecated:: 0.14.0
+.. versionchanged:: 0.16.0
 
-   L'option ``disablePreConnection`` de la configuration serveur est désormais
-   ineffective. L'usage ou non de la pré-connexion est désormais détecté
-   automatiquement à l'ouverture de la connexion par le partenaire client.
-   Ce paramètre est donc désormais inutile.
+   L'option ``disablePreConnection`` de la configuration serveur est de nouveau
+   effective. Lorsqu'elle est activée, le serveur désactive complètement
+   l'auto-détection de pré-connexion et assume directement un cadrage NSDU
+   (comportement standard pour PeSIT sur TCP/IP). Il est recommandé de
+   désactiver la pré-connexion lorsque les deux partenaires sont des Gateways
+   Waarp ou des agents PeSIT modernes ne nécessitant pas de pré-connexion.
 
 Configuration client
 ====================
@@ -77,9 +79,16 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
   doivent être utilisés lors des transferts avec ce partenaire. Par défaut, les
   paquets NSDU sont utilisés.
 * **compatibilityMode** (*string*) - Spécifie le mode de compatibilité à utiliser
-  lors des communications avec le partenaire, dans le cas où celui-ci ne respecterait
-  pas la spécification du protocole PeSIT. Les valeurs autorisés sont : ``none``
-  et ``axway``. Par défaut, aucun mode de compatibilité n'est utilisé (``none``).
+  lors des communications avec le partenaire. Les valeurs autorisées sont :
+
+  - ``standard`` (par défaut) : mode standard PeSIT. Le chemin du fichier distant
+    contient le nom de la règle en préfixe (ex: ``regle/fichier.txt``). Le serveur
+    identifie la règle à appliquer par correspondance de préfixe. Ce mode supporte
+    également les **patterns glob** (``*``, ``?``) dans les requêtes de pull
+    (voir :ref:`ref-proto-pesit-patterns`).
+  - ``axway`` : mode de compatibilité avec les agents Axway (*CFT*, *SecureTransport*).
+    Le champ *Filename* (PI 12) transmet le nom de la règle au lieu du chemin de
+    fichier, et le nom de fichier est transmis via le champ *FileLabel* (PI 37).
 * **maxMessageSize** (*integer*) - Spécifie la taille maximale (en octets) autorisée
   pour les paquets PeSIT envoyés à (et reçus depuis) ce partenaire. Le partenaire
   pourra unilatéralement décider d'utiliser une taille plus petite que celle-ci,
@@ -130,10 +139,11 @@ est la suivante :
   pour les paquets PeSIT envoyés à (et reçus depuis) ce serveur. Si un client se
   connectant au serveur demande une taille plus grande, celle-ci sera rabaissée
   à ce maximum. La valeur par défaut est de 65535 octets.
-* **disablePreConnection** (*boolean*) - **(DÉPRÉCIÉ: ce paramètre est désormais
-  ineffectif)** Permet de désactiver le processus de pré-connexion (et la
-  pré-authentification qui va avec) si le partenaire client ne le supporte pas.
-  Par défaut, un échange de pré-connexion aura lieu à chaque nouvelle connexion.
+* **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
+  pré-connexion (et la pré-authentification qui va avec) si le partenaire client
+  ne le supporte pas. Lorsque ce paramètre est activé, le serveur assume
+  directement un cadrage NSDU sans tenter d'auto-détection. Par défaut, la
+  pré-connexion est gérée par auto-détection.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée par ce serveur. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.

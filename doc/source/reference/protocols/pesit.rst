@@ -79,18 +79,92 @@ clients, serveurs et partenaires.
 Modes de compatibilité
 ----------------------
 
-Waarp Gateway offre des modes de compatibilité pour le protocole PeSIT permettant
-de communiquer avec les agents PeSIT ayant dévié des spécifications standards du
-protocole.
+Waarp Gateway supporte deux modes de fonctionnement pour le protocole PeSIT,
+configurables via la :ref:`configuration protocolaire <proto-config-pesit>` du
+partenaire ou du serveur local :
 
-Pour l'heure, le seul mode de compatibilité supporté est le mode ``axway``,
-permettant de communiquer avec des agents PeSIT tels que *CFT* ou *SecureTransport*.
-Ce mode de compatibilité doit être activé dans la :ref:`configuration protocolaire
-<proto-config-pesit>` du partenaire ou du serveur local (selon le cas).
-En mode de compatibilité ``axway``, le principal changement est que le champ de
-*Filename* des requêtes de transfert est utilisé pour transmettre le nom de
-la règle au lieu du nom de fichier. Celui-ci est, à la place, transmis via le
-champ *FileLabel*.
+- **Mode standard** (``standard``, par défaut) : le chemin du fichier distant
+  contient le nom de la règle en préfixe (ex: ``regle/fichier.txt``). Le serveur
+  identifie la règle à appliquer par correspondance de préfixe sur le chemin.
+
+- **Mode Axway** (``axway``) : mode de compatibilité avec les agents PeSIT tels
+  que *CFT* ou *SecureTransport*. Le champ *Filename* (PI 12) est utilisé pour
+  transmettre le nom de la règle au lieu du chemin de fichier. Celui-ci est, à la
+  place, transmis via le champ *FileLabel* (PI 37).
+
+.. _ref-proto-pesit-patterns:
+
+Pull avec pattern (glob)
+------------------------
+
+.. versionadded:: 0.16.0
+
+En mode pull (réception), le client peut envoyer un nom de fichier contenant des
+**caractères génériques** (``*`` et ``?``) dans sa requête de sélection. Le
+serveur résout alors le pattern pour trouver un fichier correspondant :
+
+1. **Transferts pré-enregistrés** : le serveur cherche d'abord parmi les transferts
+   ayant le statut ``AVAILABLE`` dont le nom de fichier correspond au pattern
+   (via ``path.Match``). Le premier transfert correspondant (le plus ancien par
+   date de soumission) est sélectionné.
+
+2. **Système de fichiers** : si aucun transfert pré-enregistré ne correspond, le
+   serveur effectue un glob sur le répertoire d'envoi de la règle et sélectionne
+   le premier fichier correspondant.
+
+Le nom de fichier résolu est renvoyé au client dans la réponse de sélection.
+Le client crée alors le fichier local avec le nom réel (et non le pattern).
+
+**Exemple** : un client envoie une requête de pull avec le pattern ``data-*.txt``.
+Si un transfert AVAILABLE existe avec le nom ``data-001.txt``, il sera sélectionné.
+Sinon, si un fichier ``data-001.txt`` existe dans le répertoire d'envoi de la règle,
+celui-ci sera servi.
+
+**Cas de correspondances multiples** :
+
+- Les transferts pré-enregistrés sont consommés un par un : chaque SELECT avec le
+  même pattern retourne le prochain transfert AVAILABLE correspondant.
+- Pour les fichiers du système de fichiers, il est recommandé d'utiliser une tâche
+  ``DELETE`` en post-traitement sur la règle. Ainsi, après chaque envoi, le fichier
+  est supprimé et le prochain SELECT avec le même pattern sélectionne le fichier
+  suivant.
+
+.. note::
+
+   Cette fonctionnalité n'est disponible qu'en mode ``standard``. En mode ``axway``,
+   le nom de fichier ne transite pas dans le même champ PeSIT et le pattern matching
+   n'est pas applicable.
+
+F.MESSAGE
+---------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT supporte l'envoi de messages (F.MESSAGE) entre partenaires
+connectés, en dehors de tout transfert de fichier. Ce mécanisme est typiquement
+utilisé pour les accusés de réception *Store and Forward* et les messages
+applicatifs libres.
+
+Un F.MESSAGE peut contenir :
+
+- Un texte libre (contenu du message)
+- Un identifiant de transfert associé (PI 13)
+- Un identifiant client (PI 61) et un identifiant banque (PI 62)
+
+L'envoi de F.MESSAGE se fait depuis l'état "connecté" (aucun fichier sélectionné).
+Le serveur peut accepter ou refuser le message en retournant un code diagnostic
+approprié.
+
+Transferts multi-fichiers
+-------------------------
+
+Le protocole PeSIT permet d'effectuer plusieurs transferts de fichiers sur une
+même connexion TCP/TLS (multi-sélection). Dans Waarp Gateway, chaque transfert
+correspond à une sélection de fichier (F.CREATE ou F.SELECT) distincte au sein
+de la même session PeSIT.
+
+Le client peut donc enchaîner plusieurs opérations push et/ou pull sur une même
+connexion, réduisant ainsi le coût d'établissement de connexion et d'authentification.
 
 Texte libre
 -----------
