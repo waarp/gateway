@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"xorm.io/xorm"
 
@@ -112,6 +113,9 @@ type Access interface {
 	// The transaction will be then be roll-backed or committed, depending on whether
 	// the function returned an error or not.
 	Transaction(fun TransactionFunc) error
+
+	// Same as Transaction, but with a timeout.
+	TransactionWithTimeout(dur time.Duration, fun TransactionFunc) error
 }
 
 // DeletionHook is an interface which adds a function which will be run before

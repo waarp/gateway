@@ -89,6 +89,8 @@ func preprocessPartners(partners []file.RemoteAgent) error {
 				if err := addPswdHashCred(&partner.Credentials, confPswd, proto); err != nil {
 					return err
 				}
+
+				delete(partner.Configuration, "serverPassword")
 			}
 		}
 	}

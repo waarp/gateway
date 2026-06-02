@@ -1,8 +1,10 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
@@ -32,6 +34,14 @@ func (s *Session) GetLogger() *log.Logger {
 }
 
 func (s *Session) Transaction(fun TransactionFunc) error { return fun(s) }
+
+func (s *Session) TransactionWithTimeout(dur time.Duration, fun TransactionFunc) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dur)
+	defer cancel()
+	s.session.Context(ctx)
+
+	return fun(s)
+}
 
 // Iterate starts building a SQL 'SELECT' query to retrieve entries of the given
 // model from the database. The request can be narrowed using the IterateQuery

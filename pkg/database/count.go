@@ -46,7 +46,7 @@ func (c *CountQuery) Run() (uint64, error) {
 
 	n, err := query.Count(c.bean)
 	if err != nil {
-		logger.Errorf("Failed to insert the new %s entry: %v", c.bean.Appellation(), err)
+		logger.Errorf("Failed to count the %s entries: %v", c.bean.Appellation(), err)
 
 		return 0, NewInternalError(err)
 	}
