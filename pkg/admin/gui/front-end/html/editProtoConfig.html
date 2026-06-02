@@ -423,6 +423,11 @@
         <label class="col-form-label">{{ index .tab "checkpointWindow" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i> :</label>
         <input type="text" name="protoConfigPeSITcheckpointWindow" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITcheckpointWindow" }}{{ else }}{{ .ProtoConfig.checkpointWindow }}{{ end }}">
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "protocolTimeout" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolTimeout" }}"></i> :</label>
+        <input type="text" name="protoConfigPeSITprotocolTimeout" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITprotocolTimeout" }}{{ else }}{{ .ProtoConfig.protocolTimeout }}{{ end }}">
+    </div>
 </div>
 {{ end }}
 

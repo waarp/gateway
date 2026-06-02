@@ -356,6 +356,11 @@
         <label class="col-form-label label-light-bold me-3">{{ index .tab "checkpointWindow" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.checkpointWindow (index $.tab "undefined") }}" disabled>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "protocolTimeout" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipProtocolTimeout" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.protocolTimeout (index $.tab "undefined") }}" disabled>
+    </div>
 </div>
 {{ end }}
 

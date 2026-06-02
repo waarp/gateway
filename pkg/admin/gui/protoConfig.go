@@ -414,6 +414,14 @@ func protoConfigPeSITClient(r *http.Request) map[string]any {
 		pesitProtoConfig["checkpointWindow"] = size
 	}
 
+	if protocolTimeout := r.FormValue("protoConfigPeSITprotocolTimeout"); protocolTimeout != "" {
+		timeout, err := internal.ParseUint[uint32](protocolTimeout)
+		if err != nil {
+			return nil
+		}
+		pesitProtoConfig["protocolTimeout"] = timeout
+	}
+
 	return pesitProtoConfig
 }
 
