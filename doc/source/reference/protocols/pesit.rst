@@ -166,6 +166,32 @@ de la même session PeSIT.
 Le client peut donc enchaîner plusieurs opérations push et/ou pull sur une même
 connexion, réduisant ainsi le coût d'établissement de connexion et d'authentification.
 
+Temporisations
+--------------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT définit trois temporisations (section 4.6 de la spécification)
+qui permettent de détecter les connexions inactives ou en échec :
+
+- **Tc** (temporisation de connexion) : après l'établissement de la connexion TCP,
+  le serveur attend la réception du FPDU CONNECT. Si celui-ci n'arrive pas dans
+  le délai imparti, la connexion est fermée. Valeur par défaut : 30 secondes.
+
+- **Td** (temporisation d'inactivité) : entre deux transferts sur une connexion
+  ouverte, si aucune requête (CREATE, SELECT ou RELEASE) n'arrive dans le délai
+  imparti, le serveur met fin à la connexion. Valeur typique : 5 minutes.
+
+- **Tp** (temporisation de surveillance protocolaire) : pendant un échange
+  protocolaire actif (transfert de données, ouverture/fermeture de fichier, etc.),
+  si le partenaire ne répond pas dans le délai imparti, la connexion est avortée.
+  Valeur par défaut : 30 secondes.
+
+Le timeout de surveillance protocolaire (Tp) est négocié lors de la connexion
+via le paramètre PI 26. Le client et le serveur peuvent chacun proposer une valeur ;
+la valeur finale retenue est la plus petite des deux. Une valeur de 0 désactive
+la temporisation.
+
 Compression
 -----------
 
