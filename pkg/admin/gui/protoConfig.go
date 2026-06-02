@@ -317,6 +317,14 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["maxMessageSize"] = size
 	}
 
+	if protocolTimeout := r.FormValue("protoConfigPeSITprotocolTimeout"); protocolTimeout != "" {
+		timeout, err := internal.ParseUint[uint32](protocolTimeout)
+		if err != nil {
+			return nil
+		}
+		pesitProtoConfig["protocolTimeout"] = timeout
+	}
+
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
 
 	if protocol == pesit.PesitTLS {
@@ -362,6 +370,14 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 			return nil
 		}
 		pesitProtoConfig["maxMessageSize"] = size
+	}
+
+	if protocolTimeout := r.FormValue("protoConfigPeSITprotocolTimeout"); protocolTimeout != "" {
+		timeout, err := internal.ParseUint[uint32](protocolTimeout)
+		if err != nil {
+			return nil
+		}
+		pesitProtoConfig["protocolTimeout"] = timeout
 	}
 
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
