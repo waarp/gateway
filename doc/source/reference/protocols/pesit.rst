@@ -166,6 +166,37 @@ de la même session PeSIT.
 Le client peut donc enchaîner plusieurs opérations push et/ou pull sur une même
 connexion, réduisant ainsi le coût d'établissement de connexion et d'authentification.
 
+Compression
+-----------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT supporte la compression des données lors du transfert, telle
+que définie dans l'Annexe A de la spécification. La compression est négociée entre
+le client et le serveur lors de l'ouverture du fichier (F.OPEN) via le paramètre
+PI 21.
+
+Les algorithmes de compression supportés sont :
+
+- **Aucune compression** (par défaut) : les données sont transférées sans
+  compression.
+- **Compression horizontale** : suppression des caractères répétés consécutifs
+  au sein d'un même enregistrement.
+- **Compression verticale** : suppression des octets identiques entre
+  enregistrements successifs (comparaison colonne par colonne).
+- **Compression horizontale et verticale** : combinaison des deux algorithmes
+  précédents, appliqués successivement.
+
+La compression est transparente pour l'application : les données sont compressées
+à l'émission et décompressées à la réception sans intervention de l'utilisateur.
+
+.. note::
+
+   La compression PeSIT est un mécanisme protocolaire distinct de la compression
+   applicative (ZIP, GZIP). Elle opère au niveau des articles PeSIT et est
+   particulièrement efficace pour les fichiers à format fixe contenant des
+   enregistrements répétitifs (ex: fichiers COBOL, fichiers bancaires).
+
 Texte libre
 -----------
 
