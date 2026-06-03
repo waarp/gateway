@@ -213,29 +213,47 @@ func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest
 	// The incoming transfer (A→B) is a server transfer with a local_account_id.
 	// The requester is the client that connected to us. To relay, we need to
 	// find a partner definition that we can connect TO.
-	// Strategy: look for a partner whose name matches the customerID or bankID.
-	upstreamPartner := msg.CustomerID
-	if upstreamPartner == "" {
-		upstreamPartner = msg.BankID
+	//
+	// Resolution strategy (in order):
+	// 1. customerID from the F.MESSAGE (PI 61)
+	// 2. bankID from the F.MESSAGE (PI 62)
+	// 3. customerID from the original incoming transfer (__customerID__)
+	// 4. Login of the LocalAccount on the incoming transfer (convention:
+	//    partner name matches the client login used during authentication)
+	candidates := []string{
+		msg.CustomerID,
+		msg.BankID,
 	}
 
-	if upstreamPartner == "" {
-		// Fallback: use the customerID from the original incoming transfer.
-		if cid, ok := inTrans.TransferInfo["__customerID__"]; ok {
-			upstreamPartner = fmt.Sprintf("%v", cid)
+	if cid, ok := inTrans.TransferInfo["__customerID__"]; ok {
+		candidates = append(candidates, fmt.Sprintf("%v", cid))
+	}
+
+	if inTrans.LocalAccountID.Valid {
+		var acct model.LocalAccount
+		if err := s.db.Get(&acct, "id=?", inTrans.LocalAccountID.Int64).Run(); err == nil {
+			candidates = append(candidates, acct.Login)
 		}
 	}
 
-	if upstreamPartner == "" {
-		s.logger.Debug("Cannot determine upstream partner for F.MESSAGE relay")
+	var partner model.RemoteAgent
 
-		return
+	found := false
+
+	for _, name := range candidates {
+		if name == "" {
+			continue
+		}
+
+		if err := s.db.Get(&partner, "name=?", name).Owner().Run(); err == nil {
+			found = true
+
+			break
+		}
 	}
 
-	// Find a PeSIT partner matching the upstream identifier.
-	var partner model.RemoteAgent
-	if err := s.db.Get(&partner, "name=?", upstreamPartner).Owner().Run(); err != nil {
-		s.logger.Debugf("No partner %q found for F.MESSAGE relay", upstreamPartner)
+	if !found {
+		s.logger.Debugf("No upstream partner found for F.MESSAGE relay (tried: %v)", candidates)
 
 		return
 	}
