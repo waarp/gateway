@@ -337,10 +337,15 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 }
 
 //nolint:gocritic //can't change the function's signature, this is an interface method
-func (t *transferHandler) OpenFile(*pesit.ServerTransfer) error {
+func (t *transferHandler) OpenFile(req *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("Opening file")
 
-	// TODO handle compression once implemented in the library
+	// Negotiate compression: apply server config if the client proposed compression.
+	compression := resolveCompression(t.conf.Compression)
+	if compression != pesit.NoCompression {
+		req.SetCompression(compression)
+	}
+
 	if err := utils.RunWithCtx(t.ctx, func() error {
 		stream, stErr := t.pip.StartData()
 		if stErr != nil {

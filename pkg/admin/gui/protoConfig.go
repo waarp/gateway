@@ -331,6 +331,10 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 		pesitProtoConfig["articleFormat"] = articleFormat
 	}
 
+	if compression := r.FormValue("protoConfigPeSITcompression"); compression != "" {
+		pesitProtoConfig["compression"] = compression
+	}
+
 	if protocol == pesit.PesitTLS {
 		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
@@ -380,6 +384,10 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 
 	if articleFormat := r.FormValue("protoConfigPeSITarticleFormat"); articleFormat != "" {
 		pesitProtoConfig["articleFormat"] = articleFormat
+	}
+
+	if compression := r.FormValue("protoConfigPeSITcompression"); compression != "" {
+		pesitProtoConfig["compression"] = compression
 	}
 
 	if protocol == pesit.PesitTLS {

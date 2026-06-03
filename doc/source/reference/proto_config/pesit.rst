@@ -101,6 +101,10 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
   (par défaut) et ``fixed``. Surcharge la configuration du client/serveur si renseigné.
   Peut également être surchargé par transfert via l'info de transfert
   ``__articleFormat__``.
+* **compression** (*string*) - Spécifie l'algorithme de compression PeSIT (PI 21,
+  Annexe A) pour les transferts avec ce partenaire. Les valeurs acceptées sont :
+  ``none`` (par défaut), ``horizontal`` (RLE), ``vertical`` (inter-articles)
+  et ``both`` (horizontale + verticale combinées).
 * **maxConnections** (*integer*) - Limite le nombre de connexions PeSIT
   simultanées vers ce partenaire. Lorsque la limite est atteinte, les nouveaux
   transferts attendent qu'une connexion se libère. La valeur par défaut est 0
@@ -155,6 +159,11 @@ est la suivante :
   Le format fixe est utilisé pour les fichiers à enregistrements de taille constante
   (ex: fichiers mainframe COBOL de 80 octets). Cette valeur peut être surchargée
   par transfert via l'info de transfert ``__articleFormat__``.
+* **compression** (*string*) - Spécifie l'algorithme de compression PeSIT (PI 21,
+  Annexe A). Les valeurs acceptées sont : ``none`` (par défaut), ``horizontal``
+  (RLE), ``vertical`` (inter-articles) et ``both`` (combinées). La compression
+  est négociée à l'ouverture du fichier (F.OPEN) et est transparente pour les
+  données.
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) si le partenaire client
   ne le supporte pas. Lorsque ce paramètre est activé, le serveur assume

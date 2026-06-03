@@ -15,6 +15,21 @@ const (
 	ArticleFormatFixed    = "fixed"
 )
 
+// resolveCompression converts a config string to a lib-pesit Compression.
+// Returns NoCompression by default.
+func resolveCompression(configValue string) pesit.Compression {
+	switch strings.ToLower(configValue) {
+	case "horizontal":
+		return pesit.Horizontal
+	case "vertical":
+		return pesit.Vertical
+	case "both", "horizontal+vertical", "h+v":
+		return pesit.HorizontalVertical
+	default:
+		return pesit.NoCompression
+	}
+}
+
 // resolveArticleFormat converts a config string to a lib-pesit ArticleFormat.
 // Returns FormatVariable by default (standard PeSIT behavior).
 func resolveArticleFormat(configValue string) pesit.ArticleFormat {
@@ -112,6 +127,10 @@ type ServerConfig struct {
 	// ArticleFormat defines the article format used for outgoing transfers.
 	// Accepted values are: "variable" (default) and "fixed".
 	ArticleFormat string `json:"articleFormat,omitempty"`
+
+	// Compression defines the compression algorithm for transfers.
+	// Accepted values are: "none" (default), "horizontal", "vertical", "both".
+	Compression string `json:"compression,omitempty"`
 }
 
 func (s *ServerConfig) ValidServer() error {
@@ -177,6 +196,11 @@ type PartnerConfig struct {
 	// this partner. Accepted values are: "variable" (default) and "fixed".
 	// Overrides the server/client configuration if set.
 	ArticleFormat string `json:"articleFormat,omitempty"`
+
+	// Compression defines the compression algorithm for transfers with this
+	// partner. Accepted values: "none" (default), "horizontal", "vertical", "both".
+	// Overrides the server/client configuration if set.
+	Compression string `json:"compression,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {
