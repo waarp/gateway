@@ -5,24 +5,26 @@
     <i class="bi bi-info-circle"></i> {{ .Text.pesitOnly }}
 </div>
 
-<!-- Partner name -->
+<!-- Partner name (optional: auto-detected from __replyPartner__) -->
 {{ template "textInputRow" dict
     "label" .Text.to
     "tooltip" .Text.toTooltip
     "fieldName" "to"
     "fieldType" "text"
     "value" .Task.Args.to
-    "placeholder" "partner-name"
+    "placeholder" "(auto: __replyPartner__)"
+    "optional" "true"
 }}
 
-<!-- Account login -->
+<!-- Account login (optional: auto-detected from __replyAccount__) -->
 {{ template "textInputRow" dict
     "label" .Text.as
     "tooltip" .Text.asTooltip
     "fieldName" "as"
     "fieldType" "text"
     "value" .Task.Args.as
-    "placeholder" "account-login"
+    "placeholder" "(auto: __replyAccount__)"
+    "optional" "true"
 }}
 
 <!-- Message content (optional) -->
@@ -33,5 +35,5 @@
     "fieldType" "text"
     "value" .Task.Args.message
     "optional" "true"
-    "placeholder" "ACK transfer #TRANSFERID#"
+    "placeholder" "(auto: ACK transfer <id>)"
 }}

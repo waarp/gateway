@@ -110,6 +110,11 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
   transferts attendent qu'une connexion se libère. La valeur par défaut est 0
   (illimité). Une valeur de 4 est un compromis raisonnable entre parallélisme
   et protection du partenaire distant.
+* **replyTo** (*string*) - Adresse de retour pour les acquittements F.MESSAGE
+  (*Store and Forward*). Lorsque ce champ est renseigné, la Gateway ajoute
+  automatiquement ``REPLY=<valeur>`` dans le texte libre PI 99 de chaque transfert
+  sortant vers ce partenaire. Format : ``partenaire:compte`` ou ``partenaire``
+  seul (le compte sera déduit). Voir :ref:`ref-proto-pesit` section F.MESSAGE.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
@@ -169,6 +174,11 @@ est la suivante :
   ne le supporte pas. Lorsque ce paramètre est activé, le serveur assume
   directement un cadrage NSDU sans tenter d'auto-détection. Par défaut, la
   pré-connexion est gérée par auto-détection.
+* **relayMessages** (*boolean*) - Active le relais automatique des F.MESSAGE
+  (*Store and Forward*). Lorsqu'un partenaire envoie un F.MESSAGE d'acquittement,
+  le serveur retrouve le transfert d'origine et relaie automatiquement le message
+  vers l'émetteur initial. Par défaut : ``false``. Voir :ref:`ref-proto-pesit`
+  section F.MESSAGE.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée par ce serveur. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.

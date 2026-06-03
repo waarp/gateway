@@ -1,31 +1,31 @@
 description:
-  en: "Send a PeSIT F.MESSAGE to a partner (Store & Forward acknowledgment or free-form message). This task is PeSIT-only; it will be silently skipped for other protocols."
-  fr: "Envoie un F.MESSAGE PeSIT a un partenaire (acquittement Store & Forward ou message libre). Cette tache est reservee au protocole PeSIT ; elle sera ignoree pour les autres protocoles."
+  en: "Send a PeSIT F.MESSAGE acknowledgment. All parameters are optional: partner and account are auto-detected from the PI 99 reply info (REPLY=partner:account) set by the emitter. This task is PeSIT-only and silently skipped for other protocols."
+  fr: "Envoie un acquittement F.MESSAGE PeSIT. Tous les parametres sont optionnels : le partenaire et le compte sont detectes automatiquement depuis les infos de retour PI 99 (REPLY=partenaire:compte) positionnees par l'emetteur. Cette tache est reservee au protocole PeSIT et sera ignoree pour les autres protocoles."
 
 pesitOnly:
-  en: "PeSIT protocol only. Skipped for other protocols."
-  fr: "Protocole PeSIT uniquement. Ignoree pour les autres protocoles."
+  en: "PeSIT protocol only. All parameters are optional when replyTo is configured on the emitting partner."
+  fr: "Protocole PeSIT uniquement. Tous les parametres sont optionnels quand replyTo est configure sur le partenaire emetteur."
 
 to:
-  en: Partner
-  fr: Partenaire
+  en: Partner (optional)
+  fr: Partenaire (optionnel)
 
 toTooltip:
-  en: "Name of the remote partner to send the F.MESSAGE to"
-  fr: "Nom du partenaire distant auquel envoyer le F.MESSAGE"
+  en: "Name of the remote partner to send the F.MESSAGE to. If empty, uses __replyPartner__ from TransferInfo (set automatically via PI 99 REPLY= convention)."
+  fr: "Nom du partenaire distant. Si vide, utilise __replyPartner__ du TransferInfo (positionne automatiquement via la convention PI 99 REPLY=)."
 
 as:
-  en: Account
-  fr: Compte
+  en: Account (optional)
+  fr: Compte (optionnel)
 
 asTooltip:
-  en: "Login of the remote account to use for authentication"
-  fr: "Login du compte distant a utiliser pour l'authentification"
+  en: "Login on the remote partner. If empty, uses __replyAccount__ from TransferInfo, or the first available account on the partner."
+  fr: "Login sur le partenaire distant. Si vide, utilise __replyAccount__ du TransferInfo, ou le premier compte disponible sur le partenaire."
 
 message:
-  en: Message
-  fr: Message
+  en: Message (optional)
+  fr: Message (optionnel)
 
 messageTooltip:
-  en: "Message content (optional). If empty, a default ACK message is generated with the transfer ID. Supports variable substitution (#TRANSFERID#, #TI_...#, etc.)"
-  fr: "Contenu du message (optionnel). Si vide, un message ACK par defaut est genere avec l'identifiant du transfert. Supporte la substitution de variables (#TRANSFERID#, #TI_...#, etc.)"
+  en: "Message content. If empty, a default ACK message is generated with the transfer ID. Supports variable substitution (#TRANSFERID#, #TI_...#, etc.)"
+  fr: "Contenu du message. Si vide, un message ACK par defaut est genere avec l'identifiant du transfert. Supporte la substitution de variables (#TRANSFERID#, #TI_...#, etc.)"

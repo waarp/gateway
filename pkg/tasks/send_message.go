@@ -23,9 +23,8 @@ const (
 )
 
 var (
-	ErrSendMessageNoPartner = errors.New(`missing "to" argument (partner name)`)
-	ErrSendMessageNoAccount = errors.New(`missing "as" argument (account login)`)
-	ErrSendMessageNotPeSIT  = errors.New("SENDMESSAGE task is only supported with PeSIT protocol")
+	ErrSendMessageNotPeSIT = errors.New("SENDMESSAGE task is only supported with PeSIT protocol")
+	ErrSendMessageNoTarget = errors.New("no target for SENDMESSAGE: set 'to' argument or configure replyTo on the partner")
 )
 
 type sendMessageTask struct {
@@ -36,21 +35,12 @@ type sendMessageTask struct {
 
 func (t *sendMessageTask) parseArgs(args map[string]string) error {
 	*t = sendMessageTask{}
-	if err := utils.JSONConvert(args, t); err != nil {
-		return fmt.Errorf("failed to parse SENDMESSAGE arguments: %w", err)
-	}
 
-	if t.To == "" {
-		return ErrSendMessageNoPartner
-	}
-
-	if t.As == "" {
-		return ErrSendMessageNoAccount
-	}
-
-	return nil
+	return utils.JSONConvert(args, t)
 }
 
+// Validate only checks JSON parsing — to/as are resolved at runtime from
+// TransferInfo if not explicitly set.
 func (t *sendMessageTask) Validate(args map[string]string) error {
 	return t.parseArgs(args)
 }
@@ -70,18 +60,47 @@ func (t *sendMessageTask) Run(ctx context.Context, args map[string]string,
 		return &WarningError{msg: ErrSendMessageNotPeSIT.Error()}
 	}
 
-	// Resolve partner and account.
+	// Resolve target partner: explicit arg > __replyPartner__ from TransferInfo.
+	partnerName := t.To
+	if partnerName == "" {
+		if rp, ok := transCtx.Transfer.TransferInfo["__replyPartner__"]; ok {
+			partnerName = fmt.Sprintf("%v", rp)
+		}
+	}
+
+	if partnerName == "" {
+		return ErrSendMessageNoTarget
+	}
+
+	// Resolve account: explicit arg > __replyAccount__ > first account on partner.
+	accountLogin := t.As
+	if accountLogin == "" {
+		if ra, ok := transCtx.Transfer.TransferInfo["__replyAccount__"]; ok {
+			accountLogin = fmt.Sprintf("%v", ra)
+		}
+	}
+
 	var partner model.RemoteAgent
-	if err := db.Get(&partner, "name=?", t.To).Owner().Run(); err != nil {
-		return fmt.Errorf("partner %q not found: %w", t.To, err)
+	if err := db.Get(&partner, "name=?", partnerName).Owner().Run(); err != nil {
+		return fmt.Errorf("partner %q not found: %w", partnerName, err)
 	}
 
 	var account model.RemoteAccount
-	if err := db.Get(&account, "login=? AND remote_agent_id=?", t.As, partner.ID).Run(); err != nil {
-		return fmt.Errorf("account %q on partner %q not found: %w", t.As, t.To, err)
+	if accountLogin != "" {
+		if err := db.Get(&account, "remote_agent_id=? AND login=?",
+			partner.ID, accountLogin).Run(); err != nil {
+			logger.Warningf("Account %q not found on partner %q, trying first available",
+				accountLogin, partnerName)
+		}
 	}
 
-	// Build message content (use provided message or default ACK).
+	if account.ID == 0 {
+		if err := db.Get(&account, "remote_agent_id=?", partner.ID).Run(); err != nil {
+			return fmt.Errorf("no account found on partner %q: %w", partnerName, err)
+		}
+	}
+
+	// Build message content.
 	message := t.Message
 	if message == "" {
 		message = fmt.Sprintf("ACK transfer %d", transCtx.Transfer.ID)
@@ -101,47 +120,37 @@ func (t *sendMessageTask) Run(ctx context.Context, args map[string]string,
 		transferID = uint32(transCtx.Transfer.ID)
 	}
 
-	// Retrieve account password from credentials.
-	password, passErr := getAccountPassword(db, &account)
-	if passErr != nil {
-		logger.Warningf("No password credential found for account %q: %v", t.As, passErr)
-	}
+	// Retrieve account password.
+	password := getRemoteAccountPassword(db, &account)
 
 	// Connect to partner and send F.MESSAGE.
-	if err := t.sendPeSITMessage(logger, &partner, &account, password, transferID, message); err != nil {
-		logger.Errorf("SENDMESSAGE failed: %v", err)
+	if err := doSendPeSITMessage(&partner, &account, password,
+		transferID, message); err != nil {
+		logger.Errorf("SENDMESSAGE to %q failed: %v", partnerName, err)
 
 		return err
 	}
 
-	logger.Infof("F.MESSAGE sent to %q as %q (transferID=%d)", t.To, t.As, transferID)
+	logger.Infof("F.MESSAGE sent to %q as %q (transferID=%d, message=%q)",
+		partnerName, account.Login, transferID, message)
 
 	return nil
 }
 
-func getAccountPassword(db database.ReadAccess, account *model.RemoteAccount) (string, error) {
-	var creds model.Credentials
-	if err := db.Select(&creds).Where("remote_account_id=? AND type=?",
-		account.ID, "password").Run(); err != nil {
-		return "", fmt.Errorf("failed to retrieve credentials: %w", err)
+func getRemoteAccountPassword(db database.ReadAccess, account *model.RemoteAccount) string {
+	var cred model.Credential
+	if err := db.Get(&cred, "remote_account_id=? AND type=?",
+		account.ID, "password").Run(); err == nil {
+		return cred.Value
 	}
 
-	for _, cred := range creds {
-		if cred.Type == "password" {
-			return cred.Value, nil
-		}
-	}
-
-	return "", nil
+	return ""
 }
 
-func (t *sendMessageTask) sendPeSITMessage(logger *log.Logger,
-	partner *model.RemoteAgent, account *model.RemoteAccount, password string,
-	transferID uint32, message string,
+func doSendPeSITMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
+	password string, transferID uint32, message string,
 ) error {
-	serverLogin := partner.Name
-
-	client := pesit.NewClient(account.Login, password, serverLogin)
+	client := pesit.NewClient(account.Login, password, partner.Name)
 	client.SetPreConnectionUsage(false)
 	client.Logger = stdlog.New(io.Discard, "", 0)
 

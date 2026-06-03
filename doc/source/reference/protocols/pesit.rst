@@ -135,25 +135,104 @@ celui-ci sera servi.
    le nom de fichier ne transite pas dans le même champ PeSIT et le pattern matching
    n'est pas applicable.
 
-F.MESSAGE
----------
+F.MESSAGE et acquittement Store & Forward
+-----------------------------------------
 
 .. versionadded:: 0.16.0
 
 Le protocole PeSIT supporte l'envoi de messages (F.MESSAGE) entre partenaires
-connectés, en dehors de tout transfert de fichier. Ce mécanisme est typiquement
-utilisé pour les accusés de réception *Store and Forward* et les messages
-applicatifs libres.
+connectés, en dehors de tout transfert de fichier. Ce mécanisme est utilisé pour
+les **accusés de réception de bout en bout** dans les architectures *Store and
+Forward* (relais).
 
-Un F.MESSAGE peut contenir :
+Envoi d'un acquittement
+^^^^^^^^^^^^^^^^^^^^^^^
 
-- Un texte libre (contenu du message)
-- Un identifiant de transfert associé (PI 13)
-- Un identifiant client (PI 61) et un identifiant banque (PI 62)
+La tâche ``SENDMESSAGE`` (catégorie *Transfert*) permet d'envoyer un F.MESSAGE
+en post-traitement d'une réception de fichier. **Tous les paramètres sont
+optionnels** lorsque la chaîne Store & Forward est correctement configurée :
 
-L'envoi de F.MESSAGE se fait depuis l'état "connecté" (aucun fichier sélectionné).
-Le serveur peut accepter ou refuser le message en retournant un code diagnostic
-approprié.
+- **to** : nom du partenaire destinataire. Si absent, déduit automatiquement
+  depuis ``__replyPartner__`` dans les infos de transfert.
+- **as** : login sur le partenaire. Si absent, déduit depuis ``__replyAccount__``
+  ou premier compte disponible.
+- **message** : contenu du message. Si absent, un message ACK par défaut est
+  généré avec l'identifiant du transfert.
+
+Exemple de règle de réception avec acquittement automatique :
+
+.. code-block:: yaml
+
+   rules:
+     - name: receive-with-ack
+       isSend: false
+       localDir: received/in
+       post:
+         - type: SENDMESSAGE
+
+Sans argument, la tâche envoie automatiquement l'acquittement au partenaire
+identifié par la convention PI 99 ``REPLY=``.
+
+.. note::
+
+   La tâche ``SENDMESSAGE`` est spécifique au protocole PeSIT. Si elle est
+   configurée sur une règle utilisée par un autre protocole, elle est
+   silencieusement ignorée (pas d'erreur).
+
+Configuration du routage de retour
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pour que le destinataire sache **à qui renvoyer l'acquittement**, l'émetteur
+inclut automatiquement l'information de retour dans le texte libre PI 99 de
+la connexion, via le champ ``replyTo`` de la :ref:`configuration protocolaire
+<proto-config-pesit>` du partenaire :
+
+.. code-block:: json
+
+   {
+     "replyTo": "mon-serveur:mon-login-chez-le-partenaire"
+   }
+
+Le destinataire reçoit ``REPLY=mon-serveur:mon-login-chez-le-partenaire`` dans
+PI 99, et le stocke dans les infos de transfert (``__replyPartner__`` et
+``__replyAccount__``). La tâche ``SENDMESSAGE`` utilise ces valeurs pour envoyer
+l'acquittement.
+
+Relais automatique (Store & Forward multi-sauts)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Dans une architecture à relais (A → B → C), le noeud intermédiaire B doit
+relayer l'acquittement de C vers A. Ce relais est **automatique** lorsque
+``relayMessages`` est activé dans la configuration du serveur PeSIT de B :
+
+.. code-block:: json
+
+   {"relayMessages": true}
+
+Le mécanisme de relais :
+
+1. C envoie un F.MESSAGE à B (via la tâche ``SENDMESSAGE`` en post-traitement)
+2. B reçoit le F.MESSAGE et retrouve le transfert sortant (B→C) par l'identifiant
+3. B suit la chaîne ``__followID__`` pour retrouver le transfert entrant (A→B)
+4. B lit ``__replyPartner__`` sur le transfert entrant pour identifier A
+5. B envoie automatiquement le F.MESSAGE à A
+
+.. note::
+
+   Les informations de routage (``__replyPartner__``, ``__replyAccount__``,
+   ``__followID__``) sont automatiquement propagées lors des rebonds via la
+   tâche ``TRANSFER``, même sans l'option ``copyInfo``.
+
+Réception d'un F.MESSAGE
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Lorsqu'un partenaire envoie un F.MESSAGE à la Gateway, celle-ci :
+
+- Accepte le message (pas de rejet ni d'ABORT)
+- Stocke les métadonnées dans les infos de transfert du transfert référencé :
+  ``__messageACK__``, ``__messageCustomerID__``, ``__messageBankID__``
+- Si ``relayMessages`` est activé, relaie automatiquement vers l'émetteur
+  d'origine
 
 Transferts multi-fichiers
 -------------------------
