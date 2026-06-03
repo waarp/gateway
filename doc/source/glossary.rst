@@ -132,3 +132,121 @@ Glossaire
       Selon le type et l'utilisation de cette clé cryptographique, celle-ci devra
       contenir soit une clé privée, soit une clé publique (voir même parfois les
       deux). Le format de la clé dépend également du type de la clé.
+
+   transfert
+   (*transfer*)
+      Un transfert est l'opération d'envoi ou de réception d'un fichier entre la
+      *gateway* et un partenaire distant. Un transfert est toujours associé à une
+      :term:`règle`, un :term:`partenaire`, et un :term:`compte distant` (si la
+      gateway est à l'initiative) ou un :term:`compte local` (si le partenaire
+      est à l'initiative). Un transfert passe par plusieurs étapes : pré-traitement,
+      transfert de données, post-traitement.
+
+   tâche
+   traitement
+   (*task*)
+      Une tâche (ou traitement) est une opération exécutée automatiquement avant
+      (pré-traitement), après (post-traitement) ou en cas d'erreur (traitement
+      d'erreur) d'un transfert. Les tâches sont définies dans les :term:`règles<règle>`
+      et s'exécutent séquentiellement. Exemples : copie, déplacement, chiffrement,
+      compression, envoi d'email, exécution de script, acquittement PeSIT.
+
+   condition
+   (*condition*)
+      Expression optionnelle évaluée avant l'exécution d'une :term:`tâche`. Si la
+      condition n'est pas remplie, la tâche est silencieusement ignorée. Les
+      conditions supportent les opérateurs de comparaison (``==``, ``!=``, ``>``,
+      ``<``), les patterns (``MATCHES``, ``CONTAINS``), les combinaisons logiques
+      (``AND``, ``OR``, ``NOT``) et la substitution de variables.
+
+   pré-enregistrement
+   (*preregister*)
+      Action de créer un transfert avec le statut ``AVAILABLE`` en attente d'une
+      requête de pull d'un partenaire. Le transfert pré-enregistré spécifie le
+      fichier à mettre à disposition, la règle à appliquer, et le compte autorisé.
+      C'est le mécanisme utilisé pour le pull avec pattern.
+
+   Store and Forward
+   (*store and forward*)
+      Mode de transfert PeSIT dans lequel un fichier transite par un ou plusieurs
+      noeuds intermédiaires (relais) avant d'atteindre sa destination finale.
+      L'émetteur original et le destinataire final ne sont pas directement
+      connectés. L'acquittement de bout en bout se fait via le mécanisme
+      F.MESSAGE, en remontant la chaîne de relais.
+
+   F.MESSAGE
+      Unité fonctionnelle PeSIT permettant d'envoyer un message (acquittement ou
+      texte libre) entre deux partenaires connectés, sans passer par le cycle
+      complet de transfert de fichier. Utilisé principalement pour les acquittements
+      de bout en bout en mode :term:`Store and Forward`.
+
+   configuration protocolaire
+   (*protocol configuration* ou *protoConfig*)
+      Ensemble de paramètres spécifiques au protocole de communication (PeSIT,
+      R66, SFTP, FTP, etc.) configurés sur un :term:`serveur`, un :term:`client`
+      ou un :term:`partenaire`. Ces paramètres contrôlent le comportement du
+      protocole : checkpoints, compression, timeouts, modes de compatibilité, etc.
+
+   mode standard
+      Mode de fonctionnement PeSIT par défaut de Waarp Gateway. Le chemin du
+      fichier distant contient le nom de la :term:`règle` en préfixe. Le serveur
+      identifie la règle à appliquer par correspondance de préfixe.
+
+   mode historique
+      Mode de compatibilité PeSIT hérité de la convention bancaire SIT. Le champ
+      PI 12 (*Filename*) transmet le nom de la :term:`règle` au lieu du chemin de
+      fichier, et le nom physique du fichier est transmis via le champ PI 37
+      (*FileLabel*). Ce mode est utilisé pour communiquer avec les produits PeSIT
+      du marché utilisant cette convention.
+
+   checkpoint
+   point de synchronisation
+   (*checkpoint*)
+      Mécanisme PeSIT de synchronisation pendant un transfert de données.
+      L'émetteur envoie périodiquement une demande de confirmation au récepteur
+      pour s'assurer que les données ont été correctement reçues. L'intervalle
+      entre checkpoints est configuré via PI 7 (en kilo-octets). Les checkpoints
+      permettent la reprise de transfert (*restart*) en cas d'interruption.
+
+   restart
+   reprise de transfert
+   (*restart*)
+      Capacité PeSIT à reprendre un transfert interrompu à partir du dernier
+      :term:`checkpoint` confirmé, plutôt que de recommencer depuis le début.
+      La reprise est négociée lors de la connexion entre le client et le serveur.
+
+   article
+      Unité de segmentation des données dans le protocole PeSIT. Un fichier est
+      découpé en articles pour le transfert. Les articles peuvent être de taille
+      fixe (``fixed``, PI 31 = 0) ou variable (``variable``, PI 31 = 128). La
+      taille d'article est spécifiée par PI 32. Un article n'est **pas**
+      équivalent à un fichier : les fichiers volumineux sont découpés en plusieurs
+      articles.
+
+   NSDU
+   (*Network Service Data Unit*)
+      Unité de données du service réseau. En PeSIT sur TCP/IP, chaque message
+      protocolaire (FPDU) est encapsulé dans un cadre NSDU avec un préfixe de
+      2 octets indiquant la taille du message. Le NSDU est le mécanisme standard
+      de cadrage pour PeSIT sur TCP.
+
+   FPDU
+   (*Functional Protocol Data Unit*)
+      Unité de données du protocole fonctionnel PeSIT. Chaque échange protocolaire
+      (connexion, sélection, ouverture, transfert de données, etc.) est transporté
+      dans une FPDU typée. Les principaux types sont : CONNECT, CREATE, SELECT,
+      OPEN, WRITE, READ, DTF (données), CLOSE, DESELECT, RELEASE, MSG (message).
+
+   PI
+   (*Protocol Item*)
+      Paramètre individuel au sein d'une :term:`FPDU`. Chaque PI a un numéro
+      (ex: PI 3 = identifiant client, PI 7 = intervalle de checkpoint, PI 12 =
+      nom de fichier, PI 99 = texte libre). Les PI sont encodés en TLV
+      (*Type-Length-Value*).
+
+   pré-connexion
+   (*pre-connection*)
+      Étape optionnelle du protocole PeSIT survenant avant l'établissement de la
+      connexion PeSIT proprement dite. Elle permet l'échange d'un identifiant et
+      d'un mot de passe en EBCDIC. Cette étape est un héritage du profil SIT
+      bancaire et peut être désactivée pour les communications modernes.
