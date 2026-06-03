@@ -131,6 +131,12 @@ type ServerConfig struct {
 	// Compression defines the compression algorithm for transfers.
 	// Accepted values are: "none" (default), "horizontal", "vertical", "both".
 	Compression string `json:"compression,omitempty"`
+
+	// RelayMessages enables automatic Store & Forward relay of incoming
+	// F.MESSAGE. When a partner sends an ACK message, the server looks up
+	// the original transfer chain (__followID__) and relays the message
+	// upstream to the originator. Default is false.
+	RelayMessages bool `json:"relayMessages,omitempty"`
 }
 
 func (s *ServerConfig) ValidServer() error {

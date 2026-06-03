@@ -138,39 +138,179 @@ func (s *server) Release(conn *pesit.ServerConnection) {
 // The message metadata is logged and stored in the database as a transfer
 // history entry for traceability. This prevents the ABORT that would occur
 // if the interface were not implemented.
+//
+// When relayMessages is enabled in the server config, the handler also
+// attempts to relay the message upstream through the Store & Forward chain.
 func (s *server) HandleMessage(conn *pesit.ServerConnection, msg pesit.MessageRequest) error {
 	s.logger.Infof("F.MESSAGE received from %q: transferID=%d customerID=%q bankID=%q message=%q",
 		msg.ClientLogin, msg.TransferID, msg.CustomerID, msg.BankID, msg.Message)
 
-	// Store the message as a transfer info entry for traceability.
-	// Find the original transfer by remote transfer ID if possible.
-	if msg.TransferID != 0 {
-		remoteID := strconv.FormatUint(uint64(msg.TransferID), 10)
+	if msg.TransferID == 0 {
+		return nil
+	}
 
-		var trans model.Transfer
-		if err := s.db.Get(&trans, "remote_transfer_id=?", remoteID).
-			Owner().OrderBy("start", false).Run(); err == nil {
-			// Update the transfer's info with the ACK message.
-			if trans.TransferInfo == nil {
-				trans.TransferInfo = make(map[string]any)
-			}
+	remoteID := strconv.FormatUint(uint64(msg.TransferID), 10)
 
-			trans.TransferInfo["__messageACK__"] = msg.Message
-			trans.TransferInfo["__messageCustomerID__"] = msg.CustomerID
-			trans.TransferInfo["__messageBankID__"] = msg.BankID
+	// Find the outgoing transfer that this ACK references.
+	var outTrans model.Transfer
+	if err := s.db.Get(&outTrans, "remote_transfer_id=?", remoteID).
+		Owner().OrderBy("start", false).Run(); err != nil {
+		s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", msg.TransferID)
 
-			if err := s.db.Update(&trans).Cols("transfer_info").Run(); err != nil {
-				s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",
-					trans.ID, err)
-			} else {
-				s.logger.Infof("F.MESSAGE ACK stored on transfer %d", trans.ID)
-			}
-		} else {
-			s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", msg.TransferID)
+		return nil
+	}
+
+	// Store the ACK info on the outgoing transfer.
+	if outTrans.TransferInfo == nil {
+		outTrans.TransferInfo = make(map[string]any)
+	}
+
+	outTrans.TransferInfo["__messageACK__"] = msg.Message
+	outTrans.TransferInfo["__messageCustomerID__"] = msg.CustomerID
+	outTrans.TransferInfo["__messageBankID__"] = msg.BankID
+
+	if err := s.db.Update(&outTrans).Cols("transfer_info").Run(); err != nil {
+		s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",
+			outTrans.ID, err)
+	} else {
+		s.logger.Infof("F.MESSAGE ACK stored on transfer %d", outTrans.ID)
+	}
+
+	// If relay is enabled, try to forward the message upstream.
+	if s.conf.RelayMessages {
+		s.relayMessage(&outTrans, msg)
+	}
+
+	return nil
+}
+
+// relayMessage attempts to relay a F.MESSAGE upstream through the Store &
+// Forward chain. It follows the __followID__ link to find the original
+// incoming transfer, resolves the upstream partner, and sends the message.
+func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest) {
+	// Follow the chain: outgoing transfer (B→C) → __followID__ → incoming transfer (A→B)
+	followRaw, ok := outTrans.TransferInfo[model.FollowID]
+	if !ok {
+		s.logger.Debug("No __followID__ on transfer, cannot relay F.MESSAGE upstream")
+
+		return
+	}
+
+	followStr := fmt.Sprintf("%v", followRaw)
+
+	var inTrans model.Transfer
+	if err := s.db.Get(&inTrans, "remote_transfer_id=?", followStr).
+		Owner().OrderBy("start", false).Run(); err != nil {
+		// Try by ID
+		if err2 := s.db.Get(&inTrans, "id=?", followStr).
+			Owner().Run(); err2 != nil {
+			s.logger.Debugf("Cannot find upstream transfer for __followID__=%s", followStr)
+
+			return
 		}
 	}
 
-	return nil // Accept the message (ACK with success)
+	// The incoming transfer (A→B) is a server transfer with a local_account_id.
+	// The requester is the client that connected to us. To relay, we need to
+	// find a partner definition that we can connect TO.
+	// Strategy: look for a partner whose name matches the customerID or bankID.
+	upstreamPartner := msg.CustomerID
+	if upstreamPartner == "" {
+		upstreamPartner = msg.BankID
+	}
+
+	if upstreamPartner == "" {
+		// Fallback: use the customerID from the original incoming transfer.
+		if cid, ok := inTrans.TransferInfo["__customerID__"]; ok {
+			upstreamPartner = fmt.Sprintf("%v", cid)
+		}
+	}
+
+	if upstreamPartner == "" {
+		s.logger.Debug("Cannot determine upstream partner for F.MESSAGE relay")
+
+		return
+	}
+
+	// Find a PeSIT partner matching the upstream identifier.
+	var partner model.RemoteAgent
+	if err := s.db.Get(&partner, "name=?", upstreamPartner).Owner().Run(); err != nil {
+		s.logger.Debugf("No partner %q found for F.MESSAGE relay", upstreamPartner)
+
+		return
+	}
+
+	if partner.Protocol != Pesit && partner.Protocol != PesitTLS {
+		s.logger.Debugf("Partner %q is not PeSIT, skipping F.MESSAGE relay", partner.Name)
+
+		return
+	}
+
+	// Find the first account on that partner.
+	var account model.RemoteAccount
+	if err := s.db.Get(&account, "remote_agent_id=?", partner.ID).Run(); err != nil {
+		s.logger.Debugf("No account found on partner %q for F.MESSAGE relay", partner.Name)
+
+		return
+	}
+
+	// Get account password.
+	var cred model.Credential
+	password := ""
+
+	if err := s.db.Get(&cred, "remote_account_id=? AND type=?",
+		account.ID, "password").Run(); err == nil {
+		password = cred.Value
+	}
+
+	// Build the upstream transfer ID from the incoming transfer.
+	var upstreamTransferID uint32
+	if rid := inTrans.RemoteTransferID; rid != "" {
+		if id, err := strconv.ParseUint(rid, 10, 32); err == nil {
+			upstreamTransferID = uint32(id)
+		}
+	}
+
+	// Send F.MESSAGE upstream.
+	s.logger.Infof("Relaying F.MESSAGE to partner %q (transferID=%d)",
+		partner.Name, upstreamTransferID)
+
+	go func() {
+		if err := sendRelayMessage(&partner, &account, password,
+			upstreamTransferID, msg.Message); err != nil {
+			s.logger.Warningf("Failed to relay F.MESSAGE to %q: %v", partner.Name, err)
+		} else {
+			s.logger.Infof("F.MESSAGE relayed to %q successfully", partner.Name)
+		}
+	}()
+}
+
+func sendRelayMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
+	password string, transferID uint32, message string,
+) error {
+	client := pesit.NewClient(account.Login, password, partner.Name)
+	client.SetPreConnectionUsage(false)
+
+	addr := fmt.Sprintf("%s:%d", partner.Address.Host, partner.Address.Port)
+
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to %s: %w", addr, err)
+	}
+
+	if err := client.Connect(conn); err != nil {
+		conn.Close()
+
+		return fmt.Errorf("failed to establish PeSIT connection: %w", err)
+	}
+
+	defer client.Close(nil)
+
+	if err := client.SendMessage(transferID, message); err != nil {
+		return fmt.Errorf("failed to send F.MESSAGE: %w", err)
+	}
+
+	return nil
 }
 
 var ErrPasswordDBError = errors.New("failed to retrieve the server password")
