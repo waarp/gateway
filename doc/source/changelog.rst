@@ -42,6 +42,13 @@ Historique des versions
 * :support:`-` Documentation PeSIT complète : temporisations (Tc/Td/Tp),
   compression, formats mainframe, F.MESSAGE et Store & Forward, modes de
   compatibilité, transferts multi-fichiers.
+* :bug:`575` Correction de l'unité du ``checkpointSize`` : la valeur est en
+  kilo-octets (PI 7), pas en octets. Le défaut passe de 65535 à 32 (32 Ko).
+* :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
+  supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des
+  métadonnées avant un rebond ou conditionner des tâches suivantes.
+* :feature:`579` CRC-16 (PI 1) configurable via ``useCRC`` dans la configuration
+  protocolaire du client, du serveur et du partenaire PeSIT.
 * :support:`-` Renommage du mode de compatibilité ``non-standard`` en
   ``historique`` (l'ancien nom reste accepté pour rétrocompatibilité).
 

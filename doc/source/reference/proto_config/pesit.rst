@@ -22,11 +22,14 @@ de configuration du protocole pour un client PeSIT est la suivante :
 * **checkpointSize** (*integer*) - Spécifie la taille (en kilo-octets, PI 7) des blocs de
   données entre chaque checkpoint lors d'un transfert. N'a aucun effet si les
   checkpoints sont désactivés. Par défaut, les blocs entre checkpoints font
-  65535 octets.
+  32 Ko (32 768 octets).
 * **checkpointWindow** (*integer*) - Spécifie le nombre de checkpoints pouvant
   rester sans réponse avant que le transfert soit stoppé. N'a aucun effet si
   les checkpoints sont désactivés. Par défaut, le transfert sera stoppé si 2
   checkpoints restent sans réponse du partenaire.
+* **useCRC** (*boolean*) - Active le contrôle d'intégrité CRC-16 (PI 1) sur
+  chaque paquet NSDU. Utile sur des liaisons réseau peu fiables. Par défaut :
+  ``false``.
 
 **Exemple**
 
@@ -36,7 +39,8 @@ de configuration du protocole pour un client PeSIT est la suivante :
      "disableRestart": false,
      "disableCheckpoints": false,
      "checkpointSize": 32,
-     "checkpointWindow": 2
+     "checkpointWindow": 2,
+     "useCRC": false
    }
 
 Configuration partenaire
@@ -66,6 +70,8 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
   rester sans réponse avant que le transfert soit stoppé. N'a aucun effet si
   les checkpoints sont désactivés. Par défaut, la valeur donnée dans la
   configuration du client est utilisée.
+* **useCRC** (*boolean*) - Active le contrôle d'intégrité CRC-16 (PI 1) sur
+  chaque paquet NSDU pour ce partenaire. Par défaut : ``false``.
 * **useNSDU** (*boolean*) - Spécifie si les méta-paquets NSDU du protocole PeSIT
   doivent être utilisés lors des transferts avec ce partenaire. Par défaut, les
   paquets NSDU sont utilisés.
@@ -147,6 +153,8 @@ est la suivante :
   connectant au serveur demande un interval plus grand, celui-ci sera rabaissé
   à ce maximum. N'a aucun effet si les checkpoints sont désactivés. Par défaut,
   le transfert sera stoppé si 2 checkpoints restent sans réponse du récepteur.
+* **useCRC** (*boolean*) - Active le contrôle d'intégrité CRC-16 (PI 1) sur
+  chaque paquet NSDU pour ce serveur. Par défaut : ``false``.
 * **maxMessageSize** (*integer*) - Spécifie la taille maximale (en octets) autorisée
   pour les paquets PeSIT envoyés à (et reçus depuis) ce serveur. Si un client se
   connectant au serveur demande une taille plus grande, celle-ci sera rabaissée
