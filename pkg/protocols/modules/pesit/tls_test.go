@@ -13,24 +13,34 @@ import (
 
 func TestTLS(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, PesitTLS, nil, nil, nil)
 
 	ctx.AddCred(t, &model.Credential{
-		Name:         "pesit_server_cert",
+		Name: "pesit_server_cert",
+
 		LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
-		Type:         auth.TLSCertificate,
-		Value2:       gwtesting.LocalhostKeyPEM,
-		Value:        gwtesting.LocalhostCertPEM,
+
+		Type: auth.TLSCertificate,
+
+		Value2: gwtesting.LocalhostKeyPEM,
+
+		Value: gwtesting.LocalhostCertPEM,
 	})
+
 	ctx.AddCred(t, &model.Credential{
-		Name:          "pesit_partner_cert",
+		Name: "pesit_partner_cert",
+
 		RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
-		Type:          auth.TLSTrustedCertificate,
-		Value:         gwtesting.LocalhostCertPEM,
+
+		Type: auth.TLSTrustedCertificate,
+
+		Value: gwtesting.LocalhostCertPEM,
 	})
 
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
 		t.Parallel()
+
 		pip := ctx.PullPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
@@ -44,6 +54,7 @@ func TestTLS(t *testing.T) {
 
 	t.Run("Given a PESIT push client", func(t *testing.T) {
 		t.Parallel()
+
 		pip := ctx.PushPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {

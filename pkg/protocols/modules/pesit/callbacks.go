@@ -6,10 +6,9 @@ import (
 	"io"
 	"time"
 
-	"code.waarp.fr/lib/pesit"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/lib/pesit"
 )
 
 const stopTimeout = 5 * time.Second
@@ -17,6 +16,7 @@ const stopTimeout = 5 * time.Second
 func stopReceived(pip *pipeline.Pipeline) func(pesit.StopCause, error) {
 	return func(cause pesit.StopCause, err error) {
 		var pErr pesit.Diagnostic
+
 		errors.As(err, &pErr)
 
 		if pErr.GetMessage() != "" {
@@ -24,26 +24,37 @@ func stopReceived(pip *pipeline.Pipeline) func(pesit.StopCause, error) {
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
+
 		defer cancel()
 
 		switch cause {
+
 		case pesit.StopSuspend:
+
 			if pErr := pip.Pause(ctx); pErr != nil {
 				pip.Logger.Errorf("Failed to pause transfer: %v", pErr)
 			}
+
 		case pesit.StopCancel:
+
 			if pErr.IsSuccess() {
+
 				if cErr := pip.Cancel(ctx); cErr != nil {
 					pip.Logger.Errorf("Failed to cancel transfer: %v", cErr)
 				}
 
 				return
+
 			}
 
 			fallthrough
+
 		default:
+
 			pipErr := pesitErrToPipErr("error on remote partner", pErr)
+
 			pip.SetError(pipErr.Code(), pipErr.Details())
+
 		}
 	}
 }
@@ -51,6 +62,7 @@ func stopReceived(pip *pipeline.Pipeline) func(pesit.StopCause, error) {
 func connectionAborted(pip *pipeline.Pipeline) func(error) {
 	return func(err error) {
 		var pErr pesit.Diagnostic
+
 		errors.As(err, &pErr)
 
 		pip.SetError(types.TeConnectionReset, pErr.GetMessage())
@@ -64,6 +76,7 @@ func restartReceived(pip *pipeline.Pipeline) func(uint32, error) uint32 {
 		}
 
 		const checkpointSize = 1 // TODO: replace with real value once obtainable
+
 		offset := checkpointSize * checkpoint
 
 		newOff, err := pip.Stream.Seek(int64(offset), io.SeekStart)
@@ -82,9 +95,11 @@ func checkpointRequestReceived(pip *pipeline.Pipeline) func(uint32) bool {
 		}
 
 		if err := pip.Stream.Sync(); err != nil {
+
 			pip.Logger.Errorf("Checkpoint validation failed: %v", err)
 
 			return false
+
 		}
 
 		return true

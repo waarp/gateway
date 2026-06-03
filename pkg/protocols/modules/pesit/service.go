@@ -18,9 +18,11 @@ type Service struct {
 func newService(db *database.DB, serv *model.LocalAgent) *Service {
 	return &Service{
 		server: &server{
-			db:         db,
+			db: db,
+
 			localAgent: serv,
-			logger:     logging.NewLogger(serv.Name),
+
+			logger: logging.NewLogger(serv.Name),
 		},
 	}
 }
@@ -36,13 +38,17 @@ func (s *Service) Start() error {
 
 	addr, err := s.start()
 	if err != nil {
+
 		s.logger.Errorf("Failed to start Pesit server: %v", err)
+
 		s.state.Set(utils.StateError, err.Error())
 
 		return err
+
 	}
 
 	s.state.Set(utils.StateRunning, "")
+
 	s.logger.Infof("Pesit server started successfully on %s", addr)
 
 	return nil
@@ -50,6 +56,7 @@ func (s *Service) Start() error {
 
 func (s *Service) start() (string, error) {
 	var conf ServerConfigTLS
+
 	if err := utils.JSONConvert(s.localAgent.ProtoConfig, &conf); err != nil {
 		return "", fmt.Errorf("failed to parse the pesit agent's proto config: %w", err)
 	}
@@ -67,17 +74,22 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping Pesit service...")
 
 	if err := s.stop(ctx); err != nil {
+
 		s.logger.Errorf("Failed to stop Pesit server: %v", err)
+
 		s.state.Set(utils.StateError, err.Error())
 
 		return err
+
 	}
 
 	s.state.Set(utils.StateOffline, "")
+
 	s.logger.Info("Pesit server stopped successfully.")
 
 	return nil
 }
 
-func (s *Service) State() (utils.StateCode, string)  { return s.state.Get() }
+func (s *Service) State() (utils.StateCode, string) { return s.state.Get() }
+
 func (s *Service) SetTracer(f func() pipeline.Trace) { s.tracer = f }

@@ -14,37 +14,59 @@ import (
 var ErrDecryptNotAESKey = errors.New("the provided cryptographic key does not contain an AES key")
 
 func makeAESCTRDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
+
 	return makeAESDecryptor(cryptoKey, cipher.NewCTR)
+
 }
 
 func makeAESCFBDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
+
 	//nolint:staticcheck // CFB is needed here
+
 	return makeAESDecryptor(cryptoKey, cipher.NewCFBDecrypter)
+
 }
 
 func makeAESOFBDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
+
 	//nolint:staticcheck // OFB is needed here
+
 	return makeAESDecryptor(cryptoKey, cipher.NewOFB)
+
 }
 
 func makeAESDecryptor(cryptoKey *model.CryptoKey,
+
 	mkStream func(cipher.Block, []byte) cipher.Stream,
+
 ) (decryptFunc, error) {
+
 	if !isAESKey(cryptoKey) {
+
 		return nil, ErrDecryptNotAESKey
+
 	}
 
 	key, err := base64.StdEncoding.DecodeString(string(cryptoKey.Key))
+
 	if err != nil {
+
 		return nil, fmt.Errorf("failed to decode AES key: %w", err)
+
 	}
 
 	block, aesErr := aes.NewCipher(key)
+
 	if aesErr != nil {
+
 		return nil, fmt.Errorf("failed to create AES cipher: %w", aesErr)
+
 	}
 
 	return func(src io.Reader, dst io.Writer) error {
+
 		return decryptStream(src, dst, block, mkStream)
+
 	}, nil
+
 }

@@ -38,11 +38,9 @@ type Runner struct {
 // NewTaskRunner returns a new tasks.Runner using the given elements.
 
 func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.TransferContext) *Runner {
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	r := &Runner{
-
 		db: db,
 
 		Logger: logger,
@@ -53,57 +51,42 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 	}
 
 	r.Stop = func() {
-
 		cancel()
 
 		r.lock.Wait()
-
 	}
 
 	return r
-
 }
 
 // PreTasks executes the transfer's pre-tasks.
 
 func (r *Runner) PreTasks(trace func(rank int) error) *Error {
-
 	return r.runTasks(r.transCtx.PreTasks, false, trace)
-
 }
 
 // PostTasks executes the transfer's post-tasks.
 
 func (r *Runner) PostTasks(trace func(rank int) error) *Error {
-
 	return r.runTasks(r.transCtx.PostTasks, false, trace)
-
 }
 
 // ErrorTasks executes the transfer's error-tasks.
 
 func (r *Runner) ErrorTasks(trace func(rank int)) *Error {
-
 	return r.runTasks(r.transCtx.ErrTasks, true, func(rank int) error {
-
 		if trace != nil {
-
 			trace(rank)
-
 		}
 
 		return nil
-
 	})
-
 }
 
 func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo string,
 
 	isErrTasks bool,
-
 ) *Error {
-
 	// Evaluate optional condition before execution.
 
 	if task.Condition != "" {
@@ -111,11 +94,9 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 		resolved, resolveErr := replaceVars(task.Condition, r.transCtx)
 
 		if resolveErr != nil {
-
 			r.Logger.Warningf("%s: failed to resolve condition %q: %v",
 
 				taskInfo, task.Condition, resolveErr)
-
 		} else if !EvalCondition(resolved) {
 
 			r.Logger.Debugf("%s: skipped (condition not met: %q → %q)",
@@ -131,9 +112,7 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 	runner := model.GetTaskRunner(task.Type)
 
 	if runner == nil {
-
 		return newError(types.TeExternalOperation, "unknown task type: %s", task.Type)
-
 	}
 
 	args, setupErr := r.setup(task)
@@ -153,13 +132,9 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 	var runErr error
 
 	if isErrTasks {
-
 		runErr = runner.Run(context.Background(), args, r.db, r.Logger, r.transCtx, r.Remote)
-
 	} else {
-
 		runErr = runner.Run(r.Ctx, args, r.db, r.Logger, r.transCtx, r.Remote)
-
 	}
 
 	if runErr != nil {
@@ -185,25 +160,19 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 		r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
 
 	} else {
-
 		r.Logger.Debug(taskInfo)
-
 	}
 
 	return r.updateProgress(updTicker, isErrTasks)
-
 }
 
 func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error {
-
 	r.transCtx.Transfer.TaskNumber++
 
 	size := r.getFilesize()
 
 	if size >= 0 && size != r.transCtx.Transfer.Filesize {
-
 		r.transCtx.Transfer.Filesize = size
-
 	}
 
 	select {
@@ -223,15 +192,12 @@ func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error 
 		r.Logger.Errorf("Failed to update transfer after task: %v", dbErr)
 
 		if !isErrTasks {
-
 			return newErrorWith(types.TeInternal, "failed to update transfer", dbErr)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // runTasks executes sequentially the list of tasks given according to the
@@ -239,9 +205,7 @@ func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error 
 // Runner context.
 
 func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank int) error,
-
 ) *Error {
-
 	r.lock.Add(1)
 
 	defer r.lock.Done()
@@ -255,7 +219,6 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 			task.Chain, task.Rank)
 
 		if !isErrTasks {
-
 			select {
 
 			case <-r.Ctx.Done():
@@ -265,33 +228,25 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 			default:
 
 			}
-
 		}
 
 		updTicker := time.NewTicker(time.Second)
 
 		if err := r.runTask(updTicker, task, taskInfo, isErrTasks); err != nil {
-
 			return err
-
 		}
 
 		if trace == nil {
-
 			continue
-
 		}
 
 		if err := trace(i); err != nil {
-
 			return newErrorWith(types.TeInternal, "task trace error", err)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 // setup contextualizes and unmarshalls the tasks arguments.
@@ -299,17 +254,12 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 // It returns a json object exploitable by the task.
 
 func (r *Runner) setup(t *model.Task) (map[string]string, error) {
-
 	args, err := r.replace(t)
-
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	return args, nil
-
 }
 
 // replaces all the context variables (#varname#) in the tasks arguments
@@ -317,45 +267,33 @@ func (r *Runner) setup(t *model.Task) (map[string]string, error) {
 // by their context value.
 
 func (r *Runner) replace(t *model.Task) (map[string]string, error) {
-
 	raw, jsonErr := json.Marshal(t.Args)
 
 	if jsonErr != nil {
-
 		return nil, fmt.Errorf("failed to serialize the task arguments: %w", jsonErr)
-
 	}
 
 	rawArgs, repErr := replaceVars(string(raw), r.transCtx)
 
 	if repErr != nil {
-
 		return nil, repErr
-
 	}
 
 	var newArgs map[string]string
 
 	if err := json.Unmarshal([]byte(rawArgs), &newArgs); err != nil {
-
 		return nil, fmt.Errorf("failed to deserialize the task arguments: %w", err)
-
 	}
 
 	return newArgs, nil
-
 }
 
 func (r *Runner) getFilesize() int64 {
-
 	if !r.transCtx.Rule.IsSend {
-
 		return -1
-
 	}
 
 	info, err := fs.Stat(r.transCtx.Transfer.LocalPath)
-
 	if err != nil {
 
 		r.Logger.Warningf("Failed to retrieve file size: %v", err)
@@ -365,5 +303,4 @@ func (r *Runner) getFilesize() int64 {
 	}
 
 	return info.Size()
-
 }

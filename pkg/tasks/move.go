@@ -12,35 +12,53 @@ import (
 )
 
 // moveTask is a task which moves the file without renaming it
+
 // the transfer model is modified to reflect this change.
+
 type moveTask struct{}
 
 var ErrMoveMissingPath = fmt.Errorf(
+
 	`cannot create a MOVE task without a "path" argument: %w`, ErrBadTaskArguments)
 
 // Validate checks if the MOVE task has all the required arguments.
+
 func (*moveTask) Validate(args map[string]string) error {
+
 	if args["path"] == "" {
+
 		return ErrMoveMissingPath
+
 	}
 
 	return nil
+
 }
 
 // Run executes the task by moving the file in the requested directory.
+
 func (*moveTask) Run(_ context.Context, args map[string]string, _ *database.DB,
+
 	logger *log.Logger, transCtx *model.TransferContext, _ any,
+
 ) error {
+
 	newDir := args["path"]
+
 	if newDir == "" {
+
 		return ErrMoveMissingPath
+
 	}
 
 	source := transCtx.Transfer.LocalPath
+
 	dest := path.Join(newDir, path.Base(source))
 
 	if movErr := fs.MoveFile(source, dest); movErr != nil {
+
 		return fmt.Errorf("MOVE task failed: %w", movErr)
+
 	}
 
 	transCtx.Transfer.LocalPath = dest
@@ -48,4 +66,5 @@ func (*moveTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 	logger.Debugf("Moved file %q to %q", source, dest)
 
 	return nil
+
 }

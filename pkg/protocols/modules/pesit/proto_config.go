@@ -20,15 +20,11 @@ const (
 // Returns FormatVariable by default (standard PeSIT behavior).
 
 func resolveArticleFormat(configValue string) libpesit.ArticleFormat {
-
 	if strings.EqualFold(configValue, ArticleFormatFixed) {
-
 		return libpesit.FormatFixed
-
 	}
 
 	return libpesit.FormatVariable
-
 }
 
 const (
@@ -72,7 +68,6 @@ const (
 // ToPeSIT converts a CompressionMode to the lib/pesit Compression type.
 
 func (m CompressionMode) ToPeSIT() libpesit.Compression {
-
 	switch m {
 
 	case CompressionHorizontal:
@@ -92,7 +87,6 @@ func (m CompressionMode) ToPeSIT() libpesit.Compression {
 		return libpesit.NoCompression
 
 	}
-
 }
 
 type CompatibilityMode string
@@ -106,7 +100,6 @@ const (
 )
 
 func (m *CompatibilityMode) UnmarshalJSON(b []byte) error {
-
 	val := strings.Trim(string(b), "\"")
 
 	switch val {
@@ -116,9 +109,7 @@ func (m *CompatibilityMode) UnmarshalJSON(b []byte) error {
 		// Accept "non-standard" as an alias for "historique" for backward compatibility
 
 		if val == CompatibilityModeNonStandard {
-
 			val = CompatibilityModeHistorique
-
 		}
 
 		*m = CompatibilityMode(val)
@@ -132,11 +123,9 @@ func (m *CompatibilityMode) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("unknown compatibility mode %q (accepted: \"standard\", \"historique\")", val)
 
 	}
-
 }
 
 type CheckPointConfig struct {
-
 	// DisableRestart will disable restarts on this agent if set to true.
 
 	// By default, restarts are enabled.
@@ -163,7 +152,6 @@ type CheckPointConfig struct {
 }
 
 func (c *CheckPointConfig) validCheckpoints() {
-
 	if c.DisableCheckpoints {
 
 		c.DisableRestart = true
@@ -175,19 +163,14 @@ func (c *CheckPointConfig) validCheckpoints() {
 	} else {
 
 		if c.CheckpointSize == 0 {
-
 			c.CheckpointSize = DefaultCheckpointSize
-
 		}
 
 		if c.CheckpointWindow == 0 {
-
 			c.CheckpointWindow = DefaultCheckpointWindow
-
 		}
 
 	}
-
 }
 
 // ServerConfig defines the JSON object representing the configuration of
@@ -269,23 +252,17 @@ type ServerConfig struct {
 }
 
 func (s *ServerConfig) ValidServer() error {
-
 	s.validCheckpoints()
 
 	if s.MaxMessageSize == 0 {
-
 		s.MaxMessageSize = DefaultMessageSize
-
 	}
 
 	if s.ArticleSize == 0 {
-
 		s.ArticleSize = defaultArticleSize
-
 	}
 
 	return nil
-
 }
 
 type ClientConfig struct {
@@ -293,11 +270,9 @@ type ClientConfig struct {
 }
 
 func (c *ClientConfig) ValidClient() error {
-
 	c.validCheckpoints()
 
 	return nil
-
 }
 
 // PartnerConfig defines the JSON object representing the configuration of
@@ -305,7 +280,6 @@ func (c *ClientConfig) ValidClient() error {
 // a pesit remote partner.
 
 type PartnerConfig struct {
-
 	// The partner's login for authentication purposes. If left empty, the partner
 
 	// will not be authenticated.
@@ -422,37 +396,25 @@ type PartnerConfig struct {
 }
 
 func (p *PartnerConfig) ValidPartner() error {
-
 	if p.DisableCheckpoints.Valid && p.DisableCheckpoints.Value {
-
 		p.DisableRestart = api.Nullable[bool]{Value: true, Valid: true}
-
 	}
 
 	if !p.UseNSDU.Valid {
-
 		p.UseNSDU = api.NewNullable(true)
-
 	}
 
 	if p.CompatibilityMode == "" {
-
 		p.CompatibilityMode = CompatibilityModeStandard
-
 	}
 
 	if p.MaxMessageSize == 0 {
-
 		p.MaxMessageSize = DefaultMessageSize
-
 	}
 
 	if p.ArticleSize == 0 {
-
 		p.ArticleSize = defaultArticleSize
-
 	}
 
 	return nil
-
 }

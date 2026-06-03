@@ -46,13 +46,10 @@ type transferHandler struct {
 }
 
 func (t *transferHandler) getRuleByPrefix(filepath string, isSend bool) (*model.Rule, error) {
-
 	dir := path.Dir(filepath)
 
 	rule, err := protoutils.GetClosestRule(t.db, t.logger, t.agent, t.account, dir, isSend)
-
 	if err != nil {
-
 		switch {
 
 		case errors.Is(err, protoutils.ErrDatabase):
@@ -72,15 +69,12 @@ func (t *transferHandler) getRuleByPrefix(filepath string, isSend bool) (*model.
 			return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "unexpected internal error")
 
 		}
-
 	}
 
 	return rule, nil
-
 }
 
 func (t *transferHandler) getRuleByName(name string, isSend bool) (*model.Rule, error) {
-
 	var rule model.Rule
 
 	if err := t.db.Get(&rule, "name=? AND is_send=?", name, isSend).Run(); err != nil {
@@ -92,13 +86,11 @@ func (t *transferHandler) getRuleByName(name string, isSend bool) (*model.Rule, 
 	}
 
 	return &rule, nil
-
 }
 
 //nolint:funlen //no easy way to split for now
 
 func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
-
 	// retrieve the rule and initialize the transfer
 
 	var (
@@ -114,13 +106,10 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	req.SetArticleSize(t.conf.ArticleSize)
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
-
 		req.SetMessageSize(t.conf.MaxMessageSize)
-
 	}
 
 	if !req.IsSend() {
-
 		if req.TransferID() == 0 {
 
 			t.logger.Warning("Missing client transfer ID")
@@ -128,7 +117,6 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 			return pesit.NewDiagnostic(pesit.CodeParameterError, "missing client transfer ID")
 
 		}
-
 	}
 
 	switch {
@@ -162,13 +150,9 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	)
 
 	if t.conf.CompatibilityMode == CompatibilityModeHistorique {
-
 		rule, ruleErr = t.getRuleByName(req.FilenamePI12(), isSend)
-
 	} else {
-
 		rule, ruleErr = t.getRuleByPrefix(req.Filename(), isSend)
-
 	}
 
 	if ruleErr != nil {
@@ -182,9 +166,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	filepath := trimRequestPath(req.Filename(), rule)
 
 	if req.TransferID() != 0 {
-
 		remoteTransferID = utils.FormatUint(req.TransferID())
-
 	}
 
 	// initialize the pipeline
@@ -212,9 +194,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		resolved := t.pip.TransCtx.Transfer.SrcFilename
 
 		if !isSend {
-
 			resolved = t.pip.TransCtx.Transfer.DestFilename
-
 		}
 
 		if resolved != "" && !pipeline.ContainsWildcard(resolved) {
@@ -258,23 +238,16 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	t.logger.Infof("Transfer request for file %q accepted", req.Filename())
 
 	return nil
-
 }
 
 func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule,
-
 ) (*model.Transfer, error) {
-
 	if trans, err := pipeline.GetOldTransferByRemoteID(t.db, remoteID, t.account,
 
 		rule); err == nil {
-
 		return trans, nil
-
 	} else if !database.IsNotFound(err) {
-
 		return nil, transErrToPesitErr(err)
-
 	}
 
 	// CFT mode -> no filename, so we use the rule instead
@@ -284,13 +257,9 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 		if rule.IsSend {
 
 			if trans, err := pipeline.GetAvailableTransferByRule(t.db, remoteID, t.account, rule); err == nil {
-
 				return trans, nil
-
 			} else if !database.IsNotFound(err) {
-
 				return nil, transErrToPesitErr(err)
-
 			}
 
 			return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists, "no available transfer found")
@@ -306,13 +275,9 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 	if trans, err := pipeline.GetAvailableTransferByFilename(t.db, filepath, remoteID,
 
 		t.account, rule); err == nil {
-
 		return trans, nil
-
 	} else if !database.IsNotFound(err) {
-
 		return nil, transErrToPesitErr(err)
-
 	}
 
 	// If the filepath contains a glob pattern (e.g. "data-*", "*.csv"),
@@ -342,15 +307,12 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 	}
 
 	return pipeline.MakeServerTransfer(remoteID, filepath, t.account, rule), nil
-
 }
 
 func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 
 	remoteID, filepath string, rule *model.Rule,
-
 ) error {
-
 	trans, tErr := t.mkTransfer(remoteID, filepath, rule)
 
 	if tErr != nil {
@@ -376,9 +338,7 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 	t.pip = pip
 
 	if t.tracer != nil {
-
 		t.pip.Trace = t.tracer()
-
 	}
 
 	setTransInfo(t.pip, clientConnFreetextKey, t.connFreetext)
@@ -400,21 +360,15 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 	if pip.TransCtx.Rule.IsSend {
 
 		if err := setFileType(t.pip, req); err != nil {
-
 			return err
-
 		}
 
 		if err := setFileOrganization(t.pip, req); err != nil {
-
 			return nil
-
 		}
 
 		if err := setFileEncoding(t.pip, req); err != nil {
-
 			return err
-
 		}
 
 		if err := setFreetext(pip, serverTransFreetextKey, req); err != nil {
@@ -434,25 +388,18 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
 
 		if req.ArticleFormat() == pesit.FormatFixed {
-
 			setTransInfo(t.pip, articleFormatKey, ArticleFormatFixed)
-
 		} else {
-
 			setTransInfo(t.pip, articleFormatKey, ArticleFormatVariable)
-
 		}
 
 	}
 
 	return utils.RunWithCtx(t.ctx, func() error {
-
 		// execute the pre-tasks
 
 		if err := t.pip.PreTasks(); err != nil {
-
 			return transErrToPesitErr(err)
-
 		}
 
 		// set the attributes of the response
@@ -462,9 +409,7 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 			stat, statErr := fs.Stat(t.pip.TransCtx.Transfer.LocalPath)
 
 			if statErr != nil {
-
 				return toPesitErr(pesit.CodeInternalError, statErr)
-
 			}
 
 			req.SetReservationSpace(makeReservationSpaceKB(stat), pesit.UnitKB)
@@ -474,15 +419,12 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		}
 
 		return nil
-
 	})
-
 }
 
 //nolint:gocritic //can't change the function's signature, this is an interface method
 
 func (t *transferHandler) OpenFile(st *pesit.ServerTransfer) error {
-
 	t.pip.Logger.Debug("Opening file")
 
 	// Apply the configured compression mode (PI 21). The algorithms are
@@ -492,19 +434,15 @@ func (t *transferHandler) OpenFile(st *pesit.ServerTransfer) error {
 	st.SetCompression(t.conf.Compression.ToPeSIT())
 
 	if err := utils.RunWithCtx(t.ctx, func() error {
-
 		stream, stErr := t.pip.StartData()
 
 		if stErr != nil {
-
 			return transErrToPesitErr(stErr)
-
 		}
 
 		t.file = stream
 
 		return nil
-
 	}); err != nil {
 
 		t.pip.Logger.Debugf("File opening failed: %v", err)
@@ -516,21 +454,16 @@ func (t *transferHandler) OpenFile(st *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("File opened successfully")
 
 	return nil
-
 }
 
 func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
-
 	t.pip.Logger.Debug("Checking for recovery")
 
 	if err := utils.RunWithCtx(t.ctx, func() error {
-
 		// If the request is not a recovery, there is nothing to do
 
 		if !dtr.IsRecovered() {
-
 			return nil
-
 		}
 
 		// If the server is the receiver, set the recovery point
@@ -548,13 +481,10 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 		offset := int64(dtr.RecoveryPoint()) * int64(t.conf.CheckpointSize)
 
 		if _, err := t.file.Seek(offset, io.SeekStart); err != nil {
-
 			return toPesitErr(pesit.CodeInternalError, err)
-
 		}
 
 		return nil
-
 	}); err != nil {
 
 		t.logger.Debugf("Recovery check failed: %v", err)
@@ -566,11 +496,9 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("Recovery check successful")
 
 	return nil
-
 }
 
 func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
-
 	var articlesLen []int64
 
 	for {
@@ -578,9 +506,7 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 		article, aErr := trans.GetNextRecvArticle()
 
 		if errors.Is(aErr, pesit.ErrNoMoreArticle) {
-
 			return nil
-
 		} else if aErr != nil {
 
 			t.handleError(aErr)
@@ -594,9 +520,7 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 		start := t.pip.TransCtx.Transfer.Progress
 
 		if _, err := io.Copy(t.file, article); err != nil {
-
 			return toPesitErr(pesit.CodeInternalError, err)
-
 		}
 
 		end := t.pip.TransCtx.Transfer.Progress
@@ -606,19 +530,15 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 		t.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articlesLen
 
 	}
-
 }
 
 func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
-
 	lengths, isMArticles := isMultiArticles(t.pip)
 
 	if !isMArticles {
 
 		if _, err := io.Copy(trans, t.file); err != nil {
-
 			return toPesitErr(pesit.CodeInternalError, err)
-
 		}
 
 		return nil
@@ -644,31 +564,23 @@ func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 		file := io.LimitReader(t.file, length)
 
 		if _, err := io.Copy(article, file); err != nil {
-
 			return toPesitErr(pesit.CodeInternalError, err)
-
 		}
 
 	}
 
 	return nil
-
 }
 
 func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
-
 	t.pip.Logger.Debug("Data transfer started")
 
 	if err := utils.RunWithCtx(t.ctx, func() error {
-
 		if t.pip.TransCtx.Rule.IsSend {
-
 			return t.sendTransfer(trans)
-
 		}
 
 		return t.receiveTransfer(trans)
-
 	}); err != nil {
 
 		t.pip.Logger.Debugf("Data transfer failed: %v", err)
@@ -692,9 +604,7 @@ func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
 		}
 
 		if stopErr != nil {
-
 			t.pip.Logger.Errorf("Failed to stop transfer: %v", stopErr)
-
 		}
 
 		return err
@@ -704,27 +614,19 @@ func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("Data transfer completed")
 
 	return nil
-
 }
 
 func (t *transferHandler) EndTransfer(_ *pesit.ServerTransfer, err error) error {
-
 	if err != nil {
-
 		t.pip.Logger.Warningf("Data transfer ended with error: %v", err)
-
 	} else {
-
 		t.pip.Logger.Debug("Data transfer finished")
-
 	}
 
 	return nil
-
 }
 
 func (t *transferHandler) CloseFile(pErr error) error {
-
 	t.pip.Logger.Debug("Closing file")
 
 	if pErr != nil {
@@ -736,15 +638,11 @@ func (t *transferHandler) CloseFile(pErr error) error {
 	}
 
 	if err := utils.RunWithCtx(t.ctx, func() error {
-
 		if err := t.pip.EndData(); err != nil {
-
 			return transErrToPesitErr(err)
-
 		}
 
 		return nil
-
 	}); err != nil {
 
 		t.pip.Logger.Debugf("File closing failed: %v", err)
@@ -756,11 +654,9 @@ func (t *transferHandler) CloseFile(pErr error) error {
 	t.pip.Logger.Debug("File closed successfully")
 
 	return nil
-
 }
 
 func (t *transferHandler) DeselectFile(pErr error) error {
-
 	t.pip.Logger.Debug("Finalizing transfer")
 
 	if pErr != nil {
@@ -780,21 +676,15 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 	}
 
 	if err := utils.RunWithCtx(t.ctx, func() error {
-
 		if err := t.pip.PostTasks(); err != nil {
-
 			return transErrToPesitErr(err)
-
 		}
 
 		if err := t.pip.EndTransfer(); err != nil {
-
 			return transErrToPesitErr(err)
-
 		}
 
 		return nil
-
 	}); err != nil {
 
 		t.pip.Logger.Debugf("Transfer finalization failed: %v", err)
@@ -818,7 +708,6 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 	t.cancel = nil
 
 	return nil
-
 }
 
 var (
@@ -830,33 +719,24 @@ var (
 )
 
 func (t *transferHandler) stop(signal error) error {
-
 	t.cancel(signal)
 
 	return nil
-
 }
 
 func (t *transferHandler) Pause(context.Context) error {
-
 	return t.stop(errServerPause)
-
 }
 
 func (t *transferHandler) Interrupt(context.Context) error {
-
 	return t.stop(errServerInterrupt)
-
 }
 
 func (t *transferHandler) Cancel(context.Context) error {
-
 	return t.stop(errServerCanceled)
-
 }
 
 func (t *transferHandler) handleError(err error) {
-
 	var pesitErr pesit.Diagnostic
 
 	errors.As(err, &pesitErr)
@@ -868,9 +748,7 @@ func (t *transferHandler) handleError(err error) {
 		t.pip.Logger.Info("Transfer canceled by remote client")
 
 		if cErr := t.pip.Cancel(t.ctx); cErr != nil {
-
 			t.pip.Logger.Errorf("Failed to cancel transfer: %v", cErr)
-
 		}
 
 	case pesit.CodeTryLater:
@@ -878,9 +756,7 @@ func (t *transferHandler) handleError(err error) {
 		t.pip.Logger.Info("Transfer paused by remote client")
 
 		if pErr := t.pip.Pause(t.ctx); pErr != nil {
-
 			t.pip.Logger.Errorf("Failed to pause transfer: %v", pErr)
-
 		}
 
 	default:
@@ -892,5 +768,4 @@ func (t *transferHandler) handleError(err error) {
 		t.pip.SetError(pipErr.Code(), pipErr.Details())
 
 	}
-
 }

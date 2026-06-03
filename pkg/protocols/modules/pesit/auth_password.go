@@ -12,31 +12,45 @@ import (
 
 const (
 	MaxPasswordLength = 8
-	maxASCIICharCode  = 127
+
+	maxASCIICharCode = 127
 )
 
 var (
-	ErrPasswordTooLong     = errors.New("pesit passwords cannot be longer than 8 characters")
+	ErrPasswordTooLong = errors.New("pesit passwords cannot be longer than 8 characters")
+
 	ErrInvalidPasswordChar = errors.New("pesit passwords can only contain 7-bits ASCII characters")
-	ErrLoginTooLong        = errors.New("pesit logins cannot be longer than 8 characters")
-	ErrInvalidLoginChar    = errors.New("pesit logins can only contain 7-bits ASCII characters")
+
+	ErrLoginTooLong = errors.New("pesit logins cannot be longer than 8 characters")
+
+	ErrInvalidLoginChar = errors.New("pesit logins can only contain 7-bits ASCII characters")
+
 	ErrPreConnAuthOnServer = errors.New("pesit pre-connection credentials are not allowed on servers " +
+
 		"(only remote accounts)")
 )
 
 const PreConnectionAuth = "pesit_pre-connection_auth"
 
 //nolint:gochecknoinits //init is required here
+
 func init() {
 	// Internal password
+
 	authentication.AddInternalCredentialTypeForProtocol(auth.Password, Pesit, &pesitBcryptAuthHandler{})
+
 	authentication.AddInternalCredentialTypeForProtocol(auth.Password, PesitTLS, &pesitBcryptAuthHandler{})
+
 	// External password
+
 	authentication.AddExternalCredentialTypeForProtocol(auth.Password, Pesit, &pesitAESAuthHandler{})
+
 	authentication.AddExternalCredentialTypeForProtocol(auth.Password, PesitTLS, &pesitAESAuthHandler{})
 
 	// Pre-connection authentication
+
 	authentication.AddExternalCredentialTypeForProtocol(PreConnectionAuth, Pesit, &preConnectionAuthExtHandler{})
+
 	authentication.AddExternalCredentialTypeForProtocol(PreConnectionAuth, PesitTLS, &preConnectionAuthExtHandler{})
 }
 
@@ -111,6 +125,7 @@ func (p preConnectionAuthExtHandler) ToDB(login, plainPwd string) (preLogin, cry
 }
 
 func (p preConnectionAuthExtHandler) CanOnlyHaveOne() bool { return true }
+
 func (p preConnectionAuthExtHandler) Validate(login, pwd, _, _ string, isServer bool) error {
 	if isServer {
 		return ErrPreConnAuthOnServer

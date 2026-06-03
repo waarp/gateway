@@ -36,7 +36,6 @@ type server struct {
 }
 
 func (s *server) listen() (string, error) {
-
 	s.server = pesit.NewServer(s)
 
 	s.server.Logger = s.logger.AsStdLogger(log.LevelDebug)
@@ -48,9 +47,7 @@ func (s *server) listen() (string, error) {
 	// Most TLS partners do not send the 24-byte EBCDIC pre-connection message.
 
 	if s.localAgent.Protocol == PesitTLS || s.conf.DisablePreConnection {
-
 		s.server.SetPreConnectionUsage(false)
-
 	}
 
 	realAddr := conf.GetRealAddress(s.localAgent.Address.Host,
@@ -66,7 +63,6 @@ func (s *server) listen() (string, error) {
 	if s.localAgent.Protocol == PesitTLS {
 
 		tlsConfig := &tls.Config{
-
 			MinVersion: s.conf.MinTLSVersion.TLS(),
 
 			GetCertificate: s.getCertificate,
@@ -77,21 +73,16 @@ func (s *server) listen() (string, error) {
 		list, listErr = tls.Listen("tcp", realAddr, tlsConfig)
 
 	} else {
-
 		list, listErr = net.Listen("tcp", realAddr)
-
 	}
 
 	if listErr != nil {
-
 		return "", fmt.Errorf("failed to open listener: %w", listErr)
-
 	}
 
 	list = &protoutils.TraceListener{Listener: list}
 
 	go func() {
-
 		if err := s.server.Serve(list); err != nil {
 
 			s.logger.Errorf("unexpected error: %v", err)
@@ -99,43 +90,29 @@ func (s *server) listen() (string, error) {
 			s.state.Set(utils.StateError, err.Error())
 
 		}
-
 	}()
 
 	return list.Addr().String(), nil
-
 }
 
 func (s *server) stop(ctx context.Context) error {
-
 	if err := s.server.Close(ctx); err != nil {
-
 		return fmt.Errorf("failed to shut down pesit server: %w", err)
-
 	}
 
 	return nil
-
 }
 
 func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, error) {
-
 	if pass, err := s.getPassword(); err != nil {
-
 		return nil, err
-
 	} else if pass != "" {
-
 		conn.SetServerPassword(pass)
-
 	}
 
 	if conn.HasCheckpoints() {
-
 		if s.conf.DisableCheckpoints {
-
 			conn.AllowCheckpoints(pesit.CheckpointDisabled, 0)
-
 		} else {
 
 			size := min(s.conf.CheckpointSize, conn.CheckpointSize())
@@ -145,19 +122,14 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 			conn.AllowCheckpoints(size, window)
 
 		}
-
 	}
 
 	if !s.conf.DisableRestart {
-
 		conn.AllowRestart(true)
-
 	}
 
 	if s.conf.ProtocolTimeout > 0 {
-
 		conn.SetMonitoringTimeout(s.conf.ProtocolTimeout)
-
 	}
 
 	if conn.NewClientPassword() != "" {
@@ -207,9 +179,7 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 		user, authErr = s.authenticate(conn.ClientLogin(), conn.ClientPassword())
 
 		if authErr != nil {
-
 			return nil, authErr
-
 		}
 
 	}
@@ -217,7 +187,6 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
 
 	return &transferHandler{
-
 		db: s.db,
 
 		logger: s.logger,
@@ -232,27 +201,21 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 
 		connFreetext: conn.FreeText(),
 	}, nil
-
 }
 
 func (s *server) Release(conn *pesit.ServerConnection) {
-
 	s.logger.Debugf("Connection closed to %v", conn)
-
 }
 
 var ErrPasswordDBError = errors.New("failed to retrieve the server password")
 
 func (s *server) getPassword() (string, error) {
-
 	var pass model.Credential
 
 	if err := s.db.Get(&pass, "type=?", auth.Password).And(s.localAgent.GetCredCond()).Run(); err != nil {
 
 		if database.IsNotFound(err) {
-
 			return "", nil
-
 		}
 
 		s.logger.Errorf("Failed to retrieve the server password: %v", err)
@@ -262,11 +225,9 @@ func (s *server) getPassword() (string, error) {
 	}
 
 	return pass.Value, nil
-
 }
 
 func (s *server) authenticate(login, password string) (*model.LocalAccount, error) {
-
 	var user model.LocalAccount
 
 	if err := s.db.Get(&user, "local_agent_id=? AND login=?", s.localAgent.ID,
@@ -296,7 +257,6 @@ func (s *server) authenticate(login, password string) (*model.LocalAccount, erro
 	}
 
 	return &user, nil
-
 }
 
 // HandleMessage implements pesit.MessageHandler to accept incoming F.MESSAGE.
@@ -314,15 +274,12 @@ func (s *server) authenticate(login, password string) (*model.LocalAccount, erro
 // attempts to relay the message upstream through the Store & Forward chain.
 
 func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageRequest) error {
-
 	s.logger.Infof("F.MESSAGE received from %q: transferID=%d customerID=%q bankID=%q message=%q",
 
 		msg.ClientLogin, msg.TransferID, msg.CustomerID, msg.BankID, msg.Message)
 
 	if msg.TransferID == 0 {
-
 		return nil
-
 	}
 
 	remoteID := strconv.FormatUint(uint64(msg.TransferID), 10)
@@ -343,9 +300,7 @@ func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageReque
 	// Store the ACK info on the outgoing transfer.
 
 	if outTrans.TransferInfo == nil {
-
 		outTrans.TransferInfo = make(map[string]any)
-
 	}
 
 	outTrans.TransferInfo["__messageACK__"] = msg.Message
@@ -355,27 +310,20 @@ func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageReque
 	outTrans.TransferInfo["__messageBankID__"] = msg.BankID
 
 	if err := s.db.Update(&outTrans).Cols("transfer_info").Run(); err != nil {
-
 		s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",
 
 			outTrans.ID, err)
-
 	} else {
-
 		s.logger.Infof("F.MESSAGE ACK stored on transfer %d", outTrans.ID)
-
 	}
 
 	// If relay is enabled, try to forward the message upstream.
 
 	if s.conf.RelayMessages {
-
 		s.relayMessage(&outTrans, msg)
-
 	}
 
 	return nil
-
 }
 
 // relayMessage attempts to relay a F.MESSAGE upstream through the Store &
@@ -519,9 +467,7 @@ func parseTransferID(rid string) uint32 {
 func sendRelayMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
 
 	password string, transferID uint32, message string,
-
 ) error {
-
 	client := pesit.NewClient(account.Login, password, partner.Name)
 
 	client.SetPreConnectionUsage(false)
@@ -529,11 +475,8 @@ func sendRelayMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
 	addr := fmt.Sprintf("%s:%d", partner.Address.Host, partner.Address.Port)
 
 	conn, err := net.Dial("tcp", addr)
-
 	if err != nil {
-
 		return fmt.Errorf("failed to connect to %s: %w", addr, err)
-
 	}
 
 	if err := client.Connect(conn); err != nil {
@@ -547,11 +490,8 @@ func sendRelayMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
 	defer client.Close(nil)
 
 	if err := client.SendMessage(transferID, message); err != nil {
-
 		return fmt.Errorf("failed to send F.MESSAGE: %w", err)
-
 	}
 
 	return nil
-
 }

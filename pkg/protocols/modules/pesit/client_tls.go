@@ -13,23 +13,28 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 	certs := make([]tls.Certificate, 0, len(c.pip.TransCtx.RemoteAccountCreds))
 
 	for _, cred := range c.pip.TransCtx.RemoteAccountCreds {
+
 		if cred.Type != auth.TLSCertificate {
 			continue
 		}
 
 		cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
 		if err != nil {
+
 			c.pip.Logger.Warningf("Failed to parse the TLS certificate %q: %v", cred.Name, err)
 
 			continue
+
 		}
 
 		certs = append(certs, cert)
+
 	}
 
 	rootCAs := utils.TLSCertPool()
 
 	for _, cred := range c.pip.TransCtx.RemoteAgentCreds {
+
 		if cred.Type != auth.TLSTrustedCertificate {
 			continue
 		}
@@ -37,13 +42,17 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 		if !rootCAs.AppendCertsFromPEM([]byte(cred.Value)) {
 			c.pip.Logger.Warningf("Failed to parse the remote TLS certificate %q", cred.Name)
 		}
+
 	}
 
 	tlsConfig := &tls.Config{
-		ServerName:   servName,
-		MinVersion:   conf.MinTLSVersion.TLS(),
+		ServerName: servName,
+
+		MinVersion: conf.MinTLSVersion.TLS(),
+
 		Certificates: certs,
-		RootCAs:      rootCAs,
+
+		RootCAs: rootCAs,
 	}
 
 	if err := auth.AddTLSAuthorities(c.pip.DB, tlsConfig); err != nil {

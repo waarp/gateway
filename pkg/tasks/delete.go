@@ -11,24 +11,35 @@ import (
 )
 
 // deleteTask is a task which delete the current file from the system.
+
 type deleteTask struct{}
 
 // Validate the task.
+
 func (*deleteTask) Validate(map[string]string) error {
+
 	return nil
+
 }
 
 // Run deletes the current file from the system.
+
 func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
+
 	logger *log.Logger, transCtx *model.TransferContext, _ any,
+
 ) error {
+
 	filepath := transCtx.Transfer.LocalPath
 
 	if err := fs.Remove(filepath); err != nil {
+
 		return fmt.Errorf("failed to delete file: %w", err)
+
 	}
 
 	logger.Debugf("Deleted file %q", filepath)
 
 	return nil
+
 }

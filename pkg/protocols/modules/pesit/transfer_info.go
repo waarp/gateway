@@ -63,29 +63,23 @@ type valueTypes interface {
 }
 
 func setPesitInfo[T valueTypes, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {
-
 	valAny, hasKey := pip.TransCtx.Transfer.TransferInfo[key]
 
 	if !hasKey {
-
 		return nil
-
 	}
 
 	val, isStr := valAny.(T)
 
 	if !isStr {
-
 		return pipeline.NewErrorf(types.TeInternal,
 
 			"freetext variable %q must be a %T (was of type %T)", key, val, valAny)
-
 	}
 
 	set(val)
 
 	return nil
-
 }
 
 //nolint:dupl //keep separate of setFileOrganization
@@ -93,11 +87,8 @@ func setPesitInfo[T valueTypes, F ~func(T) bool](pip *pipeline.Pipeline, key str
 func setFileEncoding(pip *pipeline.Pipeline, f interface {
 	SetDataCoding(encoding pesit.DataCoding) bool
 },
-
 ) *pipeline.Error {
-
 	return setPesitInfo(pip, fileEncodingKey, func(str string) bool {
-
 		var enc pesit.DataCoding
 
 		switch str {
@@ -121,19 +112,14 @@ func setFileEncoding(pip *pipeline.Pipeline, f interface {
 		}
 
 		return f.SetDataCoding(enc)
-
 	})
-
 }
 
 func setFileType(pip *pipeline.Pipeline, f interface {
 	SetFileType(fileType uint16) bool
 },
-
 ) *pipeline.Error {
-
 	return setPesitInfo(pip, fileTypeKey, f.SetFileType)
-
 }
 
 //nolint:dupl //keep separate of setFileOrganization
@@ -141,11 +127,8 @@ func setFileType(pip *pipeline.Pipeline, f interface {
 func setFileOrganization(pip *pipeline.Pipeline, f interface {
 	SetFileOrganization(organization pesit.FileOrganization) bool
 },
-
 ) *pipeline.Error {
-
 	return setPesitInfo(pip, organizationKey, func(str string) bool {
-
 		var org pesit.FileOrganization
 
 		switch str {
@@ -169,49 +152,34 @@ func setFileOrganization(pip *pipeline.Pipeline, f interface {
 		}
 
 		return f.SetFileOrganization(org)
-
 	})
-
 }
 
 func setCustomerID(pip *pipeline.Pipeline, f interface {
 	SetCustomerID(customerID string) bool
 },
-
 ) *pipeline.Error {
-
 	return setPesitInfo(pip, customerIDKey, f.SetCustomerID)
-
 }
 
 func setBankID(pip *pipeline.Pipeline, f interface {
 	SetBankID(bankID string) bool
 },
-
 ) *pipeline.Error {
-
 	return setPesitInfo(pip, bankIDKey, f.SetBankID)
-
 }
 
 func setFreetext(pip *pipeline.Pipeline, key string, f interface {
 	SetFreeText(freetext string) bool
 },
-
 ) *pipeline.Error {
-
 	return setPesitInfo(pip, key, f.SetFreeText)
-
 }
 
 func setTransInfo[T valueTypes](pip *pipeline.Pipeline, key string, val T) {
-
 	if !reflect.ValueOf(val).IsZero() {
-
 		pip.TransCtx.Transfer.TransferInfo[key] = val
-
 	}
-
 }
 
 // getArticleFormat returns the article format for a transfer, checking
@@ -219,19 +187,13 @@ func setTransInfo[T valueTypes](pip *pipeline.Pipeline, key string, val T) {
 // TransferInfo override first, then falling back to the config value.
 
 func getArticleFormat(pip *pipeline.Pipeline, configValue string) pesit.ArticleFormat {
-
 	if val, ok := pip.TransCtx.Transfer.TransferInfo[articleFormatKey]; ok {
-
 		if str, isStr := val.(string); isStr {
-
 			return resolveArticleFormat(str)
-
 		}
-
 	}
 
 	return resolveArticleFormat(configValue)
-
 }
 
 // parseReplyInfo extracts Store & Forward reply info from a PI 99 freetext
@@ -249,11 +211,8 @@ func getArticleFormat(pip *pipeline.Pipeline, configValue string) pesit.ArticleF
 // containing REPLY= wins (transfer freetext takes priority over connection).
 
 func parseReplyInfo(pip *pipeline.Pipeline, freetext string) {
-
 	if freetext == "" {
-
 		return
-
 	}
 
 	const prefix = "REPLY="
@@ -261,9 +220,7 @@ func parseReplyInfo(pip *pipeline.Pipeline, freetext string) {
 	idx := strings.Index(freetext, prefix)
 
 	if idx < 0 {
-
 		return
-
 	}
 
 	value := freetext[idx+len(prefix):]
@@ -271,41 +228,28 @@ func parseReplyInfo(pip *pipeline.Pipeline, freetext string) {
 	// Trim at first space, comma, or semicolon (PI 99 may contain other data).
 
 	for _, sep := range []string{" ", ",", ";"} {
-
 		if i := strings.Index(value, sep); i >= 0 {
-
 			value = value[:i]
-
 		}
-
 	}
 
 	parts := strings.SplitN(value, ":", 2)
 
 	if len(parts) >= 1 && parts[0] != "" {
-
 		pip.TransCtx.Transfer.TransferInfo[replyPartnerKey] = parts[0]
-
 	}
 
 	if len(parts) >= 2 && parts[1] != "" { //nolint:mnd // index 1 is the account
 
 		pip.TransCtx.Transfer.TransferInfo[replyAccountKey] = parts[1]
-
 	}
-
 }
 
 func isMultiArticles(pip *pipeline.Pipeline) ([]int64, bool) {
-
 	vals, err := utils.GetAs[[]int64](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
-
 	if err != nil {
-
 		return nil, false
-
 	}
 
 	return vals, len(vals) > 0
-
 }

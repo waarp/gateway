@@ -15,6 +15,7 @@ import (
 
 func TestOk(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
@@ -44,6 +45,7 @@ func TestOk(t *testing.T) {
 
 func TestErrorPreTasksClient(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer with a client pre-task error", func(t *testing.T) {
@@ -55,6 +57,7 @@ func TestErrorPreTasksClient(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPull(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -72,6 +75,7 @@ func TestErrorPreTasksClient(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPush(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -83,6 +87,7 @@ func TestErrorPreTasksClient(t *testing.T) {
 
 func TestErrorPreTasksServer(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer with a server pre-task error", func(t *testing.T) {
@@ -94,6 +99,7 @@ func TestErrorPreTasksServer(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPull(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -111,6 +117,7 @@ func TestErrorPreTasksServer(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPush(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -122,6 +129,7 @@ func TestErrorPreTasksServer(t *testing.T) {
 
 func TestErrorPostTasksClient(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer with a client post-task error", func(t *testing.T) {
@@ -133,6 +141,7 @@ func TestErrorPostTasksClient(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPull(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -150,6 +159,7 @@ func TestErrorPostTasksClient(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPush(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -161,6 +171,7 @@ func TestErrorPostTasksClient(t *testing.T) {
 
 func TestErrorPostTasksServer(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer with a server post-task error", func(t *testing.T) {
@@ -172,6 +183,7 @@ func TestErrorPostTasksServer(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPull(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -189,6 +201,7 @@ func TestErrorPostTasksServer(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPush(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -200,16 +213,19 @@ func TestErrorPostTasksServer(t *testing.T) {
 
 func TestErrorDataClient(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer with a client data error", func(t *testing.T) {
 		pip := ctx.PullPipeline(t)
+
 		gwtesting.AddClientDataError(t, &pip)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPull(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -220,12 +236,14 @@ func TestErrorDataClient(t *testing.T) {
 
 	t.Run("Given a PESIT push transfer with a client data error", func(t *testing.T) {
 		pip := ctx.PushPipeline(t)
+
 		gwtesting.AddClientDataError(t, &pip)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPush(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -237,16 +255,19 @@ func TestErrorDataClient(t *testing.T) {
 
 func TestErrorDataServer(t *testing.T) {
 	db := gwtesting.Database(t)
+
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer with a server data error", func(t *testing.T) {
 		pip := ctx.PullPipeline(t)
+
 		ctx.AddServerDataError(t, ctx.ServerRulePull)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPull(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -257,12 +278,14 @@ func TestErrorDataServer(t *testing.T) {
 
 	t.Run("Given a PESIT push transfer with a server data error", func(t *testing.T) {
 		pip := ctx.PushPipeline(t)
+
 		ctx.AddServerDataError(t, ctx.ServerRulePush)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
 
 			newPip := ctx.RetryPush(t)
+
 			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
@@ -274,21 +297,32 @@ func TestErrorDataServer(t *testing.T) {
 
 func TestCFT(t *testing.T) {
 	db := gwtesting.Database(t)
-	ctx := gwtesting.TestTransferCtx(t, db, Pesit,
+
+	ctx := gwtesting.TestTransferCtx(
+		t, db, Pesit,
+
 		&ServerConfig{CompatibilityMode: CompatibilityModeHistorique},
+
 		nil,
+
 		&PartnerConfig{CompatibilityMode: CompatibilityModeHistorique},
 	)
 
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
 		serverPullTrans := &model.Transfer{
-			RuleID:         ctx.ServerRulePull.ID,
+			RuleID: ctx.ServerRulePull.ID,
+
 			LocalAccountID: ctx.LocalAccount.GetNullID(),
-			SrcFilename:    ctx.TransferPull.SrcFilename,
-			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
-			Status:         types.StatusAvailable,
-			TransferInfo:   map[string]any{serverTransFreetextKey: "pesit freetext sample"},
+
+			SrcFilename: ctx.TransferPull.SrcFilename,
+
+			Start: time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
+
+			Status: types.StatusAvailable,
+
+			TransferInfo: map[string]any{serverTransFreetextKey: "pesit freetext sample"},
 		}
+
 		require.NoError(t, db.Insert(serverPullTrans).Run())
 
 		pip := ctx.PullPipeline(t)
@@ -300,10 +334,13 @@ func TestCFT(t *testing.T) {
 				ctx.CheckPullTransferOK(t)
 
 				var hist model.HistoryEntry
+
 				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Run())
 
 				expectedInfo := maps.Clone(serverPullTrans.TransferInfo)
+
 				delete(expectedInfo, model.FollowID)
+
 				assert.Subset(t, hist.TransferInfo, expectedInfo)
 			})
 		})
@@ -311,13 +348,19 @@ func TestCFT(t *testing.T) {
 
 	t.Run("Given a PESIT push client", func(t *testing.T) {
 		serverPushTrans := &model.Transfer{
-			RuleID:         ctx.ServerRulePush.ID,
+			RuleID: ctx.ServerRulePush.ID,
+
 			LocalAccountID: ctx.LocalAccount.GetNullID(),
-			DestFilename:   ctx.TransferPull.DestFilename,
-			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
-			Status:         types.StatusAvailable,
-			Filesize:       model.UnknownSize,
+
+			DestFilename: ctx.TransferPull.DestFilename,
+
+			Start: time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
+
+			Status: types.StatusAvailable,
+
+			Filesize: model.UnknownSize,
 		}
+
 		require.NoError(t, db.Insert(serverPushTrans).Run())
 
 		pip := ctx.PushPipeline(t)

@@ -20,136 +20,203 @@ import (
 )
 
 var (
-	ErrMailNoTemplate     = errors.New("missing email message template")
-	ErrMailNoRecipients   = errors.New("missing email recipients")
-	ErrMailNoAuth         = errors.New("missing email authentication")
+	ErrMailNoTemplate = errors.New("missing email message template")
+
+	ErrMailNoRecipients = errors.New("missing email recipients")
+
+	ErrMailNoAuth = errors.New("missing email authentication")
+
 	ErrMailInvalidAddress = errors.New("invalid email recipient address")
 )
 
 type emailTask struct {
-	Sender     string   `json:"sender"`
+	Sender string `json:"sender"`
+
 	Recipients jsonList `json:"recipients"`
-	Template   string   `json:"template"`
+
+	Template string `json:"template"`
 
 	connInfo model.SMTPCredential
+
 	template model.EmailTemplate
 }
 
 func (m *emailTask) parseParams(db database.ReadAccess, params map[string]string) error {
+
 	if err := utils.JSONConvert(params, m); err != nil {
+
 		return fmt.Errorf("failed to parse EMAIL task params: %w", err)
+
 	}
 
 	if m.Sender == "" {
+
 		return ErrMailNoAuth
+
 	}
 
 	if m.Recipients == nil {
+
 		return ErrMailNoRecipients
+
 	}
 
 	for _, addr := range m.Recipients {
+
 		if _, err := mail.ParseAddress(addr); err != nil {
+
 			return fmt.Errorf("%w: %q", ErrMailInvalidAddress, addr)
+
 		}
+
 	}
 
 	if m.Template == "" {
+
 		return ErrMailNoTemplate
+
 	}
 
 	if err := db.Get(&m.connInfo, "email_address=?", m.Sender).Owner().Run(); err != nil {
+
 		return fmt.Errorf("failed to retrieve SMTP credential: %w", err)
+
 	}
 
 	if err := db.Get(&m.template, "name=?", m.Template).Run(); err != nil {
+
 		return fmt.Errorf("failed to retrieve email template: %w", err)
+
 	}
 
 	return nil
+
 }
 
 func (m *emailTask) ValidateDB(db database.ReadAccess, args map[string]string) error {
+
 	return m.parseParams(db, args)
+
 }
 
 func (m *emailTask) Run(_ context.Context, params map[string]string, db *database.DB,
+
 	logger *log.Logger, transCtx *model.TransferContext, _ any,
+
 ) error {
+
 	if err := m.parseParams(db, params); err != nil {
+
 		logger.Errorf("%v", err)
 
 		return err
+
 	}
 
 	if err := m.replaceTemplateVars(transCtx); err != nil {
+
 		logger.Errorf("Failed to replace email template variables: %v", err)
 
 		return fmt.Errorf("failed to replace email template variables: %w", err)
+
 	}
 
 	email := gomail.NewMessage()
+
 	email.SetHeader("From", m.connInfo.EmailAddress)
+
 	email.SetHeader("To", m.Recipients...)
+
 	email.SetHeader("Subject", m.template.Subject)
+
 	email.SetBody("text/plain", m.template.Body)
 
 	for _, attachement := range m.template.Attachments {
+
 		email.Attach(path.Base(attachement), m.copyFileFunc(attachement))
+
 	}
 
 	d := gomail.NewDialer(m.connInfo.ServerAddress.Host, int(m.connInfo.ServerAddress.Port),
+
 		m.connInfo.Login, string(m.connInfo.Password))
+
 	d.TLSConfig = &tls.Config{ServerName: m.connInfo.ServerAddress.Host}
 
 	if err := auth.AddTLSAuthorities(db, d.TLSConfig); err != nil {
+
 		logger.Warningf("Failed to add TLS authorities: %v", err)
+
 	}
 
 	if err := d.DialAndSend(email); err != nil {
+
 		logger.Errorf("Failed to send email: %v", err)
 
 		return fmt.Errorf("failed to send email: %w", err)
+
 	}
 
 	logger.Debugf("Sent mail from %q to %q", m.connInfo.EmailAddress, m.Recipients)
 
 	return nil
+
 }
 
 func (*emailTask) copyFileFunc(name string) gomail.FileSetting {
+
 	//nolint:wrapcheck //wrapping adds nothing here
+
 	return gomail.SetCopyFunc(func(w io.Writer) error {
+
 		h, opErr := fs.Open(name)
+
 		if opErr != nil {
+
 			return opErr
+
 		}
+
 		defer h.Close()
 
 		if _, err := io.Copy(w, h); err != nil {
+
 			return err
+
 		}
 
 		return h.Close()
+
 	})
+
 }
 
 func (m *emailTask) replaceTemplateVars(transCtx *model.TransferContext) error {
+
 	var err error
 
 	if m.template.Subject, err = replaceVars(m.template.Subject, transCtx); err != nil {
+
 		return err
+
 	}
 
 	if m.template.Body, err = replaceVars(m.template.Body, transCtx); err != nil {
+
 		return err
+
 	}
 
 	for i, attachement := range m.template.Attachments {
+
 		if m.template.Attachments[i], err = replaceVars(attachement, transCtx); err != nil {
+
 			return err
+
 		}
+
 	}
 
 	return nil
+
 }

@@ -43,7 +43,6 @@ type clientTransfer struct {
 }
 
 func (c *clientTransfer) Request() *pipeline.Error {
-
 	var fileInfo fs.FileInfo
 
 	if c.pip.TransCtx.Rule.IsSend {
@@ -51,9 +50,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 		var statErr error
 
 		if fileInfo, statErr = fs.Stat(c.pip.TransCtx.Transfer.LocalPath); statErr != nil {
-
 			return pipeline.FileErrToTransferErr(statErr)
-
 		}
 
 	}
@@ -97,15 +94,11 @@ func (c *clientTransfer) Request() *pipeline.Error {
 	}
 
 	return nil
-
 }
 
 //nolint:funlen,gocognit,gocyclo,cyclop //no easy way to split the function for now
-
 func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
-
 ) *pipeline.Error {
-
 	// Connection is already established via ConnPool (c.conn)
 
 	c.injectReplyTo(partConf.ReplyTo)
@@ -123,9 +116,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		method = pesit.MethodSend
 
 	} else {
-
 		c.conn.SetAccessType(pesit.AccessRead)
-
 	}
 
 	c.pTrans = pesit.NewTransfer(method, c.pip.TransCtx.Transfer.RemotePath)
@@ -137,11 +128,9 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		c.pip.TransCtx.Transfer.Step > types.StepSetup {
 
 		if !c.conn.HasRestart() {
-
 			return pipeline.NewError(types.TeForbidden,
 
 				"cannot resume transfer, server does not allow restarts")
-
 		}
 
 		c.pTrans.SetRecovered(true)
@@ -175,21 +164,15 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	c.pTrans.CheckpointRequestReceived = checkpointRequestReceived(c.pip)
 
 	if err := setFreetext(c.pip, clientTransFreetextKey, c.pTrans); err != nil {
-
 		return err
-
 	}
 
 	if err := setBankID(c.pip, c.pTrans); err != nil {
-
 		return err
-
 	}
 
 	if err := setCustomerID(c.pip, c.pTrans); err != nil {
-
 		return err
-
 	}
 
 	if c.pip.TransCtx.Rule.IsSend {
@@ -201,29 +184,21 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		c.pTrans.SetReservationSpace(makeReservationSpaceKB(fileInfo), pesit.UnitKB)
 
 		if err := setFileType(c.pip, c.pTrans); err != nil {
-
 			return err
-
 		}
 
 		if err := setFileOrganization(c.pip, c.pTrans); err != nil {
-
 			return nil
-
 		}
 
 		if err := setFileEncoding(c.pip, c.pTrans); err != nil {
-
 			return err
-
 		}
 
 	}
 
 	if c.conn.UseHistoriqueMode() {
-
 		c.pTrans.SetFilenamePI12(c.pip.TransCtx.Rule.Name)
-
 	}
 
 	// request transfer
@@ -287,13 +262,10 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	setTransInfo(c.pip, serverTransFreetextKey, c.pTrans.FreeText())
 
 	return nil
-
 }
 
 func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
-
 	copyArticle := func(article io.Writer, file io.Reader) *pipeline.Error {
-
 		if _, err := io.Copy(article, file); err != nil {
 
 			c.pip.Logger.Errorf("Failed to send data: %v", err)
@@ -301,9 +273,7 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 			pErr := toPesitErr(pesit.CodeOtherTransferError, err)
 
 			if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
-
 				c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
-
 			}
 
 			return toPipErr(types.TeDataTransfer, "failed to send data", err)
@@ -311,17 +281,13 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 		}
 
 		return nil
-
 	}
 
 	return c.dataTransfer(func() *pipeline.Error {
-
 		articleLengths, isMArt := isMultiArticles(c.pip)
 
 		if !isMArt {
-
 			return copyArticle(c.pTrans, fullFile)
-
 		}
 
 		c.pTrans.SetManualArticleHandling(true)
@@ -341,23 +307,17 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 			file := io.LimitReader(fullFile, length)
 
 			if err := copyArticle(article, file); err != nil {
-
 				return err
-
 			}
 
 		}
 
 		return nil
-
 	}, fullFile)
-
 }
 
 func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
-
 	return c.dataTransfer(func() *pipeline.Error {
-
 		var articleLengths []int64
 
 		for {
@@ -365,9 +325,7 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 			article, aErr := c.pTrans.GetNextRecvArticle()
 
 			if errors.Is(aErr, pesit.ErrNoMoreArticle) {
-
 				return nil
-
 			} else if aErr != nil {
 
 				c.pip.Logger.Errorf("Failed to retrieve next article: %v", aErr)
@@ -385,9 +343,7 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 				pErr := toPesitErr(pesit.CodeOtherTransferError, err)
 
 				if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
-
 					c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
-
 				}
 
 				return toPipErr(types.TeDataTransfer, "failed to retrieve data", err)
@@ -401,17 +357,13 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 			c.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articleLengths
 
 		}
-
 	}, file)
-
 }
 
 func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 
 	file io.Seeker,
-
 ) *pipeline.Error {
-
 	if err := c.pTrans.OpenFile(); err != nil {
 
 		c.pip.Logger.Errorf("Failed to open transfer file: %v", err)
@@ -447,9 +399,7 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 	}
 
 	if err := doTransfer(); err != nil {
-
 		return err
-
 	}
 
 	if err := c.pTrans.EndDataTransfer(); err != nil {
@@ -469,7 +419,6 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 	}
 
 	return nil
-
 }
 
 // releaseConn returns the connection to the pool (if pooled) or closes it
@@ -477,29 +426,19 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 // directly (if standalone, i.e. created because the pooled one was busy).
 
 func (c *clientTransfer) releaseConn() {
-
 	if c.conn == nil {
-
 		return
-
 	}
 
 	if c.pooled {
-
 		c.conns.CloseConn(c.pip)
-
 	} else {
-
 		if err := c.conn.Close(); err != nil {
-
 			c.pip.Logger.Warningf("failed to close standalone PeSIT connection: %v", err)
-
 		}
-
 	}
 
 	c.conn = nil
-
 }
 
 // injectReplyTo adds "REPLY=partner:account" to the connection freetext
@@ -509,29 +448,22 @@ func (c *clientTransfer) releaseConn() {
 // receiver where to send F.MESSAGE ACKs.
 
 func (c *clientTransfer) injectReplyTo(replyTo string) {
-
 	if replyTo == "" {
-
 		return
-
 	}
 
 	freetext := c.conn.FreeText()
 
 	if freetext != "" {
-
 		freetext += " "
-
 	}
 
 	freetext += "REPLY=" + replyTo
 
 	c.conn.SetFreeText(freetext)
-
 }
 
 func (c *clientTransfer) EndTransfer() *pipeline.Error {
-
 	if err := c.pTrans.DeselectFile(nil); err != nil {
 
 		c.pip.Logger.Errorf("Failed to end transfer: %v", err)
@@ -545,19 +477,14 @@ func (c *clientTransfer) EndTransfer() *pipeline.Error {
 	c.releaseConn()
 
 	return nil
-
 }
 
 func (c *clientTransfer) SendError(code types.TransferErrorCode, details string) {
-
 	pErr := transErrToPesitErr(pipeline.NewError(code, details))
 
 	if err := c.halt(pesit.StopError, pErr); err != nil {
-
 		c.pip.Logger.Warning(err.Details())
-
 	}
-
 }
 
 var (
@@ -567,7 +494,6 @@ var (
 )
 
 func (c *clientTransfer) Pause() *pipeline.Error {
-
 	if err := c.halt(pesit.StopError, errClientPause); err != nil {
 
 		c.pip.Logger.Error(err.Details())
@@ -577,11 +503,9 @@ func (c *clientTransfer) Pause() *pipeline.Error {
 	}
 
 	return nil
-
 }
 
 func (c *clientTransfer) Cancel() *pipeline.Error {
-
 	if err := c.halt(pesit.StopCancel, errClientCancel); err != nil {
 
 		c.pip.Logger.Errorf("Failed to halt transfer: %v", err)
@@ -591,25 +515,18 @@ func (c *clientTransfer) Cancel() *pipeline.Error {
 	}
 
 	return nil
-
 }
 
 func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pipeline.Error {
-
 	defer func() {
-
 		if c.conn == nil {
-
 			return
-
 		}
 
 		// Send ABORT/RELEASE to the partner
 
 		if err := c.conn.Client.Close(pErr); err != nil {
-
 			c.pip.Logger.Warningf("failed to close connection: %v", err)
-
 		}
 
 		// Remove from pool without re-closing (already closed above).
@@ -617,13 +534,10 @@ func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pip
 		// Use Evict, not CloseConn, to avoid grace period keeping a dead conn.
 
 		if c.pooled {
-
 			c.conns.Evict(c.pip.TransCtx.RemoteAccount)
-
 		}
 
 		c.conn = nil
-
 	}()
 
 	var retErr *pipeline.Error
@@ -637,31 +551,22 @@ func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pip
 			var diag pesit.Diagnostic
 
 			if !errors.As(err, &diag) || diag.GetCode() != pesit.CodeVolontaryTermination {
-
 				retErr = toPipErr(types.TeUnknownRemote, "failed to send error to partner", err)
-
 			}
 
 		}
 
 		if c.pTrans.IsFileOpened() {
-
 			if err := c.pTrans.CloseFile(pErr); err != nil {
-
 				retErr = toPipErr(types.TeUnknownRemote, "failed to close transfer file", err)
-
 			}
-
 		}
 
 		if err := c.pTrans.DeselectFile(pErr); err != nil {
-
 			retErr = toPipErr(types.TeUnknownRemote, "failed to deselect transfer file", err)
-
 		}
 
 	}
 
 	return retErr
-
 }

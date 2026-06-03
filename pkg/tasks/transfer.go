@@ -94,19 +94,14 @@ type TransferTask struct {
 }
 
 func (t *TransferTask) parseArgs(db database.Access, args map[string]string) error {
-
 	*t = TransferTask{}
 
 	if err := utils.JSONConvert(args, t); err != nil {
-
 		return fmt.Errorf("failed to parse the transfer task arguments: %w", err)
-
 	}
 
 	if t.File == "" {
-
 		return ErrTransferNoFile
-
 	}
 
 	var partner string
@@ -133,93 +128,63 @@ func (t *TransferTask) parseArgs(db database.Access, args map[string]string) err
 
 	if err := db.Get(&t.partner, "name=?", partner).Owner().
 		Run(); database.IsNotFound(err) {
-
 		return fmt.Errorf("%w: %q", ErrTransferPartnerNotFound, partner)
-
 	} else if err != nil {
-
 		return fmt.Errorf("failed to retrieve partner %q: %w", partner, err)
-
 	}
 
 	if t.As == "" {
-
 		return ErrTransferNoAccount
-
 	}
 
 	if err := db.Get(&t.account, "login=?", t.As).
 		And("remote_agent_id=?", t.partner.ID).Run(); database.IsNotFound(err) {
-
 		return fmt.Errorf("%w: %q", ErrTransferAccountNotFound, t.As)
-
 	} else if err != nil {
-
 		return fmt.Errorf("failed to retrieve account %q: %w", t.As, err)
-
 	}
 
 	if t.Using == "" {
 
 		client, err := GetDefaultTransferClient(db, t.partner.Protocol)
-
 		if err != nil {
-
 			return fmt.Errorf("failed to retrieve default transfer client: %w", err)
-
 		}
 
 		t.client = *client
 
 	} else {
-
 		if err := db.Get(&t.client, "name=?", t.Using).Owner().Run(); database.IsNotFound(err) {
-
 			return fmt.Errorf("%w: %q", ErrTransferClientNotFound, t.Using)
-
 		} else if err != nil {
-
 			return fmt.Errorf("failed to retrieve client %q: %w", t.Using, err)
-
 		}
-
 	}
 
 	if t.Rule == "" {
-
 		return ErrTransferNoRule
-
 	}
 
 	if err := db.Get(&t.rule, "name=? AND is_send=?", t.Rule, t.To != "").
 		Run(); database.IsNotFound(err) {
-
 		return fmt.Errorf("%w: %q", ErrTransferRuleNotFound, t.Rule)
-
 	} else if err != nil {
-
 		return fmt.Errorf("failed to retrieve rule %q: %w", t.Rule, err)
-
 	}
 
 	return nil
-
 }
 
 // ValidateDB checks if the task has all the required arguments.
 
 func (t *TransferTask) ValidateDB(rd database.ReadAccess, args map[string]string) error {
-
 	rw, ok := rd.(database.Access)
 
 	if !ok {
-
 		return errTransferNeedDBWrite
-
 	}
 
 	return t.parseArgs(rw, args)
-
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
@@ -227,9 +192,7 @@ func (t *TransferTask) ValidateDB(rd database.ReadAccess, args map[string]string
 func (t *TransferTask) Run(ctx context.Context, args map[string]string,
 
 	db *database.DB, logger *log.Logger, transCtx *model.TransferContext, _ any,
-
 ) error {
-
 	if err := t.parseArgs(db, args); err != nil {
 
 		logger.Error(err.Error())
@@ -239,7 +202,6 @@ func (t *TransferTask) Run(ctx context.Context, args map[string]string,
 	}
 
 	trans, err := t.makeTransfer(db, transCtx)
-
 	if err != nil {
 
 		logger.Errorf("Failed to create transfer: %v", err)
@@ -259,13 +221,10 @@ func (t *TransferTask) Run(ctx context.Context, args map[string]string,
 	}
 
 	return t.runSynchronousTransfer(ctx, db, logger, trans)
-
 }
 
 func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferContext,
-
 ) (*model.Transfer, error) {
-
 	if t.Synchronous {
 
 		trans, dbErr := model.GetTransferFromParentID(db, transCtx.Transfer)
@@ -281,17 +240,13 @@ func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferCon
 			trans.NextRetry = time.Now()
 
 			if err := db.Update(trans).Run(); err != nil {
-
 				return nil, fmt.Errorf("failed to update transfer: %w", err)
-
 			}
 
 			return trans, nil
 
 		} else if !database.IsNotFound(dbErr) {
-
 			return nil, fmt.Errorf("failed to retrieve transfer: %w", dbErr)
-
 		}
 
 	}
@@ -299,9 +254,7 @@ func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferCon
 	transferInfo := map[string]any{}
 
 	if t.CopyInfo {
-
 		transferInfo = transCtx.Transfer.CopyInfo()
-
 	}
 
 	maps.Copy(transferInfo, t.Info)
@@ -311,29 +264,20 @@ func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferCon
 	// This ensures the F.MESSAGE relay chain works regardless of copyInfo.
 
 	for _, key := range []string{"__replyPartner__", "__replyAccount__", model.FollowID} {
-
 		if _, exists := transferInfo[key]; !exists {
-
 			if val, ok := transCtx.Transfer.TransferInfo[key]; ok {
-
 				transferInfo[key] = val
-
 			}
-
 		}
-
 	}
 
 	output := t.Output
 
 	if output == "" {
-
 		output = filepath.Base(t.File)
-
 	}
 
 	trans := &model.Transfer{
-
 		RuleID: t.rule.ID,
 
 		ClientID: utils.NewNullInt64(t.client.ID),
@@ -364,21 +308,16 @@ func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferCon
 	}
 
 	if err := db.Insert(trans).Run(); err != nil {
-
 		return nil, fmt.Errorf("failed to insert transfer: %w", err)
-
 	}
 
 	return trans, nil
-
 }
 
 func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
 
 	db *database.DB, logger *log.Logger, trans *model.Transfer,
-
 ) error {
-
 	logger.Debugf("Executing new transfer n°%d of file %q, %s as %q using rule %q",
 
 		trans.ID, t.File, t.partner.Name, t.account.Login, t.rule.Name)
@@ -386,9 +325,7 @@ func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
 	pip, pipErr := NewClientPipeline(db, trans)
 
 	if pipErr != nil {
-
 		return fmt.Errorf("failed to initialize the client transfer pipeline: %w", pipErr)
-
 	}
 
 	if !t.Timeout.IsZero() {
@@ -404,11 +341,9 @@ func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
 	result := make(chan error)
 
 	go func() {
-
 		defer close(result)
 
 		result <- pip.Run()
-
 	}()
 
 	select {
@@ -416,9 +351,7 @@ func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
 	case err := <-result:
 
 		if err != nil {
-
 			return fmt.Errorf("failed to run the client transfer pipeline: %w", err)
-
 		}
 
 		return nil
@@ -432,13 +365,10 @@ func (t *TransferTask) runSynchronousTransfer(ctx context.Context,
 		defer cancel()
 
 		if err := pip.Interrupt(ctx); err != nil {
-
 			logger.Warningf("Failed to cancel transfer: %v", err)
-
 		}
 
 		return fmt.Errorf("transfer cancelled: %w", ctx.Err())
 
 	}
-
 }
