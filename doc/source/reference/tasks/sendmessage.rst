@@ -3,64 +3,107 @@
 SENDMESSAGE
 ===========
 
-Le traitement ``SENDMESSAGE`` envoie un message PeSIT (F.MESSAGE) a un
-partenaire distant. Il est principalement utilise pour les acquittements
-Store-and-Forward.
+.. versionadded:: 0.16.0
 
-La tache ne fonctionne qu'avec les partenaires utilisant le protocole PeSIT
-ou PeSIT-TLS. Elle ouvre une connexion PeSIT dediee, envoie le message, puis
+Le traitement ``SENDMESSAGE`` envoie un acquittement PeSIT (F.MESSAGE) à un
+partenaire distant. Il est utilisé pour les acquittements applicatifs de bout
+en bout dans les architectures *Store and Forward*.
+
+Cette tâche est **spécifique au protocole PeSIT**. Si elle est configurée sur
+une règle utilisée par un autre protocole, elle est silencieusement ignorée
+(pas d'erreur de transfert).
+
+Fonctionnement
+--------------
+
+La tâche ouvre une connexion PeSIT dédiée vers le partenaire, envoie un
+F.MESSAGE contenant l'identifiant du transfert et un message texte, puis
 ferme la connexion.
 
-La tache peut etre conditionnelle : si le parametre ``condition`` est
-renseigne, la tache verifie que la cle TransferInfo correspondante existe
-et vaut "1". Sinon, la tache est silencieusement ignoree.
+**Tous les paramètres sont optionnels** lorsque le mécanisme de routage
+Store & Forward est configuré (voir ci-dessous). Le partenaire et le compte
+sont alors résolus automatiquement depuis les infos de transfert.
 
-Parametres
+Paramètres
 ----------
 
-* ``partner`` (*string*, **obligatoire**) - Le nom du partenaire PeSIT distant
-  vers lequel envoyer le message. Supporte la substitution de variables
-  (ex: ``#TI___ackPartner__#``).
-* ``account`` (*string*, optionnel) - Le login du compte distant a utiliser
-  pour l'authentification. Si omis, le premier compte du partenaire est
-  utilise.
-* ``message`` (*string*, optionnel) - Le contenu du F.MESSAGE a envoyer.
-  Supporte la substitution de variables (ex: ``#TRUEFILENAME#``,
-  ``#TRANSFERID#``). Maximum 4096 caracteres.
-* ``transferId`` (*string*, optionnel) - L'identifiant de transfert PeSIT
-  a referencer dans le F.MESSAGE. Supporte la substitution de variables
-  (ex: ``#TI___originalTransferID__#``).
-* ``condition`` (*string*, optionnel) - Une cle TransferInfo a verifier
-  avant l'envoi. Si la cle existe et sa valeur est "1", le message est
-  envoye. Sinon, la tache est silencieusement ignoree. Exemple :
-  ``__ackRequested__``.
+* **to** (*string*, optionnel) — Le nom du partenaire PeSIT distant vers
+  lequel envoyer le message. Si omis, résolu depuis ``__replyPartner__``
+  dans les infos de transfert (positionné automatiquement via PI 99
+  ``REPLY=`` ou PI 61/PI 62). Supporte la substitution de variables.
+* **as** (*string*, optionnel) — Le login du compte distant à utiliser pour
+  l'authentification. Si omis, résolu depuis ``__replyAccount__`` dans les
+  infos de transfert, ou le premier compte disponible sur le partenaire.
+* **message** (*string*, optionnel) — Le contenu du F.MESSAGE. Si omis, un
+  message ACK par défaut est généré (``ACK transfer <id>``). Supporte la
+  substitution de variables (``#TRUEFILENAME#``, ``#TRANSFERID#``, etc.).
+  Maximum 4096 caractères (PI 91).
 
-Exemple
--------
+Exemples
+--------
 
-Envoi d'un acquittement conditionnel apres reception d'un fichier :
+**Acquittement automatique (zéro argument)** — le plus simple, recommandé
+lorsque ``replyTo`` est configuré sur le partenaire émetteur :
 
-.. code-block:: json
+.. code-block:: yaml
 
-   {
-     "type": "SENDMESSAGE",
-     "args": {
-       "partner": "#TI___ackPartner__#",
-       "message": "fichier #TRUEFILENAME# livre avec succes",
-       "transferId": "#TI___originalTransferID__#",
-       "condition": "__ackRequested__"
-     }
-   }
+   post:
+     - type: SENDMESSAGE
 
-Store-and-Forward
------------------
+**Acquittement avec message personnalisé** :
 
-Pour mettre en place un relais Store-and-Forward avec acquittement :
+.. code-block:: yaml
 
-1. Configurez la regle de reception du relais avec une tache ``TRANSFER``
-   (``copyInfo: true``, ``synchronous: true``) pour relayer le fichier.
-2. Sur le destinataire final, configurez une tache ``SENDMESSAGE`` en
-   post-traitement avec la condition ``__ackRequested__``.
-3. L'emetteur initial doit inclure dans le TransferInfo :
-   ``__ackRequested__: "1"`` et ``__ackPartner__: "nom-emetteur"``.
-4. Ces cles se propagent automatiquement de hop en hop via ``copyInfo: true``.
+   post:
+     - type: SENDMESSAGE
+       args:
+         message: "Fichier #TRUEFILENAME# recu avec succes"
+
+**Acquittement explicite (partenaire et compte spécifiés)** :
+
+.. code-block:: yaml
+
+   post:
+     - type: SENDMESSAGE
+       args:
+         to: "partenaire-emetteur"
+         as: "mon-login"
+         message: "ACK transfer #TRANSFERID#"
+
+**Acquittement conditionnel** (envoyé uniquement si le fichier est en EBCDIC) :
+
+.. code-block:: yaml
+
+   post:
+     - type: SENDMESSAGE
+       condition: "#TI___fileEncoding__# == EBCDIC"
+
+Résolution du partenaire
+------------------------
+
+Lorsque le paramètre ``to`` n'est pas renseigné, la tâche résout le
+partenaire dans l'ordre suivant :
+
+1. ``__replyPartner__`` dans les infos de transfert (positionné via PI 99
+   ``REPLY=`` ou manuellement)
+2. Premier partenaire PeSIT correspondant au ``__customerID__`` (PI 61)
+3. Premier partenaire PeSIT correspondant au ``__bankID__`` (PI 62)
+
+Lorsque le paramètre ``as`` n'est pas renseigné :
+
+1. ``__replyAccount__`` dans les infos de transfert
+2. Premier compte disponible sur le partenaire résolu
+
+Intégration Store & Forward
+----------------------------
+
+Pour une chaîne A → B → C avec acquittement automatique :
+
+1. **Partenaire** : configurer ``replyTo`` dans la :ref:`configuration
+   protocolaire <proto-config-pesit>` de chaque partenaire
+2. **Destinataire final (C)** : ajouter ``SENDMESSAGE`` en post-traitement
+3. **Relais (B)** : activer ``relayMessages: true`` dans la configuration
+   du serveur PeSIT
+
+Voir la section :ref:`ref-proto-pesit` pour le détail du mécanisme de
+routage et de relais automatique.

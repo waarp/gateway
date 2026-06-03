@@ -213,7 +213,8 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 	}
 
 	// If the filepath contains a glob pattern (e.g. "data-*", "*.csv"),
-	// try pattern matching against AVAILABLE transfers.
+	// try pattern matching against pre-registered AVAILABLE transfers only.
+	// No filesystem fallback: patterns only match controlled, pre-registered transfers.
 	if pipeline.ContainsWildcard(filepath) {
 		if trans, err := pipeline.GetAvailableTransferByPattern(t.db, filepath, remoteID,
 			t.account, rule); err == nil {
@@ -223,26 +224,11 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 			return trans, nil
 		}
 
-		// Fallback: resolve the pattern against the filesystem.
-		if resolved := t.resolveGlobPattern(filepath, rule); resolved != "" {
-			t.logger.Infof("Pattern %q resolved to file %q on filesystem", filepath, resolved)
-
-			return pipeline.MakeServerTransfer(remoteID, resolved, t.account, rule), nil
-		}
-
 		return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists,
-			"no file matches pattern")
+			"no available transfer matches pattern")
 	}
 
 	return pipeline.MakeServerTransfer(remoteID, filepath, t.account, rule), nil
-}
-
-// resolveGlobPattern resolves a glob pattern to the first matching file
-// on the local filesystem, relative to the rule's send directory.
-func (t *transferHandler) resolveGlobPattern(pattern string, rule *model.Rule) string {
-	fullPattern := fs.JoinPath(rule.LocalDir, pattern)
-
-	matches, err := fs.Glob(fullPattern)
 	if err != nil || len(matches) == 0 {
 		return ""
 	}

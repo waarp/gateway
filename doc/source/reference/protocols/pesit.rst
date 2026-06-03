@@ -101,39 +101,28 @@ Pull avec pattern (glob)
 
 En mode pull (réception), le client peut envoyer un nom de fichier contenant des
 **caractères génériques** (``*`` et ``?``) dans sa requête de sélection. Le
-serveur résout alors le pattern pour trouver un fichier correspondant :
-
-1. **Transferts pré-enregistrés** : le serveur cherche d'abord parmi les transferts
-   ayant le statut ``AVAILABLE`` dont le nom de fichier correspond au pattern
-   (via ``path.Match``). Le premier transfert correspondant (le plus ancien par
-   date de soumission) est sélectionné.
-
-2. **Système de fichiers** : si aucun transfert pré-enregistré ne correspond, le
-   serveur effectue un glob sur le répertoire d'envoi de la règle et sélectionne
-   le premier fichier correspondant.
+serveur résout alors le pattern parmi les **transferts pré-enregistrés**
+(statut ``AVAILABLE``) dont le nom de fichier correspond au pattern (via
+``path.Match``). Le premier transfert correspondant (le plus ancien par date de
+soumission) est sélectionné.
 
 Le nom de fichier résolu est renvoyé au client dans la réponse de sélection.
 Le client crée alors le fichier local avec le nom réel (et non le pattern).
 
 **Exemple** : un client envoie une requête de pull avec le pattern ``data-*.txt``.
-Si un transfert AVAILABLE existe avec le nom ``data-001.txt``, il sera sélectionné.
-Sinon, si un fichier ``data-001.txt`` existe dans le répertoire d'envoi de la règle,
-celui-ci sera servi.
+Si un transfert AVAILABLE existe avec le nom ``data-001.txt``, il sera sélectionné
+et le fichier correspondant sera envoyé.
 
-**Cas de correspondances multiples** :
-
-- Les transferts pré-enregistrés sont consommés un par un : chaque SELECT avec le
-  même pattern retourne le prochain transfert AVAILABLE correspondant.
-- Pour les fichiers du système de fichiers, il est recommandé d'utiliser une tâche
-  ``DELETE`` en post-traitement sur la règle. Ainsi, après chaque envoi, le fichier
-  est supprimé et le prochain SELECT avec le même pattern sélectionne le fichier
-  suivant.
+**Cas de correspondances multiples** : les transferts pré-enregistrés sont
+consommés un par un. Chaque SELECT avec le même pattern retourne le prochain
+transfert AVAILABLE correspondant (le précédent ayant été consommé par le
+transfert effectué).
 
 .. note::
 
-   Cette fonctionnalité n'est disponible qu'en mode ``standard``. En mode ``axway``,
-   le nom de fichier ne transite pas dans le même champ PeSIT et le pattern matching
-   n'est pas applicable.
+   Le pattern matching ne fonctionne que sur les transferts pré-enregistrés
+   (``AVAILABLE``). Les fichiers non pré-enregistrés sur le système de fichiers
+   ne sont pas concernés par le pattern matching.
 
 F.MESSAGE et acquittement Store & Forward
 -----------------------------------------
