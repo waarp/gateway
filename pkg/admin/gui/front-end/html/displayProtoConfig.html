@@ -270,6 +270,11 @@
             <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="flex-label-input mt-4">
+            <label class="col-form-label label-light-bold me-3">Cipher Suites <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Comma-separated list of TLS cipher suite names. Leave empty for Go defaults."></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.cipherSuites (index $.tab "undefined") }}" disabled>
+        </div>
     {{ end }}
 </div>
 {{ end }}
@@ -331,6 +336,11 @@
         <div class="flex-label-input mt-4">
             <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="flex-label-input mt-4">
+            <label class="col-form-label label-light-bold me-3">Cipher Suites <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Comma-separated list of TLS cipher suite names. Leave empty for Go defaults."></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.cipherSuites (index $.tab "undefined") }}" disabled>
         </div>
     {{ end }}
 </div>

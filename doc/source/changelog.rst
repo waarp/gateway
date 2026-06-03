@@ -47,6 +47,10 @@ Historique des versions
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des
   métadonnées avant un rebond ou conditionner des tâches suivantes.
+* :feature:`578` Cipher suites TLS configurables via ``cipherSuites`` dans la
+  configuration protocolaire PeSIT-TLS du serveur et du partenaire. Permet
+  l'interopérabilité avec les partenaires legacy nécessitant des suites
+  spécifiques.
 * :feature:`579` CRC-16 (PI 1) configurable via ``useCRC`` dans la configuration
   protocolaire du client, du serveur et du partenaire PeSIT.
 * :support:`-` Renommage du mode de compatibilité ``non-standard`` en

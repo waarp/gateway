@@ -116,6 +116,11 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
+* **cipherSuites** (*liste de strings*) - [PeSIT-TLS uniquement] Spécifie la
+  liste des cipher suites TLS acceptées, par nom (ex: ``TLS_AES_128_GCM_SHA256``,
+  ``TLS_RSA_WITH_AES_128_CBC_SHA256``). Si la liste est vide, les cipher suites
+  par défaut de Go sont utilisées. Utile pour l'interopérabilité avec des
+  partenaires mainframe ou legacy nécessitant des suites spécifiques.
 
 **Exemple**
 
@@ -127,10 +132,11 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
      "checkpointSize": 32,
      "checkpointWindow": 2,
      "useNSDU": true,
-     "compatibilityMode": "axway",
+     "compatibilityMode": "historique",
      "maxMessageSize": 65535,
      "maxConnections": 4,
-     "minTLSVersion": "v1.2"
+     "minTLSVersion": "v1.2",
+     "cipherSuites": ["TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384"]
    }
 
 Configuration serveur
@@ -182,6 +188,9 @@ est la suivante :
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée par ce serveur. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
+* **cipherSuites** (*liste de strings*) - [PeSIT-TLS uniquement] Spécifie la
+  liste des cipher suites TLS acceptées par ce serveur. Si la liste est vide,
+  les cipher suites par défaut de Go sont utilisées.
 
 **Exemple**
 

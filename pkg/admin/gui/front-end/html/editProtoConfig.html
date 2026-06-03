@@ -340,6 +340,11 @@
                 {{ end }}
             </select>
         </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-2">
+            <label class="col-form-label">Cipher Suites <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Comma-separated list of TLS cipher suite names. Leave empty for Go defaults."></i> :</label>
+            <input type="text" name="protoConfigPeSITcipherSuites" class="form-control" value="{{ index .modalElement "protoConfigPeSITcipherSuites" }}" placeholder="(Go defaults)">
+        </div>
     </div>
 </div>
 {{ end }}
@@ -401,6 +406,11 @@
                     <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigFTPSminTLSVersion") . }}selected{{ end }}{{ else if eq $.ProtoConfig.minTLSVersion . }}selected{{ end }}>{{ . }}</option>
                 {{ end }}
             </select>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-2">
+            <label class="col-form-label">Cipher Suites <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Comma-separated list of TLS cipher suite names. Leave empty for Go defaults."></i> :</label>
+            <input type="text" name="protoConfigPeSITcipherSuites" class="form-control" value="{{ index .modalElement "protoConfigPeSITcipherSuites" }}" placeholder="(Go defaults)">
         </div>
     </div>
 </div>

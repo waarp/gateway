@@ -2,6 +2,7 @@ package gui
 
 import (
 	"net/http"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
@@ -503,6 +504,10 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 
 		}
 
+		if cipherSuites := r.FormValue("protoConfigPeSITcipherSuites"); cipherSuites != "" {
+			pesitProtoConfig["cipherSuites"] = strings.Split(cipherSuites, ",")
+		}
+
 	}
 
 	return pesitProtoConfig
@@ -596,6 +601,10 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
 
+		}
+
+		if cipherSuites := r.FormValue("protoConfigPeSITcipherSuites"); cipherSuites != "" {
+			pesitProtoConfig["cipherSuites"] = strings.Split(cipherSuites, ",")
 		}
 
 	}
