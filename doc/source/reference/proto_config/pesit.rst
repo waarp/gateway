@@ -3,15 +3,6 @@
 Configuration PeSIT & PeSIT-TLS
 ###############################
 
-.. versionchanged:: 0.16.0
-
-   L'option ``disablePreConnection`` de la configuration serveur est de nouveau
-   effective. Lorsqu'elle est activée, le serveur désactive complètement
-   l'auto-détection de pré-connexion et assume directement un cadrage NSDU
-   (comportement standard pour PeSIT sur TCP/IP). Il est recommandé de
-   désactiver la pré-connexion lorsque les deux partenaires sont des Gateways
-   Waarp ou des agents PeSIT modernes ne nécessitant pas de pré-connexion.
-
 Configuration client
 ====================
 

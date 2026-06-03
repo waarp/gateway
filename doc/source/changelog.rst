@@ -3,6 +3,19 @@
 Historique des versions
 =======================
 
+* :release:`0.16.0 <2026-06-03>`
+* :feature:`567` Exécution conditionnelle des tâches : un champ ``condition``
+  optionnel permet de conditionner l'exécution d'une tâche via une expression
+  utilisant les variables de substitution (``==``, ``!=``, ``>``, ``<``,
+  ``MATCHES``, ``CONTAINS``, ``AND``, ``OR``, ``NOT``). La GUI propose un menu
+  contextuel (clic droit) listant les variables disponibles.
+* :feature:`568` Support des formats de fichier mainframe (PI 31/32/33) :
+  le format d'article (``articleFormat``) est configurable dans la configuration
+  protocolaire du serveur et du partenaire. Le PI 31 reçu est stocké dans les
+  infos de transfert (``__articleFormat__``).
+* :feature:`569` Limitation du nombre de connexions PeSIT simultanées par
+  partenaire via le paramètre ``maxConnections``.
+
 * :release:`0.15.8 <2026-06-09>`
 * :bug:`585` Si le *filesystem* cible d'un transfert ne supporte pas la pose de
   verrous sur les fichiers, alors les fichiers de transfert seront ouverts sans
@@ -14,6 +27,23 @@ Historique des versions
 * :bug:`570` Correction d'un bug causant le *timeout* de la commande d'import
   sous certaines conditions, notamment en présence d'un grand nombre de
   partenaires R66.
+* :bug:`571` Le paramètre ``disablePreConnection`` de la configuration serveur
+  PeSIT est désormais correctement appliqué au serveur lib-pesit.
+* :feature:`572` Pull avec pattern glob (``*``, ``?``) : le client peut envoyer
+  un pattern dans la requête F.SELECT pour sélectionner un fichier parmi les
+  transferts pré-enregistrés (``AVAILABLE``).
+* :feature:`573` F.MESSAGE complet pour le Store & Forward : tâche
+  ``SENDMESSAGE`` (zéro argument requis), réception de F.MESSAGE sans ABORT,
+  relais automatique via ``relayMessages``, routage par PI 61/PI 62, convention
+  PI 99 ``REPLY=`` via ``replyTo``.
+* :feature:`562` Intégration de la compression PeSIT (PI 21, Annexe A) :
+  algorithmes horizontal, vertical et combiné. Configurable via ``compression``
+  dans la configuration protocolaire.
+* :support:`-` Documentation PeSIT complète : temporisations (Tc/Td/Tp),
+  compression, formats mainframe, F.MESSAGE et Store & Forward, modes de
+  compatibilité, transferts multi-fichiers.
+* :support:`-` Renommage du mode de compatibilité ``non-standard`` en
+  ``historique`` (l'ancien nom reste accepté pour rétrocompatibilité).
 
 * :release:`0.15.6 <2026-05-12>`
 * :support:`548` Le certificat TLS du fichier d'exemple est désormais valide

@@ -97,7 +97,6 @@ partenaire ou du serveur local :
 Pull avec pattern (glob)
 ------------------------
 
-.. versionadded:: 0.16.0
 
 En mode pull (réception), le client peut envoyer un nom de fichier contenant des
 **caractères génériques** (``*`` et ``?``) dans sa requête de sélection
@@ -140,7 +139,6 @@ sélection.
 F.MESSAGE et acquittement Store & Forward
 -----------------------------------------
 
-.. versionadded:: 0.16.0
 
 Le protocole PeSIT supporte l'envoi de messages (F.MESSAGE) entre partenaires
 connectés, en dehors de tout transfert de fichier. Ce mécanisme est utilisé pour
@@ -264,7 +262,6 @@ connexion, réduisant ainsi le coût d'établissement de connexion et d'authenti
 Temporisations
 --------------
 
-.. versionadded:: 0.16.0
 
 Le protocole PeSIT définit trois temporisations (section 4.6 de la spécification)
 qui permettent de détecter les connexions inactives ou en échec :
@@ -290,7 +287,6 @@ la temporisation.
 Compression
 -----------
 
-.. versionadded:: 0.16.0
 
 Le protocole PeSIT supporte la compression des données lors du transfert, telle
 que définie dans l'Annexe A de la spécification. La compression est négociée entre
@@ -362,7 +358,6 @@ en utilisant leurs clés respectives.
 Formats de fichier (PI 31/32/33)
 ---------------------------------
 
-.. versionadded:: 0.16.0
 
 Le protocole PeSIT transmet les attributs de format du fichier via les paramètres
 PI 31 (format d'article), PI 32 (taille d'article) et PI 33 (organisation du

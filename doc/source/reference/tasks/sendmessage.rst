@@ -3,7 +3,6 @@
 SENDMESSAGE
 ===========
 
-.. versionadded:: 0.16.0
 
 Le traitement ``SENDMESSAGE`` envoie un acquittement PeSIT (F.MESSAGE) à un
 partenaire distant. Il est utilisé pour les acquittements applicatifs de bout
