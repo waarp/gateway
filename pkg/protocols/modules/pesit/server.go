@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -131,6 +132,45 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 
 func (s *server) Release(conn *pesit.ServerConnection) {
 	s.logger.Debugf("Connection closed to %v", conn)
+}
+
+// HandleMessage implements pesit.MessageHandler to accept incoming F.MESSAGE.
+// The message metadata is logged and stored in the database as a transfer
+// history entry for traceability. This prevents the ABORT that would occur
+// if the interface were not implemented.
+func (s *server) HandleMessage(conn *pesit.ServerConnection, msg pesit.MessageRequest) error {
+	s.logger.Infof("F.MESSAGE received from %q: transferID=%d customerID=%q bankID=%q message=%q",
+		msg.ClientLogin, msg.TransferID, msg.CustomerID, msg.BankID, msg.Message)
+
+	// Store the message as a transfer info entry for traceability.
+	// Find the original transfer by remote transfer ID if possible.
+	if msg.TransferID != 0 {
+		remoteID := strconv.FormatUint(uint64(msg.TransferID), 10)
+
+		var trans model.Transfer
+		if err := s.db.Get(&trans, "remote_transfer_id=?", remoteID).
+			Owner().OrderBy("start", false).Run(); err == nil {
+			// Update the transfer's info with the ACK message.
+			if trans.TransferInfo == nil {
+				trans.TransferInfo = make(map[string]any)
+			}
+
+			trans.TransferInfo["__messageACK__"] = msg.Message
+			trans.TransferInfo["__messageCustomerID__"] = msg.CustomerID
+			trans.TransferInfo["__messageBankID__"] = msg.BankID
+
+			if err := s.db.Update(&trans).Cols("transfer_info").Run(); err != nil {
+				s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",
+					trans.ID, err)
+			} else {
+				s.logger.Infof("F.MESSAGE ACK stored on transfer %d", trans.ID)
+			}
+		} else {
+			s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", msg.TransferID)
+		}
+	}
+
+	return nil // Accept the message (ACK with success)
 }
 
 var ErrPasswordDBError = errors.New("failed to retrieve the server password")
