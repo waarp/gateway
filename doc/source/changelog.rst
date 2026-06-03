@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`575` Correction de l'unité du ``checkpointSize`` : la valeur est en
+  kilo-octets, pas en octets. Le défaut passe donc de 65535 à 65.
 * :feature:`516` Ajout de le possibilité de configurer des *filewatchers* pour
   surveiller un dossier sur un partenaire distant. Voir la documentation
   :doc:`REST <reference/rest/filewatchers>` ou :doc:`CLI <reference/cli/client/filewatcher`
