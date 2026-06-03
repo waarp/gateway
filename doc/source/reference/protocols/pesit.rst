@@ -87,8 +87,8 @@ partenaire ou du serveur local :
   contient le nom de la règle en préfixe (ex: ``regle/fichier.txt``). Le serveur
   identifie la règle à appliquer par correspondance de préfixe sur le chemin.
 
-- **Mode Axway** (``axway``) : mode de compatibilité avec les agents PeSIT tels
-  que *CFT* ou *SecureTransport*. Le champ *Filename* (PI 12) est utilisé pour
+- **Mode historique** (``historique``) : mode de compatibilité avec les agents PeSIT
+  utilisant la convention bancaire historique. Le champ *Filename* (PI 12) est utilisé pour
   transmettre le nom de la règle au lieu du chemin de fichier. Celui-ci est, à la
   place, transmis via le champ *FileLabel* (PI 37).
 
@@ -170,8 +170,8 @@ Exemple de règle de réception avec acquittement automatique :
        post:
          - type: SENDMESSAGE
 
-Sans argument, la tâche envoie automatiquement l'acquittement au partenaire
-identifié par la convention PI 99 ``REPLY=``.
+Sans argument, la tâche résout automatiquement le partenaire destinataire
+et le compte à utiliser (voir *Résolution du routage* ci-dessous).
 
 .. note::
 
@@ -179,24 +179,38 @@ identifié par la convention PI 99 ``REPLY=``.
    configurée sur une règle utilisée par un autre protocole, elle est
    silencieusement ignorée (pas d'erreur).
 
-Configuration du routage de retour
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Routage de l'acquittement (PI 61 / PI 62)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pour que le destinataire sache **à qui renvoyer l'acquittement**, l'émetteur
-inclut automatiquement l'information de retour dans le texte libre PI 99 de
-la connexion, via le champ ``replyTo`` de la :ref:`configuration protocolaire
-<proto-config-pesit>` du partenaire :
+Le mécanisme standard PeSIT pour le routage des acquittements utilise
+**PI 61 (CustomerID)** et **PI 62 (BankID)**. Ces paramètres identifient
+l'émetteur original et le destinataire final à travers toute la chaîne de
+relais. C'est le mécanisme standard utilisé par les principaux produits PeSIT
+du marché.
 
-.. code-block:: json
+Lors d'un transfert Store & Forward, l'émetteur A positionne PI 61 avec
+son identifiant. Chaque noeud de transit préserve ces PI et les utilise pour
+router l'acquittement F.MESSAGE vers l'amont.
 
-   {
-     "replyTo": "mon-serveur:mon-login-chez-le-partenaire"
-   }
+La tâche ``SENDMESSAGE`` et le relais automatique résolvent le partenaire
+destinataire dans l'ordre suivant :
 
-Le destinataire reçoit ``REPLY=mon-serveur:mon-login-chez-le-partenaire`` dans
-PI 99, et le stocke dans les infos de transfert (``__replyPartner__`` et
-``__replyAccount__``). La tâche ``SENDMESSAGE`` utilise ces valeurs pour envoyer
-l'acquittement.
+1. **PI 61 (CustomerID)** du F.MESSAGE — mécanisme standard PeSIT
+2. **PI 62 (BankID)** du F.MESSAGE — mécanisme standard PeSIT
+3. **CustomerID du transfert entrant** (``__customerID__`` dans TransferInfo)
+4. **PI 99 ``REPLY=``** — convention optionnelle pour les cas non standard
+5. **Login du compte local** — convention de nommage (fallback)
+
+Pour une interopérabilité maximale avec les autres produits PeSIT du marché,
+il est recommandé de configurer les identifiants PI 61/PI 62 via les infos de
+transfert ``__customerID__`` et ``__bankID__``.
+
+.. note::
+
+   La convention PI 99 ``REPLY=partenaire:compte`` reste disponible comme
+   mécanisme de dernier recours pour les partenaires qui n'implémentent pas
+   correctement PI 61/PI 62. Elle est activée via le champ ``replyTo`` de la
+   :ref:`configuration protocolaire <proto-config-pesit>` du partenaire.
 
 Relais automatique (Store & Forward multi-sauts)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -214,13 +228,13 @@ Le mécanisme de relais :
 1. C envoie un F.MESSAGE à B (via la tâche ``SENDMESSAGE`` en post-traitement)
 2. B reçoit le F.MESSAGE et retrouve le transfert sortant (B→C) par l'identifiant
 3. B suit la chaîne ``__followID__`` pour retrouver le transfert entrant (A→B)
-4. B lit ``__replyPartner__`` sur le transfert entrant pour identifier A
+4. B lit PI 61 (CustomerID) du transfert entrant pour identifier A
 5. B envoie automatiquement le F.MESSAGE à A
 
 .. note::
 
-   Les informations de routage (``__replyPartner__``, ``__replyAccount__``,
-   ``__followID__``) sont automatiquement propagées lors des rebonds via la
+   Les informations de routage (``__followID__``, ``__customerID__``,
+   ``__bankID__``) sont automatiquement propagées lors des rebonds via la
    tâche ``TRANSFER``, même sans l'option ``copyInfo``.
 
 Réception d'un F.MESSAGE
@@ -232,7 +246,7 @@ Lorsqu'un partenaire envoie un F.MESSAGE à la Gateway, celle-ci :
 - Stocke les métadonnées dans les infos de transfert du transfert référencé :
   ``__messageACK__``, ``__messageCustomerID__``, ``__messageBankID__``
 - Si ``relayMessages`` est activé, relaie automatiquement vers l'émetteur
-  d'origine
+  d'origine en suivant la chaîne PI 61/PI 62
 
 Transferts multi-fichiers
 -------------------------

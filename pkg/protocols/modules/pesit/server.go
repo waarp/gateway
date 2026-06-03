@@ -215,28 +215,32 @@ func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest
 	// find a partner definition that we can connect TO.
 	//
 	// Resolution strategy (in order of priority):
-	// 1. __replyPartner__ parsed from PI 99 freetext ("REPLY=partner:account")
-	//    — single mechanism for Waarp and third-party emitters
-	// 2. customerID (PI 61) from the F.MESSAGE
-	// 3. bankID (PI 62) from the F.MESSAGE
-	// 4. customerID from the original incoming transfer
+	//
+	// The standard PeSIT Store & Forward mechanism uses PI 61 (CustomerID)
+	// and PI 62 (BankID) to identify the originator through the relay chain.
+	// This is the standard approach used by PeSIT products on the market.
+	//
+	// 1. customerID (PI 61) from the F.MESSAGE — standard PeSIT S&F
+	// 2. bankID (PI 62) from the F.MESSAGE — standard PeSIT S&F
+	// 3. customerID from the original incoming transfer — preserved via TransferInfo
+	// 4. __replyPartner__ from PI 99 freetext ("REPLY=partner:account") — Waarp override
 	// 5. Login of the LocalAccount (convention: partner name = client login)
 	candidates := []string{}
 
-	// Priority 1: __replyPartner__ from PI 99 convention
-	if rp, ok := inTrans.TransferInfo[replyPartnerKey]; ok {
-		candidates = append(candidates, fmt.Sprintf("%v", rp))
-	}
-
-	// Priority 2-3: PI 61/62 from the F.MESSAGE
+	// Priority 1-2: PI 61/62 from the F.MESSAGE (standard PeSIT mechanism)
 	candidates = append(candidates, msg.CustomerID, msg.BankID)
 
-	// Priority 4: customerID from incoming transfer
+	// Priority 3: customerID from incoming transfer
 	if cid, ok := inTrans.TransferInfo[customerIDKey]; ok {
 		candidates = append(candidates, fmt.Sprintf("%v", cid))
 	}
 
-	// Priority 5: LocalAccount login (convention)
+	// Priority 4: __replyPartner__ from PI 99 convention (Waarp-specific override)
+	if rp, ok := inTrans.TransferInfo[replyPartnerKey]; ok {
+		candidates = append(candidates, fmt.Sprintf("%v", rp))
+	}
+
+	// Priority 5: LocalAccount login (naming convention fallback)
 	if inTrans.LocalAccountID.Valid {
 		var acct model.LocalAccount
 		if err := s.db.Get(&acct, "id=?", inTrans.LocalAccountID.Int64).Run(); err == nil {

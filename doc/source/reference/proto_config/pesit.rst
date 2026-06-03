@@ -86,7 +86,8 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
     identifie la règle à appliquer par correspondance de préfixe. Ce mode supporte
     également les **patterns glob** (``*``, ``?``) dans les requêtes de pull
     (voir :ref:`ref-proto-pesit-patterns`).
-  - ``axway`` : mode de compatibilité avec les agents Axway (*CFT*, *SecureTransport*).
+  - ``historique`` : mode de compatibilité avec les agents PeSIT utilisant la
+    convention bancaire historique.
     Le champ *Filename* (PI 12) transmet le nom de la règle au lieu du chemin de
     fichier, et le nom de fichier est transmis via le champ *FileLabel* (PI 37).
 * **maxMessageSize** (*integer*) - Spécifie la taille maximale (en octets) autorisée
