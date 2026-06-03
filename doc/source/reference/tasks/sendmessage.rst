@@ -69,13 +69,14 @@ lorsque ``replyTo`` est configuré sur le partenaire émetteur :
          as: "mon-login"
          message: "ACK transfer #TRANSFERID#"
 
-**Acquittement conditionnel** (envoyé uniquement si le partenaire a demandé un ACK) :
+.. note::
 
-.. code-block:: yaml
-
-   post:
-     - type: SENDMESSAGE
-       condition: "#TI___replyPartner__#"
+   Si aucun partenaire n'est résolvable (pas de ``to`` explicite, pas de
+   ``__replyPartner__`` dans les infos de transfert), la tâche est
+   **silencieusement ignorée**. Cela signifie que l'émetteur n'a pas demandé
+   d'acquittement. La tâche ``SENDMESSAGE`` peut donc être configurée
+   systématiquement en post-traitement sans risque : elle ne s'exécute que
+   quand un ACK a été demandé.
 
 Résolution du partenaire
 ------------------------

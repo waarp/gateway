@@ -6,7 +6,6 @@ import (
 	"io"
 	"path"
 	"strconv"
-	"strings"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -229,18 +228,6 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 	}
 
 	return pipeline.MakeServerTransfer(remoteID, filepath, t.account, rule), nil
-	if err != nil || len(matches) == 0 {
-		return ""
-	}
-
-	// Return the path relative to the rule's localDir, as expected by the pipeline.
-	resolved := matches[0]
-	if prefix := rule.LocalDir; prefix != "" {
-		resolved = strings.TrimPrefix(resolved, prefix+"/")
-		resolved = strings.TrimPrefix(resolved, prefix+"\\")
-	}
-
-	return resolved
 }
 
 func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,

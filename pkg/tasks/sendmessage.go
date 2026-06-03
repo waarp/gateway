@@ -91,7 +91,9 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 	}
 
 	if partnerName == "" {
-		return ErrSendMessageNoPartner
+		logger.Debug("SENDMESSAGE skipped: no target partner (no 'to' arg and no __replyPartner__ in TransferInfo)")
+
+		return &WarningError{msg: "no ACK requested (no reply partner configured)"}
 	}
 
 	// Resolve account: explicit arg > __replyAccount__ > first account on partner.
