@@ -69,13 +69,13 @@ lorsque ``replyTo`` est configuré sur le partenaire émetteur :
          as: "mon-login"
          message: "ACK transfer #TRANSFERID#"
 
-**Acquittement conditionnel** (envoyé uniquement si le fichier est en EBCDIC) :
+**Acquittement conditionnel** (envoyé uniquement si le partenaire a demandé un ACK) :
 
 .. code-block:: yaml
 
    post:
      - type: SENDMESSAGE
-       condition: "#TI___fileEncoding__# == EBCDIC"
+       condition: "#TI___replyPartner__#"
 
 Résolution du partenaire
 ------------------------
