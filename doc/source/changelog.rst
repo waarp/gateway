@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`578` Cipher suites TLS configurables via ``cipherSuites`` dans la
+  configuration protocolaire des clients, partenaires et serveurs utilisant TLS.
+  Permet l'interopérabilité avec les partenaires legacy nécessitant des suites
+  spécifiques.
 * :feature:`599` Ajout d'une variable de substitution ``#STARTTIMESTAMP#`` pour
   les tâches permettant d'obtenir un timestamp au format libre de la date de
   début du transfert en cours. Voir la :ref:`page <reference-tasks-substitutions>`

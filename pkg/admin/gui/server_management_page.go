@@ -20,6 +20,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -90,14 +91,10 @@ func parseServerProtoConfig(r *http.Request, protocol string) model.Map[any] {
 		return protoConfigFTPServer(r, protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		return protoConfigPeSITServer(r, protocol)
-	case webdav.Webdav:
-		return protoConfigWebdavServer(r)
-	case webdav.WebdavTLS:
-		return protoConfigWebdavTLSServer(r)
-	case as2.AS2:
-		return protoConfigAS2Server(r)
-	case as2.AS2TLS:
-		return protoConfigAS2TLSServer(r)
+	case webdav.Webdav, webdav.WebdavTLS:
+		return protoConfigWebdavServer(r, protocol)
+	case as2.AS2, as2.AS2TLS:
+		return protoConfigAS2Server(r, protocol)
 	default:
 		return nil
 	}
@@ -159,14 +156,10 @@ func editServer(db *database.DB, r *http.Request) error {
 		editServer.ProtoConfig = protoConfigFTPServer(r, editServer.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		editServer.ProtoConfig = protoConfigPeSITServer(r, editServer.Protocol)
-	case webdav.Webdav:
-		editServer.ProtoConfig = protoConfigWebdavServer(r)
-	case webdav.WebdavTLS:
-		editServer.ProtoConfig = protoConfigWebdavTLSServer(r)
-	case as2.AS2:
-		editServer.ProtoConfig = protoConfigAS2Server(r)
-	case as2.AS2TLS:
-		editServer.ProtoConfig = protoConfigAS2TLSServer(r)
+	case webdav.Webdav, webdav.WebdavTLS:
+		editServer.ProtoConfig = protoConfigWebdavServer(r, editServer.Protocol)
+	case as2.AS2, as2.AS2TLS:
+		editServer.ProtoConfig = protoConfigAS2Server(r, editServer.Protocol)
 	}
 
 	if err = internal.UpdateServer(db, editServer); err != nil {
@@ -458,6 +451,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"tlsCiphers":             protoutils.TLSCiphers,
 			"as2SignAlgos":           as2.SignatureAlgorithms(),
 			"protocolsList":          ProtocolsList(),
 			"errMsg":                 errMsg,

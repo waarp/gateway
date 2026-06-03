@@ -12,10 +12,10 @@ Configuration serveur
   le mode actif est activé.
 * **passiveModeMinPort** (*integer*) - N° de port minimal de la plage de ports
   utilisés en mode FTP passif (si le mode passif est activé). Par défaut,
-  le port minimal est 10000.
+  n'importe quel port libre est autorisé.
 * **passiveModeMaxPort** (*integer*) - N° de port maximal de la plage de ports
   utilisés en mode FTP passif (si le mode passif est activé). Par défaut,
-  le port maximal est 20000.
+  n'importe quel port libre est autorisé.
 
 * **tlsRequirement** (*string*) - **[FTPS uniquement]** Spécifie le mode TLS
   utilisé par le serveur. Les valeurs acceptées sont "Optional" (TLS explicite
@@ -25,24 +25,32 @@ Configuration serveur
 * **minTLSVersion** (*string*) - **[FTPS uniquement]** Spécifie la version minimale
   de TLS autorisée par le serveur. Les valeurs acceptées sont "v1.0", "v1.1", "v1.2"
   et "v1.3". Par défaut, la version minimale est "v1.2".
+* **cipherSuites** (*array of string*) - **[FTPS uniquement]** Spécifie la liste
+  des suites de chiffrement TLS autorisées par le serveur. Si la liste est vide, les
+  suites de chiffrement par défaut sont utilisées. Voir :ref:`la liste des suites de
+  chiffrement acceptées <proto-config-cipher-suites>`.
 
 Configuration client
 ====================
 
-* **enablePassiveMode** (*boolean*) - Active le mode FTP actif. Par défaut,
+* **enableActiveMode** (*boolean*) - Active le mode FTP actif. Par défaut,
   le mode actif est désactivé.
 * **activeModeAddress** (*string*) - Adresse IP locale du client en mode
   actif (si le mode actif est activé). Par défaut, l'adresse IP est 0.0.0.0.
 * **activeModeMinPort** (*integer*) - N° de port minimal de la plage de ports
   utilisés en mode FTP actif (si le mode actif est activé). Par défaut,
-  le port minimal est 10000.
+  n'importe quel port libre est autorisé.
 * **activeModeMaxPort** (*integer*) - N° de port maximal de la plage de ports
   utilisés en mode FTP actif (si le mode actif est activé). Par défaut,
-  le port maximal est 20000.
+  n'importe quel port libre est autorisé.
 
 * **minTLSVersion** (*string*) - **[FTPS uniquement]** Spécifie la version minimale
   de TLS autorisée par le client. Les valeurs acceptées sont "v1.0", "v1.1", "v1.2"
   et "v1.3". Par défaut, la version minimale est "v1.2".
+* **cipherSuites** (*array of string*) - **[FTPS uniquement]** Spécifie la liste
+  des suites de chiffrement TLS autorisées par le client. Si la liste est vide, les
+  suites de chiffrement par défaut sont utilisées. Voir :ref:`la liste des suites de
+  chiffrement acceptées <proto-config-cipher-suites>`.
 
 Configuration partenaire
 ========================
@@ -60,6 +68,11 @@ Configuration partenaire
 * **minTLSVersion** (*string*) - **[FTPS uniquement]** Spécifie la version minimale
   de TLS autorisée pour ce partenaire. Les valeurs acceptées sont "v1.0", "v1.1",
   "v1.2" et "v1.3". Par défaut, la version minimale est "v1.2".
+* **cipherSuites** (*array of string*) - **[FTPS uniquement]** Spécifie la liste
+  des suites de chiffrement TLS autorisées pour ce partenaire. Cette liste remplace
+  celle définie dans la configuration du client. Si les deux listes sont vides, les
+  suites de chiffrement par défaut sont utilisées. Voir :ref:`la liste des suites de
+  chiffrement acceptées <proto-config-cipher-suites>`.
 * **disableTLSSessionReuse** (*boolean*) - **[FTPS uniquement]** Désactive la
   réutilisation de session TLS avec ce partenaire. Par défaut, les sessions TLS
   sont réutilisées quand cela est possible pour améliorer les performances.

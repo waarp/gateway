@@ -1,41 +1,53 @@
+// The TLS variant of every protocol which has one. The TLS specific part of the
+// protocol configuration is wrapped in an element whose id is the name of the
+// TLS variant followed by "Form" (ex: "ftpsForm" for FTPS).
+const tlsVariants = {
+    'r66': 'r66-tls',
+    'ftp': 'ftps',
+    'http': 'https',
+    'pesit': 'pesit-tls',
+    'webdav': 'webdav-tls',
+    'as2': 'as2-tls',
+};
+
+function setFieldsEnabled (elem, enabled) {
+    elem.querySelectorAll('input,select,textarea,button').forEach(el => {
+        if (enabled) {
+            el.disabled = false;
+            if (el.dataset.wasRequired === '1')
+                el.required = true;
+        } else {
+            if (el.required)
+                el.dataset.wasRequired = '1';
+            el.required = false;
+            el.disabled = true;
+        }
+    });
+}
+
 function showProtoConfig (selectElem) {
     const selected = selectElem.value;
 
-    const match = proto => (
-        (proto === 'r66'   && (selected === 'r66'   || selected === 'r66-tls')) ||
-        (proto === 'ftp'   && (selected === 'ftp'   || selected === 'ftps')) ||
-        (proto === 'http'  && (selected === 'http'   || selected === 'https')) ||
-        (proto === 'pesit' && (selected === 'pesit' || selected === 'pesit-tls')) ||
-        (proto === 'webdav' && (selected === 'webdav'   || selected === 'webdav-tls')) ||
-        (proto === 'as2' && (selected === 'as2'   || selected === 'as2-tls')) ||
-        (proto === selected)
-    );
+    const match = proto => (proto === selected || tlsVariants[proto] === selected);
 
     const container = selectElem.closest('.modal, form') || document;
     container.querySelectorAll('.protoConfigBlock').forEach(block => {
         const proto = block.id.replace('protoConfig_', '');
         const show = match(proto);
         block.style.display = show ? 'block' : 'none';
-        block.querySelectorAll('input,select,textarea,button').forEach(el => {
-            if (show) {
-                el.disabled = false;
-                if (el.dataset.wasRequired === '1')
-                    el.required = true;
-            } else {
-                if (el.required)
-                    el.dataset.wasRequired = '1';
-                el.required = false;
-                el.disabled = true;
-            }
-        });
+        setFieldsEnabled(block, show);
     });
 
-    container.querySelector('#ftpsForm')?.style.setProperty('display', selected === 'ftps' ? 'block' : 'none');
-    container.querySelector('#pesit-tlsForm')?.style.setProperty('display', selected === 'pesit-tls' ? 'block' : 'none');
-    container.querySelector('#r66-tlsForm')?.style.setProperty('display', selected === 'r66-tls' ? 'block' : 'none');
-    container.querySelector('#httpsForm')?.style.setProperty('display', selected === 'https' ? 'block' : 'none');
-    container.querySelector('#webdavTLSForm')?.style.setProperty('display', selected === 'webdav-tls' ? 'block' : 'none');
-    container.querySelector('#as2tlsForm')?.style.setProperty('display', selected === 'as2-tls' ? 'block' : 'none');
+    // The TLS sub-forms are nested inside the block of their non-TLS protocol.
+    // They must thus be disabled as well as hidden when the non-TLS variant is
+    // selected, otherwise their fields would still be submitted.
+    Object.values(tlsVariants).forEach(tlsProto => {
+        const show = selected === tlsProto;
+        container.querySelectorAll(`#${tlsProto}Form`).forEach(tlsForm => {
+            tlsForm.style.setProperty('display', show ? 'block' : 'none');
+            setFieldsEnabled(tlsForm, show);
+        });
+    });
 }
 
 function addField(button, fieldName) {
