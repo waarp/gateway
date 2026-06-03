@@ -607,6 +607,10 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 			pesitProtoConfig["cipherSuites"] = strings.Split(cipherSuites, ",")
 		}
 
+		if tlsClientAuth := r.FormValue("protoConfigPeSITtlsClientAuth"); tlsClientAuth != "" {
+			pesitProtoConfig["tlsClientAuth"] = tlsClientAuth
+		}
+
 	}
 
 	return pesitProtoConfig

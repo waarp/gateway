@@ -17,6 +17,18 @@ type ServerConfigTLS struct {
 	// If empty, Go defaults are used. Use this to force specific suites for
 	// legacy mainframe interoperability.
 	CipherSuites []string `json:"cipherSuites,omitempty"`
+
+	// TLSClientAuth specifies how TLS client certificates are used for
+	// authentication. Accepted values:
+	//   - "none" (default): client certificate is optional; authentication
+	//     relies on PeSIT login/password (PI 3/PI 5).
+	//   - "optional": if the client presents a certificate, its CN or SAN
+	//     is used to identify the local account. If no certificate is
+	//     presented, falls back to PeSIT login/password.
+	//   - "required": the client MUST present a valid certificate. The CN
+	//     or SAN is used to identify the local account; the PeSIT password
+	//     is ignored.
+	TLSClientAuth string `json:"tlsClientAuth,omitempty"`
 }
 
 func (s *ServerConfigTLS) ValidServer() error {

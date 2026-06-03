@@ -65,13 +65,11 @@ func (s *server) listen() (string, error) {
 		cipherIDs, _ := resolveCipherSuites(s.conf.CipherSuites)
 
 		tlsConfig := &tls.Config{
-			MinVersion: s.conf.MinTLSVersion.TLS(),
-
-			GetCertificate: s.getCertificate,
-
+			MinVersion:            s.conf.MinTLSVersion.TLS(),
+			ClientAuth:            tlsRequireClientCert(s.conf.TLSClientAuth),
+			GetCertificate:        s.getCertificate,
 			VerifyPeerCertificate: auth.VerifyClientCert(s.db, s.logger, s.localAgent),
-
-			CipherSuites: cipherIDs, // nil = Go defaults
+			CipherSuites:          cipherIDs, // nil = Go defaults
 		}
 
 		list, listErr = tls.Listen("tcp", realAddr, tlsConfig)
@@ -148,44 +146,55 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 
 	}
 
-	// In PeSIT-TLS with mutual authentication, some products (e.g. Axway CFT)
-
-	// consider the client certificate sufficient and send an empty password in
-
-	// PI 5. Accept the connection based on the TLS certificate validation
-
-	// (already done in VerifyPeerCertificate) when the password is empty.
-
+	// Authenticate the client. In TLS with tlsClientAuth="required" or
+	// "optional", the certificate has already been validated by
+	// VerifyPeerCertificate (which matches CN to a local account). We trust
+	// the PeSIT login (PI 3) as the account identifier without checking the
+	// password, since the TLS certificate is the proof of identity.
 	var user *model.LocalAccount
 
-	if s.localAgent.Protocol == PesitTLS && conn.ClientPassword() == "" {
+	certAuthMode := s.conf.TLSClientAuth
+	isTLS := s.localAgent.Protocol == PesitTLS
+	emptyPassword := conn.ClientPassword() == ""
 
-		var acc model.LocalAccount
-
-		if err := s.db.Get(&acc, "local_agent_id=? AND login=?",
-
-			s.localAgent.ID, conn.ClientLogin()).Run(); err != nil {
-
-			s.logger.Warningf("TLS mutual auth: unknown login %q", conn.ClientLogin())
-
-			return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "unknown login")
-
+	switch {
+	case certAuthMode == TLSClientAuthRequired && isTLS:
+		// Certificate required: trust the TLS cert, ignore PeSIT password.
+		acc, err := s.findAccountByLogin(conn.ClientLogin())
+		if err != nil {
+			return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller,
+				fmt.Sprintf("certificate auth: %v", err))
 		}
+		s.logger.Debugf("TLS cert auth (required): accepted %q", conn.ClientLogin())
+		user = acc
 
-		s.logger.Debugf("TLS mutual auth accepted for %q (no password, certificate validated)", conn.ClientLogin())
+	case certAuthMode == TLSClientAuthOptional && isTLS && emptyPassword:
+		// Certificate optional + no password: trust the TLS cert.
+		acc, err := s.findAccountByLogin(conn.ClientLogin())
+		if err != nil {
+			return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller,
+				fmt.Sprintf("certificate auth: %v", err))
+		}
+		s.logger.Debugf("TLS cert auth (optional): accepted %q (no password)", conn.ClientLogin())
+		user = acc
 
-		user = &acc
+	case isTLS && emptyPassword:
+		// Legacy: TLS mutual auth with empty password — accept based on login.
+		acc, err := s.findAccountByLogin(conn.ClientLogin())
+		if err != nil {
+			s.logger.Warningf("TLS mutual auth: unknown login %q", conn.ClientLogin())
+			return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "unknown login")
+		}
+		s.logger.Debugf("TLS mutual auth accepted for %q (empty password)", conn.ClientLogin())
+		user = acc
 
-	} else {
-
+	default:
+		// Standard authentication: login + password.
 		var authErr error
-
 		user, authErr = s.authenticate(conn.ClientLogin(), conn.ClientPassword())
-
 		if authErr != nil {
 			return nil, authErr
 		}
-
 	}
 
 	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
@@ -209,6 +218,16 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 
 func (s *server) Release(conn *pesit.ServerConnection) {
 	s.logger.Debugf("Connection closed to %v", conn)
+}
+
+func (s *server) findAccountByLogin(login string) (*model.LocalAccount, error) {
+	var acc model.LocalAccount
+	if err := s.db.Get(&acc, "local_agent_id=? AND login=?",
+		s.localAgent.ID, login).Run(); err != nil {
+		return nil, fmt.Errorf("account %q not found: %w", login, err)
+	}
+
+	return &acc, nil
 }
 
 var ErrPasswordDBError = errors.New("failed to retrieve the server password")

@@ -191,6 +191,16 @@ est la suivante :
 * **cipherSuites** (*liste de strings*) - [PeSIT-TLS uniquement] Spécifie la
   liste des cipher suites TLS acceptées par ce serveur. Si la liste est vide,
   les cipher suites par défaut de Go sont utilisées.
+* **tlsClientAuth** (*string*) - [PeSIT-TLS uniquement] Spécifie comment les
+  certificats client TLS sont utilisés pour l'authentification. Valeurs :
+
+  - ``none`` (par défaut) : le certificat client est optionnel ;
+    l'authentification repose sur le login/mot de passe PeSIT (PI 3/PI 5).
+  - ``optional`` : si le client présente un certificat valide et envoie un
+    mot de passe vide, le CN ou SAN du certificat est utilisé pour identifier
+    le compte local. Sinon, le login/mot de passe PeSIT est utilisé.
+  - ``required`` : le client **doit** présenter un certificat valide. Le CN
+    ou SAN identifie le compte local ; le mot de passe PeSIT est ignoré.
 
 **Exemple**
 

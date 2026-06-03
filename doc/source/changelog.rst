@@ -47,6 +47,9 @@ Historique des versions
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des
   métadonnées avant un rebond ou conditionner des tâches suivantes.
+* :feature:`577` Authentification par certificat TLS : le paramètre
+  ``tlsClientAuth`` (``none``, ``optional``, ``required``) permet d'identifier
+  les partenaires par le CN ou SAN de leur certificat client, sans mot de passe.
 * :feature:`578` Cipher suites TLS configurables via ``cipherSuites`` dans la
   configuration protocolaire PeSIT-TLS du serveur et du partenaire. Permet
   l'interopérabilité avec les partenaires legacy nécessitant des suites

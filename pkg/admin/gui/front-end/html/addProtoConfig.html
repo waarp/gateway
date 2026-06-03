@@ -427,6 +427,15 @@
             <label class="col-form-label">Cipher Suites <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Comma-separated list of TLS cipher suite names (e.g. TLS_AES_128_GCM_SHA256). Leave empty for Go defaults."></i> :</label>
             <input type="text" name="protoConfigPeSITcipherSuites" class="form-control" value="{{ index .modalElement "protoConfigPeSITcipherSuites" }}" placeholder="(Go defaults)">
         </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-2">
+            <label class="col-form-label">TLS Client Auth <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="How client certificates are used: none (default), optional (cert or password), required (cert only, password ignored)."></i> :</label>
+            <select name="protoConfigPeSITtlsClientAuth" class="form-select">
+                <option value="" {{ if not (index .modalElement "protoConfigPeSITtlsClientAuth") }}selected{{ end }}>none (default)</option>
+                <option value="optional" {{ if eq (index .modalElement "protoConfigPeSITtlsClientAuth") "optional" }}selected{{ end }}>optional</option>
+                <option value="required" {{ if eq (index .modalElement "protoConfigPeSITtlsClientAuth") "required" }}selected{{ end }}>required</option>
+            </select>
+        </div>
     </div>
 </div>
 {{ end }}
