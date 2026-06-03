@@ -106,6 +106,125 @@
 </div>
 {{ end }}
 
+{{ define "conditionInput" }}
+<div class="form-input mt-2" style="border-top: 1px dashed #ccc; padding-top: 0.5rem;">
+    <label class="col-form-label">
+        Condition
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="Optional: expression evaluated before execution. Right-click for available variables. Operators: ==, !=, >, <, MATCHES, CONTAINS, AND, OR, NOT">
+        </i> :
+    </label>
+    <input type="text"
+           name="condition"
+           class="form-control condition-input"
+           value="{{ .condition }}"
+           placeholder="#TI___fileEncoding__# == EBCDIC"
+           style="font-family: monospace; font-size: 0.9em;">
+</div>
+
+<div id="conditionVarMenu" class="dropdown-menu" style="display:none; max-height:300px; overflow-y:auto;">
+    <h6 class="dropdown-header">Variables disponibles</h6>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Fichier</h6>
+    <a class="dropdown-item" href="#" data-var="#TRUEFULLPATH#">#TRUEFULLPATH#</a>
+    <a class="dropdown-item" href="#" data-var="#TRUEFILENAME#">#TRUEFILENAME#</a>
+    <a class="dropdown-item" href="#" data-var="#BASEFILENAME#">#BASEFILENAME#</a>
+    <a class="dropdown-item" href="#" data-var="#FILEEXTENSION#">#FILEEXTENSION#</a>
+    <a class="dropdown-item" href="#" data-var="#FILESIZE#">#FILESIZE#</a>
+    <a class="dropdown-item" href="#" data-var="#ORIGINALFULLPATH#">#ORIGINALFULLPATH#</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Repertoires</h6>
+    <a class="dropdown-item" href="#" data-var="#INPATH#">#INPATH#</a>
+    <a class="dropdown-item" href="#" data-var="#OUTPATH#">#OUTPATH#</a>
+    <a class="dropdown-item" href="#" data-var="#WORKPATH#">#WORKPATH#</a>
+    <a class="dropdown-item" href="#" data-var="#HOMEPATH#">#HOMEPATH#</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Transfert</h6>
+    <a class="dropdown-item" href="#" data-var="#RULE#">#RULE#</a>
+    <a class="dropdown-item" href="#" data-var="#TRANSFERID#">#TRANSFERID#</a>
+    <a class="dropdown-item" href="#" data-var="#REMOTEHOST#">#REMOTEHOST#</a>
+    <a class="dropdown-item" href="#" data-var="#LOCALHOST#">#LOCALHOST#</a>
+    <a class="dropdown-item" href="#" data-var="#REQUESTERHOST#">#REQUESTERHOST#</a>
+    <a class="dropdown-item" href="#" data-var="#REQUESTEDHOST#">#REQUESTEDHOST#</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Horodatage</h6>
+    <a class="dropdown-item" href="#" data-var="#DATE#">#DATE#</a>
+    <a class="dropdown-item" href="#" data-var="#HOUR#">#HOUR#</a>
+    <a class="dropdown-item" href="#" data-var="#TIMESTAMP(YYYY-MM-DD)#">#TIMESTAMP(...)#</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Erreur</h6>
+    <a class="dropdown-item" href="#" data-var="#ERRORCODE#">#ERRORCODE#</a>
+    <a class="dropdown-item" href="#" data-var="#ERRORMSG#">#ERRORMSG#</a>
+    <a class="dropdown-item" href="#" data-var="#ERRORSTRCODE#">#ERRORSTRCODE#</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">TransferInfo (PeSIT, etc.)</h6>
+    <a class="dropdown-item" href="#" data-var="#TI___fileEncoding__#">#TI___fileEncoding__#</a>
+    <a class="dropdown-item" href="#" data-var="#TI___articleFormat__#">#TI___articleFormat__#</a>
+    <a class="dropdown-item" href="#" data-var="#TI___organization__#">#TI___organization__#</a>
+    <a class="dropdown-item" href="#" data-var="#TI___fileType__#">#TI___fileType__#</a>
+    <a class="dropdown-item" href="#" data-var="#TI___customerID__#">#TI___customerID__#</a>
+    <a class="dropdown-item" href="#" data-var="#TI___bankID__#">#TI___bankID__#</a>
+    <a class="dropdown-item" href="#" data-var="#TI___clientConnFreetext__#">#TI___clientConnFreetext__#</a>
+    <a class="dropdown-item" href="#" data-var="#TI___serverTransFreetext__#">#TI___serverTransFreetext__#</a>
+    <div class="dropdown-divider"></div>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Operateurs</h6>
+    <a class="dropdown-item" href="#" data-var=" == ">== (egal)</a>
+    <a class="dropdown-item" href="#" data-var=" != ">!= (different)</a>
+    <a class="dropdown-item" href="#" data-var=" > ">&gt; (superieur)</a>
+    <a class="dropdown-item" href="#" data-var=" < ">&lt; (inferieur)</a>
+    <a class="dropdown-item" href="#" data-var=" MATCHES ">MATCHES (glob)</a>
+    <a class="dropdown-item" href="#" data-var=" CONTAINS ">CONTAINS</a>
+    <a class="dropdown-item" href="#" data-var=" AND ">AND</a>
+    <a class="dropdown-item" href="#" data-var=" OR ">OR</a>
+    <a class="dropdown-item" href="#" data-var="NOT ">NOT</a>
+</div>
+
+<script>
+(function() {
+    const menu = document.getElementById('conditionVarMenu');
+    let activeInput = null;
+
+    // Right-click on condition input shows variable menu
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target.classList.contains('condition-input')) {
+            e.preventDefault();
+            activeInput = e.target;
+            menu.style.display = 'block';
+            menu.style.position = 'fixed';
+            menu.style.left = e.clientX + 'px';
+            menu.style.top = e.clientY + 'px';
+            menu.style.zIndex = '9999';
+        }
+    });
+
+    // Click on menu item inserts variable at cursor
+    menu.addEventListener('click', function(e) {
+        const item = e.target.closest('[data-var]');
+        if (item && activeInput) {
+            e.preventDefault();
+            const varText = item.getAttribute('data-var');
+            const start = activeInput.selectionStart;
+            const end = activeInput.selectionEnd;
+            const val = activeInput.value;
+            activeInput.value = val.substring(0, start) + varText + val.substring(end);
+            activeInput.selectionStart = activeInput.selectionEnd = start + varText.length;
+            activeInput.focus();
+            menu.style.display = 'none';
+        }
+    });
+
+    // Click elsewhere closes menu
+    document.addEventListener('click', function(e) {
+        if (!menu.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+})();
+</script>
+{{ end }}
+
 {{ define "numberInputRow" }}
 <div class="form-input">
     <label class="col-form-label me-3">

@@ -250,6 +250,7 @@ func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
 		task.Rank = int8(i)
 		task.Type = src.Type
 		task.Args = src.Args
+		task.Condition = src.Condition
 
 		// Create/Update
 		logger.Infof("Create task type %s at chain %s rank %d", task.Type, chain, i)

@@ -11,8 +11,9 @@ import (
 // taskToDB transforms the JSON task into its database equivalent.
 func taskToDB(task *api.Task) *model.Task {
 	return &model.Task{
-		Type: task.Type,
-		Args: task.Args,
+		Type:      task.Type,
+		Args:      task.Args,
+		Condition: task.Condition,
 	}
 }
 
@@ -22,8 +23,9 @@ func FromRuleTasks(ts []*model.Task) []*api.Task {
 	tasks := make([]*api.Task, len(ts))
 	for i, task := range ts {
 		tasks[i] = &api.Task{
-			Type: task.Type,
-			Args: task.Args,
+			Type:      task.Type,
+			Args:      task.Args,
+			Condition: task.Condition,
 		}
 	}
 

@@ -130,8 +130,9 @@ func exportRuleTasks(db database.ReadAccess, ruleID int64, chain string) ([]file
 
 	for i, src := range dbTasks {
 		res[i] = file.Task{
-			Type: src.Type,
-			Args: src.Args,
+			Type:      src.Type,
+			Args:      src.Args,
+			Condition: src.Condition,
 		}
 	}
 

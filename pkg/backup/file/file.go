@@ -237,8 +237,9 @@ type EbicsRTNProvider struct {
 
 // Task is the JSON struct representing a rule task.
 type Task struct {
-	Type string            `json:"type" yaml:"type"`
-	Args map[string]string `json:"args" yaml:"args"`
+	Type      string            `json:"type" yaml:"type"`
+	Args      map[string]string `json:"args" yaml:"args"`
+	Condition string            `json:"condition,omitempty" yaml:"condition,omitempty"`
 }
 
 // User is the JSON struct representing a gateway user.

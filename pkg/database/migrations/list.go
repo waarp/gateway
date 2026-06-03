@@ -381,4 +381,19 @@ var Migrations = []Change{
 		Up:          ver0_16_8AddEbicsOutboundRTNTablesUp,
 		Down:        ver0_16_8AddEbicsOutboundRTNTablesDown,
 	},
+	{ // #73
+		Description: `Add the EBICS event outbox table`,
+		Up:          ver0_16_9AddEbicsEventOutboxUp,
+		Down:        ver0_16_9AddEbicsEventOutboxDown,
+	},
+	{ // #74
+		Description: `Add the business connector tables`,
+		Up:          ver0_16_10AddBusinessConnectorTablesUp,
+		Down:        ver0_16_10AddBusinessConnectorTablesDown,
+	},
+	{ // #75
+		Description: `Add condition column to tasks table`,
+		Up:          ver0_16_11AddTaskConditionUp,
+		Down:        ver0_16_11AddTaskConditionDown,
+	},
 }
