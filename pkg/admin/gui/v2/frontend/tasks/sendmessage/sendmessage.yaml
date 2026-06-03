@@ -1,0 +1,31 @@
+description:
+  en: "Send a PeSIT F.MESSAGE to a partner (Store & Forward acknowledgment or free-form message). This task is PeSIT-only; it will be silently skipped for other protocols."
+  fr: "Envoie un F.MESSAGE PeSIT a un partenaire (acquittement Store & Forward ou message libre). Cette tache est reservee au protocole PeSIT ; elle sera ignoree pour les autres protocoles."
+
+pesitOnly:
+  en: "PeSIT protocol only. Skipped for other protocols."
+  fr: "Protocole PeSIT uniquement. Ignoree pour les autres protocoles."
+
+to:
+  en: Partner
+  fr: Partenaire
+
+toTooltip:
+  en: "Name of the remote partner to send the F.MESSAGE to"
+  fr: "Nom du partenaire distant auquel envoyer le F.MESSAGE"
+
+as:
+  en: Account
+  fr: Compte
+
+asTooltip:
+  en: "Login of the remote account to use for authentication"
+  fr: "Login du compte distant a utiliser pour l'authentification"
+
+message:
+  en: Message
+  fr: Message
+
+messageTooltip:
+  en: "Message content (optional). If empty, a default ACK message is generated with the transfer ID. Supports variable substitution (#TRANSFERID#, #TI_...#, etc.)"
+  fr: "Contenu du message (optionnel). Si vide, un message ACK par defaut est genere avec l'identifiant du transfert. Supporte la substitution de variables (#TRANSFERID#, #TI_...#, etc.)"

@@ -1,0 +1,37 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<div class="alert alert-info py-1 px-2" style="font-size:0.85em">
+    <i class="bi bi-info-circle"></i> {{ .Text.pesitOnly }}
+</div>
+
+<!-- Partner name -->
+{{ template "textInputRow" dict
+    "label" .Text.to
+    "tooltip" .Text.toTooltip
+    "fieldName" "to"
+    "fieldType" "text"
+    "value" .Task.Args.to
+    "placeholder" "partner-name"
+}}
+
+<!-- Account login -->
+{{ template "textInputRow" dict
+    "label" .Text.as
+    "tooltip" .Text.asTooltip
+    "fieldName" "as"
+    "fieldType" "text"
+    "value" .Task.Args.as
+    "placeholder" "account-login"
+}}
+
+<!-- Message content (optional) -->
+{{ template "textInputRow" dict
+    "label" .Text.message
+    "tooltip" .Text.messageTooltip
+    "fieldName" "message"
+    "fieldType" "text"
+    "value" .Task.Args.message
+    "optional" "true"
+    "placeholder" "ACK transfer #TRANSFERID#"
+}}
