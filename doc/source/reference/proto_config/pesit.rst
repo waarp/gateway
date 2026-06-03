@@ -34,6 +34,13 @@ de configuration du protocole pour un client PeSIT est la suivante :
   rester sans réponse avant que le transfert soit stoppé. N'a aucun effet si
   les checkpoints sont désactivés. Par défaut, le transfert sera stoppé si 2
   checkpoints restent sans réponse du partenaire.
+* **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
+  minimale de TLS autorisée par le client. Par défaut, la valeur "v1.2"
+  (pour TLS 1.2) est utilisée.
+* **cipherSuites** (*array of string*) - [PeSIT-TLS uniquement] Spécifie la liste
+  des suites de chiffrement TLS autorisées par le client. Si la liste est vide, les
+  suites de chiffrement par défaut sont utilisées. Voir :ref:`la liste des suites de
+  chiffrement acceptées <proto-config-cipher-suites>`.
 
 **Exemple**
 
@@ -94,6 +101,13 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
+* **cipherSuites** (*array of string*) - [PeSIT-TLS uniquement] Spécifie la liste
+  des suites de chiffrement TLS autorisées pour ce partenaire. Cette liste remplace
+  celle définie dans la configuration du client. Si les deux listes sont vides, les
+  suites de chiffrement par défaut sont utilisées. Cette option est notamment utile
+  pour l'interopérabilité avec des partenaires mainframe ou *legacy* n'acceptant que
+  des suites spécifiques. Voir :ref:`la liste des suites de chiffrement acceptées
+  <proto-config-cipher-suites>`.
 
 **Exemple**
 
@@ -105,9 +119,13 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
      "checkpointSize": 65535,
      "checkpointWindow": 2,
      "useNSDU": true,
-     "compatibilityMode": "axway",
+     "compatibilityMode": "non-standard",
      "maxMessageSize": 65535,
-     "minTLSVersion": "v1.2"
+     "minTLSVersion": "v1.2",
+     "cipherSuites": [
+       "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+       "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+     ]
    }
 
 Configuration serveur
@@ -141,6 +159,10 @@ est la suivante :
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée par ce serveur. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
+* **cipherSuites** (*array of string*) - [PeSIT-TLS uniquement] Spécifie la liste
+  des suites de chiffrement TLS autorisées par ce serveur. Si la liste est vide, les
+  suites de chiffrement par défaut sont utilisées. Voir :ref:`la liste des suites de
+  chiffrement acceptées <proto-config-cipher-suites>`.
 
 **Exemple**
 
@@ -152,5 +174,9 @@ est la suivante :
      "checkpointSize": 65535,
      "checkpointWindow": 1,
      "maxMessageSize": 65535,
-     "minTLSVersion": "v1.2"
+     "minTLSVersion": "v1.2",
+     "cipherSuites": [
+       "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+       "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+     ]
    }

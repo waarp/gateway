@@ -22,6 +22,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -102,15 +103,11 @@ func addLocalClient(db *database.DB, r *http.Request) error {
 	case ftp.FTP, ftp.FTPS:
 		newLocalClient.ProtoConfig = protoConfigFTPClient(r, newLocalClient.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
-		newLocalClient.ProtoConfig = protoConfigPeSITClient(r)
-	case webdav.Webdav:
-		newLocalClient.ProtoConfig = protoConfigWebdavClient(r)
-	case webdav.WebdavTLS:
-		newLocalClient.ProtoConfig = protoConfigWebdavTLSClient(r)
-	case as2.AS2:
-		newLocalClient.ProtoConfig = protoConfigAS2Client(r)
-	case as2.AS2TLS:
-		newLocalClient.ProtoConfig = protoConfigAS2TLSClient(r)
+		newLocalClient.ProtoConfig = protoConfigPeSITClient(r, newLocalClient.Protocol)
+	case webdav.Webdav, webdav.WebdavTLS:
+		newLocalClient.ProtoConfig = protoConfigWebdavClient(r, newLocalClient.Protocol)
+	case as2.AS2, as2.AS2TLS:
+		newLocalClient.ProtoConfig = protoConfigAS2Client(r, newLocalClient.Protocol)
 	}
 
 	if err := internal.AddClient(db, &newLocalClient); err != nil {
@@ -203,15 +200,11 @@ func editLocalClient(db *database.DB, r *http.Request) error {
 	case ftp.FTP, ftp.FTPS:
 		editLocalClient.ProtoConfig = protoConfigFTPClient(r, editLocalClient.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
-		editLocalClient.ProtoConfig = protoConfigPeSITClient(r)
-	case webdav.Webdav:
-		editLocalClient.ProtoConfig = protoConfigWebdavClient(r)
-	case webdav.WebdavTLS:
-		editLocalClient.ProtoConfig = protoConfigWebdavTLSClient(r)
-	case as2.AS2:
-		editLocalClient.ProtoConfig = protoConfigAS2Client(r)
-	case as2.AS2TLS:
-		editLocalClient.ProtoConfig = protoConfigAS2TLSClient(r)
+		editLocalClient.ProtoConfig = protoConfigPeSITClient(r, editLocalClient.Protocol)
+	case webdav.Webdav, webdav.WebdavTLS:
+		editLocalClient.ProtoConfig = protoConfigWebdavClient(r, editLocalClient.Protocol)
+	case as2.AS2, as2.AS2TLS:
+		editLocalClient.ProtoConfig = protoConfigAS2Client(r, editLocalClient.Protocol)
 	}
 
 	if err = internal.UpdateClient(db, editLocalClient); err != nil {
@@ -503,6 +496,7 @@ func localClientManagementPage(logger *log.Logger, db *database.DB) http.Handler
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"tlsCiphers":             protoutils.TLSCiphers,
 			"protocolsList":          ProtocolsList(),
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,

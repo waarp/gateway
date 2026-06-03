@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`578` Cipher suites TLS configurables via ``cipherSuites`` dans la
+  configuration protocolaire des clients, partenaires et serveurs utilisant TLS.
+  Permet l'interopérabilité avec les partenaires legacy nécessitant des suites
+  spécifiques.
+
 * :release:`0.16.0 <2026-22-07>`
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des

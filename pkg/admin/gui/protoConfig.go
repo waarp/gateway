@@ -4,11 +4,34 @@ import (
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
 )
+
+// formList returns the values submitted for the given multi-valued form field
+// (ex: "cipherSuites[]"). The empty values are ignored, since the placeholder
+// option of an unset dropdown is submitted as an empty value.
+func formList(r *http.Request, field string) []string {
+	if r.Form == nil {
+		if err := r.ParseForm(); err != nil {
+			return nil
+		}
+	}
+
+	values := make([]string, 0, len(r.Form[field]))
+
+	for _, value := range r.Form[field] {
+		if value != "" {
+			values = append(values, value)
+		}
+	}
+
+	return values
+}
 
 //nolint:dupl // is for partner protoConfig
 func protoConfigR66Partner(r *http.Request, protocol string) map[string]any {
@@ -31,8 +54,12 @@ func protoConfigR66Partner(r *http.Request, protocol string) map[string]any {
 	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
 	if protocol == r66.R66TLS {
-		if minTLSVersion := r.FormValue("protoConfigR66-tlsMinTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigR66MinTLSVersion"); minTLSVersion != "" {
 			r66ProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigR66CipherSuites[]"); len(cipherSuites) > 0 {
+			r66ProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -60,8 +87,12 @@ func protoConfigR66Server(r *http.Request, protocol string) map[string]any {
 	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
 	if protocol == r66.R66TLS {
-		if minTLSVersion := r.FormValue("protoConfigR66-tlsMinTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigR66MinTLSVersion"); minTLSVersion != "" {
 			r66ProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigR66CipherSuites[]"); len(cipherSuites) > 0 {
+			r66ProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -84,8 +115,12 @@ func protoConfigR66Client(r *http.Request, protocol string) map[string]any {
 	r66ProtoConfig["checkBlockHash"] = r.FormValue("checkBlockHash") == True
 
 	if protocol == r66.R66TLS {
-		if minTLSVersion := r.FormValue("protoConfigR66-tlsMinTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigR66MinTLSVersion"); minTLSVersion != "" {
 			r66ProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigR66CipherSuites[]"); len(cipherSuites) > 0 {
+			r66ProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -96,8 +131,12 @@ func protoConfigHTTPpartner(r *http.Request, protocol string) map[string]any {
 	httpProtoConfig := make(map[string]any)
 
 	if protocol == httpconst.HTTPS {
-		if minTLSVersion := r.FormValue("protoConfigHttpsMinTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigHTTPSMinTLSVersion"); minTLSVersion != "" {
 			httpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigHTTPSCipherSuites[]"); len(cipherSuites) > 0 {
+			httpProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -108,8 +147,12 @@ func protoConfigHTTPserver(r *http.Request, protocol string) map[string]any {
 	httpProtoConfig := make(map[string]any)
 
 	if protocol == httpconst.HTTPS {
-		if minTLSVersion := r.FormValue("protoConfigHttpsMinTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigHTTPSMinTLSVersion"); minTLSVersion != "" {
 			httpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigHTTPSCipherSuites[]"); len(cipherSuites) > 0 {
+			httpProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -120,8 +163,12 @@ func protoConfigHTTPclient(r *http.Request, protocol string) map[string]any {
 	httpProtoConfig := make(map[string]any)
 
 	if protocol == httpconst.HTTPS {
-		if minTLSVersion := r.FormValue("protoConfigHttpsMinTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigHTTPSMinTLSVersion"); minTLSVersion != "" {
 			httpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigHTTPSCipherSuites[]"); len(cipherSuites) > 0 {
+			httpProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -195,8 +242,12 @@ func protoConfigFTPpartner(r *http.Request, protocol string) map[string]any {
 
 	if protocol == ftp.FTPS {
 		ftpProtoConfig["useImplicitTLS"] = r.FormValue("useImplicitTLS") == True
-		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigFTPSMinTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigFTPSCipherSuites[]"); len(cipherSuites) > 0 {
+			ftpProtoConfig["cipherSuites"] = cipherSuites
 		}
 
 		ftpProtoConfig["disableTLSSessionReuse"] = r.FormValue("disableTLSSessionReuse") == True
@@ -213,7 +264,7 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig["disableActiveMode"] = r.FormValue("disableActiveMode") == True
 
 	if passiveModeMinPort := r.FormValue("passiveModeMinPort"); passiveModeMinPort != "" {
-		size, err := internal.ParseUint[uint32](passiveModeMinPort)
+		size, err := internal.ParseUint[uint16](passiveModeMinPort)
 		if err != nil {
 			return nil
 		}
@@ -221,7 +272,7 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 	}
 
 	if passiveModeMaxPort := r.FormValue("passiveModeMaxPort"); passiveModeMaxPort != "" {
-		size, err := internal.ParseUint[uint32](passiveModeMaxPort)
+		size, err := internal.ParseUint[uint16](passiveModeMaxPort)
 		if err != nil {
 			return nil
 		}
@@ -233,8 +284,12 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 			ftpProtoConfig["tlsRequirement"] = tlsRequirement
 		}
 
-		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigFTPSMinTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigFTPSCipherSuites[]"); len(cipherSuites) > 0 {
+			ftpProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -244,14 +299,14 @@ func protoConfigFTPServer(r *http.Request, protocol string) map[string]any {
 func protoConfigFTPClient(r *http.Request, protocol string) map[string]any {
 	ftpProtoConfig := make(map[string]any)
 
-	ftpProtoConfig["enablePassiveMode"] = r.FormValue("enablePassiveMode") == True
+	ftpProtoConfig["enableActiveMode"] = r.FormValue("enableActiveMode") == True
 
 	if activeModeAddress := r.FormValue("activeModeAddress"); activeModeAddress != "" {
 		ftpProtoConfig["activeModeAddress"] = activeModeAddress
 	}
 
 	if activeModeMinPort := r.FormValue("activeModeMinPort"); activeModeMinPort != "" {
-		size, err := internal.ParseUint[uint32](activeModeMinPort)
+		size, err := internal.ParseUint[uint16](activeModeMinPort)
 		if err != nil {
 			return nil
 		}
@@ -259,7 +314,7 @@ func protoConfigFTPClient(r *http.Request, protocol string) map[string]any {
 	}
 
 	if activeModeMaxPort := r.FormValue("activeModeMaxPort"); activeModeMaxPort != "" {
-		size, err := internal.ParseUint[uint32](activeModeMaxPort)
+		size, err := internal.ParseUint[uint16](activeModeMaxPort)
 		if err != nil {
 			return nil
 		}
@@ -267,8 +322,12 @@ func protoConfigFTPClient(r *http.Request, protocol string) map[string]any {
 	}
 
 	if protocol == ftp.FTPS {
-		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigFTPSMinTLSVersion"); minTLSVersion != "" {
 			ftpProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigFTPSCipherSuites[]"); len(cipherSuites) > 0 {
+			ftpProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -321,8 +380,12 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig["expectsAck"] = r.FormValue("expectsAck") == True
 
 	if protocol == pesit.PesitTLS {
-		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigPeSITMinTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigPeSITCipherSuites[]"); len(cipherSuites) > 0 {
+			pesitProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
@@ -368,15 +431,19 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
 
 	if protocol == pesit.PesitTLS {
-		if minTLSVersion := r.FormValue("protoConfigFTPSminTLSVersion"); minTLSVersion != "" {
+		if minTLSVersion := r.FormValue("protoConfigPeSITMinTLSVersion"); minTLSVersion != "" {
 			pesitProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigPeSITCipherSuites[]"); len(cipherSuites) > 0 {
+			pesitProtoConfig["cipherSuites"] = cipherSuites
 		}
 	}
 
 	return pesitProtoConfig
 }
 
-func protoConfigPeSITClient(r *http.Request) map[string]any {
+func protoConfigPeSITClient(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig := make(map[string]any)
 
 	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == True
@@ -399,52 +466,68 @@ func protoConfigPeSITClient(r *http.Request) map[string]any {
 		pesitProtoConfig["checkpointWindow"] = size
 	}
 
+	if protocol == pesit.PesitTLS {
+		if minTLSVersion := r.FormValue("protoConfigPeSITMinTLSVersion"); minTLSVersion != "" {
+			pesitProtoConfig["minTLSVersion"] = minTLSVersion
+		}
+
+		if cipherSuites := formList(r, "protoConfigPeSITCipherSuites[]"); len(cipherSuites) > 0 {
+			pesitProtoConfig["cipherSuites"] = cipherSuites
+		}
+	}
+
 	return pesitProtoConfig
 }
 
-func protoConfigWebdavPartner(*http.Request) map[string]any {
-	return make(map[string]any)
-}
+func protoConfigWebdavPartner(r *http.Request, protocol string) map[string]any {
+	conf := make(map[string]any)
 
-func protoConfigWebdavTLSPartner(r *http.Request) map[string]any {
-	conf := protoConfigWebdavPartner(r)
+	if protocol == webdav.WebdavTLS {
+		if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
+			conf["minTLSVersion"] = minTLSVersion
+		}
 
-	if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
-		conf["minTLSVersion"] = minTLSVersion
+		if cipherSuites := formList(r, "protoConfigWebdavCipherSuites[]"); len(cipherSuites) > 0 {
+			conf["cipherSuites"] = cipherSuites
+		}
 	}
 
 	return conf
 }
 
-func protoConfigWebdavServer(*http.Request) map[string]any {
-	return make(map[string]any)
-}
+func protoConfigWebdavServer(r *http.Request, protocol string) map[string]any {
+	conf := make(map[string]any)
 
-func protoConfigWebdavTLSServer(r *http.Request) map[string]any {
-	conf := protoConfigWebdavServer(r)
+	if protocol == webdav.WebdavTLS {
+		if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
+			conf["minTLSVersion"] = minTLSVersion
+		}
 
-	if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
-		conf["minTLSVersion"] = minTLSVersion
+		if cipherSuites := formList(r, "protoConfigWebdavCipherSuites[]"); len(cipherSuites) > 0 {
+			conf["cipherSuites"] = cipherSuites
+		}
 	}
 
 	return conf
 }
 
-func protoConfigWebdavClient(*http.Request) map[string]any {
-	return make(map[string]any)
-}
+func protoConfigWebdavClient(r *http.Request, protocol string) map[string]any {
+	conf := make(map[string]any)
 
-func protoConfigWebdavTLSClient(r *http.Request) map[string]any {
-	conf := protoConfigWebdavClient(r)
+	if protocol == webdav.WebdavTLS {
+		if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
+			conf["minTLSVersion"] = minTLSVersion
+		}
 
-	if minTLSVersion := r.FormValue("protoConfigWebdavMinTLSVersion"); minTLSVersion != "" {
-		conf["minTLSVersion"] = minTLSVersion
+		if cipherSuites := formList(r, "protoConfigWebdavCipherSuites[]"); len(cipherSuites) > 0 {
+			conf["cipherSuites"] = cipherSuites
+		}
 	}
 
 	return conf
 }
 
-func protoConfigAS2Partner(r *http.Request) map[string]any {
+func protoConfigAS2Partner(r *http.Request, protocol string) map[string]any {
 	conf := make(map[string]any)
 
 	if signAlgo := r.FormValue("protoConfigAS2SignAlgo"); signAlgo != "" {
@@ -461,23 +544,20 @@ func protoConfigAS2Partner(r *http.Request) map[string]any {
 
 	conf["handleAsyncMDN"] = r.FormValue("protoConfigAS2HandleAsyncMDN") == True
 
-	return conf
-}
+	if protocol == as2.AS2TLS {
+		if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
+			conf["minTLSVersion"] = minTLSVersion
+		}
 
-func protoConfigAS2TLSPartner(r *http.Request) map[string]any {
-	conf := protoConfigAS2Partner(r)
-	if conf == nil {
-		return nil
-	}
-
-	if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
-		conf["minTLSVersion"] = minTLSVersion
+		if cipherSuites := formList(r, "protoConfigAS2CipherSuites[]"); len(cipherSuites) > 0 {
+			conf["cipherSuites"] = cipherSuites
+		}
 	}
 
 	return conf
 }
 
-func protoConfigAS2Server(r *http.Request) map[string]any {
+func protoConfigAS2Server(r *http.Request, protocol string) map[string]any {
 	conf := make(map[string]any)
 
 	if fileLimit := r.FormValue("protoConfigAS2MaxFileSize"); fileLimit != "" {
@@ -493,23 +573,20 @@ func protoConfigAS2Server(r *http.Request) map[string]any {
 		conf["mdnSignatureAlgorithm"] = signAlgo
 	}
 
-	return conf
-}
+	if protocol == as2.AS2TLS {
+		if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
+			conf["minTLSVersion"] = minTLSVersion
+		}
 
-func protoConfigAS2TLSServer(r *http.Request) map[string]any {
-	conf := protoConfigAS2Server(r)
-	if conf == nil {
-		return nil
-	}
-
-	if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
-		conf["minTLSVersion"] = minTLSVersion
+		if cipherSuites := formList(r, "protoConfigAS2CipherSuites[]"); len(cipherSuites) > 0 {
+			conf["cipherSuites"] = cipherSuites
+		}
 	}
 
 	return conf
 }
 
-func protoConfigAS2Client(r *http.Request) map[string]any {
+func protoConfigAS2Client(r *http.Request, protocol string) map[string]any {
 	conf := make(map[string]any)
 
 	if fileLimit := r.FormValue("protoConfigAS2MaxFileSize"); fileLimit != "" {
@@ -521,17 +598,14 @@ func protoConfigAS2Client(r *http.Request) map[string]any {
 		conf["maxFileSize"] = size
 	}
 
-	return conf
-}
+	if protocol == as2.AS2TLS {
+		if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
+			conf["minTLSVersion"] = minTLSVersion
+		}
 
-func protoConfigAS2TLSClient(r *http.Request) map[string]any {
-	conf := protoConfigAS2Client(r)
-	if conf == nil {
-		return nil
-	}
-
-	if minTLSVersion := r.FormValue("protoConfigAS2MinTLSVersion"); minTLSVersion != "" {
-		conf["minTLSVersion"] = minTLSVersion
+		if cipherSuites := formList(r, "protoConfigAS2CipherSuites[]"); len(cipherSuites) > 0 {
+			conf["cipherSuites"] = cipherSuites
+		}
 	}
 
 	return conf

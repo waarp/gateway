@@ -4,12 +4,9 @@ package protoutils
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
-	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -18,95 +15,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
-
-type TLSVersion int
-
-const (
-	TLSv10 = "v1.0"
-	TLSv11 = "v1.1"
-	TLSv12 = "v1.2"
-	TLSv13 = "v1.3"
-
-	DefaultTLSVersion = tls.VersionTLS12
-)
-
-func GetMinTLSVersion(m map[string]any) uint16 {
-	field, hasField := m["minTLSVersion"]
-	if !hasField || field == nil {
-		return DefaultTLSVersion
-	}
-
-	str, isStr := field.(string)
-	if !isStr {
-		return DefaultTLSVersion
-	}
-
-	tlsVersion, err := TLSVersionFromString(str)
-	if err != nil {
-		return DefaultTLSVersion
-	}
-
-	return tlsVersion.TLS()
-}
-
-func TLSVersionFromString(v string) (TLSVersion, error) {
-	switch v {
-	case "", "null":
-		return DefaultTLSVersion, nil
-	case TLSv10:
-		return tls.VersionTLS10, nil
-	case TLSv11:
-		return tls.VersionTLS11, nil
-	case TLSv12:
-		return tls.VersionTLS12, nil
-	case TLSv13:
-		return tls.VersionTLS13, nil
-	default:
-		return 0, UnsupportedTLSVersionError(v)
-	}
-}
-
-func (t TLSVersion) TLS() uint16 { return uint16(t) }
-
-func (t TLSVersion) String() string {
-	switch t {
-	case 0:
-		return TLSVersion(DefaultTLSVersion).String()
-	case tls.VersionTLS10:
-		return TLSv10
-	case tls.VersionTLS11:
-		return TLSv11
-	case tls.VersionTLS12:
-		return TLSv12
-	case tls.VersionTLS13:
-		return TLSv13
-	default:
-		return fmt.Sprintf("<unknown TLS version %d>", t)
-	}
-}
-
-func (t *TLSVersion) UnmarshalJSON(b []byte) error {
-	var v string
-	if err := json.Unmarshal(b, &v); err != nil {
-		return err //nolint:wrapcheck //no need to wrap here
-	}
-
-	var err error
-	*t, err = TLSVersionFromString(v)
-
-	return err
-}
-
-func (t TLSVersion) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(t.String())), nil
-}
-
-type UnsupportedTLSVersionError string
-
-func (e UnsupportedTLSVersionError) Error() string {
-	return fmt.Sprintf("unknown TLS version %q (supported TLS versions: %s)", string(e),
-		strings.Join([]string{TLSv10, TLSv11, TLSv12, TLSv13}, ", "))
-}
 
 var ErrNoValidCert = errors.New("no valid x509 certificate found")
 
@@ -134,6 +42,7 @@ func MakeServerTLSConfig(db database.ReadAccess, logger *log.Logger, agentID int
 		ClientAuth:            tls.RequestClientCert,
 		VerifyPeerCertificate: auth.VerifyClientCert(db, logger, &agent),
 		VerifyConnection:      compatibility.LogSha1(logger),
+		CipherSuites:          GetTLSCiphers(agent.ProtoConfig),
 	}, nil
 }
 
@@ -172,25 +81,30 @@ func GetServerTLSConfig(db database.ReadAccess, logger *log.Logger, agentID int6
 }
 
 func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger) (*tls.Config, error) {
-	minTLSVersion := GetMinTLSVersion(ctx.Client.ProtoConfig)
-	return GetClientTLSConf(logger, ctx.RemoteAgent, minTLSVersion,
+	return GetClientTLSConf(logger, ctx.RemoteAgent, ctx.Client,
 		ctx.RemoteAgentCreds, ctx.RemoteAccountCreds, ctx.Authorities)
 }
 
 func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
-	clientMinTLSversion uint16, partnerCreds, accountCreds []*model.Credential,
+	client *model.Client, partnerCreds, accountCreds []*model.Credential,
 	authorities []*model.Authority,
 ) (*tls.Config, error) {
-	minVersion := clientMinTLSversion
+	minVersion := GetMinTLSVersion(client.ProtoConfig)
 	if partMinVersion := GetMinTLSVersion(partner.ProtoConfig); partMinVersion != 0 {
 		minVersion = partMinVersion
 	}
 
+	cipherSuites := GetTLSCiphers(client.ProtoConfig)
+	if partCiphers := GetTLSCiphers(partner.ProtoConfig); len(partCiphers) > 0 {
+		cipherSuites = partCiphers
+	}
+
 	config := &tls.Config{
+		MinVersion:       minVersion,
 		ServerName:       partner.Address.Host,
 		RootCAs:          utils.TLSCertPool(),
 		VerifyConnection: compatibility.LogSha1(logger),
-		MinVersion:       minVersion,
+		CipherSuites:     cipherSuites,
 	}
 
 	for _, cred := range accountCreds {

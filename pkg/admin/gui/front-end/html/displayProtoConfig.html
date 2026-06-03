@@ -26,9 +26,10 @@
     {{ if eq .Protocol "r66-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigR66CipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
@@ -61,9 +62,10 @@
     {{ if eq .Protocol "r66-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigR66CipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
@@ -91,16 +93,17 @@
     {{ if eq .Protocol "r66-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigR66CipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
 
 {{ define "displayFtpPartner" }}
 <div>
-    <div class="flex-label-input mt-Z align-items-center">
+    <div class="flex-label-input mt-2 align-items-center">
         <label class="col-form-label label-light-bold me-3">{{ index .tab "disableActiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableActiveMode" }}"></i> :</label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableActiveMode true }}checked{{ end }} disabled>
@@ -123,9 +126,10 @@
         </div>
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigFTPSCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-2 align-items-center">
             <label class="col-form-label label-light-bold me-3">{{ index .tab "disableTLSSessionReuse" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableTLSSessionReuse" }}"></i> :</label>
@@ -139,14 +143,14 @@
 
 {{ define "displayFtpServer" }}
 <div>
-    <div class="flex-label-input mt-Z align-items-center">
+    <div class="flex-label-input mt-2 align-items-center">
         <label class="col-form-label label-light-bold me-3">{{ index .tab "disablePassiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisablePassiveMode" }}"></i> :</label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePassiveMode true }}checked{{ end }} disabled>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
-    <div class="flex-label-input mt-Z align-items-center">
+    <div class="flex-label-input mt-2 align-items-center">
         <label class="col-form-label label-light-bold me-3">{{ index .tab "disableActiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisableActiveMode" }}"></i> :</label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disableActiveMode true }}checked{{ end }} disabled>
@@ -170,19 +174,20 @@
         </div>
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigFTPSCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
 
 {{ define "displayFtpClient" }}
 <div>
-    <div class="flex-label-input mt-Z align-items-center">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "enablePassiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEnablePassiveMode" }}"></i> :</label>
+    <div class="flex-label-input mt-2 align-items-center">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "enableActiveMode" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipEnableActiveMode" }}"></i> :</label>
         <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.enablePassiveMode true }}checked{{ end }} disabled>
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.enableActiveMode true }}checked{{ end }} disabled>
         </div>
     </div>
     <hr style="border-top: 1px solid #ababab;">
@@ -203,9 +208,10 @@
     {{ if eq .Protocol "ftps" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigFTPSCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
@@ -242,7 +248,7 @@
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="flex-label-input mt-2 align-items-center">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "useNSD" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseNSDU" }}"></i> :</label>
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "useNSDU" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseNSDU" }}"></i> :</label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.useNSDU true }}checked{{ end }} disabled>
         </div>
@@ -274,9 +280,10 @@
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigPeSITCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
@@ -326,9 +333,10 @@
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigPeSITCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
@@ -358,6 +366,14 @@
         <label class="col-form-label label-light-bold me-3">{{ index .tab "checkpointWindow" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipCheckpointWindow" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.checkpointWindow (index $.tab "undefined") }}" disabled>
     </div>
+    {{ if eq .Protocol "pesit-tls" }}
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="flex-label-input mt-4">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
+        </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigPeSITCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
+    {{ end }}
 </div>
 {{ end }}
 
@@ -543,54 +559,60 @@
 {{ define "displayHttpPartner" }}
     {{ if eq .Protocol "https" }}
         <div class="flex-label-input mt-2">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigHTTPSCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 {{ end }}
 
 {{ define "displayHttpServer" }}
     {{ if eq .Protocol "https" }}
         <div class="flex-label-input mt-2">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigHTTPSCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 {{ end }}
 
 {{ define "displayHttpClient" }}
     {{ if eq .Protocol "https" }}
         <div class="flex-label-input mt-2">
-            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
         </div>
+        {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigHTTPSCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 {{ end }}
 
 {{ define "displayWebdavPartner" }}
     {{ if eq .Protocol "webdav-tls" }}
     <div class="flex-label-input mt-2">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
     </div>
+    {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigWebdavCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 {{ end }}
 
 {{ define "displayWebdavServer" }}
     {{ if eq .Protocol "webdav-tls" }}
     <div class="flex-label-input mt-2">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
     </div>
+    {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigWebdavCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 {{ end }}
 
 {{ define "displayWebdavClient" }}
     {{ if eq .Protocol "webdav-tls" }}
     <div class="flex-label-input mt-2">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
     </div>
+    {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigWebdavCipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 {{ end }}
 
@@ -620,9 +642,10 @@
     {{ if eq .Protocol "as2-tls" }}
     <hr style="border-top: 1px solid #ababab;">
     <div class="flex-label-input mt-2">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
     </div>
+    {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigAS2CipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
@@ -641,9 +664,10 @@
     {{ if eq .Protocol "as2-tls" }}
     <hr style="border-top: 1px solid #ababab;">
     <div class="flex-label-input mt-2">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
     </div>
+    {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigAS2CipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
 </div>
 {{ end }}
@@ -657,9 +681,29 @@
     {{ if eq .Protocol "as2-tls" }}
     <hr style="border-top: 1px solid #ababab;">
     <div class="flex-label-input mt-2">
-        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinFtpsTLSVersion" }}"></i> :</label>
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinTLSVersion" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.minTLSVersion (index $.tab "undefined") }}" disabled>
     </div>
+    {{ template "displayCipherSuites" (dict "tab" $.tab "field" "protoConfigAS2CipherSuites" "values" $.ProtoConfig.cipherSuites) }}
     {{ end }}
+</div>
+{{ end }}
+{{ define "displayCipherSuites" }}
+<hr style="border-top: 1px solid #ababab;">
+<div class="form-input mt-2">
+    <label class="col-form-label label-light-bold">{{ index .tab "cipherSuites" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index .tab "tooltipCipherSuites" }}"></i> :</label>
+    <div id="{{ .field }}Container">
+    {{ if .values }}
+        {{ range .values }}
+        <div class="input-group mb-2">
+            <input type="text" class="form-control-plaintext" value="{{ displayOrDefault . (index $.tab "undefined") }}" disabled>
+        </div>
+        {{ end }}
+    {{ else }}
+        <div class="input-group mb-2">
+            <input type="text" class="form-control-plaintext" value="{{ displayOrDefault "" (index $.tab "undefined") }}" disabled>
+        </div>
+    {{ end }}
+    </div>
 </div>
 {{ end }}

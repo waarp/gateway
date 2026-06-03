@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
@@ -70,14 +71,10 @@ func editPartner(db *database.DB, r *http.Request) error {
 		editPartner.ProtoConfig = protoConfigFTPpartner(r, editPartner.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		editPartner.ProtoConfig = protoConfigPeSITPartner(r, editPartner.Protocol)
-	case webdav.Webdav:
-		editPartner.ProtoConfig = protoConfigWebdavPartner(r)
-	case webdav.WebdavTLS:
-		editPartner.ProtoConfig = protoConfigWebdavTLSPartner(r)
-	case as2.AS2:
-		editPartner.ProtoConfig = protoConfigAS2Partner(r)
-	case as2.AS2TLS:
-		editPartner.ProtoConfig = protoConfigAS2TLSPartner(r)
+	case webdav.Webdav, webdav.WebdavTLS:
+		editPartner.ProtoConfig = protoConfigWebdavPartner(r, editPartner.Protocol)
+	case as2.AS2, as2.AS2TLS:
+		editPartner.ProtoConfig = protoConfigAS2Partner(r, editPartner.Protocol)
 	}
 
 	if err = internal.UpdatePartner(db, editPartner); err != nil {
@@ -126,14 +123,10 @@ func addPartner(db *database.DB, r *http.Request) error {
 		newPartner.ProtoConfig = protoConfigFTPpartner(r, newPartner.Protocol)
 	case pesit.Pesit, pesit.PesitTLS:
 		newPartner.ProtoConfig = protoConfigPeSITPartner(r, newPartner.Protocol)
-	case webdav.Webdav:
-		newPartner.ProtoConfig = protoConfigWebdavPartner(r)
-	case webdav.WebdavTLS:
-		newPartner.ProtoConfig = protoConfigWebdavTLSPartner(r)
-	case as2.AS2:
-		newPartner.ProtoConfig = protoConfigAS2Partner(r)
-	case as2.AS2TLS:
-		newPartner.ProtoConfig = protoConfigAS2TLSPartner(r)
+	case webdav.Webdav, webdav.WebdavTLS:
+		newPartner.ProtoConfig = protoConfigWebdavPartner(r, newPartner.Protocol)
+	case as2.AS2, as2.AS2TLS:
+		newPartner.ProtoConfig = protoConfigAS2Partner(r, newPartner.Protocol)
 	}
 
 	if err := internal.InsertPartner(db, &newPartner); err != nil {
@@ -371,6 +364,7 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"tlsCiphers":             protoutils.TLSCiphers,
 			"as2SignAlgos":           as2.SignatureAlgorithms(),
 			"as2EncryptAlgos":        as2.EncryptionAlgorithms(),
 			"protocolsList":          ProtocolsList(),

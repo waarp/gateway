@@ -150,7 +150,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	}
 
 	if c.isTLS {
-		tlsConfig, tlsErr := c.makeTLSConfig(c.pip.TransCtx.RemoteAgent.Address.Host, partConf)
+		tlsConfig, tlsErr := protoutils.GetClientTLSConfig(c.pip.TransCtx, c.pip.Logger)
 		if tlsErr != nil {
 			c.pip.Logger.Errorf("Failed to parse TLS config: %v", tlsErr)
 

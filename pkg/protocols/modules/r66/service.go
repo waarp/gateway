@@ -67,6 +67,7 @@ func (s *service) makeTLSConf() *tls.Config {
 				MinVersion:   protoutils.GetMinTLSVersion(s.dbAgent.ProtoConfig),
 				Certificates: []tls.Certificate{compatibility.LegacyR66Cert},
 				ClientAuth:   tls.RequestClientCert,
+				CipherSuites: protoutils.GetTLSCiphers(s.dbAgent.ProtoConfig),
 			}
 
 			if !r66auth.UsesLegacyCert(s.db, s.dbAgent) {
