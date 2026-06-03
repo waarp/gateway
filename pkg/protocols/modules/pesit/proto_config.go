@@ -207,6 +207,13 @@ type PartnerConfig struct {
 	// partner. Accepted values: "none" (default), "horizontal", "vertical", "both".
 	// Overrides the server/client configuration if set.
 	Compression string `json:"compression,omitempty"`
+
+	// ReplyTo specifies the return address for Store & Forward ACKs.
+	// When set, the Gateway automatically adds "REPLY=<value>" in PI 99
+	// (connection freetext) for every transfer to this partner.
+	// Format: "partner-name:account-login" or just "partner-name".
+	// This tells the receiver where to send the F.MESSAGE acknowledgment.
+	ReplyTo string `json:"replyTo,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {

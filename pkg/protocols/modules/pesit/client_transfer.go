@@ -96,6 +96,23 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 	return setFreetext(c.pip, clientConnFreetextKey, c.client)
 }
 
+// injectReplyTo adds "REPLY=partner:account" to the client's connection
+// freetext (PI 99) if the partner config has a replyTo value. This tells
+// the receiver where to send F.MESSAGE ACKs.
+func (c *clientTransfer) injectReplyTo(replyTo string) {
+	if replyTo == "" {
+		return
+	}
+
+	freetext := c.client.FreeText()
+	if freetext != "" {
+		freetext += " "
+	}
+
+	freetext += "REPLY=" + replyTo
+	c.client.SetFreeText(freetext)
+}
+
 func (c *clientTransfer) Request() *pipeline.Error {
 	var fileInfo fs.FileInfo
 
@@ -161,6 +178,8 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	if err := c.configureClient(&partConf.PartnerConfig); err != nil {
 		return err
 	}
+
+	c.injectReplyTo(partConf.ReplyTo)
 
 	if c.isTLS {
 		tlsConfig, tlsErr := c.makeTLSConfig(c.pip.TransCtx.RemoteAgent.Address.Host, partConf)
