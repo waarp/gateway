@@ -45,6 +45,8 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 
 	}
 
+	cipherIDs, _ := resolveCipherSuites(conf.CipherSuites)
+
 	tlsConfig := &tls.Config{
 		ServerName: servName,
 
@@ -53,6 +55,8 @@ func (c *clientTransfer) makeTLSConfig(servName string, conf *PartnerConfigTLS,
 		Certificates: certs,
 
 		RootCAs: rootCAs,
+
+		CipherSuites: cipherIDs, // nil = Go defaults
 	}
 
 	if err := auth.AddTLSAuthorities(c.pip.DB, tlsConfig); err != nil {

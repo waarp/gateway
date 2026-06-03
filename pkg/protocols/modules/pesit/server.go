@@ -62,12 +62,16 @@ func (s *server) listen() (string, error) {
 
 	if s.localAgent.Protocol == PesitTLS {
 
+		cipherIDs, _ := resolveCipherSuites(s.conf.CipherSuites)
+
 		tlsConfig := &tls.Config{
 			MinVersion: s.conf.MinTLSVersion.TLS(),
 
 			GetCertificate: s.getCertificate,
 
 			VerifyPeerCertificate: auth.VerifyClientCert(s.db, s.logger, s.localAgent),
+
+			CipherSuites: cipherIDs, // nil = Go defaults
 		}
 
 		list, listErr = tls.Listen("tcp", realAddr, tlsConfig)
