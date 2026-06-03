@@ -336,4 +336,9 @@ var Migrations = []Change{
 		Up:          ver0_14_0AddTransferStopUp,
 		Down:        ver0_14_0AddTransferStopDown,
 	},
+	{ // #64
+		Description: `Add condition column to tasks table`,
+		Up:          ver0_16_0AddTaskConditionUp,
+		Down:        ver0_16_0AddTaskConditionDown,
+	},
 }

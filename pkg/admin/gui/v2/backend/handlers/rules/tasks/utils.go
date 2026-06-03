@@ -171,11 +171,21 @@ func parseTaskForm(db database.Access, r *http.Request) (*model.Task, error) {
 
 	task.Type = taskType
 
+	const conditionKey = "condition"
+
 	for key := range r.PostForm {
-		if key != typeKey {
-			if value := r.PostForm.Get(key); value != "" {
-				task.Args[key] = value
-			}
+		if key == typeKey {
+			continue
+		}
+
+		if key == conditionKey {
+			task.Condition = r.PostForm.Get(key)
+
+			continue
+		}
+
+		if value := r.PostForm.Get(key); value != "" {
+			task.Args[key] = value
 		}
 	}
 

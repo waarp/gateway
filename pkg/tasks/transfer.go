@@ -201,6 +201,16 @@ func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferCon
 
 	maps.Copy(transferInfo, t.Info)
 
+	// Always propagate Store & Forward routing info, even without copyInfo.
+	// This ensures the F.MESSAGE relay chain works regardless of copyInfo.
+	for _, key := range []string{"__replyPartner__", "__replyAccount__", model.FollowID} {
+		if _, exists := transferInfo[key]; !exists {
+			if val, ok := transCtx.Transfer.TransferInfo[key]; ok {
+				transferInfo[key] = val
+			}
+		}
+	}
+
 	output := t.Output
 	if output == "" {
 		output = filepath.Base(t.File)

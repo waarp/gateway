@@ -6,6 +6,7 @@ import (
 	"io"
 	"path"
 	"strconv"
+	"strings"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -79,7 +80,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
 
-	req.SetArticleFormat(pesit.FormatVariable)
+	req.SetArticleFormat(resolveArticleFormat(t.conf.ArticleFormat))
 	req.SetArticleSize(t.conf.ArticleSize)
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
@@ -142,6 +143,21 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		return err
 	}
 
+	// When a glob pattern was used, update the response with the resolved
+	// filename so the client receives the actual name (not the pattern).
+	if pipeline.ContainsWildcard(filepath) {
+		resolved := t.pip.TransCtx.Transfer.SrcFilename
+		if !isSend {
+			resolved = t.pip.TransCtx.Transfer.DestFilename
+		}
+
+		if resolved != "" && !pipeline.ContainsWildcard(resolved) {
+			resolvedPath := path.Join(rule.Path, resolved)
+			t.logger.Infof("Pattern %q resolved to %q in SELECT ACK", filepath, resolvedPath)
+			req.SetFilename(resolvedPath)
+		}
+	}
+
 	req.StopReceived = stopReceived(t.pip)
 	req.ConnectionAborted = connectionAborted(t.pip)
 	req.RestartReceived = restartReceived(t.pip)
@@ -188,6 +204,7 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 		filepath = generateDestFilename(remoteID, t.account, rule)
 	}
 
+	// Try exact match first against AVAILABLE transfers.
 	if trans, err := pipeline.GetAvailableTransferByFilename(t.db, filepath, remoteID,
 		t.account, rule); err == nil {
 		return trans, nil
@@ -195,7 +212,49 @@ func (t *transferHandler) mkTransfer(remoteID, filepath string, rule *model.Rule
 		return nil, transErrToPesitErr(err)
 	}
 
+	// If the filepath contains a glob pattern (e.g. "data-*", "*.csv"),
+	// try pattern matching against AVAILABLE transfers.
+	if pipeline.ContainsWildcard(filepath) {
+		if trans, err := pipeline.GetAvailableTransferByPattern(t.db, filepath, remoteID,
+			t.account, rule); err == nil {
+			t.logger.Infof("Pattern %q matched available transfer for file %q",
+				filepath, trans.SrcFilename)
+
+			return trans, nil
+		}
+
+		// Fallback: resolve the pattern against the filesystem.
+		if resolved := t.resolveGlobPattern(filepath, rule); resolved != "" {
+			t.logger.Infof("Pattern %q resolved to file %q on filesystem", filepath, resolved)
+
+			return pipeline.MakeServerTransfer(remoteID, resolved, t.account, rule), nil
+		}
+
+		return nil, pesit.NewDiagnostic(pesit.CodeFileNotExists,
+			"no file matches pattern")
+	}
+
 	return pipeline.MakeServerTransfer(remoteID, filepath, t.account, rule), nil
+}
+
+// resolveGlobPattern resolves a glob pattern to the first matching file
+// on the local filesystem, relative to the rule's send directory.
+func (t *transferHandler) resolveGlobPattern(pattern string, rule *model.Rule) string {
+	fullPattern := fs.JoinPath(rule.LocalDir, pattern)
+
+	matches, err := fs.Glob(fullPattern)
+	if err != nil || len(matches) == 0 {
+		return ""
+	}
+
+	// Return the path relative to the rule's localDir, as expected by the pipeline.
+	resolved := matches[0]
+	if prefix := rule.LocalDir; prefix != "" {
+		resolved = strings.TrimPrefix(resolved, prefix+"/")
+		resolved = strings.TrimPrefix(resolved, prefix+"\\")
+	}
+
+	return resolved
 }
 
 func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
@@ -227,6 +286,11 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 	setTransInfo(t.pip, customerIDKey, req.CustomerID())
 	setTransInfo(t.pip, bankIDKey, req.BankID())
 
+	// Extract reply info from PI 99 freetext (convention: "REPLY=partner:account")
+	// or from TransferInfo keys __replyPartner__/__replyAccount__ if already set.
+	parseReplyInfo(t.pip, t.connFreetext)
+	parseReplyInfo(t.pip, req.FreeText())
+
 	if pip.TransCtx.Rule.IsSend {
 		if err := setFileType(t.pip, req); err != nil {
 			return err
@@ -249,6 +313,11 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		setTransInfo(t.pip, fileEncodingKey, req.DataCoding().String())
 		setTransInfo(t.pip, fileTypeKey, req.FileType())
 		setTransInfo(t.pip, organizationKey, req.FileOrganization().String())
+		if req.ArticleFormat() == pesit.FormatFixed {
+			setTransInfo(t.pip, articleFormatKey, ArticleFormatFixed)
+		} else {
+			setTransInfo(t.pip, articleFormatKey, ArticleFormatVariable)
+		}
 	}
 
 	return utils.RunWithCtx(t.ctx, func() error {
@@ -368,7 +437,7 @@ func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 		return nil
 	}
 
-	trans.SetArticleFormat(pesit.FormatVariable)
+	trans.SetArticleFormat(resolveArticleFormat(t.conf.ArticleFormat))
 	trans.SetManualArticleHandling(true)
 
 	for _, length := range lengths {

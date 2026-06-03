@@ -70,6 +70,20 @@ func (r *Runner) ErrorTasks(trace func(rank int)) *Error {
 func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo string,
 	isErrTasks bool,
 ) *Error {
+	// Evaluate optional condition before execution.
+	if task.Condition != "" {
+		resolved, resolveErr := replaceVars(task.Condition, r.transCtx)
+		if resolveErr != nil {
+			r.Logger.Warningf("%s: failed to resolve condition %q: %v",
+				taskInfo, task.Condition, resolveErr)
+		} else if !EvalCondition(resolved) {
+			r.Logger.Debugf("%s: skipped (condition not met: %q → %q)",
+				taskInfo, task.Condition, resolved)
+
+			return r.updateProgress(updTicker, isErrTasks)
+		}
+	}
+
 	runner := model.GetTaskRunner(task.Type)
 	if runner == nil {
 		return newError(types.TeExternalOperation, "unknown task type: %s", task.Type)

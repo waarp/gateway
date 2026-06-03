@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"path"
+	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -81,6 +83,55 @@ func GetAvailableTransferByFilename(db database.ReadAccess, filepath, remoteID s
 	}
 
 	return &availableTrans, nil
+}
+
+// ContainsWildcard reports whether the given filepath contains glob
+// metacharacters ('*' or '?').
+func ContainsWildcard(filepath string) bool {
+	return strings.ContainsAny(filepath, "*?")
+}
+
+// GetAvailableTransferByPattern retrieves the first AVAILABLE transfer
+// whose filename matches the given glob pattern. It fetches all AVAILABLE
+// transfers for the rule/account and filters them in Go using path.Match,
+// which keeps the implementation database-agnostic.
+func GetAvailableTransferByPattern(db database.ReadAccess, pattern, remoteID string,
+	account *model.LocalAccount, rule *model.Rule,
+) (*model.Transfer, *Error) {
+	var candidates model.Transfers
+
+	query := db.Select(&candidates).
+		Where("local_account_id=?", account.ID).
+		Where("rule_id=?", rule.ID).
+		Where("status=?", types.StatusAvailable).
+		OrderBy("start", false)
+
+	if err := query.Run(); err != nil {
+		return nil, NewErrorWith(types.TeInternal,
+			"failed to retrieve available transfers for pattern matching", err)
+	}
+
+	for _, trans := range candidates {
+		filename := trans.SrcFilename
+		if !rule.IsSend {
+			filename = trans.DestFilename
+		}
+
+		matched, matchErr := path.Match(pattern, filename)
+		if matchErr != nil {
+			continue
+		}
+
+		if matched {
+			if remoteID != "" {
+				trans.RemoteTransferID = remoteID
+			}
+
+			return trans, nil
+		}
+	}
+
+	return nil, NewError(types.TeFileNotFound, "no available transfer matches pattern")
 }
 
 func GetAvailableTransferByRule(db database.ReadAccess, remoteID string,

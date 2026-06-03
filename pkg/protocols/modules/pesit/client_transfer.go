@@ -3,6 +3,7 @@ package pesit
 import (
 	"errors"
 	"io"
+	"path"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -76,6 +77,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
 ) *pipeline.Error {
 	// Connection is already established via ConnPool (c.conn)
+	c.injectReplyTo(partConf.ReplyTo)
 	setTransInfo(c.pip, serverConnFreetextKey, c.conn.FreeText())
 
 	// initialize transfer
@@ -108,7 +110,7 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 
 	c.pTrans.SetTransferID(c.pesitID)
 	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
-	c.pTrans.SetArticleFormat(pesit.FormatVariable)
+	c.pTrans.SetArticleFormat(resolveArticleFormat(partConf.ArticleFormat))
 	c.pTrans.SetArticleSize(partConf.ArticleSize)
 	c.pTrans.SetCompression(partConf.Compression.ToPeSIT())
 
@@ -161,6 +163,24 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 	if !c.pip.TransCtx.Rule.IsSend {
 		c.pip.TransCtx.Transfer.RemoteTransferID = utils.FormatUint(c.pTrans.TransferID())
 		c.pip.TransCtx.Transfer.Filesize = model.UnknownSize
+
+		// When the server resolved a glob pattern (e.g. "data-*" -> "data-003.txt"),
+		// update the local transfer filenames and reset the local path so the
+		// pipeline creates the file with the resolved name instead of the pattern.
+		resolvedName := c.pTrans.Filename()
+		if resolvedName != "" && !pipeline.ContainsWildcard(resolvedName) {
+			resolvedBase := path.Base(resolvedName)
+			if pipeline.ContainsWildcard(c.pip.TransCtx.Transfer.DestFilename) ||
+				pipeline.ContainsWildcard(c.pip.TransCtx.Transfer.SrcFilename) {
+				c.pip.Logger.Infof("Pattern resolved by server: %q -> %q",
+					c.pip.TransCtx.Transfer.DestFilename, resolvedBase)
+				c.pip.TransCtx.Transfer.DestFilename = resolvedBase
+				c.pip.TransCtx.Transfer.SrcFilename = resolvedName
+				c.pip.TransCtx.Transfer.RemotePath = resolvedName
+				// Reset LocalPath so it will be recomputed with the resolved name.
+				c.pip.TransCtx.Transfer.LocalPath = ""
+			}
+		}
 
 		setTransInfo(c.pip, fileEncodingKey, c.pTrans.DataCoding().String())
 		setTransInfo(c.pip, fileTypeKey, c.pTrans.FileType())
@@ -311,6 +331,23 @@ func (c *clientTransfer) releaseConn() {
 	}
 
 	c.conn = nil
+}
+
+// injectReplyTo adds "REPLY=partner:account" to the connection freetext
+// (PI 99) if the partner config has a replyTo value. This tells the
+// receiver where to send F.MESSAGE ACKs.
+func (c *clientTransfer) injectReplyTo(replyTo string) {
+	if replyTo == "" {
+		return
+	}
+
+	freetext := c.conn.FreeText()
+	if freetext != "" {
+		freetext += " "
+	}
+
+	freetext += "REPLY=" + replyTo
+	c.conn.SetFreeText(freetext)
 }
 
 func (c *clientTransfer) EndTransfer() *pipeline.Error {

@@ -1,7 +1,7 @@
 <!-- Task description -->
 <p class="task-description">{{ .Text.description }}</p>
 
-<!-- Partner (required) -->
+<!-- Partner (optional - resolved from __replyPartner__ if empty) -->
 {{ template "textInputRow" dict
     "label" .Text.partner
     "tooltip" .Text.partnerTooltip
@@ -9,6 +9,7 @@
     "fieldType" "text"
     "value" .Task.Args.partner
     "placeholder" .Text.partnerPlaceholder
+    "optional" true
 }}
 
 <!-- Account (optional) -->

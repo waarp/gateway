@@ -17,7 +17,7 @@ var SendPeSITMessage func(db *database.DB, partnerName, accountLogin string,
 	transferID uint32, message string, logger *log.Logger) error
 
 var (
-	ErrSendMessageNoPartner       = errors.New(`missing "partner" argument`)
+	ErrSendMessageNoPartner       = errors.New(`no target for SENDMESSAGE: set "partner" argument or configure replyTo on the partner`)
 	ErrSendMessagePartnerNotFound = errors.New("sendmessage partner not found")
 	ErrSendMessageAccountNotFound = errors.New("sendmessage account not found")
 	ErrSendMessageNotPeSIT        = errors.New("sendmessage only works with PeSIT partners")
@@ -33,7 +33,7 @@ var (
 //
 // Arguments:
 //
-//	partner   (required) Remote partner name. Supports variable substitution.
+//	partner   (optional) Remote partner name. Resolved from __replyPartner__ if empty. Supports variable substitution.
 //	account   (optional) Remote account login. Defaults to first account of the partner.
 //	message   (optional) Message content. Supports variable substitution. Max 4096 chars.
 //	transferId (optional) Transfer ID to reference in the F.MESSAGE. Supports variables.
@@ -46,15 +46,15 @@ type sendMessageTask struct {
 	Condition  string `json:"condition"`
 }
 
+// Validate only checks JSON parsing -- partner/account are resolved at runtime
+// from TransferInfo if not explicitly set.
 func (t *sendMessageTask) Validate(args map[string]string) error {
 	if err := utils.JSONConvert(args, t); err != nil {
 		return fmt.Errorf("failed to parse sendmessage arguments: %w", err)
 	}
 
-	if t.Partner == "" {
-		return ErrSendMessageNoPartner
-	}
-
+	// partner is no longer required at validation time: it can be resolved
+	// at runtime from __replyPartner__ in TransferInfo.
 	return nil
 }
 
@@ -82,41 +82,63 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 		}
 	}
 
-	// Resolve partner
+	// Resolve target partner: explicit arg > __replyPartner__ from TransferInfo.
+	partnerName := t.Partner
+	if partnerName == "" {
+		if rp, ok := transCtx.Transfer.TransferInfo["__replyPartner__"]; ok {
+			partnerName = fmt.Sprintf("%v", rp)
+		}
+	}
+
+	if partnerName == "" {
+		return ErrSendMessageNoPartner
+	}
+
+	// Resolve account: explicit arg > __replyAccount__ > first account on partner.
+	accountLogin := t.Account
+	if accountLogin == "" {
+		if ra, ok := transCtx.Transfer.TransferInfo["__replyAccount__"]; ok {
+			accountLogin = fmt.Sprintf("%v", ra)
+		}
+	}
+
 	var partner model.RemoteAgent
-	if err := db.Get(&partner, "name=?", t.Partner).Owner().
+	if err := db.Get(&partner, "name=?", partnerName).Owner().
 		Run(); database.IsNotFound(err) {
-		return fmt.Errorf("%w: %q", ErrSendMessagePartnerNotFound, t.Partner)
+		return fmt.Errorf("%w: %q", ErrSendMessagePartnerNotFound, partnerName)
 	} else if err != nil {
-		return fmt.Errorf("failed to retrieve partner %q: %w", t.Partner, err)
+		return fmt.Errorf("failed to retrieve partner %q: %w", partnerName, err)
 	}
 
 	// Check protocol is PeSIT
 	if partner.Protocol != "pesit" && partner.Protocol != "pesit-tls" {
-		return fmt.Errorf("%w: partner %q uses protocol %q", ErrSendMessageNotPeSIT, t.Partner, partner.Protocol)
+		return fmt.Errorf("%w: partner %q uses protocol %q", ErrSendMessageNotPeSIT, partnerName, partner.Protocol)
 	}
 
 	// Resolve account
 	var account model.RemoteAccount
-	if t.Account != "" {
-		if err := db.Get(&account, "login=?", t.Account).
+	if accountLogin != "" {
+		if err := db.Get(&account, "login=?", accountLogin).
 			And("remote_agent_id=?", partner.ID).Run(); database.IsNotFound(err) {
-			return fmt.Errorf("%w: %q", ErrSendMessageAccountNotFound, t.Account)
+			logger.Warningf("Account %q not found on partner %q, trying first available",
+				accountLogin, partnerName)
 		} else if err != nil {
-			return fmt.Errorf("failed to retrieve account %q: %w", t.Account, err)
+			return fmt.Errorf("failed to retrieve account %q: %w", accountLogin, err)
 		}
-	} else {
+	}
+
+	if account.ID == 0 {
 		// Default: first account of the partner
 		if err := db.Get(&account, "remote_agent_id=?", partner.ID).
 			Run(); database.IsNotFound(err) {
-			return fmt.Errorf("%w: no account found for partner %q", ErrSendMessageAccountNotFound, t.Partner)
+			return fmt.Errorf("%w: no account found for partner %q", ErrSendMessageAccountNotFound, partnerName)
 		} else if err != nil {
-			return fmt.Errorf("failed to retrieve account for partner %q: %w", t.Partner, err)
+			return fmt.Errorf("failed to retrieve account for partner %q: %w", partnerName, err)
 		}
 	}
 
 	logger.Infof("SENDMESSAGE: sending F.MESSAGE to partner %q as %q: %q",
-		t.Partner, account.Login, t.Message)
+		partnerName, account.Login, t.Message)
 
 	if SendPeSITMessage == nil {
 		return ErrSendMessageNotWired
@@ -133,11 +155,11 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 		}
 	}
 
-	if err := SendPeSITMessage(db, t.Partner, account.Login, tid, t.Message, logger); err != nil {
+	if err := SendPeSITMessage(db, partnerName, account.Login, tid, t.Message, logger); err != nil {
 		return fmt.Errorf("SENDMESSAGE failed: %w", err)
 	}
 
-	logger.Infof("SENDMESSAGE: F.MESSAGE sent successfully to %s/%s", t.Partner, account.Login)
+	logger.Infof("SENDMESSAGE: F.MESSAGE sent successfully to %s/%s", partnerName, account.Login)
 
 	return nil
 }

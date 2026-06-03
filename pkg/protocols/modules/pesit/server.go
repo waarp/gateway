@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -200,74 +201,220 @@ func (s *server) authenticate(login, password string) (*model.LocalAccount, erro
 	return &user, nil
 }
 
-// HandleMessage implements pesit.MessageHandler. It is called when a remote
-// partner sends a F.MESSAGE on an established connection. The message metadata
-// is logged and persisted as TransferInfo on the referenced transfer (if found).
+// HandleMessage implements pesit.MessageHandler to accept incoming F.MESSAGE.
+// The message metadata is logged and stored in the database as a transfer
+// history entry for traceability. This prevents the ABORT that would occur
+// if the interface were not implemented.
+//
+// When relayMessages is enabled in the server config, the handler also
+// attempts to relay the message upstream through the Store & Forward chain.
 func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageRequest) error {
-	s.logger.Infof("F.MESSAGE received from %q: transferID=%d message=%q customerID=%q bankID=%q",
-		msg.ClientLogin, msg.TransferID, msg.Message, msg.CustomerID, msg.BankID)
+	s.logger.Infof("F.MESSAGE received from %q: transferID=%d customerID=%q bankID=%q message=%q",
+		msg.ClientLogin, msg.TransferID, msg.CustomerID, msg.BankID, msg.Message)
 
 	if msg.TransferID == 0 {
-		s.logger.Debug("F.MESSAGE has no transferID, accepted without persistence")
+		return nil
+	}
+
+	remoteID := strconv.FormatUint(uint64(msg.TransferID), 10)
+
+	// Find the outgoing transfer that this ACK references.
+	var outTrans model.Transfer
+	if err := s.db.Get(&outTrans, "remote_transfer_id=?", remoteID).
+		Owner().OrderBy("start", false).Run(); err != nil {
+		s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", msg.TransferID)
 
 		return nil
 	}
 
-	// Try to correlate with an existing transfer in history
-	remoteID := fmt.Sprintf("%d", msg.TransferID)
-
-	var hist model.HistoryEntry
-	if err := s.db.Get(&hist, "remote_transfer_id=?", remoteID).Run(); err != nil {
-		s.logger.Debugf("F.MESSAGE: no history entry found for remote_transfer_id=%s, trying active transfers", remoteID)
-
-		// Try active transfers
-		var trans model.Transfer
-		if err := s.db.Get(&trans, "remote_transfer_id=?", remoteID).Run(); err != nil {
-			s.logger.Warningf("F.MESSAGE: no transfer found for remote_transfer_id=%s, message accepted but not persisted", remoteID)
-
-			return nil
-		}
-
-		// Persist on active transfer
-		for name, value := range map[string]string{
-			"__ackReceived__": "1",
-			"__ackContent__":  msg.Message,
-			"__ackFrom__":     msg.ClientLogin,
-		} {
-			info := &model.TransferInfo{
-				TransferID: utils.NewNullInt64(trans.ID),
-				Name:       name,
-				Value:      value,
-			}
-
-			if err := s.db.Insert(info).Run(); err != nil {
-				s.logger.Warningf("F.MESSAGE: failed to save TransferInfo %s: %v", name, err)
-			}
-		}
-
-		s.logger.Infof("F.MESSAGE: acknowledgment persisted on active transfer #%d", trans.ID)
-
-		return nil
+	// Store the ACK info on the outgoing transfer.
+	if outTrans.TransferInfo == nil {
+		outTrans.TransferInfo = make(map[string]any)
 	}
 
-	// Persist on history entry
-	for name, value := range map[string]string{
-		"__ackReceived__": "1",
-		"__ackContent__":  msg.Message,
-		"__ackFrom__":     msg.ClientLogin,
-	} {
-		info := &model.TransferInfo{
-			HistoryID: utils.NewNullInt64(hist.ID),
-			Name:      name,
-			Value:     value,
-		}
+	outTrans.TransferInfo["__messageACK__"] = msg.Message
+	outTrans.TransferInfo["__messageCustomerID__"] = msg.CustomerID
+	outTrans.TransferInfo["__messageBankID__"] = msg.BankID
 
-		if err := s.db.Insert(info).Run(); err != nil {
-			s.logger.Warningf("F.MESSAGE: failed to save TransferInfo %s: %v", name, err)
+	if err := s.db.Update(&outTrans).Cols("transfer_info").Run(); err != nil {
+		s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",
+			outTrans.ID, err)
+	} else {
+		s.logger.Infof("F.MESSAGE ACK stored on transfer %d", outTrans.ID)
+	}
+
+	// If relay is enabled, try to forward the message upstream.
+	if s.conf.RelayMessages {
+		s.relayMessage(&outTrans, msg)
+	}
+
+	return nil
+}
+
+// relayMessage attempts to relay a F.MESSAGE upstream through the Store &
+// Forward chain. It follows the __followID__ link to find the original
+// incoming transfer, resolves the upstream partner, and sends the message.
+func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest) {
+	// Follow the chain: outgoing transfer (B->C) -> __followID__ -> incoming transfer (A->B)
+	followRaw, ok := outTrans.TransferInfo[model.FollowID]
+	if !ok {
+		s.logger.Debug("No __followID__ on transfer, cannot relay F.MESSAGE upstream")
+
+		return
+	}
+
+	followStr := fmt.Sprintf("%v", followRaw)
+
+	var inTrans model.Transfer
+	if err := s.db.Get(&inTrans, "remote_transfer_id=?", followStr).
+		Owner().OrderBy("start", false).Run(); err != nil {
+		// Try by ID
+		if err2 := s.db.Get(&inTrans, "id=?", followStr).
+			Owner().Run(); err2 != nil {
+			s.logger.Debugf("Cannot find upstream transfer for __followID__=%s", followStr)
+
+			return
 		}
 	}
 
-	s.logger.Infof("F.MESSAGE: acknowledgment persisted on history entry #%d", hist.ID)
+	// Resolution strategy for upstream partner (in order of priority):
+	//
+	// 1. customerID (PI 61) from the F.MESSAGE -- standard PeSIT S&F
+	// 2. bankID (PI 62) from the F.MESSAGE -- standard PeSIT S&F
+	// 3. customerID from the original incoming transfer -- preserved via TransferInfo
+	// 4. __replyPartner__ from PI 99 freetext ("REPLY=partner:account") -- Waarp override
+	// 5. Login of the LocalAccount (convention: partner name = client login)
+	candidates := []string{}
+
+	// Priority 1-2: PI 61/62 from the F.MESSAGE (standard PeSIT mechanism)
+	candidates = append(candidates, msg.CustomerID, msg.BankID)
+
+	// Priority 3: customerID from incoming transfer
+	if cid, ok := inTrans.TransferInfo[customerIDKey]; ok {
+		candidates = append(candidates, fmt.Sprintf("%v", cid))
+	}
+
+	// Priority 4: __replyPartner__ from PI 99 convention (Waarp-specific override)
+	if rp, ok := inTrans.TransferInfo[replyPartnerKey]; ok {
+		candidates = append(candidates, fmt.Sprintf("%v", rp))
+	}
+
+	// Priority 5: LocalAccount login (naming convention fallback)
+	if inTrans.LocalAccountID.Valid {
+		var acct model.LocalAccount
+		if err := s.db.Get(&acct, "id=?", inTrans.LocalAccountID.Int64).Run(); err == nil {
+			candidates = append(candidates, acct.Login)
+		}
+	}
+
+	var partner model.RemoteAgent
+
+	found := false
+
+	for _, name := range candidates {
+		if name == "" {
+			continue
+		}
+
+		if err := s.db.Get(&partner, "name=?", name).Owner().Run(); err == nil {
+			found = true
+
+			break
+		}
+	}
+
+	if !found {
+		s.logger.Debugf("No upstream partner found for F.MESSAGE relay (tried: %v)", candidates)
+
+		return
+	}
+
+	// Resolve account: __replyAccount__ > first account on partner
+	var accountLogin string
+	if ra, ok := inTrans.TransferInfo[replyAccountKey]; ok {
+		accountLogin = fmt.Sprintf("%v", ra)
+	}
+
+	if partner.Protocol != Pesit && partner.Protocol != PesitTLS {
+		s.logger.Debugf("Partner %q is not PeSIT, skipping F.MESSAGE relay", partner.Name)
+
+		return
+	}
+
+	// Find an account on the partner: use __replyAccount__ if set, else first available.
+	var account model.RemoteAccount
+
+	if accountLogin != "" {
+		if err := s.db.Get(&account, "remote_agent_id=? AND login=?",
+			partner.ID, accountLogin).Run(); err != nil {
+			s.logger.Debugf("Account %q not found on partner %q, trying first available",
+				accountLogin, partner.Name)
+		}
+	}
+
+	if account.ID == 0 {
+		if err := s.db.Get(&account, "remote_agent_id=?", partner.ID).Run(); err != nil {
+			s.logger.Debugf("No account found on partner %q for F.MESSAGE relay", partner.Name)
+
+			return
+		}
+	}
+
+	// Get account password.
+	var cred model.Credential
+	password := ""
+
+	if err := s.db.Get(&cred, "remote_account_id=? AND type=?",
+		account.ID, "password").Run(); err == nil {
+		password = cred.Value
+	}
+
+	// Build the upstream transfer ID from the incoming transfer.
+	var upstreamTransferID uint32
+	if rid := inTrans.RemoteTransferID; rid != "" {
+		if id, err := strconv.ParseUint(rid, 10, 32); err == nil {
+			upstreamTransferID = uint32(id)
+		}
+	}
+
+	// Send F.MESSAGE upstream.
+	s.logger.Infof("Relaying F.MESSAGE to partner %q (transferID=%d)",
+		partner.Name, upstreamTransferID)
+
+	go func() {
+		if err := sendRelayMessage(&partner, &account, password,
+			upstreamTransferID, msg.Message); err != nil {
+			s.logger.Warningf("Failed to relay F.MESSAGE to %q: %v", partner.Name, err)
+		} else {
+			s.logger.Infof("F.MESSAGE relayed to %q successfully", partner.Name)
+		}
+	}()
+}
+
+func sendRelayMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
+	password string, transferID uint32, message string,
+) error {
+	client := pesit.NewClient(account.Login, password, partner.Name)
+	client.SetPreConnectionUsage(false)
+
+	addr := fmt.Sprintf("%s:%d", partner.Address.Host, partner.Address.Port)
+
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to %s: %w", addr, err)
+	}
+
+	if err := client.Connect(conn); err != nil {
+		conn.Close()
+
+		return fmt.Errorf("failed to establish PeSIT connection: %w", err)
+	}
+
+	defer client.Close(nil)
+
+	if err := client.SendMessage(transferID, message); err != nil {
+		return fmt.Errorf("failed to send F.MESSAGE: %w", err)
+	}
 
 	return nil
 }

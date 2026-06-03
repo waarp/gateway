@@ -2,10 +2,13 @@ description:
   en: >
     Send a PeSIT F.MESSAGE to a remote partner. Typically used for Store-and-Forward
     acknowledgments. The task can be conditional based on a TransferInfo key.
+    Partner and account can be omitted: they are resolved from __replyPartner__
+    and __replyAccount__ in TransferInfo.
   fr: >
     Envoie un F.MESSAGE PeSIT a un partenaire distant. Utilise principalement pour
     les acquittements Store-and-Forward. La tache peut etre conditionnelle selon une
-    cle TransferInfo.
+    cle TransferInfo. Le partenaire et le compte peuvent etre omis : ils sont
+    resolus depuis __replyPartner__ et __replyAccount__ dans TransferInfo.
 
 partner:
   en: Partner
@@ -14,14 +17,16 @@ partner:
 partnerTooltip:
   en: >
     The name of the remote PeSIT partner to send the message to.
-    Supports variable substitution (e.g. #TI___ackPartner__#).
+    If empty, resolved from __replyPartner__ in TransferInfo.
+    Supports variable substitution (e.g. #TI___replyPartner__#).
   fr: >
     Le nom du partenaire PeSIT distant vers lequel envoyer le message.
-    Supporte la substitution de variables (ex: #TI___ackPartner__#).
+    Si vide, resolu depuis __replyPartner__ dans TransferInfo.
+    Supporte la substitution de variables (ex: #TI___replyPartner__#).
 
 partnerPlaceholder:
-  en: Partner name or variable
-  fr: Nom du partenaire ou variable
+  en: Partner name or variable (optional)
+  fr: Nom du partenaire ou variable (optionnel)
 
 account:
   en: Account
@@ -77,14 +82,16 @@ condition:
 
 conditionTooltip:
   en: >
-    A TransferInfo key to check before sending. If the key exists and its value
-    is "1", the message is sent. Otherwise, the task is silently skipped.
-    Example: __ackRequested__
+    Name of a TransferInfo key (without # or =). If this key exists in the
+    transfer metadata AND its value is "1", the message is sent. Otherwise,
+    the task is silently skipped. Do NOT put a value or expression here,
+    just the key name. Example: __ackRequested__
   fr: >
-    Une cle TransferInfo a verifier avant l'envoi. Si la cle existe et sa valeur
-    est "1", le message est envoye. Sinon, la tache est silencieusement ignoree.
-    Exemple : __ackRequested__
+    Nom d'une cle TransferInfo (sans # ni =). Si cette cle existe dans les
+    metadonnees du transfert ET que sa valeur est "1", le message est envoye.
+    Sinon, la tache est silencieusement ignoree. Ne PAS mettre de valeur ni
+    d'expression ici, juste le nom de la cle. Exemple : __ackRequested__
 
 conditionPlaceholder:
-  en: TransferInfo key (optional)
-  fr: Cle TransferInfo (optionnel)
+  en: "Key name only, e.g.: __ackRequested__"
+  fr: "Nom de la cle uniquement, ex: __ackRequested__"

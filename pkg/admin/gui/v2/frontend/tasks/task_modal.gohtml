@@ -46,6 +46,9 @@
                     </select>
                 </div>
 
+                <!-- Condition (common to all task types) -->
+                {{ template "conditionInput" dict "condition" .Task.Condition "Text" .Text }}
+
                 <!-- Task's arguments -->
                 <div id="taskTypeFields">
                     {{ if .Task.Type }}

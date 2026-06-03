@@ -73,3 +73,43 @@ network:
 crypto:
   en: Cryptography
   fr: Cryptographie
+
+condition:
+  en: Condition
+  fr: Condition
+
+conditionTooltip:
+  en: "Optional expression evaluated before execution. Right-click for available variables. Operators: ==, !=, >, <, MATCHES, CONTAINS, AND, OR, NOT"
+  fr: "Expression optionnelle evaluee avant execution. Clic droit pour les variables disponibles. Operateurs : ==, !=, >, <, MATCHES, CONTAINS, AND, OR, NOT"
+
+conditionVarTitle:
+  en: Available variables
+  fr: Variables disponibles
+
+conditionVarFile:
+  en: File
+  fr: Fichier
+
+conditionVarDirs:
+  en: Directories
+  fr: Repertoires
+
+conditionVarTransfer:
+  en: Transfer
+  fr: Transfert
+
+conditionVarTime:
+  en: Timestamp
+  fr: Horodatage
+
+conditionVarError:
+  en: Error
+  fr: Erreur
+
+conditionVarInfo:
+  en: TransferInfo (PeSIT, etc.)
+  fr: Infos de transfert (PeSIT, etc.)
+
+conditionVarOperators:
+  en: Operators
+  fr: Operateurs

@@ -11,6 +11,21 @@ import (
 )
 
 const (
+	ArticleFormatVariable = "variable"
+	ArticleFormatFixed    = "fixed"
+)
+
+// resolveArticleFormat converts a config string to a lib-pesit ArticleFormat.
+// Returns FormatVariable by default (standard PeSIT behavior).
+func resolveArticleFormat(configValue string) libpesit.ArticleFormat {
+	if strings.EqualFold(configValue, ArticleFormatFixed) {
+		return libpesit.FormatFixed
+	}
+
+	return libpesit.FormatVariable
+}
+
+const (
 	// DefaultCheckpointSize defines the default checkpoint size (in bytes) if
 	// omitted by the user in the proto config.
 	DefaultCheckpointSize uint16 = math.MaxUint16
@@ -134,10 +149,18 @@ type ServerConfig struct {
 	// received within this delay during active protocol phases. Default is 0
 	// (no timeout).
 	ProtocolTimeout uint16 `json:"protocolTimeout,omitempty"`
+	// ArticleFormat defines the article format used for outgoing transfers.
+	// Accepted values are: "variable" (default) and "fixed".
+	ArticleFormat string `json:"articleFormat,omitempty"`
 	// Compression defines the compression mode proposed during the file open
 	// phase (PI 21). Accepted values: "none", "horizontal", "vertical", "both".
 	// Default is "none".
 	Compression CompressionMode `json:"compression,omitempty"`
+	// RelayMessages enables automatic Store & Forward relay of incoming
+	// F.MESSAGE. When a partner sends an ACK message, the server looks up
+	// the original transfer chain (__followID__) and relays the message
+	// upstream to the originator. Default is false.
+	RelayMessages bool `json:"relayMessages,omitempty"`
 }
 
 func (s *ServerConfig) ValidServer() error {
@@ -208,10 +231,24 @@ type PartnerConfig struct {
 	// will abort if no FPDU is received within this delay. Default is 0
 	// (no timeout).
 	ProtocolTimeout uint16 `json:"protocolTimeout,omitempty"`
+	// MaxConnections limits the number of concurrent PeSIT connections to this
+	// partner. When the limit is reached, new transfers wait until a connection
+	// is released. Default is 0 (unlimited).
+	MaxConnections uint16 `json:"maxConnections,omitempty"`
+	// ArticleFormat defines the article format used for outgoing transfers to
+	// this partner. Accepted values are: "variable" (default) and "fixed".
+	// Overrides the server/client configuration if set.
+	ArticleFormat string `json:"articleFormat,omitempty"`
 	// Compression defines the compression mode proposed during the file open
 	// phase (PI 21). Accepted values: "none", "horizontal", "vertical", "both".
 	// Default is "none".
 	Compression CompressionMode `json:"compression,omitempty"`
+	// ReplyTo specifies the return address for Store & Forward ACKs.
+	// When set, the Gateway automatically adds "REPLY=<value>" in PI 99
+	// (connection freetext) for every transfer to this partner.
+	// Format: "partner-name:account-login" or just "partner-name".
+	// This tells the receiver where to send the F.MESSAGE acknowledgment.
+	ReplyTo string `json:"replyTo,omitempty"`
 }
 
 func (p *PartnerConfig) ValidPartner() error {
