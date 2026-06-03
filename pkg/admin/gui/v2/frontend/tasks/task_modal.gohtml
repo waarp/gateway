@@ -46,15 +46,15 @@
                     </select>
                 </div>
 
+                <!-- Condition (common to all task types, placed before args for visibility) -->
+                {{ template "conditionInput" dict "condition" .Task.Condition "Text" .Text }}
+
                 <!-- Task's arguments -->
                 <div id="taskTypeFields">
                     {{ if .Task.Type }}
                     {{ template "taskForm" .FormData }}
                     {{ end }}
                 </div>
-
-                <!-- Condition (common to all task types) -->
-                {{ template "conditionInput" dict "condition" .Task.Condition "Text" .Text }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ .Text.close }}</button>
