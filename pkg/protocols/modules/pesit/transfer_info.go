@@ -2,6 +2,7 @@ package pesit
 
 import (
 	"reflect"
+	"strings"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -24,6 +25,12 @@ const (
 
 	articlesLengthsKey = "__articlesLengths__"
 	articleFormatKey   = "__articleFormat__"
+
+	// Store & Forward reply info keys. These can be set by the emitter
+	// (via TransferInfo on the TRANSFER task) to specify where the ACK
+	// should be sent back.
+	replyPartnerKey = "__replyPartner__"
+	replyAccountKey = "__replyAccount__"
 )
 
 type valueTypes interface {
@@ -140,6 +147,51 @@ func getArticleFormat(pip *pipeline.Pipeline, configValue string) pesit.ArticleF
 	}
 
 	return resolveArticleFormat(configValue)
+}
+
+// parseReplyInfo extracts Store & Forward reply info from a PI 99 freetext
+// field. Convention: the freetext may contain "REPLY=partner:account" (or
+// "REPLY=partner" with the account defaulting to first available).
+//
+// This allows a third-party PeSIT emitter to specify where the ACK should
+// be sent back without requiring Waarp-specific TransferInfo.
+//
+// If __replyPartner__ is already set in TransferInfo (e.g. by a Waarp
+// emitter via the TRANSFER task's info parameter), the freetext is not parsed.
+func parseReplyInfo(pip *pipeline.Pipeline, freetext string) {
+	if freetext == "" {
+		return
+	}
+
+	// Don't overwrite if already set explicitly via TransferInfo.
+	if _, ok := pip.TransCtx.Transfer.TransferInfo[replyPartnerKey]; ok {
+		return
+	}
+
+	const prefix = "REPLY="
+
+	idx := strings.Index(freetext, prefix)
+	if idx < 0 {
+		return
+	}
+
+	value := freetext[idx+len(prefix):]
+
+	// Trim at first space or comma (in case PI 99 contains other data).
+	for _, sep := range []string{" ", ",", ";"} {
+		if i := strings.Index(value, sep); i >= 0 {
+			value = value[:i]
+		}
+	}
+
+	parts := strings.SplitN(value, ":", 2)
+	if len(parts) >= 1 && parts[0] != "" {
+		pip.TransCtx.Transfer.TransferInfo[replyPartnerKey] = parts[0]
+	}
+
+	if len(parts) >= 2 && parts[1] != "" { //nolint:mnd // index 1 is the account
+		pip.TransCtx.Transfer.TransferInfo[replyAccountKey] = parts[1]
+	}
 }
 
 func isMultiArticles(pip *pipeline.Pipeline) ([]int64, bool) {

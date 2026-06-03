@@ -286,6 +286,11 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 	setTransInfo(t.pip, customerIDKey, req.CustomerID())
 	setTransInfo(t.pip, bankIDKey, req.BankID())
 
+	// Extract reply info from PI 99 freetext (convention: "REPLY=partner:account")
+	// or from TransferInfo keys __replyPartner__/__replyAccount__ if already set.
+	parseReplyInfo(t.pip, t.connFreetext)
+	parseReplyInfo(t.pip, req.FreeText())
+
 	if pip.TransCtx.Rule.IsSend {
 		if err := setFileType(t.pip, req); err != nil {
 			return err

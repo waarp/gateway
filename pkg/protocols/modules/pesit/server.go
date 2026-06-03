@@ -214,21 +214,29 @@ func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest
 	// The requester is the client that connected to us. To relay, we need to
 	// find a partner definition that we can connect TO.
 	//
-	// Resolution strategy (in order):
-	// 1. customerID from the F.MESSAGE (PI 61)
-	// 2. bankID from the F.MESSAGE (PI 62)
-	// 3. customerID from the original incoming transfer (__customerID__)
-	// 4. Login of the LocalAccount on the incoming transfer (convention:
-	//    partner name matches the client login used during authentication)
-	candidates := []string{
-		msg.CustomerID,
-		msg.BankID,
+	// Resolution strategy (in order of priority):
+	// 1. __replyPartner__ from incoming transfer TransferInfo (Waarp emitter)
+	// 2. __replyPartner__ parsed from PI 99 freetext (third-party: "REPLY=partner:account")
+	// 3. customerID (PI 61) from the F.MESSAGE
+	// 4. bankID (PI 62) from the F.MESSAGE
+	// 5. customerID from the original incoming transfer (__customerID__)
+	// 6. Login of the LocalAccount (convention: partner name = client login)
+	candidates := []string{}
+
+	// Priority 1-2: __replyPartner__ (set explicitly or parsed from PI 99)
+	if rp, ok := inTrans.TransferInfo[replyPartnerKey]; ok {
+		candidates = append(candidates, fmt.Sprintf("%v", rp))
 	}
 
-	if cid, ok := inTrans.TransferInfo["__customerID__"]; ok {
+	// Priority 3-4: PI 61/62 from the F.MESSAGE
+	candidates = append(candidates, msg.CustomerID, msg.BankID)
+
+	// Priority 5: customerID from incoming transfer
+	if cid, ok := inTrans.TransferInfo[customerIDKey]; ok {
 		candidates = append(candidates, fmt.Sprintf("%v", cid))
 	}
 
+	// Priority 6: LocalAccount login (convention)
 	if inTrans.LocalAccountID.Valid {
 		var acct model.LocalAccount
 		if err := s.db.Get(&acct, "id=?", inTrans.LocalAccountID.Int64).Run(); err == nil {
@@ -258,18 +266,35 @@ func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest
 		return
 	}
 
+	// Resolve account: __replyAccount__ > first account on partner
+	var accountLogin string
+	if ra, ok := inTrans.TransferInfo[replyAccountKey]; ok {
+		accountLogin = fmt.Sprintf("%v", ra)
+	}
+
 	if partner.Protocol != Pesit && partner.Protocol != PesitTLS {
 		s.logger.Debugf("Partner %q is not PeSIT, skipping F.MESSAGE relay", partner.Name)
 
 		return
 	}
 
-	// Find the first account on that partner.
+	// Find an account on the partner: use __replyAccount__ if set, else first available.
 	var account model.RemoteAccount
-	if err := s.db.Get(&account, "remote_agent_id=?", partner.ID).Run(); err != nil {
-		s.logger.Debugf("No account found on partner %q for F.MESSAGE relay", partner.Name)
 
-		return
+	if accountLogin != "" {
+		if err := s.db.Get(&account, "remote_agent_id=? AND login=?",
+			partner.ID, accountLogin).Run(); err != nil {
+			s.logger.Debugf("Account %q not found on partner %q, trying first available",
+				accountLogin, partner.Name)
+		}
+	}
+
+	if account.ID == 0 {
+		if err := s.db.Get(&account, "remote_agent_id=?", partner.ID).Run(); err != nil {
+			s.logger.Debugf("No account found on partner %q for F.MESSAGE relay", partner.Name)
+
+			return
+		}
 	}
 
 	// Get account password.
