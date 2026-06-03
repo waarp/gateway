@@ -73,6 +73,8 @@ var formFiles = []taskCategory{
 			{tasknames.Transfer, "tasks/transfer/transfer.gohtml", "tasks/transfer/transfer.yaml"},
 
 			{tasknames.Preregister, "tasks/preregister/preregister.gohtml", "tasks/preregister/preregister.yaml"},
+			{tasknames.SendMessage, "tasks/sendmessage/sendmessage.gohtml", "tasks/sendmessage/sendmessage.yaml"},
+			{tasknames.SetInfo, "tasks/setinfo/setinfo.gohtml", "tasks/setinfo/setinfo.yaml"},
 		},
 	}, {
 
@@ -83,7 +85,6 @@ var formFiles = []taskCategory{
 			{tasknames.Transcode, "tasks/transcode/transcode.gohtml", "tasks/transcode/transcode.yaml"},
 
 			{tasknames.ChangeNewline, "tasks/chnewline/chnewline.gohtml", "tasks/chnewline/chnewline.yaml"},
-			{tasknames.SetInfo, "tasks/setinfo/setinfo.gohtml", "tasks/setinfo/setinfo.yaml"},
 		},
 	}, {
 
@@ -104,8 +105,6 @@ var formFiles = []taskCategory{
 			{tasknames.Icap, "tasks/icap/icap.gohtml", "tasks/icap/icap.yaml"},
 
 			{tasknames.Email, "tasks/email/email.gohtml", "tasks/email/email.yaml"},
-
-			{tasknames.SendMessage, "tasks/sendmessage/sendmessage.gohtml", "tasks/sendmessage/sendmessage.yaml"},
 		},
 	}, {
 

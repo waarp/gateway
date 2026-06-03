@@ -421,6 +421,7 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == True
 
 	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == True
+	pesitProtoConfig["useCRC"] = r.FormValue("useCRC") == True
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
 
@@ -517,6 +518,7 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == True
 
 	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == True
+	pesitProtoConfig["useCRC"] = r.FormValue("useCRC") == True
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
 
@@ -609,6 +611,7 @@ func protoConfigPeSITClient(r *http.Request) map[string]any {
 	pesitProtoConfig["disableRestart"] = r.FormValue("disableRestart") == True
 
 	pesitProtoConfig["disableCheckpoints"] = r.FormValue("disableCheckpoints") == True
+	pesitProtoConfig["useCRC"] = r.FormValue("useCRC") == True
 
 	if checkpointSize := r.FormValue("protoConfigPeSITcheckpointSize"); checkpointSize != "" {
 
