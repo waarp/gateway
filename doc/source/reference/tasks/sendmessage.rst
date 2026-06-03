@@ -19,9 +19,23 @@ La tâche ouvre une connexion PeSIT dédiée vers le partenaire, envoie un
 F.MESSAGE contenant l'identifiant du transfert et un message texte, puis
 ferme la connexion.
 
-**Tous les paramètres sont optionnels** lorsque le mécanisme de routage
-Store & Forward est configuré (voir ci-dessous). Le partenaire et le compte
-sont alors résolus automatiquement depuis les infos de transfert.
+**Tous les paramètres sont optionnels.** Le partenaire et le compte sont
+résolus automatiquement depuis les infos de transfert lorsque le mécanisme
+de routage Store & Forward est configuré (voir ci-dessous).
+
+**La tâche peut être configurée systématiquement** en post-traitement de
+toutes les règles de réception PeSIT, sans risque :
+
+- Si l'émetteur a demandé un acquittement (via ``replyTo`` sur son partenaire,
+  ou via PI 61/PI 62), la tâche envoie le F.MESSAGE automatiquement.
+- Si l'émetteur n'a pas demandé d'acquittement (aucune information de retour
+  disponible), la tâche est **silencieusement ignorée** — le transfert se
+  termine normalement sans erreur.
+- Si le protocole du transfert n'est pas PeSIT, la tâche est également
+  ignorée.
+
+Il n'est donc **pas nécessaire d'ajouter une condition** à la tâche pour
+gérer ces cas : le comportement est automatique.
 
 Paramètres
 ----------
