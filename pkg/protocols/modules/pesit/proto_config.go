@@ -29,11 +29,10 @@ func resolveArticleFormat(configValue string) libpesit.ArticleFormat {
 
 const (
 
-	// DefaultCheckpointSize defines the default checkpoint size (in bytes) if
-
-	// omitted by the user in the proto config.
-
-	DefaultCheckpointSize uint16 = math.MaxUint16
+	// DefaultCheckpointSize defines the default checkpoint size in kilo-bytes
+	// (PI 7, 1 KB = 1024 bytes) if omitted by the user in the proto config.
+	// A value of 32 means checkpoints every 32 KB of data transferred.
+	DefaultCheckpointSize uint16 = 32
 
 	// DefaultCheckpointWindow defines the default checkpoint window if omitted
 
@@ -138,7 +137,7 @@ type CheckPointConfig struct {
 
 	DisableCheckpoints bool `json:"disableCheckpoints"`
 
-	// CheckpointSize defines the size (in bytes) of the checkpoint set for the
+	// CheckpointSize defines the size (in kilo-bytes, PI 7) of the checkpoint set for the
 
 	// connections to this agent. Default is 65535.
 
@@ -298,7 +297,7 @@ type PartnerConfig struct {
 
 	DisableCheckpoints api.Nullable[bool] `json:"disableCheckpoints"`
 
-	// CheckpointSize defines the size (in bytes) of the checkpoint set for the
+	// CheckpointSize defines the size (in kilo-bytes, PI 7) of the checkpoint set for the
 
 	// connections to this agent. Default is 65535.
 

@@ -19,7 +19,7 @@ de configuration du protocole pour un client PeSIT est la suivante :
   transferts effectués avec ce client. Par défaut, les checkpoints sont activés.
   Cette valeur peut être écrasée au cas par cas dans la configuration des
   partenaires (voir ci-dessous).
-* **checkpointSize** (*integer*) - Spécifie la taille (en octets) des bloc de
+* **checkpointSize** (*integer*) - Spécifie la taille (en kilo-octets, PI 7) des blocs de
   données entre chaque checkpoint lors d'un transfert. N'a aucun effet si les
   checkpoints sont désactivés. Par défaut, les blocs entre checkpoints font
   65535 octets.
@@ -35,7 +35,7 @@ de configuration du protocole pour un client PeSIT est la suivante :
    {
      "disableRestart": false,
      "disableCheckpoints": false,
-     "checkpointSize": 65535,
+     "checkpointSize": 32,
      "checkpointWindow": 2
    }
 
@@ -58,7 +58,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disableCheckpoints** (*boolean*) - Désactive les checkpoints pour tous les
   transferts effectués avec ce partenaire. Par défaut, la valeur donnée dans la
   configuration du client est utilisée.
-* **checkpointSize** (*integer*) - Spécifie la taille (en octets) des bloc de
+* **checkpointSize** (*integer*) - Spécifie la taille (en kilo-octets, PI 7) des blocs de
   données entre chaque checkpoint lors d'un transfert. N'a aucun effet si les
   checkpoints sont désactivés. Par défaut, la valeur donnée dans la configuration
   du client est utilisée.
@@ -118,7 +118,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
    {
      "disableRestart": false,
      "disableCheckpoints": false,
-     "checkpointSize": 65535,
+     "checkpointSize": 32,
      "checkpointWindow": 2,
      "useNSDU": true,
      "compatibilityMode": "axway",
@@ -137,11 +137,11 @@ est la suivante :
   effectués avec ce serveur. Par défaut, le "restart" est activé.
 * **disableCheckpoints** (*boolean*) - Désactive les checkpoints pour tous les
   transferts effectués avec ce serveur. Par défaut, les checkpoints sont activés.
-* **checkpointSize** (*integer*) - Spécifie la taille maximale (en octets) des 
+* **checkpointSize** (*integer*) - Spécifie la taille maximale (en kilo-octets, PI 7) des 
   blocs de données entre chaque checkpoint lors d'un transfert. Si un client se
   connectant au serveur demande une taille plus grande, celle-ci sera rabaissée
   à ce maximum. N'a aucun effet si les checkpoints sont désactivés. Par défaut,
-  les blocs entre checkpoints font 65535 octets.
+  les blocs entre checkpoints font 32 Ko (32 768 octets).
 * **checkpointWindow** (*integer*) - Spécifie le nombre maximum de checkpoints 
   pouvant rester sans réponse avant que le transfert soit stoppé. Si un client se
   connectant au serveur demande un interval plus grand, celui-ci sera rabaissé
@@ -182,7 +182,7 @@ est la suivante :
    {
      "disableRestart": false,
      "disableCheckpoints": false,
-     "checkpointSize": 65535,
+     "checkpointSize": 32,
      "checkpointWindow": 1,
      "maxMessageSize": 65535,
      "minTLSVersion": "v1.2"
