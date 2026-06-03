@@ -144,10 +144,12 @@ type CheckPointConfig struct {
 	CheckpointSize uint16 `json:"checkpointSize,omitempty"`
 
 	// CheckpointWindow defines the number of checkpoints that can go unacknowledged
-
 	// without stopping the transfer. Default is 2.
-
 	CheckpointWindow uint8 `json:"checkpointWindow,omitempty"`
+
+	// UseCRC enables CRC-16 integrity checks (PI 1) on each NSDU.
+	// Useful on unreliable network links. Default is false.
+	UseCRC bool `json:"useCRC,omitempty"`
 }
 
 func (c *CheckPointConfig) validCheckpoints() {
@@ -309,10 +311,12 @@ type PartnerConfig struct {
 
 	CheckpointWindow uint8 `json:"checkpointWindow,omitempty"`
 
+	// UseCRC enables CRC-16 integrity checks (PI 1) on each NSDU for this partner.
+	// Useful on unreliable network links. Default is false.
+	UseCRC bool `json:"useCRC,omitempty"`
+
 	// UseNSDU specifies whether NSDU meta-packets should be used when making
-
 	// transfers with that partner. By default, NSDU packets are used.
-
 	UseNSDU api.Nullable[bool] `json:"useNSDU"` //nolint:tagliatelle //does not recognize NSDU as an acronym
 
 	// The PeSIT compatibility mode to use when communicating with this partner.

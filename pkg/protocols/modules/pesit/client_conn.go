@@ -202,6 +202,10 @@ func configurePesitClient(
 		client.SetMonitoringTimeout(config.ProtocolTimeout)
 	}
 
+	if config.UseCRC {
+		client.SetCRCUsage(true)
+	}
+
 	//nolint:errcheck // freetext is best-effort
 
 	setFreetext(pip, clientConnFreetextKey, client)

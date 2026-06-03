@@ -83,6 +83,7 @@ var formFiles = []taskCategory{
 			{tasknames.Transcode, "tasks/transcode/transcode.gohtml", "tasks/transcode/transcode.yaml"},
 
 			{tasknames.ChangeNewline, "tasks/chnewline/chnewline.gohtml", "tasks/chnewline/chnewline.yaml"},
+			{tasknames.SetInfo, "tasks/setinfo/setinfo.gohtml", "tasks/setinfo/setinfo.yaml"},
 		},
 	}, {
 

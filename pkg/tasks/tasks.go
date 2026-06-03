@@ -58,6 +58,8 @@ const (
 	RemoteDelete = "REMOTEDELETE"
 
 	SendMessage = "SENDMESSAGE"
+
+	SetInfo = "SETINFO"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -119,6 +121,8 @@ func init() {
 	model.ValidTasks[Transcode] = newRunner[*transcodeTask]
 
 	model.ValidTasks[ChangeNewline] = newRunner[*chNewlineTask]
+
+	model.ValidTasks[SetInfo] = newRunner[*setInfoTask]
 
 	// Network
 

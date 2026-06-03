@@ -1,0 +1,23 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+<!-- Key -->
+{{ template "textInputRow" dict
+    "label" .Text.key
+    "tooltip" .Text.keyTooltip
+    "fieldName" "key"
+    "fieldType" "text"
+    "value" .Task.Args.key
+    "placeholder" "__fileEncoding__"
+}}
+
+<!-- Value -->
+{{ template "textInputRow" dict
+    "label" .Text.value
+    "tooltip" .Text.valueTooltip
+    "fieldName" "value"
+    "fieldType" "text"
+    "value" .Task.Args.value
+    "placeholder" "EBCDIC"
+    "optional" "true"
+}}

@@ -1,0 +1,19 @@
+description:
+  en: "Set or modify a TransferInfo key. Use this to inject metadata before a transfer (encoding, business ID, reply address, etc.). If the value is empty, the key is deleted. Supports variable substitution (#TRUEFILENAME#, #TI_...#, etc.)."
+  fr: "Positionne ou modifie une cle TransferInfo. Permet d'injecter des metadonnees avant un transfert (encodage, identifiant metier, adresse de retour, etc.). Si la valeur est vide, la cle est supprimee. Supporte la substitution de variables (#TRUEFILENAME#, #TI_...#, etc.)."
+
+key:
+  en: Key
+  fr: Cle
+
+keyTooltip:
+  en: "The TransferInfo key to set (e.g. __fileEncoding__, __replyPartner__, or any custom key)."
+  fr: "La cle TransferInfo a positionner (ex: __fileEncoding__, __replyPartner__, ou toute cle personnalisee)."
+
+value:
+  en: Value (optional)
+  fr: Valeur (optionnel)
+
+valueTooltip:
+  en: "The value to set. If empty, the key is deleted from TransferInfo. Supports variable substitution."
+  fr: "La valeur a positionner. Si vide, la cle est supprimee du TransferInfo. Supporte la substitution de variables."
