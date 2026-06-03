@@ -289,8 +289,46 @@ stockés dans les :term:`infos de transfert` :
   ``Relative`` ou ``Indexed``
 
 Ces informations peuvent être exploitées par des tâches de post-traitement pour
-adapter le fichier reçu (ex: ajout de séparateurs entre enregistrements fixes,
-transcodage EBCDIC → UTF-8 via une tâche EXEC, etc.).
+adapter le fichier reçu.
+
+**Conversion Fixed → lignes (enregistrements fixes mainframe)**
+
+Lorsqu'un partenaire mainframe envoie un fichier à enregistrements fixes (PI 31 =
+Fixed, PI 32 = 80 par exemple), les données arrivent en flux continu sans
+séparateurs. Pour les convertir en fichier texte avec des retours à la ligne, il
+est recommandé d'utiliser une tâche ``EXEC`` en post-traitement avec un script
+qui insère un séparateur tous les N octets.
+
+Exemple de configuration de règle :
+
+.. code-block:: yaml
+
+   rules:
+     - name: mainframe-recv
+       isSend: false
+       localDir: mainframe/in
+       post:
+         - type: EXEC
+           args:
+             command: "python"
+             arg0: "-c"
+             arg1: |
+               import sys
+               size = 80  # taille de l'enregistrement (PI 32)
+               with open(sys.argv[1], 'rb') as f:
+                   data = f.read()
+               with open(sys.argv[1], 'wb') as f:
+                   for i in range(0, len(data), size):
+                       f.write(data[i:i+size].rstrip() + b'\n')
+             arg2: "#TRUEFULLPATH#"
+
+.. note::
+
+   La taille d'enregistrement (PI 32) est disponible dans les infos de transfert
+   mais ne peut pas être directement utilisée dans les arguments de la tâche. Si
+   la taille varie selon les flux, il est préférable d'utiliser un script qui lit
+   la valeur depuis la base de données ou qui la reçoit en paramètre via
+   ``__transferInfo__``.
 
 **Cas d'usage courants** :
 
