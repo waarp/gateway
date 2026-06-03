@@ -100,29 +100,42 @@ Pull avec pattern (glob)
 .. versionadded:: 0.16.0
 
 En mode pull (réception), le client peut envoyer un nom de fichier contenant des
-**caractères génériques** (``*`` et ``?``) dans sa requête de sélection. Le
-serveur résout alors le pattern parmi les **transferts pré-enregistrés**
-(statut ``AVAILABLE``) dont le nom de fichier correspond au pattern (via
-``path.Match``). Le premier transfert correspondant (le plus ancien par date de
-soumission) est sélectionné.
+**caractères génériques** (``*`` et ``?``) dans sa requête de sélection
+(F.SELECT). Le pattern est transmis dans le champ standard du protocole :
 
-Le nom de fichier résolu est renvoyé au client dans la réponse de sélection.
-Le client crée alors le fichier local avec le nom réel (et non le pattern).
+- En mode **standard** : le pattern est dans **PI 12** (Filename), qui contient
+  le chemin complet du fichier (préfixe de règle inclus).
+- En mode **historique** : le pattern est dans **PI 37** (FileLabel), qui contient
+  le nom physique du fichier.
 
-**Exemple** : un client envoie une requête de pull avec le pattern ``data-*.txt``.
-Si un transfert AVAILABLE existe avec le nom ``data-001.txt``, il sera sélectionné
-et le fichier correspondant sera envoyé.
+Le serveur résout le pattern parmi les **transferts pré-enregistrés** (statut
+``AVAILABLE``) dont le nom de fichier correspond au pattern (via ``path.Match``).
+Le premier transfert correspondant (le plus ancien par date de soumission) est
+sélectionné.
+
+Le nom de fichier résolu est renvoyé au client dans la réponse de sélection
+(ACK SELECT). Le client crée alors le fichier local avec le nom réel (et non
+le pattern).
+
+**Exemple** : un client envoie une requête F.SELECT avec le pattern
+``data-*.txt``. Si un transfert AVAILABLE existe avec le nom ``data-001.txt``,
+il sera sélectionné et le fichier correspondant sera envoyé.
 
 **Cas de correspondances multiples** : les transferts pré-enregistrés sont
-consommés un par un. Chaque SELECT avec le même pattern retourne le prochain
+consommés un par un. Chaque F.SELECT avec le même pattern retourne le prochain
 transfert AVAILABLE correspondant (le précédent ayant été consommé par le
 transfert effectué).
+
+**Aucune correspondance** : si aucun transfert pré-enregistré ne correspond au
+pattern, le serveur retourne un diagnostic d'erreur ``CodeFileNotExists`` (205)
+et le transfert échoue. Le client reçoit cette erreur dans la réponse de
+sélection.
 
 .. note::
 
    Le pattern matching ne fonctionne que sur les transferts pré-enregistrés
-   (``AVAILABLE``). Les fichiers non pré-enregistrés sur le système de fichiers
-   ne sont pas concernés par le pattern matching.
+   (``AVAILABLE``). Les fichiers présents sur le système de fichiers mais non
+   pré-enregistrés ne sont pas concernés par ce mécanisme.
 
 F.MESSAGE et acquittement Store & Forward
 -----------------------------------------
