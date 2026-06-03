@@ -1,6 +1,6 @@
 module code.waarp.fr/apps/gateway/gateway
 
-go 1.26.3
+go 1.26.4
 
 require (
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
@@ -16,7 +16,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fclairamb/ftpserverlib v0.30.0
+	github.com/fclairamb/ftpserverlib v0.32.0
 	github.com/go-icap/icap v0.0.0-20151011115316-ca4fad4ebb28
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -26,30 +26,30 @@ require (
 	github.com/gosnmp/gosnmp v1.43.2
 	github.com/indece-official/go-ebcdic v1.2.0
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/klauspost/compress v1.18.6
-	github.com/mattn/go-colorable v0.1.14
+	github.com/mattn/go-colorable v0.1.15
 	github.com/pkg/sftp v1.13.10
 	github.com/puzpuzpuz/xsync/v4 v4.5.0
-	github.com/rclone/rclone v1.74.1
+	github.com/rclone/rclone v1.74.2
 	github.com/slayercat/GoSNMPServer v0.5.2
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1
 	github.com/studio-b12/gowebdav v0.12.0
 	github.com/ulikunitz/xz v0.5.15
-	golang.org/x/crypto v0.51.0
-	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
-	golang.org/x/net v0.54.0
+	golang.org/x/crypto v0.52.0
+	golang.org/x/exp v0.0.0-20260529124908-c761662dc8c9
+	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/term v0.43.0
 	golang.org/x/text v0.37.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.50.1
+	modernc.org/sqlite v1.51.0
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.3.2
 )
@@ -115,7 +115,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-chi/chi/v5 v5.2.5 // indirect
 	github.com/go-darwin/apfs v0.0.0-20211011131704-f84b94dbf348 // indirect
-	github.com/go-git/go-billy/v5 v5.8.0 // indirect
+	github.com/go-git/go-billy/v5 v5.9.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect

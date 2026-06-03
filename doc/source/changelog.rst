@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.15.7 <2026-06-03>`
 * :bug:`570` Correction d'un bug causant le *timeout* de la commande d'import
   sous certaines conditions, notamment en présence d'un grand nombre de
   partenaires R66.
