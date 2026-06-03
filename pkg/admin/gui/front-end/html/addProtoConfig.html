@@ -303,7 +303,7 @@
         <select name="protoConfigPeSITcompatibilityMode" id="protoConfigPeSITcompatibilityMode" class="form-select">
             <option value="" disabled {{ if not (index .modalElement "protoConfigPeSITcompatibilityMode") }}selected{{ end }}>{{ index .tab "selectCompatibilityMode" }}</option>
             {{ range .CompatibilityModePeSIT }}
-                <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
+                <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "historique" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
             {{ end }}
         </select>
     </div>
@@ -386,7 +386,7 @@
         <select name="protoConfigPeSITcompatibilityMode" id="protoConfigPeSITcompatibilityMode" class="form-select">
             <option value="" disabled {{ if not (index .modalElement "protoConfigPeSITcompatibilityMode") }}selected{{ end }}>{{ index .tab "selectCompatibilityMode" }}</option>
             {{ range .CompatibilityModePeSIT }}
-            <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
+            <option value="{{ . }}" {{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}> {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "historique" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}</option>
             {{ end }}
         </select>
     </div>

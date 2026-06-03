@@ -298,7 +298,7 @@
         <select name="protoConfigPeSITcompatibilityMode" class="form-select">
             {{ range $.CompatibilityModePeSIT }}
                 <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}{{ else if eq $.ProtoConfig.compatibilityMode . }}selected{{ end }}>
-                    {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}
+                    {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "historique" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}
                 </option>
             {{ end }}
         </select>
@@ -381,7 +381,7 @@
         <select name="protoConfigPeSITcompatibilityMode" class="form-select">
             {{ range $.CompatibilityModePeSIT }}
             <option value="{{ . }}" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompatibilityMode") . }}selected{{ end }}{{ else if eq $.ProtoConfig.compatibilityMode . }}selected{{ end }}>
-            {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "non-standard" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}
+            {{ if eq . "standard" }}{{ index $.tab "standardParameterPesit" }}{{ else if eq . "historique" }}{{ index $.tab "noneStandardParameterPesit" }}{{ else }}{{ . }}{{ end }}
             </option>
             {{ end }}
         </select>

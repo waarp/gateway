@@ -54,7 +54,7 @@
                 </div>
 
                 <!-- Condition (common to all task types) -->
-                {{ template "conditionInput" dict "condition" .Task.Condition }}
+                {{ template "conditionInput" dict "condition" .Task.Condition "Text" .Text }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ .Text.close }}</button>

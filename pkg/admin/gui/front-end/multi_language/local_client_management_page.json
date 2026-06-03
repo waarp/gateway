@@ -103,7 +103,7 @@
     "macs": { "fr": "Macs", "en": "Macs" },
     "useStat": { "fr": "UseStat", "en": "UseStat" },
     "standardParameterPesit": { "fr": "Standard", "en": "Standard" },
-    "noneStandardParameterPesit": { "fr": "Non standard", "en": "Non standard" },
+    "noneStandardParameterPesit": { "fr": "Historique", "en": "Historique" },
     "disableClientConcurrentReads": { "fr": "Désactiver les lectures simultanées du client", "en": "Disable client concurrent reads" },
     "tooltipLocalClientLogin": { "fr": "Le login d'authentification attendu pour le partenaire R66. Par défaut, le nom du partenaire est utilisé à la place.", "en": "The expected authentication login for partner R66. By default, the partner name is used instead." },
     "tooltipBlockSize": { "fr": "La taille (en octets) d'un bloc de données R66. Par défaut la valeur 65536 est utilisée.", "en": "The size (in bytes) of an R66 data block. By default the value 65536 is used." },

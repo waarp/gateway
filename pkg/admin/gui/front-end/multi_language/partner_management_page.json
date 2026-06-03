@@ -88,7 +88,7 @@
     "depreciated": { "fr": "Déprécié", "en": "Depreciated" },
     "useStat": { "fr": "UseStat", "en": "UseStat" },
     "standardParameterPesit": { "fr": "Standard", "en": "Standard" },
-    "noneStandardParameterPesit": { "fr": "Non standard", "en": "Non standard" },
+    "noneStandardParameterPesit": { "fr": "Historique", "en": "Historique" },
     "selectProto": { "fr": "Sélectionnez votre protocole", "en": "Select your protocol" },
     "selectTLSVersion": { "fr": "Sélectionnez la version TLS", "en": "Select TLS version" },
     "selectCompatibilityMode": { "fr": "Séléctionnez votre mode de compatibilité", "en": "Select your compatibility mode" },

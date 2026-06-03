@@ -109,11 +109,11 @@
 {{ define "conditionInput" }}
 <div class="form-input mt-2" style="border-top: 1px dashed #ccc; padding-top: 0.5rem;">
     <label class="col-form-label">
-        Condition
+        {{ .Text.condition }}
         <i class="bi bi-info-circle"
            data-bs-toggle="tooltip"
            data-bs-placement="right"
-           data-bs-title="Optional: expression evaluated before execution. Right-click for available variables. Operators: ==, !=, >, <, MATCHES, CONTAINS, AND, OR, NOT">
+           data-bs-title="{{ .Text.conditionTooltip }}">
         </i> :
     </label>
     <input type="text"
@@ -125,9 +125,9 @@
 </div>
 
 <div id="conditionVarMenu" class="dropdown-menu" style="display:none; max-height:300px; overflow-y:auto;">
-    <h6 class="dropdown-header">Variables disponibles</h6>
+    <h6 class="dropdown-header">{{ .Text.conditionVarTitle }}</h6>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Fichier</h6>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">{{ .Text.conditionVarFile }}</h6>
     <a class="dropdown-item" href="#" data-var="#TRUEFULLPATH#">#TRUEFULLPATH#</a>
     <a class="dropdown-item" href="#" data-var="#TRUEFILENAME#">#TRUEFILENAME#</a>
     <a class="dropdown-item" href="#" data-var="#BASEFILENAME#">#BASEFILENAME#</a>
@@ -135,13 +135,13 @@
     <a class="dropdown-item" href="#" data-var="#FILESIZE#">#FILESIZE#</a>
     <a class="dropdown-item" href="#" data-var="#ORIGINALFULLPATH#">#ORIGINALFULLPATH#</a>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Repertoires</h6>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">{{ .Text.conditionVarDirs }}</h6>
     <a class="dropdown-item" href="#" data-var="#INPATH#">#INPATH#</a>
     <a class="dropdown-item" href="#" data-var="#OUTPATH#">#OUTPATH#</a>
     <a class="dropdown-item" href="#" data-var="#WORKPATH#">#WORKPATH#</a>
     <a class="dropdown-item" href="#" data-var="#HOMEPATH#">#HOMEPATH#</a>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Transfert</h6>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">{{ .Text.conditionVarTransfer }}</h6>
     <a class="dropdown-item" href="#" data-var="#RULE#">#RULE#</a>
     <a class="dropdown-item" href="#" data-var="#TRANSFERID#">#TRANSFERID#</a>
     <a class="dropdown-item" href="#" data-var="#REMOTEHOST#">#REMOTEHOST#</a>
@@ -149,17 +149,17 @@
     <a class="dropdown-item" href="#" data-var="#REQUESTERHOST#">#REQUESTERHOST#</a>
     <a class="dropdown-item" href="#" data-var="#REQUESTEDHOST#">#REQUESTEDHOST#</a>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Horodatage</h6>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">{{ .Text.conditionVarTime }}</h6>
     <a class="dropdown-item" href="#" data-var="#DATE#">#DATE#</a>
     <a class="dropdown-item" href="#" data-var="#HOUR#">#HOUR#</a>
     <a class="dropdown-item" href="#" data-var="#TIMESTAMP(YYYY-MM-DD)#">#TIMESTAMP(...)#</a>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Erreur</h6>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">{{ .Text.conditionVarError }}</h6>
     <a class="dropdown-item" href="#" data-var="#ERRORCODE#">#ERRORCODE#</a>
     <a class="dropdown-item" href="#" data-var="#ERRORMSG#">#ERRORMSG#</a>
     <a class="dropdown-item" href="#" data-var="#ERRORSTRCODE#">#ERRORSTRCODE#</a>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header text-muted" style="font-size:0.7em">TransferInfo (PeSIT, etc.)</h6>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">{{ .Text.conditionVarInfo }}</h6>
     <a class="dropdown-item" href="#" data-var="#TI___fileEncoding__#">#TI___fileEncoding__#</a>
     <a class="dropdown-item" href="#" data-var="#TI___articleFormat__#">#TI___articleFormat__#</a>
     <a class="dropdown-item" href="#" data-var="#TI___organization__#">#TI___organization__#</a>
@@ -169,7 +169,7 @@
     <a class="dropdown-item" href="#" data-var="#TI___clientConnFreetext__#">#TI___clientConnFreetext__#</a>
     <a class="dropdown-item" href="#" data-var="#TI___serverTransFreetext__#">#TI___serverTransFreetext__#</a>
     <div class="dropdown-divider"></div>
-    <h6 class="dropdown-header text-muted" style="font-size:0.7em">Operateurs</h6>
+    <h6 class="dropdown-header text-muted" style="font-size:0.7em">{{ .Text.conditionVarOperators }}</h6>
     <a class="dropdown-item" href="#" data-var=" == ">== (egal)</a>
     <a class="dropdown-item" href="#" data-var=" != ">!= (different)</a>
     <a class="dropdown-item" href="#" data-var=" > ">&gt; (superieur)</a>

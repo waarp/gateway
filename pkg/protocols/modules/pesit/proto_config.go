@@ -43,14 +43,14 @@ type CompatibilityMode string
 
 const (
 	CompatibilityModeStandard    = "standard"
-	CompatibilityModeNonStandard = "non-standard"
+	CompatibilityModeNonStandard = "historique"
 )
 
 func (m *CompatibilityMode) UnmarshalJSON(b []byte) error {
 	val := strings.Trim(string(b), "\"")
 
 	switch val {
-	case CompatibilityModeStandard, CompatibilityModeNonStandard:
+	case CompatibilityModeStandard, CompatibilityModeNonStandard, "non-standard":
 		*m = CompatibilityMode(val)
 
 		return nil
@@ -97,7 +97,7 @@ type ServerConfig struct {
 	CheckPointConfig
 
 	// The PeSIT compatibility mode to use when communicating with this server.
-	// Accepted values are: "standard" or "non-standard". Default is "standard".
+	// Accepted values are: "standard" or "historique". Default is "standard".
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// DisablePreConnection disables the pre-connection authentication when
 	// connecting to this server. By default, the pre-connection authentication
@@ -158,7 +158,7 @@ type PartnerConfig struct {
 	// transfers with that partner. By default, NSDU packets are used.
 	UseNSDU api.Nullable[bool] `json:"useNSDU"` //nolint:tagliatelle //does not recognize NSDU as an acronym
 	// The PeSIT compatibility mode to use when communicating with this partner.
-	// Accepted values are: "standard" or "non-standard". Default is "standard".
+	// Accepted values are: "standard" or "historique". Default is "standard".
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
 	// this partner. Default is 65535.
