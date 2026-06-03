@@ -215,28 +215,28 @@ func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest
 	// find a partner definition that we can connect TO.
 	//
 	// Resolution strategy (in order of priority):
-	// 1. __replyPartner__ from incoming transfer TransferInfo (Waarp emitter)
-	// 2. __replyPartner__ parsed from PI 99 freetext (third-party: "REPLY=partner:account")
-	// 3. customerID (PI 61) from the F.MESSAGE
-	// 4. bankID (PI 62) from the F.MESSAGE
-	// 5. customerID from the original incoming transfer (__customerID__)
-	// 6. Login of the LocalAccount (convention: partner name = client login)
+	// 1. __replyPartner__ parsed from PI 99 freetext ("REPLY=partner:account")
+	//    — single mechanism for Waarp and third-party emitters
+	// 2. customerID (PI 61) from the F.MESSAGE
+	// 3. bankID (PI 62) from the F.MESSAGE
+	// 4. customerID from the original incoming transfer
+	// 5. Login of the LocalAccount (convention: partner name = client login)
 	candidates := []string{}
 
-	// Priority 1-2: __replyPartner__ (set explicitly or parsed from PI 99)
+	// Priority 1: __replyPartner__ from PI 99 convention
 	if rp, ok := inTrans.TransferInfo[replyPartnerKey]; ok {
 		candidates = append(candidates, fmt.Sprintf("%v", rp))
 	}
 
-	// Priority 3-4: PI 61/62 from the F.MESSAGE
+	// Priority 2-3: PI 61/62 from the F.MESSAGE
 	candidates = append(candidates, msg.CustomerID, msg.BankID)
 
-	// Priority 5: customerID from incoming transfer
+	// Priority 4: customerID from incoming transfer
 	if cid, ok := inTrans.TransferInfo[customerIDKey]; ok {
 		candidates = append(candidates, fmt.Sprintf("%v", cid))
 	}
 
-	// Priority 6: LocalAccount login (convention)
+	// Priority 5: LocalAccount login (convention)
 	if inTrans.LocalAccountID.Valid {
 		var acct model.LocalAccount
 		if err := s.db.Get(&acct, "id=?", inTrans.LocalAccountID.Int64).Run(); err == nil {

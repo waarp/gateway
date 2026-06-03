@@ -26,9 +26,8 @@ const (
 	articlesLengthsKey = "__articlesLengths__"
 	articleFormatKey   = "__articleFormat__"
 
-	// Store & Forward reply info keys. These can be set by the emitter
-	// (via TransferInfo on the TRANSFER task) to specify where the ACK
-	// should be sent back.
+	// Store & Forward reply info keys, extracted from PI 99 freetext
+	// convention "REPLY=partner:account".
 	replyPartnerKey = "__replyPartner__"
 	replyAccountKey = "__replyAccount__"
 )
@@ -150,21 +149,14 @@ func getArticleFormat(pip *pipeline.Pipeline, configValue string) pesit.ArticleF
 }
 
 // parseReplyInfo extracts Store & Forward reply info from a PI 99 freetext
-// field. Convention: the freetext may contain "REPLY=partner:account" (or
-// "REPLY=partner" with the account defaulting to first available).
+// field. Convention: "REPLY=partner:account" (or "REPLY=partner" with the
+// account defaulting to first available on the partner).
 //
-// This allows a third-party PeSIT emitter to specify where the ACK should
-// be sent back without requiring Waarp-specific TransferInfo.
-//
-// If __replyPartner__ is already set in TransferInfo (e.g. by a Waarp
-// emitter via the TRANSFER task's info parameter), the freetext is not parsed.
+// This is the single mechanism for all PeSIT emitters (Waarp or third-party)
+// to specify where the ACK F.MESSAGE should be sent back. The last PI 99
+// containing REPLY= wins (transfer freetext takes priority over connection).
 func parseReplyInfo(pip *pipeline.Pipeline, freetext string) {
 	if freetext == "" {
-		return
-	}
-
-	// Don't overwrite if already set explicitly via TransferInfo.
-	if _, ok := pip.TransCtx.Transfer.TransferInfo[replyPartnerKey]; ok {
 		return
 	}
 
@@ -177,7 +169,7 @@ func parseReplyInfo(pip *pipeline.Pipeline, freetext string) {
 
 	value := freetext[idx+len(prefix):]
 
-	// Trim at first space or comma (in case PI 99 contains other data).
+	// Trim at first space, comma, or semicolon (PI 99 may contain other data).
 	for _, sep := range []string{" ", ",", ";"} {
 		if i := strings.Index(value, sep); i >= 0 {
 			value = value[:i]
