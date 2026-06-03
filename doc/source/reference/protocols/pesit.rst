@@ -79,18 +79,242 @@ clients, serveurs et partenaires.
 Modes de compatibilité
 ----------------------
 
-Waarp Gateway offre des modes de compatibilité pour le protocole PeSIT permettant
-de communiquer avec les agents PeSIT ayant dévié des spécifications standards du
-protocole.
+Waarp Gateway supporte deux modes de fonctionnement pour le protocole PeSIT,
+configurables via la :ref:`configuration protocolaire <proto-config-pesit>` du
+partenaire ou du serveur local :
 
-Pour l'heure, le seul mode de compatibilité supporté est le mode ``axway``,
-permettant de communiquer avec des agents PeSIT tels que *CFT* ou *SecureTransport*.
-Ce mode de compatibilité doit être activé dans la :ref:`configuration protocolaire
-<proto-config-pesit>` du partenaire ou du serveur local (selon le cas).
-En mode de compatibilité ``axway``, le principal changement est que le champ de
-*Filename* des requêtes de transfert est utilisé pour transmettre le nom de
-la règle au lieu du nom de fichier. Celui-ci est, à la place, transmis via le
-champ *FileLabel*.
+- **Mode standard** (``standard``, par défaut) : le chemin du fichier distant
+  contient le nom de la règle en préfixe (ex: ``regle/fichier.txt``). Le serveur
+  identifie la règle à appliquer par correspondance de préfixe sur le chemin.
+
+- **Mode historique** (``historique``) : mode de compatibilité avec les agents PeSIT
+  utilisant la convention bancaire historique. Le champ *Filename* (PI 12) est utilisé pour
+  transmettre le nom de la règle au lieu du chemin de fichier. Celui-ci est, à la
+  place, transmis via le champ *FileLabel* (PI 37).
+
+.. _ref-proto-pesit-patterns:
+
+Pull avec pattern (glob)
+------------------------
+
+.. versionadded:: 0.16.0
+
+En mode pull (réception), le client peut envoyer un nom de fichier contenant des
+**caractères génériques** (``*`` et ``?``) dans sa requête de sélection. Le
+serveur résout alors le pattern pour trouver un fichier correspondant :
+
+1. **Transferts pré-enregistrés** : le serveur cherche d'abord parmi les transferts
+   ayant le statut ``AVAILABLE`` dont le nom de fichier correspond au pattern
+   (via ``path.Match``). Le premier transfert correspondant (le plus ancien par
+   date de soumission) est sélectionné.
+
+2. **Système de fichiers** : si aucun transfert pré-enregistré ne correspond, le
+   serveur effectue un glob sur le répertoire d'envoi de la règle et sélectionne
+   le premier fichier correspondant.
+
+Le nom de fichier résolu est renvoyé au client dans la réponse de sélection.
+Le client crée alors le fichier local avec le nom réel (et non le pattern).
+
+**Exemple** : un client envoie une requête de pull avec le pattern ``data-*.txt``.
+Si un transfert AVAILABLE existe avec le nom ``data-001.txt``, il sera sélectionné.
+Sinon, si un fichier ``data-001.txt`` existe dans le répertoire d'envoi de la règle,
+celui-ci sera servi.
+
+**Cas de correspondances multiples** :
+
+- Les transferts pré-enregistrés sont consommés un par un : chaque SELECT avec le
+  même pattern retourne le prochain transfert AVAILABLE correspondant.
+- Pour les fichiers du système de fichiers, il est recommandé d'utiliser une tâche
+  ``DELETE`` en post-traitement sur la règle. Ainsi, après chaque envoi, le fichier
+  est supprimé et le prochain SELECT avec le même pattern sélectionne le fichier
+  suivant.
+
+.. note::
+
+   Cette fonctionnalité n'est disponible qu'en mode ``standard``. En mode ``axway``,
+   le nom de fichier ne transite pas dans le même champ PeSIT et le pattern matching
+   n'est pas applicable.
+
+F.MESSAGE et acquittement Store & Forward
+-----------------------------------------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT supporte l'envoi de messages (F.MESSAGE) entre partenaires
+connectés, en dehors de tout transfert de fichier. Ce mécanisme est utilisé pour
+les **accusés de réception de bout en bout** dans les architectures *Store and
+Forward* (relais).
+
+Envoi d'un acquittement
+^^^^^^^^^^^^^^^^^^^^^^^
+
+La tâche ``SENDMESSAGE`` (catégorie *Transfert*) permet d'envoyer un F.MESSAGE
+en post-traitement d'une réception de fichier. **Tous les paramètres sont
+optionnels** lorsque la chaîne Store & Forward est correctement configurée :
+
+- **to** : nom du partenaire destinataire. Si absent, déduit automatiquement
+  depuis ``__replyPartner__`` dans les infos de transfert.
+- **as** : login sur le partenaire. Si absent, déduit depuis ``__replyAccount__``
+  ou premier compte disponible.
+- **message** : contenu du message. Si absent, un message ACK par défaut est
+  généré avec l'identifiant du transfert.
+
+Exemple de règle de réception avec acquittement automatique :
+
+.. code-block:: yaml
+
+   rules:
+     - name: receive-with-ack
+       isSend: false
+       localDir: received/in
+       post:
+         - type: SENDMESSAGE
+
+Sans argument, la tâche résout automatiquement le partenaire destinataire
+et le compte à utiliser (voir *Résolution du routage* ci-dessous).
+
+.. note::
+
+   La tâche ``SENDMESSAGE`` est spécifique au protocole PeSIT. Si elle est
+   configurée sur une règle utilisée par un autre protocole, elle est
+   silencieusement ignorée (pas d'erreur).
+
+Routage de l'acquittement (PI 61 / PI 62)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Le mécanisme standard PeSIT pour le routage des acquittements utilise
+**PI 61 (CustomerID)** et **PI 62 (BankID)**. Ces paramètres identifient
+l'émetteur original et le destinataire final à travers toute la chaîne de
+relais. C'est le mécanisme standard utilisé par les principaux produits PeSIT
+du marché.
+
+Lors d'un transfert Store & Forward, l'émetteur A positionne PI 61 avec
+son identifiant. Chaque noeud de transit préserve ces PI et les utilise pour
+router l'acquittement F.MESSAGE vers l'amont.
+
+La tâche ``SENDMESSAGE`` et le relais automatique résolvent le partenaire
+destinataire dans l'ordre suivant :
+
+1. **PI 61 (CustomerID)** du F.MESSAGE — mécanisme standard PeSIT
+2. **PI 62 (BankID)** du F.MESSAGE — mécanisme standard PeSIT
+3. **CustomerID du transfert entrant** (``__customerID__`` dans TransferInfo)
+4. **PI 99 ``REPLY=``** — convention optionnelle pour les cas non standard
+5. **Login du compte local** — convention de nommage (fallback)
+
+Pour une interopérabilité maximale avec les autres produits PeSIT du marché,
+il est recommandé de configurer les identifiants PI 61/PI 62 via les infos de
+transfert ``__customerID__`` et ``__bankID__``.
+
+.. note::
+
+   La convention PI 99 ``REPLY=partenaire:compte`` reste disponible comme
+   mécanisme de dernier recours pour les partenaires qui n'implémentent pas
+   correctement PI 61/PI 62. Elle est activée via le champ ``replyTo`` de la
+   :ref:`configuration protocolaire <proto-config-pesit>` du partenaire.
+
+Relais automatique (Store & Forward multi-sauts)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Dans une architecture à relais (A → B → C), le noeud intermédiaire B doit
+relayer l'acquittement de C vers A. Ce relais est **automatique** lorsque
+``relayMessages`` est activé dans la configuration du serveur PeSIT de B :
+
+.. code-block:: json
+
+   {"relayMessages": true}
+
+Le mécanisme de relais :
+
+1. C envoie un F.MESSAGE à B (via la tâche ``SENDMESSAGE`` en post-traitement)
+2. B reçoit le F.MESSAGE et retrouve le transfert sortant (B→C) par l'identifiant
+3. B suit la chaîne ``__followID__`` pour retrouver le transfert entrant (A→B)
+4. B lit PI 61 (CustomerID) du transfert entrant pour identifier A
+5. B envoie automatiquement le F.MESSAGE à A
+
+.. note::
+
+   Les informations de routage (``__followID__``, ``__customerID__``,
+   ``__bankID__``) sont automatiquement propagées lors des rebonds via la
+   tâche ``TRANSFER``, même sans l'option ``copyInfo``.
+
+Réception d'un F.MESSAGE
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Lorsqu'un partenaire envoie un F.MESSAGE à la Gateway, celle-ci :
+
+- Accepte le message (pas de rejet ni d'ABORT)
+- Stocke les métadonnées dans les infos de transfert du transfert référencé :
+  ``__messageACK__``, ``__messageCustomerID__``, ``__messageBankID__``
+- Si ``relayMessages`` est activé, relaie automatiquement vers l'émetteur
+  d'origine en suivant la chaîne PI 61/PI 62
+
+Transferts multi-fichiers
+-------------------------
+
+Le protocole PeSIT permet d'effectuer plusieurs transferts de fichiers sur une
+même connexion TCP/TLS (multi-sélection). Dans Waarp Gateway, chaque transfert
+correspond à une sélection de fichier (F.CREATE ou F.SELECT) distincte au sein
+de la même session PeSIT.
+
+Le client peut donc enchaîner plusieurs opérations push et/ou pull sur une même
+connexion, réduisant ainsi le coût d'établissement de connexion et d'authentification.
+
+Temporisations
+--------------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT définit trois temporisations (section 4.6 de la spécification)
+qui permettent de détecter les connexions inactives ou en échec :
+
+- **Tc** (temporisation de connexion) : après l'établissement de la connexion TCP,
+  le serveur attend la réception du FPDU CONNECT. Si celui-ci n'arrive pas dans
+  le délai imparti, la connexion est fermée. Valeur par défaut : 30 secondes.
+
+- **Td** (temporisation d'inactivité) : entre deux transferts sur une connexion
+  ouverte, si aucune requête (CREATE, SELECT ou RELEASE) n'arrive dans le délai
+  imparti, le serveur met fin à la connexion. Valeur typique : 5 minutes.
+
+- **Tp** (temporisation de surveillance protocolaire) : pendant un échange
+  protocolaire actif (transfert de données, ouverture/fermeture de fichier, etc.),
+  si le partenaire ne répond pas dans le délai imparti, la connexion est avortée.
+  Valeur par défaut : 30 secondes.
+
+Le timeout de surveillance protocolaire (Tp) est négocié lors de la connexion
+via le paramètre PI 26. Le client et le serveur peuvent chacun proposer une valeur ;
+la valeur finale retenue est la plus petite des deux. Une valeur de 0 désactive
+la temporisation.
+
+Compression
+-----------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT supporte la compression des données lors du transfert, telle
+que définie dans l'Annexe A de la spécification. La compression est négociée entre
+le client et le serveur lors de l'ouverture du fichier (F.OPEN) via le paramètre
+PI 21.
+
+Les algorithmes de compression supportés sont :
+
+- **Aucune compression** (par défaut) : les données sont transférées sans
+  compression.
+- **Compression horizontale** : suppression des caractères répétés consécutifs
+  au sein d'un même enregistrement.
+- **Compression verticale** : suppression des octets identiques entre
+  enregistrements successifs (comparaison colonne par colonne).
+- **Compression horizontale et verticale** : combinaison des deux algorithmes
+  précédents, appliqués successivement.
+
+La compression est transparente pour l'application : les données sont compressées
+à l'émission et décompressées à la réception sans intervention de l'utilisateur.
+
+.. note::
+
+   La compression PeSIT est un mécanisme protocolaire distinct de la compression
+   applicative (ZIP, GZIP). Elle opère au niveau des articles PeSIT et est
+   particulièrement efficace pour les fichiers à format fixe contenant des
+   enregistrements répétitifs (ex: fichiers COBOL, fichiers bancaires).
 
 Texte libre
 -----------
@@ -132,6 +356,94 @@ toujours dans le sens de la connexion (donc du client vers le serveur).
 
 Comme pour le texte libre, ces informations peuvent être référencées dans les traitements
 en utilisant leurs clés respectives.
+
+Formats de fichier (PI 31/32/33)
+---------------------------------
+
+.. versionadded:: 0.16.0
+
+Le protocole PeSIT transmet les attributs de format du fichier via les paramètres
+PI 31 (format d'article), PI 32 (taille d'article) et PI 33 (organisation du
+fichier). Ces attributs sont importants pour l'interopérabilité avec les systèmes
+mainframe (z/OS, AS/400) qui utilisent des fichiers à enregistrements fixes.
+
+**À l'émission**, le format d'article peut être configuré via :
+
+- La :ref:`configuration protocolaire <proto-config-pesit>` du partenaire ou du
+  serveur (champ ``articleFormat`` : ``variable`` ou ``fixed``)
+- L'info de transfert ``__articleFormat__`` (surcharge par transfert)
+
+**À la réception**, les attributs PI 31/32/33 envoyés par le partenaire sont
+stockés dans les :term:`infos de transfert` :
+
+- ``__articleFormat__`` : ``variable`` ou ``fixed`` (PI 31)
+- ``__fileType__`` : type de fichier (PI 11)
+- ``__organization__`` : organisation du fichier (PI 33) — ``Sequential``,
+  ``Relative`` ou ``Indexed``
+
+Ces informations peuvent être exploitées par des tâches de post-traitement pour
+adapter le fichier reçu.
+
+**Conversion Fixed → lignes (enregistrements fixes mainframe)**
+
+Lorsqu'un partenaire mainframe envoie un fichier à enregistrements fixes (PI 31 =
+Fixed, PI 32 = 80 par exemple), les données arrivent en flux continu sans
+séparateurs. Pour les convertir en fichier texte avec des retours à la ligne, il
+est recommandé d'utiliser une tâche ``EXEC`` en post-traitement avec un script
+qui insère un séparateur tous les N octets.
+
+Exemple de configuration de règle :
+
+.. code-block:: yaml
+
+   rules:
+     - name: mainframe-recv
+       isSend: false
+       localDir: mainframe/in
+       post:
+         - type: EXEC
+           args:
+             command: "python"
+             arg0: "-c"
+             arg1: |
+               import sys
+               size = 80  # taille de l'enregistrement (PI 32)
+               with open(sys.argv[1], 'rb') as f:
+                   data = f.read()
+               with open(sys.argv[1], 'wb') as f:
+                   for i in range(0, len(data), size):
+                       f.write(data[i:i+size].rstrip() + b'\n')
+             arg2: "#TRUEFULLPATH#"
+
+.. note::
+
+   La taille d'enregistrement (PI 32) est disponible dans les infos de transfert
+   mais ne peut pas être directement utilisée dans les arguments de la tâche. Si
+   la taille varie selon les flux, il est préférable d'utiliser un script qui lit
+   la valeur depuis la base de données ou qui la reçoit en paramètre via
+   ``__transferInfo__``.
+
+**Cas d'usage courants** :
+
+.. list-table::
+   :header-rows: 1
+
+   * - Cas
+     - articleFormat
+     - PI 32
+     - PI 33
+   * - Fichier COBOL (z/OS)
+     - ``fixed``
+     - 80
+     - Sequential
+   * - Fichier CSV / texte Unix
+     - ``variable``
+     - 4096
+     - Sequential
+   * - Fichier binaire
+     - ``variable``
+     - 4096
+     - Sequential
 
 Articles
 --------

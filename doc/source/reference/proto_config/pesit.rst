@@ -3,12 +3,14 @@
 Configuration PeSIT & PeSIT-TLS
 ###############################
 
-.. deprecated:: 0.14.0
+.. versionchanged:: 0.16.0
 
-   L'option ``disablePreConnection`` de la configuration serveur est désormais
-   ineffective. L'usage ou non de la pré-connexion est désormais détecté
-   automatiquement à l'ouverture de la connexion par le partenaire client.
-   Ce paramètre est donc désormais inutile.
+   L'option ``disablePreConnection`` de la configuration serveur est de nouveau
+   effective. Lorsqu'elle est activée, le serveur désactive complètement
+   l'auto-détection de pré-connexion et assume directement un cadrage NSDU
+   (comportement standard pour PeSIT sur TCP/IP). Il est recommandé de
+   désactiver la pré-connexion lorsque les deux partenaires sont des Gateways
+   Waarp ou des agents PeSIT modernes ne nécessitant pas de pré-connexion.
 
 Configuration client
 ====================
@@ -76,14 +78,18 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **useNSDU** (*boolean*) - Spécifie si les méta-paquets NSDU du protocole PeSIT
   doivent être utilisés lors des transferts avec ce partenaire. Par défaut, les
   paquets NSDU sont utilisés.
-* **compatibilityMode** (*string*) - Spécifie le mode de nommage des fichiers
-  pour les transferts PeSIT. Les valeurs autorisées sont : ``standard`` (PI 12
-  contient le nom/chemin du fichier) et ``historique`` (convention héritée du SIT
-  bancaire : PI 12 contient l'identifiant logique du flux, PI 37 contient le nom
-  physique du fichier). Ce mode ``historique`` est nécessaire pour l'interopérabilité
-  avec Axway CFT, IBM Connect:Express et les autres produits du marché.
-  ``non-standard`` est accepté comme alias déprécié de ``historique``.
-  Par défaut, le mode ``standard`` est utilisé.
+* **compatibilityMode** (*string*) - Spécifie le mode de compatibilité à utiliser
+  lors des communications avec le partenaire. Les valeurs autorisées sont :
+
+  - ``standard`` (par défaut) : mode standard PeSIT. Le chemin du fichier distant
+    contient le nom de la règle en préfixe (ex: ``regle/fichier.txt``). Le serveur
+    identifie la règle à appliquer par correspondance de préfixe. Ce mode supporte
+    également les **patterns glob** (``*``, ``?``) dans les requêtes de pull
+    (voir :ref:`ref-proto-pesit-patterns`).
+  - ``historique`` : mode de compatibilité avec les agents PeSIT utilisant la
+    convention bancaire historique.
+    Le champ *Filename* (PI 12) transmet le nom de la règle au lieu du chemin de
+    fichier, et le nom de fichier est transmis via le champ *FileLabel* (PI 37).
 * **maxMessageSize** (*integer*) - Spécifie la taille maximale (en octets) autorisée
   pour les paquets PeSIT envoyés à (et reçus depuis) ce partenaire. Le partenaire
   pourra unilatéralement décider d'utiliser une taille plus petite que celle-ci,
@@ -91,6 +97,25 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par
   défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.
+* **articleFormat** (*string*) - Spécifie le format des articles pour les transferts
+  sortants vers ce partenaire (PI 31). Les valeurs acceptées sont ``variable``
+  (par défaut) et ``fixed``. Surcharge la configuration du client/serveur si renseigné.
+  Peut également être surchargé par transfert via l'info de transfert
+  ``__articleFormat__``.
+* **compression** (*string*) - Spécifie l'algorithme de compression PeSIT (PI 21,
+  Annexe A) pour les transferts avec ce partenaire. Les valeurs acceptées sont :
+  ``none`` (par défaut), ``horizontal`` (RLE), ``vertical`` (inter-articles)
+  et ``both`` (horizontale + verticale combinées).
+* **maxConnections** (*integer*) - Limite le nombre de connexions PeSIT
+  simultanées vers ce partenaire. Lorsque la limite est atteinte, les nouveaux
+  transferts attendent qu'une connexion se libère. La valeur par défaut est 0
+  (illimité). Une valeur de 4 est un compromis raisonnable entre parallélisme
+  et protection du partenaire distant.
+* **replyTo** (*string*) - Adresse de retour pour les acquittements F.MESSAGE
+  (*Store and Forward*). Lorsque ce champ est renseigné, la Gateway ajoute
+  automatiquement ``REPLY=<valeur>`` dans le texte libre PI 99 de chaque transfert
+  sortant vers ce partenaire. Format : ``partenaire:compte`` ou ``partenaire``
+  seul (le compte sera déduit). Voir :ref:`ref-proto-pesit` section F.MESSAGE.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
@@ -105,8 +130,9 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
      "checkpointSize": 65535,
      "checkpointWindow": 2,
      "useNSDU": true,
-     "compatibilityMode": "historique",
+     "compatibilityMode": "axway",
      "maxMessageSize": 65535,
+     "maxConnections": 4,
      "minTLSVersion": "v1.2"
    }
 
@@ -130,20 +156,30 @@ est la suivante :
   connectant au serveur demande un interval plus grand, celui-ci sera rabaissé
   à ce maximum. N'a aucun effet si les checkpoints sont désactivés. Par défaut,
   le transfert sera stoppé si 2 checkpoints restent sans réponse du récepteur.
-* **compatibilityMode** (*string*) - Spécifie le mode de nommage des fichiers.
-  Mêmes valeurs que pour le partenaire : ``standard`` ou ``historique``.
-  Par défaut, le mode ``standard`` est utilisé.
-* **articleSize** (*integer*) - Spécifie la taille des articles (PI 32) annoncée
-  lors de la négociation. Par défaut, 4096 octets (compatible Axway CFT).
 * **maxMessageSize** (*integer*) - Spécifie la taille maximale (en octets) autorisée
   pour les paquets PeSIT envoyés à (et reçus depuis) ce serveur. Si un client se
   connectant au serveur demande une taille plus grande, celle-ci sera rabaissée
   à ce maximum. La valeur par défaut est de 65535 octets.
-* **disablePreConnection** (*boolean*) - Désactive le processus de pré-connexion
-  (et la pré-authentification qui va avec) si le partenaire client ne le supporte pas.
-  En mode PeSIT-TLS, la pré-connexion est automatiquement désactivée.
-  Par défaut, un échange de pré-connexion aura lieu à chaque nouvelle connexion
-  en mode PeSIT (non-TLS).
+* **articleFormat** (*string*) - Spécifie le format des articles pour les transferts
+  sortants (PI 31). Les valeurs acceptées sont ``variable`` (par défaut) et ``fixed``.
+  Le format fixe est utilisé pour les fichiers à enregistrements de taille constante
+  (ex: fichiers mainframe COBOL de 80 octets). Cette valeur peut être surchargée
+  par transfert via l'info de transfert ``__articleFormat__``.
+* **compression** (*string*) - Spécifie l'algorithme de compression PeSIT (PI 21,
+  Annexe A). Les valeurs acceptées sont : ``none`` (par défaut), ``horizontal``
+  (RLE), ``vertical`` (inter-articles) et ``both`` (combinées). La compression
+  est négociée à l'ouverture du fichier (F.OPEN) et est transparente pour les
+  données.
+* **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
+  pré-connexion (et la pré-authentification qui va avec) si le partenaire client
+  ne le supporte pas. Lorsque ce paramètre est activé, le serveur assume
+  directement un cadrage NSDU sans tenter d'auto-détection. Par défaut, la
+  pré-connexion est gérée par auto-détection.
+* **relayMessages** (*boolean*) - Active le relais automatique des F.MESSAGE
+  (*Store and Forward*). Lorsqu'un partenaire envoie un F.MESSAGE d'acquittement,
+  le serveur retrouve le transfert d'origine et relaie automatiquement le message
+  vers l'émetteur initial. Par défaut : ``false``. Voir :ref:`ref-proto-pesit`
+  section F.MESSAGE.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée par ce serveur. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
