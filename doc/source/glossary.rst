@@ -211,9 +211,11 @@ Glossaire
    restart
    reprise de transfert
    (*restart*)
-      Capacité PeSIT à reprendre un transfert interrompu à partir du dernier
-      :term:`checkpoint` confirmé, plutôt que de recommencer depuis le début.
-      La reprise est négociée lors de la connexion entre le client et le serveur.
+      Capacité à reprendre un transfert interrompu à partir du dernier point de
+      progression connu, plutôt que de recommencer depuis le début. Les protocoles
+      qui le supportent (PeSIT, R66) négocient cette capacité lors de la connexion.
+      En PeSIT, la reprise s'appuie sur les :term:`checkpoints<checkpoint>`.
+      En R66, elle s'appuie sur le nombre d'octets déjà transférés.
 
    article
       Unité de segmentation des données dans le protocole PeSIT. Un fichier est
