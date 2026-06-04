@@ -495,6 +495,9 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 	}
 
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
+	if replyTo := r.FormValue("protoConfigPeSITreplyTo"); replyTo != "" {
+		pesitProtoConfig["replyTo"] = replyTo
+	}
 
 	if protocol == pesit.PesitTLS {
 

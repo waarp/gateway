@@ -211,6 +211,8 @@ func configurePesitClient(
 	setFreetext(pip, clientConnFreetextKey, client)
 
 	// Inject REPLY= in connection freetext for Store & Forward ACK routing.
+	// Also mark the sender's TransferInfo so the GUI shows the red badge
+	// ("ACK expected") until the ACK is received.
 	if config.ReplyTo != "" {
 		freetext := client.FreeText()
 		if freetext != "" {
@@ -219,6 +221,8 @@ func configurePesitClient(
 
 		freetext += "REPLY=" + config.ReplyTo
 		client.SetFreeText(freetext)
+
+		pip.TransCtx.Transfer.TransferInfo["__ackExpected__"] = "true"
 	}
 }
 

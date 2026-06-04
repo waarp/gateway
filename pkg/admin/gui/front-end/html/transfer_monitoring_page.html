@@ -120,7 +120,7 @@
             <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK émis">
               <span class="badge bg-primary"><i class="bi bi-send-check"></i></span>
             </button>
-          {{ else if index .TransferInfo "__replyPartner__" }}
+          {{ else if index .TransferInfo "__ackExpected__" }}
             {{/* ACK demandé mais pas reçu → badge rouge */}}
             <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK en attente">
               <span class="badge bg-danger"><i class="bi bi-clock-history"></i></span>
@@ -129,7 +129,7 @@
           {{ end }}
 
           {{/* Modale ACK (si applicable) */}}
-          {{ if and .TransferInfo (or (index .TransferInfo "__messageACK__") (index .TransferInfo "__ackSent__") (index .TransferInfo "__replyPartner__")) }}
+          {{ if and .TransferInfo (or (index .TransferInfo "__messageACK__") (index .TransferInfo "__ackSent__") (index .TransferInfo "__ackExpected__")) }}
           <div class="modal fade" id="ackModal_{{ .ID }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-sm">
               <div class="modal-content">
@@ -161,8 +161,7 @@
                       <div><strong>Date :</strong> {{ index .TransferInfo "__ackSentAt__" }}</div>
                     {{ end }}
                   {{ else }}
-                    <div class="text-danger">ACK demandé (replyTo configuré) mais pas encore reçu.</div>
-                    <div><strong>Partenaire attendu :</strong> {{ index .TransferInfo "__replyPartner__" }}</div>
+                    <div class="text-danger">ACK demandé mais pas encore reçu.</div>
                   {{ end }}
                 </div>
               </div>

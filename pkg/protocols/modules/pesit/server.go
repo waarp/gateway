@@ -327,10 +327,11 @@ func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageReque
 	}
 
 	outTrans.TransferInfo["__messageACK__"] = msg.Message
-
 	outTrans.TransferInfo["__messageCustomerID__"] = msg.CustomerID
-
 	outTrans.TransferInfo["__messageBankID__"] = msg.BankID
+
+	// Clear the "expected" flag so the badge switches from red to green.
+	delete(outTrans.TransferInfo, "__ackExpected__")
 
 	if err := s.db.Update(&outTrans).Cols("transfer_info").Run(); err != nil {
 		s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",

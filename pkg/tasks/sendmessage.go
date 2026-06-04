@@ -115,6 +115,11 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 
 	tid := parseMessageTransferID(t.TransferID, logger)
 
+	// If no explicit transferID, use the current transfer's remote ID.
+	if tid == 0 {
+		tid = parseMessageTransferID(transCtx.Transfer.RemoteTransferID, logger)
+	}
+
 	logger.Infof("SENDMESSAGE: sending F.MESSAGE to partner %q as %q", partner.Name, account.Login)
 
 	if err := SendPeSITMessage(db, partner.Name, account.Login, tid, t.Message, logger); err != nil {
