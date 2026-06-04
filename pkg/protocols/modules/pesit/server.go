@@ -333,9 +333,8 @@ func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageReque
 	// Clear the "expected" flag so the badge switches from red to green.
 	delete(outTrans.TransferInfo, "__ackExpected__")
 
-	if err := s.db.Update(&outTrans).Cols("transfer_info").Run(); err != nil {
+	if err := outTrans.UpdateInfo(s.db); err != nil {
 		s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",
-
 			outTrans.ID, err)
 	} else {
 		s.logger.Infof("F.MESSAGE ACK stored on transfer %d", outTrans.ID)
