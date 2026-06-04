@@ -307,43 +307,52 @@ func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageReque
 
 	remoteID := strconv.FormatUint(uint64(msg.TransferID), 10)
 
-	// Find the outgoing transfer that this ACK references.
-
-	var outTrans model.Transfer
-
-	if err := s.db.Get(&outTrans, "remote_transfer_id=?", remoteID).
+	// Find the outgoing transfer via the normalized view (covers both
+	// active transfers and completed history entries).
+	var view model.NormalizedTransferView
+	if err := s.db.Get(&view, "remote_transfer_id=?", remoteID).
 		Owner().OrderBy("start", false).Run(); err != nil {
-
 		s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", msg.TransferID)
-
 		return nil
-
 	}
 
-	// Store the ACK info on the outgoing transfer.
-
-	if outTrans.TransferInfo == nil {
-		outTrans.TransferInfo = make(map[string]any)
+	if view.TransferInfo == nil {
+		view.TransferInfo = make(map[string]any)
 	}
 
-	outTrans.TransferInfo["__messageACK__"] = msg.Message
-	outTrans.TransferInfo["__messageCustomerID__"] = msg.CustomerID
-	outTrans.TransferInfo["__messageBankID__"] = msg.BankID
+	view.TransferInfo["__messageACK__"] = msg.Message
+	view.TransferInfo["__messageCustomerID__"] = msg.CustomerID
+	view.TransferInfo["__messageBankID__"] = msg.BankID
+	delete(view.TransferInfo, "__ackExpected__")
 
-	// Clear the "expected" flag so the badge switches from red to green.
-	delete(outTrans.TransferInfo, "__ackExpected__")
-
-	if err := outTrans.UpdateInfo(s.db); err != nil {
-		s.logger.Warningf("Failed to store F.MESSAGE info on transfer %d: %v",
-			outTrans.ID, err)
+	// Write via the correct owner type (Transfer or HistoryEntry).
+	if view.IsTransfer {
+		trans := &model.Transfer{ID: view.ID, TransferInfo: view.TransferInfo}
+		if err := trans.UpdateInfo(s.db); err != nil {
+			s.logger.Warningf("Failed to store F.MESSAGE ACK on transfer %d: %v", view.ID, err)
+		} else {
+			s.logger.Infof("F.MESSAGE ACK stored on transfer %d", view.ID)
+		}
 	} else {
-		s.logger.Infof("F.MESSAGE ACK stored on transfer %d", outTrans.ID)
+		hist := &model.HistoryEntry{ID: view.ID, TransferInfo: view.TransferInfo}
+		if err := hist.UpdateInfo(s.db); err != nil {
+			s.logger.Warningf("Failed to store F.MESSAGE ACK on history %d: %v", view.ID, err)
+		} else {
+			s.logger.Infof("F.MESSAGE ACK stored on history entry %d", view.ID)
+		}
 	}
 
 	// If relay is enabled, try to forward the message upstream.
-
 	if s.conf.RelayMessages {
-		s.relayMessage(&outTrans, msg)
+		outTrans := &model.Transfer{
+			ID:               view.ID,
+			RemoteTransferID: view.RemoteTransferID,
+			TransferInfo:     view.TransferInfo,
+		}
+		if view.IsTransfer {
+			outTrans.LocalAccountID = utils.NewNullInt64(view.ID)
+		}
+		s.relayMessage(outTrans, msg)
 	}
 
 	return nil

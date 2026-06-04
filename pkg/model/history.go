@@ -63,6 +63,11 @@ func (h *HistoryEntry) setTransInfoOwner(info *TransferInfo) {
 	info.HistoryID = utils.NewNullInt64(h.ID)
 }
 
+// UpdateInfo writes the TransferInfo map to the transfer_info table.
+func (h *HistoryEntry) UpdateInfo(db database.Access) error {
+	return setTransferInfo(db, h, h.TransferInfo)
+}
+
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
 //
