@@ -56,7 +56,7 @@ func TestTransferAdd(t *testing.T) {
 				"output":               output,
 				"start":                start,
 				"transferInfo":         map[string]any{key: val},
-				"numberOfTries":        float64(nbRetries),
+				"nbOfAttempts":         float64(nbRetries),
 				"firstRetryDelay":      retryDelaySec,
 				"retryIncrementFactor": retryFactor,
 			},

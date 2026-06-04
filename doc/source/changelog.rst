@@ -3,7 +3,9 @@
 Historique des versions
 =======================
 
-* :release:`0.15.7 <2026-06-03>`
+* :release:`0.15.7 <2026-06-04>`
+* :bug:`-` Correction d'un mauvais nom de champ JSON dans la commande terminal
+  ``waarp-gateway transfer add`` pour le paramètre du nombre de tentatives.
 * :bug:`570` Correction d'un bug causant le *timeout* de la commande d'import
   sous certaines conditions, notamment en présence d'un grand nombre de
   partenaires R66.
