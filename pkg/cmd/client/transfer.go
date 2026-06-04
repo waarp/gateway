@@ -106,7 +106,7 @@ type TransferAdd struct {
 	Rule                 string             `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer" json:"rule,omitempty"`
 	Date                 string             `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer" json:"start,omitempty"`
 	TransferInfo         map[string]confVal `short:"i" long:"info" description:"Custom information about the transfer, in key:val format. Can be repeated." json:"transferInfo,omitempty"`
-	NumberOfTries        int8               `long:"nb-of-attempts" description:"The number of times the transfer will be automatically retried if it failed" json:"numberOfTries,omitempty"`
+	NumberOfAttempts     int8               `long:"nb-of-attempts" description:"The number of times the transfer will be automatically retried if it failed" json:"nbOfAttempts,omitempty"`
 	FirstRetryDelay      time.Duration      `long:"retry-delay" description:"The amount of time between automatic retries. Accepted units: 's', 'm' & 'h'" json:"-"`
 	FirstRetryDelaySec   int32              `json:"firstRetryDelay,omitempty"`
 	RetryIncrementFactor float32            `long:"retry-increment-factor" description:"The factor by which the retry delay will increase after each retry" json:"retryIncrementFactor,omitempty"`
