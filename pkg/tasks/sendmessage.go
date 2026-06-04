@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -121,6 +122,13 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 	}
 
 	logger.Infof("SENDMESSAGE: F.MESSAGE sent successfully to %s/%s", partner.Name, account.Login)
+
+	// Mark the transfer as ACK-sent for GUI visibility.
+	transCtx.Transfer.TransferInfo["__ackSent__"] = "true"
+	transCtx.Transfer.TransferInfo["__ackSentTo__"] = partner.Name
+	transCtx.Transfer.TransferInfo["__ackSentAs__"] = account.Login
+	transCtx.Transfer.TransferInfo["__ackSentAt__"] = time.Now().UTC().Format(time.RFC3339)
+
 	return nil
 }
 

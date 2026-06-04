@@ -108,6 +108,68 @@
               <span class="text-muted">{{ index $.tab "none" }}</span>
             {{ end }}
         </td>
+        <td class="text-center">
+          {{ if .TransferInfo }}
+          {{ if index .TransferInfo "__messageACK__" }}
+            {{/* ACK reçu → badge vert */}}
+            <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK reçu">
+              <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+            </button>
+          {{ else if index .TransferInfo "__ackSent__" }}
+            {{/* ACK émis → badge bleu */}}
+            <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK émis">
+              <span class="badge bg-primary"><i class="bi bi-send-check"></i></span>
+            </button>
+          {{ else if index .TransferInfo "__replyPartner__" }}
+            {{/* ACK demandé mais pas reçu → badge rouge */}}
+            <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK en attente">
+              <span class="badge bg-danger"><i class="bi bi-clock-history"></i></span>
+            </button>
+          {{ end }}
+          {{ end }}
+
+          {{/* Modale ACK (si applicable) */}}
+          {{ if and .TransferInfo (or (index .TransferInfo "__messageACK__") (index .TransferInfo "__ackSent__") (index .TransferInfo "__replyPartner__")) }}
+          <div class="modal fade" id="ackModal_{{ .ID }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+              <div class="modal-content">
+                <div class="modal-header py-2">
+                  <h6 class="modal-title">
+                    {{ if index .TransferInfo "__messageACK__" }}
+                      <span class="text-success"><i class="bi bi-check-circle me-1"></i>ACK reçu</span>
+                    {{ else if index .TransferInfo "__ackSent__" }}
+                      <span class="text-primary"><i class="bi bi-send-check me-1"></i>ACK émis</span>
+                    {{ else }}
+                      <span class="text-danger"><i class="bi bi-clock-history me-1"></i>ACK en attente</span>
+                    {{ end }}
+                  </h6>
+                  <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-2" style="font-size:0.85em">
+                  {{ if index .TransferInfo "__messageACK__" }}
+                    <div><strong>Message :</strong> {{ index .TransferInfo "__messageACK__" }}</div>
+                    {{ if index .TransferInfo "__messageCustomerID__" }}
+                      <div><strong>CustomerID :</strong> {{ index .TransferInfo "__messageCustomerID__" }}</div>
+                    {{ end }}
+                    {{ if index .TransferInfo "__messageBankID__" }}
+                      <div><strong>BankID :</strong> {{ index .TransferInfo "__messageBankID__" }}</div>
+                    {{ end }}
+                  {{ else if index .TransferInfo "__ackSent__" }}
+                    <div><strong>Envoyé à :</strong> {{ index .TransferInfo "__ackSentTo__" }}</div>
+                    <div><strong>Compte :</strong> {{ index .TransferInfo "__ackSentAs__" }}</div>
+                    {{ if index .TransferInfo "__ackSentAt__" }}
+                      <div><strong>Date :</strong> {{ index .TransferInfo "__ackSentAt__" }}</div>
+                    {{ end }}
+                  {{ else }}
+                    <div class="text-danger">ACK demandé (replyTo configuré) mais pas encore reçu.</div>
+                    <div><strong>Partenaire attendu :</strong> {{ index .TransferInfo "__replyPartner__" }}</div>
+                  {{ end }}
+                </div>
+              </div>
+            </div>
+          </div>
+          {{ end }}
+        </td>
         <td>
             <button class="btn btn-outline-primary modal-btn" type="button" data-bs-toggle="modal" data-bs-target="#moreInfosModal_{{ .ID }}">
               <i class="bi bi-three-dots"></i>
@@ -705,6 +767,7 @@
             <th>{{ index .tab "end" }}</th>
             <th>{{ index .tab "progress" }}</th>
             <th>{{ index .tab "size" }}</th>
+            <th>ACK</th>
             <th>{{ index .tab "moreInfo" }}</th>
             <th class="text-end"></th>
         </tr>

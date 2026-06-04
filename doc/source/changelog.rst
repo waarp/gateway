@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.16.0 <2026-06-03>`
+* :feature:`580` Visibilité des acquittements PeSIT (F.MESSAGE) dans la liste
+  des transferts : badge vert (ACK reçu), bleu (ACK émis), rouge (ACK attendu
+  mais pas reçu). Clic sur le badge pour voir les détails (message, partenaire,
+  date).
 * :feature:`567` Exécution conditionnelle des tâches : un champ ``condition``
   optionnel permet de conditionner l'exécution d'une tâche via une expression
   utilisant les variables de substitution (``==``, ``!=``, ``>``, ``<``,
