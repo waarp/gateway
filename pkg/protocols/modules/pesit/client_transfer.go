@@ -101,8 +101,6 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 ) *pipeline.Error {
 	// Connection is already established via ConnPool (c.conn)
 
-	c.injectReplyTo(partConf.ReplyTo)
-
 	setTransInfo(c.pip, serverConnFreetextKey, c.conn.FreeText())
 
 	// initialize transfer

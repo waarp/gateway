@@ -209,6 +209,17 @@ func configurePesitClient(
 	//nolint:errcheck // freetext is best-effort
 
 	setFreetext(pip, clientConnFreetextKey, client)
+
+	// Inject REPLY= in connection freetext for Store & Forward ACK routing.
+	if config.ReplyTo != "" {
+		freetext := client.FreeText()
+		if freetext != "" {
+			freetext += " "
+		}
+
+		freetext += "REPLY=" + config.ReplyTo
+		client.SetFreeText(freetext)
+	}
 }
 
 var (

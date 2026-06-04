@@ -136,6 +136,10 @@ func sendPeSITMessage(db *database.DB, partnerName, accountLogin string,
 		client.SetPreConnectionUsage(false)
 	}
 
+	if partConf.UseNSDU.Valid && partConf.UseNSDU.Value {
+		client.SetNSDUUsage(true)
+	}
+
 	// Connect
 
 	if err := client.Connect(conn); err != nil {
