@@ -50,6 +50,7 @@ func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 		Start:          hist.Start.Local(),
 		Stop:           stop,
 		TransferInfo:   hist.TransferInfo,
+		AckTracking:    toOutAckTracking(hist.AckTracking),
 		Status:         hist.Status,
 		ErrorCode:      hist.ErrCode,
 		ErrorMsg:       hist.ErrDetails,

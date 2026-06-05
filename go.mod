@@ -57,6 +57,9 @@ require (
 //freeze xorm to v1.3.2 as later versions break the "SELECT FOR UPDATE" on SQLite
 replace xorm.io/xorm => xorm.io/xorm v1.3.2
 
+// use local lib-pesit with MessageOption support (SendMessage variadic opts)
+replace code.waarp.fr/lib/pesit => ../PESIT/lib-pesit
+
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5 // indirect
 	cloud.google.com/go/auth v0.20.0 // indirect

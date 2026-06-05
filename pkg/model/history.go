@@ -40,6 +40,7 @@ type HistoryEntry struct {
 	ErrCode          types.TransferErrorCode `xorm:"error_code"`
 	ErrDetails       string                  `xorm:"error_details"`
 	TransferInfo     map[string]any          `xorm:"-"`
+	AckTracking      *AckTracking            `xorm:"-"`
 }
 
 func (*HistoryEntry) TableName() string   { return TableHistory }
@@ -225,6 +226,9 @@ func (h *HistoryEntry) AfterRead(db database.ReadAccess) error {
 	}
 
 	h.TransferInfo = infos
+
+	// Load ack_tracking entry (best-effort, nil if not found).
+	h.AckTracking = GetAckTracking(db, h.ID)
 
 	return nil
 }

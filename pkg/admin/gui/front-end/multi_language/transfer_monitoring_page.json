@@ -134,5 +134,19 @@
     "tooltipClientSend": { "fr": "Envoi depuis le client vers le serveur", "en": "Sending from client to server" },
     "tooltipClientReceive": { "fr": "Réception sur le client depuis le serveur", "en": "Reception on the client from the server" },
     "tooltipServerSend": { "fr": "Envoi depuis le serveur vers le client", "en": "Sending from server to client" },
-    "tooltipServerReceive": { "fr": "Réception sur le serveur depuis le client", "en": "Reception on the server from the client" }
+    "tooltipServerReceive": { "fr": "Réception sur le serveur depuis le client", "en": "Reception on the server from the client" },
+
+    "ackSection": { "fr": "Acquittement", "en": "Acknowledgment" },
+    "ackState": { "fr": "État", "en": "State" },
+    "ackReceived": { "fr": "ACK reçu", "en": "ACK received" },
+    "ackSent": { "fr": "ACK émis", "en": "ACK sent" },
+    "ackPending": { "fr": "ACK en attente", "en": "ACK pending" },
+    "ackReceivedTooltip": { "fr": "ACK reçu de", "en": "ACK received from" },
+    "ackSentTooltip": { "fr": "ACK émis vers", "en": "ACK sent to" },
+    "ackPendingTooltip": { "fr": "ACK en attente", "en": "ACK pending" },
+    "ackPendingMsg": { "fr": "ACK demandé mais pas encore reçu.", "en": "ACK requested but not yet received." },
+    "ackOrigin": { "fr": "Origine", "en": "Origin" },
+    "ackVia": { "fr": "Via", "en": "Via" },
+    "ackDate": { "fr": "Date", "en": "Date" },
+    "ackSentTo": { "fr": "Envoyé à", "en": "Sent to" }
 }

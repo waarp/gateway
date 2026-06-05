@@ -264,6 +264,11 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }} disabled>
         </div>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "replyTo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipReplyTo" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.replyTo (index $.tab "undefined") }}" disabled>
+    </div>
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">

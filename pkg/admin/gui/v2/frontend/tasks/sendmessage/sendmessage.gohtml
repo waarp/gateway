@@ -1,7 +1,20 @@
 <!-- Task description -->
 <p class="task-description">{{ .Text.description }}</p>
 
-<!-- Partner (optional - resolved from __replyPartner__ if empty) -->
+<!-- Passthrough (S&F relay mode) -->
+{{ template "checkInputRow" dict
+    "label" .Text.passthrough
+    "tooltip" .Text.passthroughTooltip
+    "fieldName" "passthrough"
+    "id" "sendmessage-passthrough"
+    "value" (eq .Task.Args.passthrough "true")
+    "optional" true
+}}
+
+<!-- Fields hidden when passthrough is checked -->
+<div id="sendmessage-fields" {{ if eq .Task.Args.passthrough "true" }}style="display:none"{{ end }}>
+
+<!-- Partner (optional - resolved from Reply To if empty) -->
 {{ template "textInputRow" dict
     "label" .Text.partner
     "tooltip" .Text.partnerTooltip
@@ -45,13 +58,32 @@
     "optional" true
 }}
 
-<!-- Condition (optional) -->
+<!-- Customer ID (optional, for S&F origin tracking) -->
 {{ template "textInputRow" dict
-    "label" .Text.condition
-    "tooltip" .Text.conditionTooltip
-    "fieldName" "condition"
+    "label" .Text.customerID
+    "tooltip" .Text.customerIDTooltip
+    "fieldName" "customerID"
     "fieldType" "text"
-    "value" .Task.Args.condition
-    "placeholder" .Text.conditionPlaceholder
+    "value" .Task.Args.customerID
+    "placeholder" .Text.customerIDPlaceholder
     "optional" true
 }}
+
+<!-- Bank ID (optional, for S&F origin tracking) -->
+{{ template "textInputRow" dict
+    "label" .Text.bankID
+    "tooltip" .Text.bankIDTooltip
+    "fieldName" "bankID"
+    "fieldType" "text"
+    "value" .Task.Args.bankID
+    "placeholder" .Text.bankIDPlaceholder
+    "optional" true
+}}
+
+</div>
+
+<script>
+document.getElementById("sendmessage-passthrough").addEventListener("change", function() {
+    document.getElementById("sendmessage-fields").style.display = this.checked ? "none" : "";
+});
+</script>

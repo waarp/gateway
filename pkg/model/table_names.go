@@ -25,6 +25,7 @@ const (
 	TableCryptoKeys      = "crypto_keys"
 	TableEmailTemplates  = "email_templates"
 	TableSMTPCredentials = "smtp_credentials"
+	TableAckTracking     = "ack_tracking"
 
 	ViewNormalizedTransfers = "normalized_transfers"
 )

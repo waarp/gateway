@@ -20,6 +20,7 @@ const (
 	NameCryptoKey          = "cryptographic key"
 	NameEmailTemplate      = "email template"
 	NameSMTPCredential     = "smtp credential"
+	NameAckTracking        = "ack tracking"
 )
 
 const authPassword = "password"

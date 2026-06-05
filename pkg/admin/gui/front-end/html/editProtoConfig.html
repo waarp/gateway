@@ -330,6 +330,32 @@
             <input class="form-check-input" type="checkbox" name="disablePreConnection" id="disablePreConnection" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "disablePreConnection" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.disablePreConnection true }}checked{{ end }}>
         </div>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "replyTo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipReplyTo" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input ack-enabled-checkbox" type="checkbox" name="protoConfigPeSITackEnabled" value="true"
+                {{ if $.modalElement }}{{ $v := index $.modalElement "protoConfigPeSITackEnabled" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if .ProtoConfig.replyTo }}checked{{ end }}>
+        </div>
+    </div>
+    <div class="ack-fields-container" {{ if $.modalElement }}{{ $v := index $.modalElement "protoConfigPeSITackEnabled" }}{{ if not (or (eq $v "true") (eq $v true)) }}style="display:none"{{ end }}{{ else if not .ProtoConfig.replyTo }}style="display:none"{{ end }}>
+        <div class="form-input mt-2">
+            <label class="col-form-label">{{ index .tab "ackServer" }} :</label>
+            <select name="protoConfigPeSITackServer" class="form-select ack-server-select"
+                data-current-replyto="{{ .ProtoConfig.replyTo }}">
+                <option value="">-- {{ index .tab "ackSelectServer" }} --</option>
+                {{ range $.pesitServers }}
+                    <option value="{{ .Name }}" data-accounts="{{ marshalJSON .Accounts }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+        </div>
+        <div class="form-input mt-2">
+            <label class="col-form-label">{{ index .tab "ackAccount" }} :</label>
+            <select name="protoConfigPeSITackAccount" class="form-select ack-account-select">
+                <option value="">-- {{ index .tab "ackSelectAccount" }} --</option>
+            </select>
+        </div>
+    </div>
     <div id="pesit-tlsForm">
         <hr style="border-top: 1px solid #ababab;">
                 <div class="form-input mt-4">

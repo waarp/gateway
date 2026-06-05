@@ -55,4 +55,5 @@ type (
 	CryptoKeys          = Slice[*CryptoKey]
 	EmailTemplates      = Slice[*EmailTemplate]
 	SMTPCredentials     = Slice[*SMTPCredential]
+	AckTrackings        = Slice[*AckTracking]
 )

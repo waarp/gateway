@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strconv"
-	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -16,8 +16,8 @@ import (
 //nolint:gochecknoglobals //same pattern as NewClientPipeline - breaks import cycle
 
 var SendPeSITMessage func(db *database.DB, partnerName, accountLogin string,
-
-	transferID uint32, message string, logger *log.Logger) error
+	transferID uint32, message string, logger *log.Logger,
+	customerID, bankID string) error
 
 var (
 	ErrSendMessageNoPartner = errors.New(`no target for SENDMESSAGE: set "partner" argument or configure replyTo on the partner`)
@@ -31,58 +31,37 @@ var (
 	ErrSendMessageNotWired = errors.New("SENDMESSAGE not available: PeSIT module not loaded")
 )
 
-// sendMessageTask is a post-task that sends a F.MESSAGE (PeSIT) to a remote
-
-// partner. It is typically used for Store-and-Forward acknowledgments.
-
+// sendMessageTask is a post-task that sends a PeSIT F.MESSAGE to a remote
+// partner. Typically used for application-level acknowledgments (ACK).
 //
-
-// The task is conditional: if the "condition" argument is set, the task checks
-
-// that the corresponding TransferInfo key exists and equals "1". If not, the
-
-// task silently succeeds without sending anything.
-
+// Partner and account are resolved automatically from the "Reply To (ACK)"
+// address configured on the sending partner if not explicitly provided.
 //
-
 // Arguments:
-
 //
-
-//	partner   (optional) Remote partner name. Resolved from __replyPartner__ if empty. Supports variable substitution.
-
-//	account   (optional) Remote account login. Defaults to first account of the partner.
-
-//	message   (optional) Message content. Supports variable substitution. Max 4096 chars.
-
-//	transferId (optional) Transfer ID to reference in the F.MESSAGE. Supports variables.
-
-//	condition (optional) TransferInfo key to check. If set and value != "1", skip.
-
+//	partner     (optional) Remote partner name. Auto-resolved from Reply To if empty.
+//	account     (optional) Remote account login. Defaults to first account of the partner.
+//	message     (optional) Message content. Supports variable substitution. Max 4096 chars.
+//	transferId  (optional) PeSIT transfer ID to reference in the F.MESSAGE.
+//	passthrough (optional) If "true", skip sending (S&F relay: only the final destination sends the ACK).
+//	customerID  (optional) Applicative identifier. Propagates origin identity through S&F relay chains.
+//	bankID      (optional) Secondary applicative identifier. Fallback for origin identity in S&F.
 type sendMessageTask struct {
-	Partner string `json:"partner"`
-
-	Account string `json:"account"`
-
-	Message string `json:"message"`
-
-	TransferID string `json:"transferId"`
-
-	Condition string `json:"condition"`
+	Partner     string `json:"partner"`
+	Account     string `json:"account"`
+	Message     string `json:"message"`
+	TransferID  string `json:"transferId"`
+	Passthrough string `json:"passthrough"`
+	CustomerID  string `json:"customerID"`
+	BankID      string `json:"bankID"`
 }
 
-// Validate only checks JSON parsing -- partner/account are resolved at runtime
-
-// from TransferInfo if not explicitly set.
-
+// Validate checks JSON parsing. Partner/account are resolved at runtime
+// from the replyTo configuration if not explicitly set.
 func (t *sendMessageTask) Validate(args map[string]string) error {
 	if err := utils.JSONConvert(args, t); err != nil {
 		return fmt.Errorf("failed to parse sendmessage arguments: %w", err)
 	}
-
-	// partner is no longer required at validation time: it can be resolved
-
-	// at runtime from __replyPartner__ in TransferInfo.
 
 	return nil
 }
@@ -94,8 +73,11 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 		return fmt.Errorf("failed to parse sendmessage arguments: %w", err)
 	}
 
-	if skip, err := t.checkCondition(logger, transCtx); skip || err != nil {
-		return err
+	// Passthrough mode: in S&F, the relay node (B) must NOT send an ACK.
+	// Only the final destination (C) should emit the ACK.
+	if t.Passthrough == "true" {
+		logger.Debug("SENDMESSAGE skipped: passthrough mode (S&F relay)")
+		return nil
 	}
 
 	partnerName, accountLogin := t.resolveTarget(transCtx)
@@ -120,37 +102,38 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 		tid = parseMessageTransferID(transCtx.Transfer.RemoteTransferID, logger)
 	}
 
+	// Default message if none configured.
+	message := t.Message
+	if message == "" {
+		filename := path.Base(transCtx.Transfer.LocalPath)
+		message = fmt.Sprintf("ACK %s %s", transCtx.Rule.Name, filename)
+	}
+
 	logger.Infof("SENDMESSAGE: sending F.MESSAGE to partner %q as %q", partner.Name, account.Login)
 
-	if err := SendPeSITMessage(db, partner.Name, account.Login, tid, t.Message, logger); err != nil {
+	if err := SendPeSITMessage(db, partner.Name, account.Login, tid, message, logger,
+		t.CustomerID, t.BankID); err != nil {
 		return fmt.Errorf("SENDMESSAGE failed: %w", err)
 	}
 
 	logger.Infof("SENDMESSAGE: F.MESSAGE sent successfully to %s/%s", partner.Name, account.Login)
 
-	// Mark the transfer as ACK-sent for GUI visibility.
-	transCtx.Transfer.TransferInfo["__ackSent__"] = "true"
-	transCtx.Transfer.TransferInfo["__ackSentTo__"] = partner.Name
-	transCtx.Transfer.TransferInfo["__ackSentAs__"] = account.Login
-	transCtx.Transfer.TransferInfo["__ackSentAt__"] = time.Now().UTC().Format(time.RFC3339)
+	// Record the ACK as SENT in ack_tracking.
+	ack := &model.AckTracking{
+		TransferID: transCtx.Transfer.ID,
+		RemoteID:   transCtx.Transfer.RemoteTransferID,
+		IsSend:     false,
+		State:      model.AckStateSent,
+		Partner:    partner.Name,
+		Account:    account.Login,
+		Message:    message,
+	}
+
+	if err := model.InsertAckTracking(db, ack); err != nil {
+		logger.Warningf("Failed to insert ack_tracking(SENT): %v", err)
+	}
 
 	return nil
-}
-
-func (t *sendMessageTask) checkCondition(logger *log.Logger,
-	transCtx *model.TransferContext,
-) (skip bool, err error) {
-	if t.Condition == "" {
-		return false, nil
-	}
-
-	val, ok := transCtx.Transfer.TransferInfo[t.Condition]
-	if !ok || fmt.Sprint(val) != "1" {
-		logger.Debugf("SENDMESSAGE skipped: condition %q not met", t.Condition)
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func (t *sendMessageTask) resolveTarget(transCtx *model.TransferContext) (string, string) {

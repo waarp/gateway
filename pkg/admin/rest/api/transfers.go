@@ -6,6 +6,19 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+// OutAckTracking is the JSON representation of an ack_tracking entry.
+type OutAckTracking struct {
+	State      string    `json:"state" yaml:"state"`
+	Partner    string    `json:"partner,omitempty" yaml:"partner,omitempty"`
+	Account    string    `json:"account,omitempty" yaml:"account,omitempty"`
+	Origin     string    `json:"origin,omitempty" yaml:"origin,omitempty"`
+	Message    string    `json:"message,omitempty" yaml:"message,omitempty"`
+	CustomerID string    `json:"customerID,omitempty" yaml:"customerID,omitempty"`
+	BankID     string    `json:"bankID,omitempty" yaml:"bankID,omitempty"`
+	CreatedAt  time.Time `json:"createdAt" yaml:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt" yaml:"updatedAt"`
+}
+
 // InTransfer is the JSON representation of a transfer in requests made to
 // the REST interface.
 type InTransfer struct {
@@ -54,6 +67,7 @@ type OutTransfer struct {
 	ErrorCode            string               `json:"errorCode,omitempty" yaml:"errorCode,omitempty"`
 	ErrorMsg             string               `json:"errorMsg,omitempty" yaml:"errorMsg,omitempty"`
 	TransferInfo         map[string]any       `json:"transferInfo,omitempty" yaml:"transferInfo,omitempty"`
+	AckTracking          *OutAckTracking      `json:"ackTracking,omitempty" yaml:"ackTracking,omitempty"`
 	RemainingAttempts    int8                 `json:"remainingAttempts,omitempty" yaml:"remainingAttempts,omitempty"`
 	NextAttempt          time.Time            `json:"nextAttempt,omitzero" yaml:"nextAttempt,omitzero"`
 	NextRetryDelay       int32                `json:"nextRetryDelay,omitempty" yaml:"nextRetryDelay,omitempty"`

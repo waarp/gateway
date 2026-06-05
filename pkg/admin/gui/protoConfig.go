@@ -495,7 +495,21 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 	}
 
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
-	if replyTo := r.FormValue("protoConfigPeSITreplyTo"); replyTo != "" {
+
+	// ACK tracking: build replyTo from checkbox + selects, or fallback to raw field (API/import)
+	if r.FormValue("protoConfigPeSITackEnabled") == True {
+		ackServer := r.FormValue("protoConfigPeSITackServer")
+		ackAccount := r.FormValue("protoConfigPeSITackAccount")
+
+		if ackServer != "" {
+			replyTo := ackServer
+			if ackAccount != "" {
+				replyTo += ":" + ackAccount
+			}
+
+			pesitProtoConfig["replyTo"] = replyTo
+		}
+	} else if replyTo := r.FormValue("protoConfigPeSITreplyTo"); replyTo != "" {
 		pesitProtoConfig["replyTo"] = replyTo
 	}
 

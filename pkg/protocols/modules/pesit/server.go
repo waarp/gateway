@@ -316,30 +316,26 @@ func (s *server) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageReque
 		return nil
 	}
 
-	if view.TransferInfo == nil {
-		view.TransferInfo = make(map[string]any)
+	// Determine origin: PI 61 (Historique mode) > PI 62 > ClientLogin (Standard mode / PI 99).
+	origin := msg.CustomerID
+	if origin == "" {
+		origin = msg.BankID
 	}
 
-	view.TransferInfo["__messageACK__"] = msg.Message
-	view.TransferInfo["__messageCustomerID__"] = msg.CustomerID
-	view.TransferInfo["__messageBankID__"] = msg.BankID
-	delete(view.TransferInfo, "__ackExpected__")
+	if origin == "" {
+		origin = msg.ClientLogin
+	}
 
-	// Write via the correct owner type (Transfer or HistoryEntry).
-	if view.IsTransfer {
-		trans := &model.Transfer{ID: view.ID, TransferInfo: view.TransferInfo}
-		if err := trans.UpdateInfo(s.db); err != nil {
-			s.logger.Warningf("Failed to store F.MESSAGE ACK on transfer %d: %v", view.ID, err)
-		} else {
-			s.logger.Infof("F.MESSAGE ACK stored on transfer %d", view.ID)
-		}
+	// Atomically update the ack_tracking entry to RECEIVED state.
+	// If no ack_tracking entry exists (ACK not requested), this is a no-op.
+	if err := model.UpdateAckReceived(s.db, view.ID,
+		msg.Message, msg.CustomerID, msg.BankID, origin,
+	); err != nil {
+		s.logger.Warningf("Failed to update ack_tracking for transfer %d: %v", view.ID, err)
+	} else if model.GetAckTracking(s.db, view.ID) != nil {
+		s.logger.Infof("ack_tracking updated to RECEIVED for transfer %d (origin=%s)", view.ID, origin)
 	} else {
-		hist := &model.HistoryEntry{ID: view.ID, TransferInfo: view.TransferInfo}
-		if err := hist.UpdateInfo(s.db); err != nil {
-			s.logger.Warningf("Failed to store F.MESSAGE ACK on history %d: %v", view.ID, err)
-		} else {
-			s.logger.Infof("F.MESSAGE ACK stored on history entry %d", view.ID)
-		}
+		s.logger.Debugf("F.MESSAGE received for transfer %d but no ACK tracking configured (ignored)", view.ID)
 	}
 
 	// If relay is enabled, try to forward the message upstream.
@@ -387,9 +383,17 @@ func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest
 	s.logger.Infof("Relaying F.MESSAGE to partner %q (transferID=%d)",
 		partner.Name, upstreamTransferID)
 
+	// Propagate origin identity through the relay chain:
+	// - Historique mode: PI 61/62 from the original F.MESSAGE
+	// - Standard mode (PI 99): use ClientLogin as PI 61 fallback
+	customerID := msg.CustomerID
+	if customerID == "" {
+		customerID = msg.ClientLogin
+	}
+
 	go func() {
 		if err := sendRelayMessage(partner, account, password,
-			upstreamTransferID, msg.Message); err != nil {
+			upstreamTransferID, msg.Message, customerID, msg.BankID); err != nil {
 			s.logger.Warningf("Failed to relay F.MESSAGE to %q: %v", partner.Name, err)
 		} else {
 			s.logger.Infof("F.MESSAGE relayed to %q successfully", partner.Name)
@@ -398,6 +402,7 @@ func (s *server) relayMessage(outTrans *model.Transfer, msg pesit.MessageRequest
 }
 
 func (s *server) findUpstreamTransfer(followStr string) (*model.Transfer, bool) {
+	// Search in active transfers first, then in history via normalized view.
 	var inTrans model.Transfer
 	if err := s.db.Get(&inTrans, "remote_transfer_id=?", followStr).
 		Owner().OrderBy("start", false).Run(); err == nil {
@@ -406,6 +411,16 @@ func (s *server) findUpstreamTransfer(followStr string) (*model.Transfer, bool) 
 
 	if err := s.db.Get(&inTrans, "id=?", followStr).Owner().Run(); err == nil {
 		return &inTrans, true
+	}
+
+	// The upstream transfer may have moved to history — search the normalized view.
+	var view model.NormalizedTransferView
+	if err := s.db.Get(&view, "id=?", followStr).Owner().Run(); err == nil {
+		return &model.Transfer{
+			ID:               view.ID,
+			RemoteTransferID: view.RemoteTransferID,
+			TransferInfo:     view.TransferInfo,
+		}, true
 	}
 
 	s.logger.Debugf("Cannot find upstream transfer for __followID__=%s", followStr)
@@ -497,12 +512,35 @@ func parseTransferID(rid string) uint32 {
 }
 
 func sendRelayMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
-
-	password string, transferID uint32, message string,
+	password string, transferID uint32, message, customerID, bankID string,
 ) error {
-	client := pesit.NewClient(account.Login, password, partner.Name)
+	var partConf PartnerConfig
+	if err := utils.JSONConvert(partner.ProtoConfig, &partConf); err != nil {
+		return fmt.Errorf("failed to parse partner config: %w", err)
+	}
 
-	client.SetPreConnectionUsage(false)
+	serverLogin := partner.Name
+	if partConf.Login != "" {
+		serverLogin = partConf.Login
+	}
+
+	client := pesit.NewClient(account.Login, password, serverLogin)
+
+	if partConf.CompatibilityMode == CompatibilityModeHistorique {
+		client.SetHistoriqueMode(true)
+	}
+
+	isTLS := partner.Protocol == PesitTLS
+
+	if !partConf.DisablePreConnection && !isTLS {
+		client.SetPreConnectionUsage(true)
+	} else {
+		client.SetPreConnectionUsage(false)
+	}
+
+	if partConf.UseNSDU.Valid && partConf.UseNSDU.Value {
+		client.SetNSDUUsage(true)
+	}
 
 	addr := fmt.Sprintf("%s:%d", partner.Address.Host, partner.Address.Port)
 
@@ -512,16 +550,23 @@ func sendRelayMessage(partner *model.RemoteAgent, account *model.RemoteAccount,
 	}
 
 	if err := client.Connect(conn); err != nil {
-
 		conn.Close()
 
 		return fmt.Errorf("failed to establish PeSIT connection: %w", err)
-
 	}
 
 	defer client.Close(nil)
 
-	if err := client.SendMessage(transferID, message); err != nil {
+	var opts []pesit.MessageOption
+	if customerID != "" {
+		opts = append(opts, pesit.WithCustomerID(customerID))
+	}
+
+	if bankID != "" {
+		opts = append(opts, pesit.WithBankID(bankID))
+	}
+
+	if err := client.SendMessage(transferID, message, opts...); err != nil {
 		return fmt.Errorf("failed to send F.MESSAGE: %w", err)
 	}
 

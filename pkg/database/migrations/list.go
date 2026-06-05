@@ -341,4 +341,9 @@ var Migrations = []Change{
 		Up:          ver0_16_0AddTaskConditionUp,
 		Down:        ver0_16_0AddTaskConditionDown,
 	},
+	{ // #65
+		Description: `Add the "ack_tracking" table`,
+		Up:          ver0_16_0AddAckTrackingUp,
+		Down:        ver0_16_0AddAckTrackingDown,
+	},
 }

@@ -1,14 +1,33 @@
 description:
   en: >
-    Send a PeSIT F.MESSAGE to a remote partner. Typically used for Store-and-Forward
-    acknowledgments. The task can be conditional based on a TransferInfo key.
-    Partner and account can be omitted: they are resolved from __replyPartner__
-    and __replyAccount__ in TransferInfo.
+    Send a PeSIT F.MESSAGE to a remote partner. Used for application-level
+    acknowledgments (ACK). Partner and account can be omitted if the
+    sending partner has a "Acquittement (ACK)" address configured (in the
+    remote partner's PeSIT settings). In Store-and-Forward mode, enable
+    passthrough on relay nodes so that only the final destination sends
+    the ACK.
   fr: >
-    Envoie un F.MESSAGE PeSIT a un partenaire distant. Utilise principalement pour
-    les acquittements Store-and-Forward. La tache peut etre conditionnelle selon une
-    cle TransferInfo. Le partenaire et le compte peuvent etre omis : ils sont
-    resolus depuis __replyPartner__ et __replyAccount__ dans TransferInfo.
+    Envoie un F.MESSAGE PeSIT a un partenaire distant. Utilise pour les
+    acquittements applicatifs (ACK). Le partenaire et le compte peuvent
+    etre omis si le partenaire d'envoi a une adresse "Acquittement (ACK)"
+    configuree (dans les parametres PeSIT du partenaire distant). En mode
+    Store-and-Forward, activer passthrough sur les noeuds relais pour
+    que seul le destinataire final envoie l'ACK.
+
+passthrough:
+  en: Passthrough (S&F relay)
+  fr: Passthrough (relais S&F)
+
+passthroughTooltip:
+  en: >
+    Enable passthrough mode for Store-and-Forward relay nodes. When checked,
+    no F.MESSAGE is sent and no ACK tracking entry is created. The ACK from
+    the final destination will be automatically relayed upstream.
+  fr: >
+    Active le mode passthrough pour les noeuds relais Store-and-Forward.
+    Si coche, aucun F.MESSAGE n'est envoye et aucune entree de suivi ACK
+    n'est creee. L'ACK du destinataire final sera automatiquement relaye
+    vers l'amont.
 
 partner:
   en: Partner
@@ -17,16 +36,16 @@ partner:
 partnerTooltip:
   en: >
     The name of the remote PeSIT partner to send the message to.
-    If empty, resolved from __replyPartner__ in TransferInfo.
-    Supports variable substitution (e.g. #TI___replyPartner__#).
+    If empty, resolved automatically from the "Acquittement (ACK)" address
+    configured on the sending partner.
   fr: >
     Le nom du partenaire PeSIT distant vers lequel envoyer le message.
-    Si vide, resolu depuis __replyPartner__ dans TransferInfo.
-    Supporte la substitution de variables (ex: #TI___replyPartner__#).
+    Si vide, resolu automatiquement depuis l'adresse "Acquittement (ACK)"
+    configuree sur le partenaire d'envoi.
 
 partnerPlaceholder:
-  en: Partner name or variable (optional)
-  fr: Nom du partenaire ou variable (optionnel)
+  en: Partner name (optional, auto-resolved from Reply To)
+  fr: Nom du partenaire (optionnel, auto-resolu depuis Reply To)
 
 account:
   en: Account
@@ -35,10 +54,12 @@ account:
 accountTooltip:
   en: >
     The login of the remote account to use for authentication.
-    If empty, the first account of the partner is used.
+    If empty, resolved from the "Acquittement (ACK)" address or defaults
+    to the first account of the partner.
   fr: >
     Le login du compte distant a utiliser pour l'authentification.
-    Si vide, le premier compte du partenaire est utilise.
+    Si vide, resolu depuis l'adresse "Acquittement (ACK)" ou utilise
+    par defaut le premier compte du partenaire.
 
 accountPlaceholder:
   en: Account login (optional)
@@ -66,32 +87,50 @@ transferId:
 
 transferIdTooltip:
   en: >
-    The PeSIT transfer ID to reference in the F.MESSAGE. Supports variable
-    substitution (e.g. #TI___originalTransferID__#).
+    The PeSIT transfer ID to reference in the F.MESSAGE. If empty,
+    uses the current transfer's remote ID. Supports variable substitution.
   fr: >
-    L'identifiant de transfert PeSIT a referencer dans le F.MESSAGE. Supporte
-    la substitution de variables (ex: #TI___originalTransferID__#).
+    L'identifiant de transfert PeSIT a referencer dans le F.MESSAGE.
+    Si vide, utilise l'ID distant du transfert en cours. Supporte la
+    substitution de variables.
 
 transferIdPlaceholder:
   en: Transfer ID or variable (optional)
   fr: ID transfert ou variable (optionnel)
 
-condition:
-  en: Condition
-  fr: Condition
+customerID:
+  en: Customer ID
+  fr: Customer ID
 
-conditionTooltip:
+customerIDTooltip:
   en: >
-    Name of a TransferInfo key (without # or =). If this key exists in the
-    transfer metadata AND its value is "1", the message is sent. Otherwise,
-    the task is silently skipped. Do NOT put a value or expression here,
-    just the key name. Example: __ackRequested__
+    Applicative identifier transmitted in the F.MESSAGE. In Store-and-Forward,
+    used to propagate the identity of the original sender through the relay
+    chain, so that the initial sender knows who actually acknowledged the file.
   fr: >
-    Nom d'une cle TransferInfo (sans # ni =). Si cette cle existe dans les
-    metadonnees du transfert ET que sa valeur est "1", le message est envoye.
-    Sinon, la tache est silencieusement ignoree. Ne PAS mettre de valeur ni
-    d'expression ici, juste le nom de la cle. Exemple : __ackRequested__
+    Identifiant applicatif transmis dans le F.MESSAGE. En Store-and-Forward,
+    utilise pour propager l'identite de l'emetteur original a travers la
+    chaine de relais, afin que l'emetteur initial sache qui a reellement
+    accuse reception du fichier.
 
-conditionPlaceholder:
-  en: "Key name only, e.g.: __ackRequested__"
-  fr: "Nom de la cle uniquement, ex: __ackRequested__"
+customerIDPlaceholder:
+  en: Customer ID (optional)
+  fr: Customer ID (optionnel)
+
+bankID:
+  en: Bank ID
+  fr: Bank ID
+
+bankIDTooltip:
+  en: >
+    Secondary applicative identifier transmitted in the F.MESSAGE.
+    In Store-and-Forward, used as a fallback after Customer ID to
+    identify the original sender.
+  fr: >
+    Identifiant applicatif secondaire transmis dans le F.MESSAGE.
+    En Store-and-Forward, utilise comme alternative au Customer ID
+    pour identifier l'emetteur original.
+
+bankIDPlaceholder:
+  en: Bank ID (optional)
+  fr: Bank ID (optionnel)

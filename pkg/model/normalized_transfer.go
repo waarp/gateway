@@ -23,6 +23,8 @@ type NormalizedTransferView struct {
 	NextRetryDelay       int32     `xorm:"next_retry_delay"`
 	RetryIncrementFactor float32   `xorm:"retry_increment_factor"`
 	NextRetry            time.Time `xorm:"next_retry DATETIME(6) UTC"`
+
+	AckTracking *AckTracking `xorm:"-"` // loaded separately, not part of the view
 }
 
 func (*NormalizedTransferView) TableName() string   { return ViewNormalizedTransfers }
@@ -51,6 +53,9 @@ func (n *NormalizedTransferView) AfterRead(db database.ReadAccess) error {
 	}
 
 	n.TransferInfo = infos
+
+	// Load ack_tracking entry (best-effort, nil if not found).
+	n.AckTracking = GetAckTracking(db, n.ID)
 
 	return nil
 }

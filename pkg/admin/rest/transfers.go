@@ -87,7 +87,7 @@ func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
 		stop = asNullable(trans.Stop)
 	}
 
-	return &api.OutTransfer{
+	out := &api.OutTransfer{
 		ID:                   trans.ID,
 		RemoteID:             trans.RemoteTransferID,
 		Rule:                 trans.Rule,
@@ -115,11 +115,32 @@ func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
 		NextRetryDelay:       trans.NextRetryDelay,
 		RetryIncrementFactor: trans.RetryIncrementFactor,
 		TransferInfo:         trans.TransferInfo,
+		AckTracking:          toOutAckTracking(trans.AckTracking),
 
 		TrueFilepath: trans.LocalPath,
 		SourcePath:   src,
 		DestPath:     dst,
 		StartDate:    trans.Start,
+	}
+
+	return out
+}
+
+func toOutAckTracking(ack *model.AckTracking) *api.OutAckTracking {
+	if ack == nil {
+		return nil
+	}
+
+	return &api.OutAckTracking{
+		State:      string(ack.State),
+		Partner:    ack.Partner,
+		Account:    ack.Account,
+		Origin:     ack.Origin,
+		Message:    ack.Message,
+		CustomerID: ack.CustomerID,
+		BankID:     ack.BankID,
+		CreatedAt:  ack.CreatedAt,
+		UpdatedAt:  ack.UpdatedAt,
 	}
 }
 

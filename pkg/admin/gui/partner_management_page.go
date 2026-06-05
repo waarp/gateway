@@ -343,6 +343,9 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 		myPermission := model.MaskToPerms(user.Permissions)
 		currentPage := filter.Offset + 1
 
+		// Load local PeSIT servers and their accounts for the ACK config selects.
+		pesitServers := listPesitServersWithAccounts(db)
+
 		if tmplErr := partnerManagementTemplate.ExecuteTemplate(w, "partner_management_page", map[string]any{
 			"appName":                constants.AppName,
 			"version":                version.Num,
@@ -363,6 +366,7 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
 			"protocolsList":          ProtocolsList(),
+			"pesitServers":           pesitServers,
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,
 			"modalElement":           modalElement,
@@ -371,4 +375,37 @@ func partnerManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 		}
 	}
+}
+
+// pesitServerInfo holds a local PeSIT server and its accounts for the ACK config selects.
+type pesitServerInfo struct {
+	Name     string
+	Accounts []string
+}
+
+// listPesitServersWithAccounts returns local PeSIT/PeSIT-TLS servers with their account logins.
+func listPesitServersWithAccounts(db *database.DB) []pesitServerInfo {
+	var servers model.LocalAgents
+	if err := db.Select(&servers).Where("protocol IN (?,?)",
+		pesit.Pesit, pesit.PesitTLS).Owner().Run(); err != nil {
+		return nil
+	}
+
+	result := make([]pesitServerInfo, 0, len(servers))
+
+	for _, srv := range servers {
+		var accounts model.LocalAccounts
+		if err := db.Select(&accounts).Where("local_agent_id=?", srv.ID).Run(); err != nil {
+			continue
+		}
+
+		logins := make([]string, len(accounts))
+		for i, acc := range accounts {
+			logins[i] = acc.Login
+		}
+
+		result = append(result, pesitServerInfo{Name: srv.Name, Accounts: logins})
+	}
+
+	return result
 }

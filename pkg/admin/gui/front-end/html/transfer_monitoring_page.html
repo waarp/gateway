@@ -109,64 +109,23 @@
             {{ end }}
         </td>
         <td class="text-center">
-          {{ if .TransferInfo }}
-          {{ if index .TransferInfo "__messageACK__" }}
-            {{/* ACK reçu → badge vert */}}
-            <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK reçu">
-              <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
-            </button>
-          {{ else if index .TransferInfo "__ackSent__" }}
-            {{/* ACK émis → badge bleu */}}
-            <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK émis">
-              <span class="badge bg-primary"><i class="bi bi-send-check"></i></span>
-            </button>
-          {{ else if index .TransferInfo "__ackExpected__" }}
-            {{/* ACK demandé mais pas reçu → badge rouge */}}
-            <button class="btn btn-sm p-0" type="button" data-bs-toggle="modal" data-bs-target="#ackModal_{{ .ID }}" title="ACK en attente">
-              <span class="badge bg-danger"><i class="bi bi-clock-history"></i></span>
-            </button>
-          {{ end }}
-          {{ end }}
-
-          {{/* Modale ACK (si applicable) */}}
-          {{ if and .TransferInfo (or (index .TransferInfo "__messageACK__") (index .TransferInfo "__ackSent__") (index .TransferInfo "__ackExpected__")) }}
-          <div class="modal fade" id="ackModal_{{ .ID }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-              <div class="modal-content">
-                <div class="modal-header py-2">
-                  <h6 class="modal-title">
-                    {{ if index .TransferInfo "__messageACK__" }}
-                      <span class="text-success"><i class="bi bi-check-circle me-1"></i>ACK reçu</span>
-                    {{ else if index .TransferInfo "__ackSent__" }}
-                      <span class="text-primary"><i class="bi bi-send-check me-1"></i>ACK émis</span>
-                    {{ else }}
-                      <span class="text-danger"><i class="bi bi-clock-history me-1"></i>ACK en attente</span>
-                    {{ end }}
-                  </h6>
-                  <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body py-2" style="font-size:0.85em">
-                  {{ if index .TransferInfo "__messageACK__" }}
-                    <div><strong>Message :</strong> {{ index .TransferInfo "__messageACK__" }}</div>
-                    {{ if index .TransferInfo "__messageCustomerID__" }}
-                      <div><strong>CustomerID :</strong> {{ index .TransferInfo "__messageCustomerID__" }}</div>
-                    {{ end }}
-                    {{ if index .TransferInfo "__messageBankID__" }}
-                      <div><strong>BankID :</strong> {{ index .TransferInfo "__messageBankID__" }}</div>
-                    {{ end }}
-                  {{ else if index .TransferInfo "__ackSent__" }}
-                    <div><strong>Envoyé à :</strong> {{ index .TransferInfo "__ackSentTo__" }}</div>
-                    <div><strong>Compte :</strong> {{ index .TransferInfo "__ackSentAs__" }}</div>
-                    {{ if index .TransferInfo "__ackSentAt__" }}
-                      <div><strong>Date :</strong> {{ index .TransferInfo "__ackSentAt__" }}</div>
-                    {{ end }}
-                  {{ else }}
-                    <div class="text-danger">ACK demandé mais pas encore reçu.</div>
-                  {{ end }}
-                </div>
-              </div>
-            </div>
-          </div>
+          {{ if .AckTracking }}
+            {{ if eq .AckTracking.State "RECEIVED" }}
+              <span class="badge bg-success" data-bs-toggle="tooltip" data-bs-placement="top"
+                data-bs-title="{{ index $.tab "ackReceivedTooltip" }}{{ if .AckTracking.Origin }} {{ .AckTracking.Origin }}{{ end }}">
+                <i class="bi bi-check-circle"></i>
+              </span>
+            {{ else if eq .AckTracking.State "SENT" }}
+              <span class="badge bg-primary" data-bs-toggle="tooltip" data-bs-placement="top"
+                data-bs-title="{{ index $.tab "ackSentTooltip" }} {{ .AckTracking.Partner }}">
+                <i class="bi bi-send-check"></i>
+              </span>
+            {{ else if eq .AckTracking.State "REQUESTED" }}
+              <span class="badge bg-danger" data-bs-toggle="tooltip" data-bs-placement="top"
+                data-bs-title="{{ index $.tab "ackPendingTooltip" }}">
+                <i class="bi bi-clock-history"></i>
+              </span>
+            {{ end }}
           {{ end }}
         </td>
         <td>
@@ -282,6 +241,63 @@
                         <label class="col-form-label label-light-bold me-3">{{ index $.tab "errDetails" }} :</label>
                         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ErrDetails (index $.tab "undefined") }}" readonly>
                     </div>
+                    {{ if .AckTracking }}
+                    <hr style="border-top: 2px solid #6c757d;">
+                    <h6 class="mt-3 mb-2">
+                      {{ if eq .AckTracking.State "RECEIVED" }}
+                        <i class="bi bi-check-circle text-success me-1"></i>
+                      {{ else if eq .AckTracking.State "SENT" }}
+                        <i class="bi bi-send-check text-primary me-1"></i>
+                      {{ else }}
+                        <i class="bi bi-clock-history text-danger me-1"></i>
+                      {{ end }}
+                      {{ index $.tab "ackSection" }}
+                    </h6>
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "ackState" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ if eq .AckTracking.State "RECEIVED" }}{{ index $.tab "ackReceived" }}{{ else if eq .AckTracking.State "SENT" }}{{ index $.tab "ackSent" }}{{ else }}{{ index $.tab "ackPending" }}{{ end }}" readonly>
+                    </div>
+                    {{ if .AckTracking.Origin }}
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "ackOrigin" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ .AckTracking.Origin }}" readonly>
+                    </div>
+                    {{ end }}
+                    {{ if and .AckTracking.Partner (ne .AckTracking.Partner .AckTracking.Origin) }}
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "ackVia" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ .AckTracking.Partner }}" readonly>
+                    </div>
+                    {{ end }}
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">{{ index $.tab "ackDate" }} :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ formatDateTime .AckTracking.UpdatedAt $.Request $.language }}" readonly>
+                    </div>
+                    {{ if .AckTracking.CustomerID }}
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">Customer :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ .AckTracking.CustomerID }}" readonly>
+                    </div>
+                    {{ end }}
+                    {{ if .AckTracking.BankID }}
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">Bank :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ .AckTracking.BankID }}" readonly>
+                    </div>
+                    {{ end }}
+                    {{ if .AckTracking.Message }}
+                    <hr style="border-top: 1px solid #ababab;">
+                    <div class="flex-label-input mb-2">
+                        <label class="col-form-label label-light-bold me-3">Message :</label>
+                        <input type="text" class="form-control-plaintext input-auto-width" value="{{ .AckTracking.Message }}" readonly>
+                    </div>
+                    {{ end }}
+                    {{ end }}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

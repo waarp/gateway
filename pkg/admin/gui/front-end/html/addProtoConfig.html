@@ -346,8 +346,8 @@
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2">
-        <label class="col-form-label">Reply To (ACK) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Return address for Store &amp; Forward ACKs. Format: partner:account. The receiver will send F.MESSAGE ACK to this address."></i> :</label>
-        <input type="text" name="protoConfigPeSITreplyTo" class="form-control" value="{{ index .modalElement "protoConfigPeSITreplyTo" }}" placeholder="my-server:my-login">
+        <label class="col-form-label">Acquittement (ACK) <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Active le suivi des acquittements. Sélectionner le serveur local et le compte sur lequel l'ACK sera reçu."></i> :</label>
+        <input type="text" name="protoConfigPeSITreplyTo" class="form-control" value="{{ index .modalElement "protoConfigPeSITreplyTo" }}" placeholder="mon-serveur:mon-login">
     </div>
     <div id="pesit-tlsForm">
         <hr style="border-top: 1px solid #ababab;">

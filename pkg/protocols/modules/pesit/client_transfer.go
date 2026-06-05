@@ -93,6 +93,21 @@ func (c *clientTransfer) Request() *pipeline.Error {
 
 	}
 
+	// Insert an ack_tracking entry (REQUESTED) if the partner has a replyTo
+	// configured. This marks the transfer as expecting an ACK.
+	if partConf.ReplyTo != "" {
+		ack := &model.AckTracking{
+			TransferID: c.pip.TransCtx.Transfer.ID,
+			RemoteID:   c.pip.TransCtx.Transfer.RemoteTransferID,
+			IsSend:     true,
+			State:      model.AckStateRequested,
+			Partner:    partConf.ReplyTo,
+		}
+		if err := model.InsertAckTracking(c.pip.DB, ack); err != nil {
+			c.pip.Logger.Warningf("Failed to insert ack_tracking(REQUESTED): %v", err)
+		}
+	}
+
 	return nil
 }
 

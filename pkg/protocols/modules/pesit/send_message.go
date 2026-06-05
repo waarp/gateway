@@ -29,8 +29,8 @@ func init() {
 // This is called by the SENDMESSAGE task via the global function pointer.
 
 func sendPeSITMessage(db *database.DB, partnerName, accountLogin string,
-
 	transferID uint32, message string, logger *log.Logger,
+	customerID, bankID string,
 ) error {
 	// Resolve partner
 
@@ -150,14 +150,20 @@ func sendPeSITMessage(db *database.DB, partnerName, accountLogin string,
 
 	}
 
-	// Send message
+	// Send message with optional PI 61 (CustomerID) / PI 62 (BankID)
+	var opts []pesit.MessageOption
+	if customerID != "" {
+		opts = append(opts, pesit.WithCustomerID(customerID))
+	}
 
-	if err := client.SendMessage(transferID, message); err != nil {
+	if bankID != "" {
+		opts = append(opts, pesit.WithBankID(bankID))
+	}
 
+	if err := client.SendMessage(transferID, message, opts...); err != nil {
 		client.Close(nil)
 
 		return fmt.Errorf("SendMessage failed: %w", err)
-
 	}
 
 	// Close gracefully

@@ -2,9 +2,9 @@
   <title>{{ index .tab "title" }}</title>
   <link rel="stylesheet" href="/webui/static/css/style.css">
   <link href="/webui/static/css/font-awesome_all.min.css" rel="stylesheet">
-  <script src="/webui/static/javaScript/showProtoConfig.js"></script>
-  <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
-  <script src="/webui/static/javaScript/tooltip.js"></script>
+  <script src="/webui/static/javaScript/showProtoConfig.js" defer></script>
+  <script src="/webui/static/javaScript/autoCompleteSearch.js" defer></script>
+  <script src="/webui/static/javaScript/ackConfig.js" defer></script>
   <script>window.modalOpen = "{{ .modalOpen }}";</script>
   <script src="/webui/static/javaScript/displayErr.js"></script>
 {{ end }}
@@ -341,7 +341,7 @@
                       </div>
                       {{ template "editR66Partner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                       {{ template "editFtpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
-                      {{ template "editPesitPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
+                      {{ template "editPesitPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me "pesitServers" $.pesitServers) }}
                       {{ template "editSftpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
                       {{ template "editHttpPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
                       {{ template "editWebdavPartner" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
