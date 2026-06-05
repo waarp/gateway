@@ -14,16 +14,14 @@ func TestEvalCondition(t *testing.T) {
 		{"empty", "", true},
 		{"whitespace", "   ", true},
 
-		// Existence checks
+		// Existence checks (unparseable = truthy)
 		{"non-empty is true", "hello", true},
-		{"empty string is false", "", true}, // empty condition = always true
-		{"value exists", "EBCDIC", true},
 
-		// Equality
-		{"equal strings", "EBCDIC == EBCDIC", true},
-		{"unequal strings", "EBCDIC == UTF-8", false},
-		{"not equal strings", "EBCDIC != UTF-8", true},
-		{"not equal same", "EBCDIC != EBCDIC", false},
+		// String equality
+		{"equal strings", `"EBCDIC" == "EBCDIC"`, true},
+		{"unequal strings", `"EBCDIC" == "UTF-8"`, false},
+		{"not equal strings", `"EBCDIC" != "UTF-8"`, true},
+		{"not equal same", `"EBCDIC" != "EBCDIC"`, false},
 
 		// Numeric comparisons
 		{"greater than", "1360 > 0", true},
@@ -35,39 +33,50 @@ func TestEvalCondition(t *testing.T) {
 		{"numeric not equal", "42 != 43", true},
 		{"large number", "10485760 > 1048576", true},
 
-		// MATCHES (glob)
-		{"matches csv", "report.csv MATCHES *.csv", true},
-		{"matches no match", "report.txt MATCHES *.csv", false},
-		{"matches prefix", "data-001.txt MATCHES data-*.txt", true},
-		{"matches single char", "data-A.txt MATCHES data-?.txt", true},
+		// glob() function (glob-style: *, ?)
+		{"glob csv", `glob("report.csv", "*.csv")`, true},
+		{"glob no match", `glob("report.txt", "*.csv")`, false},
+		{"glob prefix", `glob("data-001.txt", "data-*.txt")`, true},
+		{"glob single char", `glob("data-A.txt", "data-?.txt")`, true},
 
-		// CONTAINS
-		{"contains found", "hello world CONTAINS world", true},
-		{"contains not found", "hello world CONTAINS xyz", false},
+		// matches (regex — native expr-lang operator)
+		{"regex match", `"report.csv" matches ".*\\.csv$"`, true},
+		{"regex no match", `"report.txt" matches ".*\\.csv$"`, false},
 
-		// NOT
-		{"not true", "NOT EBCDIC == UTF-8", true},
-		{"not false", "NOT EBCDIC == EBCDIC", false},
+		// contains (native expr-lang operator)
+		{"contains found", `"hello world" contains "world"`, true},
+		{"contains not found", `"hello world" contains "xyz"`, false},
+		// hasSubstr() function form
+		{"hasSubstr found", `hasSubstr("hello world", "world")`, true},
+		{"hasSubstr not found", `hasSubstr("hello world", "xyz")`, false},
 
-		// AND
-		{"and both true", "EBCDIC == EBCDIC AND 1360 > 0", true},
-		{"and one false", "EBCDIC == EBCDIC AND 0 > 1360", false},
-		{"and both false", "EBCDIC == UTF-8 AND 0 > 1360", false},
+		// not
+		{"not true", `not ("EBCDIC" == "UTF-8")`, true},
+		{"not false", `not ("EBCDIC" == "EBCDIC")`, false},
 
-		// OR
-		{"or both true", "EBCDIC == EBCDIC OR 1360 > 0", true},
-		{"or one true", "EBCDIC == UTF-8 OR 1360 > 0", true},
-		{"or both false", "EBCDIC == UTF-8 OR 0 > 1360", false},
+		// and
+		{"and both true", `"EBCDIC" == "EBCDIC" and 1360 > 0`, true},
+		{"and one false", `"EBCDIC" == "EBCDIC" and 0 > 1360`, false},
+		{"and both false", `"EBCDIC" == "UTF-8" and 0 > 1360`, false},
 
-		// Combined AND/OR (OR has lower precedence)
-		{"and-or precedence", "a == b OR EBCDIC == EBCDIC AND 1 > 0", true},
+		// or
+		{"or both true", `"EBCDIC" == "EBCDIC" or 1360 > 0`, true},
+		{"or one true", `"EBCDIC" == "UTF-8" or 1360 > 0`, true},
+		{"or both false", `"EBCDIC" == "UTF-8" or 0 > 1360`, false},
 
-		// Realistic PeSIT conditions
-		{"pesit encoding", "EBCDIC == EBCDIC", true},
-		{"pesit format fixed", "fixed == fixed", true},
+		// Parentheses and precedence
+		{"parentheses override", `("a" == "b" or "c" == "c") and 1 > 0`, true},
+		{"without parens", `"a" == "b" or "c" == "c" and 1 > 0`, true},
+		{"complex nested", `("a" == "a" and "b" == "b") or ("x" == "y")`, true},
+		{"complex nested false", `("a" == "b" and "b" == "b") or ("x" == "y")`, false},
+
+		// Realistic PeSIT conditions (after variable substitution)
+		{"pesit encoding", `"EBCDIC" == "EBCDIC"`, true},
+		{"pesit format fixed", `"fixed" == "fixed"`, true},
 		{"pesit filesize check", "1360 > 1048576", false},
-		{"pesit combined", "EBCDIC != UTF-8 AND fixed == fixed", true},
-		{"pesit glob filename", "data-003.txt MATCHES data-*.txt", true},
+		{"pesit combined", `"EBCDIC" != "UTF-8" and "fixed" == "fixed"`, true},
+		{"pesit glob filename", `glob("data-003.txt", "data-*.txt")`, true},
+		{"pesit complex", `("EBCDIC" == "EBCDIC" or "ASCII" == "EBCDIC") and 1360 > 0`, true},
 	}
 
 	for _, tt := range tests {

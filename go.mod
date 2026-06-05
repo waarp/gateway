@@ -16,6 +16,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
+	github.com/expr-lang/expr v1.17.8
 	github.com/fclairamb/ftpserverlib v0.32.0
 	github.com/go-icap/icap v0.0.0-20151011115316-ca4fad4ebb28
 	github.com/go-sql-driver/mysql v1.10.0
