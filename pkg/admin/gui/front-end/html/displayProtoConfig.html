@@ -269,6 +269,28 @@
         <label class="col-form-label label-light-bold me-3">{{ index .tab "replyTo" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipReplyTo" }}"></i> :</label>
         <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.replyTo (index $.tab "undefined") }}" disabled>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2 align-items-center">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "useCRC" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseCRC" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.useCRC true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "articleFormat" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleFormat" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.articleFormat (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "articleSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleSize" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.articleSize (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "maxConnections" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMaxConnections" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.maxConnections (index $.tab "undefined") }}" disabled>
+    </div>
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
@@ -336,6 +358,30 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }} disabled>
         </div>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2 align-items-center">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "useCRC" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseCRC" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.useCRC true }}checked{{ end }} disabled>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "articleFormat" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleFormat" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.articleFormat (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "articleSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleSize" }}"></i> :</label>
+        <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.articleSize (index $.tab "undefined") }}" disabled>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2 align-items-center">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "relayMessages" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRelayMessages" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.relayMessages true }}checked{{ end }} disabled>
+        </div>
+    </div>
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">
@@ -346,6 +392,11 @@
         <div class="flex-label-input mt-4">
             <label class="col-form-label label-light-bold me-3">Cipher Suites <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Comma-separated list of TLS cipher suite names. Leave empty for Go defaults."></i> :</label>
             <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.cipherSuites (index $.tab "undefined") }}" disabled>
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="flex-label-input mt-4">
+            <label class="col-form-label label-light-bold me-3">{{ index .tab "tlsClientAuth" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTlsClientAuth" }}"></i> :</label>
+            <input type="text" class="form-control-plaintext input-auto-width" value="{{ displayOrDefault .ProtoConfig.tlsClientAuth (index $.tab "undefined") }}" disabled>
         </div>
     {{ end }}
 </div>

@@ -325,6 +325,32 @@
     </div>
     <hr style="border-top: 1px solid #ababab;">
     <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "useCRC" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseCRC" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="useCRC" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "useCRC" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.useCRC true }}checked{{ end }}>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "articleFormat" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleFormat" }}"></i> :</label>
+        <select name="protoConfigPeSITarticleFormat" class="form-select">
+            <option value="" {{ if not $.ProtoConfig.articleFormat }}selected{{ end }}>{{ index $.tab "articleFormatDefault" }}</option>
+            <option value="variable" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITarticleFormat") "variable" }}selected{{ end }}{{ else if eq $.ProtoConfig.articleFormat "variable" }}selected{{ end }}>{{ index $.tab "articleFormatVariable" }}</option>
+            <option value="fixed" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITarticleFormat") "fixed" }}selected{{ end }}{{ else if eq $.ProtoConfig.articleFormat "fixed" }}selected{{ end }}>{{ index $.tab "articleFormatFixed" }}</option>
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "articleSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleSize" }}"></i> :</label>
+        <input type="number" name="protoConfigPeSITarticleSize" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITarticleSize" }}{{ else }}{{ .ProtoConfig.articleSize }}{{ end }}" min="0">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "maxConnections" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMaxConnections" }}"></i> :</label>
+        <input type="number" name="protoConfigPeSITmaxConnections" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITmaxConnections" }}{{ else }}{{ .ProtoConfig.maxConnections }}{{ end }}" min="0">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
         <label class="col-form-label me-3">{{ index .tab "disablePreConnection" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisablePreConnection" }}"></i> :</label>
         <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" name="disablePreConnection" id="disablePreConnection" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "disablePreConnection" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.disablePreConnection true }}checked{{ end }}>
@@ -423,9 +449,44 @@
             {{ end }}
         </select>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "useCRC" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseCRC" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="useCRC" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "useCRC" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.useCRC true }}checked{{ end }}>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "articleFormat" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleFormat" }}"></i> :</label>
+        <select name="protoConfigPeSITarticleFormat" class="form-select">
+            <option value="" {{ if not $.ProtoConfig.articleFormat }}selected{{ end }}>{{ index $.tab "articleFormatDefault" }}</option>
+            <option value="variable" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITarticleFormat") "variable" }}selected{{ end }}{{ else if eq $.ProtoConfig.articleFormat "variable" }}selected{{ end }}>{{ index $.tab "articleFormatVariable" }}</option>
+            <option value="fixed" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITarticleFormat") "fixed" }}selected{{ end }}{{ else if eq $.ProtoConfig.articleFormat "fixed" }}selected{{ end }}>{{ index $.tab "articleFormatFixed" }}</option>
+        </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2">
+        <label class="col-form-label">{{ index .tab "articleSize" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipArticleSize" }}"></i> :</label>
+        <input type="number" name="protoConfigPeSITarticleSize" class="form-control" value="{{ if $.modalElement }}{{ index $.modalElement "protoConfigPeSITarticleSize" }}{{ else }}{{ .ProtoConfig.articleSize }}{{ end }}" min="0">
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "disablePreConnection" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipDisablePreConnection" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="disablePreConnection" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "disablePreConnection" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.disablePreConnection true }}checked{{ end }}>
+        </div>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "relayMessages" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipRelayMessages" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="relayMessages" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "relayMessages" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.relayMessages true }}checked{{ end }}>
+        </div>
+    </div>
     <div id="pesit-tlsForm">
         <hr style="border-top: 1px solid #ababab;">
-                <div class="form-input mt-4">
+        <div class="form-input mt-4">
             <label class="col-form-label">{{ index .tab "minTLSVersion" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipMinPesitTLSVersion" }}"></i> :</label>
             <select name="protoConfigFTPSminTLSVersion" class="form-select" required>
                 {{ range $.TLSVersions }}
@@ -437,6 +498,15 @@
         <div class="form-input mt-2">
             <label class="col-form-label">Cipher Suites <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Comma-separated list of TLS cipher suite names. Leave empty for Go defaults."></i> :</label>
             <input type="text" name="protoConfigPeSITcipherSuites" class="form-control" value="{{ index .modalElement "protoConfigPeSITcipherSuites" }}" placeholder="(Go defaults)">
+        </div>
+        <hr style="border-top: 1px solid #ababab;">
+        <div class="form-input mt-2">
+            <label class="col-form-label">{{ index .tab "tlsClientAuth" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipTlsClientAuth" }}"></i> :</label>
+            <select name="protoConfigPeSITtlsClientAuth" class="form-select">
+                <option value="none" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITtlsClientAuth") "none" }}selected{{ end }}{{ else if eq $.ProtoConfig.tlsClientAuth "none" }}selected{{ end }}>{{ index $.tab "tlsClientAuthNone" }}</option>
+                <option value="optional" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITtlsClientAuth") "optional" }}selected{{ end }}{{ else if eq $.ProtoConfig.tlsClientAuth "optional" }}selected{{ end }}>{{ index $.tab "tlsClientAuthOptional" }}</option>
+                <option value="required" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITtlsClientAuth") "required" }}selected{{ end }}{{ else if eq $.ProtoConfig.tlsClientAuth "required" }}selected{{ end }}>{{ index $.tab "tlsClientAuthRequired" }}</option>
+            </select>
         </div>
     </div>
 </div>
@@ -483,6 +553,13 @@
             <option value="vertical" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "vertical" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "vertical" }}selected{{ end }}>{{ index $.tab "compressionVertical" }}</option>
             <option value="both" {{ if $.modalElement }}{{ if eq (index $.modalElement "protoConfigPeSITcompression") "both" }}selected{{ end }}{{ else if eq $.ProtoConfig.compression "both" }}selected{{ end }}>{{ index $.tab "compressionBoth" }}</option>
         </select>
+    </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="form-input mt-2 d-flex align-items-center">
+        <label class="col-form-label me-3">{{ index .tab "useCRC" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipUseCRC" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="useCRC" value="true" {{ if $.modalElement }}{{ $v := index $.modalElement "useCRC" }}{{ if or (eq $v "true") (eq $v true) }}checked{{ end }}{{ else if eq .ProtoConfig.useCRC true }}checked{{ end }}>
+        </div>
     </div>
 </div>
 {{ end }}

@@ -453,11 +453,28 @@ func protoConfigPeSITPartner(r *http.Request, protocol string) map[string]any {
 	}
 
 	pesitProtoConfig["useNSDU"] = r.FormValue("useNSDU") == True
+	pesitProtoConfig["useCRC"] = r.FormValue("useCRC") == True
 
 	if compatibilityMode := r.FormValue("protoConfigPeSITcompatibilityMode"); compatibilityMode != "" {
 
 		pesitProtoConfig["compatibilityMode"] = compatibilityMode
 
+	}
+
+	if articleFormat := r.FormValue("protoConfigPeSITarticleFormat"); articleFormat != "" {
+		pesitProtoConfig["articleFormat"] = articleFormat
+	}
+
+	if articleSize := r.FormValue("protoConfigPeSITarticleSize"); articleSize != "" {
+		if size, err := internal.ParseUint[uint32](articleSize); err == nil {
+			pesitProtoConfig["articleSize"] = size
+		}
+	}
+
+	if maxConnections := r.FormValue("protoConfigPeSITmaxConnections"); maxConnections != "" {
+		if mc, err := internal.ParseUint[uint32](maxConnections); err == nil {
+			pesitProtoConfig["maxConnections"] = mc
+		}
 	}
 
 	if maxMessageSize := r.FormValue("protoConfigPeSITmaxMessageSize"); maxMessageSize != "" {
@@ -611,6 +628,17 @@ func protoConfigPeSITServer(r *http.Request, protocol string) map[string]any {
 	}
 
 	pesitProtoConfig["disablePreConnection"] = r.FormValue("disablePreConnection") == True
+	pesitProtoConfig["relayMessages"] = r.FormValue("relayMessages") == True
+
+	if articleFormat := r.FormValue("protoConfigPeSITarticleFormat"); articleFormat != "" {
+		pesitProtoConfig["articleFormat"] = articleFormat
+	}
+
+	if articleSize := r.FormValue("protoConfigPeSITarticleSize"); articleSize != "" {
+		if size, err := internal.ParseUint[uint32](articleSize); err == nil {
+			pesitProtoConfig["articleSize"] = size
+		}
+	}
 
 	if protocol == pesit.PesitTLS {
 

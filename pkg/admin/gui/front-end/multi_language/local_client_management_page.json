@@ -104,6 +104,8 @@
     "compressionVertical": { "fr": "Verticale", "en": "Vertical" },
     "compressionBoth": { "fr": "Horizontale + Verticale", "en": "Horizontal + Vertical" },
     "disablePreConnection": { "fr": "Désactiver la préconnexion", "en": "Disable pre-connection" },
+    "useCRC": { "fr": "CRC-16", "en": "CRC-16" },
+    "tooltipUseCRC": { "fr": "Active le contrôle d'intégrité CRC-16 sur chaque message échangé.", "en": "Enables CRC-16 integrity check on each exchanged message." },
     "keyExchanges": { "fr": "Échanges de clés", "en": "Key exchanges" },
     "selectKeyExchanges": { "fr": "Sélectionnez votre algorithme d'échange de clés autorisé", "en": "Select your authorized key exchange algorithms" },
     "ciphers": { "fr": "Chiffres", "en": "Ciphers" },
