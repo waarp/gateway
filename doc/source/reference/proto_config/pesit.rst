@@ -197,10 +197,36 @@ est la suivante :
   - ``none`` (par défaut) : le certificat client est optionnel ;
     l'authentification repose sur le login/mot de passe PeSIT (PI 3/PI 5).
   - ``optional`` : si le client présente un certificat valide et envoie un
-    mot de passe vide, le CN ou SAN du certificat est utilisé pour identifier
-    le compte local. Sinon, le login/mot de passe PeSIT est utilisé.
-  - ``required`` : le client **doit** présenter un certificat valide. Le CN
-    ou SAN identifie le compte local ; le mot de passe PeSIT est ignoré.
+    mot de passe vide, le certificat est utilisé pour identifier le compte
+    local. Sinon, le login/mot de passe PeSIT est utilisé.
+  - ``required`` : le client **doit** présenter un certificat valide.
+    Le certificat identifie le compte local ; le mot de passe PeSIT est ignoré.
+
+  .. important::
+
+     **Correspondance certificat / compte local** : l'identité est extraite
+     du certificat client dans l'ordre suivant :
+
+     1. Le **premier SAN DNS** (Subject Alternative Name) s'il existe
+     2. Le **CN** (Common Name) du sujet sinon
+
+     Cette identité doit correspondre **exactement** au **login** d'un compte
+     local configuré sur le serveur PeSIT-TLS.
+
+     **Configuration requise** (en mode ``optional`` ou ``required``) :
+
+     - **Côté serveur** : le certificat du client (ou de son autorité de
+       certification) doit être ajouté comme ``trusted_tls_certificate``
+       sur le **compte local** correspondant.
+     - **Côté client** : le certificat et sa clé privée doivent être ajoutés
+       comme ``tls_certificate`` sur le **compte distant** utilisé pour se
+       connecter.
+
+     **Exemple** : pour qu'un partenaire « GW-A » s'authentifie par certificat
+     sur le serveur « mon-serveur-tls », son certificat doit avoir
+     ``CN=GW-A`` (ou ``SAN DNS:GW-A``), et un compte local avec le login
+     ``GW-A`` doit exister sur le serveur, avec le certificat en
+     ``trusted_tls_certificate``.
 
 **Exemple**
 

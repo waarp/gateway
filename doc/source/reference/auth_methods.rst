@@ -142,11 +142,18 @@ s'authentifier.
 Ainsi, pour qu'une *gateway* puisse s'authentifier via ce mécanisme, elle doit
 donc posséder un certificat TLS à envoyer, ainsi que la clé privée associée à ce
 certificat (pour pouvoir chiffrer les messages). Il s'agit donc de l'authentification
-de type `tls_certificate`.
+de type ``tls_certificate``.
 
-À l'inverse, pour qu'un tier puisse s'authentifier après de la *gateway* via cette
-méthode, il faut que la *gateway* puisse vérifier le certificat qui lui est envoyé.
-Il y a 3 cas de figure possible dans ce cas:
+**Correspondance certificat / compte** : en PeSIT-TLS, lorsque
+``tlsClientAuth`` est activé (``optional`` ou ``required``), l'identité du
+client est extraite du certificat dans cet ordre : **premier SAN DNS** s'il
+existe, sinon **CN** (Common Name). Cette identité doit correspondre
+exactement au login du compte local sur le serveur. Voir
+:ref:`ref-proto-pesit` pour les détails de configuration.
+
+À l'inverse, pour qu'un tiers puisse s'authentifier auprès de la *gateway* via
+cette méthode, il faut que la *gateway* puisse vérifier le certificat qui lui
+est envoyé. Il y a 3 cas de figure possible dans ce cas :
 
 - Si le certificat est auto-signé, alors il doit être préalablement attaché à
   l'entité représentant le tiers (compte ou partenaire) pour être considéré
