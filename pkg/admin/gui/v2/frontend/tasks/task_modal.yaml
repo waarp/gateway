@@ -79,8 +79,8 @@ condition:
   fr: Condition
 
 conditionTooltip:
-  en: "Optional expression evaluated before execution. Right-click for available variables. Operators: ==, !=, >, <, MATCHES, CONTAINS, AND, OR, NOT"
-  fr: "Expression optionnelle evaluee avant execution. Clic droit pour les variables disponibles. Operateurs : ==, !=, >, <, MATCHES, CONTAINS, AND, OR, NOT"
+  en: "Optional expression evaluated before execution. Right-click for available variables. Strings must be quoted. Operators: ==, !=, >, <, and, or, not, contains, matches (regex). Functions: glob(value, pattern). Parentheses supported."
+  fr: "Expression optionnelle evaluee avant execution. Clic droit pour les variables disponibles. Les chaines doivent etre entre guillemets. Operateurs : ==, !=, >, <, and, or, not, contains, matches (regex). Fonctions : glob(valeur, motif). Parentheses supportees."
 
 conditionVarTitle:
   en: Available variables
