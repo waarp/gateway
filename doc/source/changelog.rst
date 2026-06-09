@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`585` Si le *filesystem* cible d'un transfert ne supporte pas la pose de
+  verrous sur les fichiers, alors les fichiers de transfert seront ouverts sans
+  verrou au lieu de lever une erreur.
+
 * :release:`0.15.7 <2026-06-04>`
 * :bug:`-` Correction d'un mauvais nom de champ JSON dans la commande terminal
   ``waarp-gateway transfer add`` pour le paramètre du nombre de tentatives.

@@ -32,7 +32,7 @@ func getCreateMode(flags Flags) uint32 {
 	}
 }
 
-func openFile(path string, flags Flags, _ FileMode) (File, error) {
+func openFile(path string, flags Flags, mode FileMode) (File, error) {
 	access := getAccess(flags)
 	createMode := getCreateMode(flags)
 
@@ -59,9 +59,11 @@ func openFile(path string, flags Flags, _ FileMode) (File, error) {
 		windows.FILE_ATTRIBUTE_NORMAL,
 		0,
 	)
-	if err != nil {
-		return nil, pathError("open", path, err)
+	if err == nil {
+		return os.NewFile(uintptr(handle), path), nil
 	}
 
-	return os.NewFile(uintptr(handle), path), nil
+	// Fallback to os.OpenFile if CreateFile failed in case the target FS does
+	// not support excusive access.
+	return os.OpenFile(path, flags, mode) //nolint:wrapcheck //no need to wrap here
 }
