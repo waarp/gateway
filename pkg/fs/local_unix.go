@@ -3,6 +3,7 @@
 package fs
 
 import (
+	"errors"
 	"os"
 	"syscall"
 )
@@ -29,7 +30,8 @@ func lockFile(file *os.File) error {
 		return nil
 	}
 
-	if err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+	err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	if errors.Is(err, syscall.EWOULDBLOCK) {
 		return pathError("flock", file.Name(), err)
 	}
 
