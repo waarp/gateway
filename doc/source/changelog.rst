@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.15.8 <2026-06-09>`
 * :bug:`585` Si le *filesystem* cible d'un transfert ne supporte pas la pose de
   verrous sur les fichiers, alors les fichiers de transfert seront ouverts sans
   verrou au lieu de lever une erreur.
