@@ -72,6 +72,10 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 			return err
 		}
 
+		if err := credentialsImport(logger, db, src.Credentials, &agent); err != nil {
+			return err
+		}
+
 		if err := importRemoteAccounts(logger, db, src.Accounts, &agent); err != nil {
 			return err
 		}
