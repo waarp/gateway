@@ -32,26 +32,25 @@ type CredOwnerTable interface {
 // authenticate said owner. An owner can have any number of Credential attached
 // to it.
 type Credential struct {
-	ID int64 `xorm:"<- id AUTOINCR"` // The credential's database ID.
+	Identifier
 
 	// The id of the object these credentials are linked to. Only one can be
 	// valid at a time.
-	LocalAgentID    sql.NullInt64 `xorm:"local_agent_id"`
-	RemoteAgentID   sql.NullInt64 `xorm:"remote_agent_id"`
-	LocalAccountID  sql.NullInt64 `xorm:"local_account_id"`
-	RemoteAccountID sql.NullInt64 `xorm:"remote_account_id"`
+	LocalAgentID    sql.NullInt64 `gorm:"column:local_agent_id"`
+	RemoteAgentID   sql.NullInt64 `gorm:"column:remote_agent_id"`
+	LocalAccountID  sql.NullInt64 `gorm:"column:local_account_id"`
+	RemoteAccountID sql.NullInt64 `gorm:"column:remote_account_id"`
 
-	Name string `xorm:"name"` // The credentials' display name.
-	Type string `xorm:"type"` // The method of authentication.
+	Name string `gorm:"column:name"` // The credentials' display name.
+	Type string `gorm:"column:type"` // The method of authentication.
 
 	// The authentication value (i.e. the password, certificate, hash...) in text format.
-	Value string `xorm:"value"`
+	Value string `gorm:"column:value"`
 
 	// The secondary authentication value (when applicable) in text format.
-	Value2 string `xorm:"value2"`
+	Value2 string `gorm:"column:value2"`
 }
 
-func (c *Credential) GetID() int64      { return c.ID }
 func (*Credential) TableName() string   { return TableCredentials }
 func (*Credential) Appellation() string { return NameCredentials }
 
@@ -84,13 +83,13 @@ func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentic
 
 	switch {
 	case c.LocalAgentID.Valid:
-		owner = &LocalAgent{ID: c.LocalAgentID.Int64}
+		owner = newLocalAgent(c.LocalAgentID.Int64)
 	case c.RemoteAgentID.Valid:
-		owner = &RemoteAgent{ID: c.RemoteAgentID.Int64}
+		owner = newRemoteAgent(c.RemoteAgentID.Int64)
 	case c.LocalAccountID.Valid:
-		owner = &LocalAccount{ID: c.LocalAccountID.Int64}
+		owner = newLocalAccount(c.LocalAccountID.Int64)
 	case c.RemoteAccountID.Valid:
-		owner = &RemoteAccount{ID: c.RemoteAccountID.Int64}
+		owner = newRemoteAccount(c.RemoteAccountID.Int64)
 	default:
 		return nil, nil, database.NewValidationError("the authentication method is missing an owner")
 	}
@@ -138,7 +137,7 @@ func (c *Credential) getHandler(protocol string) (authentication.Handler, error)
 	return handler, nil
 }
 
-func (c *Credential) validate(db database.ReadAccess) error {
+func (c *Credential) validate(db database.Access) error {
 	owner, handler, ownErr := c.getOwner(db)
 	if ownErr != nil {
 		return ownErr
@@ -168,7 +167,7 @@ func (c *Credential) validate(db database.ReadAccess) error {
 
 	if ser, ok := handler.(authentication.Serializer); ok {
 		var err error
-		if c.Value, c.Value2, err = ser.ToDB(c.Value, c.Value2); err != nil {
+		if c.Value, c.Value2, err = ser.ToDB(db, c.Value, c.Value2); err != nil {
 			return fmt.Errorf("failed to serialize the authentication value: %w", err)
 		}
 	}
@@ -194,7 +193,7 @@ func (c *Credential) AfterRead(db database.ReadAccess) error {
 	if des, ok := handler.(authentication.Deserializer); ok {
 		var err error
 
-		if c.Value, c.Value2, err = des.FromDB(c.Value, c.Value2); err != nil {
+		if c.Value, c.Value2, err = des.FromDB(db, c.Value, c.Value2); err != nil {
 			return database.NewValidationErrorf(
 				"failed to deserialize the authentication value: %w", err)
 		}

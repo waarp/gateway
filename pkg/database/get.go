@@ -1,12 +1,10 @@
 package database
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 
-	"xorm.io/builder"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"gorm.io/gorm"
 )
 
 // GetBean is the interface that a model must implement in order to be usable
@@ -25,6 +23,18 @@ type GetQuery struct {
 	conds []*condition
 	order string
 	asc   bool
+	eager bool
+	all   bool
+}
+
+func (g *GetQuery) Eager() *GetQuery {
+	g.eager = true
+	return g
+}
+
+func (g *GetQuery) All() *GetQuery {
+	g.all = true
+	return g
 }
 
 func (g *GetQuery) And(sql string, args ...any) *GetQuery {
@@ -37,17 +47,7 @@ func (g *GetQuery) And(sql string, args ...any) *GetQuery {
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
 func (g *GetQuery) In(col string, vals ...any) *GetQuery {
-	if len(vals) == 0 {
-		return g
-	}
-
-	sql := &inCond{Builder: &strings.Builder{}}
-	if builder.In(col, vals...).WriteTo(sql) != nil {
-		return g
-	}
-
-	g.conds = append(g.conds, &condition{sql: sql.String(), args: sql.args})
-
+	g.conds = append(g.conds, makeInClause(col, vals...))
 	return g
 }
 
@@ -60,47 +60,41 @@ func (g *GetQuery) OrderBy(order string, asc bool) *GetQuery {
 	return g
 }
 
-func (g *GetQuery) Owner() *GetQuery {
-	return g.And("owner=?", conf.GlobalConfig.GatewayName)
-}
+// Deprecated: condition is automatic now.
+func (g *GetQuery) Owner() *GetQuery { return g }
 
 // Run executes the 'GET' query.
 func (g *GetQuery) Run() error {
-	logger := g.db.GetLogger()
-	query := g.db.getUnderlying().NoAutoCondition().Table(g.bean.TableName())
+	logger := g.db.getLogger()
+	query := g.db.getUnderlying().Table(g.bean.TableName())
+	addOwnerCond(query, g.all, g.bean, g.db.getOwner())
 
-	condsStr := make([]string, len(g.conds))
-
-	for i, cond := range g.conds {
-		query.And(cond.sql, cond.args...)
-
-		var err error
-		if condsStr[i], err = builder.ConvertToBoundSQL(cond.sql, cond.args); err != nil {
-			logger.Debugf("Failed to serialize the SQL condition: %v", err)
+	for _, cond := range g.conds {
+		if cond.sql != "" {
+			query.Where(cond.sql, cond.args...)
 		}
 	}
 
 	if g.order != "" {
 		if g.asc {
-			query.OrderBy(fmt.Sprintf("%s ASC", g.order))
+			query.Order(fmt.Sprintf("%s ASC", g.order))
 		} else {
-			query.OrderBy(fmt.Sprintf("%s DESC", g.order))
+			query.Order(fmt.Sprintf("%s DESC", g.order))
 		}
 	}
 
-	exist, getErr := query.Get(g.bean)
-	if getErr != nil {
+	addPreloads(g.eager, query, g.bean)
+
+	result := query.Take(g.bean)
+	if getErr := result.Error; errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		logger.Debugf("No %s found with conditions (%s)", g.bean.Appellation(),
+			explainStmt(query))
+
+		return NewNotFoundError(g.bean)
+	} else if getErr != nil {
 		logger.Errorf("Failed to retrieve the %s entry: %v", g.bean.Appellation(), getErr)
 
 		return NewInternalError(getErr)
-	}
-
-	if !exist {
-		where := strings.Join(condsStr, " AND ")
-
-		logger.Debugf("No %s found with conditions (%s)", g.bean.Appellation(), where)
-
-		return NewNotFoundError(g.bean)
 	}
 
 	if callBack, ok := g.bean.(ReadCallback); ok {

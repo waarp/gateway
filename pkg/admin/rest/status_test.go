@@ -51,6 +51,8 @@ func (t *testService) Stop(context.Context) error {
 }
 
 func TestStatus(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a gateway with some services", t, func(c C) {
 		services.Core.Add(&testService{name: "Running Core Service", state: utils.NewState(utils.StateRunning, "")})
 		services.Core.Add(&testService{name: "Offline Core Service", state: utils.NewState(utils.StateOffline, "")})

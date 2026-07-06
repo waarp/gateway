@@ -27,6 +27,8 @@ const (
 )
 
 func TestAddEmailTemplate(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := addEmailTemplate(logger, db)
@@ -77,12 +79,14 @@ func TestAddEmailTemplate(t *testing.T) {
 			assert.Equal(t, templateSubject, check.Subject)
 			assert.Equal(t, templateMimeType, check.MIMEType)
 			assert.Equal(t, templateBody, check.Body)
-			assert.Equal(t, templateAttachements, check.Attachments)
+			assert.Equal(t, templateAttachements, check.Attachments.List())
 		})
 	})
 }
 
 func TestListEmailTemplate(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := listEmailTemplates(logger, db)
@@ -134,6 +138,8 @@ func TestListEmailTemplate(t *testing.T) {
 }
 
 func TestGetEmailTemplate(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := getEmailTemplate(logger, db)
@@ -174,6 +180,8 @@ func TestGetEmailTemplate(t *testing.T) {
 }
 
 func TestUpdateEmailTemplate(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := updateEmailTemplate(logger, db)
@@ -238,12 +246,14 @@ func TestUpdateEmailTemplate(t *testing.T) {
 			assert.Equal(t, templateSubject, check.Subject)
 			assert.Equal(t, templateMimeType, check.MIMEType)
 			assert.Equal(t, templateBody, check.Body)
-			assert.Equal(t, templateAttachments, check.Attachments)
+			assert.Equal(t, templateAttachments, check.Attachments.List())
 		})
 	})
 }
 
 func TestDeleteEmailTemplate(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := deleteEmailTemplate(logger, db)
@@ -290,6 +300,8 @@ func TestDeleteEmailTemplate(t *testing.T) {
 // SMTP Credentials
 
 func TestAddSMTPCredential(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := addSMTPCredential(logger, db)
@@ -337,12 +349,14 @@ func TestAddSMTPCredential(t *testing.T) {
 			assert.Equal(t, credSender, check.EmailAddress)
 			assert.Equal(t, credServer, check.ServerAddress.String())
 			assert.Equal(t, credLogin, check.Login)
-			assert.Equal(t, credPassword, check.Password.String())
+			assert.Equal(t, credPassword, check.Password)
 		})
 	})
 }
 
 func TestListSMTPCredentials(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := listSMPTCredentials(logger, db)
@@ -391,6 +405,8 @@ func TestListSMTPCredentials(t *testing.T) {
 }
 
 func TestGetSMTPCredential(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := getSMTPCredential(logger, db)
@@ -429,6 +445,8 @@ func TestGetSMTPCredential(t *testing.T) {
 }
 
 func TestUpdateSMTPCredential(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := updateSMTPCredential(logger, db)
@@ -489,12 +507,14 @@ func TestUpdateSMTPCredential(t *testing.T) {
 			assert.Equal(t, credSender, check.EmailAddress)
 			assert.Equal(t, credServer, check.ServerAddress.String())
 			assert.Equal(t, credLogin, check.Login)
-			assert.Equal(t, credPassword, check.Password.String())
+			assert.Equal(t, credPassword, check.Password)
 		})
 	})
 }
 
 func TestDeleteSMTPCredential(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	handle := deleteSMTPCredential(logger, db)

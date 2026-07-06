@@ -2,14 +2,12 @@ package pesit
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 
 	"code.waarp.fr/lib/pesit"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -27,14 +25,14 @@ type server struct {
 	state  utils.State
 
 	localAgent *model.LocalAgent
-	conf       *ServerConfigTLS
+	conf       ServerConfigTLS
 }
 
 func (s *server) listen() (string, error) {
 	s.server = pesit.NewServer(s)
 	s.server.Logger = s.logger.AsStdLogger(log.LevelDebug)
 	s.server.NetworkTrace = s.logger.AsStdLogger(log.LevelTrace)
-	realAddr := conf.GetRealAddress(s.localAgent.Address.Host,
+	realAddr := s.db.Config.Overrides.GetRealAddress(s.localAgent.Address.Host,
 		utils.FormatUint(s.localAgent.Address.Port))
 
 	var (
@@ -43,22 +41,15 @@ func (s *server) listen() (string, error) {
 	)
 
 	if s.localAgent.Protocol == PesitTLS {
-		tlsConfig := &tls.Config{
-			MinVersion:            s.conf.MinTLSVersion.TLS(),
-			GetCertificate:        s.getCertificate,
-			VerifyPeerCertificate: auth.VerifyClientCert(s.db, s.logger, s.localAgent),
-		}
-
-		list, listErr = tls.Listen("tcp", realAddr, tlsConfig)
+		tlsConfig := protoutils.GetServerTLSConfig(s.db, s.logger, s.localAgent.ID)
+		list, listErr = protoutils.ListenTLS("tcp", realAddr, tlsConfig)
 	} else {
-		list, listErr = net.Listen("tcp", realAddr)
+		list, listErr = protoutils.Listen("tcp", realAddr)
 	}
 
 	if listErr != nil {
 		return "", fmt.Errorf("failed to open listener: %w", listErr)
 	}
-
-	list = &protoutils.TraceListener{Listener: list}
 
 	go func() {
 		if err := s.server.Serve(list); err != nil {
@@ -150,15 +141,14 @@ func (s *server) getPassword() (string, error) {
 }
 
 func (s *server) authenticate(login, password string) (*model.LocalAccount, error) {
-	var user model.LocalAccount
-	if err := s.db.Get(&user, "local_agent_id=? AND login=?", s.localAgent.ID,
-		login).Run(); err != nil && !database.IsNotFound(err) {
+	user, err := s.localAgent.GetAccount(s.db, login)
+	if err != nil && !database.IsNotFound(err) {
 		s.logger.Errorf("Failed to retrieve the local account: %v", err)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to check the authentication")
 	}
 
-	res, authErr := user.Authenticate(s.db, s.localAgent, auth.Password, password)
+	res, authErr := user.Authenticate(s.db, auth.Password, password)
 	if authErr != nil {
 		s.logger.Errorf("Failed to authenticate account %q: %v", login, authErr)
 
@@ -169,5 +159,5 @@ func (s *server) authenticate(login, password string) (*model.LocalAccount, erro
 		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "invalid credentials")
 	}
 
-	return &user, nil
+	return user, nil
 }

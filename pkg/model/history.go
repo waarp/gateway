@@ -1,50 +1,50 @@
 package model
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // HistoryEntry represents one record of the 'transfers_history' table.
 type HistoryEntry struct {
-	ID               int64                   `xorm:"id"`
-	Owner            string                  `xorm:"owner"`
-	RemoteTransferID string                  `xorm:"remote_transfer_id"`
-	IsServer         bool                    `xorm:"is_server"`
-	IsSend           bool                    `xorm:"is_send"`
-	Rule             string                  `xorm:"rule"`
-	Account          string                  `xorm:"account"`
-	Agent            string                  `xorm:"agent"`
-	Client           string                  `xorm:"client"`
-	Protocol         string                  `xorm:"protocol"`
-	SrcFilename      string                  `xorm:"src_filename"`
-	DestFilename     string                  `xorm:"dest_filename"`
-	LocalPath        string                  `xorm:"local_path"`
-	RemotePath       string                  `xorm:"remote_path"`
-	Filesize         int64                   `xorm:"filesize"`
-	Start            time.Time               `xorm:"start DATETIME(6) UTC"`
-	Stop             time.Time               `xorm:"stop DATETIME(6) UTC"`
-	Status           types.TransferStatus    `xorm:"status"`
-	Step             types.TransferStep      `xorm:"step"`
-	Progress         int64                   `xorm:"progress"`
-	TaskNumber       int8                    `xorm:"task_number"`
-	ErrCode          types.TransferErrorCode `xorm:"error_code"`
-	ErrDetails       string                  `xorm:"error_details"`
-	TransferInfo     map[string]any          `xorm:"-"`
+	Identifier
+	Owner            string                  `gorm:"column:owner"`
+	RemoteTransferID string                  `gorm:"column:remote_transfer_id"`
+	IsServer         bool                    `gorm:"column:is_server"`
+	IsSend           bool                    `gorm:"column:is_send"`
+	Rule             string                  `gorm:"column:rule"`
+	Account          string                  `gorm:"column:account"`
+	Agent            string                  `gorm:"column:agent"`
+	Client           string                  `gorm:"column:client"`
+	Protocol         string                  `gorm:"column:protocol"`
+	SrcFilename      string                  `gorm:"column:src_filename"`
+	DestFilename     string                  `gorm:"column:dest_filename"`
+	LocalPath        string                  `gorm:"column:local_path"`
+	RemotePath       string                  `gorm:"column:remote_path"`
+	Filesize         int64                   `gorm:"column:filesize"`
+	Start            time.Time               `gorm:"column:start;type:timestamp;serializer:timestamp"`
+	Stop             time.Time               `gorm:"column:stop;type:timestamp;serializer:timestamp"`
+	Status           types.TransferStatus    `gorm:"column:status"`
+	Step             types.TransferStep      `gorm:"column:step"`
+	Progress         int64                   `gorm:"column:progress"`
+	TaskNumber       int8                    `gorm:"column:task_number"`
+	ErrCode          types.TransferErrorCode `gorm:"column:error_code"`
+	ErrDetails       string                  `gorm:"column:error_details"`
+	Infos            TransferInfos           `gorm:"foreignKey:HistoryID"`
+	TransferInfo     map[string]any          `gorm:"-"`
 }
 
 func (*HistoryEntry) TableName() string   { return TableHistory }
 func (*HistoryEntry) Appellation() string { return NameHistory }
-func (h *HistoryEntry) GetID() int64      { return h.ID }
+
+//nolint:goconst //best keep separate
+func (*HistoryEntry) Preloads() []string { return []string{"Infos"} }
 
 func (h *HistoryEntry) TransferID() (int64, error) {
 	id, err := snowflake.ParseString(h.RemoteTransferID)
@@ -55,21 +55,11 @@ func (h *HistoryEntry) TransferID() (int64, error) {
 	return id.Int64(), nil
 }
 
-func (h *HistoryEntry) getTransInfoCondition() (string, int64) {
-	return "history_id=?", h.ID
-}
-
-func (h *HistoryEntry) setTransInfoOwner(info *TransferInfo) {
-	info.HistoryID = utils.NewNullInt64(h.ID)
-}
-
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
 //
 //nolint:funlen,gocyclo,cyclop,gocognit // validation can be long...
 func (h *HistoryEntry) BeforeWrite(_ database.Access) error {
-	h.Owner = conf.GlobalConfig.GatewayName
-
 	if h.Owner == "" {
 		return database.NewValidationError("the transfer's owner cannot be empty")
 	}
@@ -133,6 +123,10 @@ func (h *HistoryEntry) BeforeWrite(_ database.Access) error {
 		return database.NewValidationErrorf("%q is not a valid transfer history status", h.Status)
 	}
 
+	if h.TransferInfo == nil {
+		h.TransferInfo = map[string]any{}
+	}
+
 	if !h.IsServer && h.Client == "" {
 		return database.NewValidationError("the transfer's client is missing")
 	} else if h.IsServer && h.Client != "" {
@@ -162,7 +156,7 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, e
 
 	if h.IsServer {
 		agent := &LocalAgent{}
-		if err := db.Get(agent, "owner=? AND name=?", h.Owner, h.Agent).Run(); err != nil {
+		if err := db.Get(agent, "name=?", h.Agent).Run(); err != nil {
 			return nil, fmt.Errorf("failed to retrieve local agent: %w", err)
 		}
 
@@ -172,15 +166,15 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, e
 			return nil, fmt.Errorf("failed to retrieve local account: %w", err)
 		}
 
-		trans.LocalAccountID = sql.NullInt64{Valid: true, Int64: account.ID}
+		trans.LocalAccountID = account.NullableID()
 	} else {
 		client := &Client{}
-		if err := db.Get(client, "name=? AND owner=?", h.Client, h.Owner).Run(); err != nil {
+		if err := db.Get(client, "name=?", h.Client).Run(); err != nil {
 			return nil, fmt.Errorf("failed to retrieve client: %w", err)
 		}
 
 		agent := &RemoteAgent{}
-		if err := db.Get(agent, "name=? AND owner=?", h.Agent, h.Owner).Run(); err != nil {
+		if err := db.Get(agent, "name=?", h.Agent).Run(); err != nil {
 			return nil, fmt.Errorf("failed to retrieve remote agent: %w", err)
 		}
 
@@ -190,36 +184,28 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, e
 			return nil, fmt.Errorf("failed to retrieve remote account: %w", err)
 		}
 
-		trans.ClientID = utils.NewNullInt64(client.ID)
-		trans.RemoteAccountID = utils.NewNullInt64(account.ID)
+		trans.ClientID = client.NullableID()
+		trans.RemoteAccountID = account.NullableID()
 	}
 
 	return trans, nil
 }
 
-func (h *HistoryEntry) afterWrite(db database.Access) error {
-	return setTransferInfo(db, h, h.TransferInfo)
-}
-
 func (h *HistoryEntry) AfterInsert(db database.Access) error {
-	if h.TransferInfo == nil {
-		h.TransferInfo = map[string]any{}
+	h.Infos = make(TransferInfos, 0, len(h.TransferInfo))
+	for k, v := range h.TransferInfo {
+		h.Infos = append(h.Infos, TransferInfo{HistoryID: h.NullableID(), Name: k, Value: v})
 	}
 
-	return h.afterWrite(db)
-}
-
-func (h *HistoryEntry) AfterUpdate(db database.Access) error {
-	return h.afterWrite(db)
-}
-
-func (h *HistoryEntry) AfterRead(db database.ReadAccess) error {
-	infos, err := getTransferInfo(db, h)
-	if err != nil {
-		return err
+	if err := database.InsertBatch[TransferInfo](db, h.Infos...); err != nil {
+		return fmt.Errorf("failed to insert transfer info: %w", err)
 	}
 
-	h.TransferInfo = infos
+	return nil
+}
+
+func (h *HistoryEntry) AfterRead(database.ReadAccess) error {
+	h.TransferInfo = h.Infos.asMap()
 
 	return nil
 }

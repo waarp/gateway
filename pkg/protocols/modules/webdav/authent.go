@@ -15,11 +15,7 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 		return &model.LocalAccount{}, true
 	}
 
-	var (
-		acc          model.LocalAccount
-		authentified bool
-	)
-
+	var authentified bool
 	login, pswd, ok := r.BasicAuth()
 	if !ok || login == "" {
 		unauthorized(w, "auth: missing login")
@@ -27,13 +23,11 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 		return nil, false
 	}
 
-	acc.Login = login
-
 	// We purposefully ignore NotFound errors to avoid leaking information
 	// about the existence of an account.
-	if err := s.db.Get(&acc, "login=? AND local_agent_id=?", login, s.agent.ID).
-		Run(); err != nil && !database.IsNotFound(err) {
-		s.logger.Errorf("Failed to retrieve user credentials: %v", err)
+	acc, accErr := s.agent.GetAccount(s.db, login)
+	if accErr != nil && !database.IsNotFound(accErr) {
+		s.logger.Errorf("Failed to retrieve user credentials: %v", accErr)
 		http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 		return nil, false
@@ -60,7 +54,7 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 	}
 
 	if pswd != "" {
-		if res, err := acc.Authenticate(s.db, s.agent, auth.Password, pswd); err != nil {
+		if res, err := acc.Authenticate(s.db, auth.Password, pswd); err != nil {
 			s.logger.Errorf("Failed to check password for user %q: %v", acc.Login, err)
 			http.Error(w, "internal authentication error", http.StatusInternalServerError)
 
@@ -81,5 +75,5 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 		return nil, false
 	}
 
-	return &acc, true
+	return acc, true
 }

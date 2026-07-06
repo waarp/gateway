@@ -121,7 +121,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[int64][]string) (
 		return map[string][]string{}, nil
 	}
 
-	ids := make([]int64, len(access))
+	ids := make([]any, len(access))
 	i := 0
 
 	for id := range access {
@@ -133,7 +133,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[int64][]string) (
 
 	if isLocal {
 		var agents model.LocalAgents
-		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
+		if err := db.Select(&agents).In("id", ids...).Run(); err != nil {
 			return nil, fmt.Errorf("failed to retrieve servers: %w", err)
 		}
 
@@ -142,7 +142,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[int64][]string) (
 		}
 	} else {
 		var agents model.RemoteAgents
-		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
+		if err := db.Select(&agents).In("id", ids...).Run(); err != nil {
 			return nil, fmt.Errorf("failed to retrieve partners: %w", err)
 		}
 

@@ -14,7 +14,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type TestServerCtx struct {
@@ -43,7 +42,7 @@ func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any)
 		endChan: make(chan bool, chanBuf),
 	}
 
-	conf.GlobalConfig.Paths = conf.PathsConfig{
+	ctx.DB.Config.Paths = conf.PathsConfig{
 		GatewayHome: ctx.Root,
 		FilePerms:   0o600,
 		DirPerms:    0o700,
@@ -78,7 +77,9 @@ func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any)
 	ctx.Service = service.(TestService)
 	ctx.Service.SetTracer(func() pipeline.Trace {
 		return pipeline.Trace{
-			OnTransferEnd: func() { ctx.endChan <- true },
+			OnTransferEnd: func() {
+				close(ctx.endChan)
+			},
 		}
 	})
 
@@ -106,7 +107,7 @@ func (ctx *TestServerCtx) AddPassword(tb testing.TB, pswd string) {
 	tb.Helper()
 
 	cred := &model.Credential{
-		LocalAccountID: utils.NewNullInt64(ctx.Account.ID),
+		LocalAccountID: ctx.Account.NullableID(),
 		Type:           auth.Password,
 		Value:          pswd,
 	}
@@ -117,7 +118,7 @@ func (ctx *TestServerCtx) AddCert(tb testing.TB, cert, key string) {
 	tb.Helper()
 
 	cred := &model.Credential{
-		LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+		LocalAgentID: ctx.Server.NullableID(),
 		Type:         auth.TLSCertificate,
 		Value2:       key,
 		Value:        cert,
@@ -153,9 +154,5 @@ func (ctx *TestServerCtx) RestartServer(tb testing.TB) {
 	tb.Helper()
 
 	require.NoError(tb, ctx.Service.Stop(tb.Context()))
-
-	service := protocolsList[ctx.Server.Protocol].NewServer(ctx.DB, ctx.Server)
-	ctx.Service = service.(TestService) //nolint:forcetypeassert //type is checked above
-
 	require.NoError(tb, ctx.Service.Start())
 }

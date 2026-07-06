@@ -2,6 +2,7 @@ package backup
 
 import (
 	"runtime"
+	"slices"
 	"testing"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -14,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/authtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -23,6 +25,7 @@ const testProtocol = "test_proto"
 func init() {
 	modeltest.AddDummyProtoConfig(testProtocol)
 	modeltest.AddDummyProtoConfig(r66TLS)
+	features.Register(testProtocol, slices.Collect(features.AllFeatures())...)
 
 	modeltest.AddDummyTask("COPY")
 	modeltest.AddDummyTask("MOVE")

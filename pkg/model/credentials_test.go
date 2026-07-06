@@ -6,13 +6,14 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestCryptoTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given an `Credential` instance", t, func() {
 		tbl := &Credential{}
 
@@ -27,6 +28,8 @@ func TestCryptoTableName(t *testing.T) {
 }
 
 func TestAuthBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -39,7 +42,7 @@ func TestAuthBeforeWrite(t *testing.T) {
 
 			Convey("Given a new auth method", func() {
 				newAuth := &Credential{
-					LocalAgentID: utils.NewNullInt64(parentAgent.ID),
+					LocalAgentID: parentAgent.NullableID(),
 					Name:         "cert",
 					Type:         testExternalAuth,
 					Value:        "val",
@@ -88,7 +91,7 @@ func TestAuthBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new method's name is already taken", func() {
 					otherAuth := &Credential{
-						LocalAgentID: utils.NewNullInt64(parentAgent.ID),
+						LocalAgentID: parentAgent.NullableID(),
 						Name:         "other",
 						Type:         testExternalAuth,
 						Value:        "val",
@@ -102,21 +105,14 @@ func TestAuthBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new method's name is already taken "+
 					"but the owner is different", func() {
-					oldOwner := conf.GlobalConfig.GatewayName
-					conf.GlobalConfig.GatewayName = "other"
-
-					defer func() { conf.GlobalConfig.GatewayName = oldOwner }()
-
 					otherAgent := &LocalAgent{
 						Name: "other", Protocol: testProtocol,
-						Address: types.Addr("localhost", 6666),
+						Address: types.Addr("localhost", 6667),
 					}
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 
-					conf.GlobalConfig.GatewayName = oldOwner
-
 					otherAuth := &Credential{
-						LocalAgentID: utils.NewNullInt64(parentAgent.ID),
+						LocalAgentID: parentAgent.NullableID(),
 						Name:         "other",
 						Type:         testExternalAuth,
 						Value:        "val",

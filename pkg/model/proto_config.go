@@ -1,8 +1,6 @@
 package model
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -69,23 +67,3 @@ const (
 )
 
 func isR66(proto string) bool { return proto == protoR66 || proto == protoR66TLS }
-
-type ProtoConfigMap map[string]any
-
-func (p *ProtoConfigMap) Map() map[string]any { return *p }
-
-//nolint:wrapcheck //wrapping adds nothing here
-func (p *ProtoConfigMap) UnmarshalJSON(b []byte) error {
-	decoder := json.NewDecoder(bytes.NewReader(b))
-	decoder.UseNumber()
-
-	m := map[string]any{}
-
-	if err := decoder.Decode(&m); err != nil {
-		return err
-	}
-
-	*p = m
-
-	return nil
-}

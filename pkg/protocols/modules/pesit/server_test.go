@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -58,7 +57,7 @@ func TestServerSelectFile(t *testing.T) {
 			fileContent = "Hello push"
 		)
 
-		srcFilePath := fs.JoinPath(conf.GlobalConfig.Paths.GatewayHome,
+		srcFilePath := fs.JoinPath(db.Config.Paths.GatewayHome,
 			ctx.Server.RootDir, ctx.ServerRulePush.LocalDir, fileName)
 		require.NoError(t, fs.WriteFullFile(srcFilePath, []byte(fileContent)))
 
@@ -109,7 +108,7 @@ func TestServerSelectFile(t *testing.T) {
 			oldTransfer := model.Transfer{
 				RemoteTransferID: utils.FormatUint(transferID),
 				RuleID:           ctx.ServerRulePush.ID,
-				LocalAccountID:   utils.NewNullInt64(ctx.LocalAccount.ID),
+				LocalAccountID:   ctx.LocalAccount.NullableID(),
 				SrcFilename:      fileName,
 				LocalPath:        srcFilePath,
 				Filesize:         int64(len(fileContent)),
@@ -138,7 +137,7 @@ func TestServerSelectFile(t *testing.T) {
 		var (
 			reservationSpace = uint32(fileSize / bytesPerKB)
 			filePath         = path.Join(ctx.ServerRulePull.Path, fileName)
-			dstFilePath      = fs.JoinPath(conf.GlobalConfig.Paths.GatewayHome,
+			dstFilePath      = fs.JoinPath(db.Config.Paths.GatewayHome,
 				ctx.Server.RootDir, ctx.ServerRulePull.LocalDir, fileName)
 		)
 
@@ -178,7 +177,7 @@ func TestServerSelectFile(t *testing.T) {
 			oldTransfer := model.Transfer{
 				RemoteTransferID: utils.FormatUint(transferID),
 				RuleID:           ctx.ServerRulePull.ID,
-				LocalAccountID:   utils.NewNullInt64(ctx.LocalAccount.ID),
+				LocalAccountID:   ctx.LocalAccount.NullableID(),
 				SrcFilename:      fileName,
 				DestFilename:     fileName,
 				LocalPath:        dstFilePath,
@@ -234,7 +233,7 @@ func TestServerOpenFile(t *testing.T) {
 			fileContent = "Hello push"
 		)
 
-		srcFilePath := fs.JoinPath(conf.GlobalConfig.Paths.GatewayHome,
+		srcFilePath := fs.JoinPath(db.Config.Paths.GatewayHome,
 			ctx.Server.RootDir, ctx.ServerRulePush.LocalDir, fileName)
 		require.NoError(t, fs.WriteFullFile(srcFilePath, []byte(fileContent)))
 
@@ -277,7 +276,7 @@ func TestServerOpenFile(t *testing.T) {
 			oldTransfer := model.Transfer{
 				RemoteTransferID: utils.FormatUint(transferID),
 				RuleID:           ctx.ServerRulePush.ID,
-				LocalAccountID:   utils.NewNullInt64(ctx.LocalAccount.ID),
+				LocalAccountID:   ctx.LocalAccount.NullableID(),
 				SrcFilename:      fileName,
 				LocalPath:        srcFilePath,
 				Filesize:         int64(len(fileContent)),
@@ -307,7 +306,7 @@ func TestServerOpenFile(t *testing.T) {
 		var (
 			reservationSpace = uint32(fileSize / bytesPerKB)
 			filePath         = path.Join(ctx.ServerRulePull.Path, fileName)
-			dstFilePath      = fs.JoinPath(conf.GlobalConfig.Paths.GatewayHome,
+			dstFilePath      = fs.JoinPath(db.Config.Paths.GatewayHome,
 				ctx.Server.RootDir, ctx.ServerRulePull.LocalDir, fileName)
 		)
 
@@ -342,7 +341,7 @@ func TestServerOpenFile(t *testing.T) {
 			oldTransfer := model.Transfer{
 				RemoteTransferID: utils.FormatUint(transferID),
 				RuleID:           ctx.ServerRulePull.ID,
-				LocalAccountID:   utils.NewNullInt64(ctx.LocalAccount.ID),
+				LocalAccountID:   ctx.LocalAccount.NullableID(),
 				SrcFilename:      fileName,
 				DestFilename:     fileName,
 				LocalPath:        dstFilePath,
@@ -399,7 +398,7 @@ func TestServerStartData(t *testing.T) {
 			fileContent = "Hello push"
 		)
 
-		srcFilePath := fs.JoinPath(conf.GlobalConfig.Paths.GatewayHome,
+		srcFilePath := fs.JoinPath(db.Config.Paths.GatewayHome,
 			ctx.Server.RootDir, ctx.ServerRulePush.LocalDir, fileName)
 		require.NoError(t, fs.WriteFullFile(srcFilePath, []byte(fileContent)))
 
@@ -446,7 +445,7 @@ func TestServerStartData(t *testing.T) {
 			oldTransfer := model.Transfer{
 				RemoteTransferID: utils.FormatUint(transferID),
 				RuleID:           ctx.ServerRulePush.ID,
-				LocalAccountID:   utils.NewNullInt64(ctx.LocalAccount.ID),
+				LocalAccountID:   ctx.LocalAccount.NullableID(),
 				SrcFilename:      fileName,
 				LocalPath:        srcFilePath,
 				Filesize:         fileSize,
@@ -478,7 +477,7 @@ func TestServerStartData(t *testing.T) {
 		var (
 			reservationSpace = uint32(fileSize / bytesPerKB)
 			filePath         = path.Join(ctx.ServerRulePull.Path, fileName)
-			dstFilePath      = fs.JoinPath(conf.GlobalConfig.Paths.GatewayHome,
+			dstFilePath      = fs.JoinPath(db.Config.Paths.GatewayHome,
 				ctx.Server.RootDir, ctx.ServerRulePull.LocalDir, fileName)
 			checkpointSize = fileSize / 2
 		)
@@ -514,7 +513,7 @@ func TestServerStartData(t *testing.T) {
 			oldTransfer := model.Transfer{
 				RemoteTransferID: utils.FormatUint(transferID),
 				RuleID:           ctx.ServerRulePull.ID,
-				LocalAccountID:   utils.NewNullInt64(ctx.LocalAccount.ID),
+				LocalAccountID:   ctx.LocalAccount.NullableID(),
 				SrcFilename:      fileName,
 				DestFilename:     fileName,
 				LocalPath:        dstFilePath,

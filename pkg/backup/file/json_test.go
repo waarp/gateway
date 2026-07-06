@@ -27,6 +27,8 @@ func shouldBeHashOf(hashed any, pswd string) {
 }
 
 func TestUserUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a JSON user", t, func() {
 		input := []byte(`{"username": "foo", "password": "bar"}`)
 
@@ -42,6 +44,8 @@ func TestUserUnmarshalJSON(t *testing.T) {
 }
 
 func TestLocalAgentUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a JSON local agent", t, func() {
 		input := []byte(`{
 			"name": "foo", 
@@ -76,6 +80,8 @@ func TestLocalAgentUnmarshalJSON(t *testing.T) {
 }
 
 func TestRemoteAgentUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a JSON R66 remote agent", t, func() {
 		input := []byte(`{
 			"name": "foo", 

@@ -10,7 +10,6 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
@@ -18,7 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocolstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -36,7 +34,7 @@ func TestControllerListen(t *testing.T) {
 		So(cliService.Start(), ShouldBeNil)
 
 		services.Clients.Add(client, cliService)
-		defer services.Clients.Remove(client)
+		defer services.Clients.Remove(t.Context(), client)
 
 		remote := &model.RemoteAgent{
 			Name: "test remote", Protocol: client.Protocol,
@@ -56,10 +54,10 @@ func TestControllerListen(t *testing.T) {
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a controller", func() {
-			conf.GlobalConfig.Paths.GatewayHome = rootPath
-			conf.GlobalConfig.Paths.DefaultInDir = "in"
-			conf.GlobalConfig.Paths.DefaultOutDir = "out"
-			conf.GlobalConfig.Paths.DefaultTmpDir = "tmp"
+			db.Config.Paths.GatewayHome = rootPath
+			db.Config.Paths.DefaultInDir = "in"
+			db.Config.Paths.DefaultOutDir = "out"
+			db.Config.Paths.DefaultTmpDir = "tmp"
 
 			cont := &Controller{
 				DB:     db,
@@ -76,12 +74,11 @@ func TestControllerListen(t *testing.T) {
 
 				trans := &model.Transfer{
 					RuleID:          rule.ID,
-					ClientID:        utils.NewNullInt64(client.ID),
-					RemoteAccountID: utils.NewNullInt64(account.ID),
+					ClientID:        client.NullableID(),
+					RemoteAccountID: account.NullableID(),
 					SrcFilename:     "file_1",
 					Start:           time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
 					Status:          types.StatusPlanned,
-					Owner:           conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -137,8 +134,8 @@ func TestControllerListen(t *testing.T) {
 
 				trans1 := &model.Transfer{
 					RuleID:          rule.ID,
-					ClientID:        utils.NewNullInt64(client.ID),
-					RemoteAccountID: utils.NewNullInt64(account.ID),
+					ClientID:        client.NullableID(),
+					RemoteAccountID: account.NullableID(),
 					SrcFilename:     "file_1",
 				}
 				So(db.Insert(trans1).Run(), ShouldBeNil)
@@ -149,8 +146,8 @@ func TestControllerListen(t *testing.T) {
 
 				trans2 := &model.Transfer{
 					RuleID:          rule.ID,
-					ClientID:        utils.NewNullInt64(client.ID),
-					RemoteAccountID: utils.NewNullInt64(account.ID),
+					ClientID:        client.NullableID(),
+					RemoteAccountID: account.NullableID(),
 					SrcFilename:     "file_2",
 				}
 				So(db.Insert(trans2).Run(), ShouldBeNil)

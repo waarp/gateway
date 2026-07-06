@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -17,8 +16,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 ) error {
 	if reset {
 		var servers model.LocalAgents
-		if err := db.Select(&servers).Where("owner=?",
-			conf.GlobalConfig.GatewayName).Run(); err != nil {
+		if err := db.Select(&servers).Run(); err != nil {
 			return fmt.Errorf("failed to retrieve existing servers: %w", err)
 		}
 
@@ -36,8 +34,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Check if agent exists
 		exists := true
-		if err := db.Get(&agent, "name=? AND owner=?", src.Name,
-			conf.GlobalConfig.GatewayName).Run(); database.IsNotFound(err) {
+		if err := db.Get(&agent, "name=?", src.Name).Run(); database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve server %q: %w", src.Name, err)

@@ -32,7 +32,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=?", login).Owner().Run(); err != nil &&
+			if err := db.Get(&user, "username=?", login).Run(); err != nil &&
 				!database.IsNotFound(err) {
 				logger.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)

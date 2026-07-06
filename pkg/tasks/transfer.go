@@ -90,8 +90,7 @@ func (t *TransferTask) parseArgs(db database.Access, args map[string]string) err
 		return ErrTransferNoPartner
 	}
 
-	if err := db.Get(&t.partner, "name=?", partner).Owner().
-		Run(); database.IsNotFound(err) {
+	if err := db.Get(&t.partner, "name=?", partner).Run(); database.IsNotFound(err) {
 		return fmt.Errorf("%w: %q", ErrTransferPartnerNotFound, partner)
 	} else if err != nil {
 		return fmt.Errorf("failed to retrieve partner %q: %w", partner, err)
@@ -116,7 +115,7 @@ func (t *TransferTask) parseArgs(db database.Access, args map[string]string) err
 
 		t.client = *client
 	} else {
-		if err := db.Get(&t.client, "name=?", t.Using).Owner().Run(); database.IsNotFound(err) {
+		if err := db.Get(&t.client, "name=?", t.Using).Run(); database.IsNotFound(err) {
 			return fmt.Errorf("%w: %q", ErrTransferClientNotFound, t.Using)
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve client %q: %w", t.Using, err)
@@ -208,8 +207,8 @@ func (t *TransferTask) makeTransfer(db *database.DB, transCtx *model.TransferCon
 
 	trans := &model.Transfer{
 		RuleID:               t.rule.ID,
-		ClientID:             utils.NewNullInt64(t.client.ID),
-		RemoteAccountID:      utils.NewNullInt64(t.account.ID),
+		ClientID:             t.client.NullableID(),
+		RemoteAccountID:      t.account.NullableID(),
 		SrcFilename:          t.File,
 		DestFilename:         output,
 		RemainingTries:       int8(t.NbOfAttempts),

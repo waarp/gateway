@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -94,12 +95,12 @@ func setDBVersion(to string) func(Actions) error {
 func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 	var row *sql.Row
 
-	switch dialect {
-	case SQLite:
+	switch strings.ToLower(dialect) {
+	case "sqlite", "sqlite3":
 		row = db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='version'")
-	case PostgreSQL:
+	case "pg", "pgsql", "postgres", "postgresql":
 		row = db.QueryRow("SELECT tablename FROM pg_tables WHERE tablename='version'")
-	case MySQL:
+	case "mysql", "mariadb":
 		row = db.QueryRow("SHOW TABLES LIKE 'version'")
 	default:
 		return false, fmt.Errorf("%w: %q", ErrUnknownDialect, dialect)

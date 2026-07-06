@@ -41,7 +41,7 @@ func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *pipeline.Erro
 
 	if info.FileInfo != nil {
 		if info.FileInfo.SystemData.FollowID > 0 {
-			pip.TransCtx.Transfer.TransferInfo[model.FollowID] = info.FileInfo.SystemData.FollowID
+			pip.TransCtx.Transfer.TransferInfo[model.FollowID] = json.Number(utils.FormatInt(info.FileInfo.SystemData.FollowID))
 		}
 
 		if info.FileInfo.UserContent != "" {
@@ -73,7 +73,7 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Er
 		pip.TransCtx.Transfer.TransferInfo[UserContent] = userContent
 	}
 
-	if err := pip.TransCtx.Transfer.UpdateInfo(pip.DB); err != nil {
+	if err := pip.TransCtx.Transfer.AfterUpdate(pip.DB); err != nil {
 		pip.Logger.Errorf("Failed to update transfer info: %v", err)
 
 		return pipeline.NewError(types.TeInternal, "database error")

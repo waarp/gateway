@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -20,6 +19,8 @@ import (
 )
 
 func TestTransferTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a `Transfer` instance", t, func() {
 		trans := &Transfer{}
 
@@ -34,6 +35,8 @@ func TestTransferTableName(t *testing.T) {
 }
 
 func TestTransferBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -61,13 +64,13 @@ func TestTransferBeforeWrite(t *testing.T) {
 				trans := Transfer{
 					RemoteTransferID: "1",
 					RuleID:           rule.ID,
-					LocalAccountID:   utils.NewNullInt64(account.ID),
+					LocalAccountID:   account.NullableID(),
 					SrcFilename:      "file",
 					LocalPath:        localPath(testLocalPath),
 					RemotePath:       "/remote/file",
 					Start:            time.Now(),
 					Status:           types.StatusPlanned,
-					Owner:            conf.GlobalConfig.GatewayName,
+					Owner:            db.Config.GatewayName,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -89,7 +92,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 						})
 
 						Convey("Then the transfer owner should be the gateway name", func() {
-							So(trans.Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+							So(trans.Owner, ShouldEqual, db.Config.GatewayName)
 						})
 					})
 				})
@@ -109,7 +112,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given that the transfer has both account IDs", func() {
-					trans.RemoteAccountID = utils.NewNullInt64(1)
+					trans.RemoteAccountID = sql.NullInt64{Int64: 1, Valid: true}
 
 					shouldFailWith("cannot have both a local & remote account ID", database.NewValidationError(
 						"the transfer cannot have both a local and remote account ID"))
@@ -129,7 +132,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given that the account id is invalid", func() {
-					trans.LocalAccountID = utils.NewNullInt64(1000)
+					trans.LocalAccountID = sql.NullInt64{Int64: 1000, Valid: true}
 					shouldFailWith("the local account does not exist", database.NewValidationErrorf(
 						"the local account %d does not exist", trans.LocalAccountID.Int64))
 				})
@@ -172,13 +175,13 @@ func TestTransferBeforeWrite(t *testing.T) {
 				trans := Transfer{
 					RemoteTransferID: "2",
 					RuleID:           rule.ID,
-					RemoteAccountID:  utils.NewNullInt64(account.ID),
+					RemoteAccountID:  account.NullableID(),
 					SrcFilename:      "file",
 					LocalPath:        localPath(testLocalPath),
 					RemotePath:       "/remote/file",
 					Start:            time.Now(),
 					Status:           types.StatusPlanned,
-					Owner:            conf.GlobalConfig.GatewayName,
+					Owner:            db.Config.GatewayName,
 				}
 
 				Convey("Given that no client was specified", func() {
@@ -191,7 +194,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					client := Client{Name: "existing", Protocol: testProtocol}
 					So(db.Insert(&client).Run(), ShouldBeNil)
 
-					trans.ClientID = utils.NewNullInt64(client.ID)
+					trans.ClientID = client.NullableID()
 
 					SoMsg("Then it should not return any error",
 						trans.BeforeWrite(db), ShouldBeNil)
@@ -202,6 +205,8 @@ func TestTransferBeforeWrite(t *testing.T) {
 }
 
 func TestTransferToHistory(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_to_history")
 		db := database.TestDatabase(c)
@@ -230,16 +235,15 @@ func TestTransferToHistory(t *testing.T) {
 
 		Convey("Given a transfer entry", func() {
 			trans := Transfer{
-				ID:              1,
+				Identifier:      ID(1),
 				RuleID:          rule.ID,
-				ClientID:        utils.NewNullInt64(cli.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				ClientID:        cli.NullableID(),
+				RemoteAccountID: account.NullableID(),
 				SrcFilename:     "file",
 				LocalPath:       localPath(testLocalPath),
 				RemotePath:      "/test/remote/file",
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:          types.StatusPlanned,
-				Owner:           conf.GlobalConfig.GatewayName,
 			}
 			So(db.Insert(&trans).Run(), ShouldBeNil)
 
@@ -250,10 +254,10 @@ func TestTransferToHistory(t *testing.T) {
 
 				Convey("Then it should have inserted an equivalent `HistoryEntry` entry", func() {
 					hist := HistoryEntry{}
-					So(db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
+					So(db.Get(&hist, "id=?", trans.ID).Eager().Run(), ShouldBeNil)
 
 					expected := HistoryEntry{
-						ID:               trans.ID,
+						Identifier:       trans.Identifier,
 						RemoteTransferID: trans.RemoteTransferID,
 						Owner:            trans.Owner,
 						IsServer:         false,
@@ -269,9 +273,12 @@ func TestTransferToHistory(t *testing.T) {
 						Start:            trans.Start,
 						Stop:             end,
 						Status:           trans.Status,
-						TransferInfo: map[string]any{
-							FollowID: json.Number(trans.RemoteTransferID),
-						},
+						TransferInfo:     trans.TransferInfo,
+						Infos: []TransferInfo{{
+							HistoryID: trans.NullableID(),
+							Name:      FollowID,
+							Value:     trans.TransferInfo[FollowID],
+						}},
 					}
 
 					So(hist, ShouldResemble, expected)
@@ -336,6 +343,8 @@ func TestTransferToHistory(t *testing.T) {
 }
 
 func TestTransferInfo(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 
 	rule := Rule{Name: "rule", IsSend: true}
@@ -349,37 +358,37 @@ func TestTransferInfo(t *testing.T) {
 
 	transferInfo := map[string]any{
 		"key1": "value1",
-		"key2": 2,
+		"key2": json.Number("2"),
 		"key3": true,
 	}
 
 	trans := &Transfer{
 		RuleID:         rule.ID,
-		LocalAccountID: utils.NewNullInt64(account.ID),
+		LocalAccountID: account.NullableID(),
 		SrcFilename:    "file.txt",
 		TransferInfo:   transferInfo,
 	}
 	require.NoError(t, db.Insert(trans).Run())
 
+	followID := trans.TransferInfo[FollowID]
+
 	t.Run("After write", func(t *testing.T) {
-		var infos TransferInfoList
+		var infos TransferInfos
 		require.NoError(t, db.Select(&infos).OrderBy("name", true).Run())
 		require.Len(t, infos, len(transferInfo))
 
-		asJSON := utils.MustJSON
-
 		assert.Equal(t, FollowID, infos[0].Name)
-		assert.Equal(t, trans.RemoteTransferID, infos[0].Value)
+		assert.Equal(t, followID, infos[0].Value)
 		assert.Equal(t, "key1", infos[1].Name)
-		assert.Equal(t, asJSON(transferInfo["key1"]), infos[1].Value)
+		assert.Equal(t, transferInfo["key1"], infos[1].Value)
 		assert.Equal(t, "key2", infos[2].Name)
-		assert.Equal(t, asJSON(transferInfo["key2"]), infos[2].Value)
+		assert.Equal(t, transferInfo["key2"], infos[2].Value)
 		assert.Equal(t, "key3", infos[3].Name)
-		assert.Equal(t, asJSON(transferInfo["key3"]), infos[3].Value)
+		assert.Equal(t, transferInfo["key3"], infos[3].Value)
 	})
 
 	expected := map[string]any{
-		FollowID: json.Number(trans.RemoteTransferID),
+		FollowID: followID,
 		"key1":   "value1",
 		"key2":   json.Number("2"),
 		"key3":   true,
@@ -387,18 +396,20 @@ func TestTransferInfo(t *testing.T) {
 
 	t.Run("After read", func(t *testing.T) {
 		var check Transfer
-		require.NoError(t, db.Get(&check, "id=?", trans.ID).Run())
+		require.NoError(t, db.Get(&check, "id=?", trans.ID).Eager().Run())
 		assert.Equal(t, expected, check.TransferInfo)
 	})
 
 	t.Run("After read normalized", func(t *testing.T) {
 		var check NormalizedTransferView
-		require.NoError(t, db.Get(&check, "id=?", trans.ID).Run())
+		require.NoError(t, db.Get(&check, "id=?", trans.ID).Eager().Run())
 		assert.Equal(t, expected, check.TransferInfo)
 	})
 }
 
 func TestTransferResume(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 
 	rule := Rule{Name: "rule", IsSend: true}
@@ -420,12 +431,10 @@ func TestTransferResume(t *testing.T) {
 	require.NoError(t, db.Insert(&locAccount).Run())
 
 	t.Run("Nominal case", func(t *testing.T) {
-		t.Parallel()
-
 		original := &Transfer{
 			RuleID:          rule.ID,
-			ClientID:        utils.NewNullInt64(client.ID),
-			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			ClientID:        client.NullableID(),
+			RemoteAccountID: remAccount.NullableID(),
 			SrcFilename:     "file.txt",
 			Status:          types.StatusError,
 			ErrCode:         types.TeUnknown,
@@ -434,7 +443,7 @@ func TestTransferResume(t *testing.T) {
 		require.NoError(t, db.Insert(original).Run())
 
 		actual := utils.Clone(original)
-		when := time.Now()
+		when := time.Now().UTC()
 		require.NoError(t, actual.Resume(db, when))
 
 		assert.Equal(t, types.StatusPlanned, actual.Status)
@@ -444,12 +453,10 @@ func TestTransferResume(t *testing.T) {
 	})
 
 	t.Run("Running transfer", func(t *testing.T) {
-		t.Parallel()
-
 		expected := &Transfer{
 			RuleID:          rule.ID,
-			ClientID:        utils.NewNullInt64(client.ID),
-			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			ClientID:        client.NullableID(),
+			RemoteAccountID: remAccount.NullableID(),
 			SrcFilename:     "file.txt",
 			Status:          types.StatusRunning,
 		}
@@ -461,11 +468,9 @@ func TestTransferResume(t *testing.T) {
 	})
 
 	t.Run("Server transfer", func(t *testing.T) {
-		t.Parallel()
-
 		expected := &Transfer{
 			RuleID:         rule.ID,
-			LocalAccountID: utils.NewNullInt64(locAccount.ID),
+			LocalAccountID: locAccount.NullableID(),
 			SrcFilename:    "file.txt",
 			Status:         types.StatusPaused,
 		}
@@ -477,12 +482,10 @@ func TestTransferResume(t *testing.T) {
 	})
 
 	t.Run("Sync transfer", func(t *testing.T) {
-		t.Parallel()
-
 		expected := &Transfer{
 			RuleID:          rule.ID,
-			ClientID:        utils.NewNullInt64(client.ID),
-			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			ClientID:        client.NullableID(),
+			RemoteAccountID: remAccount.NullableID(),
 			SrcFilename:     "file.txt",
 			Status:          types.StatusPaused,
 			TransferInfo:    map[string]any{SyncTransferID: 123, SyncTransferRank: 2},

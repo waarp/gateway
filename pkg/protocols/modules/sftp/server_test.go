@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -44,12 +43,12 @@ func TestAuth(t *testing.T) {
 		So(db.Insert(locAccount).Run(), ShouldBeNil)
 
 		So(db.Insert(&model.Credential{
-			LocalAccountID: utils.NewNullInt64(locAccount.ID),
+			LocalAccountID: locAccount.NullableID(),
 			Type:           auth.Password,
 			Value:          password,
 		}).Run(), ShouldBeNil)
 		So(db.Insert(&model.Credential{
-			LocalAccountID: utils.NewNullInt64(locAccount.ID),
+			LocalAccountID: locAccount.NullableID(),
 			Type:           AuthSSHPublicKey,
 			Value:          SSHPbk,
 		}).Run(), ShouldBeNil)

@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -29,14 +28,18 @@ type getBean[T any] interface {
 	database.GetBean
 }
 
-func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
-	reqPath, elem string, reqBodyObject map[string]any, expectedDBObject U,
+func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
+	dbPrerequisites database.TransactionFunc, reqBodyObject map[string]any, expectedDBObject U,
 ) {
 	tb.Helper()
 
 	logger := testhelpers.GetTestLogger(tb)
 	db := dbtest.TestDatabase(tb)
 	handlr := mkHandler(logger, db)
+
+	if dbPrerequisites != nil {
+		require.NoError(tb, db.Transaction(dbPrerequisites))
+	}
 
 	expectedLoc := path.Join(reqPath, elem)
 	reqBody := mkBody(tb, reqBodyObject)
@@ -53,7 +56,7 @@ func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 	assert.Empty(tb, w.Body.String(), `Then the response body should be empty`)
 
 	if owner := reflect.ValueOf(expectedDBObject).Elem().FieldByName("Owner"); owner.IsValid() {
-		owner.SetString(conf.GlobalConfig.GatewayName)
+		owner.SetString(db.Config.GatewayName)
 	}
 
 	cop := *expectedDBObject
@@ -65,6 +68,7 @@ func testAdd[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 }
 
 func testGet(tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
+	dbPrerequisites database.TransactionFunc,
 	dbObject database.InsertBean, expectedResponse map[string]any,
 ) {
 	tb.Helper()
@@ -72,6 +76,10 @@ func testGet(tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
 	logger := testhelpers.GetTestLogger(tb)
 	db := dbtest.TestDatabase(tb)
 	handlr := mkHandler(logger, db)
+
+	if dbPrerequisites != nil {
+		require.NoError(tb, db.Transaction(dbPrerequisites))
+	}
 
 	require.NoError(tb, db.Insert(dbObject).Run())
 
@@ -87,13 +95,17 @@ func testGet(tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
 }
 
 func testDelete(tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
-	dbObject database.InsertBean,
+	dbPrerequisites database.TransactionFunc, dbObject database.InsertBean,
 ) {
 	tb.Helper()
 
 	logger := testhelpers.GetTestLogger(tb)
 	db := dbtest.TestDatabase(tb)
 	handlr := mkHandler(logger, db)
+
+	if dbPrerequisites != nil {
+		require.NoError(tb, db.Transaction(dbPrerequisites))
+	}
 
 	require.NoError(tb, db.Insert(dbObject).Run())
 
@@ -111,7 +123,9 @@ func testDelete(tb testing.TB, mkHandler HandlerDB, reqPath, elem string,
 }
 
 func testUpdate[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
-	reqPath, elem, newElem string, dbObject database.InsertBean,
+	reqPath, elem, newElem string,
+	dbPrerequisites database.TransactionFunc,
+	dbObject database.InsertBean,
 	reqBodyObject map[string]any, expectedDBObject U,
 ) {
 	tb.Helper()
@@ -119,6 +133,10 @@ func testUpdate[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 	logger := testhelpers.GetTestLogger(tb)
 	db := dbtest.TestDatabase(tb)
 	handlr := mkHandler(logger, db)
+
+	if dbPrerequisites != nil {
+		require.NoError(tb, db.Transaction(dbPrerequisites))
+	}
 
 	require.NoError(tb, db.Insert(dbObject).Run())
 
@@ -137,7 +155,7 @@ func testUpdate[T any, U getBean[T]](tb testing.TB, mkHandler HandlerDB,
 	assert.Empty(tb, w.Body.String(), `Then the response body should be empty`)
 
 	if owner := reflect.ValueOf(expectedDBObject).Elem().FieldByName("Owner"); owner.IsValid() {
-		owner.SetString(conf.GlobalConfig.GatewayName)
+		owner.SetString(db.Config.GatewayName)
 	}
 
 	cop := *expectedDBObject

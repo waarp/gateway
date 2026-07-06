@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/lib/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -18,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -28,7 +30,7 @@ func (c *transferClient) logErrConf(msg string) {
 	c.pip.Logger.Errorf("Client-server configuration mismatch: %s", msg)
 }
 
-func (c *transferClient) connect() (*clientConn, *pipeline.Error) {
+func (c *transferClient) connect() (*ClientConn, *pipeline.Error) {
 	cli, err := c.conns.Connect(c.pip)
 	if err != nil {
 		c.pip.Logger.Errorf("Failed to connect to remote host: %v", err)
@@ -39,78 +41,15 @@ func (c *transferClient) connect() (*clientConn, *pipeline.Error) {
 	return cli, nil
 }
 
-//nolint:funlen //no easy way to split this
-func (c *transferClient) authenticate(conn *clientConn) *pipeline.Error {
-	var sesErr error
-	if c.ses, sesErr = conn.NewSession(); sesErr != nil {
-		c.pip.Logger.Errorf("Failed to start R66 session: %s", sesErr)
-
-		return pipeline.NewErrorWith(sesErr, types.TeConnection, "failed to start R66 session")
-	}
-
-	r66Conf := &r66.Config{
-		FileSize:   true,
-		FinalHash:  !c.noFinalHash,
-		DigestAlgo: c.finalHashAlgo,
-		Proxified:  false,
-	}
-
-	var pwd []byte
-
-	for _, cred := range c.pip.TransCtx.RemoteAccountCreds {
-		if cred.Type == auth.Password {
-			pwd = []byte(cred.Value)
+func (c *transferClient) authenticate(conn *ClientConn) *pipeline.Error {
+	var err error
+	if c.ses, err = conn.authenticate(c.pip.Logger, c.pip.TransCtx, c.noFinalHash,
+		c.finalHashAlgo, c.serverLogin); err != nil {
+		if tErr, ok := errors.AsType[*pipeline.Error](err); ok {
+			return tErr
 		}
-	}
 
-	authent, err := c.ses.Authent(c.pip.TransCtx.RemoteAccount.Login, pwd, r66Conf)
-	if err != nil {
-		c.ses = nil
-		c.pip.Logger.Errorf("Client authentication failed: %v", err)
-
-		return pipeline.NewErrorWith(err, types.TeBadAuthentication, "client authentication failed")
-	}
-
-	// Server authentication
-	pswd := &model.Credential{}
-
-	for _, cred := range c.pip.TransCtx.RemoteAgentCreds {
-		if cred.Type == auth.Password {
-			pswd = cred
-		}
-	}
-
-	loginOK := utils.ConstantEqual(c.serverLogin, authent.Login)
-	pwdOK := utils.IsHashOf(pswd.Value, string(authent.Password))
-
-	if !loginOK {
-		c.pip.Logger.Errorf("Server authentication failed: wrong login %q", authent.Login)
-
-		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
-	}
-
-	if !pwdOK {
-		c.pip.Logger.Error("Server authentication failed: wrong password")
-
-		return pipeline.NewError(types.TeBadAuthentication, "server authentication failed")
-	}
-
-	if authent.Filesize != r66Conf.FileSize {
-		c.logErrConf("file size verification")
-
-		return errConf
-	}
-
-	if authent.FinalHash != r66Conf.FinalHash {
-		c.logErrConf("final hash verification")
-
-		return errConf
-	}
-
-	if authent.Digest != r66Conf.DigestAlgo {
-		c.logErrConf("unknown digest algorithm")
-
-		return errConf
+		return pipeline.NewErrorWith(err, types.TeUnknown, "unknown error during authentication")
 	}
 
 	return nil
@@ -128,7 +67,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 		}
 	}
 
-	transID, err := c.pip.TransCtx.Transfer.TransferID()
+	transID, err := utils.ParseInt[int64](c.pip.TransCtx.Transfer.RemoteTransferID)
 	if err != nil {
 		return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse transfer ID")
 	}
@@ -249,88 +188,54 @@ func (c *transferClient) makeHash(file protocol.SendFile) func() ([]byte, error)
 	}
 }
 
-var (
-	errMissingCertificate = errors.New("TLS server provided no certificate during handshake")
-	errBadCertificate     = errors.New("tls: bad certificate")
-)
-
-//nolint:funlen //no easy way to split this
-func makeClientTLSConfig(pip *pipeline.Pipeline, partConf *tlsPartnerConfig,
-	clientConf *tlsClientConfig,
-) (*tls.Config, error) {
-	tlsConf := &tls.Config{
-		ServerName:       pip.TransCtx.RemoteAgent.Address.Host,
-		MinVersion:       clientConf.MinTLSVersion.TLS(),
-		VerifyConnection: compatibility.LogSha1(pip.Logger),
+func makeClientTLSConfig(logger *log.Logger, ctx *model.TransferContext) (*tls.Config, error) {
+	tlsConf, err := protoutils.GetClientTLSConfig(ctx, logger)
+	if err != nil {
+		return nil, err
 	}
 
-	if partConf.MinTLSVersion != 0 {
-		tlsConf.MinVersion = partConf.MinTLSVersion.TLS()
+	if !compatibility.IsLegacyR66CertificateAllowed {
+		return tlsConf, nil
 	}
 
-	tlsConf.Certificates = make([]tls.Certificate, 0, len(pip.TransCtx.RemoteAccountCreds))
-
-	for _, cred := range pip.TransCtx.RemoteAccountCreds {
+	for _, cred := range ctx.RemoteAccountCreds {
 		if cred.Type == r66auth.AuthLegacyCertificate {
 			tlsConf.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
 
 			break
 		}
-
-		if cred.Type != auth.TLSCertificate {
-			continue
-		}
-
-		tlsCert, err := utils.X509KeyPair(cred.Value, cred.Value2)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse TLS certificate: %w", err)
-		}
-
-		tlsConf.Certificates = append(tlsConf.Certificates, tlsCert)
 	}
 
-	caPool := utils.TLSCertPool()
-
-	for _, cred := range pip.TransCtx.RemoteAgentCreds {
+	for _, cred := range ctx.RemoteAgentCreds {
 		if cred.Type == r66auth.AuthLegacyCertificate {
 			tlsConf.InsecureSkipVerify = true
-			tlsConf.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
-				if len(rawCerts) == 0 {
-					return errMissingCertificate
-				}
+			tlsConf.VerifyPeerCertificate = verifyLegacyCert
 
-				chain, parsErr := auth.ParseRawCertChain(rawCerts)
-				if parsErr != nil {
-					return fmt.Errorf("failed to parse the certification chain: %w", parsErr)
-				}
-
-				if !compatibility.IsLegacyR66Cert(chain[0]) {
-					return errBadCertificate
-				}
-
-				return nil
-			}
-
-			return tlsConf, nil
+			break
 		}
-
-		if cred.Type != auth.TLSTrustedCertificate {
-			continue
-		}
-
-		certChain, parseErr := utils.ParsePEMCertChain(cred.Value)
-		if parseErr != nil {
-			return nil, fmt.Errorf("failed to parse the certification chain: %w", parseErr)
-		}
-
-		caPool.AddCert(certChain[0])
-	}
-
-	tlsConf.RootCAs = caPool
-
-	if err := auth.AddTLSAuthorities(pip.DB, tlsConf); err != nil {
-		return nil, fmt.Errorf("failed to setup TLS authorities: %w", err)
 	}
 
 	return tlsConf, nil
+}
+
+var (
+	ErrMissingCertificate = errors.New("missing certificate")
+	ErrBadCertificate     = errors.New("bad certificate")
+)
+
+func verifyLegacyCert(rawCerts [][]byte, _ [][]*x509.Certificate) error {
+	if len(rawCerts) == 0 {
+		return ErrMissingCertificate
+	}
+
+	chain, parsErr := auth.ParseRawCertChain(rawCerts)
+	if parsErr != nil {
+		return fmt.Errorf("failed to parse the certification chain: %w", parsErr)
+	}
+
+	if !compatibility.IsLegacyR66Cert(chain[0]) {
+		return ErrBadCertificate
+	}
+
+	return nil
 }

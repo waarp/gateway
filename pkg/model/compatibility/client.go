@@ -19,7 +19,7 @@ func init() {
 func GetDefaultTransferClient(db database.Access, protocol string) (*model.Client, error) {
 	// Retrieve all clients with the transfer's protocol.
 	var clients model.Clients
-	if err := db.Select(&clients).Where("protocol=?", protocol).Owner().Run(); err != nil {
+	if err := db.Select(&clients).Where("protocol=?", protocol).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve potential transfer clients: %w", err)
 	}
 

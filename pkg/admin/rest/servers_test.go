@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -25,6 +25,8 @@ import (
 const testServersURI = "http://localhost:8080/api/servers/"
 
 func TestListServers(t *testing.T) {
+	t.Parallel()
+
 	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutServer) {
 		Convey("Then the response body should contain an array "+
 			"of the requested agents in JSON format", func() {
@@ -85,16 +87,12 @@ func TestListServers(t *testing.T) {
 			agent4, err := DBServerToREST(db, a4)
 			So(err, ShouldBeNil)
 
-			// add a server from another gateway
-			owner := conf.GlobalConfig.GatewayName
-			conf.GlobalConfig.GatewayName = "foobar"
 			a5 := model.LocalAgent{
 				Name: "server5", Protocol: testProto1,
 				Address: types.Addr("localhost", 5),
 			}
-			So(db.Insert(&a5).Run(), ShouldBeNil)
-
-			conf.GlobalConfig.GatewayName = owner
+			// add a server from another gateway
+			So(dbtest.InsertAsOwner(db, "foobar", &a5), ShouldBeNil)
 
 			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -160,6 +158,8 @@ func TestListServers(t *testing.T) {
 }
 
 func TestGetServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the server get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_get_test")
 		db := database.TestDatabase(c)
@@ -168,15 +168,15 @@ func TestGetServer(t *testing.T) {
 
 		Convey("Given a database with 1 server", func() {
 			// add a server from another gateway
-			owner := conf.GlobalConfig.GatewayName
-			conf.GlobalConfig.GatewayName = "foobar"
+			owner := db.Config.GatewayName
+			db.Config.GatewayName = "foobar"
 			other := &model.LocalAgent{
 				Name: "existing", Protocol: testProto1,
 				Address: types.Addr("localhost", 10),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 
-			conf.GlobalConfig.GatewayName = owner
+			db.Config.GatewayName = owner
 
 			existing := &model.LocalAgent{
 				Name: other.Name, Protocol: testProto1,
@@ -185,7 +185,7 @@ func TestGetServer(t *testing.T) {
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			pswd := model.Credential{
-				LocalAgentID: utils.NewNullInt64(existing.ID),
+				LocalAgentID: existing.NullableID(),
 				Name:         "server password",
 				Type:         auth.Password,
 				Value:        "sesame",
@@ -248,6 +248,8 @@ func TestGetServer(t *testing.T) {
 }
 
 func TestCreateServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the server creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_create_logger")
 		db := database.TestDatabase(c)
@@ -299,8 +301,8 @@ func TestCreateServer(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 2)
 							So(res[1], ShouldResemble, &model.LocalAgent{
-								ID:            2,
-								Owner:         conf.GlobalConfig.GatewayName,
+								Identifier:    model.ID(2),
+								Owner:         db.Config.GatewayName,
 								Name:          "new_server",
 								Protocol:      testProto1,
 								Address:       types.Addr("localhost", 2),
@@ -334,6 +336,8 @@ func TestCreateServer(t *testing.T) {
 }
 
 func TestDeleteServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the server deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_delete_test")
 		db := database.TestDatabase(c)
@@ -349,7 +353,7 @@ func TestDeleteServer(t *testing.T) {
 
 			protoService := &testService{}
 			services.Servers.Add(existing, protoService)
-			defer services.Servers.Remove(existing)
+			defer services.Servers.Remove(t.Context(), existing)
 
 			Convey("Given a request with the valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, testServersURI+existing.Name, nil)
@@ -424,6 +428,8 @@ func TestDeleteServer(t *testing.T) {
 }
 
 func TestUpdateServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the agent updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_update_logger")
 		db := database.TestDatabase(c)
@@ -444,7 +450,7 @@ func TestUpdateServer(t *testing.T) {
 
 			protoService := makeAndStartTestService(old.Name)
 			services.Servers.Add(old, protoService)
-			defer services.Servers.Remove(old)
+			defer services.Servers.Remove(t.Context(), old)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -478,8 +484,8 @@ func TestUpdateServer(t *testing.T) {
 						So(db.Select(&res).Run(), ShouldBeNil)
 						So(len(res), ShouldEqual, 1)
 						So(res[0], ShouldResemble, &model.LocalAgent{
-							ID:         old.ID,
-							Owner:      conf.GlobalConfig.GatewayName,
+							Identifier: old.Identifier,
+							Owner:      db.Config.GatewayName,
 							Name:       "update",
 							Protocol:   testProto1,
 							Address:    types.Addr("localhost", 2),
@@ -493,14 +499,10 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the service should have been restarted", func() {
-						So(stateCode(protoService), ShouldEqual, utils.StateOffline)
-
-						const newName = "update"
-
 						newService, ok := services.Servers.Get(old)
 						So(ok, ShouldBeTrue)
-						So(newService.Name(), ShouldEqual, newName)
 						So(stateCode(newService), ShouldEqual, utils.StateRunning)
+						So(protoService.stopped, ShouldBeTrue)
 					})
 				})
 
@@ -535,6 +537,8 @@ func TestUpdateServer(t *testing.T) {
 }
 
 func TestReplaceServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the agent replacing handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_replace_logger")
 		db := database.TestDatabase(c)
@@ -555,7 +559,7 @@ func TestReplaceServer(t *testing.T) {
 
 			protoService := makeAndStartTestService(old.Name)
 			services.Servers.Add(old, protoService)
-			defer services.Servers.Remove(old)
+			defer services.Servers.Remove(t.Context(), old)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -593,8 +597,8 @@ func TestReplaceServer(t *testing.T) {
 						So(len(res), ShouldEqual, 1)
 
 						So(res[0], ShouldResemble, &model.LocalAgent{
-							ID:         old.ID,
-							Owner:      conf.GlobalConfig.GatewayName,
+							Identifier: old.Identifier,
+							Owner:      db.Config.GatewayName,
 							Name:       "update",
 							Protocol:   testProto2,
 							Address:    types.Addr("localhost", 2),
@@ -608,14 +612,10 @@ func TestReplaceServer(t *testing.T) {
 					})
 
 					Convey("Then the service should have been restarted", func() {
-						So(stateCode(protoService), ShouldEqual, utils.StateOffline)
-
-						const newName = "update"
-
 						newService, ok := services.Servers.Get(old)
 						So(ok, ShouldBeTrue)
-						So(newService.Name(), ShouldEqual, newName)
 						So(stateCode(newService), ShouldEqual, utils.StateRunning)
+						So(protoService.stopped, ShouldBeTrue)
 					})
 				})
 
@@ -650,6 +650,8 @@ func TestReplaceServer(t *testing.T) {
 }
 
 func TestEnableDisableServer(t *testing.T) {
+	t.Parallel()
+
 	testEnableDisableServer := func(expectedDisabled bool) {
 		path, name := "/servers/{server}/disable", "disable"
 		if !expectedDisabled {
@@ -694,6 +696,8 @@ func TestEnableDisableServer(t *testing.T) {
 }
 
 func TestStartServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the server start handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
@@ -708,7 +712,7 @@ func TestStartServer(t *testing.T) {
 			So(db.Insert(&agent).Run(), ShouldBeNil)
 
 			services.Servers.Add(&agent, &testService{name: agent.Name})
-			defer services.Servers.Remove(&agent)
+			defer services.Servers.Remove(t.Context(), &agent)
 
 			Convey("Given a valid name parameter", func() {
 				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/start", nil)
@@ -744,6 +748,8 @@ func TestStartServer(t *testing.T) {
 }
 
 func TestStopServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the server stop handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
@@ -758,7 +764,7 @@ func TestStopServer(t *testing.T) {
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			services.Servers.Add(agent, makeAndStartTestService(agent.Name))
-			defer services.Servers.Remove(agent)
+			defer services.Servers.Remove(t.Context(), agent)
 
 			Convey("Given a valid name parameter", func() {
 				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/stop", nil)
@@ -794,6 +800,8 @@ func TestStopServer(t *testing.T) {
 }
 
 func TestRestartServer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the server stop handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
@@ -809,7 +817,7 @@ func TestRestartServer(t *testing.T) {
 
 			serv := makeAndStartTestService(agent.Name)
 			services.Servers.Add(agent, serv)
-			defer services.Servers.Remove(agent)
+			defer services.Servers.Remove(t.Context(), agent)
 
 			Convey("Given a valid name parameter", func() {
 				r := httptest.NewRequest(http.MethodPatch, "/servers/{server}/restart", nil)

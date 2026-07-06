@@ -2,11 +2,10 @@ package database
 
 import (
 	"fmt"
-	"strings"
 
-	"xorm.io/builder"
+	"gorm.io/gorm/clause"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // SelectBean is the interface that a model must implement in order to be
@@ -30,6 +29,18 @@ type SelectQuery struct {
 	order    string
 	asc      bool
 	forUpd   bool
+	eager    bool
+	all      bool
+}
+
+func (s *SelectQuery) Eager() *SelectQuery {
+	s.eager = true
+	return s
+}
+
+func (s *SelectQuery) All() *SelectQuery {
+	s.all = true
+	return s
 }
 
 // Where adds a 'WHERE' clause to the 'SELECT' query with the given conditions
@@ -44,26 +55,14 @@ func (s *SelectQuery) Where(sql string, args ...any) *SelectQuery {
 	return s
 }
 
-// Owner adds a 'WHERE owner = ?' clause to the 'SELECT' query.
-func (s *SelectQuery) Owner() *SelectQuery {
-	return s.Where("owner=?", conf.GlobalConfig.GatewayName)
-}
+// Deprecated: condition is automatic now.
+func (s *SelectQuery) Owner() *SelectQuery { return s }
 
 // In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
 func (s *SelectQuery) In(col string, vals ...any) *SelectQuery {
-	if len(vals) == 0 {
-		return s
-	}
-
-	sql := &inCond{Builder: &strings.Builder{}}
-	if builder.In(col, vals...).WriteTo(sql) != nil {
-		return s
-	}
-
-	s.conds = append(s.conds, &condition{sql: sql.String(), args: sql.args})
-
+	s.conds = append(s.conds, makeInClause(col, vals...))
 	return s
 }
 
@@ -105,34 +104,41 @@ func (s *SelectQuery) Count() (uint64, error) {
 
 // Run executes the 'SELECT' query.
 func (s *SelectQuery) Run() error {
-	logger := s.db.GetLogger()
-	query := s.db.getUnderlying().NoAutoCondition().Table(s.bean.TableName())
+	logger := s.db.getLogger()
+	query := s.db.getUnderlying().Table(s.bean.TableName())
+	addOwnerCond(query, s.all, s.bean, s.db.getOwner())
 
 	for _, cond := range s.conds {
-		query.And(cond.sql, cond.args...)
+		query.Where(cond.sql, cond.args...)
 	}
 
-	if s.lim != 0 || s.off != 0 {
-		query.Limit(s.lim, s.off)
+	if s.lim != 0 {
+		query.Limit(s.lim)
+	}
+
+	if s.off != 0 {
+		query.Offset(s.off)
 	}
 
 	if s.order != "" {
 		if s.asc {
-			query.OrderBy(fmt.Sprintf("%s ASC", s.order))
+			query.Order(fmt.Sprintf("%s ASC", s.order))
 		} else {
-			query.OrderBy(fmt.Sprintf("%s DESC", s.order))
+			query.Order(fmt.Sprintf("%s DESC", s.order))
 		}
 	}
 
 	if len(s.distinct) > 0 {
-		query.Distinct(s.distinct...)
+		query.Distinct(utils.AsAny(s.distinct)...)
 	}
 
 	if s.forUpd {
-		query.ForUpdate()
+		query.Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate})
 	}
 
-	if err := query.Find(s.bean); err != nil {
+	addPreloads(s.eager, query, s.bean)
+
+	if err := query.Find(s.bean).Error; err != nil {
 		logger.Errorf("Failed to retrieve the %s entries: %v", s.bean.Elem(), err)
 
 		return NewInternalError(err)

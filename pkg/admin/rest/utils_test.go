@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
-	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/smartystreets/goconvey/convey"
@@ -109,9 +110,15 @@ func marshal(tb testing.TB, data any) string {
 }
 
 func replaceURLVar(url, elem string) (string, string) {
-	dir := path.Dir(url)
-	urlVar := strings.Trim(path.Base(url), "{}")
-	reqURL := path.Join(dir, elem)
+	if elem == "" {
+		return url, ""
+	}
+
+	begin := strings.Index(url, "{")
+	end := strings.Index(url, "}")
+
+	urlVar := url[begin+1 : end]
+	reqURL := url[:begin] + elem + url[end+1:]
 
 	return reqURL, urlVar
 }
@@ -119,7 +126,24 @@ func replaceURLVar(url, elem string) (string, string) {
 func makeRequest(method string, body io.Reader, url, elem string) *http.Request {
 	reqURL, urlVar := replaceURLVar(url, elem)
 	req := httptest.NewRequest(method, reqURL, body)
-	req = mux.SetURLVars(req, map[string]string{urlVar: elem})
+
+	if urlVar != "" {
+		req = mux.SetURLVars(req, map[string]string{urlVar: elem})
+	}
 
 	return req
 }
+
+type testFileInfo struct {
+	name    string
+	size    int64
+	mode    fs.FileMode
+	modTime time.Time
+}
+
+func (t *testFileInfo) Name() string       { return t.name }
+func (t *testFileInfo) Size() int64        { return t.size }
+func (t *testFileInfo) Mode() fs.FileMode  { return t.mode }
+func (t *testFileInfo) ModTime() time.Time { return t.modTime }
+func (t *testFileInfo) IsDir() bool        { return t.mode.IsDir() }
+func (t *testFileInfo) Sys() any           { return nil }

@@ -1,13 +1,11 @@
 package http
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -16,7 +14,7 @@ import (
 )
 
 func (h *httpService) listen() error {
-	addr := conf.GetRealAddress(h.agent.Address.Host,
+	addr := h.db.Config.Overrides.GetRealAddress(h.agent.Address.Host,
 		utils.FormatUint(h.agent.Address.Port))
 	h.serv.Addr = addr
 
@@ -26,12 +24,10 @@ func (h *httpService) listen() error {
 	)
 
 	if h.agent.Protocol == HTTPS {
-		list, netErr = tls.Listen("tcp", addr, &tls.Config{
-			MinVersion:         h.conf.MinTLSVersion.TLS(),
-			GetConfigForClient: protoutils.GetServerTLSConfig(h.db, h.logger, h.agent, h.conf.MinTLSVersion),
-		})
+		tlsConfig := protoutils.GetServerTLSConfig(h.db, h.logger, h.agent.ID)
+		list, netErr = protoutils.ListenTLS("tcp", addr, tlsConfig)
 	} else {
-		list, netErr = net.Listen("tcp", addr)
+		list, netErr = protoutils.Listen("tcp", addr)
 	}
 
 	if netErr != nil {
@@ -92,10 +88,7 @@ func (h *httpService) makeHandler() http.HandlerFunc {
 //nolint:funlen //function is fine for now
 func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 ) (*model.LocalAccount, bool) {
-	var (
-		acc          model.LocalAccount
-		authentified bool
-	)
+	var authentified bool
 
 	login, pswd, ok := r.BasicAuth()
 	if !ok || login == "" {
@@ -104,13 +97,11 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 		return nil, false
 	}
 
-	acc.Login = login
-
 	// We purposefully ignore NotFound errors to avoid leaking information
 	// about the existence of an account.
-	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).
-		Run(); err != nil && !database.IsNotFound(err) {
-		h.logger.Errorf("Failed to retrieve user credentials: %v", err)
+	acc, accErr := h.agent.GetAccount(h.db, login)
+	if accErr != nil && !database.IsNotFound(accErr) {
+		h.logger.Errorf("Failed to retrieve user credentials: %v", accErr)
 		http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
 
 		return nil, false
@@ -137,7 +128,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 	}
 
 	if pswd != "" {
-		if res, err := acc.Authenticate(h.db, h.agent, auth.Password, pswd); err != nil {
+		if res, err := acc.Authenticate(h.db, auth.Password, pswd); err != nil {
 			h.logger.Errorf("Failed to check password for user %q: %v", acc.Login, err)
 			http.Error(w, "internal authentication error", http.StatusInternalServerError)
 
@@ -158,7 +149,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 		return nil, false
 	}
 
-	return &acc, true
+	return acc, true
 }
 
 func (h *httpService) checkShutdown(w http.ResponseWriter) bool {

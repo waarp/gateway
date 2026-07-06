@@ -6,7 +6,6 @@ import (
 	"io"
 	"path"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -65,7 +64,7 @@ func (f *FileStream) getFile() (fs.File, *Error) {
 		return nil, err
 	}
 
-	filePerms := fs.FileMode(conf.GlobalConfig.Paths.FilePerms)
+	filePerms := fs.FileMode(f.DB.Config.Paths.FilePerms)
 
 	file, fsErr := fs.OpenFile(trans.LocalPath, fs.FlagReadWrite|fs.FlagCreate, filePerms)
 	if fsErr != nil {

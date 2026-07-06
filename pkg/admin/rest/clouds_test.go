@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
@@ -23,6 +22,8 @@ import (
 )
 
 func TestGetCloud(t *testing.T) {
+	t.Parallel()
+
 	cloudType := fstest.MakeDummyBackend(t)
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)
@@ -81,6 +82,8 @@ func TestGetCloud(t *testing.T) {
 }
 
 func TestAddCloud(t *testing.T) {
+	t.Parallel()
+
 	cloudType := fstest.MakeDummyBackend(t)
 
 	t.Run("Given a valid cloud object", func(t *testing.T) {
@@ -100,13 +103,13 @@ func TestAddCloud(t *testing.T) {
 		require.NoError(t, encoder.Encode(input))
 
 		expectedCloud := model.CloudInstance{
-			ID:      1,
-			Owner:   conf.GlobalConfig.GatewayName,
-			Name:    input.Name,
-			Type:    input.Type,
-			Key:     input.Key,
-			Secret:  database.SecretText(input.Secret),
-			Options: input.Options,
+			Identifier: model.ID(1),
+			Owner:      db.Config.GatewayName,
+			Name:       input.Name,
+			Type:       input.Type,
+			Key:        input.Key,
+			Secret:     input.Secret,
+			Options:    model.Map[string](input.Options),
 		}
 		expectedLoc := path.Join("clouds", input.Name)
 
@@ -126,7 +129,7 @@ func TestAddCloud(t *testing.T) {
 		var dbCloud model.CloudInstance
 
 		require.NoError(t, db.Get(&dbCloud, "name=? AND owner=?", input.Name,
-			conf.GlobalConfig.GatewayName).Run())
+			db.Config.GatewayName).Run())
 		assert.EqualExportedValues(t, expectedCloud, dbCloud,
 			`Then the cloud instance should have been inserted in the database`)
 	})
@@ -157,6 +160,8 @@ func TestAddCloud(t *testing.T) {
 }
 
 func TestDeleteCloud(t *testing.T) {
+	t.Parallel()
+
 	cloudType := fstest.MakeDummyBackend(t)
 
 	setup := func(tb testing.TB) (*database.DB, http.Handler, *model.CloudInstance) {
@@ -229,10 +234,14 @@ func TestDeleteCloud(t *testing.T) {
 }
 
 func TestUpdateCloud(t *testing.T) {
+	t.Parallel()
+
 	testUpdateReplaceCloud(t, false)
 }
 
 func TestReplaceCloud(t *testing.T) {
+	t.Parallel()
+
 	testUpdateReplaceCloud(t, true)
 }
 
@@ -271,11 +280,11 @@ func testUpdateReplaceCloud(t *testing.T, isReplace bool) {
 		}
 
 		if isReplace || input.Secret != "" {
-			newCloud.Secret = database.SecretText(input.Secret)
+			newCloud.Secret = input.Secret
 		}
 
 		if isReplace || input.Options != nil {
-			newCloud.Options = input.Options
+			newCloud.Options = model.Map[string](input.Options)
 		}
 
 		return newCloud

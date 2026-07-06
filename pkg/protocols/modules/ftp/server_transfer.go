@@ -49,7 +49,7 @@ func (s *serverFS) newServerTransfer(path string, isSend bool, offset int64,
 
 func (s *serverFS) mkNewServerTransfer(path string, isSend bool, offset int64,
 ) (*serverTransfer, error) {
-	rule, ruleErr := protoutils.GetClosestRule(s.db, s.logger, s.dbServer, s.dbAcc, path, isSend)
+	rule, ruleErr := protoutils.GetClosestRule(s.db, s.logger, s.dbAcc, path, isSend)
 	if ruleErr != nil {
 		return nil, ruleErr //nolint:wrapcheck //no need to wrap here
 	} else if rule.IsSend != isSend {
@@ -76,7 +76,7 @@ func (s *serverFS) mkNewServerTransfer(path string, isSend bool, offset int64,
 	} else { // Create Transfer
 		trans = &model.Transfer{
 			RuleID:         rule.ID,
-			LocalAccountID: utils.NewNullInt64(s.dbAcc.ID),
+			LocalAccountID: s.dbAcc.NullableID(),
 			Filesize:       model.UnknownSize,
 			Start:          time.Now(),
 			Status:         types.StatusRunning,

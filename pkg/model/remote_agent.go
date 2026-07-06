@@ -1,14 +1,11 @@
 package model
 
 import (
-	"database/sql"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -16,23 +13,27 @@ import (
 // communicate and make transfers. The struct contains the information needed by
 // the gateway to connect to the server.
 type RemoteAgent struct {
-	ID    int64  `xorm:"<- id AUTOINCR"` // The partner's database ID.
-	Owner string `xorm:"owner"`          // The client's owner (the gateway to which it belongs)
+	Identifier
+	Owner string `gorm:"column:owner"` // The client's owner (the gateway to which it belongs)
 
-	Name     string        `xorm:"name"`     // The partner's display name.
-	Protocol string        `xorm:"protocol"` // The partner's protocol.
-	Address  types.Address `xorm:"address"`  // The partner's address (including the port)
+	Name     string        `gorm:"column:name"`     // The partner's display name.
+	Protocol string        `gorm:"column:protocol"` // The partner's protocol.
+	Address  types.Address `gorm:"column:address"`  // The partner's address (including the port)
 
 	// The partner's protocol configuration as a map.
-	ProtoConfig ProtoConfigMap `xorm:"proto_config"`
+	ProtoConfig Map[any] `gorm:"column:proto_config;serializer:json"`
 }
 
-func (*RemoteAgent) TableName() string          { return TableRemAgents }
-func (*RemoteAgent) Appellation() string        { return NameRemoteAgent }
-func (r *RemoteAgent) GetID() int64             { return r.ID }
-func (r *RemoteAgent) GetNullID() sql.NullInt64 { return utils.NewNullInt64(r.ID) }
-func (*RemoteAgent) IsServer() bool             { return true }
-func (r *RemoteAgent) Host() string             { return r.Address.Host }
+func newRemoteAgent(id int64) *RemoteAgent {
+	return &RemoteAgent{
+		Identifier: Identifier{ID: id},
+	}
+}
+
+func (*RemoteAgent) TableName() string   { return TableRemAgents }
+func (*RemoteAgent) Appellation() string { return NameRemoteAgent }
+func (*RemoteAgent) IsServer() bool      { return true }
+func (r *RemoteAgent) Host() string      { return r.Address.Host }
 
 func (r *RemoteAgent) validateProtoConfig() error {
 	if err := CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
@@ -51,8 +52,6 @@ func (r *RemoteAgent) validateProtoConfig() error {
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (r *RemoteAgent) BeforeWrite(db database.Access) error {
-	r.Owner = conf.GlobalConfig.GatewayName
-
 	if r.Name == "" {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
@@ -69,8 +68,8 @@ func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 		return database.WrapAsValidationError(err)
 	}
 
-	if n, err := db.Count(&RemoteAgent{}).Where("id<>? AND owner=? AND name=?",
-		r.ID, r.Owner, r.Name).Run(); err != nil {
+	if n, err := db.Count(&RemoteAgent{}).Where("id<>? AND name=?",
+		r.ID, r.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate remote agents: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
@@ -101,9 +100,9 @@ func (r *RemoteAgent) GetCredentials(db database.ReadAccess, authTypes ...string
 	return getCredentials(db, r, authTypes...)
 }
 
-func (r *RemoteAgent) SetCredOwner(a *Credential)           { a.RemoteAgentID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAgent) SetCredOwner(a *Credential)           { a.RemoteAgentID = r.NullableID() }
 func (r *RemoteAgent) GetCredCond() (string, int64)         { return "remote_agent_id=?", r.ID }
-func (r *RemoteAgent) SetAccessTarget(a *RuleAccess)        { a.RemoteAgentID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAgent) SetAccessTarget(a *RuleAccess)        { a.RemoteAgentID = r.NullableID() }
 func (r *RemoteAgent) GenAccessSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
 
 func (r *RemoteAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
@@ -157,7 +156,7 @@ func (r *RemoteAgent) AfterUpdate(db database.Access) error {
 	var pswd Credential
 	if getErr := db.Get(&pswd, "remote_agent_id=? AND type=?",
 		r.ID, authPassword).Run(); database.IsNotFound(getErr) {
-		pswd.RemoteAgentID = utils.NewNullInt64(r.ID)
+		pswd.RemoteAgentID = r.NullableID()
 		pswd.Type = authPassword
 		pswd.Value = serverPasswd
 

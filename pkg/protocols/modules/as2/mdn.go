@@ -77,7 +77,7 @@ func (a *asyncStore) asyncListen(pip *pipeline.Pipeline, _ *protoutils.TraceDial
 }
 
 func asyncTLSConfig(pip *pipeline.Pipeline, partConf *partnerProtoConfigTLS) (*tls.Config, error) {
-	conf, err := protoutils.GetClientTLSConfig(pip.TransCtx, logging.Discard(), partConf.MinTLSVersion)
+	conf, err := protoutils.GetClientTLSConfig(pip.TransCtx, logging.Discard())
 	if err != nil {
 		return nil, err
 	}

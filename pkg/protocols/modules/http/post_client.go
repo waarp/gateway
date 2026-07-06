@@ -10,7 +10,6 @@ import (
 	"path"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -159,7 +158,7 @@ func (p *postClient) setRequestHeaders(req *http.Request) *pipeline.Error {
 }
 
 func (p *postClient) prepareRequest(ready chan struct{}) *pipeline.Error {
-	addr := conf.GetRealAddress(p.pip.TransCtx.RemoteAgent.Address.Host,
+	addr := p.pip.DB.Config.Overrides.GetRealAddress(p.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(p.pip.TransCtx.RemoteAgent.Address.Port))
 	url := p.scheme + path.Join(addr, p.pip.TransCtx.Transfer.RemotePath)
 
@@ -343,8 +342,8 @@ func discardResponse(resp *http.Response) {
 	}
 }
 
-func (p *postClient) Delete(ctx context.Context, filepath string, recursive bool) error {
-	url := makeRequestURL(p.scheme, p.pip.TransCtx, filepath)
+func (p *postClient) Delete(ctx context.Context, filepath string) error {
+	url := makeRequestURL(p.scheme, p.pip.TransCtx, filepath, p.pip.DB.Config.Overrides)
 
-	return deleteRemoteFile(ctx, p.client, url, recursive)
+	return deleteRemoteFile(ctx, p.client, url)
 }

@@ -71,7 +71,7 @@ func TestPreprocess(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, PreprocessImport(data))
+	require.NoError(t, preprocessImport(data))
 
 	t.Run("Servers", func(t *testing.T) {
 		t.Parallel()

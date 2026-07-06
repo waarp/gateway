@@ -16,16 +16,17 @@ import (
 var ErrResetPipe = errors.New("cannot use -r without -s")
 
 func MakeLogConf(verbose []bool) conf.LogConfig {
+	const stderr = "stderr"
 	logConf := conf.LogConfig{LogTo: "/dev/null", Level: "ERROR"}
 
 	switch len(verbose) {
 	case 0:
 	case 1:
-		logConf = conf.LogConfig{LogTo: "stderr", Level: "WARNING"}
+		logConf = conf.LogConfig{LogTo: stderr, Level: "WARNING"}
 	case 2: //nolint:mnd // useless here
-		logConf = conf.LogConfig{LogTo: "stderr", Level: "INFO"}
+		logConf = conf.LogConfig{LogTo: stderr, Level: "INFO"}
 	default:
-		logConf = conf.LogConfig{LogTo: "stderr", Level: "DEBUG"}
+		logConf = conf.LogConfig{LogTo: stderr, Level: "DEBUG"}
 	}
 
 	return logConf
@@ -45,8 +46,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
-	conf.GlobalConfig = *config
-	db := &database.DB{}
+	db := database.NewDB(config)
 
 	err = db.Start()
 	if err != nil {
@@ -60,7 +60,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Log
 type ImportCommand struct {
 	ConfigFile string   `short:"c" long:"config" description:"The configuration file to use."`
 	File       string   `short:"s" long:"source" description:"The data file to import. If none is given, the content will be read from the standard output."`
-	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"clients" choice:"users" choice:"clouds" choice:"snmp" choice:"authorities" choice:"keys" choice:"email" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
+	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"clients" choice:"users" choice:"clouds" choice:"snmp" choice:"authorities" choice:"keys" choice:"email" choice:"filewatchers" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
 	Dry        bool     `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file."`
 	Verbose    []bool   `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity."`
 	Reset      bool     `short:"r" long:"reset-before-import" description:"Empty the database tables before importing the elements from the file. Cannot be used without the -s option."`

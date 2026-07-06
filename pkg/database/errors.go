@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-var ErrUnsupportedReset = errors.New("unsupported operation 'ResetIncrement'")
-
 // ValidationError is the error returned when the entry given for insertion is
 // not valid.
 type ValidationError struct {
@@ -48,9 +46,7 @@ func (n *NotFoundError) Error() string {
 
 // IsNotFound returns whether the given error is of type NotFoundError.
 func IsNotFound(err error) bool {
-	var nf *NotFoundError
-
-	return errors.As(err, &nf)
+	return isError[*NotFoundError](err)
 }
 
 // NewNotFoundError returns a new validation `Error` for the given entry.
@@ -82,4 +78,10 @@ func NewInternalError(err error) *InternalError {
 		cause: err,
 		msg:   "internal database error",
 	}
+}
+
+func isError[T error](err error) bool {
+	_, ok := errors.AsType[T](err)
+
+	return ok
 }

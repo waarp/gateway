@@ -27,7 +27,7 @@ type BcryptAuthHandler struct{}
 
 func (BcryptAuthHandler) CanOnlyHaveOne() bool { return true }
 
-func (BcryptAuthHandler) ToDB(plain, _ string) (hashed, _ string, err error) {
+func (BcryptAuthHandler) ToDB(_ database.Access, plain, _ string) (hashed, _ string, err error) {
 	if hashed, err = utils.HashPassword(database.BcryptRounds, plain); err != nil {
 		return "", "", fmt.Errorf("failed to hash the password: %w", err)
 	}
@@ -85,16 +85,18 @@ type AESPasswordHandler struct{}
 
 func (AESPasswordHandler) CanOnlyHaveOne() bool { return true }
 
-func (AESPasswordHandler) ToDB(plainPwd, _ string) (encryptedPwd, _ string, err error) {
-	if encryptedPwd, err = utils.AESCrypt(database.GCM, plainPwd); err != nil {
+func (AESPasswordHandler) ToDB(db database.Access, plain, _ string,
+) (encryptedPwd, _ string, err error) {
+	if encryptedPwd, err = db.Encrypt(plain); err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the password: %w", err)
 	}
 
 	return encryptedPwd, "", nil
 }
 
-func (AESPasswordHandler) FromDB(encryptedPwd, _ string) (plainPwd, _ string, err error) {
-	if plainPwd, err = utils.AESDecrypt(database.GCM, encryptedPwd); err != nil {
+func (AESPasswordHandler) FromDB(db database.ReadAccess, cipher, _ string,
+) (plainPwd, _ string, err error) {
+	if plainPwd, err = db.Decrypt(cipher); err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the password: %w", err)
 	}
 

@@ -12,6 +12,8 @@ import (
 )
 
 func TestSNMPExport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 
@@ -27,7 +29,7 @@ func TestSNMPExport(t *testing.T) {
 	}
 
 	require.NoError(t, db.Insert(dbServer1).Run())
-	require.NoError(t, dbtest.ChangeOwner("other-gw", db.Insert(dbServer2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "other-gw", dbServer2))
 
 	dbMonitor1 := &snmp.MonitorConfig{
 		Name:       "mon1",
@@ -53,7 +55,7 @@ func TestSNMPExport(t *testing.T) {
 
 	require.NoError(t, db.Insert(dbMonitor1).Run())
 	require.NoError(t, db.Insert(dbMonitor2).Run())
-	require.NoError(t, dbtest.ChangeOwner("other-gw", db.Insert(dbMonitor3).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "other-gw", dbMonitor3))
 
 	res, err := exportSNMPConfig(logger, db)
 	require.NoError(t, err)
@@ -66,9 +68,9 @@ func TestSNMPExport(t *testing.T) {
 		assert.Equal(t, res.Server.V3Only, dbServer1.SNMPv3Only)
 		assert.Equal(t, res.Server.V3Username, dbServer1.SNMPv3Username)
 		assert.Equal(t, res.Server.V3AuthProtocol, dbServer1.SNMPv3AuthProtocol)
-		assert.Equal(t, res.Server.V3AuthPassphrase, dbServer1.SNMPv3AuthPassphrase.String())
+		assert.Equal(t, res.Server.V3AuthPassphrase, dbServer1.SNMPv3AuthPassphrase)
 		assert.Equal(t, res.Server.V3PrivacyProtocol, dbServer1.SNMPv3PrivProtocol)
-		assert.Equal(t, res.Server.V3PrivacyPassphrase, dbServer1.SNMPv3PrivPassphrase.String())
+		assert.Equal(t, res.Server.V3PrivacyPassphrase, dbServer1.SNMPv3PrivPassphrase)
 	})
 
 	t.Run("Exported monitor config", func(t *testing.T) {
@@ -85,9 +87,9 @@ func TestSNMPExport(t *testing.T) {
 		assert.Equal(t, res.Monitors[0].V3AuthEngineID, dbMonitor1.AuthEngineID)
 		assert.Equal(t, res.Monitors[0].V3AuthUsername, dbMonitor1.AuthUsername)
 		assert.Equal(t, res.Monitors[0].V3AuthProtocol, dbMonitor1.AuthProtocol)
-		assert.Equal(t, res.Monitors[0].V3AuthPassphrase, dbMonitor1.AuthPassphrase.String())
+		assert.Equal(t, res.Monitors[0].V3AuthPassphrase, dbMonitor1.AuthPassphrase)
 		assert.Equal(t, res.Monitors[0].V3PrivacyProtocol, dbMonitor1.PrivProtocol)
-		assert.Equal(t, res.Monitors[0].V3PrivacyPassphrase, dbMonitor1.PrivPassphrase.String())
+		assert.Equal(t, res.Monitors[0].V3PrivacyPassphrase, dbMonitor1.PrivPassphrase)
 
 		assert.Equal(t, res.Monitors[1].Name, dbMonitor2.Name)
 		assert.Equal(t, res.Monitors[1].SNMPVersion, dbMonitor2.Version)
@@ -100,8 +102,8 @@ func TestSNMPExport(t *testing.T) {
 		assert.Equal(t, res.Monitors[1].V3AuthEngineID, dbMonitor2.AuthEngineID)
 		assert.Equal(t, res.Monitors[1].V3AuthUsername, dbMonitor2.AuthUsername)
 		assert.Equal(t, res.Monitors[1].V3AuthProtocol, dbMonitor2.AuthProtocol)
-		assert.Equal(t, res.Monitors[1].V3AuthPassphrase, dbMonitor2.AuthPassphrase.String())
+		assert.Equal(t, res.Monitors[1].V3AuthPassphrase, dbMonitor2.AuthPassphrase)
 		assert.Equal(t, res.Monitors[1].V3PrivacyProtocol, dbMonitor2.PrivProtocol)
-		assert.Equal(t, res.Monitors[1].V3PrivacyPassphrase, dbMonitor2.PrivPassphrase.String())
+		assert.Equal(t, res.Monitors[1].V3PrivacyPassphrase, dbMonitor2.PrivPassphrase)
 	})
 }

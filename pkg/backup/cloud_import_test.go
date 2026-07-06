@@ -14,6 +14,8 @@ import (
 )
 
 func TestCloudImport(t *testing.T) {
+	t.Parallel()
+
 	logger := testhelpers.GetTestLogger(t)
 	fsType := fstest.MakeDummyBackend(t)
 
@@ -48,8 +50,8 @@ func TestCloudImport(t *testing.T) {
 			assert.Equal(t, newCloud.Name, dbClouds[0].Name)
 			assert.Equal(t, newCloud.Type, dbClouds[0].Type)
 			assert.Equal(t, newCloud.Key, dbClouds[0].Key)
-			assert.Equal(t, newCloud.Secret, dbClouds[0].Secret.String())
-			assert.Equal(t, newCloud.Options, dbClouds[0].Options)
+			assert.Equal(t, newCloud.Secret, dbClouds[0].Secret)
+			assert.Equal(t, newCloud.Options, dbClouds[0].Options.Map())
 		})
 
 		t.Run("Without reset", func(t *testing.T) {
@@ -68,8 +70,8 @@ func TestCloudImport(t *testing.T) {
 			assert.Equal(t, newCloud.Name, dbClouds[1].Name)
 			assert.Equal(t, newCloud.Type, dbClouds[1].Type)
 			assert.Equal(t, newCloud.Key, dbClouds[1].Key)
-			assert.Equal(t, newCloud.Secret, dbClouds[1].Secret.String())
-			assert.Equal(t, newCloud.Options, dbClouds[1].Options)
+			assert.Equal(t, newCloud.Secret, dbClouds[1].Secret)
+			assert.Equal(t, newCloud.Options, dbClouds[1].Options.Map())
 		})
 	})
 
@@ -98,7 +100,7 @@ func TestCloudImport(t *testing.T) {
 		assert.Equal(t, newCloud.Name, dbClouds[1].Name)
 		assert.Equal(t, newCloud.Type, dbClouds[1].Type)
 		assert.Equal(t, newCloud.Key, dbClouds[1].Key)
-		assert.Equal(t, newCloud.Secret, dbClouds[1].Secret.String())
-		assert.Equal(t, newCloud.Options, dbClouds[1].Options)
+		assert.Equal(t, newCloud.Secret, dbClouds[1].Secret)
+		assert.Equal(t, newCloud.Options, dbClouds[1].Options.Map())
 	})
 }

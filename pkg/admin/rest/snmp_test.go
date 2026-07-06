@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"sync"
 	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
@@ -21,6 +22,8 @@ import (
 )
 
 func TestAddSNMPMonitor(t *testing.T) {
+	t.Parallel()
+
 	const (
 		monitorName            = "snmp-monitor"
 		monitorVersion         = "SNMPv3"
@@ -65,9 +68,9 @@ func TestAddSNMPMonitor(t *testing.T) {
 		require.NoError(t, encoder.Encode(input))
 
 		expectedDBMonitor := snmp.MonitorConfig{
-			ID:              1,
+			Identifier:      model.ID(1),
 			Name:            monitorName,
-			Owner:           conf.GlobalConfig.GatewayName,
+			Owner:           db.Config.GatewayName,
 			Version:         monitorVersion,
 			UDPAddress:      monitorAddress,
 			Community:       monitorCommunity,
@@ -97,14 +100,15 @@ func TestAddSNMPMonitor(t *testing.T) {
 
 		var dbMonitor snmp.MonitorConfig
 
-		require.NoError(t, db.Get(&dbMonitor, "name=? AND owner=?", monitorName,
-			conf.GlobalConfig.GatewayName).Run())
+		require.NoError(t, db.Get(&dbMonitor, "name=?", monitorName).Run())
 		assert.Equal(t, expectedDBMonitor, dbMonitor,
 			`Then the SNMP monitor should have been inserted in the database`)
 	})
 }
 
 func TestListSNMPMonitors(t *testing.T) {
+	t.Parallel()
+
 	t.Run("When retrieving a list of SNMP monitors", func(t *testing.T) {
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)
@@ -160,6 +164,8 @@ func TestListSNMPMonitors(t *testing.T) {
 }
 
 func TestGetSNMPMonitor(t *testing.T) {
+	t.Parallel()
+
 	t.Run("When retrieving an existing SNMP monitor", func(t *testing.T) {
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)
@@ -210,6 +216,8 @@ func TestGetSNMPMonitor(t *testing.T) {
 }
 
 func TestUpdateSNMPMonitor(t *testing.T) {
+	t.Parallel()
+
 	const (
 		newMonitorName       = "snmpv3-monitor"
 		newMonitorVersion    = "SNMPv3"
@@ -243,7 +251,7 @@ func TestUpdateSNMPMonitor(t *testing.T) {
 		require.NoError(t, encoder.Encode(input))
 
 		expectedDBMonitor := snmp.MonitorConfig{
-			ID:             oldDBMonitor.ID,
+			Identifier:     oldDBMonitor.Identifier,
 			Owner:          oldDBMonitor.Owner,
 			Name:           newMonitorName,
 			UDPAddress:     oldDBMonitor.UDPAddress,
@@ -268,14 +276,15 @@ func TestUpdateSNMPMonitor(t *testing.T) {
 
 		var dbMonitor snmp.MonitorConfig
 
-		require.NoError(t, db.Get(&dbMonitor, "name=? AND owner=?", newMonitorName,
-			conf.GlobalConfig.GatewayName).Run())
+		require.NoError(t, db.Get(&dbMonitor, "name=?", newMonitorName).Run())
 		assert.Equal(t, expectedDBMonitor, dbMonitor,
 			`Then the SNMP monitor should have been updated in the database`)
 	})
 }
 
 func TestDeleteSnmpMonitor(t *testing.T) {
+	t.Parallel()
+
 	t.Run("When deleting an existing SNMP monitor", func(t *testing.T) {
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)
@@ -304,13 +313,17 @@ func TestDeleteSnmpMonitor(t *testing.T) {
 	})
 }
 
+var snmpServerMux sync.Mutex
+
 func setupSnmpService(tb testing.TB, db *database.DB) {
 	tb.Helper()
 
+	snmpServerMux.Lock()
 	snmp.GlobalService = &snmp.Service{DB: db}
 	require.NoError(tb, snmp.GlobalService.Start())
 
 	tb.Cleanup(func() {
+		defer snmpServerMux.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
@@ -320,6 +333,8 @@ func setupSnmpService(tb testing.TB, db *database.DB) {
 }
 
 func TestGetSNMPServer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("When retrieving the existing SNMP server config", func(t *testing.T) {
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)
@@ -359,6 +374,8 @@ func TestGetSNMPServer(t *testing.T) {
 }
 
 func TestAddNewSNMPServer(t *testing.T) {
+	t.Parallel()
+
 	const (
 		localUDPAddress  = "127.0.0.1:1610"
 		snmpCommunity    = "waarp-gw"
@@ -392,8 +409,8 @@ func TestAddNewSNMPServer(t *testing.T) {
 		require.NoError(t, encoder.Encode(input))
 
 		expectedDBSnmpConf := snmp.ServerConfig{
-			ID:                   1,
-			Owner:                conf.GlobalConfig.GatewayName,
+			Identifier:           model.ID(1),
+			Owner:                db.Config.GatewayName,
 			LocalUDPAddress:      localUDPAddress,
 			Community:            snmpCommunity,
 			SNMPv3Only:           v3Only,
@@ -418,7 +435,7 @@ func TestAddNewSNMPServer(t *testing.T) {
 
 		var dbSnmpConfig snmp.ServerConfig
 
-		require.NoError(t, db.Get(&dbSnmpConfig, "owner=?", conf.GlobalConfig.GatewayName).Run())
+		require.NoError(t, db.Get(&dbSnmpConfig, "").Run())
 		assert.Equal(t, expectedDBSnmpConf, dbSnmpConfig,
 			`Then the SNMP service config should have been inserted in the database`)
 
@@ -428,6 +445,8 @@ func TestAddNewSNMPServer(t *testing.T) {
 }
 
 func TestUpdateSNMPServer(t *testing.T) {
+	t.Parallel()
+
 	const (
 		newLocalUDPAddress = "127.0.0.1:1611"
 		newSnmpCommunity   = "public"
@@ -463,7 +482,7 @@ func TestUpdateSNMPServer(t *testing.T) {
 		require.NoError(t, encoder.Encode(input))
 
 		expectedDBSnmpConf := snmp.ServerConfig{
-			ID:                   oldDBSnmpConf.ID,
+			Identifier:           oldDBSnmpConf.Identifier,
 			Owner:                oldDBSnmpConf.Owner,
 			LocalUDPAddress:      newLocalUDPAddress,
 			Community:            newSnmpCommunity,
@@ -489,7 +508,7 @@ func TestUpdateSNMPServer(t *testing.T) {
 
 		var dbSnmpConfig snmp.ServerConfig
 
-		require.NoError(t, db.Get(&dbSnmpConfig, "owner=?", conf.GlobalConfig.GatewayName).Run())
+		require.NoError(t, db.Get(&dbSnmpConfig, "").Run())
 		assert.Equal(t, expectedDBSnmpConf, dbSnmpConfig,
 			`Then the SNMP service config should have been updated in the database`)
 
@@ -499,6 +518,8 @@ func TestUpdateSNMPServer(t *testing.T) {
 }
 
 func TestDeleteSnmpServer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("When deleting the existing SNMP server config", func(t *testing.T) {
 		logger := testhelpers.GetTestLogger(t)
 		db := dbtest.TestDatabase(t)

@@ -15,8 +15,6 @@ import (
 )
 
 func TestClientUpload(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	serv := makeServer(t)
 	ctx := gwtesting.NewTestClientCtx(t, webdav.Webdav, serv.addr, nil, nil)
@@ -50,8 +48,6 @@ func TestClientUpload(t *testing.T) {
 }
 
 func TestClientDownload(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	serv := makeServer(t)
 	ctx := gwtesting.NewTestClientCtx(t, webdav.Webdav, serv.addr, nil, nil)
@@ -87,8 +83,6 @@ func TestClientDownload(t *testing.T) {
 }
 
 func TestClientPreTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	serv := makeServer(t)
 	ctx := gwtesting.NewTestClientCtx(t, webdav.Webdav, serv.addr, nil, nil)
@@ -112,8 +106,6 @@ func TestClientPreTaskError(t *testing.T) {
 }
 
 func TestClientPostTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	serv := makeServer(t)
 	ctx := gwtesting.NewTestClientCtx(t, webdav.Webdav, serv.addr, nil, nil)
@@ -137,8 +129,6 @@ func TestClientPostTaskError(t *testing.T) {
 }
 
 func TestClientTLS(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	serv := makeServer(t)
 	ctx := gwtesting.NewTestClientCtx(t, webdav.WebdavTLS, serv.addr, nil, nil)

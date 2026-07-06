@@ -8,6 +8,8 @@ import (
 )
 
 func TestAddCryptoKey(t *testing.T) {
+	t.Parallel()
+
 	const (
 		keyName = "keyname"
 		keyType = model.CryptoKeyTypePGPPrivate
@@ -15,21 +17,24 @@ func TestAddCryptoKey(t *testing.T) {
 	)
 
 	testAdd(t, addCryptoKey, "/keys", keyName,
+		nil,
 		map[string]any{
 			"name": keyName,
 			"type": keyType,
 			"key":  key,
 		},
 		&model.CryptoKey{
-			ID:   1,
-			Name: keyName,
-			Type: keyType,
-			Key:  key,
+			Identifier: model.ID(1),
+			Name:       keyName,
+			Type:       keyType,
+			Key:        key,
 		},
 	)
 }
 
 func TestGetCryptoKey(t *testing.T) {
+	t.Parallel()
+
 	const (
 		keyName = "keyname"
 		keyType = model.CryptoKeyTypePGPPublic
@@ -37,6 +42,7 @@ func TestGetCryptoKey(t *testing.T) {
 	)
 
 	testGet(t, getCryptoKey, "/keys/{crypto_key}", keyName,
+		nil,
 		&model.CryptoKey{
 			Name: keyName,
 			Type: keyType,
@@ -51,9 +57,12 @@ func TestGetCryptoKey(t *testing.T) {
 }
 
 func TestDeleteCryptoKey(t *testing.T) {
+	t.Parallel()
+
 	const keyName = "keyname"
 
 	testDelete(t, deleteCryptoKey, "/keys/{crypto_key}", keyName,
+		nil,
 		&model.CryptoKey{
 			Name: keyName,
 			Type: model.CryptoKeyTypePGPPrivate,
@@ -63,6 +72,8 @@ func TestDeleteCryptoKey(t *testing.T) {
 }
 
 func TestUpdateCryptoKey(t *testing.T) {
+	t.Parallel()
+
 	const (
 		oldKeyName = "keyname"
 
@@ -72,6 +83,7 @@ func TestUpdateCryptoKey(t *testing.T) {
 	)
 
 	testUpdate(t, updateCryptoKey, "/keys/{crypto_key}", oldKeyName, newKeyName,
+		nil,
 		&model.CryptoKey{
 			Name: oldKeyName,
 			Type: model.CryptoKeyTypePGPPrivate,
@@ -83,10 +95,10 @@ func TestUpdateCryptoKey(t *testing.T) {
 			"key":  newKey,
 		},
 		&model.CryptoKey{
-			ID:   1,
-			Name: newKeyName,
-			Type: newKeyType,
-			Key:  newKey,
+			Identifier: model.ID(1),
+			Name:       newKeyName,
+			Type:       newKeyType,
+			Key:        newKey,
 		},
 	)
 }

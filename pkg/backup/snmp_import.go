@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
@@ -14,11 +13,11 @@ func importSNMPConfig(logger *log.Logger, db database.Access, config *file.SNMPC
 	reset bool,
 ) error {
 	if reset {
-		if err := db.DeleteAll(&snmp.MonitorConfig{}).Owner().Run(); err != nil {
+		if err := db.DeleteAll(&snmp.MonitorConfig{}).Run(); err != nil {
 			return fmt.Errorf("failed to delete old SNMP monitor configs: %w", err)
 		}
 
-		if err := db.DeleteAll(&snmp.ServerConfig{}).Owner().Run(); err != nil {
+		if err := db.DeleteAll(&snmp.ServerConfig{}).Run(); err != nil {
 			return fmt.Errorf("failed to delete old SNMP server configs: %w", err)
 		}
 	}
@@ -40,8 +39,7 @@ func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPS
 	}
 
 	var dbServer snmp.ServerConfig
-	if err := db.Get(&dbServer, "owner=?", conf.GlobalConfig.GatewayName).
-		Run(); err != nil && !database.IsNotFound(err) {
+	if err := db.Get(&dbServer, "").Run(); err != nil && !database.IsNotFound(err) {
 		return fmt.Errorf("failed to retrieve SNMP server config: %w", err)
 	}
 
@@ -50,9 +48,9 @@ func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPS
 	dbServer.SNMPv3Only = server.V3Only
 	dbServer.SNMPv3Username = server.V3Username
 	dbServer.SNMPv3AuthProtocol = server.V3AuthProtocol
-	dbServer.SNMPv3AuthPassphrase = database.SecretText(server.V3AuthPassphrase)
+	dbServer.SNMPv3AuthPassphrase = server.V3AuthPassphrase
 	dbServer.SNMPv3PrivProtocol = server.V3PrivacyProtocol
-	dbServer.SNMPv3PrivPassphrase = database.SecretText(server.V3PrivacyPassphrase)
+	dbServer.SNMPv3PrivPassphrase = server.V3PrivacyPassphrase
 
 	var dbErr error
 
@@ -74,7 +72,7 @@ func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPS
 func importSNMPMonitors(logger *log.Logger, db database.Access, monitors []*file.SNMPMonitor) error {
 	for _, monitor := range monitors {
 		var dbMonitor snmp.MonitorConfig
-		if err := db.Get(&dbMonitor, "name=?", monitor.Name).Owner().
+		if err := db.Get(&dbMonitor, "name=?", monitor.Name).
 			Run(); err != nil && !database.IsNotFound(err) {
 			return fmt.Errorf("failed to retrieve SNMP monitor %q: %w", monitor.Name, err)
 		}
@@ -90,9 +88,9 @@ func importSNMPMonitors(logger *log.Logger, db database.Access, monitors []*file
 		dbMonitor.AuthEngineID = monitor.V3AuthEngineID
 		dbMonitor.AuthUsername = monitor.V3AuthUsername
 		dbMonitor.AuthProtocol = monitor.V3AuthProtocol
-		dbMonitor.AuthPassphrase = database.SecretText(monitor.V3AuthPassphrase)
+		dbMonitor.AuthPassphrase = monitor.V3AuthPassphrase
 		dbMonitor.PrivProtocol = monitor.V3PrivacyProtocol
-		dbMonitor.PrivPassphrase = database.SecretText(monitor.V3PrivacyPassphrase)
+		dbMonitor.PrivPassphrase = monitor.V3PrivacyPassphrase
 
 		var dbErr error
 

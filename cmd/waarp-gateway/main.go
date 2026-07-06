@@ -214,6 +214,17 @@ type commands struct {
 		Del  wg.CryptoKeysDelete `command:"delete" description:"Delete a cryptographic key"`
 	} `command:"key" description:"Manage the cryptographic keys"`
 
+	Filewatcher struct {
+		Add   wg.FilewatcherAdd    `command:"add" description:"Add a new filewatcher"`
+		Get   wg.FilewatcherGet    `command:"get" description:"Retrieve a filewatcher's information"`
+		List  wg.FilewatcherList   `command:"list" description:"List the known filewatchers"`
+		Upd   wg.FilewatcherUpdate `command:"update" description:"Update an existing filewatcher"`
+		Del   wg.FilewatcherDelete `command:"delete" description:"Delete a filewatcher"`
+		Start wg.FilewatcherStart  `command:"start" description:"Start an offline filewatcher"`
+		Stop  wg.FilewatcherStop   `command:"stop" description:"Stop a running filewatcher"`
+		Fire  wg.FilewatcherFire   `command:"fire" description:"Trigger a filewatcher run immediately"`
+	} `command:"filewatcher" description:"Manage the filewatchers"`
+
 	Email struct {
 		Template struct {
 			Add  wg.EmailTemplateAdd    `command:"add" description:"Add a new email template"`

@@ -35,22 +35,31 @@ var errDry = database.NewValidationError("dry run")
 // importing. A value of 1 means 'reset', a value of 2 means
 // 'reset with no confirmation prompt', and any other value means 'no reset'.
 func ImportData(db *database.DB, r importFile, targets []string, dry, reset bool) error {
-	return Import(db, logging.NewLogger("import"), r, targets, dry, reset)
-}
-
-//nolint:gocognit,gocyclo,cyclop,funlen //function cannot realistically be split
-func Import(db database.Access, logger *log.Logger, r importFile, targets []string,
-	dry, reset bool,
-) error {
-	var data file.Data
-	if err := deserializeFile(r, &data); err != nil {
-		return fmt.Errorf("cannot read data: %w", err)
-	}
-
-	if err := PreprocessImport(&data); err != nil {
+	data, err := ParseData(r)
+	if err != nil {
 		return err
 	}
 
+	return Import(db, logging.NewLogger("import"), data, targets, dry, reset)
+}
+
+func ParseData(r importFile) (*file.Data, error) {
+	var data file.Data
+	if err := deserializeFile(r, &data); err != nil {
+		return nil, err
+	}
+
+	if err := preprocessImport(&data); err != nil {
+		return nil, err
+	}
+
+	return &data, nil
+}
+
+//nolint:gocognit,gocyclo,cyclop,funlen //function cannot realistically be split
+func Import(db database.Access, logger *log.Logger, data *file.Data, targets []string,
+	dry, reset bool,
+) error {
 	if err := db.Transaction(func(ses *database.Session) error {
 		if utils.ContainsOneOf(targets, "authorities", "all") {
 			if err := importAuthorities(logger, ses, data.Authorities, reset); err != nil {
@@ -108,6 +117,12 @@ func Import(db database.Access, logger *log.Logger, r importFile, targets []stri
 
 		if utils.ContainsOneOf(targets, "snmp", "all") {
 			if err := importSNMPConfig(logger, ses, data.SNMPConfig, reset); err != nil {
+				return err
+			}
+		}
+
+		if utils.ContainsOneOf(targets, "filewatchers", "all") {
+			if err := importFilewatchers(logger, ses, data.Filewatchers, reset); err != nil {
 				return err
 			}
 		}

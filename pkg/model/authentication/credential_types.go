@@ -101,7 +101,7 @@ type Handler interface {
 
 	// Validate checks whether the given authentication value is valid. If it's
 	// not, the function should return an error. This function is required.
-	Validate(value, value2 string, protocol, host string, isServer bool) error
+	Validate(value, value2, protocol, host string, isServer bool) error
 }
 
 // InternalAuthHandler is a struct regrouping the various function necessary to
@@ -129,7 +129,7 @@ type Serializer interface {
 	// ToDB converts the authentication value into its database format. This
 	// function is optional, and is unneeded if the value does not change when
 	// stored in the database.
-	ToDB(val string, val2 string) (string, string, error)
+	ToDB(db database.Access, val, val2 string) (string, string, error)
 }
 
 // Deserializer is an interface which can optionally be implemented by authentication
@@ -139,7 +139,7 @@ type Deserializer interface {
 	// FromDB converts an authentication value from its database format into its
 	// standard form. This function is optional, and is unneeded if the value
 	// does not change when stored in the database.
-	FromDB(val string, val2 string) (string, string, error)
+	FromDB(db database.ReadAccess, val, val2 string) (string, string, error)
 }
 
 type Result struct {

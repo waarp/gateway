@@ -16,7 +16,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -28,6 +27,8 @@ const transferURI = "http://localhost:8080/api/transfers"
 
 //nolint:maintidx //the function is fine as is
 func TestAddTransfer(t *testing.T) {
+	t.Parallel()
+
 	shouldEqualJSON := testhelpers.ShouldEqualJSON
 
 	Convey("Testing the transfer add handler", t, func(c C) {
@@ -100,7 +101,7 @@ func TestAddTransfer(t *testing.T) {
 						"the database", func() {
 						var transfers model.Transfers
 
-						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(db.Select(&transfers).Eager().Run(), ShouldBeNil)
 						So(transfers, ShouldHaveLength, 1)
 
 						So(transfers[0].ID, ShouldEqual, 1)
@@ -116,7 +117,7 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Start.Equal(time.Date(2023, 1, 1, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)
 						So(transfers[0].Step, ShouldEqual, types.StepNone)
 						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
-						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+						So(transfers[0].Owner, ShouldEqual, db.Config.GatewayName)
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
 						So(transfers[0].ErrCode, ShouldBeZeroValue)
@@ -169,7 +170,7 @@ func TestAddTransfer(t *testing.T) {
 					Convey("Then the new transfer should be inserted in "+
 						"the database", func() {
 						var transfers model.Transfers
-						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(db.Select(&transfers).Eager().Run(), ShouldBeNil)
 						So(transfers, ShouldHaveLength, 1)
 
 						So(transfers[0].ID, ShouldEqual, 1)
@@ -183,7 +184,7 @@ func TestAddTransfer(t *testing.T) {
 						So(transfers[0].Start.Equal(time.Date(2023, 1, 1, 1, 0, 0, 0, time.UTC)), ShouldBeTrue)
 						So(transfers[0].Step, ShouldEqual, types.StepNone)
 						So(transfers[0].Status, ShouldEqual, types.StatusPlanned)
-						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+						So(transfers[0].Owner, ShouldEqual, db.Config.GatewayName)
 						So(transfers[0].Progress, ShouldEqual, 0)
 						So(transfers[0].TaskNumber, ShouldEqual, 0)
 						So(transfers[0].ErrCode, ShouldBeZeroValue)
@@ -192,7 +193,7 @@ func TestAddTransfer(t *testing.T) {
 							"key1":         "val1",
 							"key2":         2,
 							"key3":         true,
-							model.FollowID: json.Number(transfers[0].RemoteTransferID),
+							model.FollowID: transfers[0].TransferInfo[model.FollowID],
 						})
 					})
 				})
@@ -309,6 +310,8 @@ func TestAddTransfer(t *testing.T) {
 }
 
 func TestGetTransfer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_get_test")
 		db := database.TestDatabase(c)
@@ -334,25 +337,10 @@ func TestGetTransfer(t *testing.T) {
 			push := &model.Rule{Name: "push", IsSend: true, Path: "/push"}
 			So(db.Insert(push).Run(), ShouldBeNil)
 
-			// add a transfer from another gateway
-			owner := conf.GlobalConfig.GatewayName
-			conf.GlobalConfig.GatewayName = "foobar"
-			other := &model.Transfer{
-				RuleID:          push.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
-				SrcFilename:     "/source/file1.test",
-				DestFilename:    "/dest/file1.test",
-				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-			}
-			So(db.Insert(other).Run(), ShouldBeNil)
-
-			conf.GlobalConfig.GatewayName = owner
-
 			trans := &model.Transfer{
 				RuleID:               push.ID,
-				ClientID:             utils.NewNullInt64(client.ID),
-				RemoteAccountID:      utils.NewNullInt64(account.ID),
+				ClientID:             client.NullableID(),
+				RemoteAccountID:      account.NullableID(),
 				SrcFilename:          "/source/file2.test",
 				DestFilename:         "/dest/file2.test",
 				Start:                time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
@@ -360,7 +348,11 @@ func TestGetTransfer(t *testing.T) {
 				NextRetry:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 				NextRetryDelay:       90,
 				RetryIncrementFactor: 1.5,
-				TransferInfo:         map[string]any{"key1": "val1", "key2": 2},
+				TransferInfo: map[string]any{
+					model.FollowID: json.Number("1234567890"),
+					"key1":         "val1",
+					"key2":         2,
+				},
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -416,6 +408,8 @@ func TestGetTransfer(t *testing.T) {
 }
 
 func TestListTransfer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer list handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_list_test")
 		db := database.TestDatabase(c)
@@ -463,8 +457,8 @@ func TestListTransfer(t *testing.T) {
 
 			t1 := &model.Transfer{
 				RuleID:          r1.ID,
-				ClientID:        utils.NewNullInt64(cli1.ID),
-				RemoteAccountID: utils.NewNullInt64(a1.ID),
+				ClientID:        cli1.NullableID(),
+				RemoteAccountID: a1.NullableID(),
 				SrcFilename:     "/source/file1.test",
 				DestFilename:    "/dest/file1.test",
 				Progress:        1,
@@ -477,8 +471,8 @@ func TestListTransfer(t *testing.T) {
 
 			t2 := &model.Transfer{
 				RuleID:          r2.ID,
-				ClientID:        utils.NewNullInt64(cli2.ID),
-				RemoteAccountID: utils.NewNullInt64(a2.ID),
+				ClientID:        cli2.NullableID(),
+				RemoteAccountID: a2.NullableID(),
 				SrcFilename:     "/source/file2.test",
 				DestFilename:    "/dest/file2.test",
 				Start:           time.Date(2021, 1, 1, 2, 0, 0, 234000, time.Local),
@@ -489,8 +483,8 @@ func TestListTransfer(t *testing.T) {
 
 			t3 := &model.Transfer{
 				RuleID:          r2.ID,
-				ClientID:        utils.NewNullInt64(cli2.ID),
-				RemoteAccountID: utils.NewNullInt64(a1.ID),
+				ClientID:        cli2.NullableID(),
+				RemoteAccountID: a1.NullableID(),
 				SrcFilename:     "/source/file3.test",
 				DestFilename:    "/dest/file3.test",
 				Start:           time.Date(2021, 1, 1, 3, 0, 0, 345000, time.Local),
@@ -502,21 +496,6 @@ func TestListTransfer(t *testing.T) {
 			trans1 := fromTransfer(db, t1)
 			trans2 := fromTransfer(db, t2)
 			trans3 := fromTransfer(db, t3)
-
-			// add a transfer from another gateway
-			owner := conf.GlobalConfig.GatewayName
-			conf.GlobalConfig.GatewayName = "foobar"
-			other := &model.Transfer{
-				RuleID:          r1.ID,
-				ClientID:        utils.NewNullInt64(cli1.ID),
-				RemoteAccountID: utils.NewNullInt64(a1.ID),
-				SrcFilename:     "/source/file4.test",
-				DestFilename:    "/dest/file4.test",
-				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-			}
-			So(db.Insert(other).Run(), ShouldBeNil)
-
-			conf.GlobalConfig.GatewayName = owner
 
 			Convey("Given a request with no parameters", func() {
 				req, err := http.NewRequest(http.MethodGet, "", nil)
@@ -597,9 +576,9 @@ func TestListTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with a valid 'followID' parameter", func() {
-				followID := t1.RemoteTransferID
+				followID := t1.TransferInfo[model.FollowID]
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?followID=%s", followID), nil)
+					fmt.Sprintf("?followID=%v", followID), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -657,6 +636,8 @@ func TestListTransfer(t *testing.T) {
 }
 
 func TestResumeTransfer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_resume_test")
 		db := database.TestDatabase(c)
@@ -684,8 +665,8 @@ func TestResumeTransfer(t *testing.T) {
 
 			trans := &model.Transfer{
 				RuleID:          rule.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				ClientID:        client.NullableID(),
+				RemoteAccountID: account.NullableID(),
 				SrcFilename:     "file.src",
 				DestFilename:    "file.dst",
 				Start:           time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
@@ -719,14 +700,14 @@ func TestResumeTransfer(t *testing.T) {
 					Convey("Then the transfer should have been reprogrammed", func() {
 						var transfers model.Transfers
 
-						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(db.Select(&transfers).Eager().Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0].ID, ShouldEqual, trans.ID)
-						So(transfers[0].Owner, ShouldEqual, conf.GlobalConfig.GatewayName)
+						So(transfers[0].Owner, ShouldEqual, db.Config.GatewayName)
 						So(transfers[0].RemoteTransferID, ShouldEqual, trans.RemoteTransferID)
 						So(transfers[0].RuleID, ShouldEqual, rule.ID)
-						So(transfers[0].ClientID, ShouldEqual, utils.NewNullInt64(client.ID))
-						So(transfers[0].RemoteAccountID, ShouldEqual, utils.NewNullInt64(account.ID))
+						So(transfers[0].ClientID, ShouldEqual, client.NullableID())
+						So(transfers[0].RemoteAccountID, ShouldEqual, account.NullableID())
 						So(transfers[0].SrcFilename, ShouldEqual, "file.src")
 						So(transfers[0].DestFilename, ShouldEqual, "file.dst")
 						So(transfers[0].Start, ShouldEqual, trans.Start.Local())
@@ -743,6 +724,8 @@ func TestResumeTransfer(t *testing.T) {
 }
 
 func TestPauseTransfer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer pause handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_pause_test")
 		db := database.TestDatabase(c)
@@ -770,8 +753,8 @@ func TestPauseTransfer(t *testing.T) {
 
 			trans := &model.Transfer{
 				RuleID:          rule.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				ClientID:        client.NullableID(),
+				RemoteAccountID: account.NullableID(),
 				SrcFilename:     "file.src",
 				DestFilename:    "file.dst",
 				Start:           time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
@@ -803,26 +786,25 @@ func TestPauseTransfer(t *testing.T) {
 					Convey("Then the transfer should have been paused", func() {
 						var transfers model.Transfers
 
-						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(db.Select(&transfers).Eager().Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0], ShouldResemble, &model.Transfer{
-							ID:               trans.ID,
+							Identifier:       trans.Identifier,
 							RemoteTransferID: trans.RemoteTransferID,
-							Owner:            conf.GlobalConfig.GatewayName,
+							Owner:            db.Config.GatewayName,
 							RuleID:           rule.ID,
-							ClientID:         utils.NewNullInt64(client.ID),
-							RemoteAccountID:  utils.NewNullInt64(account.ID),
+							ClientID:         client.NullableID(),
+							RemoteAccountID:  account.NullableID(),
 							SrcFilename:      "file.src",
 							DestFilename:     "file.dst",
-							Start:            trans.Start.Local(),
+							Start:            trans.Start,
 							Status:           types.StatusPaused,
 							Step:             types.StepData,
 							Progress:         10,
 							TaskNumber:       0,
-							NextRetry:        trans.Start.Local(),
-							TransferInfo: map[string]any{
-								model.FollowID: json.Number(trans.RemoteTransferID),
-							},
+							NextRetry:        trans.Start,
+							TransferInfo:     trans.TransferInfo,
+							Infos:            trans.Infos,
 						})
 					})
 				})
@@ -832,6 +814,8 @@ func TestPauseTransfer(t *testing.T) {
 }
 
 func TestCancelTransfer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfer_cancel_test")
 		db := database.TestDatabase(c)
@@ -859,8 +843,8 @@ func TestCancelTransfer(t *testing.T) {
 
 			trans := &model.Transfer{
 				RuleID:          rule.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				ClientID:        client.NullableID(),
+				RemoteAccountID: account.NullableID(),
 				SrcFilename:     "file.src",
 				DestFilename:    "file.dst",
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
@@ -894,11 +878,11 @@ func TestCancelTransfer(t *testing.T) {
 					Convey("Then the transfer should have been canceled", func() {
 						var hist model.HistoryEntries
 
-						So(db.Select(&hist).Run(), ShouldBeNil)
+						So(db.Select(&hist).Eager().Run(), ShouldBeNil)
 						So(hist, ShouldNotBeEmpty)
 						So(hist[0], ShouldResemble, &model.HistoryEntry{
-							ID:               trans.ID,
-							Owner:            conf.GlobalConfig.GatewayName,
+							Identifier:       trans.Identifier,
+							Owner:            db.Config.GatewayName,
 							RemoteTransferID: trans.RemoteTransferID,
 							IsServer:         trans.IsServer(),
 							IsSend:           rule.IsSend,
@@ -917,9 +901,8 @@ func TestCancelTransfer(t *testing.T) {
 							Step:             trans.Step,
 							Progress:         trans.Progress,
 							TaskNumber:       trans.TaskNumber,
-							TransferInfo: map[string]any{
-								model.FollowID: json.Number(trans.RemoteTransferID),
-							},
+							TransferInfo:     trans.TransferInfo,
+							Infos:            trans.Infos.ToHist(),
 						})
 					})
 				})
@@ -929,6 +912,8 @@ func TestCancelTransfer(t *testing.T) {
 }
 
 func TestRestartTransfer(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer restart handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_restart_test")
 		db := database.TestDatabase(c)
@@ -955,7 +940,7 @@ func TestRestartTransfer(t *testing.T) {
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			h := &model.HistoryEntry{
-				ID:               2,
+				Identifier:       model.ID(2),
 				RemoteTransferID: "1234",
 				IsServer:         false,
 				IsSend:           rule.IsSend,
@@ -1047,6 +1032,8 @@ func TestRestartTransfer(t *testing.T) {
 }
 
 func TestCancelTransfers(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfers multi cancel handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_transfers_cancel_test")
 		db := database.TestDatabase(c)
@@ -1074,8 +1061,8 @@ func TestCancelTransfers(t *testing.T) {
 
 			transPlan := &model.Transfer{
 				RuleID:          rule.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				ClientID:        client.NullableID(),
+				RemoteAccountID: account.NullableID(),
 				SrcFilename:     "file.src",
 				DestFilename:    "file.dst",
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
@@ -1088,8 +1075,8 @@ func TestCancelTransfers(t *testing.T) {
 
 			transErr := &model.Transfer{
 				RuleID:          rule.ID,
-				ClientID:        utils.NewNullInt64(client.ID),
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				ClientID:        client.NullableID(),
+				RemoteAccountID: account.NullableID(),
 				SrcFilename:     "file.src",
 				DestFilename:    "file.dst",
 				Start:           time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
@@ -1119,8 +1106,8 @@ func TestCancelTransfers(t *testing.T) {
 
 					Convey("Then the planned transfer should have been canceled", func() {
 						exp := &model.HistoryEntry{
-							ID:               transPlan.ID,
-							Owner:            conf.GlobalConfig.GatewayName,
+							Identifier:       transPlan.Identifier,
+							Owner:            db.Config.GatewayName,
 							RemoteTransferID: transPlan.RemoteTransferID,
 							IsServer:         false,
 							IsSend:           false,
@@ -1137,14 +1124,13 @@ func TestCancelTransfers(t *testing.T) {
 							Step:             types.StepNone,
 							Progress:         0,
 							TaskNumber:       0,
-							TransferInfo: map[string]any{
-								model.FollowID: json.Number(transPlan.RemoteTransferID),
-							},
+							TransferInfo:     transPlan.TransferInfo,
+							Infos:            transPlan.Infos.ToHist(),
 						}
 
 						var hist model.HistoryEntries
 
-						So(db.Select(&hist).Run(), ShouldBeNil)
+						So(db.Select(&hist).Eager().Run(), ShouldBeNil)
 						So(hist, ShouldNotBeEmpty)
 						So(hist[0], ShouldResemble, exp)
 					})
@@ -1152,7 +1138,7 @@ func TestCancelTransfers(t *testing.T) {
 					Convey("Then the other non-planned transfers should be unaffected", func() {
 						var trans model.Transfers
 
-						So(db.Select(&trans).Run(), ShouldBeNil)
+						So(db.Select(&trans).Eager().Run(), ShouldBeNil)
 						So(trans, ShouldHaveLength, 1)
 						So(trans[0], ShouldResemble, transErr)
 					})
@@ -1177,7 +1163,7 @@ func TestCancelTransfers(t *testing.T) {
 					Convey("Then the other non-running transfers should be unaffected", func() {
 						var trans model.Transfers
 
-						So(db.Select(&trans).Run(), ShouldBeNil)
+						So(db.Select(&trans).Eager().Run(), ShouldBeNil)
 						So(trans, ShouldHaveLength, 2)
 						So(trans[0], ShouldResemble, transPlan)
 						So(trans[1], ShouldResemble, transErr)

@@ -6,7 +6,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
@@ -17,9 +16,9 @@ const (
 
 //nolint:gochecknoglobals // these are test variables
 var (
-	cliConf  = &clientConfig{}
-	servConf = &serverConfig{sharedServerConfig: sharedServerConfig{ServerLogin: serverLogin}}
-	partConf = &PartnerConfig{sharedPartnerConfig: sharedPartnerConfig{ServerLogin: serverLogin}}
+	cliConf  = &ClientConfig{}
+	servConf = &ServerConfig{SharedServerConfig: SharedServerConfig{ServerLogin: serverLogin}}
+	partConf = &PartnerConfig{SharedPartnerConfig: SharedPartnerConfig{ServerLogin: serverLogin}}
 )
 
 func init() {
@@ -56,7 +55,7 @@ func (t TestModule) NewClient(db *database.DB, cli *model.Client) protocol.Clien
 
 func serverPassword(server *model.LocalAgent) *model.Credential {
 	return &model.Credential{
-		LocalAgentID: utils.NewNullInt64(server.ID),
+		LocalAgentID: server.NullableID(),
 		Name:         "server_password",
 		Type:         auth.Password,
 		Value:        serverPass,
@@ -65,7 +64,7 @@ func serverPassword(server *model.LocalAgent) *model.Credential {
 
 func partnerPassword(partner *model.RemoteAgent) *model.Credential {
 	return &model.Credential{
-		RemoteAgentID: utils.NewNullInt64(partner.ID),
+		RemoteAgentID: partner.NullableID(),
 		Name:          "partner_password",
 		Type:          auth.Password,
 		Value:         serverPass,

@@ -7,7 +7,6 @@ import (
 
 	"code.waarp.fr/lib/r66"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -16,6 +15,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+var errDatabase = internal.NewR66Error(r66.Internal, "database error")
 
 type sessionHandler struct {
 	*authHandler
@@ -123,14 +124,14 @@ func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r6
 
 		s.logger.Errorf("Failed to retrieve transfer rule: %v", err)
 
-		return nil, internal.NewR66Error(r66.Internal, "database error")
+		return nil, errDatabase
 	}
 
 	ok, err := rule.IsAuthorized(s.db, s.account)
 	if err != nil {
 		s.logger.Errorf("Failed to check rule permissions: %v", err)
 
-		return nil, internal.NewR66Error(r66.Internal, "database error")
+		return nil, errDatabase
 	}
 
 	if !ok {
@@ -198,7 +199,7 @@ func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.Transfer
 	} else if err != nil {
 		s.logger.Errorf("Failed to retrieve transfer entry: %v", err)
 
-		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+		return nil, errDatabase
 	}
 
 	return s.getInfoFromTransfer(id, &trans)
@@ -211,7 +212,7 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 		return nil, internal.ToR66Error(ctxErr)
 	}
 
-	var protoConf serverConfig
+	var protoConf ServerConfig
 	if err := utils.JSONConvert(ctx.LocalAgent.ProtoConfig, &protoConf); err != nil {
 		s.logger.Errorf("Failed to parse server configuration: %v", err)
 
@@ -247,7 +248,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 	} else if dbErr != nil {
 		s.logger.Errorf("Failed to retrieve history entry: %v", dbErr)
 
-		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+		return nil, errDatabase
 	}
 
 	userContent, err := internal.MakeUserContent(s.logger, hist.TransferInfo)
@@ -282,13 +283,13 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 	} else if err != nil {
 		s.logger.Errorf("Failed to retrieve rule: %v", err)
 
-		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+		return nil, errDatabase
 	}
 
 	if ok, err := rule.IsAuthorized(s.db, s.account); err != nil {
 		s.logger.Errorf("Failed to check rule permissions: %v", err)
 
-		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+		return nil, errDatabase
 	} else if !ok {
 		return nil, &r66.Error{
 			Code:   r66.IncorrectCommand,
@@ -341,12 +342,12 @@ func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, err
 }
 
 func (s *sessionHandler) makeDir(rule *model.Rule) (string, error) {
-	servDir := s.agent.ReceiveDir
-	defDir := conf.GlobalConfig.Paths.DefaultInDir
+	servDir := s.dbAgent.ReceiveDir
+	defDir := s.db.Config.Paths.DefaultInDir
 
 	if rule.IsSend {
-		servDir = s.agent.SendDir
-		defDir = conf.GlobalConfig.Paths.DefaultOutDir
+		servDir = s.dbAgent.SendDir
+		defDir = s.db.Config.Paths.DefaultOutDir
 	}
 
 	var (
@@ -356,6 +357,6 @@ func (s *sessionHandler) makeDir(rule *model.Rule) (string, error) {
 
 	//nolint:wrapcheck //wrapping adds nothing here
 	return utils.GetPath("", leaf(rule.LocalDir), leaf(servDir),
-		branch(s.agent.RootDir), leaf(defDir),
-		branch(conf.GlobalConfig.Paths.GatewayHome))
+		branch(s.dbAgent.RootDir), leaf(defDir),
+		branch(s.db.Config.Paths.GatewayHome))
 }

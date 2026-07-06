@@ -28,14 +28,14 @@ type AccessTarget interface {
 //
 //nolint:lll //sql tags can be long
 type RuleAccess struct {
-	RuleID int64 `xorm:"rule_id"` // The ID of the rule this permission applies to.
+	RuleID int64 `gorm:"column:rule_id"` // The ID of the rule this permission applies to.
 
 	// The ID of the target to which this permission applies. Only one can be
 	// valid at a time.
-	LocalAgentID    sql.NullInt64 `xorm:"local_agent_id"`
-	RemoteAgentID   sql.NullInt64 `xorm:"remote_agent_id"`
-	LocalAccountID  sql.NullInt64 `xorm:"local_account_id"`
-	RemoteAccountID sql.NullInt64 `xorm:"remote_account_id"`
+	LocalAgentID    sql.NullInt64 `gorm:"column:local_agent_id"`
+	RemoteAgentID   sql.NullInt64 `gorm:"column:remote_agent_id"`
+	LocalAccountID  sql.NullInt64 `gorm:"column:local_account_id"`
+	RemoteAccountID sql.NullInt64 `gorm:"column:remote_account_id"`
 }
 
 func (*RuleAccess) TableName() string   { return TableRuleAccesses }
@@ -64,13 +64,13 @@ func (r *RuleAccess) BeforeWrite(db database.Access) error {
 
 	switch {
 	case r.LocalAgentID.Valid:
-		target = &LocalAgent{ID: r.LocalAgentID.Int64}
+		target = newLocalAgent(r.LocalAgentID.Int64)
 	case r.RemoteAgentID.Valid:
-		target = &RemoteAgent{ID: r.RemoteAgentID.Int64}
+		target = newRemoteAgent(r.RemoteAgentID.Int64)
 	case r.LocalAccountID.Valid:
-		target = &LocalAccount{ID: r.LocalAccountID.Int64}
+		target = newLocalAccount(r.LocalAccountID.Int64)
 	case r.RemoteAccountID.Valid:
-		target = &RemoteAccount{ID: r.RemoteAccountID.Int64}
+		target = newRemoteAccount(r.RemoteAccountID.Int64)
 	default:
 		return database.NewValidationError("the rule access is missing a target") // impossible
 	}

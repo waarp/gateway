@@ -494,7 +494,7 @@ func TestTransOnHold(t *testing.T) {
 	t.Run("Given a R66 pull transfer", func(t *testing.T) {
 		serverPullTrans := &model.Transfer{
 			RuleID:         ctx.ServerRulePull.ID,
-			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			LocalAccountID: ctx.LocalAccount.NullableID(),
 			SrcFilename:    ctx.TransferPull.SrcFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,
@@ -511,7 +511,7 @@ func TestTransOnHold(t *testing.T) {
 				ctx.CheckPullTransferOK(t)
 
 				var hist model.HistoryEntry
-				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Run())
+				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Eager().Run())
 
 				assert.Subset(t, hist.TransferInfo, serverPullTrans.TransferInfo)
 				assert.Subset(t, hist.TransferInfo, map[string]any{
@@ -524,7 +524,7 @@ func TestTransOnHold(t *testing.T) {
 	t.Run("Given a R66 push client", func(t *testing.T) {
 		serverPushTrans := &model.Transfer{
 			RuleID:         ctx.ServerRulePush.ID,
-			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			LocalAccountID: ctx.LocalAccount.NullableID(),
 			DestFilename:   ctx.TransferPull.DestFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,

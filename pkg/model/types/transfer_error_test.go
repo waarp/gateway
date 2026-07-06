@@ -105,29 +105,4 @@ func TestTransferErrorCode(t *testing.T) {
 			So(ec, ShouldEqual, TeUnknown)
 		})
 	})
-	Convey("Testing xorm serialization/deserialization", t, func() {
-		Convey("It should be serialized as a string", func() {
-			v, err := TeOk.ToDB()
-			So(err, ShouldBeNil)
-
-			So(v, ShouldResemble, []byte(`TeOk`))
-		})
-
-		Convey("It should scan a []byte representation from the database", func() {
-			var ec TransferErrorCode
-
-			err := ec.FromDB([]byte(`TeFileNotFound`))
-			So(err, ShouldBeNil)
-
-			So(ec, ShouldEqual, TeFileNotFound)
-		})
-		Convey("It should return TeUnknown if the error code does not exist", func() {
-			var ec TransferErrorCode
-
-			err := ec.FromDB([]byte(`foobar`))
-			So(err, ShouldBeNil)
-
-			So(ec, ShouldEqual, TeUnknown)
-		})
-	})
 }

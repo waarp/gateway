@@ -19,8 +19,6 @@ import (
 )
 
 func TestServerPlain(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, as2.AS2, map[string]any{
 		"maxFileSize": as2test.MaxBodySize,
@@ -37,6 +35,7 @@ func TestServerPlain(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, as2lib.MDNStatusSuccess, res.MDN.Status)
 	t.Logf("MDN: %s", res.MDN.HumanText)
+	ctx.WaitEnd(t)
 
 	// Check history
 	var hist model.HistoryEntry
@@ -57,8 +56,6 @@ func TestServerPlain(t *testing.T) {
 }
 
 func TestServerTLS(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, as2.AS2TLS, map[string]any{
 		"maxFileSize": as2test.MaxBodySize,
@@ -79,6 +76,7 @@ func TestServerTLS(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, as2lib.MDNStatusSuccess, res.MDN.Status)
 	t.Logf("MDN: %s", res.MDN.HumanText)
+	ctx.WaitEnd(t)
 
 	// Check history
 	var hist model.HistoryEntry
@@ -99,8 +97,6 @@ func TestServerTLS(t *testing.T) {
 }
 
 func TestServerPreTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, as2.AS2, map[string]any{
 		"maxFileSize": as2test.MaxBodySize,
@@ -117,6 +113,7 @@ func TestServerPreTaskError(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, as2lib.MDNStatusError, res.MDN.Status)
 	t.Logf("MDN: %s", res.MDN.HumanText)
+	ctx.WaitEnd(t)
 
 	// Check history
 	var hist model.Transfer
@@ -128,8 +125,6 @@ func TestServerPreTaskError(t *testing.T) {
 }
 
 func TestServerPostTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, as2.AS2, map[string]any{
 		"maxFileSize": as2test.MaxBodySize,
@@ -146,6 +141,7 @@ func TestServerPostTaskError(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, as2lib.MDNStatusError, res.MDN.Status)
 	t.Logf("MDN: %s", res.MDN.HumanText)
+	ctx.WaitEnd(t)
 
 	// Check history
 	var hist model.Transfer

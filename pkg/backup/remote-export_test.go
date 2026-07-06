@@ -14,6 +14,8 @@ import (
 )
 
 func TestExportRemoteAgents(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -93,6 +95,8 @@ func TestExportRemoteAgents(t *testing.T) {
 }
 
 func TestExportRemoteAccounts(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 

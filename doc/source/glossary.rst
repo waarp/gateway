@@ -132,3 +132,10 @@ Glossaire
       Selon le type et l'utilisation de cette clé cryptographique, celle-ci devra
       contenir soit une clé privée, soit une clé publique (voir même parfois les
       deux). Le format de la clé dépend également du type de la clé.
+
+   filewatcher
+   (*filewatcher*)
+      Un *filewatcher* est un service de Gateway dont la mission est de surveiller
+      un dossier. Lorsqu'un fichier est déposé dans ce dossier, si ce fichier
+      match le paterne du filewatcher, alors un transfert sera automatiquement
+      créé pour ce fichier.

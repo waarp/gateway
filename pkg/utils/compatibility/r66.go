@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"os"
 
@@ -25,11 +26,57 @@ func init() {
 // maintain backwards compatibility, the property has been kept. This function
 // can be used to check its presence.
 func IsTLS(mapConf map[string]any) bool {
-	if isTLS, err := utils.GetAs[bool](mapConf, "isTLS"); err != nil {
-		return false
-	} else {
-		return isTLS
+	isTLS, err := utils.GetAs[bool](mapConf, "isTLS")
+
+	return err == nil && isTLS
+}
+
+func EncryptR66ServerPassword(encrypter interface{ Encrypt(string) (string, error) },
+	protocol string, configMap map[string]any,
+) error {
+	if protocol != "r66" && protocol != "r66-tls" {
+		return nil
 	}
+
+	servPswd, err := utils.GetAs[string](configMap, "serverPassword")
+	if errors.Is(err, utils.ErrKeyNotFound) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to retrieve the server password: %w", err)
+	}
+
+	encrypted, err := encrypter.Encrypt(servPswd)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt the server password: %w", err)
+	}
+
+	configMap["serverPassword"] = encrypted
+
+	return nil
+}
+
+func DecryptR66ServerPassword(decrypter interface{ Decrypt(string) (string, error) },
+	protocol string, configMap map[string]any,
+) error {
+	if protocol != "r66" && protocol != "r66-tls" {
+		return nil
+	}
+
+	servPwd, err := utils.GetAs[string](configMap, "serverPassword")
+	if errors.Is(err, utils.ErrKeyNotFound) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to retrieve the server password: %w", err)
+	}
+
+	plain, err := decrypter.Decrypt(servPwd)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt the server password: %w", err)
+	}
+
+	configMap["serverPassword"] = plain
+
+	return nil
 }
 
 const AllowLegacyR66CertificateVar = "WAARP_GATEWAY_ALLOW_LEGACY_CERT"

@@ -1,10 +1,10 @@
 package database
 
 import (
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/url"
@@ -15,10 +15,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
-	"xorm.io/xorm/contexts"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -30,40 +30,57 @@ const (
 
 var ErrSimulated = errors.New("simulated database error")
 
-func memDBInfo() *DBInfo {
-	config := conf.GlobalConfig.Database
+//nolint:gochecknoglobals //these a test variables
+var (
+	testAEAD     = makeTestAEAD()
+	setTestRDBMS = sync.OnceFunc(func() {
+		SupportedRBMS[SQLite] = memDBInfo
+	})
+)
+
+func memDBInfo(config *conf.DatabaseConfig) (gorm.Dialector, error) {
 	values := url.Values{}
 
 	values.Set("mode", "memory")
-	values.Set("cache", "shared")
 	values.Set("_txlock", "immediate")
 	values.Add("_pragma", "busy_timeout(10000)")
 	values.Add("_pragma", "foreign_keys(ON)")
 	values.Add("_pragma", "journal_mode(MEMORY)")
 	values.Add("_pragma", "synchronous(OFF)")
 
-	return &DBInfo{
-		Driver:    migrations.SqliteDriver,
-		DSN:       fmt.Sprintf("file:%s?%s", config.Address, values.Encode()),
-		ConnLimit: 1,
+	dsn := fmt.Sprintf("file:%s?%s", config.Address, values.Encode())
+	db, err := sql.Open(SQLiteDriver, dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+
+	db.SetMaxOpenConns(1)
+
+	return sqlite.New(sqlite.Config{
+		DriverName: SQLiteDriver,
+		DSN:        dsn,
+		Conn:       db,
+	}), nil
 }
 
-func testGCM() {
-	if GCM != nil {
-		return
-	}
-
+func makeTestAEAD() cipher.AEAD {
 	key := make([]byte, aesKeySize)
 
-	_, err := rand.Read(key)
-	convey.So(err, convey.ShouldBeNil)
+	if _, err := rand.Read(key); err != nil {
+		panic(err)
+	}
 
 	ciph, err := aes.NewCipher(key)
-	convey.So(err, convey.ShouldBeNil)
+	if err != nil {
+		panic(err)
+	}
 
-	GCM, err = cipher.NewGCM(ciph)
-	convey.So(err, convey.ShouldBeNil)
+	gcm, err := cipher.NewGCM(ciph)
+	if err != nil {
+		panic(err)
+	}
+
+	return gcm
 }
 
 func tempFilename() string {
@@ -75,59 +92,66 @@ func tempFilename() string {
 	return f.Name()
 }
 
-func initTestDBConf() {
-	BcryptRounds = bcrypt.MinCost
-	conf.GlobalConfig.GatewayName = uuid.NewString()
-	conf.GlobalConfig.Paths.FilePerms = 0o600
-	conf.GlobalConfig.Paths.DirPerms = 0o700
-	conf.GlobalConfig.NodeID = "test_node"
-	config := &conf.GlobalConfig.Database
+func initTestDBConf(c convey.C) *conf.ServerConfig {
+	config := &conf.ServerConfig{}
+	config.GatewayName = uuid.NewString()
+	config.NodeID = "test_node"
+
+	config.Paths.FilePerms = 0o600
+	config.Paths.DirPerms = 0o700
+	config.Paths.GatewayHome = testhelpers.TempDir(c, "default")
+	config.Paths.DefaultOutDir = "out"
+	config.Paths.DefaultInDir = "in"
+	config.Paths.DefaultTmpDir = "tmp"
+
+	dbConfig := &config.Database
 	dbType := os.Getenv(TestDBEnv)
 
 	switch dbType {
 	case PostgreSQL:
-		config.Type = PostgreSQL
-		config.User = "postgres"
-		config.Password = "postgres"
-		config.Name = "waarp_gateway_test"
-		config.Address = "localhost:5432"
+		dbConfig.Type = PostgreSQL
+		dbConfig.User = "postgres"
+		dbConfig.Password = "postgres"
+		dbConfig.Name = "waarp_gateway_test"
+		dbConfig.Address = "localhost:5432"
 	case MySQL:
-		config.Type = MySQL
-		config.User = "root"
-		config.Name = "waarp_gateway_test"
-		config.Address = "localhost:3306"
+		dbConfig.Type = MySQL
+		dbConfig.User = "root"
+		dbConfig.Name = "waarp_gateway_test"
+		dbConfig.Address = "localhost:3306"
 	case SQLite:
-		config.Type = SQLite
-		config.Address = tempFilename()
+		dbConfig.Type = SQLite
+		dbConfig.Address = tempFilename()
 	case TestMemoryDB, "":
-		SupportedRBMS[SQLite] = memDBInfo
-		config.Type = SQLite
-		config.Address = uuid.New().String()
+		dbConfig.Type = SQLite
+		dbConfig.Address = uuid.New().String()
 	default:
 		panic(fmt.Sprintf("Unknown database type '%s'\n", dbType))
 	}
+
+	return config
 }
 
 func resetDB(db *DB) {
-	config := &conf.GlobalConfig.Database
+	config := &db.Config.Database
 
 	switch config.Type {
 	case PostgreSQL:
-		_, err := db.engine.Exec("DROP SCHEMA IF EXISTS public CASCADE")
+		err := db.engine.Exec("DROP SCHEMA IF EXISTS public CASCADE").Error
 		convey.So(err, convey.ShouldBeNil)
 
-		_, err = db.engine.Exec("CREATE SCHEMA public")
+		err = db.engine.Exec("CREATE SCHEMA public").Error
 		convey.So(err, convey.ShouldBeNil)
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
+		convey.So(db.close(), convey.ShouldBeNil)
 	case MySQL:
-		_, err := db.engine.Exec("DROP DATABASE IF EXISTS waarp_gateway_test")
+		err := db.engine.Exec("DROP DATABASE IF EXISTS waarp_gateway_test").Error
 		convey.So(err, convey.ShouldBeNil)
 
-		_, err = db.engine.Exec("CREATE DATABASE waarp_gateway_test")
+		err = db.engine.Exec("CREATE DATABASE waarp_gateway_test").Error
 		convey.So(err, convey.ShouldBeNil)
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
+		convey.So(db.close(), convey.ShouldBeNil)
 	case SQLite:
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
+		convey.So(db.close(), convey.ShouldBeNil)
 
 		if _, err := os.Stat(config.Address); err == nil {
 			convey.So(os.Remove(config.Address), convey.ShouldBeNil)
@@ -141,11 +165,12 @@ func resetDB(db *DB) {
 // purposes. The function must be called within a convey context.
 // The database will log messages at the level given.
 func TestDatabase(c convey.C) *DB {
+	setTestRDBMS()
 	db := initTestDatabase(c)
 
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db) })
-	db.Logger.Noticef("%s database started", conf.GlobalConfig.Database.Type)
+	db.Logger.Noticef("%s database started", db.Config.Database.Type)
 
 	return db
 }
@@ -153,40 +178,27 @@ func TestDatabase(c convey.C) *DB {
 func initTestDatabase(c convey.C) *DB {
 	BcryptRounds = bcrypt.MinCost
 
-	initTestDBConf()
-	testGCM()
+	config := initTestDBConf(c)
+	dbtype := config.Database.Type
+	dbname := config.Database.Name
 
-	dbtype := conf.GlobalConfig.Database.Type
-
-	dbname := conf.GlobalConfig.Database.Name
 	if dbname == "" {
-		dbname = filepath.Base(conf.GlobalConfig.Database.Address)
+		dbname = filepath.Base(config.Database.Address)
 	}
 
-	db := &DB{Logger: testhelpers.TestLoggerWithLevel(c,
-		fmt.Sprintf("%s-database-%s", dbtype, dbname), log.LevelNotice)}
+	db := &DB{
+		Logger: testhelpers.TestLoggerWithLevel(c,
+			fmt.Sprintf("%s-database-%s", dbtype, dbname), log.LevelWarning),
+		Config: config,
+		AEAD:   testAEAD,
+	}
 
 	return db
 }
 
-type errHook struct{ once sync.Once }
-
-func (e *errHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
-	var err error
-
-	ctx := c.Ctx
-
-	e.once.Do(func() {
-		err = ErrSimulated
-	})
-
-	return ctx, err
-}
-
-func (*errHook) AfterProcess(*contexts.ContextHook) error { return nil }
-
 // SimulateError adds a database hook which always returns an error to simulate
 // a database error for test purposes.
 func SimulateError(_ convey.C, db *DB) {
-	db.engine.AddHook(&errHook{})
+	//nolint:errcheck //error is always non-nil here
+	_ = db.engine.AddError(ErrSimulated)
 }

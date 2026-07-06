@@ -11,7 +11,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -73,16 +72,17 @@ type sshPrivateKey struct{}
 
 func (*sshPrivateKey) CanOnlyHaveOne() bool { return false }
 
-func (*sshPrivateKey) ToDB(plain, _ string) (encrypted, _ string, err error) {
-	if encrypted, err = utils.AESCrypt(database.GCM, plain); err != nil {
+func (*sshPrivateKey) ToDB(db database.Access, plain, _ string) (encrypted, _ string, err error) {
+	if encrypted, err = db.Encrypt(plain); err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the SSH private key: %w", err)
 	}
 
 	return encrypted, "", nil
 }
 
-func (*sshPrivateKey) FromDB(encrypted, _ string) (plain, _ string, err error) {
-	if plain, err = utils.AESDecrypt(database.GCM, encrypted); err != nil {
+func (*sshPrivateKey) FromDB(db database.ReadAccess, encrypted, _ string,
+) (plain, _ string, err error) {
+	if plain, err = db.Decrypt(encrypted); err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the SSH private key: %w", err)
 	}
 
@@ -133,17 +133,10 @@ func isUserAuthority(db database.ReadAccess, logger *log.Logger) func(ssh.Public
 	}
 }
 
-func isHostAuthority(db database.ReadAccess, logger *log.Logger,
+func isHostAuthority(ctx *model.TransferContext, logger *log.Logger,
 ) func(key ssh.PublicKey, address string) bool {
 	return func(key ssh.PublicKey, address string) bool {
-		var auths model.Authorities
-		if err := db.Select(&auths).Where("type=?", AuthoritySSHCert).Run(); err != nil {
-			logger.Errorf("Failed to retrieve the SSH certification authorities: %v", err)
-
-			return false
-		}
-
-		for _, aut := range auths {
+		for _, aut := range ctx.Authorities {
 			if len(aut.ValidHosts) != 0 && !slices.Contains(aut.ValidHosts, address) {
 				continue
 			}

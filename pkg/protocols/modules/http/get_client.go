@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -30,7 +29,7 @@ type getClient struct {
 func (g *getClient) Request() *pipeline.Error {
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 
-	addr := conf.GetRealAddress(g.pip.TransCtx.RemoteAgent.Address.Host,
+	addr := g.pip.DB.Config.Overrides.GetRealAddress(g.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(g.pip.TransCtx.RemoteAgent.Address.Port))
 	url := g.scheme + path.Join(addr, g.pip.TransCtx.Transfer.RemotePath)
 
@@ -162,8 +161,8 @@ func (g *getClient) wrapAndSendError(cause error, code types.TransferErrorCode, 
 	return tErr
 }
 
-func (g *getClient) Delete(ctx context.Context, filepath string, recursive bool) error {
-	url := makeRequestURL(g.scheme, g.pip.TransCtx, filepath)
+func (g *getClient) Delete(ctx context.Context, filepath string) error {
+	url := makeRequestURL(g.scheme, g.pip.TransCtx, filepath, g.pip.DB.Config.Overrides)
 
-	return deleteRemoteFile(ctx, g.client, url, recursive)
+	return deleteRemoteFile(ctx, g.client, url)
 }

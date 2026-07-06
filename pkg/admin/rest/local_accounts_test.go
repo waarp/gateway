@@ -17,7 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -26,6 +25,8 @@ func localAccountsURI(agent, login string) string {
 }
 
 func TestGetLocalAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_get_test")
 		db := database.TestDatabase(c)
@@ -47,7 +48,7 @@ func TestGetLocalAccount(t *testing.T) {
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			pswd := model.Credential{
-				LocalAccountID: utils.NewNullInt64(existing.ID),
+				LocalAccountID: existing.NullableID(),
 				Name:           "foo password",
 				Type:           auth.Password,
 				Value:          "sesame",
@@ -132,6 +133,8 @@ func TestGetLocalAccount(t *testing.T) {
 }
 
 func TestListLocalAccounts(t *testing.T) {
+	t.Parallel()
+
 	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutLocalAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
@@ -296,6 +299,8 @@ func TestListLocalAccounts(t *testing.T) {
 }
 
 func TestCreateLocalAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_create_logger")
 		db := database.TestDatabase(c)
@@ -347,7 +352,7 @@ func TestCreateLocalAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 							So(accs[0], ShouldResemble, &model.LocalAccount{
-								ID:           1,
+								Identifier:   model.ID(1),
 								LocalAgentID: parent.ID,
 								Login:        "new_account",
 								IPAddresses:  []string{"1.2.3.4", "5.6.7.8"},
@@ -394,6 +399,8 @@ func TestCreateLocalAccount(t *testing.T) {
 }
 
 func TestDeleteLocalAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_delete_test")
 		db := database.TestDatabase(c)
@@ -493,6 +500,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 }
 
 func TestUpdateLocalAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
 		db := database.TestDatabase(c)
@@ -514,7 +523,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(db.Insert(old).Run(), ShouldBeNil)
 
 			oldPwd := &model.Credential{
-				LocalAccountID: utils.NewNullInt64(old.ID),
+				LocalAccountID: old.NullableID(),
 				Type:           auth.Password, Value: "old_password",
 			}
 			So(db.Insert(oldPwd).Run(), ShouldBeNil)
@@ -558,7 +567,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(len(accounts), ShouldEqual, 1)
 
 						So(accounts[0], ShouldResemble, &model.LocalAccount{
-							ID:           old.ID,
+							Identifier:   old.Identifier,
 							LocalAgentID: parent.ID,
 							Login:        "old",
 							IPAddresses:  []string{"9.8.7.6"},
@@ -634,6 +643,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 }
 
 func TestReplaceLocalAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
 		db := database.TestDatabase(c)
@@ -655,7 +666,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 			So(db.Insert(old).Run(), ShouldBeNil)
 
 			oldPwd := &model.Credential{
-				LocalAccountID: utils.NewNullInt64(old.ID),
+				LocalAccountID: old.NullableID(),
 				Type:           auth.Password, Value: "old_password",
 			}
 			So(db.Insert(oldPwd).Run(), ShouldBeNil)
@@ -699,7 +710,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 						So(accounts[0], ShouldResemble, &model.LocalAccount{
-							ID:           old.ID,
+							Identifier:   old.Identifier,
 							LocalAgentID: parent.ID,
 							Login:        "upd_login",
 							IPAddresses:  []string{"9.8.7.6"},

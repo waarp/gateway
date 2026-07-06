@@ -7,10 +7,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestLocalAccountTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a `LocalAccount` instance", t, func() {
 		agent := &LocalAccount{}
 
@@ -25,6 +26,8 @@ func TestLocalAccountTableName(t *testing.T) {
 }
 
 func TestLocalAccountBeforeDelete(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -39,7 +42,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			accAuth := Credential{
-				LocalAccountID: utils.NewNullInt64(acc.ID),
+				LocalAccountID: acc.NullableID(),
 				Name:           "test cert",
 				Type:           testInternalAuth,
 				Value:          "val",
@@ -49,7 +52,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := RuleAccess{RuleID: rule.ID, LocalAccountID: utils.NewNullInt64(acc.ID)}
+			access := RuleAccess{RuleID: rule.ID, LocalAccountID: acc.NullableID()}
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
@@ -83,7 +86,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			Convey("Given that the account is used in a transfer", func() {
 				trans := &Transfer{
 					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(acc.ID),
+					LocalAccountID: acc.NullableID(),
 					SrcFilename:    "file",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
@@ -104,6 +107,8 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 }
 
 func TestLocalAccountBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 

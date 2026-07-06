@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -13,8 +12,7 @@ import (
 
 func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAgent, error) {
 	var dbRemotes model.RemoteAgents
-	if err := db.Select(&dbRemotes).Where("owner=?", conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := db.Select(&dbRemotes).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve partners: %w", err)
 	}
 

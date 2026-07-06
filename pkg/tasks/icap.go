@@ -116,7 +116,7 @@ func (i *icapTask) Run(parent context.Context, params map[string]string,
 		return optErr
 	}
 
-	runErr := i.run(ctx, logger, transCtx, previewSize)
+	runErr := i.run(ctx, logger, transCtx, previewSize, &db.Config.Paths)
 	if runErr == nil {
 		return nil // no error
 	}
@@ -153,14 +153,14 @@ func (i *icapTask) checkFileSize(file fs.File) (int64, error) {
 }
 
 func (i *icapTask) run(ctx context.Context, logger *log.Logger,
-	transCtx *model.TransferContext, previewSize int64,
+	transCtx *model.TransferContext, previewSize int64, pathConfig *conf.PathsConfig,
 ) error {
 	flags := fs.FlagReadOnly
 	if i.AllowFileModifications {
 		flags = fs.FlagReadWrite
 	}
 
-	filePerms := fs.FileMode(conf.GlobalConfig.Paths.FilePerms)
+	filePerms := fs.FileMode(pathConfig.FilePerms)
 
 	file, opErr := fs.OpenFile(transCtx.Transfer.LocalPath, flags, filePerms)
 	if opErr != nil {

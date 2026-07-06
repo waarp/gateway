@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -23,8 +22,7 @@ func retrieveDBSNMPMonitor(r *http.Request, db *database.DB) (*snmp.MonitorConfi
 	}
 
 	var monitor snmp.MonitorConfig
-	if err := db.Get(&monitor, "name=? AND owner=?", name,
-		conf.GlobalConfig.GatewayName).Run(); err != nil {
+	if err := db.Get(&monitor, "name=?", name).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("SNMP monitor %q not found", name)
 		}
@@ -54,9 +52,9 @@ func addSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			AuthEngineID:    restMonitor.AuthEngineID,
 			AuthUsername:    restMonitor.AuthUsername,
 			AuthProtocol:    restMonitor.AuthProtocol,
-			AuthPassphrase:  database.SecretText(restMonitor.AuthPassphrase),
+			AuthPassphrase:  restMonitor.AuthPassphrase,
 			PrivProtocol:    restMonitor.PrivProtocol,
-			PrivPassphrase:  database.SecretText(restMonitor.PrivPassphrase),
+			PrivPassphrase:  restMonitor.PrivPassphrase,
 		}
 		if err := db.Insert(&dbMonitor).Run(); handleError(w, logger, err) {
 			return
@@ -84,13 +82,14 @@ func dbSNMPMonitorToREST(dbMonitor *snmp.MonitorConfig) *api.GetSnmpMonitorRespO
 		AuthEngineID:    dbMonitor.AuthEngineID,
 		AuthUsername:    dbMonitor.AuthUsername,
 		AuthProtocol:    dbMonitor.AuthProtocol,
-		AuthPassphrase:  string(dbMonitor.AuthPassphrase),
+		AuthPassphrase:  dbMonitor.AuthPassphrase,
 		PrivProtocol:    dbMonitor.PrivProtocol,
-		PrivPassphrase:  string(dbMonitor.PrivPassphrase),
+		PrivPassphrase:  dbMonitor.PrivPassphrase,
 	}
 }
 
 func listSnmpMonitors(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //duplicate is for a different type, keep separate
 	validSorting := orders{
 		"default":  order{"name", true},
 		"name+":    order{"name", true},
@@ -107,8 +106,7 @@ func listSnmpMonitors(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Where("owner=?", conf.GlobalConfig.GatewayName).
-			Run(); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -153,15 +151,15 @@ func updateSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			AuthEngineID:    asNullable(oldDBMonitor.AuthEngineID),
 			AuthUsername:    asNullable(oldDBMonitor.AuthUsername),
 			AuthProtocol:    asNullable(oldDBMonitor.AuthProtocol),
-			AuthPassphrase:  asNullableSecret(oldDBMonitor.AuthPassphrase),
+			AuthPassphrase:  asNullable(oldDBMonitor.AuthPassphrase),
 			PrivProtocol:    asNullable(oldDBMonitor.PrivProtocol),
-			PrivPassphrase:  asNullableSecret(oldDBMonitor.PrivPassphrase),
+			PrivPassphrase:  asNullable(oldDBMonitor.PrivPassphrase),
 		}
 		if err := readJSON(r, &restMonitor); handleError(w, logger, err) {
 			return
 		}
 
-		dbMonitor := snmp.MonitorConfig{ID: oldDBMonitor.ID}
+		dbMonitor := snmp.MonitorConfig{Identifier: oldDBMonitor.Identifier}
 		setIfValid(&dbMonitor.Name, restMonitor.Name)
 		setIfValid(&dbMonitor.Version, restMonitor.Version)
 		setIfValid(&dbMonitor.UDPAddress, restMonitor.UDPAddress)
@@ -176,11 +174,11 @@ func updateSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		setIfValid(&dbMonitor.PrivProtocol, restMonitor.PrivProtocol)
 
 		if restMonitor.AuthPassphrase.Valid {
-			dbMonitor.AuthPassphrase = database.SecretText(restMonitor.AuthPassphrase.Value)
+			dbMonitor.AuthPassphrase = restMonitor.AuthPassphrase.Value
 		}
 
 		if restMonitor.PrivPassphrase.Valid {
-			dbMonitor.PrivPassphrase = database.SecretText(restMonitor.PrivPassphrase.Value)
+			dbMonitor.PrivPassphrase = restMonitor.PrivPassphrase.Value
 		}
 
 		if err := db.Update(&dbMonitor).Run(); handleError(w, logger, err) {
@@ -235,7 +233,7 @@ func reloadSNMPServerConf(ctx context.Context) error {
 
 func retrieveDBSNMPServerConf(db *database.DB) (*snmp.ServerConfig, error) {
 	var snmpServer snmp.ServerConfig
-	if err := db.Get(&snmpServer, "owner=?", conf.GlobalConfig.GatewayName).Run(); err != nil {
+	if err := db.Get(&snmpServer, "").Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("SNMP service config not found")
 		}
@@ -259,9 +257,9 @@ func getSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			V3Only:           dbSnmpConfig.SNMPv3Only,
 			V3Username:       dbSnmpConfig.SNMPv3Username,
 			V3AuthProtocol:   dbSnmpConfig.SNMPv3AuthProtocol,
-			V3AuthPassphrase: string(dbSnmpConfig.SNMPv3AuthPassphrase),
+			V3AuthPassphrase: dbSnmpConfig.SNMPv3AuthPassphrase,
 			V3PrivProtocol:   dbSnmpConfig.SNMPv3PrivProtocol,
-			V3PrivPassphrase: string(dbSnmpConfig.SNMPv3PrivPassphrase),
+			V3PrivPassphrase: dbSnmpConfig.SNMPv3PrivPassphrase,
 		}
 
 		handleError(w, logger, writeJSON(w, restSnmpConfig))
@@ -280,9 +278,9 @@ func addNewSnmpService(db *database.DB, logger *log.Logger, w http.ResponseWrite
 		SNMPv3Only:           restSnmpConf.V3Only,
 		SNMPv3Username:       restSnmpConf.V3Username,
 		SNMPv3AuthProtocol:   restSnmpConf.V3AuthProtocol,
-		SNMPv3AuthPassphrase: database.SecretText(restSnmpConf.V3AuthPassphrase),
+		SNMPv3AuthPassphrase: restSnmpConf.V3AuthPassphrase,
 		SNMPv3PrivProtocol:   restSnmpConf.V3PrivProtocol,
-		SNMPv3PrivPassphrase: database.SecretText(restSnmpConf.V3PrivPassphrase),
+		SNMPv3PrivPassphrase: restSnmpConf.V3PrivPassphrase,
 	}
 	if err := db.Insert(&dbSnmpConf).Run(); handleError(w, logger, err) {
 		return
@@ -313,15 +311,15 @@ func setSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			V3Only:           asNullable(oldDBSnmpConf.SNMPv3Only),
 			V3Username:       asNullable(oldDBSnmpConf.SNMPv3Username),
 			V3AuthProtocol:   asNullable(oldDBSnmpConf.SNMPv3AuthProtocol),
-			V3AuthPassphrase: asNullableSecret(oldDBSnmpConf.SNMPv3AuthPassphrase),
+			V3AuthPassphrase: asNullable(oldDBSnmpConf.SNMPv3AuthPassphrase),
 			V3PrivProtocol:   asNullable(oldDBSnmpConf.SNMPv3PrivProtocol),
-			V3PrivPassphrase: asNullableSecret(oldDBSnmpConf.SNMPv3PrivPassphrase),
+			V3PrivPassphrase: asNullable(oldDBSnmpConf.SNMPv3PrivPassphrase),
 		}
 		if err := readJSON(r, &restSnmpConf); handleError(w, logger, err) {
 			return
 		}
 
-		dbSnmpConf := snmp.ServerConfig{ID: oldDBSnmpConf.ID}
+		dbSnmpConf := snmp.ServerConfig{Identifier: oldDBSnmpConf.Identifier}
 		setIfValid(&dbSnmpConf.LocalUDPAddress, restSnmpConf.LocalUDPAddress)
 		setIfValid(&dbSnmpConf.Community, restSnmpConf.Community)
 		setIfValid(&dbSnmpConf.SNMPv3Only, restSnmpConf.V3Only)
@@ -330,11 +328,11 @@ func setSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		setIfValid(&dbSnmpConf.SNMPv3PrivProtocol, restSnmpConf.V3PrivProtocol)
 
 		if restSnmpConf.V3AuthPassphrase.Valid {
-			dbSnmpConf.SNMPv3AuthPassphrase = database.SecretText(restSnmpConf.V3AuthPassphrase.Value)
+			dbSnmpConf.SNMPv3AuthPassphrase = restSnmpConf.V3AuthPassphrase.Value
 		}
 
 		if restSnmpConf.V3PrivPassphrase.Valid {
-			dbSnmpConf.SNMPv3PrivPassphrase = database.SecretText(restSnmpConf.V3PrivPassphrase.Value)
+			dbSnmpConf.SNMPv3PrivPassphrase = restSnmpConf.V3PrivPassphrase.Value
 		}
 
 		if err := db.Update(&dbSnmpConf).Run(); handleError(w, logger, err) {

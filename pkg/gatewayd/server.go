@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/filewatcher"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	_ "code.waarp.fr/apps/gateway/gateway/pkg/fs/backends" // import cloud backends
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
@@ -36,6 +37,7 @@ const (
 
 // WG is the top level service handler. It manages all other components.
 type WG struct {
+	Config *conf.ServerConfig
 	Logger *log.Logger
 
 	DBService    *database.DB
@@ -46,8 +48,9 @@ type WG struct {
 }
 
 // NewWG creates a new application.
-func NewWG() *WG {
+func NewWG(config *conf.ServerConfig) *WG {
 	wg := &WG{
+		Config: config,
 		Logger: logging.NewLogger("Waarp-Gateway"),
 	}
 	wg.initServices()
@@ -63,9 +66,7 @@ func getDir(root, dir string) string {
 	return path.Join(root, dir)
 }
 
-func parseDirs() (rootDir, inDir, outDir, tmpDir string, err error) {
-	config := &conf.GlobalConfig.Paths
-
+func parseDirs(config *conf.PathsConfig) (rootDir, inDir, outDir, tmpDir string, err error) {
 	root := config.GatewayHome
 	in := getDir(root, config.DefaultInDir)
 	out := getDir(root, config.DefaultOutDir)
@@ -79,7 +80,7 @@ func parseDirs() (rootDir, inDir, outDir, tmpDir string, err error) {
 }
 
 func (wg *WG) makeDirs() error {
-	root, in, out, tmp, dirErr := parseDirs()
+	root, in, out, tmp, dirErr := parseDirs(&wg.Config.Paths)
 	if dirErr != nil {
 		return dirErr
 	}
@@ -104,7 +105,9 @@ func (wg *WG) makeDirs() error {
 }
 
 func (wg *WG) initServices() {
-	wg.DBService = &database.DB{}
+	if wg.DBService == nil {
+		wg.DBService = database.NewDB(wg.Config)
+	}
 	wg.Analytics = &analytics.Service{DB: wg.DBService}
 	wg.SnmpService = &snmp.Service{DB: wg.DBService}
 	wg.AdminService = &admin.Server{DB: wg.DBService}
@@ -153,13 +156,17 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
+	if err := wg.startFilewatchers(); err != nil {
+		return err
+	}
+
 	return wg.startClouds()
 }
 
 //nolint:dupl //too many differences
 func (wg *WG) startServers() error {
 	var servers model.LocalAgents
-	if err := wg.DBService.Select(&servers).Owner().Run(); err != nil {
+	if err := wg.DBService.Select(&servers).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve servers from the database: %w", err)
 	}
 
@@ -186,7 +193,7 @@ func (wg *WG) startServers() error {
 //nolint:dupl //too many differences
 func (wg *WG) startClients() error {
 	var dbClients model.Clients
-	if err := wg.DBService.Select(&dbClients).Owner().Run(); err != nil {
+	if err := wg.DBService.Select(&dbClients).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve clients from the database: %w", err)
 	}
 
@@ -210,14 +217,34 @@ func (wg *WG) startClients() error {
 	return nil
 }
 
+func (wg *WG) startFilewatchers() error {
+	var dbFWs model.FileWatchers
+	if err := wg.DBService.Select(&dbFWs).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve filewatchers from the database: %w", err)
+	}
+
+	for _, dbFW := range dbFWs {
+		fw := filewatcher.NewFilewatcher(wg.DBService, dbFW)
+		filewatcher.Filewatchers.Add(dbFW, fw)
+
+		if !dbFW.Disabled {
+			if err := fw.Start(); err != nil {
+				wg.Logger.Errorf("Error starting the %q filewatcher: %v", dbFW.Flow, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (wg *WG) startClouds() error {
 	var clouds model.CloudInstances
-	if err := wg.DBService.Select(&clouds).Owner().Run(); err != nil {
+	if err := wg.DBService.Select(&clouds).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve clouds instances from the database: %w", err)
 	}
 
 	for _, c := range clouds {
-		fileSys, err := fs.NewFS(c.Name, c.Type, c.Key, c.Secret.String(), c.Options)
+		fileSys, err := fs.NewFS(c.Name, c.Type, c.Key, c.Secret, c.Options)
 		if err != nil {
 			wg.Logger.Errorf("Failed to instantiate cloud instance %q: %v", c.Name, err)
 			continue
@@ -271,7 +298,7 @@ func (wg *WG) stopServices() {
 
 // Start starts the main service of the Gateway.
 func (wg *WG) Start() error {
-	gwName := conf.GlobalConfig.GatewayName
+	gwName := wg.Config.GatewayName
 
 	wg.Logger.Infof("Waarp Gateway %q is starting", gwName)
 

@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -13,8 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func ClientDBToREST(client *model.Client) *api.OutClient {
@@ -53,7 +50,7 @@ func ClientRESTToDB(client *api.InClient) (*model.Client, error) {
 	setIfValid(&cli.RetryIncrementFactor, client.RetryIncrementFactor)
 
 	if client.ProtoConfig != nil {
-		cli.ProtoConfig = model.ProtoConfigMap(client.ProtoConfig)
+		cli.ProtoConfig = model.Map[any](client.ProtoConfig)
 	}
 
 	if client.LocalAddress.Valid {
@@ -72,12 +69,21 @@ func getDBClient(r *http.Request, db *database.DB) (*model.Client, error) {
 	}
 
 	var client model.Client
-	if err := db.Get(&client, "name=?", clientName).Owner().Run(); err != nil {
+	if err := db.Get(&client, "name=?", clientName).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("client %q not found", clientName)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
+	}
+
+	if !services.Clients.Exists(client) {
+		service, err := protocols.MakeClient(db, &client)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make client service %q: %w", clientName, err)
+		}
+
+		services.Clients.Add(&client, service)
 	}
 
 	return &client, nil
@@ -142,7 +148,7 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		service, mkErr := makeClientService(db, dbClient)
+		service, mkErr := protocols.MakeClient(db, dbClient)
 		if handleError(w, logger, mkErr) {
 			return
 		}
@@ -161,157 +167,86 @@ func createClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl //duplicate is for servers, best keep separate
 func deleteClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		dbClient, service, getErr := getClientService(r, db)
+		dbClient, getErr := getDBClient(r, db)
 		if handleError(w, logger, getErr) {
 			return
-		}
-
-		switch code, _ := service.State(); code {
-		case utils.StateError, utils.StateOffline:
-		default:
-			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
-			defer cancel()
-
-			if err := service.Stop(ctx); handleError(w, logger, err) {
-				return
-			}
 		}
 
 		if err := db.Delete(dbClient).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		services.Clients.Remove(dbClient)
+		if err := services.Clients.Remove(r.Context(), dbClient); handleError(w, logger, err) {
+			return
+		}
 
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
+func doUpdateClient(logger *log.Logger, db *database.DB, w http.ResponseWriter,
+	r *http.Request, mkJSONClient func(*model.Client) *api.InClient,
+) {
+	oldClient, getErr := getDBClient(r, db)
+	if handleError(w, logger, getErr) {
+		return
+	}
+
+	stopped, stopErr := services.Clients.Stop(r.Context(), oldClient)
+	if handleError(w, logger, stopErr) {
+		return
+	}
+
+	restClient := mkJSONClient(oldClient)
+	if err := readJSON(r, restClient); handleError(w, logger, err) {
+		return
+	}
+
+	dbClient, convErr := ClientRESTToDB(restClient)
+	if handleError(w, logger, convErr) {
+		return
+	}
+
+	dbClient.ID = oldClient.ID
+
+	if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
+		return
+	}
+
+	if stopped {
+		if _, err := services.Clients.Start(dbClient); handleError(w, logger, err) {
+			return
+		}
+	}
+
+	w.Header().Set("Location", locationUpdate(r.URL, dbClient.Name))
+	w.WriteHeader(http.StatusCreated)
+}
+
 func updateClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDBClient, oldService, getErr := getClientService(r, db)
-		if handleError(w, logger, getErr) {
-			return
-		}
-
-		restClient := &api.InClient{
-			Name:                 asNullable(oldDBClient.Name),
-			Protocol:             asNullable(oldDBClient.Protocol),
-			LocalAddress:         asNullable(oldDBClient.LocalAddress.String()),
-			ProtoConfig:          api.UpdateObject[any](oldDBClient.ProtoConfig),
-			Disabled:             asNullableBool(oldDBClient.Disabled),
-			NbOfAttempts:         asNullable(oldDBClient.NbOfAttempts),
-			FirstRetryDelay:      asNullable(oldDBClient.FirstRetryDelay),
-			RetryIncrementFactor: asNullable(oldDBClient.RetryIncrementFactor),
-		}
-		if err := readJSON(r, restClient); handleError(w, logger, err) {
-			return
-		}
-
-		dbClient, convErr := ClientRESTToDB(restClient)
-		if handleError(w, logger, convErr) {
-			return
-		}
-
-		dbClient.ID = oldDBClient.ID
-
-		newService, mkErr := makeClientService(db, dbClient)
-		if handleError(w, logger, mkErr) {
-			return
-		}
-
-		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
-			return
-		}
-
-		services.Clients.Remove(oldDBClient)
-		services.Clients.Add(dbClient, newService)
-
-		if state, _ := oldService.State(); state == utils.StateRunning {
-			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
-			defer cancel()
-
-			if err := oldService.Stop(ctx); handleError(w, logger, err) {
-				return
+		doUpdateClient(logger, db, w, r, func(dbClient *model.Client) *api.InClient {
+			return &api.InClient{
+				Name:                 asNullable(dbClient.Name),
+				Protocol:             asNullable(dbClient.Protocol),
+				Disabled:             asNullableBool(dbClient.Disabled),
+				LocalAddress:         asNullable(dbClient.LocalAddress.String()),
+				NbOfAttempts:         asNullable(dbClient.NbOfAttempts),
+				FirstRetryDelay:      asNullable(dbClient.FirstRetryDelay),
+				RetryIncrementFactor: asNullable(dbClient.RetryIncrementFactor),
+				ProtoConfig:          api.UpdateObject[any](dbClient.ProtoConfig),
 			}
-
-			if err := newService.Start(); handleError(w, logger, err) {
-				return
-			}
-		}
-
-		w.Header().Set("Location", location(r.URL, dbClient.Name))
-		w.WriteHeader(http.StatusCreated)
+		})
 	}
 }
 
 //nolint:dupl //duplicate is for a completely different type
 func replaceClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDBClient, oldService, getErr := getClientService(r, db)
-		if handleError(w, logger, getErr) {
-			return
-		}
-
-		restClient := api.InClient{}
-		if err := readJSON(r, &restClient); handleError(w, logger, err) {
-			return
-		}
-
-		dbClient, convErr := ClientRESTToDB(&restClient)
-		if handleError(w, logger, convErr) {
-			return
-		}
-
-		dbClient.ID = oldDBClient.ID
-
-		newService, mkErr := makeClientService(db, dbClient)
-		if handleError(w, logger, mkErr) {
-			return
-		}
-
-		if err := db.Update(dbClient).Run(); handleError(w, logger, err) {
-			return
-		}
-
-		services.Clients.Remove(oldDBClient)
-		services.Clients.Add(dbClient, newService)
-
-		if state, _ := oldService.State(); state == utils.StateRunning {
-			ctx, cancel := context.WithTimeout(r.Context(), serviceShutdownTimeout)
-			defer cancel()
-
-			if err := oldService.Stop(ctx); handleError(w, logger, err) {
-				return
-			}
-
-			if err := newService.Start(); handleError(w, logger, err) {
-				return
-			}
-		}
-
-		w.Header().Set("Location", location(r.URL, dbClient.Name))
-		w.WriteHeader(http.StatusCreated)
+		doUpdateClient(logger, db, w, r, func(*model.Client) *api.InClient {
+			return &api.InClient{}
+		})
 	}
-}
-
-func getClientService(r *http.Request, db *database.DB) (*model.Client, protocol.Client, error) {
-	dbClient, getErr := getDBClient(r, db)
-	if getErr != nil {
-		return nil, nil, getErr
-	}
-
-	client, ok := services.Clients.Load(dbClient)
-	if !ok {
-		return nil, nil, fmt.Errorf("%w %q", ErrServiceNotFound, dbClient.Name)
-	}
-
-	return dbClient, client, nil
-}
-
-func makeClientService(db *database.DB, dbClient *model.Client) (services.Client, error) {
-	//nolint:wrapcheck //wrapping adds nothing here
-	return protocols.MakeClient(db, dbClient)
 }
 
 //nolint:dupl //duplicate is for servers, best keep separate
@@ -322,24 +257,7 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		client, ok := services.Clients.Load(dbClient)
-		if !ok {
-			var err error
-			if client, err = makeClientService(db, dbClient); handleError(w, logger, err) {
-				return
-			}
-
-			services.Clients.Add(dbClient, client)
-		}
-
-		if code, _ := client.State(); code == utils.StateRunning {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Cannot start client %q, it is already running.", dbClient.Name)
-
-			return
-		}
-
-		if err := client.Start(); handleError(w, logger, err) {
+		if _, err := services.Clients.Stop(r.Context(), dbClient); handleError(w, logger, err) {
 			return
 		}
 
@@ -347,30 +265,18 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl //duplicate is for servers, best keep separate
 func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return restartClient(logger, db)
+}
+
+func restartClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbClient, getErr := getDBClient(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if err := services.Clients.Stop(r.Context(), dbClient, false); handleError(w, logger, err) {
-			return
-		}
-
-		w.WriteHeader(http.StatusAccepted)
-	}
-}
-
-func restartClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		dbClient, client, getErr := getClientService(r, db)
-		if handleError(w, logger, getErr) {
-			return
-		}
-
-		if err := services.Clients.Restart(r.Context(), dbClient, client); handleError(w, logger, err) {
+		if err := services.Clients.Restart(r.Context(), dbClient); handleError(w, logger, err) {
 			return
 		}
 

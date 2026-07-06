@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"slices"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -29,6 +31,7 @@ func init() {
 	Protocols[testProtocol] = dummyProtocol{}
 	Protocols[testProtocolInvalid] = dummyProtocol{err: errInvalidProtoConfig}
 	Protocols[protoR66] = dummyProtocol{}
+	features.Register(testProtocol, slices.Collect(features.AllFeatures())...)
 
 	authentication.AddInternalCredentialType(testInternalAuth, &intAuth{})
 	authentication.AddExternalCredentialType(testExternalAuth, &extAuth{})

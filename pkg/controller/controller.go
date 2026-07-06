@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -42,9 +41,9 @@ func (c *Controller) listen() error {
 	c.done = make(chan struct{})
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 
-	if conf.GlobalConfig.NodeID == "" {
+	if c.DB.Config.NodeID == "" {
 		if err := c.DB.Exec("UPDATE transfers SET status=? WHERE owner=? AND status=?",
-			types.StatusInterrupted, conf.GlobalConfig.GatewayName, types.StatusRunning,
+			types.StatusInterrupted, c.DB.Config.GatewayName, types.StatusRunning,
 		); err != nil {
 			c.logger.Errorf("Failed to access database: %v", err)
 
@@ -72,12 +71,12 @@ func (c *Controller) listen() error {
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
 	if c.state.IsRunning() {
-		return utils.ErrAlreadyRunning
+		return nil
 	}
 
 	c.logger = logging.NewLogger(ServiceName)
 
-	config := &conf.GlobalConfig.Controller
+	config := c.DB.Config.Controller
 	pipeline.List.SetLimits(config.MaxTransfersIn, config.MaxTransfersOut)
 	c.ticker = time.NewTicker(config.Delay)
 

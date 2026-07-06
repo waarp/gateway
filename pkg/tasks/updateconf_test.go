@@ -32,7 +32,7 @@ func TestUpdateConf(t *testing.T) {
 		fwContent = `{"foo":"bar"}`
 		grContent = "hello world"
 	)
-	setupUpdateConfZip(t, root, zipName, fwContent, grContent)
+	setupUpdateConfZip(t, db.Config, root, zipName, fwContent, grContent)
 
 	// Setup task
 	task := &updateconfTask{}
@@ -60,7 +60,9 @@ func TestUpdateConf(t *testing.T) {
 	assert.Equal(t, grContent, string(cont))
 }
 
-func setupUpdateConfZip(tb testing.TB, root *os.Root, archName, fwContent, grContent string) {
+func setupUpdateConfZip(tb testing.TB, config *conf.ServerConfig, root *os.Root,
+	archName, fwContent, grContent string,
+) {
 	tb.Helper()
 
 	confJson := getConfJson(tb)
@@ -74,7 +76,7 @@ func setupUpdateConfZip(tb testing.TB, root *os.Root, archName, fwContent, grCon
 	defer func() { require.NoError(tb, arch.Close()) }()
 
 	// Add config file
-	confFilename := conf.GlobalConfig.GatewayName + ".json"
+	confFilename := config.GatewayName + ".json"
 	writeToZip(tb, arch, confFilename, []byte(confJson))
 
 	// Add filewatcher file

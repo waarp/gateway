@@ -16,13 +16,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const ruleURI = "http://remotehost:8080/api/rules/"
 
 func TestCreateRule(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the rule creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_rule_create_logger")
 		db := database.TestDatabase(c)
@@ -81,7 +82,7 @@ func TestCreateRule(t *testing.T) {
 							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
 							So(rules[1], ShouldResemble, &model.Rule{
-								ID:             2,
+								Identifier:     model.ID(2),
 								Name:           "new_name",
 								Comment:        "new comment",
 								IsSend:         false,
@@ -123,6 +124,8 @@ func TestCreateRule(t *testing.T) {
 }
 
 func TestGetRule(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the rule get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_rule_get_test")
 		db := database.TestDatabase(c)
@@ -301,31 +304,31 @@ func TestGetRule(t *testing.T) {
 				Convey("Given some authorizations on those agents", func() {
 					authServ1 := &model.RuleAccess{
 						RuleID:       send.ID,
-						LocalAgentID: utils.NewNullInt64(serv1.ID),
+						LocalAgentID: serv1.NullableID(),
 					}
 					authServ1Acc1 := &model.RuleAccess{
 						RuleID:         send.ID,
-						LocalAccountID: utils.NewNullInt64(serv1acc1.ID),
+						LocalAccountID: serv1acc1.NullableID(),
 					}
 					authServ1Acc2 := &model.RuleAccess{
 						RuleID:         send.ID,
-						LocalAccountID: utils.NewNullInt64(serv1acc2.ID),
+						LocalAccountID: serv1acc2.NullableID(),
 					}
 					authServ2Acc1 := &model.RuleAccess{
 						RuleID:         send.ID,
-						LocalAccountID: utils.NewNullInt64(serv2acc1.ID),
+						LocalAccountID: serv2acc1.NullableID(),
 					}
 					authPart1 := &model.RuleAccess{
 						RuleID:        send.ID,
-						RemoteAgentID: utils.NewNullInt64(part1.ID),
+						RemoteAgentID: part1.NullableID(),
 					}
 					authPart1Acc1 := &model.RuleAccess{
 						RuleID:          send.ID,
-						RemoteAccountID: utils.NewNullInt64(part1acc1.ID),
+						RemoteAccountID: part1acc1.NullableID(),
 					}
 					authPart2Acc1 := &model.RuleAccess{
 						RuleID:          send.ID,
-						RemoteAccountID: utils.NewNullInt64(part2acc1.ID),
+						RemoteAccountID: part2acc1.NullableID(),
 					}
 
 					So(db.Insert(authServ1).Run(), ShouldBeNil)
@@ -370,6 +373,8 @@ func TestGetRule(t *testing.T) {
 }
 
 func TestListRules(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer list handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_rules_list_test")
 		db := database.TestDatabase(c)
@@ -428,6 +433,8 @@ func TestListRules(t *testing.T) {
 }
 
 func TestDeleteRule(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the rules deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_rule_delete_test")
 		db := database.TestDatabase(c)
@@ -493,6 +500,8 @@ func TestDeleteRule(t *testing.T) {
 }
 
 func TestUpdateRule(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the rule updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_rule_update_logger")
 		db := database.TestDatabase(c)
@@ -592,7 +601,7 @@ func TestUpdateRule(t *testing.T) {
 							So(db.Select(&results).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 3)
 							So(results[0], ShouldResemble, &model.Rule{
-								ID:             old.ID,
+								Identifier:     old.Identifier,
 								Name:           "update_name",
 								Path:           old.Path,
 								LocalDir:       "",
@@ -741,7 +750,7 @@ func doUpdate(handler http.HandlerFunc, old *model.Rule, update *InRule) (*http.
 
 func getExpected(src *model.Rule, upt *InRule) *model.Rule {
 	res := &model.Rule{
-		ID:             src.ID,
+		Identifier:     src.Identifier,
 		Name:           src.Name,
 		Comment:        src.Comment,
 		IsSend:         src.IsSend,
@@ -780,6 +789,8 @@ func getExpected(src *model.Rule, upt *InRule) *model.Rule {
 }
 
 func TestReplaceRule(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the rule updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_rule_replace")
 		db := database.TestDatabase(c)
@@ -848,10 +859,10 @@ func TestReplaceRule(t *testing.T) {
 							So(db.Select(&results).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 1)
 							So(results[0], ShouldResemble, &model.Rule{
-								ID:     old.ID,
-								Name:   "update_name",
-								Path:   "update/path",
-								IsSend: false,
+								Identifier: old.Identifier,
+								Name:       "update_name",
+								Path:       "update/path",
+								IsSend:     false,
 							})
 
 							Convey("Then the tasks should have been changed", func() {

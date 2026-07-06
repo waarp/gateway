@@ -19,7 +19,7 @@ func retrieveDBCryptoKey(r *http.Request, db database.ReadAccess) (*model.Crypto
 	}
 
 	var dbKey model.CryptoKey
-	if err := db.Get(&dbKey, "name=?", keyName).Owner().Run(); database.IsNotFound(err) {
+	if err := db.Get(&dbKey, "name=?", keyName).Run(); database.IsNotFound(err) {
 		return nil, notFoundf("Cryptographic key %q not found", keyName)
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to retrieve PGP key from database: %w", err)
@@ -32,7 +32,7 @@ func dbCryptoKeyToREST(dbKey *model.CryptoKey) *api.GetCryptoKeyRespObject {
 	return &api.GetCryptoKeyRespObject{
 		Name: dbKey.Name,
 		Type: dbKey.Type,
-		Key:  dbKey.Key.String(),
+		Key:  dbKey.Key,
 	}
 }
 
@@ -55,7 +55,7 @@ func addCryptoKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		dbKey := &model.CryptoKey{
 			Name: restKey.Name,
 			Type: restKey.Type,
-			Key:  database.SecretText(restKey.Key),
+			Key:  restKey.Key,
 		}
 		if err := db.Insert(dbKey).Run(); handleError(w, logger, err) {
 			return
@@ -66,7 +66,7 @@ func addCryptoKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl //duplicate is for a different type, keep separate
+//nolint:dupl,goconst //duplicate is for a different type, keep separate
 func listCryptoKeys(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{"name", true},
@@ -84,7 +84,7 @@ func listCryptoKeys(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Owner().Run(); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -121,7 +121,7 @@ func updateCryptoKey(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		setIfValid(&dbKey.Name, restKey.Name)
 		setIfValid(&dbKey.Type, restKey.Type)
-		setIfValidSecret(&dbKey.Key, restKey.Key)
+		setIfValid(&dbKey.Key, restKey.Key)
 
 		if err := db.Update(dbKey).Run(); handleError(w, logger, err) {
 			return

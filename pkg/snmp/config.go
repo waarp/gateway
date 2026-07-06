@@ -7,8 +7,8 @@ import (
 
 	"github.com/gosnmp/gosnmp"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 const (
@@ -42,18 +42,18 @@ const (
 )
 
 type ServerConfig struct {
-	ID    int64  `xorm:"<- id AUTOINCR"`
-	Owner string `xorm:"owner"`
+	model.Identifier
+	Owner string `gorm:"column:owner"`
 
-	LocalUDPAddress string `xorm:"local_udp_address"`
-	Community       string `xorm:"community"`
+	LocalUDPAddress string `gorm:"column:local_udp_address"`
+	Community       string `gorm:"column:community"`
 
-	SNMPv3Only           bool                `xorm:"v3_only"`
-	SNMPv3Username       string              `xorm:"v3_username"`
-	SNMPv3AuthProtocol   string              `xorm:"v3_auth_protocol"`
-	SNMPv3AuthPassphrase database.SecretText `xorm:"v3_auth_passphrase"`
-	SNMPv3PrivProtocol   string              `xorm:"v3_priv_protocol"`
-	SNMPv3PrivPassphrase database.SecretText `xorm:"v3_priv_passphrase"`
+	SNMPv3Only           bool   `gorm:"column:v3_only"`
+	SNMPv3Username       string `gorm:"column:v3_username"`
+	SNMPv3AuthProtocol   string `gorm:"column:v3_auth_protocol"`
+	SNMPv3AuthPassphrase string `gorm:"column:v3_auth_passphrase;serializer:secret"`
+	SNMPv3PrivProtocol   string `gorm:"column:v3_priv_protocol"`
+	SNMPv3PrivPassphrase string `gorm:"column:v3_priv_passphrase;serializer:secret"`
 }
 
 func (*ServerConfig) TableName() string   { return "snmp_server_conf" }
@@ -61,8 +61,6 @@ func (*ServerConfig) Appellation() string { return "SNMP server config" }
 func (s *ServerConfig) GetID() int64      { return s.ID }
 
 func (s *ServerConfig) BeforeWrite(db database.Access) error {
-	s.Owner = conf.GlobalConfig.GatewayName
-
 	if s.Community == "" {
 		s.Community = "public"
 	}
@@ -93,27 +91,27 @@ func (s *ServerConfig) BeforeWrite(db database.Access) error {
 }
 
 type MonitorConfig struct {
-	ID    int64  `xorm:"<- id AUTOINCR"`
-	Name  string `xorm:"name"`
-	Owner string `xorm:"owner"`
+	model.Identifier
+	Name  string `gorm:"column:name"`
+	Owner string `gorm:"column:owner"`
 
-	Version    string `xorm:"snmp_version"`
-	UDPAddress string `xorm:"udp_address"`
-	Community  string `xorm:"community"`
-	UseInforms bool   `xorm:"use_informs"`
+	Version    string `gorm:"column:snmp_version"`
+	UDPAddress string `gorm:"column:udp_address"`
+	Community  string `gorm:"column:community"`
+	UseInforms bool   `gorm:"column:use_informs"`
 
 	// SNMPv3 settings
-	ContextName     string `xorm:"snmp_v3_context_name"`
-	ContextEngineID string `xorm:"snmp_v3_context_engine_id"`
-	SNMPv3Security  string `xorm:"snmp_v3_security"`
+	ContextName     string `gorm:"column:snmp_v3_context_name"`
+	ContextEngineID string `gorm:"column:snmp_v3_context_engine_id"`
+	SNMPv3Security  string `gorm:"column:snmp_v3_security"`
 
-	AuthEngineID   string              `xorm:"snmp_v3_auth_engine_id"`
-	AuthUsername   string              `xorm:"snmp_v3_auth_username"`
-	AuthProtocol   string              `xorm:"snmp_v3_auth_protocol"`
-	AuthPassphrase database.SecretText `xorm:"snmp_v3_auth_passphrase"`
+	AuthEngineID   string `gorm:"column:snmp_v3_auth_engine_id"`
+	AuthUsername   string `gorm:"column:snmp_v3_auth_username"`
+	AuthProtocol   string `gorm:"column:snmp_v3_auth_protocol"`
+	AuthPassphrase string `gorm:"column:snmp_v3_auth_passphrase;serializer:secret"`
 
-	PrivProtocol   string              `xorm:"snmp_v3_priv_protocol"`
-	PrivPassphrase database.SecretText `xorm:"snmp_v3_priv_passphrase"`
+	PrivProtocol   string `gorm:"column:snmp_v3_priv_protocol"`
+	PrivPassphrase string `gorm:"column:snmp_v3_priv_passphrase;serializer:secret"`
 }
 
 func (m *MonitorConfig) GetID() int64      { return m.ID }
@@ -121,8 +119,6 @@ func (*MonitorConfig) TableName() string   { return "snmp_monitors" }
 func (*MonitorConfig) Appellation() string { return "SNMP monitor" }
 
 func (m *MonitorConfig) BeforeWrite(db database.Access) error {
-	m.Owner = conf.GlobalConfig.GatewayName
-
 	if m.Name == "" {
 		return database.NewValidationError("missing SNMP monitor name")
 	}

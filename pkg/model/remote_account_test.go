@@ -7,10 +7,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestRemoteAccountTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a `RemoteAccount` instance", t, func() {
 		agent := &RemoteAccount{}
 
@@ -25,6 +26,8 @@ func TestRemoteAccountTableName(t *testing.T) {
 }
 
 func TestRemoteAccountBeforeDelete(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -39,7 +42,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			accAuth := Credential{
-				RemoteAccountID: utils.NewNullInt64(acc.ID),
+				RemoteAccountID: acc.NullableID(),
 				Name:            "test cert",
 				Type:            testExternalAuth,
 				Value:           "val",
@@ -49,7 +52,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := RuleAccess{RuleID: rule.ID, RemoteAccountID: utils.NewNullInt64(acc.ID)}
+			access := RuleAccess{RuleID: rule.ID, RemoteAccountID: acc.NullableID()}
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
@@ -86,8 +89,8 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 
 				trans := Transfer{
 					RuleID:          rule.ID,
-					ClientID:        utils.NewNullInt64(cli.ID),
-					RemoteAccountID: utils.NewNullInt64(acc.ID),
+					ClientID:        cli.NullableID(),
+					RemoteAccountID: acc.NullableID(),
 					SrcFilename:     "file",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
@@ -108,6 +111,8 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 }
 
 func TestRemoteAccountBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 

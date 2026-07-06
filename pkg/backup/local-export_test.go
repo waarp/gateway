@@ -3,21 +3,21 @@ package backup
 import (
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestExportLocalAgents(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
-		owner := conf.GlobalConfig.GatewayName
 
 		Convey("Given the database contains locals agents with accounts", func() {
 			agent1 := &model.LocalAgent{
@@ -26,25 +26,21 @@ func TestExportLocalAgents(t *testing.T) {
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
-			// Change owner for this insert
-			conf.GlobalConfig.GatewayName = "unknown"
-
-			So(db.Insert(&model.LocalAgent{
+			other := &model.LocalAgent{
 				Name: "foo", Protocol: testProtocol,
 				Address: types.Addr("localhost", 2022),
-			}).Run(), ShouldBeNil)
-			// Revert database owner
-			conf.GlobalConfig.GatewayName = owner
+			}
+			So(dbtest.InsertAsOwner(db, "unknown", other), ShouldBeNil)
 
 			account1a := &model.LocalAccount{
-				LocalAgentID: agent1.ID,
+				LocalAgentID: agent1.GetID(),
 				Login:        "acc1a",
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
 
 			cert := &model.Credential{
 				Name:         "test_cert",
-				LocalAgentID: utils.NewNullInt64(agent1.ID),
+				LocalAgentID: agent1.NullableID(),
 				Type:         auth.TLSCertificate,
 				Value:        testhelpers.LocalhostCert,
 				Value2:       testhelpers.LocalhostKey,
@@ -118,6 +114,8 @@ func TestExportLocalAgents(t *testing.T) {
 }
 
 func TestExportLocalAccounts(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -136,7 +134,7 @@ func TestExportLocalAccounts(t *testing.T) {
 
 			pswd := &model.Credential{
 				Name:           "test_cert",
-				LocalAccountID: utils.NewNullInt64(account1.ID),
+				LocalAccountID: account1.NullableID(),
 				Type:           auth.Password,
 				Value:          "foobar",
 			}
@@ -150,7 +148,7 @@ func TestExportLocalAccounts(t *testing.T) {
 
 			cert := &model.Credential{
 				Name:           "test_cert",
-				LocalAccountID: utils.NewNullInt64(account2.ID),
+				LocalAccountID: account2.NullableID(),
 				Type:           auth.TLSTrustedCertificate,
 				Value:          testhelpers.ClientFooCert,
 			}

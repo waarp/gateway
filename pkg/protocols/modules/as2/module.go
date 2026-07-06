@@ -5,6 +5,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
@@ -39,6 +40,10 @@ func (m Module) CheckClientConfig(conf map[string]any) error {
 
 func (m Module) CheckPartnerConfig(conf map[string]any) error {
 	return protoutils.ValidateProtoConfig(conf, &partnerProtoConfig{})
+}
+
+func (m Module) OptionalFeatures() []features.Feature {
+	return []features.Feature{}
 }
 
 func (m Module) NewServer(db *database.DB, server *model.LocalAgent) protocol.Server {

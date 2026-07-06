@@ -5,14 +5,13 @@ package r66
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 
 	"code.waarp.fr/lib/r66"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -26,131 +25,107 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
-var errNoCertificates = errors.New("the R66-TLS server is missing a certificate")
+var errNoPassword = errors.New("the R66-TLS server is missing a password")
 
 // service represents a r66 service, which encompasses a r66 server usable for
 // transfers.
 type service struct {
-	db    *database.DB
-	agent *model.LocalAgent
+	db      *database.DB
+	dbAgent *model.LocalAgent
 
 	logger *log.Logger
 	state  utils.State
 	tracer func() pipeline.Trace
 
-	r66Conf *tlsServerConfig
+	r66Conf *ServerConfigTLS
 	list    net.Listener
 	server  *r66.Server
 }
 
-func (s *service) Name() string { return s.agent.Name }
+func (s *service) Name() string { return s.dbAgent.Name }
 
-func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
-	tlsConfig := &tls.Config{
-		MinVersion:       s.r66Conf.MinTLSVersion.TLS(),
-		ClientAuth:       tls.RequestClientCert,
-		VerifyConnection: compatibility.LogSha1(s.logger),
+func (s *service) reportError(err error) {
+	if err == nil {
+		return
 	}
 
-	if compatibility.IsLegacyR66CertificateAllowed {
-		tlsConfig.InsecureSkipVerify = true
-		tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
-			if len(rawCerts) == 0 {
-				return nil
+	s.logger.Error(err.Error())
+	s.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(s.dbAgent.Name, err)
+}
+
+func (s *service) makeTLSConf() *tls.Config {
+	standardConfig := protoutils.GetServerTLSConfig(s.db, s.logger, s.dbAgent.ID)
+
+	return &tls.Config{
+		GetConfigForClient: func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+			if !compatibility.IsLegacyR66CertificateAllowed {
+				return standardConfig.GetConfigForClient(chi)
 			}
 
-			chain, parsErr := auth.ParseRawCertChain(rawCerts)
-			if parsErr != nil {
-				return fmt.Errorf("failed to parse the certification chain: %w", parsErr)
+			legacyConfig := &tls.Config{
+				MinVersion:   protoutils.GetMinTLSVersion(s.dbAgent.ProtoConfig),
+				Certificates: []tls.Certificate{compatibility.LegacyR66Cert},
+				ClientAuth:   tls.RequestClientCert,
 			}
 
-			if !compatibility.IsLegacyR66Cert(chain[0]) {
-				return auth.VerifyClientCert(s.db, s.logger, s.agent)(rawCerts, nil)
+			if !r66auth.UsesLegacyCert(s.db, s.dbAgent) {
+				var err error
+				if legacyConfig.Certificates, err = protoutils.GetServerCertificates(
+					s.db, s.logger, s.dbAgent); err != nil {
+					return nil, err
+				}
 			}
 
-			return nil
-		}
-	} else {
-		tlsConfig.VerifyPeerCertificate = auth.VerifyClientCert(s.db, s.logger, s.agent)
+			return legacyConfig, nil
+		},
 	}
-
-	if r66auth.UsesLegacyCert(s.db, s.agent) {
-		tlsConfig.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
-	} else {
-		certs, dbErr := s.agent.GetCredentials(s.db, auth.TLSCertificate)
-		if dbErr != nil {
-			return nil, fmt.Errorf("failed to retrieve the server's certificates: %w", dbErr)
-		}
-
-		if len(certs) == 0 {
-			return nil, errNoCertificates
-		}
-
-		tlsConfig.Certificates = make([]tls.Certificate, len(certs))
-
-		for i, cert := range certs {
-			var parseErr error
-			tlsConfig.Certificates[i], parseErr = utils.X509KeyPair(cert.Value, cert.Value2)
-
-			if parseErr != nil {
-				return nil, fmt.Errorf("failed to parse certificate %s: %w", certs[i].Name, parseErr)
-			}
-		}
-	}
-
-	return tlsConfig, nil
 }
 
 // Start launches a r66 service with an integrated r66 server.
-func (s *service) Start() error {
+func (s *service) Start() (retErr error) {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
-	if err := s.start(); err != nil {
-		s.logger.Errorf("Failed to start R66 service: %v", err)
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
+	s.logger = logging.NewLogger(s.dbAgent.Name)
+	defer s.reportError(retErr)
 
+	if err := s.db.Get(s.dbAgent, "id=?", s.dbAgent.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the R66 server: %w", err)
+	}
+
+	s.logger = logging.NewLogger(s.dbAgent.Name)
+	s.logger.Info("Starting R66 server...")
+
+	if err := s.start(); err != nil {
 		return err
 	}
 
+	s.logger.Infof("R66 server started successfully on %q", s.list.Addr().String())
 	s.state.Set(utils.StateRunning, "")
 
 	return nil
 }
 
 func (s *service) start() error {
-	s.logger = logging.NewLogger(s.agent.Name)
-	s.logger.Info("Starting R66 server...")
-
-	setLogAndReturnError := func(msg string, args ...any) error {
-		//nolint:err113 //dynamic error is better here for readability
-		err := fmt.Errorf(msg, args...)
-		s.logger.Error(err.Error())
-		s.state.Set(utils.StateError, err.Error())
-
-		return err
-	}
-
-	s.r66Conf = &tlsServerConfig{}
-	if err := utils.JSONConvert(s.agent.ProtoConfig, s.r66Conf); err != nil {
-		return setLogAndReturnError("Failed to parse the R66 proto config: %v", err)
+	if err := utils.JSONConvert(s.dbAgent.ProtoConfig, &s.r66Conf); err != nil {
+		return fmt.Errorf("failed to parse the R66 proto config: %w", err)
 	}
 
 	var pswd model.Credential
-	if err := s.db.Get(&pswd, "type=?", auth.Password).And(s.agent.GetCredCond()).
+	if err := s.db.Get(&pswd, "type=?", auth.Password).And(s.dbAgent.GetCredCond()).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
-			return setLogAndReturnError("The R66 server is missing a password")
+			return errNoPassword
 		}
 
-		return setLogAndReturnError("Failed to retrieve the R66 server's password: %w", err)
+		return fmt.Errorf("failed to retrieve the R66 server's password: %w", err)
 	}
 
 	login := s.r66Conf.ServerLogin
 	if login == "" {
-		login = s.agent.Name
+		login = s.dbAgent.Name
 	}
 
 	s.server = &r66.Server{
@@ -166,33 +141,20 @@ func (s *service) start() error {
 		Handler: &authHandler{service: s},
 	}
 
-	if err := s.listen(); err != nil {
-		return err
-	}
-
-	s.state.Set(utils.StateRunning, "")
-	s.logger.Infof("R66 server started successfully on %q", s.list.Addr().String())
-
-	return nil
+	return s.listen()
 }
 
 func (s *service) listen() error {
-	addr := conf.GetRealAddress(s.agent.Address.Host,
-		utils.FormatUint(s.agent.Address.Port))
+	addr := s.db.Config.Overrides.GetRealAddress(s.dbAgent.Address.Host,
+		utils.FormatUint(s.dbAgent.Address.Port))
 
-	list, listErr := net.Listen("tcp", addr)
-	if listErr != nil {
-		s.logger.Errorf("Failed to start R66 listener: %v", listErr)
-
+	var listErr error
+	if s.list, listErr = protoutils.Listen("tcp", addr); listErr != nil {
 		return fmt.Errorf("failed to start R66 listener: %w", listErr)
 	}
 
-	s.list = &protoutils.TraceListener{Listener: list}
-
-	if s.agent.Protocol == R66TLS {
-		s.list = tls.NewListener(s.list, &tls.Config{
-			GetConfigForClient: s.makeTLSConf,
-		})
+	if s.dbAgent.Protocol == R66TLS {
+		s.list = tls.NewListener(s.list, s.makeTLSConf())
 	}
 
 	go func() {
@@ -206,45 +168,38 @@ func (s *service) listen() error {
 }
 
 // Stop shuts down the r66 server and stops the service.
-func (s *service) Stop(ctx context.Context) error {
+func (s *service) Stop(ctx context.Context) (retErr error) {
 	if !s.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
-	if err := s.stop(ctx); err != nil {
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
+	s.logger.Info("Shutting down R66 server")
+	defer s.reportError(retErr)
 
+	if err := s.stop(ctx); err != nil {
 		return err
 	}
 
+	s.logger.Info("R66 server shutdown successful")
 	s.state.Set(utils.StateOffline, "")
 
 	return nil
 }
 
 func (s *service) stop(ctx context.Context) error {
-	s.logger.Info("Shutting down R66 server")
+	wg := sync.WaitGroup{}
+	wg.Go(func() {
+		s.logger.Debug("Closing listener...")
+		if err := s.server.Shutdown(ctx); err != nil {
+			s.logger.Warningf("Failed to close R66 listener: %v", err)
+		}
+	})
 
-	var stopErr error
-
-	if err := pipeline.List.StopAllFromServer(ctx, s.agent.ID); err != nil {
-		s.logger.Error("Failed to interrupt R66 transfers, forcing exit")
-
-		stopErr = fmt.Errorf("failed to interrupt R66 transfers: %w", err)
+	if err := pipeline.List.StopAllFromServer(ctx, s.dbAgent.ID); err != nil {
+		return fmt.Errorf("failed to interrupt R66 transfers: %w", err)
 	}
 
-	s.logger.Debug("Closing listener...")
-
-	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Warningf("Failed to properly shutdown R66 server: %v", err)
-	}
-
-	if stopErr != nil {
-		return stopErr
-	}
-
-	s.logger.Info("R66 server shutdown successful")
+	wg.Wait()
 
 	return nil
 }

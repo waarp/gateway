@@ -31,8 +31,8 @@ type TLSCertHandler struct{}
 
 func (TLSCertHandler) CanOnlyHaveOne() bool { return false }
 
-func (TLSCertHandler) ToDB(cert, plainPk string) (certificate, encryptedPk string, err error) {
-	encryptedPk, err = utils.AESCrypt(database.GCM, plainPk)
+func (TLSCertHandler) ToDB(db database.Access, cert, plainPk string) (certificate, encryptedPk string, err error) {
+	encryptedPk, err = db.Encrypt(plainPk)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to encrypt the private key: %w", err)
 	}
@@ -40,8 +40,9 @@ func (TLSCertHandler) ToDB(cert, plainPk string) (certificate, encryptedPk strin
 	return cert, encryptedPk, nil
 }
 
-func (TLSCertHandler) FromDB(cert, encryptedPk string) (certificate, plainPk string, err error) {
-	plainPk, err = utils.AESDecrypt(database.GCM, encryptedPk)
+func (TLSCertHandler) FromDB(db database.ReadAccess, cert, encryptedPk string,
+) (certificate, plainPk string, err error) {
+	plainPk, err = db.Decrypt(encryptedPk)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decrypt the private key: %w", err)
 	}
@@ -308,7 +309,7 @@ func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.
 			return errors.New("failed to retrieve user credentials")
 		}
 
-		if res, err := acc.Authenticate(db, server, TLSTrustedCertificate, certs); err != nil {
+		if res, err := acc.Authenticate(db, TLSTrustedCertificate, certs); err != nil {
 			logger.Errorf("Failed to authenticate client certificate: %v", err)
 
 			return errors.New("internal authentication error")

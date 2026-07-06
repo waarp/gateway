@@ -19,6 +19,8 @@ import (
 )
 
 func TestAddRemoveCred(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with agents & accounts in it", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_add-del_auth")
 		db := database.TestDatabase(c)
@@ -71,8 +73,8 @@ func TestAddRemoveCred(t *testing.T) {
 				var agAuth model.Credential
 				So(db.Get(&agAuth, "local_agent_id=?", server.ID).Run(), ShouldBeNil)
 				So(agAuth, ShouldResemble, model.Credential{
-					ID:           1,
-					LocalAgentID: utils.NewNullInt64(server.ID),
+					Identifier:   model.ID(1),
+					LocalAgentID: server.NullableID(),
 					Name:         credName,
 					Type:         credType,
 					Value:        credVal,
@@ -243,7 +245,7 @@ func TestAddRemoveCred(t *testing.T) {
 				So(accAuth.Name, ShouldEqual, credName)
 				So(accAuth.Type, ShouldEqual, credType)
 
-				authRes, authErr := locAcc.Authenticate(db, server, credType, credVal)
+				authRes, authErr := locAcc.Authenticate(db, credType, credVal)
 				So(authErr, ShouldBeNil)
 				So(authRes.Success, ShouldBeTrue)
 
@@ -329,9 +331,9 @@ func TestAddRemoveCred(t *testing.T) {
 				var accAuth model.Credential
 				So(db.Get(&accAuth, "remote_account_id=?", remAcc.ID).Run(), ShouldBeNil)
 				So(accAuth, ShouldResemble, model.Credential{
-					ID:              1,
+					Identifier:      model.ID(1),
 					Name:            credName,
-					RemoteAccountID: utils.NewNullInt64(remAcc.ID),
+					RemoteAccountID: remAcc.NullableID(),
 					Type:            credType,
 					Value:           credVal,
 				})

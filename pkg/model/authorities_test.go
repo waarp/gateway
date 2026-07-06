@@ -10,6 +10,8 @@ import (
 )
 
 func TestAuthorityBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with 1 existing authority", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -90,6 +92,8 @@ func TestAuthorityBeforeWrite(t *testing.T) {
 }
 
 func TestAuthorityAfterUpdate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with 2 existing authorities", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -135,6 +139,8 @@ func TestAuthorityAfterUpdate(t *testing.T) {
 }
 
 func TestAuthorityAfterRead(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with 1 existing authority", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -155,12 +161,9 @@ func TestAuthorityAfterRead(t *testing.T) {
 		So(db.Insert(existing2).Run(), ShouldBeNil)
 
 		Convey("When calling the `AfterRead` hook", func() {
-			authority := &Authority{
-				ID:             existing2.ID,
-				Name:           existing2.Name,
-				Type:           existing2.Type,
-				PublicIdentity: existing2.PublicIdentity,
-			}
+			authority := &*existing2
+			authority.ValidHosts = nil
+
 			So(authority.AfterRead(db), ShouldBeNil)
 
 			Convey("Then it should have filled the valid hosts", func() {

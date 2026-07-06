@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -27,36 +28,44 @@ func newService(db *database.DB, serv *model.LocalAgent) *Service {
 
 func (s *Service) Name() string { return s.localAgent.Name }
 
-func (s *Service) Start() error {
+func (s *Service) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	s.logger.Error(err.Error())
+	s.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(s.localAgent.Name, err)
+}
+
+func (s *Service) Start() (retErr error) {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
-	s.logger.Info("Starting Pesit server...")
+	s.logger = logging.NewLogger(s.localAgent.Name)
+	defer s.reportError(retErr)
 
-	addr, err := s.start()
+	if err := s.db.Get(s.localAgent, "id=?", s.localAgent.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the PeSIT server: %w", err)
+	}
+
+	s.logger = logging.NewLogger(s.localAgent.Name)
+	s.logger.Info("Starting PeSIT server...")
+
+	if err := utils.JSONConvert(s.localAgent.ProtoConfig, &s.conf); err != nil {
+		return fmt.Errorf("failed to parse the pesit agent's proto config: %w", err)
+	}
+
+	addr, err := s.listen()
 	if err != nil {
-		s.logger.Errorf("Failed to start Pesit server: %v", err)
-		s.state.Set(utils.StateError, err.Error())
-
-		return err
+		return fmt.Errorf("failed to start the PeSIT server: %w", err)
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Infof("Pesit server started successfully on %s", addr)
+	s.logger.Infof("PeSIT server started successfully on %s", addr)
 
 	return nil
-}
-
-func (s *Service) start() (string, error) {
-	var conf ServerConfigTLS
-	if err := utils.JSONConvert(s.localAgent.ProtoConfig, &conf); err != nil {
-		return "", fmt.Errorf("failed to parse the pesit agent's proto config: %w", err)
-	}
-
-	s.conf = &conf
-
-	return s.listen()
 }
 
 func (s *Service) Stop(ctx context.Context) error {

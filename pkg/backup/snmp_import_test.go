@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
@@ -15,6 +14,8 @@ import (
 )
 
 func TestNewSNMPConfImport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 
@@ -23,7 +24,7 @@ func TestNewSNMPConfImport(t *testing.T) {
 		Community:       "com2",
 		SNMPv3Only:      false,
 	}
-	require.NoError(t, dbtest.ChangeOwner("other-gw", db.Insert(dbServer2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "other-gw", dbServer2))
 
 	dbMonitor1 := &snmp.MonitorConfig{
 		Name:       "mon1",
@@ -41,21 +42,21 @@ func TestNewSNMPConfImport(t *testing.T) {
 	}
 
 	require.NoError(t, db.Insert(dbMonitor1).Run())
-	require.NoError(t, dbtest.ChangeOwner("other-gw", db.Insert(dbMonitor2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "other-gw", dbMonitor2))
 
 	t.Run("Nil config", func(t *testing.T) {
 		require.NoError(t, importSNMPConfig(logger, db, nil, false))
 
 		t.Run("Existing servers are untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.ServerConfig]
-			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 1)
 			assert.Equal(t, check[0], dbServer2)
 		})
 
 		t.Run("Existing monitors are untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.MonitorConfig]
-			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbMonitor1)
 			assert.Equal(t, check[1], dbMonitor2)
@@ -67,14 +68,14 @@ func TestNewSNMPConfImport(t *testing.T) {
 
 		t.Run("Existing servers are untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.ServerConfig]
-			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 1)
 			assert.Equal(t, check[0], dbServer2)
 		})
 
 		t.Run("Existing monitors are untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.MonitorConfig]
-			require.NoError(t, db.Select(&check).OrderBy("id", true).Run())
+			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbMonitor1)
 			assert.Equal(t, check[1], dbMonitor2)
@@ -117,15 +118,15 @@ func TestNewSNMPConfImport(t *testing.T) {
 
 		t.Run("New server is imported", func(t *testing.T) {
 			var check snmp.ServerConfig
-			require.NoError(t, db.Get(&check, "owner=?", conf.GlobalConfig.GatewayName).Run())
+			require.NoError(t, db.Get(&check, "").Run())
 			assert.Equal(t, check.LocalUDPAddress, config.Server.LocalUDPAddress)
 			assert.Equal(t, check.Community, config.Server.Community)
 			assert.Equal(t, check.SNMPv3Only, config.Server.V3Only)
 			assert.Equal(t, check.SNMPv3Username, config.Server.V3Username)
 			assert.Equal(t, check.SNMPv3AuthProtocol, config.Server.V3AuthProtocol)
-			assert.Equal(t, check.SNMPv3AuthPassphrase.String(), config.Server.V3AuthPassphrase)
+			assert.Equal(t, check.SNMPv3AuthPassphrase, config.Server.V3AuthPassphrase)
 			assert.Equal(t, check.SNMPv3PrivProtocol, config.Server.V3PrivacyProtocol)
-			assert.Equal(t, check.SNMPv3PrivPassphrase.String(), config.Server.V3PrivacyPassphrase)
+			assert.Equal(t, check.SNMPv3PrivPassphrase, config.Server.V3PrivacyPassphrase)
 		})
 
 		t.Run("New monitor is imported", func(t *testing.T) {
@@ -142,22 +143,21 @@ func TestNewSNMPConfImport(t *testing.T) {
 			assert.Equal(t, check.AuthEngineID, config.Monitors[0].V3AuthEngineID)
 			assert.Equal(t, check.AuthUsername, config.Monitors[0].V3AuthUsername)
 			assert.Equal(t, check.AuthProtocol, config.Monitors[0].V3AuthProtocol)
-			assert.Equal(t, check.AuthPassphrase.String(), config.Monitors[0].V3AuthPassphrase)
+			assert.Equal(t, check.AuthPassphrase, config.Monitors[0].V3AuthPassphrase)
 			assert.Equal(t, check.PrivProtocol, config.Monitors[0].V3PrivacyProtocol)
-			assert.Equal(t, check.PrivPassphrase.String(), config.Monitors[0].V3PrivacyPassphrase)
+			assert.Equal(t, check.PrivPassphrase, config.Monitors[0].V3PrivacyPassphrase)
 		})
 
 		t.Run("Existing server is untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.ServerConfig]
-			require.NoError(t, db.Select(&check).Where("owner<>?",
-				conf.GlobalConfig.GatewayName).OrderBy("id", true).Run())
-			require.Len(t, check, 1)
+			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
+			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbServer2)
 		})
 
 		t.Run("Existing monitors are untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.MonitorConfig]
-			require.NoError(t, db.Select(&check).Where("name<>?", newMonitorName).
+			require.NoError(t, db.Select(&check).All().Where("name<>?", newMonitorName).
 				OrderBy("id", true).Run())
 			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbMonitor1)
@@ -201,15 +201,15 @@ func TestNewSNMPConfImport(t *testing.T) {
 
 		t.Run("New server is imported", func(t *testing.T) {
 			var check snmp.ServerConfig
-			require.NoError(t, db.Get(&check, "owner=?", conf.GlobalConfig.GatewayName).Run())
+			require.NoError(t, db.Get(&check, "").Run())
 			assert.Equal(t, check.LocalUDPAddress, config.Server.LocalUDPAddress)
 			assert.Equal(t, check.Community, config.Server.Community)
 			assert.Equal(t, check.SNMPv3Only, config.Server.V3Only)
 			assert.Equal(t, check.SNMPv3Username, config.Server.V3Username)
 			assert.Equal(t, check.SNMPv3AuthProtocol, config.Server.V3AuthProtocol)
-			assert.Equal(t, check.SNMPv3AuthPassphrase.String(), config.Server.V3AuthPassphrase)
+			assert.Equal(t, check.SNMPv3AuthPassphrase, config.Server.V3AuthPassphrase)
 			assert.Equal(t, check.SNMPv3PrivProtocol, config.Server.V3PrivacyProtocol)
-			assert.Equal(t, check.SNMPv3PrivPassphrase.String(), config.Server.V3PrivacyPassphrase)
+			assert.Equal(t, check.SNMPv3PrivPassphrase, config.Server.V3PrivacyPassphrase)
 		})
 
 		t.Run("New monitor is imported", func(t *testing.T) {
@@ -226,21 +226,23 @@ func TestNewSNMPConfImport(t *testing.T) {
 			assert.Equal(t, check.AuthEngineID, config.Monitors[0].V3AuthEngineID)
 			assert.Equal(t, check.AuthUsername, config.Monitors[0].V3AuthUsername)
 			assert.Equal(t, check.AuthProtocol, config.Monitors[0].V3AuthProtocol)
-			assert.Equal(t, check.AuthPassphrase.String(), config.Monitors[0].V3AuthPassphrase)
+			assert.Equal(t, check.AuthPassphrase, config.Monitors[0].V3AuthPassphrase)
 			assert.Equal(t, check.PrivProtocol, config.Monitors[0].V3PrivacyProtocol)
-			assert.Equal(t, check.PrivPassphrase.String(), config.Monitors[0].V3PrivacyPassphrase)
+			assert.Equal(t, check.PrivPassphrase, config.Monitors[0].V3PrivacyPassphrase)
 		})
 
 		t.Run("Existing monitors are gone", func(t *testing.T) {
 			var check model.Slice[*snmp.MonitorConfig]
 			require.NoError(t, db.Select(&check).Where("name<>?", newMonitorName).
-				Where("owner=?", conf.GlobalConfig.GatewayName).OrderBy("id", true).Run())
+				OrderBy("id", true).Run())
 			assert.Empty(t, check)
 		})
 	})
 }
 
 func TestExistingSNMPConfImport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 
@@ -256,7 +258,7 @@ func TestExistingSNMPConfImport(t *testing.T) {
 	}
 
 	require.NoError(t, db.Insert(dbServer1).Run())
-	require.NoError(t, dbtest.ChangeOwner("other-gw", db.Insert(dbServer2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "other-gw", dbServer2))
 
 	dbMonitor1 := &snmp.MonitorConfig{
 		Name:       "mon1",
@@ -274,7 +276,7 @@ func TestExistingSNMPConfImport(t *testing.T) {
 	}
 
 	require.NoError(t, db.Insert(dbMonitor1).Run())
-	require.NoError(t, dbtest.ChangeOwner("other-gw", db.Insert(dbMonitor2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "other-gw", dbMonitor2))
 
 	t.Run("No reset", func(t *testing.T) {
 		newMonitorName := dbMonitor1.Name
@@ -312,15 +314,15 @@ func TestExistingSNMPConfImport(t *testing.T) {
 
 		t.Run("Server is updated", func(t *testing.T) {
 			var check snmp.ServerConfig
-			require.NoError(t, db.Get(&check, "owner=?", conf.GlobalConfig.GatewayName).Run())
+			require.NoError(t, db.Get(&check, "").Run())
 			assert.Equal(t, check.LocalUDPAddress, config.Server.LocalUDPAddress)
 			assert.Equal(t, check.Community, config.Server.Community)
 			assert.Equal(t, check.SNMPv3Only, config.Server.V3Only)
 			assert.Equal(t, check.SNMPv3Username, config.Server.V3Username)
 			assert.Equal(t, check.SNMPv3AuthProtocol, config.Server.V3AuthProtocol)
-			assert.Equal(t, check.SNMPv3AuthPassphrase.String(), config.Server.V3AuthPassphrase)
+			assert.Equal(t, check.SNMPv3AuthPassphrase, config.Server.V3AuthPassphrase)
 			assert.Equal(t, check.SNMPv3PrivProtocol, config.Server.V3PrivacyProtocol)
-			assert.Equal(t, check.SNMPv3PrivPassphrase.String(), config.Server.V3PrivacyPassphrase)
+			assert.Equal(t, check.SNMPv3PrivPassphrase, config.Server.V3PrivacyPassphrase)
 		})
 
 		t.Run("New monitor is imported", func(t *testing.T) {
@@ -337,25 +339,9 @@ func TestExistingSNMPConfImport(t *testing.T) {
 			assert.Equal(t, check.AuthEngineID, config.Monitors[0].V3AuthEngineID)
 			assert.Equal(t, check.AuthUsername, config.Monitors[0].V3AuthUsername)
 			assert.Equal(t, check.AuthProtocol, config.Monitors[0].V3AuthProtocol)
-			assert.Equal(t, check.AuthPassphrase.String(), config.Monitors[0].V3AuthPassphrase)
+			assert.Equal(t, check.AuthPassphrase, config.Monitors[0].V3AuthPassphrase)
 			assert.Equal(t, check.PrivProtocol, config.Monitors[0].V3PrivacyProtocol)
-			assert.Equal(t, check.PrivPassphrase.String(), config.Monitors[0].V3PrivacyPassphrase)
-		})
-
-		t.Run("Other server is untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.ServerConfig]
-			require.NoError(t, db.Select(&check).Where("owner<>?",
-				conf.GlobalConfig.GatewayName).OrderBy("id", true).Run())
-			require.Len(t, check, 1)
-			assert.Equal(t, check[0], dbServer2)
-		})
-
-		t.Run("Other monitors are untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.MonitorConfig]
-			require.NoError(t, db.Select(&check).Where("name<>?", newMonitorName).
-				OrderBy("id", true).Run())
-			require.Len(t, check, 1)
-			assert.Equal(t, check[0], dbMonitor2)
+			assert.Equal(t, check.PrivPassphrase, config.Monitors[0].V3PrivacyPassphrase)
 		})
 	})
 }

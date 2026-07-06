@@ -2,8 +2,6 @@ package fs
 
 import (
 	fsop "github.com/rclone/rclone/fs/operations"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 func MoveFile(srcPath, dstPath string) error {
@@ -26,9 +24,7 @@ func MoveFile(srcPath, dstPath string) error {
 }
 
 func fastRename(srcFs FS, srcParsed, dstParsed *parsedPath) error {
-	mkdirPerms := FileMode(conf.GlobalConfig.Paths.DirPerms)
-
-	if err := srcFs.MkdirAll(dstParsed.dir().Path, mkdirPerms); err != nil {
+	if err := srcFs.MkdirAll(dstParsed.dir().Path, DirPerms); err != nil {
 		return pathError("mkdir", dstParsed.dir().String(), err)
 	}
 

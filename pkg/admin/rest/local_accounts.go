@@ -58,7 +58,7 @@ func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl // duplicated code is about a different type
+//nolint:dupl,goconst // duplicated code is about a different type
 func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{"login", true},
@@ -150,7 +150,7 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		dbAccount := &model.LocalAccount{
-			ID:           oldAccount.ID,
+			Identifier:   oldAccount.Identifier,
 			LocalAgentID: oldAccount.LocalAgentID,
 			Login:        restAccount.Login.Value,
 			IPAddresses:  types.IPList(restAccount.IPAddresses),
@@ -191,7 +191,7 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		dbAccount := &model.LocalAccount{
-			ID:           oldAccount.ID,
+			Identifier:   oldAccount.Identifier,
 			LocalAgentID: oldAccount.LocalAgentID,
 			Login:        restAccount.Login.Value,
 			IPAddresses:  types.IPList(restAccount.IPAddresses),

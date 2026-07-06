@@ -69,7 +69,7 @@ func ExportHistory(db database.Access, w io.Writer, olderThan time.Time) error {
 
 	for i := 0; ; i += sliceSize {
 		var transfers model.HistoryEntries
-		query := db.Select(&transfers).OrderBy("id", true).Limit(sliceSize, i)
+		query := db.Select(&transfers).OrderBy("id", true).Limit(sliceSize, i).Eager()
 
 		if !olderThan.IsZero() {
 			query.Where("start <= ?", olderThan.UTC().Truncate(time.Microsecond).

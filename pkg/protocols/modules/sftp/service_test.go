@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf/conftest"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -46,7 +46,7 @@ func TestServerStop(t *testing.T) {
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		hostKey := &model.Credential{
-			LocalAgentID: utils.NewNullInt64(agent.ID),
+			LocalAgentID: agent.NullableID(),
 			Type:         AuthSSHPrivateKey,
 			Value:        RSAPk,
 		}
@@ -87,7 +87,7 @@ func TestServerStart(t *testing.T) {
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		hostKey := &model.Credential{
-			LocalAgentID: utils.NewNullInt64(agent.ID),
+			LocalAgentID: agent.NullableID(),
 			Type:         AuthSSHPrivateKey,
 			Value:        RSAPk,
 		}
@@ -112,9 +112,9 @@ func TestServerStart(t *testing.T) {
 		})
 
 		Convey("Given that the server address is indirect", func(c C) {
-			conf.InitTestOverrides(c)
+			conftest.InitTestOverrides(c, db)
 			realAddr := fmt.Sprintf("127.0.0.1:%d", port)
-			So(conf.AddIndirection("9.9.9.9:9999", realAddr), ShouldBeNil)
+			So(db.Config.Overrides.AddIndirection("9.9.9.9:9999", realAddr), ShouldBeNil)
 
 			agent.Address = types.Addr("9.9.9.9", 9999)
 			So(db.Update(agent).Cols("address").Run(), ShouldBeNil)
@@ -128,21 +128,7 @@ func TestServerStart(t *testing.T) {
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
-					So(sftpServer.listener.Listener.Addr().String(), ShouldEqual, realAddr)
-				})
-			})
-		})
-
-		Convey("Given that the server is missing a hostkey", func() {
-			So(db.DeleteAll(&model.Credential{}).Run(), ShouldBeNil)
-
-			Convey("When starting the server", func() {
-				err := sftpServer.Start()
-
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-					So(err.Error(), ShouldContainSubstring, fmt.Sprintf("'%s' SFTP server is "+
-						"missing a hostkey", agent.Name))
+					So(sftpServer.listener.listener.Addr().String(), ShouldEqual, realAddr)
 				})
 			})
 		})
@@ -192,11 +178,11 @@ func TestSSHServerInterruption(t *testing.T) {
 						So(transfers, ShouldNotBeEmpty)
 
 						expected := &model.Transfer{
-							ID:               transfers[0].ID,
+							Identifier:       transfers[0].Identifier,
 							RemoteTransferID: transfers[0].RemoteTransferID,
 							Start:            transfers[0].Start,
 							Stop:             transfers[0].Stop,
-							LocalAccountID:   utils.NewNullInt64(test.LocAccount.ID),
+							LocalAccountID:   test.LocAccount.NullableID(),
 							LocalPath: fs.JoinPath(test.Paths.GatewayHome, test.Server.RootDir,
 								test.ServerRule.TmpLocalRcvDir, "test_in_shutdown.dst.part"),
 							DestFilename: "test_in_shutdown.dst",
@@ -204,7 +190,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							RuleID:       test.ServerRule.ID,
 							Status:       types.StatusInterrupted,
 							Step:         types.StepData,
-							Owner:        conf.GlobalConfig.GatewayName,
+							Owner:        test.DB.Config.GatewayName,
 							Progress:     3,
 							TransferInfo: transfers[0].TransferInfo,
 						}

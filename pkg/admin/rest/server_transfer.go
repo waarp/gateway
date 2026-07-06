@@ -66,7 +66,7 @@ func preregisterServerTransfer(logger *log.Logger, db *database.DB) http.Handler
 			return
 		}
 
-		if handleError(w, logger, db.Get(&server, "name=?", rTrans.Server).Owner().Run()) {
+		if handleError(w, logger, db.Get(&server, "name=?", rTrans.Server).Run()) {
 			return
 		}
 
@@ -77,7 +77,7 @@ func preregisterServerTransfer(logger *log.Logger, db *database.DB) http.Handler
 
 		dbTrans := &model.Transfer{
 			RuleID:         rule.ID,
-			LocalAccountID: utils.NewNullInt64(account.ID),
+			LocalAccountID: account.NullableID(),
 			Start:          rTrans.DueDate,
 			Status:         types.StatusAvailable,
 		}

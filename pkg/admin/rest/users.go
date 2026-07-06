@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -27,8 +26,7 @@ func restUserToDB(user *api.InUser, old *model.User) (*model.User, error) {
 	}
 
 	return &model.User{
-		ID:           old.ID,
-		Owner:        conf.GlobalConfig.GatewayName,
+		Identifier:   old.Identifier,
 		Username:     user.Username.Value,
 		PasswordHash: hash,
 		Permissions:  mask,
@@ -62,8 +60,7 @@ func retrieveDBUser(r *http.Request, db *database.DB) (*model.User, error) {
 	}
 
 	var user model.User
-	if err := db.Get(&user, "username=? AND owner=?", username, conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := db.Get(&user, "username=?", username).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("user %q not found", username)
 		}
@@ -87,6 +84,7 @@ func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //duplicate is for a different type, keep separate
 	validSorting := orders{
 		"default":   order{"username", true},
 		"username+": order{"username", true},
@@ -101,8 +99,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Where("owner=?", conf.GlobalConfig.GatewayName).
-			Run(); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 

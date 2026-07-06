@@ -73,7 +73,7 @@ func TestTransferCtxUnstarted(tb testing.TB, db *database.DB, proto string,
 	ctx := &TransferCtx{DB: db}
 	port := GetLocalPort(tb)
 
-	conf.GlobalConfig.Paths = conf.PathsConfig{
+	db.Config.Paths = conf.PathsConfig{
 		GatewayHome:   tb.TempDir(),
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
@@ -82,7 +82,7 @@ func TestTransferCtxUnstarted(tb testing.TB, db *database.DB, proto string,
 		DirPerms:      0o700,
 	}
 
-	paths := &conf.GlobalConfig.Paths
+	paths := &db.Config.Paths
 	inPath := filepath.Join(paths.GatewayHome, paths.DefaultInDir)
 	outPath := filepath.Join(paths.GatewayHome, paths.DefaultOutDir)
 	tmpPath := filepath.Join(paths.GatewayHome, paths.DefaultTmpDir)
@@ -112,8 +112,8 @@ func TestTransferCtxUnstarted(tb testing.TB, db *database.DB, proto string,
 
 	ctx.TransferPush = &model.Transfer{
 		RuleID:          ctx.ClientRulePush.ID,
-		RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
-		ClientID:        utils.NewNullInt64(ctx.Client.ID),
+		RemoteAccountID: ctx.RemoteAccount.NullableID(),
+		ClientID:        ctx.Client.NullableID(),
 		SrcFilename:     filepath.ToSlash(pushFileName),
 		DestFilename:    "push_dst_dir/push.file",
 	}
@@ -121,8 +121,8 @@ func TestTransferCtxUnstarted(tb testing.TB, db *database.DB, proto string,
 
 	ctx.TransferPull = &model.Transfer{
 		RuleID:          ctx.ClientRulePull.ID,
-		RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
-		ClientID:        utils.NewNullInt64(ctx.Client.ID),
+		RemoteAccountID: ctx.RemoteAccount.NullableID(),
+		ClientID:        ctx.Client.NullableID(),
 		SrcFilename:     filepath.ToSlash(pullFileName),
 		DestFilename:    "pull_dst_dir/pull.file",
 	}
@@ -179,7 +179,7 @@ func (ctx *TransferCtx) makeServer(tb testing.TB,
 	require.NoError(tb, ctx.DB.Insert(ctx.LocalAccount).Run(), "Failed to insert test local account")
 
 	locAccountCred := &model.Credential{
-		LocalAccountID: utils.NewNullInt64(ctx.LocalAccount.ID),
+		LocalAccountID: ctx.LocalAccount.NullableID(),
 		Name:           Login + "-password-hash",
 		Type:           auth.Password,
 		Value:          Password,
@@ -257,7 +257,7 @@ func (ctx *TransferCtx) makeClient(tb testing.TB,
 	require.NoError(tb, ctx.DB.Insert(ctx.RemoteAccount).Run(), "Failed to insert test remote account")
 
 	locAccountCred := &model.Credential{
-		RemoteAccountID: utils.NewNullInt64(ctx.RemoteAccount.ID),
+		RemoteAccountID: ctx.RemoteAccount.NullableID(),
 		Name:            Login + "-password",
 		Type:            auth.Password,
 		Value:           Password,
@@ -312,7 +312,7 @@ func (ctx *TransferCtx) startClient(tb testing.TB) {
 	services.Clients.Add(ctx.Client, ctx.ClientService)
 
 	tb.Cleanup(func() {
-		services.Clients.Remove(ctx.Client)
+		require.NoError(tb, services.Clients.Remove(tb.Context(), ctx.Client))
 	})
 
 	require.NoError(tb, ctx.ClientService.Start(), "Failed to start the client")
@@ -333,7 +333,7 @@ func (ctx *TransferCtx) startServer(tb testing.TB) {
 	services.Servers.Add(ctx.Server, service)
 
 	tb.Cleanup(func() {
-		services.Servers.Remove(ctx.Server)
+		require.NoError(tb, services.Servers.Remove(tb.Context(), ctx.Server))
 	})
 
 	require.Implements(tb, (*TestService)(nil), service,

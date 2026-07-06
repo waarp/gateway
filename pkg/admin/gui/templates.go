@@ -105,17 +105,6 @@ var funcs = template.FuncMap{
 	},
 	"maskSecret": func(secret any) string {
 		switch v := secret.(type) {
-		case database.SecretText:
-			str := string(v)
-			if len(str) <= secret1 {
-				return strings.Repeat("*", len(str))
-			} else if len(str) <= secret3 && len(str) >= secret2 {
-				return strings.Repeat("*", len(str)-secret1) + str[len(str)-secret1:]
-			} else if len(str) == secret4 {
-				return strings.Repeat("*", len(str)-secret2) + str[len(str)-secret2:]
-			}
-
-			return strings.Repeat("*", len(str)-secret3) + str[len(str)-secret3:]
 		case string:
 			if len(v) <= secret1 {
 				return strings.Repeat("*", len(v))

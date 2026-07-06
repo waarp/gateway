@@ -28,29 +28,31 @@ func testSetup(c C, root string) (*WG, *model.LocalAgent, *model.LocalAgent) {
 		return s
 	}
 
-	s1 := addServ("serv1")
-	s2 := addServ("serv2")
-
-	conf.GlobalConfig.Paths = conf.PathsConfig{
+	db.Config.Paths = conf.PathsConfig{
 		GatewayHome:   root,
 		DefaultInDir:  path.Join(root, "in"),
 		DefaultOutDir: path.Join(root, "out"),
 		DefaultTmpDir: path.Join(root, "tmp"),
 	}
-	conf.GlobalConfig.Log = conf.LogConfig{
+	db.Config.Log = conf.LogConfig{
 		Level: "WARNING",
 		LogTo: "stdout",
 	}
-	conf.GlobalConfig.Admin = conf.AdminConfig{
+	db.Config.Admin = conf.AdminConfig{
 		Host: "localhost",
 		Port: testhelpers.GetFreePort(c),
 	}
-	conf.GlobalConfig.Controller = conf.ControllerConfig{
+	db.Config.Controller = conf.ControllerConfig{
 		Delay: time.Minute,
 	}
 
-	wg := NewWG()
+	s1 := addServ("serv1")
+	s2 := addServ("serv2")
+
+	wg := NewWG(db.Config)
 	wg.Logger = testhelpers.TestLogger(c, "test_wg")
+	wg.DBService = db
+	wg.initServices()
 
 	return wg, s1, s2
 }
@@ -68,10 +70,10 @@ func checkState(wg *WG, code utils.StateCode, s1, s2 *model.LocalAgent) {
 	So(adState, ShouldEqual, code)
 	So(contState, ShouldEqual, code)
 
-	serv1, ok := services.Servers.Load(s1)
+	serv1, ok := services.Servers.Get(s1)
 	So(ok, ShouldBeTrue)
 
-	serv2, ok := services.Servers.Load(s2)
+	serv2, ok := services.Servers.Get(s2)
 	So(ok, ShouldBeTrue)
 
 	s1State, _ := serv1.State()

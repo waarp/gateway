@@ -12,6 +12,8 @@ import (
 )
 
 func TestExportCryptoKeys(t *testing.T) {
+	t.Parallel()
+
 	const (
 		aesKey  = "0123456789abcdefhijklABCDEFHIJKL"
 		hmacKey = "0987654321"
@@ -40,9 +42,9 @@ func TestExportCryptoKeys(t *testing.T) {
 
 	assert.Equal(t, dbKey1.Name, res[0].Name)
 	assert.Equal(t, dbKey1.Type, res[0].Type)
-	assert.Equal(t, dbKey1.Key.String(), res[0].Key)
+	assert.Equal(t, dbKey1.Key, res[0].Key)
 
 	assert.Equal(t, dbKey2.Name, res[1].Name)
 	assert.Equal(t, dbKey2.Type, res[1].Type)
-	assert.Equal(t, dbKey2.Key.String(), res[1].Key)
+	assert.Equal(t, dbKey2.Key, res[1].Key)
 }

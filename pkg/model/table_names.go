@@ -25,11 +25,16 @@ const (
 	TableCryptoKeys      = "crypto_keys"
 	TableEmailTemplates  = "email_templates"
 	TableSMTPCredentials = "smtp_credentials"
+	TableFileWatchers    = "file_watchers"
 
-	ViewNormalizedTransfers = "normalized_transfers"
+	ViewNormalizedTransfers    = "normalized_transfers"
+	ViewNormalizedTransferInfo = "normalized_transfer_info"
 )
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	database.AddInit(&User{})
+	database.AddInit(database.Initializer{
+		Desc: "Insert the default user",
+		Func: userInit,
+	})
 }

@@ -7,11 +7,9 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -19,10 +17,10 @@ func TestPathBuilder(t *testing.T) {
 	Convey("Given a Gateway configuration", t, func(c C) {
 		db := database.TestDatabase(c)
 
-		conf.GlobalConfig.Paths.GatewayHome = "/path_builder"
-		conf.GlobalConfig.Paths.DefaultInDir = "gwIn"
-		conf.GlobalConfig.Paths.DefaultOutDir = "gwOut"
-		conf.GlobalConfig.Paths.DefaultTmpDir = "gwTmp"
+		db.Config.Paths.GatewayHome = "/path_builder"
+		db.Config.Paths.DefaultInDir = "gwIn"
+		db.Config.Paths.DefaultOutDir = "gwOut"
+		db.Config.Paths.DefaultTmpDir = "gwTmp"
 
 		server := &model.LocalAgent{
 			Name:          "server",
@@ -64,7 +62,7 @@ func TestPathBuilder(t *testing.T) {
 		Convey("Given an incoming transfer", func(c C) {
 			trans := &model.Transfer{
 				RuleID:         recv.ID,
-				LocalAccountID: utils.NewNullInt64(acc.ID),
+				LocalAccountID: acc.NullableID(),
 				DestFilename:   "file.txt",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
@@ -80,7 +78,7 @@ func TestPathBuilder(t *testing.T) {
 				expTmp                    string
 			}
 
-			gwRoot := conf.GlobalConfig.Paths.GatewayHome
+			gwRoot := db.Config.Paths.GatewayHome
 			testCases := []testCase{
 				{"", "", "", path.Join(gwRoot, "gwTmp", file)},
 				{"serRoot", "", "", path.Join(gwRoot, "serRoot", "serTmp", file)},
@@ -127,7 +125,7 @@ func TestPathBuilder(t *testing.T) {
 		Convey("Given an outgoing transfer", func(c C) {
 			trans := &model.Transfer{
 				RuleID:         send.ID,
-				LocalAccountID: utils.NewNullInt64(acc.ID),
+				LocalAccountID: acc.NullableID(),
 				SrcFilename:    "file.txt",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
@@ -143,7 +141,7 @@ func TestPathBuilder(t *testing.T) {
 				expFinal         string
 			}
 
-			gwRoot := conf.GlobalConfig.Paths.GatewayHome
+			gwRoot := db.Config.Paths.GatewayHome
 			testCases := []testCase{
 				{"", "", path.Join(gwRoot, "gwOut", file)},
 				{"serRoot", "", path.Join(gwRoot, "serRoot", "serOut", file)},

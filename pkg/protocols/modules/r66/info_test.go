@@ -7,13 +7,11 @@ import (
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -23,7 +21,7 @@ func TestGetFileInfo(t *testing.T) {
 	Convey("Given an R66 server", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_r66_file_info")
 		db := database.TestDatabase(c)
-		conf.GlobalConfig.Paths.GatewayHome = rootPath
+		db.Config.Paths.GatewayHome = rootPath
 
 		agent := &model.LocalAgent{
 			Name: "r66_server", Protocol: "r66",
@@ -42,7 +40,7 @@ func TestGetFileInfo(t *testing.T) {
 		So(db.Insert(account).Run(), ShouldBeNil)
 
 		accPswd := &model.Credential{
-			LocalAccountID: utils.NewNullInt64(account.ID),
+			LocalAccountID: account.NullableID(),
 			Type:           auth.Password,
 			Value:          "bar",
 		}
@@ -58,9 +56,9 @@ func TestGetFileInfo(t *testing.T) {
 		handle := sessionHandler{
 			authHandler: &authHandler{
 				service: &service{
-					db:     db,
-					logger: logger,
-					agent:  agent,
+					db:      db,
+					logger:  logger,
+					dbAgent: agent,
 				},
 			},
 			account: account,
@@ -126,7 +124,7 @@ func TestGetFileInfo(t *testing.T) {
 				So(db.Insert(other).Run(), ShouldBeNil)
 
 				otherPswd := &model.Credential{
-					LocalAccountID: utils.NewNullInt64(other.ID),
+					LocalAccountID: other.NullableID(),
 					Type:           auth.Password,
 					Value:          "other_pswd",
 				}
@@ -134,7 +132,7 @@ func TestGetFileInfo(t *testing.T) {
 
 				accs := &model.RuleAccess{
 					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(other.ID),
+					LocalAccountID: other.NullableID(),
 				}
 				So(db.Insert(accs).Run(), ShouldBeNil)
 
@@ -159,7 +157,7 @@ func TestGetTransferInfo(t *testing.T) {
 	Convey("Given an R66 server", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_r66_transfer_info")
 		db := database.TestDatabase(c)
-		conf.GlobalConfig.Paths.GatewayHome = root
+		db.Config.Paths.GatewayHome = root
 
 		agent := &model.LocalAgent{
 			Name: "r66_server", Protocol: "r66",
@@ -178,7 +176,7 @@ func TestGetTransferInfo(t *testing.T) {
 		So(db.Insert(account).Run(), ShouldBeNil)
 
 		accPswd := &model.Credential{
-			LocalAccountID: utils.NewNullInt64(account.ID),
+			LocalAccountID: account.NullableID(),
 			Type:           auth.Password,
 			Value:          "bar",
 		}
@@ -195,9 +193,9 @@ func TestGetTransferInfo(t *testing.T) {
 		handle := sessionHandler{
 			authHandler: &authHandler{
 				service: &service{
-					db:     db,
-					logger: logger,
-					agent:  agent,
+					db:      db,
+					logger:  logger,
+					dbAgent: agent,
 				},
 			},
 			account: account,
@@ -207,7 +205,7 @@ func TestGetTransferInfo(t *testing.T) {
 			trans := &model.Transfer{
 				RemoteTransferID: "123",
 				RuleID:           rule.ID,
-				LocalAccountID:   utils.NewNullInt64(account.ID),
+				LocalAccountID:   account.NullableID(),
 				SrcFilename:      "file.ex",
 				Filesize:         100,
 				Start:            time.Date(2021, 2, 1, 0, 0, 0, 0, time.Local),
@@ -215,15 +213,9 @@ func TestGetTransferInfo(t *testing.T) {
 				Step:             types.StepData,
 				Progress:         50,
 				TaskNumber:       0,
+				TransferInfo:     map[string]any{"key": "val"},
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
-
-			tInfo := &model.TransferInfo{
-				TransferID: utils.NewNullInt64(trans.ID),
-				Name:       "key",
-				Value:      `"val"`,
-			}
-			So(db.Insert(tInfo).Run(), ShouldBeNil)
 
 			Convey("When calling the GetTransferInfo function", func() {
 				info, err := handle.GetTransferInfo(123, false)
@@ -271,7 +263,7 @@ func TestGetTransferInfo(t *testing.T) {
 
 		Convey("Given a history entry on the R66 server", func() {
 			hist := &model.HistoryEntry{
-				ID:               1,
+				Identifier:       model.ID(1),
 				RemoteTransferID: "123",
 				IsServer:         true,
 				IsSend:           true,

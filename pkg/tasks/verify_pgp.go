@@ -23,7 +23,7 @@ func makePGPVerifier(cryptoKey *model.CryptoKey) (verifyFunc, error) {
 		return nil, ErrVerifyNotPGPKey
 	}
 
-	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key.String())
+	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key)
 	if parsErr != nil {
 		return nil, fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
 	}

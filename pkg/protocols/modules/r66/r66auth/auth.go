@@ -29,13 +29,14 @@ var _ authentication.InternalAuthHandler = &BcryptAuthHandler{}
 
 type BcryptAuthHandler struct{ auth.BcryptAuthHandler }
 
-func (r *BcryptAuthHandler) ToDB(plainPwd, _ string) (hashedPwd, _ string, err error) {
+func (r *BcryptAuthHandler) ToDB(_ database.Access, plainPwd, _ string,
+) (hashedPwd, _ string, err error) {
 	if utils.IsHash(plainPwd) {
 		return plainPwd, "", nil
 	}
 
 	//nolint:wrapcheck //wrapping adds nothing here
-	return r.BcryptAuthHandler.ToDB(CryptPass(plainPwd), "")
+	return r.BcryptAuthHandler.ToDB(nil, CryptPass(plainPwd), "")
 }
 
 var ErrLegacyCertNotAllowed = errors.New("legacy certificates usage is not allowed on this instance")
@@ -81,7 +82,8 @@ func (r *LegacyCertificate) Authenticate(db database.ReadAccess,
 	return authentication.Success(), nil
 }
 
-func (r *LegacyCertificate) ToDB(_, _ string) (_, _ string, err error) {
+//nolint:revive //method signature is fixed here (to comply with the interface)
+func (r *LegacyCertificate) ToDB(database.Access, string, string) (string, string, error) {
 	return "", "", nil
 }
 

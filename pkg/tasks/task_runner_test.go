@@ -71,20 +71,24 @@ func TestSetup(t *testing.T) {
 					DefaultOutDir: "out_dir",
 					DefaultTmpDir: path.Join(rootAlt, "tmp_dir"),
 				},
-				Client: &model.Client{ID: clientID, Name: "cli", Protocol: testProtocol},
+				Client: &model.Client{
+					Identifier: model.ID(clientID),
+					Name:       "cli",
+					Protocol:   testProtocol,
+				},
 				RemoteAgent: &model.RemoteAgent{
-					ID:       agentID,
-					Name:     "partner",
-					Protocol: testProtocol,
-					Address:  types.Addr("localhost", 6622),
+					Identifier: model.ID(agentID),
+					Name:       "partner",
+					Protocol:   testProtocol,
+					Address:    types.Addr("localhost", 6622),
 				},
 				RemoteAccount: &model.RemoteAccount{
-					ID:            accountID,
+					Identifier:    model.ID(accountID),
 					RemoteAgentID: agentID,
 					Login:         "toto",
 				},
 				Rule: &model.Rule{
-					ID:             ruleID,
+					Identifier:     model.ID(ruleID),
 					Name:           "rulename",
 					IsSend:         true,
 					Path:           "path/to/test",
@@ -95,7 +99,7 @@ func TestSetup(t *testing.T) {
 			}
 
 			transCtx.Transfer = &model.Transfer{
-				ID:              transferID,
+				Identifier:      model.ID(transferID),
 				RemoteAccountID: utils.NewNullInt64(accountID),
 				ClientID:        utils.NewNullInt64(clientID),
 				SrcFilename:     "src/file",
@@ -377,8 +381,8 @@ func TestRunTasks(t *testing.T) {
 
 		trans := &model.Transfer{
 			RuleID:          rule.ID,
-			ClientID:        utils.NewNullInt64(client.ID),
-			RemoteAccountID: utils.NewNullInt64(account.ID),
+			ClientID:        client.NullableID(),
+			RemoteAccountID: account.NullableID(),
 			SrcFilename:     "/src/file",
 			DestFilename:    "/dst/file",
 		}

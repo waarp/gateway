@@ -25,7 +25,7 @@ func makePGPSigner(cryptoKey *model.CryptoKey) (signFunc, error) {
 		return nil, ErrSignNotPGPKey
 	}
 
-	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key.String())
+	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key)
 	if parsErr != nil {
 		return nil, fmt.Errorf("failed to parse PGP signing key: %w", parsErr)
 	}

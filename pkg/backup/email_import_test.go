@@ -14,6 +14,8 @@ import (
 )
 
 func TestNewEmailConfImport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 
@@ -49,7 +51,7 @@ func TestNewEmailConfImport(t *testing.T) {
 	}
 
 	require.NoError(t, db.Insert(dbCred1).Run())
-	require.NoError(t, dbtest.ChangeOwner("waarp", db.Insert(dbCred2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "waarp", dbCred2))
 
 	t.Run("No reset", func(t *testing.T) {
 		const (
@@ -80,7 +82,7 @@ func TestNewEmailConfImport(t *testing.T) {
 		t.Run("New credentials are imported", func(t *testing.T) {
 			var check model.SMTPCredential
 			require.NoError(t, db.Get(&check, "email_address=?", newCredAddr).Run())
-			assert.Equal(t, check.Password.String(), config.Credentials[0].Password)
+			assert.Equal(t, check.Password, config.Credentials[0].Password)
 		})
 
 		t.Run("New templates are imported", func(t *testing.T) {
@@ -91,13 +93,13 @@ func TestNewEmailConfImport(t *testing.T) {
 			assert.Equal(t, config.Templates[0].Subject, check.Subject)
 			assert.Equal(t, config.Templates[0].MIMEType, check.MIMEType)
 			assert.Equal(t, config.Templates[0].Body, check.Body)
-			assert.Equal(t, config.Templates[0].Attachments, check.Attachments)
+			assert.Equal(t, config.Templates[0].Attachments, check.Attachments.List())
 		})
 
 		t.Run("Existing credentials are untouched", func(t *testing.T) {
 			var check model.SMTPCredentials
 			require.NoError(t, db.Select(&check).Where("email_address<>?", newCredAddr).
-				OrderBy("id", true).Run())
+				All().OrderBy("id", true).Run())
 			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbCred1)
 			assert.Equal(t, check[1], dbCred2)
@@ -144,7 +146,7 @@ func TestNewEmailConfImport(t *testing.T) {
 		t.Run("New credentials are imported", func(t *testing.T) {
 			var check model.SMTPCredential
 			require.NoError(t, db.Get(&check, "email_address=?", newCredAddr).Run())
-			assert.Equal(t, check.Password.String(), config.Credentials[0].Password)
+			assert.Equal(t, check.Password, config.Credentials[0].Password)
 		})
 
 		t.Run("New templates are imported", func(t *testing.T) {
@@ -155,13 +157,13 @@ func TestNewEmailConfImport(t *testing.T) {
 			assert.Equal(t, config.Templates[0].Subject, check.Subject)
 			assert.Equal(t, config.Templates[0].MIMEType, check.MIMEType)
 			assert.Equal(t, config.Templates[0].Body, check.Body)
-			assert.Equal(t, config.Templates[0].Attachments, check.Attachments)
+			assert.Equal(t, config.Templates[0].Attachments, check.Attachments.List())
 		})
 
 		t.Run("Existing credentials are gone", func(t *testing.T) {
 			var check model.SMTPCredentials
 			require.NoError(t, db.Select(&check).Where("email_address<>?", newCredAddr).
-				Owner().OrderBy("id", true).Run())
+				OrderBy("id", true).Run())
 			assert.Len(t, check, 0)
 		})
 
@@ -175,6 +177,8 @@ func TestNewEmailConfImport(t *testing.T) {
 }
 
 func TestExistingEmailConfImport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 
@@ -210,7 +214,7 @@ func TestExistingEmailConfImport(t *testing.T) {
 	}
 
 	require.NoError(t, db.Insert(dbCred1).Run())
-	require.NoError(t, dbtest.ChangeOwner("waarp", db.Insert(dbCred2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "waarp", dbCred2))
 
 	t.Run("No reset", func(t *testing.T) {
 		var (
@@ -241,7 +245,7 @@ func TestExistingEmailConfImport(t *testing.T) {
 		t.Run("Affected credentials are updated", func(t *testing.T) {
 			var check model.SMTPCredential
 			require.NoError(t, db.Get(&check, "email_address=?", newCredAddr).Run())
-			assert.Equal(t, check.Password.String(), config.Credentials[0].Password)
+			assert.Equal(t, check.Password, config.Credentials[0].Password)
 		})
 
 		t.Run("Affected templates are updated", func(t *testing.T) {
@@ -252,13 +256,13 @@ func TestExistingEmailConfImport(t *testing.T) {
 			assert.Equal(t, config.Templates[0].Subject, check.Subject)
 			assert.Equal(t, config.Templates[0].MIMEType, check.MIMEType)
 			assert.Equal(t, config.Templates[0].Body, check.Body)
-			assert.Equal(t, config.Templates[0].Attachments, check.Attachments)
+			assert.Equal(t, config.Templates[0].Attachments, check.Attachments.List())
 		})
 
 		t.Run("Other credentials are untouched", func(t *testing.T) {
 			var check model.SMTPCredentials
 			require.NoError(t, db.Select(&check).Where("email_address<>?", newCredAddr).
-				OrderBy("id", true).Run())
+				OrderBy("id", true).All().Run())
 			require.Len(t, check, 1)
 			assert.Equal(t, check[0], dbCred2)
 		})

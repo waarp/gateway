@@ -41,7 +41,7 @@ type transferHandler struct {
 func (t *transferHandler) getRuleByPrefix(filepath string, isSend bool) (*model.Rule, error) {
 	dir := path.Dir(filepath)
 
-	rule, err := protoutils.GetClosestRule(t.db, t.logger, t.agent, t.account, dir, isSend)
+	rule, err := protoutils.GetClosestRule(t.db, t.logger, t.account, dir, isSend)
 	if err != nil {
 		switch {
 		case errors.Is(err, protoutils.ErrDatabase):

@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -13,10 +14,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type client struct {
+	db       *database.DB
 	dbClient *model.Client
 	state    utils.State
 	logger   *log.Logger
@@ -25,31 +28,37 @@ type client struct {
 	conf *ClientConfigTLS
 }
 
-func newClient(cli *model.Client) *client {
-	return &client{dbClient: cli}
+func newClient(db *database.DB, cli *model.Client) *client {
+	return &client{db: db, dbClient: cli}
 }
 
 func (c *client) Name() string { return c.dbClient.Name }
 
-func (c *client) Start() error {
+func (c *client) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	c.logger.Error(err.Error())
+	c.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(c.dbClient.Name, err)
+}
+
+func (c *client) Start() (retErr error) {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
 	c.logger = logging.NewLogger(c.dbClient.Name)
-	if err := c.start(); err != nil {
-		c.state.Set(utils.StateError, err.Error())
-		c.logger.Errorf("failed to start the PeSIT client: %v", err)
+	defer c.reportError(retErr)
 
-		return err
+	if err := c.db.Get(c.dbClient, "id=?", c.dbClient.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve client from database: %w", err)
 	}
 
-	c.state.Set(utils.StateRunning, "")
+	c.logger = logging.NewLogger(c.dbClient.Name)
+	c.logger.Info("Starting PeSIT client...")
 
-	return nil
-}
-
-func (c *client) start() error {
 	c.conf = &ClientConfigTLS{}
 	if err := utils.JSONConvert(c.dbClient.ProtoConfig, c.conf); err != nil {
 		return fmt.Errorf("invalid client config: %w", err)
@@ -64,31 +73,26 @@ func (c *client) start() error {
 		}
 	}
 
+	c.state.Set(utils.StateRunning, "")
+	c.logger.Info("PeSIT client started successfully")
+
 	return nil
 }
 
-func (c *client) Stop(ctx context.Context) error {
+func (c *client) Stop(ctx context.Context) (retErr error) {
 	if !c.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
-	if err := c.stop(ctx); err != nil {
-		c.state.Set(utils.StateError, err.Error())
+	defer c.reportError(retErr)
+	c.logger.Info("Stopping PeSIT client...")
 
-		return err
+	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
+		return fmt.Errorf("failed to stop the PeSIT client: %w", err)
 	}
 
 	c.state.Set(utils.StateOffline, "")
-
-	return nil
-}
-
-func (c *client) stop(ctx context.Context) error {
-	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
-		c.logger.Errorf("Failed to stop the PeSIT client: %v", err)
-
-		return fmt.Errorf("failed to stop the PeSIT client: %w", err)
-	}
+	c.logger.Info("PeSIT client stopped successfully")
 
 	return nil
 }

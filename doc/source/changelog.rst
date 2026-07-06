@@ -3,6 +3,21 @@
 Historique des versions
 =======================
 
+* :feature:`516` Ajout de le possibilité de configurer des *filewatchers* pour
+  surveiller un dossier sur un partenaire distant. Voir la documentation
+  :doc:`REST <reference/rest/filewatchers>` ou :doc:`CLI <reference/cli/client/filewatcher`
+  pour plus de détails. Ces *filewatchers* remplissent une mission similaire à
+  l'outil *get-remote* livré avec Gateway. Celui-ci est par conséquent désormais
+  déprécié.
+* :feature:`527` Les protocoles basés sur HTTP (HTTP, AS2 et WebDAV) supportent
+  désormais le multiplexing lorsque la connexion le permet. Cela devrait réduire
+  le nombre de connexions ouvertes lorsque plusieurs transferts vers un même
+  partenaire sont exécutés en même temps. Notez que le multiplexing nécessite que
+  le partenaire supporte au minimum HTTP/2.
+* :bug:`555` Les informations de transfert sont désormais récupérées en une seule
+  requête lorsque l'historique de transfert est interrogé. Précédemment, une requête
+  était effectuée par transfert récupéré. Cela devrait nettement réduire le temps
+  de réponse des requêtes REST faites à l'historique de transfert.
 * :feature:`491` Ajout du support pour le protocole AS2. Compte tenu des nombreuses
   spécificités du protocole, il est fortement recommandé de lire :doc:`la rubrique
   <reference/protocols/as2>` spécifiant les détails d'implémentation du protocole avant

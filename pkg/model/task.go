@@ -56,11 +56,11 @@ const (
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID int64             `xorm:"rule_id"` // The ID of the rule this tasks belongs to.
-	Chain  Chain             `xorm:"chain"`   // The chain this task belongs to (ChainPre, ChainPost or ChainError)
-	Rank   int8              `xorm:"rank"`    // The task's index in the chain.
-	Type   string            `xorm:"type"`    // The type of task.
-	Args   map[string]string `xorm:"args"`    // The task's arguments as a map.
+	RuleID int64       `gorm:"column:rule_id"`
+	Chain  Chain       `gorm:"column:chain"`
+	Rank   int8        `gorm:"column:rank"`
+	Type   string      `gorm:"column:type"`
+	Args   Map[string] `gorm:"column:args;serializer:json"`
 }
 
 func (*Task) TableName() string   { return TableTasks }

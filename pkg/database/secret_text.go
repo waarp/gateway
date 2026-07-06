@@ -1,65 +1,82 @@
 package database
 
 import (
-	"database/sql/driver"
+	"context"
+	"crypto/cipher"
+	"errors"
 	"fmt"
+	"reflect"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
-// SecretText is a wrapper of string which add transparent encryption/decryption
+type aeadKeyType string
+
+const aeadKey aeadKeyType = "aead"
+
+var errNoAEAD = errors.New("no aead key found in context")
+
+//nolint:gochecknoinits //init is needed here
+func init() {
+	schema.RegisterSerializer("secret", secretText{})
+}
+
+func registerAEAD(db *gorm.DB, aead cipher.AEAD) {
+	ctx := context.WithValue(context.Background(), aeadKey, aead)
+	*db = *db.WithContext(ctx)
+}
+
+// secretText is a wrapper of string which add transparent encryption/decryption
 // of the string when storing and loading the string from a database.
-type SecretText string
+type secretText struct{}
 
-func (s *SecretText) String() string { return string(*s) }
-
-// FromDB takes a slice containing AES encrypted data, and stores the decrypted
-// string in the SecretText receiver.
-func (s *SecretText) FromDB(bytes []byte) error {
-	if len(bytes) == 0 {
-		return nil
+func (secretText) Scan(ctx context.Context, field *schema.Field, dst reflect.Value, dbValue any) error {
+	key, ok := ctx.Value(aeadKey).(cipher.AEAD)
+	if !ok {
+		return errNoAEAD
 	}
 
-	plain, err := utils.AESDecrypt(GCM, string(bytes))
+	var (
+		cipherText string
+		err        error
+	)
+
+	switch val := dbValue.(type) {
+	case string:
+		cipherText, err = AESDecrypt(key, val)
+	case []byte:
+		cipherText, err = AESDecrypt(key, string(val))
+	default:
+		//nolint:err113 //too specific to have a base error
+		return fmt.Errorf("unsupported type for SecretText: %T", dbValue)
+	}
 	if err != nil {
-		return fmt.Errorf("cannot decrypt password: %w", err)
+		return fmt.Errorf("failed to encrypt secret text: %w", err)
 	}
 
-	*s = SecretText(plain)
+	for dst.Kind() == reflect.Pointer {
+		dst = dst.Elem()
+	}
+
+	dst.FieldByName(field.Name).SetString(cipherText)
 
 	return nil
 }
 
-// ToDB takes the string contained in the SecretText receiver, encrypts it using
-// AES, and returns the result as a slice of byte.
-func (s *SecretText) ToDB() ([]byte, error) {
-	if *s == "" {
-		return []byte(""), nil
+func (secretText) Value(ctx context.Context, _ *schema.Field, _ reflect.Value, fieldValue any) (any, error) {
+	key, ok := ctx.Value(aeadKey).(cipher.AEAD)
+	if !ok {
+		return nil, errNoAEAD
 	}
 
-	cypher, err := utils.AESCrypt(GCM, string(*s))
-	if err != nil {
-		return nil, fmt.Errorf("cannot encrypt password: %w", err)
-	}
-
-	return []byte(cypher), nil
-}
-
-// Scan implements database/sql.Scanner. It takes an AES encrypted string and
-// sets the object.
-func (s *SecretText) Scan(v any) error {
-	switch val := v.(type) {
-	case []byte:
-		return s.FromDB(val)
+	switch val := fieldValue.(type) {
 	case string:
-		return s.FromDB([]byte(val))
+		return AESEncrypt(key, val)
+	case []byte:
+		return AESEncrypt(key, string(val))
 	default:
-		//nolint:err113 // too specific to have a base error
-		return fmt.Errorf("type %T is incompatible with SecretText", val)
+		//nolint:err113 //too specific to have a base error
+		return nil, fmt.Errorf("unsupported type for SecretText: %T", fieldValue)
 	}
-}
-
-// Value is the equivalent of ToDB for the driver.Valuer interface.
-func (s *SecretText) Value() (driver.Value, error) {
-	return s.ToDB()
 }

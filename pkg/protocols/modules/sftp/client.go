@@ -33,7 +33,7 @@ type client struct {
 	state   utils.State
 	logger  *log.Logger
 	sshConf ssh.Config
-	conns   *protoutils.ConnPool[*clientConn]
+	conns   *protoutils.ConnPool[*ClientConn]
 }
 
 func (c *client) Name() string { return c.client.Name }
@@ -48,6 +48,7 @@ func (c *client) Start() error {
 	}
 
 	c.logger = logging.NewLogger(c.client.Name)
+
 	if err := c.start(); err != nil {
 		c.logger.Errorf("Failed to start the client: %v", err)
 		c.state.Set(utils.StateError, err.Error())
@@ -62,7 +63,14 @@ func (c *client) Start() error {
 }
 
 func (c *client) start() error {
-	var clientConf clientConfig
+	if err := c.db.Get(c.client, "id=?", c.client.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the SFTP client: %w", err)
+	}
+
+	c.logger = logging.NewLogger(c.client.Name)
+	c.logger.Info("Starting SFTP client...")
+
+	var clientConf ClientConfig
 	if err := utils.JSONConvert(c.client.ProtoConfig, &clientConf); err != nil {
 		return fmt.Errorf("failed to parse the SFTP client's proto config: %w", err)
 	}
@@ -81,7 +89,7 @@ func (c *client) start() error {
 		}
 	}
 
-	c.conns = protoutils.NewConnPool[*clientConn](dialer, c.newClientConn)
+	c.conns = protoutils.NewConnPool[*ClientConn](dialer, c.newClientConn)
 
 	return nil
 }

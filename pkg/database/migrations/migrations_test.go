@@ -170,4 +170,8 @@ func testMigrations(t *testing.T, eng *testEngine) {
 
 	// 0.14.0
 	apply(testVer0_14_0AddTransferStop(t, eng))
+
+	// 0.16.0
+	apply(testVer0_16_0AddFilewatchers(t, eng))
+	apply(testVer0_16_0AddNormalizedInfo(t, eng))
 }

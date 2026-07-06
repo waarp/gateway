@@ -5,11 +5,12 @@ package conf
 import (
 	"errors"
 	"fmt"
-	"io/fs"
+	gofs "io/fs"
 	"os"
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
@@ -20,23 +21,20 @@ const (
 	ConfigDirEnvVar  = "WAARP_CONFIG_DIR"
 )
 
-// GlobalConfig is a global instance of ServerConfig containing the
-// configuration of the gateway instance.
-//
-//nolint:gochecknoglobals //global var is needed here for simplicity
-var GlobalConfig ServerConfig
-
 // ServerConfig holds the server configuration options
 //
 //nolint:lll // cannot split struct tags
 type ServerConfig struct {
 	GatewayName string `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the database is shared between multiple gateways, this name MUST be unique across these gateways."`
-	NodeID      string
-	Paths       PathsConfig      `group:"paths"`
-	Log         LogConfig        `group:"log"`
-	Admin       AdminConfig      `group:"admin"`
-	Database    DatabaseConfig   `group:"database"`
-	Controller  ControllerConfig `group:"controller"`
+
+	NodeID    string
+	Overrides *ConfigOverride
+
+	Paths      PathsConfig      `group:"paths"`
+	Log        LogConfig        `group:"log"`
+	Admin      AdminConfig      `group:"admin"`
+	Database   DatabaseConfig   `group:"database"`
+	Controller ControllerConfig `group:"controller"`
 }
 
 // PathsConfig holds the server paths.
@@ -174,6 +172,9 @@ func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 		}
 	}
 
+	fs.FilePerms = fs.FileMode(c.Paths.FilePerms)
+	fs.DirPerms = fs.FileMode(c.Paths.DirPerms)
+
 	return c, SetConfEnvVars(userConfig)
 }
 
@@ -267,23 +268,22 @@ func CreateServerConfig(configFile string) error {
 // LoadGatewayConfig loads the given configuration file, along with the local
 // configOverride file associated with the given node ID, and stores both in the global
 // GlobalConfig variable.
-func LoadGatewayConfig(configFile, nodeID string) error {
+func LoadGatewayConfig(configFile, nodeID string) (*ServerConfig, error) {
 	serverConfig, configPath, err := loadServerConfig(configFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if nodeID != "" {
-		LocalOverrides, err = LoadOverride(configPath, nodeID)
+		serverConfig.Overrides, err = LoadOverride(configPath, nodeID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	serverConfig.NodeID = nodeID
-	GlobalConfig = *serverConfig
 
-	return nil
+	return serverConfig, nil
 }
 
 // UpdateGatewayConfig updates both the gateway configuration file, and the
@@ -306,7 +306,7 @@ func CreateGatewayConfig(configFile, nodeID string) error {
 	return CreateOverride(configFile, nodeID)
 }
 
-type FileMode fs.FileMode
+type FileMode gofs.FileMode
 
 func (f FileMode) MarshalFlag() (string, error) {
 	return fmt.Sprintf("0%o", f), nil

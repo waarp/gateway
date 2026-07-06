@@ -14,6 +14,8 @@ import (
 )
 
 func TestEmailConfigExport(t *testing.T) {
+	t.Parallel()
+
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)
 
@@ -47,7 +49,7 @@ func TestEmailConfigExport(t *testing.T) {
 		Password:      "buzz",
 	}
 	require.NoError(t, db.Insert(dbCred1).Run())
-	require.NoError(t, dbtest.ChangeOwner("other_owner", db.Insert(dbCred2).Run))
+	require.NoError(t, dbtest.InsertAsOwner(db, "other_owner", dbCred2))
 
 	res, err := exportEmailConf(logger, db)
 	require.NoError(t, err)
@@ -80,7 +82,7 @@ func TestEmailConfigExport(t *testing.T) {
 			EmailAddress:  dbCred1.EmailAddress,
 			ServerAddress: dbCred1.ServerAddress.String(),
 			Login:         dbCred1.Login,
-			Password:      dbCred1.Password.String(),
+			Password:      dbCred1.Password,
 		}, res.Credentials[0])
 	})
 }

@@ -2,9 +2,9 @@ package r66
 
 import "code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 
-// tlsServerConfig represents the configuration of a local R66-TLS server.
-type tlsServerConfig struct {
-	sharedServerConfig
+// ServerConfigTLS represents the configuration of a local R66-TLS server.
+type ServerConfigTLS struct {
+	SharedServerConfig
 
 	// The server's password for server authentication.
 	//
@@ -17,17 +17,13 @@ type tlsServerConfig struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (c *tlsServerConfig) ValidConf() error {
-	if err := encryptServerPassword(&c.ServerPassword); err != nil {
-		return err
-	}
-
+func (c *ServerConfigTLS) ValidConf() error {
 	return c.ValidShared()
 }
 
-// tlsPartnerConfig represents the configuration of a remote R66-TLS partner.
-type tlsPartnerConfig struct {
-	sharedPartnerConfig
+// PartnerConfigTLS represents the configuration of a remote R66-TLS partner.
+type PartnerConfigTLS struct {
+	SharedPartnerConfig
 
 	// The server's password for server authentication.
 	//
@@ -41,7 +37,7 @@ type tlsPartnerConfig struct {
 }
 
 //nolint:dupl //it's better to keep the TLS & non-TLS config separated, as they will probably differ in the future
-func (c *tlsPartnerConfig) ValidConf() error {
+func (c *PartnerConfigTLS) ValidConf() error {
 	if err := hashServerPassword(&c.ServerPassword); err != nil {
 		return err
 	}
@@ -49,9 +45,9 @@ func (c *tlsPartnerConfig) ValidConf() error {
 	return c.ValidShared()
 }
 
-// tlsClientConfig represents the configuration of a local R66-TLS client.
-type tlsClientConfig struct {
-	sharedClientConfig
+// ClientConfigTLS represents the configuration of a local R66-TLS client.
+type ClientConfigTLS struct {
+	SharedClientConfig
 
 	// MinTLSVersion specifies the minimum TLS version that the server should
 	// allow. The accepted values are "v1.0", "v1.1", "v1.2", and "v1.3". The
@@ -59,6 +55,6 @@ type tlsClientConfig struct {
 	MinTLSVersion protoutils.TLSVersion `json:"minTLSVersion"`
 }
 
-func (c *tlsClientConfig) ValidConf() error {
+func (c *ClientConfigTLS) ValidConf() error {
 	return c.ValidShared()
 }

@@ -6,7 +6,6 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -48,8 +47,6 @@ func TestMoveRenameTaskValidate(t *testing.T) {
 
 func TestMoveRenameTaskRun(t *testing.T) {
 	root := t.TempDir()
-	conf.GlobalConfig.Paths.DirPerms = 0o700
-	conf.GlobalConfig.Paths.FilePerms = 0o600
 
 	Convey("Given a Runner for a sending transfer", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "task_moverename")

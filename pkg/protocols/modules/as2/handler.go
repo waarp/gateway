@@ -97,7 +97,7 @@ func (s *server) handle(ctx context.Context, filename string, payload []byte) er
 		return as2.ErrMissingAS2Identity
 	}
 
-	rule, err := protoutils.GetClosestRule(s.db, s.logger, s.agent, acc, filename, false)
+	rule, err := protoutils.GetClosestRule(s.db, s.logger, acc, filename, false)
 	if err != nil {
 		return err
 	}

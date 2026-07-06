@@ -3,6 +3,7 @@ package http
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
@@ -34,6 +35,12 @@ func (Module) CheckClientConfig(conf map[string]any) error {
 
 func (Module) CheckPartnerConfig(conf map[string]any) error {
 	return protoutils.ValidateProtoConfig(conf, &partnerConfig{})
+}
+
+func (m Module) OptionalFeatures() []features.Feature {
+	return []features.Feature{
+		features.Deletion,
+	}
 }
 
 type ModuleHTTPS struct{ Module }

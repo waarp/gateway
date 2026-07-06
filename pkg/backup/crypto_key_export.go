@@ -11,7 +11,7 @@ import (
 
 func exportCryptoKeys(logger *log.Logger, db database.ReadAccess) ([]*file.CryptoKey, error) {
 	var dbKeys model.CryptoKeys
-	if err := db.Select(&dbKeys).Owner().Run(); err != nil {
+	if err := db.Select(&dbKeys).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve crypto keys: %w", err)
 	}
 
@@ -21,7 +21,7 @@ func exportCryptoKeys(logger *log.Logger, db database.ReadAccess) ([]*file.Crypt
 		keys[i] = &file.CryptoKey{
 			Name: dbKey.Name,
 			Type: dbKey.Type,
-			Key:  dbKey.Key.String(),
+			Key:  dbKey.Key,
 		}
 
 		logger.Infof("Exported crypto key %q", dbKey.Name)

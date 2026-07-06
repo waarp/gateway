@@ -11,9 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/puzpuzpuz/xsync/v4"
-	"xorm.io/xorm"
-	xnames "xorm.io/xorm/names"
+	"gorm.io/gorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
@@ -27,34 +25,39 @@ const (
 	ServiceName = "Database"
 )
 
-//nolint:gochecknoglobals // global var is used by design
-var (
-	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
-	GCM cipher.AEAD
-
-	errUnsupportedDB = errors.New("unsupported database")
-)
+var errUnsupportedDB = errors.New("unsupported database")
 
 // DB is the database service. It encapsulates a data connection and implements
 // Accessor.
 type DB struct {
-	engine   *xorm.Engine
-	sessions *xsync.Map[int64, *Session]
-
-	// The service Logger
 	Logger *log.Logger
-	// The state of the database service
-	state utils.State
+	Config *conf.ServerConfig
+	AEAD   cipher.AEAD
+
+	engine *gorm.DB
+	state  utils.State
+}
+
+func NewDB(config *conf.ServerConfig) *DB {
+	return &DB{Config: config}
 }
 
 func (db *DB) Name() string { return ServiceName }
 
+func (db *DB) ChangeAEAD(newAEAD cipher.AEAD) {
+	db.AEAD = newAEAD
+
+	if db.engine != nil {
+		registerAEAD(db.engine, newAEAD)
+	}
+}
+
 func (db *DB) loadAESKey() error {
-	if GCM != nil {
+	if db.AEAD != nil {
 		return nil
 	}
 
-	filename := conf.GlobalConfig.Database.AESPassphrase
+	filename := db.Config.Database.AESPassphrase
 	if _, statErr := os.Stat(filepath.Clean(filename)); os.IsNotExist(statErr) {
 		db.Logger.Infof("Creating AES passphrase file at %q", filename)
 
@@ -70,12 +73,12 @@ func (db *DB) loadAESKey() error {
 	}
 
 	var gcmErr error
-	GCM, gcmErr = NewGCM(filename)
+	db.AEAD, gcmErr = NewAEAD(filename)
 
 	return gcmErr
 }
 
-func NewGCM(filename string) (cipher.AEAD, error) {
+func NewAEAD(filename string) (cipher.AEAD, error) {
 	key, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
@@ -94,70 +97,55 @@ func NewGCM(filename string) (cipher.AEAD, error) {
 	return gcm, nil
 }
 
-// createConnectionInfo creates and returns the dataSourceName string necessary
+// makeDialector creates and returns the dataSourceName string necessary
 // to open a connection to the database, along with the driver and an optional
 // initialisation function. The DSN varies depending on the options given
 // in the database configuration.
-func (db *DB) createConnectionInfo() (*DBInfo, error) {
-	rdbms := conf.GlobalConfig.Database.Type
+func (db *DB) makeDialector() (gorm.Dialector, error) {
+	rdbms := db.Config.Database.Type
 
 	makeConnInfo, ok := SupportedRBMS[rdbms]
 	if !ok {
 		return nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsupportedDB)
 	}
 
-	return makeConnInfo(), nil
+	return makeConnInfo(&db.Config.Database)
 }
 
-type DBInfo struct {
-	Driver, DSN string
-	ConnLimit   int
-}
+type connMaker func(config *conf.DatabaseConfig) (gorm.Dialector, error)
 
 //nolint:gochecknoglobals // global var is used by design
-var SupportedRBMS = map[string]func() *DBInfo{}
+var SupportedRBMS = map[string]connMaker{}
 
 func (db *DB) initEngine() error {
-	connInfo, err := db.createConnectionInfo()
+	dialector, err := db.makeDialector()
 	if err != nil {
 		db.Logger.Criticalf("Database configuration invalid: %v", err)
 
 		return err
 	}
 
-	engine, err := xorm.NewEngine(connInfo.Driver, connInfo.DSN)
+	db.engine, err = gorm.Open(dialector, &gorm.Config{
+		Logger:            &gormLogger{Logger: db.Logger},
+		AllowGlobalUpdate: true,
+	})
 	if err != nil {
 		db.Logger.Criticalf("Failed to open database: %v", err)
 
 		return fmt.Errorf("cannot initialize database access: %w", err)
 	}
 
-	db.setLogger(engine)
-	engine.SetMapper(xnames.GonicMapper{})
-
-	if err = engine.Ping(); err != nil {
-		db.Logger.Errorf("Failed to access database: %v", err)
-
-		return fmt.Errorf("cannot access database: %w", err)
-	}
-
-	if connInfo.ConnLimit > 0 {
-		engine.SetMaxOpenConns(connInfo.ConnLimit)
-	}
-
-	db.engine = engine
-	db.sessions = xsync.NewMap[int64, *Session]()
+	registerAEAD(db.engine, db.AEAD)
 
 	return nil
 }
 
 // Start launches the database service using the configuration given in the
-// Environment field. If the configuration in invalid, or if the database
+// Environment field. If the configuration is invalid, or if the database
 // cannot be reached, an error is returned.
-// If the service is already running, this function does nothing.
 func (db *DB) Start() error {
 	if db.state.IsRunning() {
-		return utils.ErrAlreadyRunning
+		return nil
 	}
 
 	if err := db.start(true); err != nil {
@@ -171,7 +159,7 @@ func (db *DB) Start() error {
 	return nil
 }
 
-func (db *DB) start(withInit bool) error {
+func (db *DB) start(withInit bool) (retErr error) {
 	if db.Logger == nil {
 		db.Logger = logging.NewLogger(ServiceName)
 	}
@@ -187,21 +175,19 @@ func (db *DB) start(withInit bool) error {
 		return err
 	}
 
-	if err1 := db.checkVersion(); err1 != nil {
-		if err2 := db.engine.Close(); err2 != nil {
-			db.Logger.Warningf("an error occurred while closing the database: %v", err2)
+	defer func() {
+		if retErr != nil {
+			_ = db.close()
 		}
+	}()
 
-		return err1
+	if err := db.checkVersion(); err != nil {
+		return err
 	}
 
 	if withInit {
-		if err1 := db.initDatabase(); err1 != nil {
-			if err2 := db.engine.Close(); err2 != nil {
-				db.Logger.Warningf("an error occurred while closing the database: %v", err2)
-			}
-
-			return err1
+		if err := db.initDatabase(); err != nil {
+			return err
 		}
 	}
 
@@ -213,12 +199,12 @@ func (db *DB) start(withInit bool) error {
 // Stop shuts down the database service. If an error occurred during the shutdown,
 // an error is returned.
 // If the service is not running, this function does nothing.
-func (db *DB) Stop(ctx context.Context) error {
+func (db *DB) Stop(context.Context) error {
 	if !db.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
-	if err := db.stop(ctx); err != nil {
+	if err := db.stop(); err != nil {
 		db.state.Set(utils.StateError, err.Error())
 
 		return err
@@ -229,36 +215,15 @@ func (db *DB) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (db *DB) stop(ctx context.Context) error {
+func (db *DB) stop() error {
 	defer func() { db.engine = nil }()
 
 	db.Logger.Info("Shutting down...")
 
-	if err := db.engine.Close(); err != nil {
+	if err := db.close(); err != nil {
 		db.Logger.Infof("Error while closing the database: %v", err)
 
 		return fmt.Errorf("an error occurred while closing the database: %w", err)
-	}
-
-	select {
-	case <-ctx.Done():
-		db.Logger.Warning("Failed to close the pending transactions")
-		db.Logger.Warning("Force closing the database")
-	case <-func() chan bool {
-		done := make(chan bool)
-
-		db.sessions.Range(func(_ int64, ses *Session) bool {
-			if err := ses.session.Close(); err != nil {
-				db.Logger.Warningf("Failed to close session: %v", err)
-			}
-
-			return true
-		})
-
-		close(done)
-
-		return done
-	}():
 	}
 
 	db.Logger.Info("Shutdown complete")
@@ -270,4 +235,18 @@ func (db *DB) stop(ctx context.Context) error {
 // State returns the state of the database service.
 func (db *DB) State() (utils.StateCode, string) {
 	return db.state.Get()
+}
+
+//nolint:wrapcheck //no need to wrap errors here
+func (db *DB) close() error {
+	if db.engine == nil {
+		return nil
+	}
+
+	sqlDB, err := db.engine.DB()
+	if err != nil {
+		return err
+	}
+
+	return sqlDB.Close()
 }

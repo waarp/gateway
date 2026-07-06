@@ -1,13 +1,14 @@
 package wgd
 
 import (
+	"errors"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
 )
 
-var errNoConfigFile = fmt.Errorf("the path to the configuration file must be given with the argument --config")
+var errNoConfigFile = errors.New("the path to the configuration file must be given with the argument --config")
 
 //nolint:lll // tags are long for flags
 type ServerCommand struct {
@@ -42,11 +43,12 @@ func (cmd *ServerCommand) Execute([]string) error {
 		return nil
 	}
 
-	if err := conf.LoadGatewayConfig(cmd.ConfigFile, cmd.InstanceName); err != nil {
-		return fmt.Errorf("cannot load server config: %w", err)
+	config, confErr := conf.LoadGatewayConfig(cmd.ConfigFile, cmd.InstanceName)
+	if confErr != nil {
+		return fmt.Errorf("cannot load server config: %w", confErr)
 	}
 
-	s := gatewayd.NewWG()
+	s := gatewayd.NewWG(config)
 	if err := s.Start(); err != nil {
 		return fmt.Errorf("cannot start Waarp Gateway: %w", err)
 	}

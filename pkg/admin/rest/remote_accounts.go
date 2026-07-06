@@ -11,7 +11,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:dupl // duplicated code is about a different type
@@ -42,7 +41,7 @@ func getDBRemoteAccount(r *http.Request, db *database.DB) (*model.RemoteAgent,
 	return parent, &dbAccount, nil
 }
 
-//nolint:dupl // duplicated code is about a different type
+//nolint:dupl,goconst // duplicated code is about a different type
 func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{"login", true},
@@ -109,7 +108,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 		}
 
 		dbAccount := &model.RemoteAccount{
-			ID:            oldAccount.ID,
+			Identifier:    oldAccount.Identifier,
 			RemoteAgentID: parent.ID,
 			Login:         restAccount.Login.Value,
 		}
@@ -143,7 +142,7 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		dbAccount := &model.RemoteAccount{
-			ID:            oldAccount.ID,
+			Identifier:    oldAccount.Identifier,
 			RemoteAgentID: parent.ID,
 			Login:         restAccount.Login.Value,
 		}
@@ -194,7 +193,7 @@ func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 			if restAccount.Password.Value != "" {
 				if err := ses.Insert(&model.Credential{
-					RemoteAccountID: utils.NewNullInt64(dbAccount.ID),
+					RemoteAccountID: dbAccount.NullableID(),
 					Type:            auth.Password,
 					Value:           restAccount.Password.Value,
 				}).Run(); err != nil {

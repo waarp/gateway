@@ -1,13 +1,5 @@
 package database
 
-import (
-	"strings"
-
-	"xorm.io/builder"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-)
-
 // DeleteAllBean is the interface that a model must implement in order to be
 // deletable via the Delete query builder.
 type DeleteAllBean interface {
@@ -20,6 +12,12 @@ type DeleteAllQuery struct {
 	bean DeleteAllBean
 
 	conds []*condition
+	all   bool
+}
+
+func (d *DeleteAllQuery) All() *DeleteAllQuery {
+	d.all = true
+	return d
 }
 
 // Where adds a 'WHERE' clause to the 'DELETE' query with the given conditions
@@ -34,44 +32,28 @@ func (d *DeleteAllQuery) Where(sql string, args ...any) *DeleteAllQuery {
 	return d
 }
 
-func (d *DeleteAllQuery) Owner() *DeleteAllQuery {
-	return d.Where("owner=?", conf.GlobalConfig.GatewayName)
-}
+// Deprecated: condition is automatic now.
+func (d *DeleteAllQuery) Owner() *DeleteAllQuery { return d }
 
 // In add a 'WHERE col IN' condition to the 'DELETE' query. Because the database/sql
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
 func (d *DeleteAllQuery) In(col string, vals ...any) *DeleteAllQuery {
-	sql := &inCond{Builder: &strings.Builder{}}
-	if builder.In(col, vals...).WriteTo(sql) != nil {
-		return d
-	}
-
-	d.conds = append(d.conds, &condition{sql: sql.String(), args: sql.args})
-
+	d.conds = append(d.conds, makeInClause(col, vals...))
 	return d
 }
 
 // Run executes the 'DELETE ALL' query.
 func (d *DeleteAllQuery) Run() error {
-	logger := d.db.GetLogger()
-	query := d.db.getUnderlying().NoAutoCondition()
-
-	if len(d.conds) == 0 {
-		if _, err := query.Exec("DELETE FROM " + d.bean.TableName()); err != nil {
-			logger.Errorf("Failed to delete the %s entries: %v", d.bean.Appellation(), err)
-
-			return NewInternalError(err)
-		}
-
-		return nil
-	}
+	logger := d.db.getLogger()
+	engine := d.db.getUnderlying().Table(d.bean.TableName())
+	addOwnerCond(engine, d.all, d.bean, d.db.getOwner())
 
 	for _, cond := range d.conds {
-		query.And(cond.sql, cond.args...)
+		engine.Where(cond.sql, cond.args...)
 	}
 
-	if _, err := query.Table(d.bean.TableName()).Delete(d.bean); err != nil {
+	if err := engine.Delete(nil).Error; err != nil {
 		logger.Errorf("Failed to delete the %s entries: %v", d.bean.Appellation(), err)
 
 		return NewInternalError(err)

@@ -1,18 +1,15 @@
 package controller
 
 import (
-	"encoding/json"
 	"path"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestClientPipelineRun(t *testing.T) {
@@ -24,14 +21,14 @@ func TestClientPipelineRun(t *testing.T) {
 
 		Convey("Given a client push transfer", func() {
 			filename := "client_pipeline_push"
-			filePath := path.Join(conf.GlobalConfig.Paths.GatewayHome,
+			filePath := path.Join(ctx.db.Config.Paths.GatewayHome,
 				ctx.send.LocalDir, filename)
 			So(fs.WriteFullFile(filePath, content), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:          ctx.send.ID,
-				ClientID:        utils.NewNullInt64(ctx.client.ID),
-				RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+				ClientID:        ctx.client.NullableID(),
+				RemoteAccountID: ctx.remoteAccount.NullableID(),
 				SrcFilename:     filename,
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				Status:          types.StatusPlanned,
@@ -41,16 +38,20 @@ func TestClientPipelineRun(t *testing.T) {
 			Convey("When launching the transfer pipeline", func() {
 				pip, err := NewClientPipeline(ctx.db, trans)
 				So(err, ShouldBeNil)
+
+				done := make(chan struct{})
+				pip.Pip.Trace.OnTransferEnd = func() { close(done) }
 				pip.Run()
+				<-done
 
 				Convey("Then the transfer should be in the history", func() {
 					var hist model.HistoryEntries
 
-					So(ctx.db.Select(&hist).Run(), ShouldBeNil)
+					So(ctx.db.Select(&hist).Eager().Run(), ShouldBeNil)
 					So(hist, ShouldNotBeEmpty)
 					So(hist[0], ShouldResemble, &model.HistoryEntry{
-						ID:               trans.ID,
-						Owner:            conf.GlobalConfig.GatewayName,
+						Identifier:       trans.Identifier,
+						Owner:            ctx.db.Config.GatewayName,
 						RemoteTransferID: trans.RemoteTransferID,
 						IsServer:         false,
 						IsSend:           true,
@@ -69,9 +70,8 @@ func TestClientPipelineRun(t *testing.T) {
 						Step:             0,
 						Progress:         trans.Progress,
 						TaskNumber:       0,
-						TransferInfo: map[string]any{
-							model.FollowID: json.Number(trans.RemoteTransferID),
-						},
+						TransferInfo:     trans.TransferInfo,
+						Infos:            trans.Infos.ToHist(),
 					})
 				})
 			})

@@ -1,26 +1,30 @@
 package sftp
 
 import (
+	"fmt"
+
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type sftpConnPool = protoutils.ConnPool[*clientConn]
+type sftpConnPool = protoutils.ConnPool[*ClientConn]
 
-type clientConn struct {
+type ClientConn struct {
 	*sftp.Client
 
 	ssh ssh.Conn
 }
 
 //nolint:wrapcheck //no need to wrap here
-func (c *clientConn) Close() error {
+func (c *ClientConn) Close() error {
 	if err := c.Client.Close(); err != nil {
 		defer c.ssh.Close()
 
@@ -30,18 +34,41 @@ func (c *clientConn) Close() error {
 	return c.ssh.Close()
 }
 
-func (c *client) newClientConn(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer) (*clientConn, error) {
-	var partnerConf partnerConfig
-	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partnerConf); err != nil {
-		pip.Logger.Errorf("Failed to parse SFTP partner protocol configuration: %v", err)
+func (c *client) newClientConn(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer) (*ClientConn, error) {
+	return OpenConn(pip.Logger, pip.TransCtx, dialer, pip.DB.Config.Overrides)
+}
+
+func OpenConn(logger *log.Logger, ctx *model.TransferContext, dialer *protoutils.TraceDialer,
+	overrides *conf.ConfigOverride,
+) (*ClientConn, error) {
+	var clientConf ClientConfig
+	if err := utils.JSONConvert(ctx.Client.ProtoConfig, &clientConf); err != nil {
+		return nil, fmt.Errorf("failed to parse the SFTP client's proto config: %w", err)
+	}
+
+	sshConf := &ssh.Config{
+		KeyExchanges: clientConf.KeyExchanges,
+		Ciphers:      clientConf.Ciphers,
+		MACs:         clientConf.MACs,
+	}
+
+	return openConn(logger, ctx, dialer, sshConf, overrides)
+}
+
+func openConn(logger *log.Logger, ctx *model.TransferContext,
+	dialer *protoutils.TraceDialer, sshConf *ssh.Config, overrides *conf.ConfigOverride,
+) (*ClientConn, error) {
+	var partnerConf PartnerConfig
+	if err := utils.JSONConvert(ctx.RemoteAgent.ProtoConfig, &partnerConf); err != nil {
+		logger.Errorf("Failed to parse SFTP partner protocol configuration: %v", err)
 
 		return nil, pipeline.NewErrorWith(err, types.TeInternal, "failed to parse SFTP partner protocol configuration")
 	}
 
 	sshPartnerConf := &ssh.Config{
-		KeyExchanges: c.sshConf.KeyExchanges,
-		Ciphers:      c.sshConf.Ciphers,
-		MACs:         c.sshConf.MACs,
+		KeyExchanges: sshConf.KeyExchanges,
+		Ciphers:      sshConf.Ciphers,
+		MACs:         sshConf.MACs,
 	}
 
 	if len(partnerConf.KeyExchanges) != 0 {
@@ -56,32 +83,35 @@ func (c *client) newClientConn(pip *pipeline.Pipeline, dialer *protoutils.TraceD
 		sshPartnerConf.MACs = partnerConf.MACs
 	}
 
-	sshConn, err := openSSHConn(pip, dialer, sshPartnerConf)
+	sshConn, err := openSSHConn(logger, ctx, dialer, sshPartnerConf, overrides)
 	if err != nil {
 		return nil, err
 	}
 
-	sftpSes, err := startSFTPSession(sshConn, &partnerConf, pip)
+	sftpSes, err := startSFTPSession(logger, sshConn, &partnerConf)
 	if err != nil {
+		_ = sshConn.Close() //nolint:errcheck //close error is irrelevant here
+
 		return nil, err
 	}
 
-	return &clientConn{sftpSes, sshConn}, nil
+	return &ClientConn{sftpSes, sshConn}, nil
 }
 
-func openSSHConn(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer, sshConfig *ssh.Config,
+func openSSHConn(logger *log.Logger, ctx *model.TransferContext,
+	dialer *protoutils.TraceDialer, sshConfig *ssh.Config, overrides *conf.ConfigOverride,
 ) (*ssh.Client, *pipeline.Error) {
-	sshClientConf, confErr := makeSSHClientConfig(pip, sshConfig)
+	sshClientConf, confErr := makeSSHClientConfig(logger, ctx, sshConfig)
 	if confErr != nil {
 		return nil, confErr
 	}
 
-	addr := conf.GetRealAddress(pip.TransCtx.RemoteAgent.Address.Host,
-		utils.FormatUint(pip.TransCtx.RemoteAgent.Address.Port))
+	addr := overrides.GetRealAddress(ctx.RemoteAgent.Address.Host,
+		utils.FormatUint(ctx.RemoteAgent.Address.Port))
 
 	conn, dialErr := dialer.Dial("tcp", addr)
 	if dialErr != nil {
-		pip.Logger.Errorf("Failed to connect to the SFTP partner: %v", dialErr)
+		logger.Errorf("Failed to connect to the SFTP partner: %v", dialErr)
 
 		return nil, pipeline.NewErrorWith(dialErr, types.TeConnection,
 			"failed to connect to the SFTP partner")
@@ -89,7 +119,7 @@ func openSSHConn(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer, sshConf
 
 	sshConn, chans, reqs, sshErr := ssh.NewClientConn(conn, addr, sshClientConf)
 	if sshErr != nil {
-		pip.Logger.Errorf("Failed to start the SSH session: %v", sshErr)
+		logger.Errorf("Failed to start the SSH session: %v", sshErr)
 
 		return nil, pipeline.NewErrorWith(sshErr, types.TeConnection,
 			"failed to start the SSH session")
@@ -98,7 +128,7 @@ func openSSHConn(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer, sshConf
 	return ssh.NewClient(sshConn, chans, reqs), nil
 }
 
-func startSFTPSession(sshConn *ssh.Client, partnerConf *partnerConfig, pip *pipeline.Pipeline,
+func startSFTPSession(logger *log.Logger, sshConn *ssh.Client, partnerConf *PartnerConfig,
 ) (*sftp.Client, *pipeline.Error) {
 	var opts []sftp.ClientOption
 
@@ -112,9 +142,9 @@ func startSFTPSession(sshConn *ssh.Client, partnerConf *partnerConfig, pip *pipe
 
 	sftpSes, sftpErr := sftp.NewClient(sshConn, opts...)
 	if sftpErr != nil {
-		pip.Logger.Errorf("Failed to start SFTP session: %v", sftpErr)
+		logger.Errorf("Failed to start SFTP session: %v", sftpErr)
 
-		return nil, fromSFTPErr(sftpErr, types.TeUnknownRemote, pip)
+		return nil, pipeline.NewErrorWith(sftpErr, types.TeUnknownRemote, "failed to start SFTP session")
 	}
 
 	return sftpSes, nil

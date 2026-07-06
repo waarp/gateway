@@ -35,18 +35,32 @@ func newServer(db *database.DB, agent *model.LocalAgent) *service {
 
 func (s *service) Name() string { return s.agent.Name }
 
-func (s *service) Start() error {
+func (s *service) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	s.logger.Error(err.Error())
+	s.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(s.agent.Name, err)
+}
+
+func (s *service) Start() (retErr error) {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
+	s.logger = logging.NewLogger(s.agent.Name)
+	defer s.reportError(retErr)
+
+	if err := s.db.Get(s.agent, "id=?", s.agent.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the FTP server: %w", err)
+	}
+
+	s.logger = logging.NewLogger(s.agent.Name)
 	s.logger.Info("Starting FTP server...")
 
 	if err := s.start(); err != nil {
-		s.logger.Errorf("Failed to start FTP server: %v", err)
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
-
 		return err
 	}
 
@@ -94,39 +108,25 @@ func (s *service) start() error {
 	return nil
 }
 
-func (s *service) Stop(ctx context.Context) error {
+func (s *service) Stop(ctx context.Context) (retErr error) {
 	if !s.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
 	s.logger.Info("Stopping FTP server...")
-
-	if err := s.stop(ctx); err != nil {
-		s.logger.Errorf("Failed to stop FTP server: %v", err)
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
-
-		return err
-	}
-
-	s.state.Set(utils.StateOffline, "")
-	s.logger.Info("FTP server stopped")
-
-	return nil
-}
-
-func (s *service) stop(ctx context.Context) error {
-	s.logger.Info("Stopping FTP server...")
+	defer s.reportError(retErr)
+	defer s.server.Stop() //nolint:errcheck // error does not matter at this point
 
 	if err := pipeline.List.StopAllFromServer(ctx, s.agent.ID); err != nil {
-		_ = s.server.Stop() //nolint:errcheck // error does not matter at this point
-
 		return fmt.Errorf("failed to stop running transfers: %w", err)
 	}
 
 	if err := s.server.Stop(); err != nil {
 		return fmt.Errorf("failed to stop server: %w", err)
 	}
+
+	s.state.Set(utils.StateOffline, "")
+	s.logger.Info("FTP server stopped")
 
 	return nil
 }

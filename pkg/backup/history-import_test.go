@@ -2,6 +2,7 @@ package backup
 
 import (
 	"bytes"
+	"database/sql"
 	"runtime"
 	"strings"
 	"testing"
@@ -9,14 +10,14 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestImportHistory(t *testing.T) {
+	t.Parallel()
+
 	jsonInput := `[
   {
     "id": 1,
@@ -74,8 +75,8 @@ func TestImportHistory(t *testing.T) {
 		db := database.TestDatabase(c)
 
 		expected1 := &model.HistoryEntry{
-			ID:               1,
-			Owner:            conf.GlobalConfig.GatewayName,
+			Identifier:       model.ID(1),
+			Owner:            db.Config.GatewayName,
 			RemoteTransferID: "123",
 			IsSend:           false,
 			IsServer:         true,
@@ -93,10 +94,15 @@ func TestImportHistory(t *testing.T) {
 			Progress:         321,
 			TaskNumber:       10,
 			TransferInfo:     map[string]any{"key": "val"},
+			Infos: model.TransferInfos{{
+				HistoryID: sql.NullInt64{Valid: true, Int64: 1},
+				Name:      "key",
+				Value:     "val",
+			}},
 		}
 		expected2 := &model.HistoryEntry{
-			ID:               2,
-			Owner:            conf.GlobalConfig.GatewayName,
+			Identifier:       model.ID(2),
+			Owner:            db.Config.GatewayName,
 			RemoteTransferID: "567",
 			IsSend:           true,
 			IsServer:         false,
@@ -119,10 +125,11 @@ func TestImportHistory(t *testing.T) {
 			ErrCode:          types.TeDataTransfer,
 			ErrDetails:       "error in data transfer",
 			TransferInfo:     map[string]any{},
+			Infos:            model.TransferInfos{},
 		}
 
 		hist3 := &model.HistoryEntry{
-			ID:               3,
+			Identifier:       model.ID(3),
 			RemoteTransferID: "789",
 			IsServer:         true,
 			IsSend:           true,
@@ -149,7 +156,7 @@ func TestImportHistory(t *testing.T) {
 			Convey("Then it should have imported the history entries", func() {
 				var hist model.HistoryEntries
 
-				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
+				So(db.Select(&hist).Eager().OrderBy("id", true).Run(), ShouldBeNil)
 				So(hist, ShouldHaveLength, 2)
 				So(hist[0], ShouldResemble, expected1)
 				So(hist[1], ShouldResemble, expected2)
@@ -170,7 +177,7 @@ func TestImportHistory(t *testing.T) {
 
 				newTrans := &model.Transfer{
 					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(locAcc.ID),
+					LocalAccountID: locAcc.NullableID(),
 					DestFilename:   "file",
 				}
 				So(db.Insert(newTrans).Run(), ShouldBeNil)
@@ -186,7 +193,7 @@ func TestImportHistory(t *testing.T) {
 			Convey("Then it should NOT have imported the history entries", func() {
 				var hist model.HistoryEntries
 
-				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
+				So(db.Select(&hist).Eager().OrderBy("id", true).Run(), ShouldBeNil)
 				So(hist, ShouldHaveLength, 1)
 				So(hist[0], ShouldResemble, hist3)
 			})

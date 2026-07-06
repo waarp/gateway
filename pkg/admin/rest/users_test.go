@@ -12,7 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -21,6 +20,8 @@ import (
 const usersURI = "http://localhost:8080/api/users/"
 
 func TestGetUser(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the user get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_user_get_test")
 		db := database.TestDatabase(c)
@@ -29,15 +30,15 @@ func TestGetUser(t *testing.T) {
 
 		Convey("Given a database with 2 users", func() {
 			// add a user from another gateway
-			owner := conf.GlobalConfig.GatewayName
-			conf.GlobalConfig.GatewayName = "foobar"
+			owner := db.Config.GatewayName
+			db.Config.GatewayName = "foobar"
 			other := &model.User{
 				Username:     "existing",
 				PasswordHash: hash("existing1"),
 				Permissions:  model.PermTransfersWrite,
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
-			conf.GlobalConfig.GatewayName = owner
+			db.Config.GatewayName = owner
 
 			expected := &model.User{
 				Username:     other.Username,
@@ -93,6 +94,8 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestListUsers(t *testing.T) {
+	t.Parallel()
+
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutUser) {
 		Convey("Then the response body should contain an array "+
 			"of the requested users in JSON format", func() {
@@ -150,14 +153,14 @@ func TestListUsers(t *testing.T) {
 			user3 := *DBUserToREST(u3)
 			user4 := *DBUserToREST(u4)
 
-			owner := conf.GlobalConfig.GatewayName
-			conf.GlobalConfig.GatewayName = "foobar"
+			owner := db.Config.GatewayName
+			db.Config.GatewayName = "foobar"
 			u5 := &model.User{
 				Username:     "user5",
 				PasswordHash: hash("user5"),
 			}
 			So(db.Insert(u5).Run(), ShouldBeNil)
-			conf.GlobalConfig.GatewayName = owner
+			db.Config.GatewayName = owner
 
 			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -211,6 +214,8 @@ func TestListUsers(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the user creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_user_create_logger")
 		db := database.TestDatabase(c)
@@ -268,8 +273,8 @@ func TestCreateUser(t *testing.T) {
 							So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 								[]byte("sesame")), ShouldBeNil)
 							So(users[1], ShouldResemble, &model.User{
-								ID:           3,
-								Owner:        conf.GlobalConfig.GatewayName,
+								Identifier:   model.ID(3),
+								Owner:        db.Config.GatewayName,
 								Username:     "toto",
 								PasswordHash: users[1].PasswordHash,
 								Permissions: model.PermTransfersRead | model.PermTransfersWrite |
@@ -293,6 +298,8 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the user deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_user_delete_test")
 		db := database.TestDatabase(c)
@@ -398,6 +405,8 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the user updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_user_update_logger")
 		db := database.TestDatabase(c)
@@ -467,8 +476,8 @@ func TestUpdateUser(t *testing.T) {
 							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("sesame")), ShouldBeNil)
 							So(users[0], ShouldResemble, &model.User{
-								ID:           2,
-								Owner:        conf.GlobalConfig.GatewayName,
+								Identifier:   model.ID(2),
+								Owner:        db.Config.GatewayName,
 								Username:     "toto",
 								PasswordHash: users[0].PasswordHash,
 								Permissions: model.PermTransfersRead |
@@ -550,8 +559,8 @@ func TestUpdateUser(t *testing.T) {
 							So(model.MaskToPerms(users[0].Permissions), ShouldResemble,
 								model.MaskToPerms(old.Permissions))
 							So(users[0], ShouldResemble, &model.User{
-								ID:           2,
-								Owner:        conf.GlobalConfig.GatewayName,
+								Identifier:   model.ID(2),
+								Owner:        db.Config.GatewayName,
 								Username:     "upd_user",
 								PasswordHash: users[0].PasswordHash,
 								Permissions:  old.Permissions,
@@ -601,8 +610,8 @@ func TestUpdateUser(t *testing.T) {
 							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, &model.User{
-								ID:           2,
-								Owner:        conf.GlobalConfig.GatewayName,
+								Identifier:   model.ID(2),
+								Owner:        db.Config.GatewayName,
 								Username:     "old",
 								PasswordHash: users[0].PasswordHash,
 								Permissions:  old.Permissions,
@@ -616,6 +625,8 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestReplaceUser(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the user replacing handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_user_replace")
 		db := database.TestDatabase(c)
@@ -672,8 +683,8 @@ func TestReplaceUser(t *testing.T) {
 							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, &model.User{
-								ID:           2,
-								Owner:        conf.GlobalConfig.GatewayName,
+								Identifier:   model.ID(2),
+								Owner:        db.Config.GatewayName,
 								Username:     "upd_user",
 								PasswordHash: users[0].PasswordHash,
 							})

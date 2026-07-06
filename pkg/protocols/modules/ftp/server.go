@@ -9,7 +9,6 @@ import (
 	ftplib "github.com/fclairamb/ftpserverlib"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -50,7 +49,7 @@ func (h *handler) GetSettings() (*ftplib.Settings, error) {
 		}
 	}
 
-	addr := conf.GetRealAddress(h.dbServer.Address.Host,
+	addr := h.db.Config.Overrides.GetRealAddress(h.dbServer.Address.Host,
 		utils.FormatUint(h.dbServer.Address.Port))
 
 	return &ftplib.Settings{
@@ -97,10 +96,9 @@ func (h *handler) ClientDisconnected(ftplib.ClientContext) {
 func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.ClientDriver, error) {
 	h.logger.Debugf("Received authentication request from account %q", user)
 
-	var acc model.LocalAccount
-	if err := h.db.Get(&acc, "local_agent_id=? AND login=?", h.dbServer.ID, user).
-		Run(); err != nil && !database.IsNotFound(err) {
-		h.logger.Errorf("Failed to retrieve account: %v", err)
+	acc, accErr := h.dbServer.GetAccount(h.db, user)
+	if accErr != nil && !database.IsNotFound(accErr) {
+		h.logger.Errorf("Failed to retrieve account: %v", accErr)
 
 		return nil, errors.New("internal authentication error")
 	}
@@ -112,7 +110,7 @@ func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.C
 		}
 	}
 
-	if res, err := acc.Authenticate(h.db, h.dbServer, auth.Password, pass); err != nil {
+	if res, err := acc.Authenticate(h.db, auth.Password, pass); err != nil {
 		h.logger.Errorf("Failed to authenticate account %q: %v", user, err)
 
 		return nil, errors.New("internal authentication error")
@@ -125,11 +123,10 @@ func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.C
 	h.logger.Debugf("Account %q authenticated successfully", user)
 
 	return &serverFS{
-		db:       h.db,
-		logger:   h.logger,
-		tracer:   h.tracer,
-		dbServer: h.dbServer,
-		dbAcc:    &acc,
+		db:     h.db,
+		logger: h.logger,
+		tracer: h.tracer,
+		dbAcc:  acc,
 	}, nil
 }
 
@@ -181,15 +178,14 @@ func (h *handler) VerifyConnection(_ ftplib.ClientContext, user string,
 		return nil, nil
 	}
 
-	var acc model.LocalAccount
-	if err := h.db.Get(&acc, "local_agent_id=? AND login=?", h.dbServer.ID,
-		user).Run(); err != nil && !database.IsNotFound(err) {
+	acc, err := h.dbServer.GetAccount(h.db, user)
+	if err != nil && !database.IsNotFound(err) {
 		h.logger.Errorf("Failed to retrieve TLS account: %v", err)
 
 		return nil, errors.New("internal authentication error")
 	}
 
-	res, err := acc.Authenticate(h.db, h.dbServer, auth.TLSTrustedCertificate, certs)
+	res, err := acc.Authenticate(h.db, auth.TLSTrustedCertificate, certs)
 	if err != nil {
 		h.logger.Errorf("Failed to authenticate account %q with TLS: %v", user, err)
 
@@ -201,10 +197,9 @@ func (h *handler) VerifyConnection(_ ftplib.ClientContext, user string,
 	}
 
 	return &serverFS{
-		db:       h.db,
-		logger:   h.logger,
-		tracer:   h.tracer,
-		dbServer: h.dbServer,
-		dbAcc:    &acc,
+		db:     h.db,
+		logger: h.logger,
+		tracer: h.tracer,
+		dbAcc:  acc,
 	}, nil
 }

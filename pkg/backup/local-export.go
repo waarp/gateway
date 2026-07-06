@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -14,8 +13,7 @@ import (
 
 func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent, error) {
 	var dbLocals model.LocalAgents
-	if err := db.Select(&dbLocals).Where("owner=?", conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := db.Select(&dbLocals).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve servers: %w", err)
 	}
 

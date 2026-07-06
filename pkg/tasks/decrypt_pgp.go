@@ -22,7 +22,7 @@ func makePGPDecryptor(cryptoKey *model.CryptoKey) (decryptFunc, error) {
 		return nil, ErrDecryptNotPGPKey
 	}
 
-	pgpKey, err := pgp.NewKeyFromArmored(cryptoKey.Key.String())
+	pgpKey, err := pgp.NewKeyFromArmored(cryptoKey.Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse PGP decryption key: %w", err)
 	}

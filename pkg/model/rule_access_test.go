@@ -7,10 +7,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestRuleAccessTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a RuleAccess instance", t, func() {
 		ruleAccess := &RuleAccess{}
 
@@ -25,6 +26,8 @@ func TestRuleAccessTableName(t *testing.T) {
 }
 
 func TestIsRuleAuthorized(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -63,14 +66,14 @@ func TestIsRuleAuthorized(t *testing.T) {
 			Convey("Given a local_agent authorized for the rule", func() {
 				lAccess := RuleAccess{
 					RuleID:       r.ID,
-					LocalAgentID: utils.NewNullInt64(lAgent.ID),
+					LocalAgentID: lAgent.NullableID(),
 				}
 				So(db.Insert(&lAccess).Run(), ShouldBeNil)
 
 				Convey("Given a non authorized transfer", func() {
 					t := &Transfer{
 						RuleID:          r.ID,
-						RemoteAccountID: utils.NewNullInt64(rAccount.ID),
+						RemoteAccountID: rAccount.NullableID(),
 					}
 
 					Convey("When calling the `IsRuleAuthorized` method", func() {
@@ -91,6 +94,8 @@ func TestIsRuleAuthorized(t *testing.T) {
 }
 
 func TestRuleAccessBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -129,7 +134,7 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			Convey("Given a valid rule and target", func() {
 				ra := &RuleAccess{
 					RuleID:       r.ID,
-					LocalAgentID: utils.NewNullInt64(lAgent.ID),
+					LocalAgentID: lAgent.NullableID(),
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
@@ -144,7 +149,7 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			Convey("Given a RuleAccess with an invalid RuleID", func() {
 				ra := &RuleAccess{
 					RuleID:       1000,
-					LocalAgentID: utils.NewNullInt64(lAgent.ID),
+					LocalAgentID: lAgent.NullableID(),
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
@@ -175,8 +180,8 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			Convey("Given a RuleAccess with multiple targets", func() {
 				ra := &RuleAccess{
 					RuleID:        r.ID,
-					LocalAgentID:  utils.NewNullInt64(lAgent.ID),
-					RemoteAgentID: utils.NewNullInt64(rAgent.ID),
+					LocalAgentID:  lAgent.NullableID(),
+					RemoteAgentID: rAgent.NullableID(),
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {

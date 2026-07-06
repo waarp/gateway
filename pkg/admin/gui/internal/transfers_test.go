@@ -15,7 +15,7 @@ func TestTransferListFilePattern(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 
 	hist1 := &model.HistoryEntry{
-		ID:               123,
+		Identifier:       model.ID(123),
 		RemoteTransferID: "abc",
 		IsServer:         false,
 		IsSend:           false,
@@ -37,7 +37,7 @@ func TestTransferListFilePattern(t *testing.T) {
 	require.NoError(t, db.Insert(hist1).Run())
 
 	hist2 := &model.HistoryEntry{
-		ID:               456,
+		Identifier:       model.ID(456),
 		RemoteTransferID: "def",
 		IsServer:         false,
 		IsSend:           false,

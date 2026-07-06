@@ -56,6 +56,7 @@ func addEmailTemplate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func listEmailTemplates(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //duplicate is for a different type, keep separate
 	validSorting := orders{
 		"default": order{"name", true},
 		"name+":   order{"name", true},
@@ -120,7 +121,7 @@ func updateEmailTemplate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbTemplate := model.EmailTemplate{ID: oldDBTemplate.ID}
+		dbTemplate := model.EmailTemplate{Identifier: oldDBTemplate.Identifier}
 		setIfValid(&dbTemplate.Name, restTemplate.Name)
 		setIfValid(&dbTemplate.Subject, restTemplate.Subject)
 		setIfValid(&dbTemplate.MIMEType, restTemplate.MIMEType)
@@ -160,7 +161,7 @@ func retrieveSMTPCredential(r *http.Request, db *database.DB) (*model.SMTPCreden
 	}
 
 	var credential model.SMTPCredential
-	if err := db.Get(&credential, "email_address=?", name).Owner().Run(); err != nil {
+	if err := db.Get(&credential, "email_address=?", name).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("SMTP credential %q not found", name)
 		}
@@ -181,7 +182,7 @@ func addSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		dbCredential := model.SMTPCredential{
 			EmailAddress: restCredential.EmailAddress,
 			Login:        restCredential.Login,
-			Password:     database.SecretText(restCredential.Password),
+			Password:     restCredential.Password,
 		}
 		if err := dbCredential.ServerAddress.Set(restCredential.ServerAddress); handleError(w, logger, err) {
 			return
@@ -197,6 +198,7 @@ func addSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func listSMPTCredentials(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //keep separate
 	validSorting := orders{
 		"default": order{"email_address", true},
 		"email+":  order{"email_address", true},
@@ -221,7 +223,7 @@ func listSMPTCredentials(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				EmailAddress:  dbCredential.EmailAddress,
 				ServerAddress: dbCredential.ServerAddress.String(),
 				Login:         dbCredential.Login,
-				Password:      dbCredential.Password.String(),
+				Password:      dbCredential.Password,
 			}
 		}
 
@@ -241,7 +243,7 @@ func getSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			EmailAddress:  dbCredential.EmailAddress,
 			ServerAddress: dbCredential.ServerAddress.String(),
 			Login:         dbCredential.Login,
-			Password:      dbCredential.Password.String(),
+			Password:      dbCredential.Password,
 		}
 		handleError(w, logger, writeJSON(w, restCredential))
 	}
@@ -259,10 +261,10 @@ func updateSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		dbCredential := model.SMTPCredential{ID: oldDBCredential.ID}
+		dbCredential := model.SMTPCredential{Identifier: oldDBCredential.Identifier}
 		setIfValid(&dbCredential.EmailAddress, restCredential.EmailAddress)
 		setIfValid(&dbCredential.Login, restCredential.Login)
-		setIfValidSecret(&dbCredential.Password, restCredential.Password)
+		setIfValid(&dbCredential.Password, restCredential.Password)
 
 		if restCredential.ServerAddress.Valid {
 			if err := dbCredential.ServerAddress.Set(restCredential.ServerAddress.

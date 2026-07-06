@@ -119,7 +119,7 @@ func TestTransferRun(t *testing.T) {
 			require.NoError(t, err)
 
 			var transfer model.Transfer
-			require.NoError(t, db.Get(&transfer, "src_filename=?", filename).Run())
+			require.NoError(t, db.Get(&transfer, "src_filename=?", filename).Eager().Run())
 
 			assert.Equal(t, output, transfer.DestFilename)
 			assert.Equal(t, account.ID, transfer.RemoteAccountID.Int64)

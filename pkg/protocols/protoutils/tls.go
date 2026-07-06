@@ -29,6 +29,25 @@ const (
 	DefaultTLSVersion = tls.VersionTLS12
 )
 
+func GetMinTLSVersion(m map[string]any) uint16 {
+	field, hasField := m["minTLSVersion"]
+	if !hasField || field == nil {
+		return DefaultTLSVersion
+	}
+
+	str, isStr := field.(string)
+	if !isStr {
+		return DefaultTLSVersion
+	}
+
+	tlsVersion, err := TLSVersionFromString(str)
+	if err != nil {
+		return DefaultTLSVersion
+	}
+
+	return tlsVersion.TLS()
+}
+
 func TLSVersionFromString(v string) (TLSVersion, error) {
 	switch v {
 	case "", "null":
@@ -90,53 +109,78 @@ func (e UnsupportedTLSVersionError) Error() string {
 
 var ErrNoValidCert = errors.New("no valid x509 certificate found")
 
-func GetServerTLSConfig(db database.ReadAccess, logger *log.Logger,
-	agent *model.LocalAgent, minVersion TLSVersion,
-) func(*tls.ClientHelloInfo) (*tls.Config, error) {
-	return func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		creds, dbErr := agent.GetCredentials(db, auth.TLSCertificate)
-		if dbErr != nil {
-			logger.Errorf("Failed to retrieve server certificates: %s", dbErr)
+func MakeServerTLSConfig(db database.ReadAccess, logger *log.Logger, agentID int64,
+) (*tls.Config, error) {
+	var agent model.LocalAgent
+	if err := db.Get(&agent, "id=?", agentID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to retrieve server agent from database: %w", err)
+	}
 
-			return nil, fmt.Errorf("failed to retrieve server certificates: %w", dbErr)
+	tlsCerts, err := GetServerCertificates(db, logger, &agent)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tlsCerts) == 0 {
+		logger.Errorf("Could not find a valid certificate for %s server", agent.Protocol)
+
+		return nil, ErrNoValidCert
+	}
+
+	return &tls.Config{
+		MinVersion:            GetMinTLSVersion(agent.ProtoConfig),
+		Certificates:          tlsCerts,
+		ClientAuth:            tls.RequestClientCert,
+		VerifyPeerCertificate: auth.VerifyClientCert(db, logger, &agent),
+		VerifyConnection:      compatibility.LogSha1(logger),
+	}, nil
+}
+
+func GetServerCertificates(db database.ReadAccess, logger *log.Logger, owner model.CredOwnerTable,
+) ([]tls.Certificate, error) {
+	creds, dbErr := owner.GetCredentials(db, auth.TLSCertificate)
+	if dbErr != nil {
+		logger.Errorf("Failed to retrieve server certificates: %s", dbErr)
+
+		return nil, fmt.Errorf("failed to retrieve server certificates: %w", dbErr)
+	}
+
+	var tlsCerts []tls.Certificate
+
+	for _, cred := range creds {
+		cert, err := tls.X509KeyPair([]byte(cred.Value), []byte(cred.Value2))
+		if err != nil {
+			logger.Warningf("Failed to parse server certificate: %v", err)
+
+			continue
 		}
 
-		var tlsCerts []tls.Certificate
+		tlsCerts = append(tlsCerts, cert)
+	}
 
-		for _, cred := range creds {
-			cert, err := tls.X509KeyPair([]byte(cred.Value), []byte(cred.Value2))
-			if err != nil {
-				logger.Warningf("Failed to parse server certificate: %v", err)
+	return tlsCerts, nil
+}
 
-				continue
-			}
-
-			tlsCerts = append(tlsCerts, cert)
-		}
-
-		if len(tlsCerts) == 0 {
-			logger.Errorf("Could not find a valid certificate for %s server", agent.Protocol)
-
-			return nil, ErrNoValidCert
-		}
-
-		return &tls.Config{
-			MinVersion:            minVersion.TLS(),
-			Certificates:          tlsCerts,
-			ClientAuth:            tls.RequestClientCert,
-			VerifyPeerCertificate: auth.VerifyClientCert(db, logger, agent),
-			VerifyConnection:      compatibility.LogSha1(logger),
-		}, nil
+func GetServerTLSConfig(db database.ReadAccess, logger *log.Logger, agentID int64,
+) *tls.Config {
+	return &tls.Config{
+		GetConfigForClient: func(*tls.ClientHelloInfo) (*tls.Config, error) {
+			return MakeServerTLSConfig(db, logger, agentID)
+		},
 	}
 }
 
-func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger, minVersion TLSVersion,
-) (*tls.Config, error) {
+func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger) (*tls.Config, error) {
+	minVersion := GetMinTLSVersion(ctx.Client.ProtoConfig)
+	if partMinVersion := GetMinTLSVersion(ctx.RemoteAgent.ProtoConfig); partMinVersion != 0 {
+		minVersion = partMinVersion
+	}
+
 	config := &tls.Config{
 		ServerName:       ctx.RemoteAgent.Address.Host,
 		RootCAs:          utils.TLSCertPool(),
 		VerifyConnection: compatibility.LogSha1(logger),
-		MinVersion:       minVersion.TLS(),
+		MinVersion:       minVersion,
 	}
 
 	for _, cred := range ctx.RemoteAccountCreds {

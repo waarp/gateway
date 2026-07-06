@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -35,8 +34,7 @@ func importUsers(logger *log.Logger, db database.Access, users []file.User,
 
 		exists := true
 
-		if err := db.Get(&dbUser, "username=? AND owner=?", user.Username,
-			conf.GlobalConfig.GatewayName).Run(); err != nil {
+		if err := db.Get(&dbUser, "username=?", user.Username).Run(); err != nil {
 			if !database.IsNotFound(err) {
 				return fmt.Errorf("failed to retrieve user %q: %w", dbUser.Username, err)
 			}

@@ -8,11 +8,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestHistoryTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a `HistoryEntry` instance", t, func() {
 		hist := &HistoryEntry{}
 
@@ -27,18 +28,19 @@ func TestHistoryTableName(t *testing.T) {
 }
 
 func TestHistoryBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		// The database is set to nil here because the test does not require
 		// it. TestDatabase is only used for its side effect of initializing
-		// the configiration. It speds up the test by a 200x factor.
+		// the configuration. It speeds up the test by a 200x factor.
 
-		// db := database.TestDatabase(c)
-		var db *database.DB
-		conf.GlobalConfig.GatewayName = "gateway"
+		config := &conf.ServerConfig{GatewayName: "gateway"}
+		db := database.NewDB(config)
 
 		Convey("Given a new history entry", func() {
 			hist := &HistoryEntry{
-				ID:               1,
+				Identifier:       ID(1),
 				RemoteTransferID: "12345",
 				Rule:             "rule",
 				IsServer:         true,
@@ -52,7 +54,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				Stop:             time.Now(),
 				Protocol:         testProtocol,
 				Status:           "DONE",
-				Owner:            conf.GlobalConfig.GatewayName,
+				Owner:            db.Config.GatewayName,
 			}
 
 			shouldFailWith := func(errDesc string, expErr error) {
@@ -192,6 +194,8 @@ func testTransferStatus(tc statusTestCase, target database.WriteHook, db *databa
 }
 
 func TestTransferHistoryRestart(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -215,8 +219,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			history := &HistoryEntry{
-				ID:               1,
-				Owner:            conf.GlobalConfig.GatewayName,
+				Identifier:       ID(1),
+				Owner:            db.Config.GatewayName,
 				RemoteTransferID: "12345",
 				IsServer:         false,
 				IsSend:           rule.IsSend,
@@ -243,16 +247,15 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 				Convey("Then it should return a new transfer instance", func() {
 					So(trans, ShouldResemble, &Transfer{
-						ID:               0,
 						RemoteTransferID: "",
 						RuleID:           rule.ID,
-						ClientID:         utils.NewNullInt64(cli.ID),
-						RemoteAccountID:  utils.NewNullInt64(account.ID),
+						ClientID:         cli.NullableID(),
+						RemoteAccountID:  account.NullableID(),
 						SrcFilename:      history.SrcFilename,
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            conf.GlobalConfig.GatewayName,
+						Owner:            db.Config.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 					})
@@ -274,8 +277,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			history := &HistoryEntry{
-				ID:               1,
-				Owner:            conf.GlobalConfig.GatewayName,
+				Identifier:       ID(1),
+				Owner:            db.Config.GatewayName,
 				RemoteTransferID: "2",
 				IsServer:         true,
 				IsSend:           rule.IsSend,
@@ -301,15 +304,14 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 				Convey("Then it should return a new transfer instance", func() {
 					So(trans, ShouldResemble, &Transfer{
-						ID:               0,
 						RemoteTransferID: "",
 						RuleID:           rule.ID,
-						LocalAccountID:   utils.NewNullInt64(account.ID),
+						LocalAccountID:   account.NullableID(),
 						SrcFilename:      history.SrcFilename,
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            conf.GlobalConfig.GatewayName,
+						Owner:            db.Config.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 					})

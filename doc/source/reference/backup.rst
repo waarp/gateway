@@ -15,8 +15,15 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
   * ``protocol`` (*string*) - Le protocole du serveur.
   * ``disabled`` (*bool*) - Indique si le serveur doit être démarré automatiquement
     au lancement de la gateway.
+  * ``address`` (*string*) - L'adresse locale (*hôte:port*) du serveur.
   * ``root`` (*string*) - Le dossier racine du serveur.
   * ``workDir`` (*string*) - Le dossier temporaire du serveur.
+  * ``rootDir`` (*string*) - Le dossier racine du serveur.
+  * ``receiveDir`` (*string*) - Le dossier de réception du serveur.
+  * ``sendDir`` (*string*) - Le dossier d'envoi du serveur.
+  * ``tmpReceiveDir`` (*string*) - Le dossier de réception temporaire du serveur.
+  * ``inDir`` (*string*) - [DÉPRÉCIÉ] Le dossier de réception du serveur.
+  * ``outDir`` (*string*) - [DÉPRÉCIÉ] Le dossier d'envoi du serveur.
   * ``configuration`` (*object*) - La :any:`configuration protocolaire
     <reference-proto-config>` du serveur.
   * ``credentials`` (*array*) - La liste des :term:`informations d'authentification
@@ -74,6 +81,7 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
   transfert de Gateway.
 
   * ``name`` (*string*) - Le nom du partenaire.
+  * ``address`` (*string*) - L'adresse (*hôte:port*) du partenaire.
   * ``protocol`` (*string*) - Le protocole du partenaire.
   * ``configuration`` (*object*) - La :any:`configuration protocolaire
     <reference-proto-config>` du serveur.
@@ -149,8 +157,11 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
     pour la réception.
   * ``path`` (*string*) - Le chemin de la règle. Permet d'identifier la règle
     lorsque le protocole seul ne le permet pas.
-  * ``inPath`` (*string*) - Le dossier de réception de la règle.
-  * ``outPath`` (*string*) - Le dossier d'envoi de la règle.
+  * ``localDir`` (*string*) - Le dossier local de la règle.
+  * ``remoteDir`` (*string*) - Le dossier distant de la règle.
+  * ``tmpLocalRcvDir`` (*string*) - Le dossier local temporaire de la règle.
+  * ``inPath`` (*string*) - [DÉPRÉCIÉ] Le dossier de réception de la règle.
+  * ``outPath`` (*string*) - [DÉPRÉCIÉ] Le dossier d'envoi de la règle.
   * ``workPath`` (*string*) - Le dossier de réception temporaire de la règle.
   * ``auth`` (*array*) - La liste des agents autorisés à utiliser la règle.
     Chaque élément de la liste doit être précédé de sa nature (``remote`` ou
@@ -312,6 +323,41 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
        - ``PGP-PRIVATE`` pour les clés PGP privées
   * ``key`` (*string*) - La clé en format textuel. Si la clé n'a pas de format
     textuel natif, la clé doit être fournie en format Base64.
+
+* ``emailConfig`` (*object*) - L'objet de configuration des emails.
+
+  * ``credentials`` (*array*) - La liste des identifiants SMTP connus.
+
+    * ``emailAddress`` (*string*) - L'adresse email.
+    * ``serverAddress`` (*string*) - L'adresse du serveur SMTP.
+    * ``login`` (*string*) - Le login.
+    * ``password`` (*string*) - Le mot de passe.
+
+  * ``templates`` (*array*) - La liste des templates d'email connus.
+
+    * ``name`` (*string*) - Le nom du template.
+    * ``subject`` (*string*) - Le sujet de l'email.
+    * ``mimeType`` (*string*) - Le type MIME du corps de l'email (typiquement
+      soit "text/plain" ou "text/html")
+    * ``body`` (*string*) - Le corps de l'email.
+    * ``attachments`` (*array of strings*) - Une liste des fichiers à joindre à l'email.
+
+* ``filewatchers`` (*object*) - L'objet de configuration des *filewatchers* de Gateway.
+
+  * ``remote`` (*array*) - La liste des *filewatchers* distants (c'est-à-dire
+    les *filewatchers* surveillant un dossier chez un partenaire distant).
+
+    * ``flow`` (*string*) - Le nom du flux auquel le filewatcher appartient.
+    * ``interval`` (*string*) - La fréquence à laquelle le *filewatcher* interrogera
+      le partenaire distant pour obtenir la liste des fichiers à récupérer.
+    * ``pattern`` (*string*) - Le pattern de fichier à matcher (format *glob*).
+    * ``partner`` (*string*) - Le partenaire à interroger.
+    * ``remoteAccount`` (*string*) - Le compte à utiliser pour s'authentifier.
+    * ``client`` (*string*) - Le client à utiliser pour la requête.
+    * ``rule`` (*string*) - La règle à utiliser pour le transfert.
+    * ``noDuplicateCheck`` (*bool*) - Désactive la détection de transfert dupliqués.
+      Par défaut, le *filewatcher* ignore les fichiers qui ont déjà été récupérés
+      lors d'un précédent passage.
 
 **Exemple**
 

@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -53,19 +52,19 @@ func TestFileReader(t *testing.T) {
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			pswd := &model.Credential{
-				LocalAccountID: utils.NewNullInt64(account.ID),
+				LocalAccountID: account.NullableID(),
 				Type:           auth.Password,
 				Value:          "password",
 			}
 			So(db.Insert(pswd).Run(), ShouldBeNil)
 
 			Convey("Given the FileReader", func() {
-				conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: root}
+				db.Config.Paths = conf.PathsConfig{GatewayHome: root}
 
 				handler := (&sshListener{
-					DB:     db,
-					Logger: logger,
-					Server: agent,
+					DB:       db,
+					Logger:   logger,
+					serverID: agent.ID,
 				}).makeFileReader(account)
 
 				Convey("Given a request for an existing file in the rule path", func() {
@@ -159,19 +158,19 @@ func TestFileWriter(t *testing.T) {
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			pswd := &model.Credential{
-				LocalAccountID: utils.NewNullInt64(account.ID),
+				LocalAccountID: account.NullableID(),
 				Type:           auth.Password,
 				Value:          "password",
 			}
 			So(db.Insert(pswd).Run(), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
-				conf.GlobalConfig.Paths.GatewayHome = root
+				db.Config.Paths.GatewayHome = root
 
 				handler := (&sshListener{
-					DB:     db,
-					Logger: logger,
-					Server: agent,
+					DB:       db,
+					Logger:   logger,
+					serverID: agent.ID,
 				}).makeFileWriter(account)
 
 				Convey("Given a request for an existing file in the rule path", func() {

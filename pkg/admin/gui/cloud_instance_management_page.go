@@ -137,7 +137,7 @@ func addCloudInstance(db *database.DB, r *http.Request) error {
 	}
 
 	if addCloudInstanceSecret := r.FormValue("addCloudInstanceSecret"); addCloudInstanceSecret != "" {
-		newCloudInstance.Secret = database.SecretText(addCloudInstanceSecret)
+		newCloudInstance.Secret = addCloudInstanceSecret
 	}
 
 	optionsMap := make(map[string]string)
@@ -193,7 +193,7 @@ func editCloudInstance(db *database.DB, r *http.Request) error {
 	}
 
 	if editCloudInstanceSecret := r.FormValue("editCloudInstanceSecret"); editCloudInstanceSecret != "" {
-		editCloudInstance.Secret = database.SecretText(editCloudInstanceSecret)
+		editCloudInstance.Secret = editCloudInstanceSecret
 	}
 
 	optionsMap := make(map[string]string)

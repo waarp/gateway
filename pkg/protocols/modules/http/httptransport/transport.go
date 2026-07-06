@@ -3,93 +3,110 @@ package httptransport
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
+	"errors"
 	"net"
 	"net/http"
+	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func NewTransport(overHttps bool, localAddr string) (Transporter, error) {
-	dialer := &net.Dialer{}
+//nolint:gochecknoglobals //needs to be a variable for tests
+var idleConnTimeout = protoutils.DefaultConnGracePeriod
+
+//nolint:mnd //magic number is for tests
+func SetTestIdleConnTimeout() { idleConnTimeout = 100 * time.Millisecond }
+
+type Transporter struct {
+	transport *http.Transport
+	overrides *conf.ConfigOverride
+}
+
+func NewTransporter(overHttps bool, localAddr string, overrides *conf.ConfigOverride) (*Transporter, error) {
 	if localAddr != "" {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", localAddr)
+		host, port, err := net.SplitHostPort(localAddr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse the AS2 client's local address %q: %w",
-				localAddr, err)
+			return nil, err //nolint:wrapcheck //wrapping adds nothing here
 		}
 
-		dialer.LocalAddr = tcpAddr
+		localAddr = overrides.GetRealAddress(host, port)
 	}
 
-	tracer := &protoutils.TraceDialer{Dialer: dialer}
-
-	if overHttps {
-		return &HttpsTransport{
-			pool: protoutils.NewConnPool(tracer, newHttpsConn),
-		}, nil
-	}
-
-	return &HttpTransport{
-		t: &http.Transport{
-			DialContext: tracer.DialContext,
-		},
-	}, nil
-}
-
-type Transporter interface {
-	Get(pip *pipeline.Pipeline) (*http.Transport, error)
-	Return(pip *pipeline.Pipeline)
-}
-
-type HttpTransport struct {
-	t *http.Transport
-}
-
-func (h *HttpTransport) Get(*pipeline.Pipeline) (*http.Transport, error) { return h.t, nil }
-func (h *HttpTransport) Return(*pipeline.Pipeline)                       {}
-
-type httpsTransport struct{ *http.Transport }
-
-func (h *httpsTransport) Close() error { return nil }
-
-type HttpsTransport struct {
-	pool *protoutils.ConnPool[*httpsTransport]
-}
-
-func (h *HttpsTransport) Get(pip *pipeline.Pipeline) (*http.Transport, error) {
-	t, err := h.pool.Connect(pip)
+	dialer, err := protoutils.NewDialerFor(localAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.Transport, nil
-}
-
-func (h *HttpsTransport) Return(pip *pipeline.Pipeline) {
-	h.pool.CloseConnFor(pip.TransCtx.RemoteAccount)
-}
-
-//nolint:wrapcheck //no need to wrap here
-func newHttpsConn(pip *pipeline.Pipeline, dialer *protoutils.TraceDialer) (*httpsTransport, error) {
-	minVersion := getMinTLSVersion(pip.TransCtx)
-	tlsConfig, tlsErr := protoutils.GetClientTLSConfig(pip.TransCtx, pip.Logger, minVersion)
-	if tlsErr != nil {
-		return nil, tlsErr
+	if !overHttps {
+		return &Transporter{transport: &http.Transport{
+			IdleConnTimeout: idleConnTimeout,
+			DialContext:     dialer.DialContext,
+		}}, nil
 	}
 
-	return &httpsTransport{
-		Transport: &http.Transport{
-			ForceAttemptHTTP2: true,
-			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				conn, err := dialer.DialContext(ctx, network, addr)
-				if err != nil {
-					return nil, err
-				}
+	return &Transporter{transport: &http.Transport{
+		IdleConnTimeout: idleConnTimeout,
+		DialTLSContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			pip, ok := ctx.Value(pipKey).(*pipeline.Pipeline)
+			if !ok {
+				return nil, errNoPipeline
+			}
 
-				return tls.Client(conn, tlsConfig), nil
-			},
+			return dialHttps(ctx, dialer, overrides, pip)
 		},
-	}, nil
+	}}, nil
+}
+
+func (t *Transporter) Connect(pip *pipeline.Pipeline) http.RoundTripper {
+	return &rTripper{
+		transport: t.transport,
+		pip:       pip,
+		overrides: t.overrides,
+	}
+}
+
+func (t *Transporter) Close() {
+	t.transport.CloseIdleConnections()
+}
+
+type pipKeyType string
+
+const pipKey pipKeyType = "pipeline"
+
+var errNoPipeline = errors.New("pipeline not found in context")
+
+type rTripper struct {
+	transport *http.Transport
+	pip       *pipeline.Pipeline
+	overrides *conf.ConfigOverride
+}
+
+func (rt *rTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	ctx := context.WithValue(req.Context(), pipKey, rt.pip)
+	*req = *req.WithContext(ctx)
+
+	//nolint:wrapcheck //wrapping adds nothing here
+	return rt.transport.RoundTrip(req)
+}
+
+func dialHttps(ctx context.Context, dialer *protoutils.TraceDialer,
+	ovrd *conf.ConfigOverride, pip *pipeline.Pipeline,
+) (net.Conn, error) {
+	addr := ovrd.GetRealAddress(pip.TransCtx.RemoteAgent.Address.Host,
+		utils.FormatUint(pip.TransCtx.RemoteAgent.Address.Port))
+
+	tlsConfig, confErr := protoutils.GetClientTLSConfig(pip.TransCtx, pip.Logger)
+	if confErr != nil {
+		return nil, confErr
+	}
+
+	tcpConn, tcpErr := dialer.DialContext(ctx, "tcp", addr)
+	if tcpErr != nil {
+		return nil, tcpErr
+	}
+
+	return tls.Client(tcpConn, tlsConfig), nil
 }

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
@@ -49,6 +50,11 @@ func Register(name string, p Module) {
 	clientMakers[name] = p.NewClient
 	serverMakers[name] = p.NewServer
 	list = append(list, name)
+	features.Register(name, p.OptionalFeatures()...)
+
+	if idGen, ok := p.(CustomIDModule); ok {
+		model.IDGenerators[name] = idGen.IDGenerator()
+	}
 }
 
 func List() iter.Seq[string] {

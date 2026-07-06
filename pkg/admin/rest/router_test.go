@@ -13,6 +13,8 @@ import (
 )
 
 func TestRouterChange(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a gateway router", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "test_router")

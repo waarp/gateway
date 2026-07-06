@@ -15,7 +15,7 @@ import (
 )
 
 func makeServerConf(db *database.DB, logger *log.Logger,
-	protoConfig *serverConfig, agent *model.LocalAgent,
+	protoConfig *ServerConfig, agent *model.LocalAgent,
 ) *ssh.ServerConfig {
 	certChecker := ssh.CertChecker{
 		IsUserAuthority: isUserAuthority(db, logger),
@@ -40,15 +40,14 @@ func makeServerConf(db *database.DB, logger *log.Logger,
 func userKeyCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
 ) func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.Permissions, error) {
 	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-		var acc model.LocalAccount
-		if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
-			conn.User()).Run(); err != nil && !database.IsNotFound(err) {
-			logger.Errorf("Failed to retrieve user credentials: %v", err)
+		acc, accErr := agent.GetAccount(db, conn.User())
+		if accErr != nil && !database.IsNotFound(accErr) {
+			logger.Errorf("Failed to retrieve user credentials: %v", accErr)
 
 			return nil, ErrDatabase
 		}
 
-		if res, err := acc.Authenticate(db, agent, AuthSSHPublicKey, key); err != nil {
+		if res, err := acc.Authenticate(db, AuthSSHPublicKey, key); err != nil {
 			logger.Errorf("Failed to authenticate account %q: %v", acc.Login, err)
 
 			return nil, ErrInternal
@@ -77,10 +76,9 @@ func userKeyCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgen
 func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
 ) func(ssh.ConnMetadata, []byte) (*ssh.Permissions, error) {
 	return func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-		var acc model.LocalAccount
-		if err := db.Get(&acc, "local_agent_id=? AND login=?", agent.ID,
-			conn.User()).Run(); err != nil && !database.IsNotFound(err) {
-			logger.Errorf("Failed to retrieve user credentials: %v", err)
+		acc, accErr := agent.GetAccount(db, conn.User())
+		if accErr != nil && !database.IsNotFound(accErr) {
+			logger.Errorf("Failed to retrieve user credentials: %v", accErr)
 
 			return nil, ErrDatabase
 		}
@@ -92,7 +90,7 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 			}
 		}
 
-		if res, err := acc.Authenticate(db, agent, auth.Password, pass); err != nil {
+		if res, err := acc.Authenticate(db, auth.Password, pass); err != nil {
 			logger.Errorf("Failed to authenticate account %q: %v", acc.Login, err)
 
 			return nil, ErrInternal
@@ -125,7 +123,7 @@ func setServerDefaultAlgos(conf *ssh.ServerConfig) {
 // parameters. By default, the server accepts both public key & password
 // authentication, with the former having priority over the latter.
 func getSSHServerConfig(db *database.DB, logger *log.Logger, hostkeys []*model.Credential,
-	protoConfig *serverConfig, agent *model.LocalAgent,
+	protoConfig *ServerConfig, agent *model.LocalAgent,
 ) (*ssh.ServerConfig, error) {
 	conf := makeServerConf(db, logger, protoConfig, agent)
 

@@ -28,7 +28,7 @@ func exportEmailConf(logger *log.Logger, db database.ReadAccess) (*file.EmailCon
 
 func exportSMTPCredentials(logger *log.Logger, db database.ReadAccess) ([]*file.SMTPCredential, error) {
 	var dbCreds model.SMTPCredentials
-	if err := db.Select(&dbCreds).Owner().Run(); err != nil {
+	if err := db.Select(&dbCreds).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve SMTP credentials: %w", err)
 	}
 
@@ -39,7 +39,7 @@ func exportSMTPCredentials(logger *log.Logger, db database.ReadAccess) ([]*file.
 			EmailAddress:  dbCred.EmailAddress,
 			ServerAddress: dbCred.ServerAddress.String(),
 			Login:         dbCred.Login,
-			Password:      dbCred.Password.String(),
+			Password:      dbCred.Password,
 		}
 
 		logger.Infof("Exported SMTP credential %q", dbCred.EmailAddress)

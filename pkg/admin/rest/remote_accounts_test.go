@@ -16,7 +16,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -25,6 +24,8 @@ func remoteAccountsURI(agent, login string) string {
 }
 
 func TestGetRemoteAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_get_test")
 		db := database.TestDatabase(c)
@@ -45,7 +46,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			pswd := model.Credential{
-				RemoteAccountID: utils.NewNullInt64(existing.ID),
+				RemoteAccountID: existing.NullableID(),
 				Type:            auth.Password,
 				Value:           "sesame",
 			}
@@ -128,6 +129,8 @@ func TestGetRemoteAccount(t *testing.T) {
 }
 
 func TestListRemoteAccounts(t *testing.T) {
+	t.Parallel()
+
 	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutRemoteAccount) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
@@ -292,6 +295,8 @@ func TestListRemoteAccounts(t *testing.T) {
 }
 
 func TestCreateRemoteAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_create_logger")
 		db := database.TestDatabase(c)
@@ -342,7 +347,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 							So(accs[0], ShouldResemble, &model.RemoteAccount{
-								ID:            1,
+								Identifier:    model.ID(1),
 								RemoteAgentID: parent.ID,
 								Login:         "new_account",
 							})
@@ -387,6 +392,8 @@ func TestCreateRemoteAccount(t *testing.T) {
 }
 
 func TestDeleteRemoteAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_delete_test")
 		db := database.TestDatabase(c)
@@ -475,6 +482,8 @@ func TestDeleteRemoteAccount(t *testing.T) {
 }
 
 func TestUpdateRemoteAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
 		db := database.TestDatabase(c)
@@ -532,7 +541,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 							So(res[0], ShouldResemble, &model.RemoteAccount{
-								ID:            old.ID,
+								Identifier:    old.Identifier,
 								RemoteAgentID: parent.ID,
 								Login:         "old",
 							})
@@ -613,6 +622,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 }
 
 func TestReplaceRemoteAccount(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the account updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_account_update_logger")
 		db := database.TestDatabase(c)
@@ -670,7 +681,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 							So(res[0], ShouldResemble, &model.RemoteAccount{
-								ID:            old.ID,
+								Identifier:    old.Identifier,
 								RemoteAgentID: parent.ID,
 								Login:         "upd_login",
 							})
