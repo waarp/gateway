@@ -1,7 +1,10 @@
 package pesit
 
 import (
+	"cmp"
+	"errors"
 	"reflect"
+	"slices"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -23,25 +26,15 @@ const (
 	serverTransFreetextKey = "__serverTransFreetext__"
 
 	articlesLengthsKey = "__articlesLengths__"
+	articlesFormatKey  = "__articlesFormat__"
 )
 
-type valueTypes interface {
-	string |
-		int | int8 | int16 | int32 | int64 |
-		uint | uint8 | uint16 | uint32 | uint64 |
-		float32 | float64
-}
-
-func setPesitInfo[T valueTypes, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {
-	valAny, hasKey := pip.TransCtx.Transfer.TransferInfo[key]
-	if !hasKey {
+func setPesitInfo[T cmp.Ordered, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {
+	val, err := utils.GetAs[T](pip.TransCtx.Transfer.TransferInfo, key)
+	if errors.Is(err, utils.ErrKeyNotFound) {
 		return nil
-	}
-
-	val, isStr := valAny.(T)
-	if !isStr {
-		return pipeline.NewErrorf(types.TeInternal,
-			"freetext variable %q must be a %T (was of type %T)", key, val, valAny)
+	} else if err != nil {
+		return pipeline.NewError(types.TeInternal, err.Error())
 	}
 
 	set(val)
@@ -123,17 +116,49 @@ func setFreetext(pip *pipeline.Pipeline, key string, f interface {
 	return setPesitInfo(pip, key, f.SetFreeText)
 }
 
-func setTransInfo[T valueTypes](pip *pipeline.Pipeline, key string, val T) {
+func setTransInfo[T cmp.Ordered](pip *pipeline.Pipeline, key string, val T) {
 	if !reflect.ValueOf(val).IsZero() {
 		pip.TransCtx.Transfer.TransferInfo[key] = val
 	}
 }
 
-func isMultiArticles(pip *pipeline.Pipeline) ([]int64, bool) {
-	vals, err := utils.GetAs[[]int64](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
+func isMultiArticles(pip *pipeline.Pipeline) ([]uint16, bool) {
+	vals, err := utils.GetAs[[]uint16](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
 	if err != nil {
 		return nil, false
 	}
 
 	return vals, len(vals) > 0
+}
+
+func getArticlesFormat(pip *pipeline.Pipeline) pesit.ArticleFormat {
+	val, err := utils.GetAs[string](pip.TransCtx.Transfer.TransferInfo, articlesFormatKey)
+	if err != nil {
+		return defaultArticleFormat
+	}
+
+	switch val {
+	case pesit.FormatFixed.String():
+		return pesit.FormatFixed
+	case pesit.FormatVariable.String():
+		return pesit.FormatVariable
+	default:
+		return defaultArticleFormat
+	}
+}
+
+func getArticlesSize(pip *pipeline.Pipeline) uint16 {
+	vals, err := utils.GetAs[[]uint16](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
+	if err != nil {
+		return defaultArticleSize
+	}
+
+	return slices.Max(vals)
+}
+
+func addArticleFormat(pip *pipeline.Pipeline, f interface {
+	ArticleFormat() pesit.ArticleFormat
+},
+) {
+	pip.TransCtx.Transfer.TransferInfo[articlesFormatKey] = f.ArticleFormat().String()
 }

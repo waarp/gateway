@@ -5,6 +5,8 @@ import (
 	"math"
 	"strings"
 
+	"code.waarp.fr/lib/pesit"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
@@ -18,8 +20,11 @@ const (
 	// DefaultMessageSize defines the default PeSIT message size (in bytes) if
 	// omitted by the user in the proto config.
 	DefaultMessageSize uint16 = math.MaxUint16
+)
 
-	defaultArticleSize = 0xFF00
+const (
+	defaultArticleSize   uint16 = 4096
+	defaultArticleFormat        = pesit.FormatVariable
 )
 
 type CompatibilityMode string

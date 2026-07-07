@@ -62,8 +62,7 @@ func pesitErrToPipErr(msg string, pErr pesit.Diagnostic) *pipeline.Error {
 
 //nolint:unparam //leave the default code parameter, we might need it later
 func toPesitErr(defaultCode pesit.DiagnosticCode, err error) pesit.Diagnostic {
-	var pErr *pipeline.Error
-	if errors.As(err, &pErr) {
+	if pErr, ok := errors.AsType[*pipeline.Error](err); ok {
 		return transErrToPesitErr(pErr)
 	}
 

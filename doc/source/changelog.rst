@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`560` La taille et le format des articles PeSIT est désormais configurable
+  via les informations de transfert. Voir :ref:`le chapitre <ref-pesit-articles>`
+  de la documentation PeSIT sur les articles pour plus de détails.
+
 * :release:`0.15.9 <2026-06-18>`
 * :bug:`554` Les identifiants (*credentials*) des partenaires importés via la
   commande d'import sont désormais correctement ajoutés en base de données. À

@@ -79,9 +79,6 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
 
-	req.SetArticleFormat(pesit.FormatVariable)
-	req.SetArticleSize(defaultArticleSize)
-
 	if t.conf.MaxMessageSize < req.MessageSize() {
 		req.SetMessageSize(t.conf.MaxMessageSize)
 	}
@@ -157,6 +154,13 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		}
 
 		req.SetTransferID(uint32(pesitID))
+	}
+
+	if rule.IsSend {
+		req.SetArticleFormat(getArticlesFormat(t.pip))
+		req.SetArticleSize(getArticlesSize(t.pip))
+	} else {
+		addArticleFormat(t.pip, req)
 	}
 
 	t.logger.Infof("Transfer request for file %q accepted", req.Filename())
@@ -331,7 +335,7 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 }
 
 func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
-	var articlesLen []int64
+	var articlesLen []uint16
 
 	for {
 		article, aErr := trans.GetNextRecvArticle()
@@ -351,22 +355,31 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 		}
 
 		end := t.pip.TransCtx.Transfer.Progress
-		articlesLen = append(articlesLen, end-start)
+		articlesLen = append(articlesLen, uint16(end-start))
 		t.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articlesLen
 	}
 }
 
 func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
+	format := getArticlesFormat(t.pip)
 	lengths, isMArticles := isMultiArticles(t.pip)
-	if !isMArticles {
-		if _, err := io.Copy(trans, t.file); err != nil {
-			return toPesitErr(pesit.CodeInternalError, err)
-		}
+	size := getArticlesSize(t.pip)
 
-		return nil
+	trans.SetArticleFormat(format)
+	trans.SetArticleSize(size)
+
+	if format == pesit.FormatVariable && isMArticles {
+		return t.multiSend(trans, lengths)
 	}
 
-	trans.SetArticleFormat(pesit.FormatVariable)
+	if _, err := io.Copy(trans, t.file); err != nil {
+		return toPesitErr(pesit.CodeInternalError, err)
+	}
+
+	return nil
+}
+
+func (t *transferHandler) multiSend(trans *pesit.ServerTransfer, lengths []uint16) error {
 	trans.SetManualArticleHandling(true)
 
 	for _, length := range lengths {
@@ -377,7 +390,7 @@ func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 			return aErr //nolint:wrapcheck //wrapping adds nothing here
 		}
 
-		file := io.LimitReader(t.file, length)
+		file := io.LimitReader(t.file, int64(length))
 
 		if _, err := io.Copy(article, file); err != nil {
 			return toPesitErr(pesit.CodeInternalError, err)

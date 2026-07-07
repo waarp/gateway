@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/lib/pesit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,10 +15,24 @@ import (
 )
 
 func TestOk(t *testing.T) {
+	dataLen := uint16(len(gwtesting.PushFileContent))
 	db := gwtesting.Database(t)
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
 
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
+		serverTransfer := &model.Transfer{
+			RuleID:         ctx.ServerRulePull.ID,
+			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			SrcFilename:    ctx.TransferPull.SrcFilename,
+			Start:          time.Now().Add(time.Hour),
+			Status:         types.StatusAvailable,
+			TransferInfo: map[string]any{
+				articlesFormatKey:  pesit.FormatFixed.String(),
+				articlesLengthsKey: []uint16{dataLen / 2, dataLen / 2},
+			},
+		}
+		require.NoError(t, db.Insert(serverTransfer).Run())
+
 		pip := ctx.PullPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
@@ -26,10 +41,21 @@ func TestOk(t *testing.T) {
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
 				ctx.CheckPullTransferOK(t)
 			})
+
+			t.Run("Then it should have transmitted the transfer info", func(t *testing.T) {
+				var clientTrans model.HistoryEntry
+				require.NoError(t, db.Get(&clientTrans, "id=?", ctx.TransferPull.ID).Run())
+				assert.Equal(t, serverTransfer.TransferInfo[articlesFormatKey],
+					clientTrans.TransferInfo[articlesFormatKey])
+				gwtesting.JSONEqual(t, serverTransfer.TransferInfo[articlesLengthsKey],
+					clientTrans.TransferInfo[articlesLengthsKey])
+			})
 		})
 	})
 
 	t.Run("Given a PESIT push client", func(t *testing.T) {
+		ctx.TransferPush.TransferInfo[articlesFormatKey] = pesit.FormatFixed.String()
+		ctx.TransferPush.TransferInfo[articlesLengthsKey] = []uint16{dataLen / 2, dataLen / 2}
 		pip := ctx.PushPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
@@ -37,6 +63,17 @@ func TestOk(t *testing.T) {
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
 				ctx.CheckPushTransferOK(t)
+			})
+
+			t.Run("Then it should have transmitted the transfer info", func(t *testing.T) {
+				var serverTrans model.HistoryEntry
+				require.NoError(t, db.Get(&serverTrans,
+					"is_server=true AND is_send=? AND agent=? AND account=?",
+					ctx.ServerRulePush.IsSend, ctx.Server.Name, ctx.LocalAccount.Login).Run())
+				assert.Equal(t, ctx.TransferPush.TransferInfo[articlesFormatKey],
+					serverTrans.TransferInfo[articlesFormatKey])
+				gwtesting.JSONEqual(t, ctx.TransferPush.TransferInfo[articlesLengthsKey],
+					serverTrans.TransferInfo[articlesLengthsKey])
 			})
 		})
 	})
