@@ -31,8 +31,8 @@ const (
 	PushRuleDir  = "push"
 	PullRuleDir  = "pull"
 
-	PushFileContent = "push file content"
-	PullFileContent = "pull file content"
+	PushFileContent = "push file contents"
+	PullFileContent = "pull file contents"
 )
 
 var ErrTest = errors.New("intended test error")

@@ -133,6 +133,8 @@ toujours dans le sens de la connexion (donc du client vers le serveur).
 Comme pour le texte libre, ces informations peuvent être référencées dans les traitements
 en utilisant leurs clés respectives.
 
+.. _ref-pesit-articles:
+
 Articles
 --------
 
@@ -150,10 +152,13 @@ même fichier sur le disque. Le découpage en article sera lui stocké dans les
 Cet attribut prendra la forme d'une liste JSON d'entiers spécifiant la taille
 (en octets) de chaque article du transfert.
 
-À l'inverse, pour les transferts en émission, si la clé ``__articlesLengths__``
-est présente dans les infos de transfert, alors sa valeur sera utilisée pour le
-découpage en articles. En l'absence de cet attribut, un découpage automatique
-minimisant le nombre d'articles sera utilisé par défaut.
+Gateway stocke également le type de découpage (Fixe ou Variable, PI 31) sous forme
+de transfert info sous le nom de clé ``__articlesFormat__``.
+
+À l'inverse, pour les transferts en émission, il est possible d'utiliser les clés
+``__articlesFormat__`` et ``__articlesLengths__`` pour spécifier le découpage des
+articles. En l'absence de ces attributs, Gateway utilisera un découpage variable
+avec des articles de 4096 octets max.
 
 Pour conserver le découpage en articles d'un transfert à l'autre en cas de rebond,
 pensez donc bien à activer l'option ``copyInfo`` de la tâche TRANSFER pour que la

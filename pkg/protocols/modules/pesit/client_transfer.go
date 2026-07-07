@@ -197,8 +197,11 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 
 	c.pTrans.SetTransferID(c.pesitID)
 	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
-	c.pTrans.SetArticleFormat(pesit.FormatVariable)
-	c.pTrans.SetArticleSize(partConf.ArticleSize)
+
+	if c.pip.TransCtx.Rule.IsSend {
+		c.pTrans.SetArticleFormat(getArticlesFormat(c.pip))
+		c.pTrans.SetArticleSize(getArticlesSize(c.pip))
+	}
 
 	c.pTrans.StopReceived = stopReceived(c.pip)
 	c.pTrans.ConnectionAborted = connectionAborted(c.pip)
@@ -253,6 +256,8 @@ func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTL
 		setTransInfo(c.pip, fileEncodingKey, c.pTrans.DataCoding().String())
 		setTransInfo(c.pip, fileTypeKey, c.pTrans.FileType())
 		setTransInfo(c.pip, organizationKey, c.pTrans.FileOrganization().String())
+
+		addArticleFormat(c.pip, c.pTrans)
 	}
 
 	setTransInfo(c.pip, serverTransFreetextKey, c.pTrans.FreeText())
@@ -304,8 +309,10 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 	}
 
 	return c.dataTransfer(func() *pipeline.Error {
+		format := getArticlesFormat(c.pip)
 		articleLengths, isMArt := isMultiArticles(c.pip)
-		if !isMArt {
+
+		if format == pesit.FormatFixed || !isMArt {
 			return copyArticle(c.pTrans, fullFile)
 		}
 
@@ -319,7 +326,7 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 				return toPipErr(types.TeDataTransfer, "failed to start next article", aErr)
 			}
 
-			file := io.LimitReader(fullFile, length)
+			file := io.LimitReader(fullFile, int64(length))
 
 			if err := copyArticle(article, file); err != nil {
 				return err
@@ -332,7 +339,7 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 
 func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	return c.dataTransfer(func() *pipeline.Error {
-		var articleLengths []int64
+		var articleLengths []uint16
 
 		for {
 			article, aErr := c.pTrans.GetNextRecvArticle()
@@ -358,7 +365,7 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 			}
 
 			end := c.pip.TransCtx.Transfer.Progress
-			articleLengths = append(articleLengths, end-start)
+			articleLengths = append(articleLengths, uint16(end-start))
 			c.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articleLengths
 		}
 	}, file)
