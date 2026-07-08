@@ -1,6 +1,7 @@
 // Package main defines an entrypoint forto be used in lcontainers.
 //
-// It wraps gatewayd executable and sets up its configuration according to the given environment variables.
+// It wraps gatewayd executable and sets up its configuration according to the
+// given environment variables.
 package main
 
 import (
@@ -9,7 +10,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 const (
@@ -22,8 +27,11 @@ const (
 	ExitManagerConfError  = 3
 	ExitCannotCreateCerts = 4
 	ExitGatewayError      = 5
+	ExitDBMigrateError    = 6
 	exitLogBackendError   = 7
-	// ExitDBMigrateError    = 6.
+
+	defaultDBMigrationTimeout = 30
+	dbRetryInterval           = 2
 
 	decimal = 10
 	bits16  = 16
@@ -35,30 +43,81 @@ var (
 	ErrNoConfFound               = errors.New("no configuration found in the configuration package")
 )
 
+// runMigrations executes database migrations with retry logic for database
+// availability.
+// It will retry for defaultDBMigrationTimeout seconds (configurable via
+// WAARP_GATEWAY_DB_MIGRATION_TIMEOUT) before failing with ExitDBMigrateError.
+func runMigrations(serverConf *conf.ServerConfig) {
+	logger := getLogger()
+
+	// Skip if no database configured
+	if serverConf.Database.Type == "" {
+		logger.Info("No database configured, skipping migrations")
+		return
+	}
+
+	logger.Info("Running database migrations...")
+
+	// Get timeout from environment or use default
+	timeout := defaultDBMigrationTimeout
+	if timeoutStr := os.Getenv("WAARP_GATEWAY_DB_MIGRATION_TIMEOUT"); timeoutStr != "" {
+		if t, err := strconv.Atoi(timeoutStr); err == nil && t > 0 {
+			timeout = t
+		} else {
+			logger.Warningf("Invalid WAARP_GATEWAY_DB_MIGRATION_TIMEOUT value '%s', using default %d seconds",
+				timeoutStr, defaultDBMigrationTimeout)
+		}
+	}
+
+	deadline := time.Now().Add(time.Duration(timeout) * time.Second)
+
+	for {
+		cmd := exec.Command(gatewaydBin, "migrate", "--config", defaultConfigFile)
+		out, err := cmd.CombinedOutput()
+
+		for line := range strings.SplitSeq(string(out), "\n") {
+			if line != "" {
+				logger.Info(line)
+			}
+		}
+
+		if err == nil {
+			logger.Info("Database migrations completed successfully")
+			return
+		}
+
+		// Check if deadline exceeded
+		if time.Now().After(deadline) {
+			logger.Criticalf("Database migrations failed after timeout: %v", err)
+			os.Exit(ExitDBMigrateError)
+		}
+
+		// Log and retry
+		logger.Warningf("Database migration attempt failed, retrying in %d seconds... Error: %v",
+			dbRetryInterval, err)
+		time.Sleep(time.Duration(dbRetryInterval) * time.Second)
+	}
+}
+
 func main() {
 	logger := getLogger()
 
 	// handleConfigFile exits in case of error
 	serverConf := handleConfigFile()
 
-	// TODO: handle database migrations
-	// cmd := exec.Command(gatewaydBin, "migrate", "--config", defaultConfigFile, "latest")
-
-	// out, err := cmd.CombinedOutput()
-	// if err != nil {
-	// 	logger.Critical("Cannot run database migrations: %v. Command output: %s", err, out)
-	// 	os.Exit(ExitDBMigrateError)
-	// }
-
 	// get conf from manager
 	managerURL := os.Getenv("WAARP_GATEWAY_MANAGER_URL")
 
 	if managerURL == "" {
+		// Run migrations before starting server
+		runMigrations(serverConf)
+
 		// start server
 		startGatewayServer()
 
 		return
 	}
+
 	if err := verifyCertificates(serverConf); err != nil {
 		logger.Criticalf("there is an issue with the certificates: %v", err)
 		os.Exit(ExitCannotCreateCerts)
@@ -90,6 +149,9 @@ func main() {
 			os.Exit(ExitManagerConfError)
 		}
 	}
+
+	// Run migrations after configuration is synchronized from Manager
+	runMigrations(serverConf)
 
 	// start server
 	startGatewayServer()
