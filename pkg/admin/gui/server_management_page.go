@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -68,28 +69,38 @@ func addServer(db *database.DB, r *http.Request) error {
 		newServer.TmpReceiveDir = newServerTmpReceiveDir
 	}
 
-	switch newServer.Protocol {
-	case r66.R66, r66.R66TLS:
-		newServer.ProtoConfig = protoConfigR66Server(r, newServer.Protocol)
-	case httpconst.HTTP, httpconst.HTTPS:
-		newServer.ProtoConfig = protoConfigHTTPserver(r, newServer.Protocol)
-	case sftp.SFTP:
-		newServer.ProtoConfig = protoConfigSFTPServer(r)
-	case ftp.FTP, ftp.FTPS:
-		newServer.ProtoConfig = protoConfigFTPServer(r, newServer.Protocol)
-	case pesit.Pesit, pesit.PesitTLS:
-		newServer.ProtoConfig = protoConfigPeSITServer(r, newServer.Protocol)
-	case webdav.Webdav:
-		newServer.ProtoConfig = protoConfigWebdavServer(r)
-	case webdav.WebdavTLS:
-		newServer.ProtoConfig = protoConfigWebdavTLSServer(r)
-	}
+	newServer.ProtoConfig = parseServerProtoConfig(r, newServer.Protocol)
 
 	if err := internal.AddServer(db, &newServer); err != nil {
 		return fmt.Errorf("failed to add server: %w", err)
 	}
 
 	return nil
+}
+
+func parseServerProtoConfig(r *http.Request, protocol string) model.ProtoConfigMap {
+	switch protocol {
+	case r66.R66, r66.R66TLS:
+		return protoConfigR66Server(r, protocol)
+	case httpconst.HTTP, httpconst.HTTPS:
+		return protoConfigHTTPserver(r, protocol)
+	case sftp.SFTP:
+		return protoConfigSFTPServer(r)
+	case ftp.FTP, ftp.FTPS:
+		return protoConfigFTPServer(r, protocol)
+	case pesit.Pesit, pesit.PesitTLS:
+		return protoConfigPeSITServer(r, protocol)
+	case webdav.Webdav:
+		return protoConfigWebdavServer(r)
+	case webdav.WebdavTLS:
+		return protoConfigWebdavTLSServer(r)
+	case as2.AS2:
+		return protoConfigAS2Server(r)
+	case as2.AS2TLS:
+		return protoConfigAS2TLSServer(r)
+	default:
+		return nil
+	}
 }
 
 //nolint:funlen // unique method
@@ -152,6 +163,10 @@ func editServer(db *database.DB, r *http.Request) error {
 		editServer.ProtoConfig = protoConfigWebdavServer(r)
 	case webdav.WebdavTLS:
 		editServer.ProtoConfig = protoConfigWebdavTLSServer(r)
+	case as2.AS2:
+		editServer.ProtoConfig = protoConfigAS2Server(r)
+	case as2.AS2TLS:
+		editServer.ProtoConfig = protoConfigAS2TLSServer(r)
 	}
 
 	if err = internal.UpdateServer(db, editServer); err != nil {
@@ -443,6 +458,7 @@ func serverManagementPage(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			"KeyExchanges":           sftp.ValidKeyExchanges,
 			"Ciphers":                sftp.ValidCiphers,
 			"MACs":                   sftp.ValidMACs,
+			"as2SignAlgos":           as2.SignatureAlgorithms(),
 			"protocolsList":          ProtocolsList(),
 			"errMsg":                 errMsg,
 			"modalOpen":              modalOpen,

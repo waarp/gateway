@@ -83,7 +83,7 @@ func getRemoteStatus(headers http.Header, body io.ReadCloser, pip *pipeline.Pipe
 		defer cancel()
 
 		if err := pip.Pause(ctx); err != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to pause transfer", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to pause transfer")
 		}
 
 		return errPause
@@ -94,7 +94,7 @@ func getRemoteStatus(headers http.Header, body io.ReadCloser, pip *pipeline.Pipe
 		defer cancel()
 
 		if err := pip.Cancel(ctx); err != nil {
-			return pipeline.NewErrorWith(types.TeInternal, "failed to cancel transfer", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to cancel transfer")
 		}
 
 		return errCancel
@@ -239,7 +239,7 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.
 		if err := json.Unmarshal([]byte(strVal), &value); err != nil {
 			pip.Logger.Errorf("Failed to unmarshall transfer info value %q: %s", strVal, err)
 
-			return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer info value", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse transfer info value")
 		}
 
 		pip.TransCtx.Transfer.TransferInfo[name] = value
@@ -263,7 +263,7 @@ func makeInfo(headers http.Header, pip *pipeline.Pipeline, key string,
 		if err != nil {
 			pip.Logger.Errorf("Failed to encode transfer info %q: %v", name, err)
 
-			return pipeline.NewErrorWith(types.TeInternal, "failed to encode transfer info", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to encode transfer info")
 		}
 
 		headers.Add(key, fmt.Sprintf("%s=%s", name, string(jVal)))

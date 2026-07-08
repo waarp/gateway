@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 var (

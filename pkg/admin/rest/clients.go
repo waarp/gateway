@@ -53,7 +53,7 @@ func ClientRESTToDB(client *api.InClient) (*model.Client, error) {
 	setIfValid(&cli.RetryIncrementFactor, client.RetryIncrementFactor)
 
 	if client.ProtoConfig != nil {
-		cli.ProtoConfig = client.ProtoConfig
+		cli.ProtoConfig = model.ProtoConfigMap(client.ProtoConfig)
 	}
 
 	if client.LocalAddress.Valid {

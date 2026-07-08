@@ -33,7 +33,7 @@ func (c *transferClient) connect() (*clientConn, *pipeline.Error) {
 	if err != nil {
 		c.pip.Logger.Errorf("Failed to connect to remote host: %v", err)
 
-		return nil, pipeline.NewErrorWith(types.TeConnection, "failed to connect to remote host", err)
+		return nil, pipeline.NewErrorWith(err, types.TeConnection, "failed to connect to remote host")
 	}
 
 	return cli, nil
@@ -45,7 +45,7 @@ func (c *transferClient) authenticate(conn *clientConn) *pipeline.Error {
 	if c.ses, sesErr = conn.NewSession(); sesErr != nil {
 		c.pip.Logger.Errorf("Failed to start R66 session: %s", sesErr)
 
-		return pipeline.NewErrorWith(types.TeConnection, "failed to start R66 session", sesErr)
+		return pipeline.NewErrorWith(sesErr, types.TeConnection, "failed to start R66 session")
 	}
 
 	r66Conf := &r66.Config{
@@ -68,7 +68,7 @@ func (c *transferClient) authenticate(conn *clientConn) *pipeline.Error {
 		c.ses = nil
 		c.pip.Logger.Errorf("Client authentication failed: %v", err)
 
-		return pipeline.NewErrorWith(types.TeBadAuthentication, "client authentication failed", err)
+		return pipeline.NewErrorWith(err, types.TeBadAuthentication, "client authentication failed")
 	}
 
 	// Server authentication
@@ -130,7 +130,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 
 	transID, err := c.pip.TransCtx.Transfer.TransferID()
 	if err != nil {
-		return pipeline.NewErrorWith(types.TeInternal, "failed to parse transfer ID", err)
+		return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse transfer ID")
 	}
 
 	userContent, tErr := internal.MakeUserContent(c.pip.Logger, c.pip.TransCtx.Transfer.TransferInfo)
@@ -154,7 +154,7 @@ func (c *transferClient) sendRequest() *pipeline.Error {
 		if statErr != nil {
 			c.pip.Logger.Errorf("Failed to retrieve file size: %s", statErr)
 
-			return pipeline.NewErrorWith(types.TeInternal, "failed to retrieve file size", statErr)
+			return pipeline.NewErrorWith(statErr, types.TeInternal, "failed to retrieve file size")
 		}
 
 		req.FileSize = info.Size()

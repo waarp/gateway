@@ -47,7 +47,7 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 	if err != nil {
 		p.pip.Logger.Errorf("Failed to make head HTTP request: %v", err)
 
-		return pipeline.NewErrorWith(types.TeInternal, "failed to make head HTTP request", err)
+		return pipeline.NewErrorWith(err, types.TeInternal, "failed to make head HTTP request")
 	}
 
 	var pwd string
@@ -65,7 +65,7 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 	if err != nil {
 		p.pip.Logger.Errorf("HTTP Head request failed: %v", err)
 
-		return pipeline.NewErrorWith(types.TeInternal, "Head HTTP request failed", err)
+		return pipeline.NewErrorWith(err, types.TeInternal, "Head HTTP request failed")
 	}
 
 	defer discardResponse(resp)
@@ -80,7 +80,7 @@ func (p *postClient) checkResume(url string) *pipeline.Error {
 		if err != nil {
 			p.pip.Logger.Errorf("Failed to parse response Content-Range: %v", err)
 
-			return pipeline.NewErrorWith(types.TeInternal, "failed to parse response Content-Range", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse response Content-Range")
 		}
 	default:
 		p.pip.Logger.Errorf("HTTP Head replied with %s", resp.Status)
@@ -101,7 +101,7 @@ func (p *postClient) updateTransForResume(prog int64) *pipeline.Error {
 		if err := p.pip.UpdateTrans(); err != nil {
 			p.pip.Logger.Errorf("Failed to parse response Content-Range: %v", err)
 
-			return pipeline.NewErrorWith(types.TeInternal, "database error", err)
+			return pipeline.NewErrorWith(err, types.TeInternal, "database error")
 		}
 	}
 
@@ -149,8 +149,8 @@ func (p *postClient) setRequestHeaders(req *http.Request) *pipeline.Error {
 	if err != nil {
 		p.pip.Logger.Errorf("Failed to retrieve local file size: %v", err)
 
-		return pipeline.NewErrorWith(types.TeInternal,
-			"failed to retrieve local file size", err)
+		return pipeline.NewErrorWith(err, types.TeInternal,
+			"failed to retrieve local file size")
 	}
 
 	req.Header.Set("Waarp-File-Size", utils.FormatInt(fileInfo.Size()))
@@ -177,7 +177,7 @@ func (p *postClient) prepareRequest(ready chan struct{}) *pipeline.Error {
 	if err != nil {
 		p.pip.Logger.Errorf("Failed to make HTTP request: %v", err)
 
-		return pipeline.NewErrorWith(types.TeInternal, "failed to make HTTP request", err)
+		return pipeline.NewErrorWith(err, types.TeInternal, "failed to make HTTP request")
 	}
 
 	if err := p.setRequestHeaders(req); err != nil {
@@ -217,7 +217,7 @@ func (p *postClient) Request() *pipeline.Error {
 	case <-ready:
 		return nil
 	case err := <-p.reqErr:
-		return pipeline.NewErrorWith(types.TeConnection, "HTTP request failed", err)
+		return pipeline.NewErrorWith(err, types.TeConnection, "HTTP request failed")
 	case resp := <-p.resp:
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 

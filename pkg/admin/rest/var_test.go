@@ -49,22 +49,17 @@ func mustAddr(s string) types.Address {
 
 type testModule struct{}
 
-func (t testModule) NewServer(_ *database.DB, s *model.LocalAgent) protocol.Server {
+func (testModule) CanMakeTransfer(*model.TransferContext) error { return nil }
+func (testModule) CheckServerConfig(map[string]any) error       { return nil }
+func (testModule) CheckClientConfig(map[string]any) error       { return nil }
+func (testModule) CheckPartnerConfig(map[string]any) error      { return nil }
+func (testModule) NewServer(_ *database.DB, s *model.LocalAgent) protocol.Server {
 	return &testService{name: s.Name}
 }
 
-func (t testModule) NewClient(_ *database.DB, c *model.Client) protocol.Client {
+func (testModule) NewClient(_ *database.DB, c *model.Client) protocol.Client {
 	return &testService{name: c.Name}
 }
-func (t testModule) MakeServerConfig() protocol.ServerConfig   { return &testProtoConfig{} }
-func (t testModule) MakeClientConfig() protocol.ClientConfig   { return &testProtoConfig{} }
-func (t testModule) MakePartnerConfig() protocol.PartnerConfig { return &testProtoConfig{} }
-
-type testProtoConfig map[string]any
-
-func (*testProtoConfig) ValidServer() error  { return nil }
-func (*testProtoConfig) ValidPartner() error { return nil }
-func (*testProtoConfig) ValidClient() error  { return nil }
 
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)

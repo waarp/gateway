@@ -85,8 +85,7 @@ func TestImportLocalAgents(t *testing.T) {
 
 						So(dbAgent.Name, ShouldEqual, newServer.Name)
 						So(dbAgent.Protocol, ShouldEqual, newServer.Protocol)
-						So(dbAgent.ProtoConfig, ShouldResemble,
-							newServer.Configuration)
+						So(dbAgent.ProtoConfig.Map(), ShouldResemble, newServer.Configuration)
 
 						Convey("Then the local accounts should have been imported", func() {
 							var accounts model.LocalAccounts
@@ -120,8 +119,7 @@ func TestImportLocalAgents(t *testing.T) {
 
 						So(dbAgent.Name, ShouldEqual, newServer.Name)
 						So(dbAgent.Protocol, ShouldEqual, newServer.Protocol)
-						So(dbAgent.ProtoConfig, ShouldResemble,
-							newServer.Configuration)
+						So(dbAgent.ProtoConfig.Map(), ShouldResemble, newServer.Configuration)
 					})
 				})
 			})
@@ -169,8 +167,7 @@ func TestImportLocalAgents(t *testing.T) {
 							"one imported", func() {
 							So(dbAgent.Name, ShouldEqual, agent1.Name)
 							So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
-							So(dbAgent.ProtoConfig, ShouldResemble,
-								agent1.Configuration)
+							So(dbAgent.ProtoConfig.Map(), ShouldResemble, agent1.Configuration)
 
 							var accounts model.LocalAccounts
 							So(db.Select(&accounts).Where("local_agent_id=?",

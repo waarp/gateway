@@ -50,10 +50,10 @@ func (s *server) Start() error {
 	}
 
 	s.logger = logging.NewLogger(s.agent.Name)
-	s.logger.Info("Starting Webdav server...")
+	s.logger.Info("Starting WebDAV server...")
 
 	if err := s.start(); err != nil {
-		s.logger.Errorf("Failed to start Webdav service: %v", err)
+		s.logger.Errorf("Failed to start WebDAV service: %v", err)
 		s.state.Set(utils.StateError, err.Error())
 		snmp.ReportServiceFailure(s.agent.Name, err)
 
@@ -61,7 +61,7 @@ func (s *server) Start() error {
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Infof("Webdav server started successfully on %q", s.server.Addr)
+	s.logger.Infof("WebDAV server started successfully on %q", s.server.Addr)
 
 	return nil
 }
@@ -71,7 +71,7 @@ func (s *server) Stop(ctx context.Context) error {
 		return utils.ErrNotRunning
 	}
 
-	s.logger.Info("Shutting down Webdav server")
+	s.logger.Info("Shutting down WebDAV server")
 
 	if err := s.stop(ctx); err != nil {
 		s.logger.Error(err.Error())
@@ -82,7 +82,7 @@ func (s *server) Stop(ctx context.Context) error {
 	}
 
 	s.state.Set(utils.StateOffline, "")
-	s.logger.Info("SFTP server shutdown successful")
+	s.logger.Info("WebDAV server shutdown successful")
 
 	return nil
 }
@@ -150,14 +150,14 @@ func (s *server) interruptTransfers(ctx context.Context, res chan<- error) {
 	defer close(res)
 
 	if err := pipeline.List.StopAllFromServer(ctx, s.agent.ID); err != nil {
-		s.logger.Errorf("Failed to interrupt Webdav transfers: %v", err)
+		s.logger.Errorf("Failed to interrupt WebDAV transfers: %v", err)
 
 		res <- fmt.Errorf("could not halt the service gracefully: %w", err)
 	}
 }
 
 func (s *server) handle(w http.ResponseWriter, r *http.Request) {
-	s.logger.Debugf("Webdav %s request received on %q", r.Method, r.URL.String())
+	s.logger.Debugf("WebDAV %s request received on %q", r.Method, r.URL.String())
 	account, ok := s.auth(w, r)
 	if !ok {
 		return
@@ -176,14 +176,14 @@ func (s *server) handle(w http.ResponseWriter, r *http.Request) {
 		LockSystem: s.lock,
 		Logger: func(r *http.Request, err error) {
 			if err != nil {
-				s.logger.Errorf("Webdav %s request to %q failed: %v",
+				s.logger.Errorf("WebDAV %s request to %q failed: %v",
 					r.Method, r.URL.String(), err)
 			}
 		},
 	}
 
 	handler.ServeHTTP(w, r)
-	s.logger.Debugf("Webdav %s request processed", r.Method)
+	s.logger.Debugf("WebDAV %s request processed", r.Method)
 }
 
 func (s *server) listentTLS(l net.Listener) net.Listener {

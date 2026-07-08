@@ -105,6 +105,8 @@
     "standardParameterPesit": { "fr": "Standard", "en": "Standard" },
     "noneStandardParameterPesit": { "fr": "Non standard", "en": "Non standard" },
     "disableClientConcurrentReads": { "fr": "Désactiver les lectures simultanées du client", "en": "Disable client concurrent reads" },
+    "as2MaxFileSize": { "fr": "Taille de fichier maximale", "en": "Maximum file size" },
+    "tooltipAS2MaxFileSize": { "fr": "Taille maximale (en octets) autorisée pour les fichiers sur ce client. Ne peut pas dépasser la mémoire totale du système.", "en": "The maximum size (in bytes) allowed for files on this client. Cannot exceed the system's total memory." },
     "tooltipLocalClientLogin": { "fr": "Le login d'authentification attendu pour le partenaire R66. Par défaut, le nom du partenaire est utilisé à la place.", "en": "The expected authentication login for partner R66. By default, the partner name is used instead." },
     "tooltipBlockSize": { "fr": "La taille (en octets) d'un bloc de données R66. Par défaut la valeur 65536 est utilisée.", "en": "The size (in bytes) of an R66 data block. By default the value 65536 is used." },
     "tooltipNoFinalHash": { "fr": "Désactive le contrôle de hash de fin de transfert. Par défaut le contrôle est activé.", "en": "Disables end-of-transfer hash checking. By default, checking is enabled." },
@@ -138,5 +140,5 @@
     "depreciated": { "fr": "Déprécié", "en": "Depreciated" },
     "selectProto": { "fr": "Sélectionnez votre protocole", "en": "Select your protocol" },
     "selectTLSVersion": { "fr": "Sélectionnez la version TLS", "en": "Select TLS version" },
-    "selectCompatibilityMode": { "fr": "Séléctionnez votre mode de compatibilité", "en": "Select your compatibility mode" }
+    "selectCompatibilityMode": { "fr": "Sélectionnez votre mode de compatibilité", "en": "Select your compatibility mode" }
 }

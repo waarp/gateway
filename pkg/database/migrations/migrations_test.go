@@ -167,4 +167,7 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	apply(testVer0_13_0AddClientAutoResume(t, eng))
 	apply(testVer0_13_0AddEmailTemplates(t, eng))
 	apply(testVer0_13_0AddSMTPCredentials(t, eng))
+
+	// 0.14.0
+	apply(testVer0_14_0AddTransferStop(t, eng))
 }

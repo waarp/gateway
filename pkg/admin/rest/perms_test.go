@@ -5,12 +5,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )

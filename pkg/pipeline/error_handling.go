@@ -42,7 +42,7 @@ func (p *Pipeline) processError(code types.TransferErrorCode, msg, extMsg string
 		p.Logger.Warningf("Failed to transition to %q state: %v", stateError, err)
 	}
 
-	err := NewErrorWith(code, msg, cause)
+	err := NewErrorWith(cause, code, msg)
 	p.storedErr = NewError(code, extMsg)
 
 	fullMsg := msg

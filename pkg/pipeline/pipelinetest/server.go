@@ -40,15 +40,13 @@ type testService interface {
 	SetTracer(getTrace func() pipeline.Trace)
 }
 
-func initServer(c convey.C, proto string, servConf protocol.ServerConfig,
+func initServer(c convey.C, proto string, servConf any,
 ) *ServerContext {
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
 	locAg, locAcc := makeServerConf(c, t, port, proto, servConf)
 
-	constr := Protocols[proto].MakeServer
-	server := constr(t.DB, locAg)
-
+	server := protocols[proto].NewServer(t.DB, locAg)
 	testServer, ok := server.(testService)
 	c.So(ok, convey.ShouldBeTrue)
 
@@ -69,7 +67,7 @@ func (s *ServerContext) Filename() string { return s.filename }
 // InitServerPush creates a database and fills it with all the elements necessary
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPush(c convey.C, proto string, servConf protocol.ServerConfig,
+func InitServerPush(c convey.C, proto string, servConf any,
 ) *ServerContext {
 	ctx := initServer(c, proto, servConf)
 	ctx.ServerRule = makeServerPush(c, ctx.DB)
@@ -80,7 +78,7 @@ func InitServerPush(c convey.C, proto string, servConf protocol.ServerConfig,
 // InitServerPull creates a database and fills it with all the elements necessary
 // for a server pull transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
-func InitServerPull(c convey.C, proto string, servConf protocol.ServerConfig,
+func InitServerPull(c convey.C, proto string, servConf any,
 ) *ServerContext {
 	ctx := initServer(c, proto, servConf)
 	ctx.ServerRule = makeServerPull(c, ctx.DB)
@@ -115,8 +113,7 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 	return rule
 }
 
-func makeServerConf(c convey.C, data *testData, port uint16, proto string,
-	servConf protocol.ServerConfig,
+func makeServerConf(c convey.C, data *testData, port uint16, proto string, servConf any,
 ) (ag *model.LocalAgent, acc *model.LocalAccount) {
 	jsonServConf := map[string]any{}
 

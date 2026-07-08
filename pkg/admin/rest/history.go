@@ -117,7 +117,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	protos := r.Form["protocol"]
 	// Validate requested protocols
 	for _, p := range protos {
-		if protocols.Get(p) == nil {
+		if !protocols.Exists(p) {
 			return badRequestf("%q is not a valid protocol", p)
 		}
 	}
@@ -164,6 +164,7 @@ func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 //nolint:dupl //kept separate for backwards compatibility
 func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //too specific, keep separate
 	validSorting := orders{
 		"default":    order{col: "start", asc: true},
 		"id+":        order{col: "id", asc: true},
