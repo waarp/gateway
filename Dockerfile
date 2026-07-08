@@ -1,4 +1,4 @@
-FROM debian:11
+FROM debian:stable-slim
 
 ARG VERSION=latest
 LABEL org.opencontainers.image.vendor="Waarp" \
