@@ -11,14 +11,14 @@ import (
 )
 
 const (
-	// DefaultCheckpointSize defines the default checkpoint size (in bytes) if
-	// omitted by the user in the proto config.
-	DefaultCheckpointSize uint16 = math.MaxUint16
+	// DefaultCheckpointSize defines the default checkpoint size (in kilobytes) if
+	// omitted by the user in the proto config. Default is 65KB.
+	DefaultCheckpointSize uint16 = 65
 	// DefaultCheckpointWindow defines the default checkpoint window if omitted
 	// by the user in the proto config. Default is 2.
 	DefaultCheckpointWindow uint8 = 2
 	// DefaultMessageSize defines the default PeSIT message size (in bytes) if
-	// omitted by the user in the proto config.
+	// omitted by the user in the proto config. Default is 65,535 bytes.
 	DefaultMessageSize uint16 = math.MaxUint16
 )
 
@@ -55,8 +55,8 @@ type CheckPointConfig struct {
 	// DisableCheckpoints will disable checkpoints on this agent if set to true.
 	// By default, checkpoints are enabled.
 	DisableCheckpoints bool `json:"disableCheckpoints"`
-	// CheckpointSize defines the size (in bytes) of the checkpoint set for the
-	// connections to this agent. Default is 65535.
+	// CheckpointSize defines the size (in kilobytes) of the checkpoint set for the
+	// connections to this agent. Default is 65KB.
 	CheckpointSize uint16 `json:"checkpointSize,omitempty"`
 	// CheckpointWindow defines the number of checkpoints that can go unacknowledged
 	// without stopping the transfer. Default is 2.
@@ -94,7 +94,7 @@ type ServerConfig struct {
 	// Deprecated: This is no longer useful as the library detects the preconnection stage.
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
-	// this server. Default is 65535.
+	// this server. Default is 65KB.
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
 }
 
@@ -131,8 +131,8 @@ type PartnerConfig struct {
 	// DisableRestart will disable checkpoints on this agent if set to true.
 	// By default, checkpoints are enabled.
 	DisableCheckpoints api.Nullable[bool] `json:"disableCheckpoints"`
-	// CheckpointSize defines the size (in bytes) of the checkpoint set for the
-	// connections to this agent. Default is 65535.
+	// CheckpointSize defines the size (in kilobytes) of the checkpoint set for the
+	// connections to this agent. Default is 65KB.
 	CheckpointSize uint16 `json:"checkpointSize,omitempty"`
 	// CheckpointWindow defines the number of checkpoints that can go unacknowledged
 	// without stopping the transfer. Default is 2.
@@ -145,7 +145,7 @@ type PartnerConfig struct {
 	// Accepted values are: "standard" or "non-standard". Default is "standard".
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
-	// this partner. Default is 65535.
+	// this partner. Default is 65KB.
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
 	// DisablePreConnection disables the pre-connection authentication when
 	// connecting to this partner. By default, the pre-connection authentication
