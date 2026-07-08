@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -22,8 +21,7 @@ func importCloud(logger *log.Logger, db database.Access, clouds []file.Cloud, re
 		exists := false
 
 		var dbCloud model.CloudInstance
-		if err := db.Get(&dbCloud, "name=?", cloud.Name,
-			conf.GlobalConfig.GatewayName).Run(); database.IsNotFound(err) {
+		if err := db.Get(&dbCloud, "name=?", cloud.Name).Run(); database.IsNotFound(err) {
 			exists = true
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve cloud instance %q: %w", cloud.Name, err)
@@ -32,7 +30,7 @@ func importCloud(logger *log.Logger, db database.Access, clouds []file.Cloud, re
 		dbCloud.Name = cloud.Name
 		dbCloud.Type = cloud.Type
 		dbCloud.Key = cloud.Key
-		dbCloud.Secret = database.SecretText(cloud.Secret)
+		dbCloud.Secret = cloud.Secret
 		dbCloud.Options = cloud.Options
 
 		var (

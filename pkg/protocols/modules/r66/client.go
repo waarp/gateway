@@ -26,35 +26,57 @@ type Client struct {
 	disableConnGrace bool
 
 	logger       *log.Logger
-	clientConfig *tlsClientConfig
+	clientConfig *ClientConfigTLS
 	conns        *r66ConnPool
 	state        utils.State
 }
 
 func (c *Client) Name() string { return c.cli.Name }
 
-func (c *Client) Start() error {
+func (c *Client) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	c.logger.Error(err.Error())
+	c.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(c.cli.Name, err)
+}
+
+func (c *Client) Start() (retErr error) {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
-	if err := c.start(); err != nil {
-		c.logger.Errorf("Failed to start R66 client: %v", err)
-		c.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(c.cli.Name, err)
+	c.logger = logging.NewLogger(c.cli.Name)
+	defer c.reportError(retErr)
 
+	if err := c.db.Get(c.cli, "id=?", c.cli.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve client from database: %w", err)
+	}
+
+	c.logger = logging.NewLogger(c.cli.Name)
+	c.logger.Info("Starting R66 client...")
+
+	if err := c.start(); err != nil {
 		return err
 	}
 
+	c.logger.Info("R66 client started successfully")
 	c.state.Set(utils.StateRunning, "")
 
 	return nil
 }
 
 func (c *Client) start() error {
-	c.logger = logging.NewLogger(c.cli.Name)
+	if err := c.db.Get(c.cli, "id=?", c.cli.ID).Run(); err != nil {
+		return fmt.Errorf("failed to get client from database: %w", err)
+	}
 
-	var conf tlsClientConfig
+	c.logger = logging.NewLogger(c.cli.Name)
+	c.logger.Info("Starting R66 client...")
+
+	var conf ClientConfigTLS
 	if err := utils.JSONConvert(c.cli.ProtoConfig, &conf); err != nil {
 		return fmt.Errorf("failed to parse the R66 client's config: %w", err)
 	}
@@ -64,14 +86,14 @@ func (c *Client) start() error {
 		return dErr
 	}
 
-	connPool := protoutils.NewConnPool[*clientConn](dialer, c.dialClientConn)
+	c.clientConfig = &conf
+	c.conns = protoutils.NewConnPool[*ClientConn](dialer, c.openNewConn)
 
 	if c.disableConnGrace {
-		connPool.SetGracePeriod(0)
+		c.conns.SetGracePeriod(0)
 	}
 
-	c.clientConfig = &conf
-	c.conns = connPool
+	c.logger.Info("R66 client started successfully")
 
 	return nil
 }
@@ -105,7 +127,7 @@ func (c *Client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 
 //nolint:funlen //can't easily be split
 func (c *Client) initTransfer(pip *pipeline.Pipeline) (*transferClient, *pipeline.Error) {
-	var partConf tlsPartnerConfig
+	var partConf PartnerConfigTLS
 	if err := utils.JSONConvert(pip.TransCtx.RemoteAgent.ProtoConfig, &partConf); err != nil {
 		pip.Logger.Errorf("Failed to parse R66 partner proto config: %v", err)
 
@@ -182,6 +204,7 @@ func (c *Client) GetConnection(partner *model.RemoteAgent, account *model.Remote
 	}
 
 	fakeTransCtx := &model.TransferContext{
+		Client:             c.cli,
 		RemoteAgent:        partner,
 		RemoteAccount:      account,
 		RemoteAccountCreds: remoteAccountCreds,

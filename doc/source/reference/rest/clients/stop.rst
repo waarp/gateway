@@ -1,7 +1,7 @@
 Arrêter un client
 =================
 
-.. http:delete:: /api/clients/(string:client_name)/stop
+.. http:put:: /api/clients/(string:client_name)/stop
 
    Arrête le client demandé.
 
@@ -18,7 +18,7 @@ Arrêter un client
 
       .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/clients/sftp_client/stop HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/clients/sftp_client/stop HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**

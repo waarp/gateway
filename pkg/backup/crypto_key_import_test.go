@@ -13,6 +13,8 @@ import (
 )
 
 func TestCryptoKeysImport(t *testing.T) {
+	t.Parallel()
+
 	const (
 		aesKey   = "0123456789abcdefhijklABCDEFHIJKL"
 		hmacKey1 = "0123456789"
@@ -47,7 +49,7 @@ func TestCryptoKeysImport(t *testing.T) {
 
 			assert.Equal(t, newKey.Name, dbKeys[0].Name)
 			assert.Equal(t, newKey.Type, dbKeys[0].Type)
-			assert.Equal(t, newKey.Key, dbKeys[0].Key.String())
+			assert.Equal(t, newKey.Key, dbKeys[0].Key)
 		})
 
 		t.Run("Without reset", func(t *testing.T) {
@@ -65,7 +67,7 @@ func TestCryptoKeysImport(t *testing.T) {
 
 			assert.Equal(t, newKey.Name, dbKeys[1].Name)
 			assert.Equal(t, newKey.Type, dbKeys[1].Type)
-			assert.Equal(t, newKey.Key, dbKeys[1].Key.String())
+			assert.Equal(t, newKey.Key, dbKeys[1].Key)
 		})
 	})
 
@@ -91,6 +93,6 @@ func TestCryptoKeysImport(t *testing.T) {
 
 		assert.Equal(t, newKey.Name, dbKeys[1].Name)
 		assert.Equal(t, newKey.Type, dbKeys[1].Type)
-		assert.Equal(t, newKey.Key, dbKeys[1].Key.String())
+		assert.Equal(t, newKey.Key, dbKeys[1].Key)
 	})
 }

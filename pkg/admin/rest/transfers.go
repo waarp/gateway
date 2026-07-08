@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -114,7 +113,7 @@ func DBTransferToREST(trans *model.NormalizedTransferView) *api.OutTransfer {
 		NextAttempt:          trans.NextRetry,
 		NextRetryDelay:       trans.NextRetryDelay,
 		RetryIncrementFactor: trans.RetryIncrementFactor,
-		TransferInfo:         trans.TransferInfo,
+		TransferInfo:         trans.Infos.AsMap(),
 
 		TrueFilepath: trans.LocalPath,
 		SourcePath:   src,
@@ -145,8 +144,7 @@ func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	}
 
 	var transfer model.Transfer
-	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := db.Get(&transfer, "id=?", id).Eager().Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("transfer %v not found", id)
 		}
@@ -167,8 +165,7 @@ func getDBTransView(r *http.Request, db *database.DB) (*model.NormalizedTransfer
 	}
 
 	var transfer model.NormalizedTransferView
-	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := db.Get(&transfer, "id=?", id).Eager().Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("transfer %v not found", id)
 		}
@@ -221,8 +218,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Where("owner=?", conf.GlobalConfig.GatewayName).
-			Run(); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -252,7 +248,7 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		case types.StatusRunning:
 			pip := pipeline.List.Get(trans.ID)
 			if pip == nil {
-				if conf.GlobalConfig.NodeID != "" {
+				if db.Config.NodeID != "" {
 					handleError(w, logger, internalf("pipeline for transfer %d not found", trans.ID))
 
 					return
@@ -313,7 +309,7 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		pip := pipeline.List.Get(trans.ID)
 		if pip == nil {
-			if conf.GlobalConfig.NodeID != "" {
+			if db.Config.NodeID != "" {
 				handleError(w, logger, internalf("pipeline for transfer %d not found", trans.ID))
 
 				return

@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net"
 	"time"
 
 	"code.waarp.fr/lib/goftp"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -24,6 +25,7 @@ import (
 const clientDefaultConnTimeout = 5 * time.Second // 5s
 
 type client struct {
+	db       *database.DB
 	dbClient *model.Client
 	state    utils.State
 	logger   *log.Logger
@@ -31,65 +33,64 @@ type client struct {
 	conf *ClientConfigTLS
 }
 
-func newClient(dbClient *model.Client) *client {
-	c := &client{dbClient: dbClient}
+func newClient(db *database.DB, dbClient *model.Client) *client {
+	c := &client{db: db, dbClient: dbClient}
 
 	return c
 }
 
 func (c *client) Name() string { return c.dbClient.Name }
 
-func (c *client) Start() error {
+func (c *client) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	c.logger.Error(err.Error())
+	c.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(c.dbClient.Name, err)
+}
+
+func (c *client) Start() (retErr error) {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
 	c.logger = logging.NewLogger(c.dbClient.Name)
-	if err := c.start(); err != nil {
-		c.state.Set(utils.StateError, err.Error())
-		c.logger.Errorf("failed to start the SFTP client: %v", err)
-		snmp.ReportServiceFailure(c.dbClient.Name, err)
+	defer c.reportError(retErr)
 
-		return err
+	if err := c.db.Get(c.dbClient, "id=?", c.dbClient.ID).Run(); err != nil {
+		return fmt.Errorf("failed to get client from database: %w", err)
 	}
 
-	c.state.Set(utils.StateRunning, "")
+	c.logger = logging.NewLogger(c.dbClient.Name)
+	c.logger.Info("Starting FTP client...")
 
-	return nil
-}
-
-func (c *client) start() error {
 	c.conf = &ClientConfigTLS{}
 	if err := utils.JSONConvert(c.dbClient.ProtoConfig, c.conf); err != nil {
 		return fmt.Errorf("invalid client config: %w", err)
 	}
 
+	c.state.Set(utils.StateRunning, "")
+	c.logger.Info("FTP client started successfully")
+
 	return nil
 }
 
-func (c *client) Stop(ctx context.Context) error {
+func (c *client) Stop(ctx context.Context) (retErr error) {
 	if !c.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
-	if err := c.stop(ctx); err != nil {
-		c.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(c.dbClient.Name, err)
+	c.logger.Info("Stopping FTP client...")
+	defer c.reportError(retErr)
 
-		return err
+	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
+		return fmt.Errorf("failed to stop the FTP client: %w", err)
 	}
 
 	c.state.Set(utils.StateOffline, "")
-
-	return nil
-}
-
-func (c *client) stop(ctx context.Context) error {
-	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
-		c.logger.Errorf("Failed to stop the FTP client: %v", err)
-
-		return fmt.Errorf("failed to stop the FTP client: %w", err)
-	}
+	c.logger.Info("FTP client stopped successfully")
 
 	return nil
 }
@@ -99,7 +100,7 @@ func (c *client) State() (utils.StateCode, string) {
 }
 
 func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
-	ftpClient, err := c.connect(pip)
+	ftpClient, err := connect(pip.Logger, pip.TransCtx, c.conf, pip.DB.Config.Overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -111,9 +112,21 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 	return &clientRetrTransfer{client: ftpClient, pip: pip}, nil
 }
 
-func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error) {
-	partner := pip.TransCtx.RemoteAgent
-	account := pip.TransCtx.RemoteAccount
+func Connect(logger *log.Logger, ctx *model.TransferContext, overrides *conf.ConfigOverride,
+) (*goftp.Client, *pipeline.Error) {
+	var clientConf ClientConfigTLS
+	if err := utils.JSONConvert(ctx.Client.ProtoConfig, &clientConf); err != nil {
+		return nil, pipeline.NewErrorWith(err, types.TeInternal, "invalid client config")
+	}
+
+	return connect(logger, ctx, &clientConf, overrides)
+}
+
+func connect(logger *log.Logger, ctx *model.TransferContext, clientConf *ClientConfigTLS,
+	overrides *conf.ConfigOverride,
+) (*goftp.Client, *pipeline.Error) {
+	partner := ctx.RemoteAgent
+	account := ctx.RemoteAccount
 
 	var partConf PartnerConfigTLS
 	if err := utils.JSONConvert(partner.ProtoConfig, &partConf); err != nil {
@@ -122,7 +135,7 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 
 	var password string
 
-	for _, cred := range pip.TransCtx.RemoteAccountCreds {
+	for _, cred := range ctx.RemoteAccountCreds {
 		if cred.Type == auth.Password {
 			password = cred.Value
 
@@ -135,18 +148,18 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 		activeModeAddr   string
 	)
 
-	if c.conf.EnableActiveMode && !partConf.DisableActiveMode {
-		port, err := getPortInRange(c.conf.ActiveModeAddress,
-			c.conf.ActiveModeMinPort, c.conf.ActiveModeMaxPort)
+	if clientConf.EnableActiveMode && !partConf.DisableActiveMode {
+		port, err := getPortInRange(clientConf.ActiveModeAddress,
+			clientConf.ActiveModeMinPort, clientConf.ActiveModeMaxPort)
 		if err != nil {
 			return nil, err
 		}
 
 		enableActiveMode = true
-		activeModeAddr = fmt.Sprintf("%s:%d", c.conf.ActiveModeAddress, port)
+		activeModeAddr = fmt.Sprintf("%s:%d", clientConf.ActiveModeAddress, port)
 	}
 
-	addr := conf.GetRealAddress(partner.Address.Host, utils.FormatUint(partner.Address.Port))
+	addr := overrides.GetRealAddress(partner.Address.Host, utils.FormatUint(partner.Address.Port))
 
 	var (
 		tlsConfig *tls.Config
@@ -155,7 +168,7 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 
 	if partner.Protocol == FTPS {
 		var err *pipeline.Error
-		if tlsConfig, tlsMode, err = c.mkTLSConfig(pip, &partConf, addr); err != nil {
+		if tlsConfig, tlsMode, err = mkTLSConfig(logger, ctx, &partConf); err != nil {
 			return nil, err
 		}
 	}
@@ -166,7 +179,7 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 		Password:         password,
 		TLSConfig:        tlsConfig,
 		TLSMode:          tlsMode,
-		Logger:           pip.Logger.AsStdLogger(log.LevelTrace).Writer(),
+		Logger:           logger.AsStdLogger(log.LevelTrace).Writer(),
 		ActiveTransfers:  enableActiveMode,
 		ActiveListenAddr: activeModeAddr,
 		DisableEPSV:      partConf.DisableEPSV,
@@ -180,30 +193,20 @@ func (c *client) connect(pip *pipeline.Pipeline) (*goftp.Client, *pipeline.Error
 	return cli, nil
 }
 
-func (c *client) mkTLSConfig(pip *pipeline.Pipeline, partConf *PartnerConfigTLS, addr string,
+func mkTLSConfig(logger *log.Logger, ctx *model.TransferContext, partConf *PartnerConfigTLS,
 ) (tlsConfig *tls.Config, tlsMode goftp.TLSMode, pErr *pipeline.Error) {
-	//nolint:errcheck //error is guaranteed to be nil
-	serverName, _, _ := net.SplitHostPort(addr)
-
-	tlsConfig = &tls.Config{
-		ServerName: serverName,
-		ClientAuth: tls.NoClientCert,
-		MinVersion: c.conf.MinTLSVersion.TLS(),
+	var tlsErr error
+	if tlsConfig, tlsErr = protoutils.GetClientTLSConfig(ctx, logger); tlsErr != nil {
+		return nil, 0, pipeline.NewErrorWith(tlsErr, types.TeInternal, "failed to get TLS config")
 	}
 
-	if partConf.MinTLSVersion != 0 {
-		tlsConfig.MinVersion = partConf.MinTLSVersion.TLS()
-	}
+	tlsConfig.ClientAuth = tls.NoClientCert
 
-	if auth.AddTLSAuthorities(pip.DB, tlsConfig) != nil {
-		return nil, 0, pipeline.NewError(types.TeInternal, "failed to setup the TLS authorities")
-	}
-
-	for _, dbCert := range pip.TransCtx.RemoteAccountCreds {
+	for _, dbCert := range ctx.RemoteAccountCreds {
 		if dbCert.Type == auth.TLSCertificate {
 			cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
 			if err != nil {
-				pip.Logger.Warningf("failed to parse TLS certificate %q: %v", dbCert.Name, err)
+				logger.Warningf("failed to parse TLS certificate %q: %v", dbCert.Name, err)
 
 				continue
 			}
@@ -212,7 +215,7 @@ func (c *client) mkTLSConfig(pip *pipeline.Pipeline, partConf *PartnerConfigTLS,
 		}
 	}
 
-	for _, dbCert := range pip.TransCtx.RemoteAgentCreds {
+	for _, dbCert := range ctx.RemoteAgentCreds {
 		if dbCert.Type == auth.TLSTrustedCertificate {
 			tlsConfig.RootCAs.AppendCertsFromPEM([]byte(dbCert.Value))
 		}

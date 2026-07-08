@@ -80,7 +80,7 @@ func (c *ConnPool[T]) SetGracePeriod(duration time.Duration) {
 }
 
 func (c *ConnPool[T]) Connect(pip *pipeline.Pipeline) (T, error) {
-	key := pip.TransCtx.RemoteAccount.ID
+	key := pip.TransCtx.RemoteAccount.GetID()
 
 	var err error
 	info, _ := c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
@@ -117,7 +117,7 @@ func (c *ConnPool[T]) CloseConn(pip *pipeline.Pipeline) {
 }
 
 func (c *ConnPool[T]) CloseConnFor(account *model.RemoteAccount) {
-	key := account.ID
+	key := account.GetID()
 
 	c.pool.Compute(key, func(info *counter[T], loaded bool) (*counter[T], xsync.ComputeOp) {
 		if c.isClosed() || !loaded || info == nil || info.count <= 0 {
@@ -162,7 +162,7 @@ func (c *ConnPool[T]) Stop() error {
 }
 
 func (c *ConnPool[T]) Exists(account *model.RemoteAccount) bool {
-	_, ok := c.pool.Load(account.ID)
+	_, ok := c.pool.Load(account.GetID())
 
 	return ok
 }

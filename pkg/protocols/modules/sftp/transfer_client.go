@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -12,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // transferClient is the SFTP implementation of the `pipeline.TransferClient`
@@ -20,7 +20,7 @@ type transferClient struct {
 	pip   *pipeline.Pipeline
 	conns *sftpConnPool
 
-	sftpSession *clientConn
+	sftpSession *ClientConn
 	sftpFile    *sftp.File
 }
 
@@ -96,9 +96,7 @@ func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 	// Check parent dir, if it doesn't exist, try to create it
 	parentDir := path.Dir(c.pip.TransCtx.Transfer.RemotePath)
 	if mkdirErr := c.sftpSession.MkdirAll(parentDir); mkdirErr != nil {
-		c.pip.Logger.Errorf("Failed to create remote parent directory: %v", mkdirErr)
-
-		return c.wrapAndSendError(mkdirErr, types.TeUnknownRemote)
+		c.pip.Logger.Warningf("Failed to create remote parent directory: %v", mkdirErr)
 	}
 
 	if _, err := c.sftpFile.ReadFrom(file); err != nil {
@@ -161,21 +159,14 @@ func (c *transferClient) SendError(types.TransferErrorCode, string) {
 	_ = c.endTransfer()
 }
 
-func (c *transferClient) Delete(ctx context.Context, filepath string, recursive bool) error {
-	result := make(chan error)
-	go func() {
-		defer close(result)
-		if recursive {
-			result <- c.sftpSession.RemoveAll(filepath)
-		} else {
-			result <- c.sftpSession.Remove(filepath)
-		}
-	}()
+func (c *transferClient) Delete(ctx context.Context, filepath string) error {
+	return utils.RunWithCtx(ctx, func() error {
+		return c.sftpSession.Remove(filepath)
+	})
+}
 
-	select {
-	case err := <-result:
-		return err
-	case <-ctx.Done():
-		return fmt.Errorf("request canceled: %w", ctx.Err())
-	}
+func (c *transferClient) DeleteAll(ctx context.Context, filepath string) error {
+	return utils.RunWithCtx(ctx, func() error {
+		return c.sftpSession.RemoveAll(filepath)
+	})
 }

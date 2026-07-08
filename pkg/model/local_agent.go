@@ -1,15 +1,11 @@
 package model
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
@@ -17,29 +13,33 @@ import (
 // The struct contains the information needed by external agents to connect to
 // the server.
 type LocalAgent struct {
-	ID    int64  `xorm:"<- id AUTOINCR"` // The agent's database ID.
-	Owner string `xorm:"owner"`          // The agent's owner (the gateway to which it belongs).
+	Identifier
+	Owner string `gorm:"column:owner"` // The agent's owner (the gateway to which it belongs).
 
-	Name     string        `xorm:"name"`     // The server's name.
-	Address  types.Address `xorm:"address"`  // The agent's address (including the port)
-	Protocol string        `xorm:"protocol"` // The server's protocol.
-	Disabled bool          `xorm:"disabled"` // Whether the server is enabled at startup or not.
+	Name     string        `gorm:"column:name"`     // The server's name.
+	Address  types.Address `gorm:"column:address"`  // The agent's address (including the port)
+	Protocol string        `gorm:"column:protocol"` // The server's protocol.
+	Disabled bool          `gorm:"column:disabled"` // Whether the server is enabled at startup or not.
 
-	RootDir       string `xorm:"root_dir"`        // The root directory of the agent.
-	ReceiveDir    string `xorm:"receive_dir"`     // The server's directory for received files.
-	SendDir       string `xorm:"send_dir"`        // The server's directory for files to be sent.
-	TmpReceiveDir string `xorm:"tmp_receive_dir"` // The server's temporary directory for partially received files.
+	RootDir       string `gorm:"column:root_dir"`        // The root directory of the agent.
+	ReceiveDir    string `gorm:"column:receive_dir"`     // The server's directory for received files.
+	SendDir       string `gorm:"column:send_dir"`        // The server's directory for files to be sent.
+	TmpReceiveDir string `gorm:"column:tmp_receive_dir"` // The server's temporary directory for partially received files.
 
 	// The server's protocol configuration as a map.
-	ProtoConfig ProtoConfigMap `xorm:"proto_config"`
+	ProtoConfig Map[any] `gorm:"column:proto_config;serializer:json"`
 }
 
-func (*LocalAgent) TableName() string          { return TableLocAgents }
-func (*LocalAgent) Appellation() string        { return "server" }
-func (l *LocalAgent) GetID() int64             { return l.ID }
-func (l *LocalAgent) GetNullID() sql.NullInt64 { return utils.NewNullInt64(l.ID) }
-func (*LocalAgent) IsServer() bool             { return true }
-func (l *LocalAgent) Host() string             { return "" }
+func newLocalAgent(id int64) *LocalAgent {
+	return &LocalAgent{
+		Identifier: Identifier{ID: id},
+	}
+}
+
+func (*LocalAgent) TableName() string   { return TableLocAgents }
+func (*LocalAgent) Appellation() string { return "server" }
+func (*LocalAgent) IsServer() bool      { return true }
+func (l *LocalAgent) Host() string      { return "" }
 
 func (l *LocalAgent) validateProtoConfig() error {
 	if err := CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
@@ -91,8 +91,6 @@ func (l *LocalAgent) makePaths() error {
 // BeforeWrite is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) BeforeWrite(db database.Access) error {
-	l.Owner = conf.GlobalConfig.GatewayName
-
 	if err := l.makePaths(); err != nil {
 		return err
 	}
@@ -113,20 +111,23 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 		return database.WrapAsValidationError(err)
 	}
 
-	if n, err := db.Count(l).Where("id<>? AND owner=? AND name=?", l.ID, l.Owner,
-		l.Name).Run(); err != nil {
+	if n, err := db.Count(l).Where("id<>? AND name=?", l.ID, l.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local agents: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
 			"a local agent with the same name %q already exist", l.Name)
 	}
 
-	if n, err := db.Count(l).Where("id<>? AND owner=? AND address=?",
-		l.ID, l.Owner, l.Address.String()).Run(); err != nil {
+	if n, err := db.Count(l).Where("id<>? AND address=?", l.ID, l.Address.String()).
+		Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate local agent addresses: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
 			"a local agent with the same address %q already exist", l.Address.String())
+	}
+
+	if err := compatibility.EncryptR66ServerPassword(db, l.Protocol, l.ProtoConfig); err != nil {
+		return fmt.Errorf("failed to encrypt the R66 server password: %w", err)
 	}
 
 	return nil
@@ -154,9 +155,9 @@ func (l *LocalAgent) GetCredentials(db database.ReadAccess, authTypes ...string,
 	return getCredentials(db, l, authTypes...)
 }
 
-func (l *LocalAgent) SetCredOwner(a *Credential)           { a.LocalAgentID = utils.NewNullInt64(l.ID) }
+func (l *LocalAgent) SetCredOwner(a *Credential)           { a.LocalAgentID = l.NullableID() }
 func (l *LocalAgent) GetCredCond() (string, int64)         { return "local_agent_id=?", l.ID }
-func (l *LocalAgent) SetAccessTarget(a *RuleAccess)        { a.LocalAgentID = utils.NewNullInt64(l.ID) }
+func (l *LocalAgent) SetAccessTarget(a *RuleAccess)        { a.LocalAgentID = l.NullableID() }
 func (l *LocalAgent) GenAccessSelectCond() (string, int64) { return "local_agent_id=?", l.ID }
 
 func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
@@ -176,7 +177,7 @@ func (l *LocalAgent) GetProtocol(database.ReadAccess) (string, error) {
 }
 func (l *LocalAgent) AfterInsert(db database.Access) error { return l.AfterUpdate(db) }
 
-func (l *LocalAgent) getR66ServerPswd() string {
+func (l *LocalAgent) getR66ServerPswd(db database.ReadAccess) string {
 	if !isR66(l.Protocol) {
 		return ""
 	}
@@ -191,7 +192,7 @@ func (l *LocalAgent) getR66ServerPswd() string {
 		return ""
 	}
 
-	serverPasswd, aesErr := utils.AESDecrypt(database.GCM, cryptServerPasswd)
+	serverPasswd, aesErr := db.Decrypt(cryptServerPasswd)
 	if aesErr != nil {
 		return ""
 	}
@@ -206,7 +207,7 @@ func (l *LocalAgent) getR66ServerPswd() string {
 //
 //nolint:dupl //duplicate is for RemoteAgent, best keep separate
 func (l *LocalAgent) AfterUpdate(db database.Access) error {
-	serverPasswd := l.getR66ServerPswd()
+	serverPasswd := l.getR66ServerPswd(db)
 	if serverPasswd == "" {
 		return nil
 	}
@@ -214,7 +215,7 @@ func (l *LocalAgent) AfterUpdate(db database.Access) error {
 	var pswd Credential
 	if getErr := db.Get(&pswd, "local_agent_id=? AND type=?",
 		l.ID, authPassword).Run(); database.IsNotFound(getErr) {
-		pswd.LocalAgentID = utils.NewNullInt64(l.ID)
+		pswd.LocalAgentID = l.NullableID()
 		pswd.Type = authPassword
 		pswd.Value = serverPasswd
 
@@ -233,24 +234,21 @@ func (l *LocalAgent) AfterUpdate(db database.Access) error {
 	return l.AfterRead(db)
 }
 
-func (l *LocalAgent) AfterRead(database.ReadAccess) error {
-	if !isR66(l.Protocol) {
-		return nil
+func (l *LocalAgent) AfterRead(db database.ReadAccess) error {
+	if err := compatibility.DecryptR66ServerPassword(db, l.Protocol, l.ProtoConfig); err != nil {
+		return fmt.Errorf("failed to decrypt the R66 server password: %w", err)
 	}
-
-	servPwd, err := utils.GetAs[string](l.ProtoConfig, "serverPassword")
-	if errors.Is(err, utils.ErrKeyNotFound) {
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("failed to retrieve the server password: %w", err)
-	}
-
-	plain, err := utils.AESDecrypt(database.GCM, servPwd)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt the server password: %w", err)
-	}
-
-	l.ProtoConfig["serverPassword"] = plain
 
 	return nil
+}
+
+func (l *LocalAgent) GetAccount(db database.ReadAccess, login string) (*LocalAccount, error) {
+	var acc LocalAccount
+	if err := db.Get(&acc, "local_agent_id=? AND login=?", l.ID, login).Run(); err != nil {
+		return &acc, fmt.Errorf("failed to retrieve the local account: %w", err)
+	}
+
+	acc.LocalAgent = *l
+
+	return &acc, nil
 }

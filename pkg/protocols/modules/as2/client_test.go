@@ -15,8 +15,6 @@ import (
 )
 
 func TestClientPlain(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	server := as2test.MakeServer(t, false, nil, nil)
 	ctx := gwtesting.NewTestClientCtx(t, as2.AS2, server.Addr, nil, nil)
@@ -50,8 +48,6 @@ func TestClientPlain(t *testing.T) {
 }
 
 func TestClientTLS(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	server := as2test.MakeServer(t, true, nil, &gwtesting.ServerCert)
 	ctx := gwtesting.NewTestClientCtx(t, as2.AS2TLS, server.Addr, nil, nil)
@@ -86,8 +82,6 @@ func TestClientTLS(t *testing.T) {
 }
 
 func TestClientPreTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	server := as2test.MakeServer(t, false, nil, nil)
 	ctx := gwtesting.NewTestClientCtx(t, as2.AS2, server.Addr, nil, nil)
@@ -113,8 +107,6 @@ func TestClientPreTaskError(t *testing.T) {
 }
 
 func TestClientPostTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	server := as2test.MakeServer(t, false, nil, nil)
 	ctx := gwtesting.NewTestClientCtx(t, as2.AS2, server.Addr, nil, nil)
@@ -140,8 +132,6 @@ func TestClientPostTaskError(t *testing.T) {
 }
 
 func TestClientSignEncrypt(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	server := as2test.MakeServer(t, false, gwtesting.ClientCert.Leaf, &gwtesting.ServerCert)
 	ctx := gwtesting.NewTestClientCtx(t, as2.AS2, server.Addr, nil, map[string]any{
@@ -181,8 +171,6 @@ func TestClientSignEncrypt(t *testing.T) {
 }
 
 func TestClientAsyncMDN(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	server := as2test.MakeServer(t, false, nil, nil)
 	ctx := gwtesting.NewTestClientCtx(t, as2.AS2, server.Addr, nil, map[string]any{

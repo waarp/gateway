@@ -26,11 +26,10 @@ type serverFS struct {
 	logger *log.Logger
 	tracer func() pipeline.Trace
 
-	dbServer *model.LocalAgent
-	dbAcc    *model.LocalAccount
+	dbAcc *model.LocalAccount
 }
 
-func (s *serverFS) Name() string { return s.dbServer.Name }
+func (s *serverFS) Name() string { return s.dbAcc.LocalAgent.Name }
 
 func (s *serverFS) Mkdir(name string, _ os.FileMode) error {
 	s.logger.Debugf(`Received "Mkdir" request on %q`, name)
@@ -46,7 +45,7 @@ func (s *serverFS) MkdirAll(path string, _ os.FileMode) error {
 
 //nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (s *serverFS) mkdirAll(path string) error {
-	realDir, dirErr := protoutils.GetRealPath(false, s.db, s.logger, s.dbServer, s.dbAcc, path)
+	realDir, dirErr := protoutils.GetRealPath(false, s.db, s.logger, s.dbAcc, path)
 	if dirErr != nil {
 		s.logger.Errorf("Failed to build the dir path: %v", dirErr)
 
@@ -118,8 +117,7 @@ func (s *serverFS) Stat(name string) (os.FileInfo, error) {
 
 //nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (s *serverFS) stat(name string, temp bool) (os.FileInfo, error) {
-	realFile, dirErr := protoutils.GetRealPath(temp, s.db, s.logger, s.dbServer,
-		s.dbAcc, name)
+	realFile, dirErr := protoutils.GetRealPath(temp, s.db, s.logger, s.dbAcc, name)
 	if dirErr != nil {
 		return nil, errors.New("failed to build the file path")
 	}
@@ -144,17 +142,15 @@ func (s *serverFS) ReadDir(name string) ([]os.FileInfo, error) {
 
 	name = strings.TrimLeft(name, "/")
 
-	realDir, pathErr := protoutils.GetRealPath(false, s.db, s.logger, s.dbServer,
-		s.dbAcc, name)
+	realDir, pathErr := protoutils.GetRealPath(false, s.db, s.logger, s.dbAcc, name)
 	if pathErr != nil {
-		if realDir, pathErr = protoutils.GetRealPath(true, s.db, s.logger, s.dbServer,
-			s.dbAcc, name); pathErr != nil {
+		if realDir, pathErr = protoutils.GetRealPath(true, s.db, s.logger, s.dbAcc, name); pathErr != nil {
 			return nil, fmt.Errorf("failed to build the dir path: %w", pathErr)
 		}
 	}
 
 	if realDir == "" {
-		infos, err := protoutils.GetRulesPaths(s.db, s.dbServer, s.dbAcc, name)
+		infos, err := protoutils.GetRulesPaths(s.db, s.dbAcc, name)
 		if err != nil {
 			s.logger.Errorf("Failed to retrieve rules: %v", err)
 

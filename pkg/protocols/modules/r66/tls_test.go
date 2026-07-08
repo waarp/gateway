@@ -3,7 +3,6 @@ package r66
 import (
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
@@ -12,16 +11,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 //nolint:gochecknoglobals // this variable is only used for tests
 var (
-	cliConfTLS  = &clientConfig{}
-	servConfTLS = &serverConfig{sharedServerConfig: sharedServerConfig{ServerLogin: "r66_login"}}
-	partConfTLS = &PartnerConfig{sharedPartnerConfig: sharedPartnerConfig{ServerLogin: "r66_login"}}
+	cliConfTLS  = &ClientConfig{}
+	servConfTLS = &ServerConfig{SharedServerConfig: SharedServerConfig{ServerLogin: "r66_login"}}
+	partConfTLS = &PartnerConfig{SharedPartnerConfig: SharedPartnerConfig{ServerLogin: "r66_login"}}
 )
 
 func init() {
@@ -63,12 +62,16 @@ func TestTLS(t *testing.T) {
 				return tErr
 			}
 
-			return r66Cli.authenticate(r66conn)
+			if aErr := r66Cli.authenticate(r66conn); aErr != nil {
+				return aErr
+			}
+
+			return nil
 		}
 
 		remoteAccountCert := &model.Credential{
 			Name:            "client_cert",
-			RemoteAccountID: utils.NewNullInt64(ctx.RemAccount.ID),
+			RemoteAccountID: ctx.RemAccount.NullableID(),
 			Value:           testhelpers.ClientFooCert,
 			Value2:          testhelpers.ClientFooKey,
 			Type:            auth.TLSCertificate,
@@ -76,14 +79,14 @@ func TestTLS(t *testing.T) {
 
 		localAccountCert := &model.Credential{
 			Name:           "client_cert",
-			LocalAccountID: utils.NewNullInt64(ctx.LocAccount.ID),
+			LocalAccountID: ctx.LocAccount.NullableID(),
 			Value:          testhelpers.ClientFooCert,
 			Type:           auth.TLSTrustedCertificate,
 		}
 
 		localAgentCert := &model.Credential{
 			Name:         "server_cert",
-			LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+			LocalAgentID: ctx.Server.NullableID(),
 			Value:        testhelpers.LocalhostCert,
 			Value2:       testhelpers.LocalhostKey,
 			Type:         auth.TLSCertificate,
@@ -91,7 +94,7 @@ func TestTLS(t *testing.T) {
 
 		remotePartnerCert := &model.Credential{
 			Name:          "partner_cert",
-			RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+			RemoteAgentID: ctx.Partner.NullableID(),
 			Value:         testhelpers.LocalhostCert,
 			Type:          auth.TLSTrustedCertificate,
 		}
@@ -100,8 +103,7 @@ func TestTLS(t *testing.T) {
 			ctx.AddCreds(c, remoteAccountCert, localAccountCert, localAgentCert, remotePartnerCert)
 
 			Convey("When connecting to the server", func() {
-				SoMsg("Then it should not return an error",
-					connect(), ShouldBeNil)
+				SoMsg("Then it should not return an error", connect(), ShouldBeNil)
 			})
 		})
 
@@ -165,12 +167,20 @@ func TestTLS(t *testing.T) {
 			compatibility.IsLegacyR66CertificateAllowed = true
 			defer func() { compatibility.IsLegacyR66CertificateAllowed = false }()
 
-			remoteAccountCert.Type = r66auth.AuthLegacyCertificate
+			remAccLegacyCert := &model.Credential{
+				Name:            "rem_acc_legacy_cert",
+				RemoteAccountID: ctx.RemAccount.NullableID(),
+				Type:            r66auth.AuthLegacyCertificate,
+			}
 
 			Convey("Given that the legacy certificate was expected", func(c C) {
-				localAccountCert.Type = r66auth.AuthLegacyCertificate
+				locAccLegacyCert := &model.Credential{
+					Name:           "loc_acc_legacy_cert",
+					LocalAccountID: ctx.LocAccount.NullableID(),
+					Type:           r66auth.AuthLegacyCertificate,
+				}
 
-				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
+				ctx.AddCreds(c, remAccLegacyCert, locAccLegacyCert,
 					localAgentCert, remotePartnerCert)
 
 				Convey("When connecting to the server", func() {
@@ -192,7 +202,7 @@ func TestTLS(t *testing.T) {
 			})
 
 			Convey("Given that the legacy certificate was not expected", func(c C) {
-				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
+				ctx.AddCreds(c, remAccLegacyCert, localAccountCert,
 					localAgentCert, remotePartnerCert)
 
 				Convey("When connecting to the server", func() {
@@ -201,7 +211,7 @@ func TestTLS(t *testing.T) {
 					SoMsg("Then it should return an error", connErr, ShouldNotBeNil)
 					SoMsg("And it should be a bad certificate error",
 						connErr.Code(), ShouldEqual, types.TeBadAuthentication)
-					So(connErr.Details(), ShouldContainSubstring, "A: invalid certificate")
+					So(connErr.Details(), ShouldContainSubstring, "A: authentication failed")
 				})
 			})
 		})
@@ -210,13 +220,21 @@ func TestTLS(t *testing.T) {
 			compatibility.IsLegacyR66CertificateAllowed = true
 			defer func() { compatibility.IsLegacyR66CertificateAllowed = false }()
 
-			localAgentCert.Type = r66auth.AuthLegacyCertificate
+			locAgLegacyCert := &model.Credential{
+				Name:         "loc_ag_legacy_cert",
+				LocalAgentID: ctx.Server.NullableID(),
+				Type:         r66auth.AuthLegacyCertificate,
+			}
 
 			Convey("Given that the legacy certificate was expected", func(c C) {
-				remotePartnerCert.Type = r66auth.AuthLegacyCertificate
+				remAgLegacyCert := &model.Credential{
+					Name:          "rem_ag_legacy_cert",
+					RemoteAgentID: ctx.Partner.NullableID(),
+					Type:          r66auth.AuthLegacyCertificate,
+				}
 
 				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
-					localAgentCert, remotePartnerCert)
+					locAgLegacyCert, remAgLegacyCert)
 
 				Convey("When connecting to the server", func() {
 					SoMsg("Then it should not return an error",
@@ -226,7 +244,7 @@ func TestTLS(t *testing.T) {
 
 			Convey("Given that the legacy certificate was not expected", func(c C) {
 				ctx.AddCreds(c, remoteAccountCert, localAccountCert,
-					localAgentCert, remotePartnerCert)
+					locAgLegacyCert, remotePartnerCert)
 
 				Convey("When connecting to the server", func() {
 					connErr := connect()

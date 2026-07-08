@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/lib/as2"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -39,19 +38,32 @@ func NewServer(db *database.DB, agent *model.LocalAgent) protocol.Server {
 func (s *server) Name() string                     { return s.agent.Name }
 func (s *server) State() (utils.StateCode, string) { return s.state.Get() }
 
-func (s *server) Start() error {
+func (s *server) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	s.logger.Error(err.Error())
+	s.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(s.agent.Name, err)
+}
+
+func (s *server) Start() (retErr error) {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning
+	}
+
+	s.logger = logging.NewLogger(s.agent.Name)
+	defer s.reportError(retErr)
+
+	if err := s.db.Get(s.agent, "id=?", s.agent.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the AS2 server: %w", err)
 	}
 
 	s.logger = logging.NewLogger(s.agent.Name)
 	s.logger.Info("Starting AS2 server...")
 
 	if err := s.start(); err != nil {
-		s.logger.Errorf("Failed to start AS2 service: %v", err)
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
-
 		return err
 	}
 
@@ -61,19 +73,16 @@ func (s *server) Start() error {
 	return nil
 }
 
-func (s *server) Stop(ctx context.Context) error {
+func (s *server) Stop(ctx context.Context) (retErr error) {
 	if !s.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
 	s.logger.Info("Shutting down AS2 server")
+	defer s.reportError(retErr)
+	defer s.listener.Close() //nolint:errcheck //error is irrelevant at this point
 
 	if err := s.stop(ctx); err != nil {
-		s.logger.Error(err.Error())
-		_ = s.listener.Close() //nolint:errcheck //error is irrelevant at this point
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
-
 		return err
 	}
 
@@ -89,16 +98,14 @@ func (s *server) start() error {
 		return fmt.Errorf("invalid server config: %w", err)
 	}
 
-	realAddr := conf.GetRealAddress(s.agent.Address.Host,
+	realAddr := s.db.Config.Overrides.GetRealAddress(s.agent.Address.Host,
 		utils.FormatUint(s.agent.Address.Port),
 	)
 
 	var listErr error
 	if s.agent.Protocol == AS2TLS {
-		s.listener, listErr = tls.Listen("tcp", realAddr, &tls.Config{
-			MinVersion:         servConf.MinTLSVersion.TLS(),
-			GetConfigForClient: protoutils.GetServerTLSConfig(s.db, s.logger, s.agent, servConf.MinTLSVersion),
-		})
+		tlsConfig := protoutils.GetServerTLSConfig(s.db, s.logger, s.agent.ID)
+		s.listener, listErr = tls.Listen("tcp", realAddr, tlsConfig)
 	} else {
 		s.listener, listErr = net.Listen("tcp", realAddr)
 	}
@@ -148,8 +155,6 @@ func (s *server) start() error {
 func (s *server) stop(ctx context.Context) error {
 	res := utils.GoRun(func() error {
 		if err := pipeline.List.StopAllFromServer(ctx, s.agent.ID); err != nil {
-			s.logger.Errorf("Failed to interrupt AS2 transfers: %v", err)
-
 			return fmt.Errorf("could not halt the service gracefully: %w", err)
 		}
 
@@ -157,8 +162,6 @@ func (s *server) stop(ctx context.Context) error {
 	})
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Errorf("Failed to shutdown AS2 server: %v", err)
-
 		return fmt.Errorf("failed to close listener: %w", err)
 	}
 

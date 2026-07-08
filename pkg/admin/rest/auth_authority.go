@@ -14,7 +14,7 @@ import (
 
 func authorityToModel(jAuthority *api.InAuthority, id int64) *model.Authority {
 	return &model.Authority{
-		ID:             id,
+		Identifier:     model.ID(id),
 		Name:           jAuthority.Name.Value,
 		Type:           jAuthority.Type.Value,
 		PublicIdentity: jAuthority.PublicIdentity.Value,
@@ -86,6 +86,7 @@ func getAuthAuthority(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func listAuthAuthorities(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //duplicate is for a different type, keep separate
 	validSorting := orders{
 		"default": order{"name", true},
 		"name+":   order{"name", true},

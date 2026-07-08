@@ -11,7 +11,7 @@ import (
 
 func exportClouds(logger *log.Logger, db database.ReadAccess) ([]file.Cloud, error) {
 	var dbClouds model.CloudInstances
-	if err := db.Select(&dbClouds).Owner().Run(); err != nil {
+	if err := db.Select(&dbClouds).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve cloud instances: %w", err)
 	}
 
@@ -22,7 +22,7 @@ func exportClouds(logger *log.Logger, db database.ReadAccess) ([]file.Cloud, err
 			Name:    dbCloud.Name,
 			Type:    dbCloud.Type,
 			Key:     dbCloud.Key,
-			Secret:  dbCloud.Secret.String(),
+			Secret:  dbCloud.Secret,
 			Options: dbCloud.Options,
 		}
 

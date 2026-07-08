@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"context"
-	"fmt"
 	gofs "io/fs"
 	"net"
 	"path"
@@ -13,13 +12,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -29,18 +26,16 @@ func TestSFTPList(t *testing.T) {
 
 	Convey("Given a SFTP server", t, func(c C) {
 		db := database.TestDatabase(c)
-		conf.GlobalConfig.Paths.GatewayHome = rootPath
+		db.Config.Paths.GatewayHome = rootPath
 
 		Convey("Given an SFTP server", func(c C) {
-			port := getTestPort()
-			listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+			listener, err := net.Listen("tcp", "localhost:0")
 			So(err, ShouldBeNil)
 
 			addr := listener.Addr().String()
-
 			agent := &model.LocalAgent{
 				Name: "test_sftp_server", Protocol: SFTP,
-				RootDir: rootPath, Address: types.Addr("localhost", port),
+				RootDir: rootPath, Address: types.MustAddr(addr),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -51,7 +46,7 @@ func TestSFTPList(t *testing.T) {
 			So(db.Insert(toto).Run(), ShouldBeNil)
 
 			totoPswd := &model.Credential{
-				LocalAccountID: utils.NewNullInt64(toto.ID),
+				LocalAccountID: toto.NullableID(),
 				Type:           auth.Password,
 				Value:          "toto",
 			}
@@ -64,32 +59,26 @@ func TestSFTPList(t *testing.T) {
 			So(db.Insert(tata).Run(), ShouldBeNil)
 
 			tataPswd := &model.Credential{
-				LocalAccountID: utils.NewNullInt64(tata.ID),
+				LocalAccountID: tata.NullableID(),
 				Type:           auth.Password,
 				Value:          "tata",
 			}
 			So(db.Insert(tataPswd).Run(), ShouldBeNil)
 
 			hostKey := &model.Credential{
-				LocalAgentID: utils.NewNullInt64(agent.ID),
+				LocalAgentID: agent.NullableID(),
 				Type:         AuthSSHPrivateKey,
 				Value:        RSAPk,
 			}
 			So(db.Insert(hostKey).Run(), ShouldBeNil)
-
-			hostKey.Value = RSAPk
-			serverConfig, err := getSSHServerConfig(db, testhelpers.TestLogger(c, "sftp_test"),
-				[]*model.Credential{hostKey}, &serverConfig{}, agent)
-			So(err, ShouldBeNil)
 
 			logger := testhelpers.TestLogger(c, "test_sftp_list")
 
 			sshList := &sshListener{
 				DB:       db,
 				Logger:   logger,
-				Server:   agent,
-				SSHConf:  serverConfig,
-				Listener: listener,
+				serverID: agent.ID,
+				listener: listener,
 			}
 
 			go sshList.listen()
@@ -146,15 +135,15 @@ func TestSFTPList(t *testing.T) {
 
 				totoAccess := &model.RuleAccess{
 					RuleID:         send1.ID,
-					LocalAccountID: utils.NewNullInt64(toto.ID),
+					LocalAccountID: toto.NullableID(),
 				}
 				tataAccess := &model.RuleAccess{
 					RuleID:         send2.ID,
-					LocalAccountID: utils.NewNullInt64(tata.ID),
+					LocalAccountID: tata.NullableID(),
 				}
 				serverAccess := &model.RuleAccess{
 					RuleID:       send3.ID,
-					LocalAgentID: utils.NewNullInt64(agent.ID),
+					LocalAgentID: agent.NullableID(),
 				}
 
 				So(db.Insert(totoAccess).Run(), ShouldBeNil)
@@ -185,7 +174,7 @@ func TestSFTPList(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						Convey("Then it should return a list of all the authorized rule paths", func() {
-							So(len(list), ShouldEqual, 3)
+							So(list, ShouldHaveLength, 3)
 							So(list[0].Name(), ShouldEqual, "path1")
 							So(list[1].Name(), ShouldEqual, "path3")
 							So(list[2].Name(), ShouldEqual, "path4")
@@ -197,7 +186,7 @@ func TestSFTPList(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						Convey("Then it should return a list of all the authorized rule paths", func() {
-							So(len(list), ShouldEqual, 2)
+							So(list, ShouldHaveLength, 2)
 							So(list[0].Name(), ShouldEqual, "send1")
 							So(list[1].Name(), ShouldEqual, "subdir")
 						})
@@ -216,7 +205,7 @@ func TestSFTPList(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						Convey("Then it should return a list of the files in the rule's out dir", func() {
-							So(len(list), ShouldEqual, 2)
+							So(list, ShouldHaveLength, 2)
 							So(list[0].Name(), ShouldEqual, "list_file1")
 							So(list[1].Name(), ShouldEqual, "list_file2")
 						})

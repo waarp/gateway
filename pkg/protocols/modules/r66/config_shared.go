@@ -2,7 +2,7 @@ package r66
 
 import "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 
-type sharedServerConfig struct {
+type SharedServerConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
@@ -12,6 +12,7 @@ type sharedServerConfig struct {
 
 	// Specifies whether the server uses the legacy R66 certificate for TLS.
 	// Useless if the server does not use TLS.
+	//
 	// Deprecated: use model.Credential instead.
 	UsesLegacyCertificate bool `json:"usesLegacyCertificate,omitempty"`
 
@@ -25,7 +26,7 @@ type sharedServerConfig struct {
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
 
-func (c *sharedServerConfig) ValidShared() error {
+func (c *SharedServerConfig) ValidShared() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
 	}
@@ -37,7 +38,7 @@ func (c *sharedServerConfig) ValidShared() error {
 	return nil
 }
 
-type sharedPartnerConfig struct {
+type SharedPartnerConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
@@ -55,7 +56,7 @@ type sharedPartnerConfig struct {
 	CheckBlockHash *bool `json:"checkBlockHash,omitempty"`
 }
 
-func (c *sharedPartnerConfig) ValidShared() error {
+func (c *SharedPartnerConfig) ValidShared() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
 	}
@@ -67,7 +68,7 @@ func (c *sharedPartnerConfig) ValidShared() error {
 	return nil
 }
 
-type sharedClientConfig struct {
+type SharedClientConfig struct {
 	// The block size for transfers. Optional, 65536 by default.
 	BlockSize uint32 `json:"blockSize,omitempty"`
 
@@ -81,7 +82,7 @@ type sharedClientConfig struct {
 	CheckBlockHash bool `json:"checkBlockHash,omitempty"`
 }
 
-func (c *sharedClientConfig) ValidShared() error {
+func (c *SharedClientConfig) ValidShared() error {
 	if c.BlockSize == 0 {
 		c.BlockSize = 65536
 	}

@@ -3,17 +3,16 @@ package webdav
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/studio-b12/gowebdav"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httptransport"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
@@ -28,10 +27,10 @@ type client struct {
 	state  utils.State
 	agent  *model.Client
 
-	transporter httptransport.Transporter
+	transporter *httptransport.Transporter
 }
 
-func NewClient(db *database.DB, dbClient *model.Client) services.Client {
+func newClient(db *database.DB, dbClient *model.Client) *client {
 	return &client{
 		db:    db,
 		agent: dbClient,
@@ -40,17 +39,35 @@ func NewClient(db *database.DB, dbClient *model.Client) services.Client {
 
 func (c *client) Name() string { return c.agent.Name }
 
-func (c *client) Start() error {
+func (c *client) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	c.logger.Error(err.Error())
+	c.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(c.agent.Name, err)
+}
+
+func (c *client) Start() (retErr error) {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
 	c.logger = logging.NewLogger(c.agent.Name)
-	if err := c.start(); err != nil {
-		c.state.Set(utils.StateError, err.Error())
-		c.logger.Errorf("failed to start the WebDAV client: %v", err)
+	defer c.reportError(retErr)
 
-		return err
+	if err := c.db.Get(c.agent, "id=?", c.agent.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve client from database: %w", err)
+	}
+
+	c.logger = logging.NewLogger(c.agent.Name)
+	c.logger.Info("Starting WebDAV client...")
+
+	var err error
+	if c.transporter, err = httptransport.NewTransporter(c.agent.Protocol == WebdavTLS,
+		c.agent.LocalAddress.String(), c.db.Config.Overrides); err != nil {
+		return fmt.Errorf("failed to initialize the WebDAV client's transport: %w", err)
 	}
 
 	c.state.Set(utils.StateRunning, "")
@@ -59,31 +76,20 @@ func (c *client) Start() error {
 	return nil
 }
 
-func (c *client) start() error {
-	var err error
-	if c.transporter, err = httptransport.NewTransport(c.agent.Protocol == WebdavTLS,
-		c.agent.LocalAddress.String()); err != nil {
-		c.logger.Errorf("Failed to initialize the WebDAV client's transport: %v", err)
-
-		return fmt.Errorf("failed to initialize the WebDAV client's transport: %w", err)
-	}
-
-	return nil
-}
-
-func (c *client) Stop(ctx context.Context) error {
+func (c *client) Stop(ctx context.Context) (retErr error) {
 	if !c.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
-	if err := pipeline.List.StopAllFromClient(ctx, c.agent.ID); err != nil {
-		c.logger.Errorf("Failed to interrupt WebDAV client's running transfers: %v", err)
-		c.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(c.agent.Name, err)
+	c.logger.Info("Stopping WebDAV client...")
+	defer c.reportError(retErr)
+	defer c.transporter.Close()
 
+	if err := pipeline.List.StopAllFromClient(ctx, c.agent.ID); err != nil {
 		return fmt.Errorf("failed to stop the WebDAV client's running transfers: %w", err)
 	}
 
+	c.logger.Info("WebDAV client stopped successfully")
 	c.state.Set(utils.StateOffline, "")
 
 	return nil
@@ -94,12 +100,41 @@ func (c *client) State() (utils.StateCode, string) {
 }
 
 func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
-	host := conf.GetRealAddress(pip.TransCtx.RemoteAgent.Address.Host,
-		utils.FormatUint(pip.TransCtx.RemoteAgent.Address.Port))
-	login := pip.TransCtx.RemoteAccount.Login
+	transport := c.transporter.Connect(pip)
+	wdClient := getClient(pip.TransCtx, transport, pip.DB.Config.Overrides)
+
+	return &clientTransfer{
+		client:  wdClient,
+		pip:     pip,
+		errChan: protoutils.NewErrChan(),
+	}, nil
+}
+
+func GetClient(logger *log.Logger, ctx *model.TransferContext, overrides *conf.ConfigOverride,
+) (*gowebdav.Client, error) {
+	isTLS := ctx.Client.Protocol == WebdavTLS
+	transporter, err := httptransport.NewTransporter(isTLS, ctx.Client.LocalAddress.String(), overrides)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize the WebDAV client's transport: %w", err)
+	}
+
+	transport := transporter.Connect(&pipeline.Pipeline{
+		TransCtx: ctx,
+		Logger:   logger,
+	})
+
+	return getClient(ctx, transport, overrides), nil
+}
+
+func getClient(ctx *model.TransferContext, transport http.RoundTripper,
+	overrides *conf.ConfigOverride,
+) *gowebdav.Client {
+	host := overrides.GetRealAddress(ctx.RemoteAgent.Address.Host,
+		utils.FormatUint(ctx.RemoteAgent.Address.Port))
+	login := ctx.RemoteAccount.Login
 	pswd := ""
 
-	for _, cred := range pip.TransCtx.RemoteAccountCreds {
+	for _, cred := range ctx.RemoteAccountCreds {
 		if cred.Type == auth.Password {
 			pswd = cred.Value
 			break
@@ -107,21 +142,12 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 	}
 
 	scheme := "http://"
-	if pip.TransCtx.RemoteAgent.Protocol == WebdavTLS {
+	if ctx.RemoteAgent.Protocol == WebdavTLS {
 		scheme = "https://"
-	}
-
-	transport, err := c.transporter.Get(pip)
-	if err != nil {
-		return nil, pipeline.NewErrorWith(err, types.TeInternal, "failed to initialize WebDAV transport")
 	}
 
 	wdClient := gowebdav.NewClient(scheme+host, login, pswd)
 	wdClient.SetTransport(transport)
 
-	return &clientTransfer{
-		client:  wdClient,
-		pip:     pip,
-		errChan: protoutils.NewErrChan(),
-	}, nil
+	return wdClient
 }

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf/conftest"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
@@ -16,13 +16,12 @@ func TestAddressIndirection(t *testing.T) {
 	fakeAddr := "9.9.9.9:9999"
 
 	Convey("Given a r66 service with an indirect address", t, func(c C) {
-		conf.InitTestOverrides(c)
-
 		ctx := pipelinetest.InitSelfPushTransfer(c, R66, cliConf, partConf, servConf)
 		ctx.AddCreds(c, serverPassword(ctx.Server), partnerPassword(ctx.Partner))
+		conftest.InitTestOverrides(c, ctx.DB)
 
 		realAddr := ctx.Server.Address.String()
-		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
+		So(ctx.DB.Config.Overrides.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
 		So(ctx.Server.Address.Set(fakeAddr), ShouldBeNil)
 		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 

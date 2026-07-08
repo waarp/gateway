@@ -11,16 +11,15 @@ import (
 // Authority is the model representing an authentication authority. An authentication
 // authority is a trusted third party used to authenticate transfer partners.
 type Authority struct {
-	ID             int64    `xorm:"<- id AUTOINCR"`
-	Name           string   `xorm:"name"`
-	Type           string   `xorm:"type"`
-	PublicIdentity string   `xorm:"public_identity"`
-	ValidHosts     []string `xorm:"-"`
+	Identifier
+	Name           string   `gorm:"column:name"`
+	Type           string   `gorm:"column:type"`
+	PublicIdentity string   `gorm:"column:public_identity"`
+	ValidHosts     []string `gorm:"-"`
 }
 
 func (*Authority) TableName() string   { return TableAuthorities }
 func (*Authority) Appellation() string { return NameAuthority }
-func (a *Authority) GetID() int64      { return a.ID }
 
 func (a *Authority) BeforeWrite(db database.Access) error {
 	if strings.TrimSpace(a.Name) == "" {
@@ -96,8 +95,8 @@ func (a *Authority) AfterRead(db database.ReadAccess) error {
 }
 
 type Host struct {
-	AuthorityID int64  `xorm:"authority_id"`
-	Host        string `xorm:"host"`
+	AuthorityID int64  `gorm:"column:authority_id"`
+	Host        string `gorm:"column:host"`
 }
 
 func (*Host) TableName() string   { return TableAuthHosts }

@@ -31,12 +31,12 @@ type webdavFS struct {
 
 func (w *webdavFS) getRule(path string) (*model.Rule, error) {
 	//nolint:wrapcheck //no need to wrap here
-	return protoutils.GetClosestRule(w.db, w.logger, w.server, w.account, path, true)
+	return protoutils.GetClosestRule(w.db, w.logger, w.account, path, true)
 }
 
 func (w *webdavFS) getRealPath(path string) (string, error) {
 	//nolint:wrapcheck //no need to wrap here
-	return protoutils.GetRealPath(false, w.db, w.logger, w.server, w.account, path)
+	return protoutils.GetRealPath(false, w.db, w.logger, w.account, path)
 }
 
 func (w *webdavFS) Mkdir(_ context.Context, name string, _ os.FileMode) error {

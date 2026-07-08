@@ -1,18 +1,18 @@
 package sftp
 
-// serverConfig represents the configuration of a local SFTP server.
-type serverConfig struct {
+// ServerConfig represents the configuration of a local SFTP server.
+type ServerConfig struct {
 	KeyExchanges []string `json:"keyExchanges,omitempty"`
 	Ciphers      []string `json:"ciphers,omitempty"`
 	MACs         []string `json:"macs,omitempty"`
 }
 
-func (s *serverConfig) ValidConf() error {
+func (s *ServerConfig) ValidConf() error {
 	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, true)
 }
 
-// partnerConfig represents the configuration of a remote SFTP partner.
-type partnerConfig struct {
+// PartnerConfig represents the configuration of a remote SFTP partner.
+type PartnerConfig struct {
 	KeyExchanges                 []string `json:"keyExchanges,omitempty"`
 	Ciphers                      []string `json:"ciphers,omitempty"`
 	MACs                         []string `json:"macs,omitempty"`
@@ -20,17 +20,17 @@ type partnerConfig struct {
 	UseStat                      bool     `json:"useStat,omitempty"`
 }
 
-func (s *partnerConfig) ValidConf() error {
+func (s *PartnerConfig) ValidConf() error {
 	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, false)
 }
 
-// clientConfig represents the configuration of a local SFTP client.
-type clientConfig struct {
+// ClientConfig represents the configuration of a local SFTP client.
+type ClientConfig struct {
 	KeyExchanges []string `json:"keyExchanges,omitempty"`
 	Ciphers      []string `json:"ciphers,omitempty"`
 	MACs         []string `json:"macs,omitempty"`
 }
 
-func (s *clientConfig) ValidConf() error {
+func (s *ClientConfig) ValidConf() error {
 	return checkSFTPAlgos(s.KeyExchanges, s.Ciphers, s.MACs, false)
 }

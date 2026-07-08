@@ -4,12 +4,11 @@ import (
 	"net"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf/conftest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -17,23 +16,22 @@ func TestAddressIndirection(t *testing.T) {
 	fakeAddr := "9.9.9.9:9999"
 
 	Convey("Given a SFTP service with an indirect address", t, func(c C) {
-		conf.InitTestOverrides(c)
-
 		ctx := pipelinetest.InitSelfPushTransfer(c, SFTP, nil, nil, nil)
 		realAddr := ctx.Server.Address.String()
+		conftest.InitTestOverrides(c, ctx.DB)
 
-		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
+		So(ctx.DB.Config.Overrides.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
 		So(ctx.Server.Address.Set(fakeAddr), ShouldBeNil)
 		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
 		serverHostkey := &model.Credential{
-			LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+			LocalAgentID: ctx.Server.NullableID(),
 			Type:         AuthSSHPrivateKey,
 			Name:         "sftp_hostkey",
 			Value:        RSAPk,
 		}
 		partnerHostkey := &model.Credential{
-			RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+			RemoteAgentID: ctx.Partner.NullableID(),
 			Type:          AuthSSHPublicKey,
 			Name:          "sftp_hostkey",
 			Value:         SSHPbk,
@@ -49,7 +47,7 @@ func TestAddressIndirection(t *testing.T) {
 
 				dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
 				sftpClient := ctx.ClientService.(*client)
-				conns := protoutils.NewConnPool[*clientConn](dialer, sftpClient.newClientConn)
+				conns := protoutils.NewConnPool[*ClientConn](dialer, sftpClient.newClientConn)
 				cli := newTransferClient(pip.Pip, conns)
 
 				So(cli.Request(), ShouldBeNil)

@@ -13,7 +13,7 @@ import (
 
 func jsonTransToDbHist(trans *file.Transfer) *model.HistoryEntry {
 	return &model.HistoryEntry{
-		ID:               trans.ID,
+		Identifier:       model.ID(trans.ID),
 		RemoteTransferID: trans.RemoteID,
 		IsServer:         trans.IsServer,
 		IsSend:           trans.IsSend,

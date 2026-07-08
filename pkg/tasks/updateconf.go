@@ -104,7 +104,7 @@ func (u *updateconfTask) openZip(file fs.File) (*zip.Reader, error) {
 }
 
 func (u *updateconfTask) importConfig(db *database.DB, logger *log.Logger, arch *zip.Reader) error {
-	filename := conf.GlobalConfig.GatewayName + ".json"
+	filename := db.Config.GatewayName + ".json"
 
 	rc, err := arch.Open(filename)
 	if err != nil {
@@ -114,10 +114,16 @@ func (u *updateconfTask) importConfig(db *database.DB, logger *log.Logger, arch 
 	defer rc.Close()
 
 	file := &updateconfFile{rc, filename}
+	data, err := backup.ParseData(file)
+	if err != nil {
+		return fmt.Errorf("failed to parse import file %q: %w", filename, err)
+	}
 
-	if err = backup.Import(db, logger, file, []string{"all"}, false, false); err != nil {
+	if err = backup.Import(db, logger, data, []string{"all"}, false, false); err != nil {
 		return fmt.Errorf("failed to import data: %w", err)
 	}
+
+	// FIXME: start/restart all imported services
 
 	return nil
 }

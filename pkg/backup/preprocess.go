@@ -8,7 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-func PreprocessImport(data *file.Data) error {
+func preprocessImport(data *file.Data) error {
 	if err := preprocessServers(data.Locals); err != nil {
 		return err
 	}

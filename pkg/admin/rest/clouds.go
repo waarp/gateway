@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -19,8 +18,7 @@ func retrieveCloud(r *http.Request, db *database.DB) (*model.CloudInstance, erro
 	}
 
 	var cloud model.CloudInstance
-	if err := db.Get(&cloud, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-		cloudName).Run(); err != nil {
+	if err := db.Get(&cloud, "name=?", cloudName).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("cloud %q not found", cloudName)
 		}
@@ -53,12 +51,13 @@ func restCloudToDB(cloud *api.PostCloudReqObject) *model.CloudInstance {
 		Name:    cloud.Name,
 		Type:    cloud.Type,
 		Key:     cloud.Key,
-		Secret:  database.SecretText(cloud.Secret),
-		Options: cloud.Options,
+		Secret:  cloud.Secret,
+		Options: model.Map[string](cloud.Options),
 	}
 }
 
 func listClouds(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //duplicate is for a different type, keep separate
 	validSorting := orders{
 		"default": order{"name", true},
 		"name+":   order{"name", true},
@@ -75,8 +74,7 @@ func listClouds(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := query.Where("owner=?", conf.GlobalConfig.GatewayName).
-			Run(); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -127,21 +125,21 @@ func updateCloud(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			Name:    oldCloud.Name,
 			Type:    oldCloud.Type,
 			Key:     asNullable(oldCloud.Key),
-			Secret:  asNullable(string(oldCloud.Secret)),
-			Options: oldCloud.Options,
+			Secret:  asNullable(oldCloud.Secret),
+			Options: api.CloudConfig(oldCloud.Options),
 		}
 		if err := readJSON(r, &restCloud); handleError(w, logger, err) {
 			return
 		}
 
 		dbCloud := &model.CloudInstance{
-			ID:      oldCloud.ID,
-			Owner:   oldCloud.Owner,
-			Name:    restCloud.Name,
-			Type:    restCloud.Type,
-			Key:     restCloud.Key.Value,
-			Secret:  database.SecretText(restCloud.Secret.Value),
-			Options: restCloud.Options,
+			Identifier: oldCloud.Identifier,
+			Owner:      oldCloud.Owner,
+			Name:       restCloud.Name,
+			Type:       restCloud.Type,
+			Key:        restCloud.Key.Value,
+			Secret:     restCloud.Secret.Value,
+			Options:    model.Map[string](restCloud.Options),
 		}
 
 		if err := db.Update(dbCloud).Run(); handleError(w, logger, err) {

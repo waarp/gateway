@@ -9,8 +9,6 @@ import (
 )
 
 // getStatus is called when an HTTP request is received on the StatusURI path.
-//
-// Deprecated: replaced by makeAbout.
 func getStatus(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		statuses := make(api.Statuses)

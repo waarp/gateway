@@ -49,7 +49,6 @@ func getCertPath() string {
 
 // ######################## GET ##########################
 
-// Deprecated: use CredentialGet command instead.
 type CertGet struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
@@ -133,8 +132,6 @@ func (c *CertDelete) execute(w io.Writer) error {
 
 // ######################## LIST ##########################
 
-// Deprecated: use command "get" on the certificate owner instead.
-//
 //nolint:lll // struct tags for command line arguments can be long
 type CertList struct {
 	ListOptions

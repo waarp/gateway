@@ -11,7 +11,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -23,6 +22,8 @@ import (
 const testPartnersURI = "http://localhost:8080/api/partners/"
 
 func TestListPartners(t *testing.T) {
+	t.Parallel()
+
 	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutPartner) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
@@ -147,6 +148,8 @@ func TestListPartners(t *testing.T) {
 }
 
 func TestGetPartner(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the partner get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_partner_get_test")
 		db := database.TestDatabase(c)
@@ -161,7 +164,7 @@ func TestGetPartner(t *testing.T) {
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			pswd := model.Credential{
-				RemoteAgentID: utils.NewNullInt64(existing.ID),
+				RemoteAgentID: existing.NullableID(),
 				Name:          "partner pswd",
 				Type:          auth.Password,
 				Value:         "sesame",
@@ -223,6 +226,8 @@ func TestGetPartner(t *testing.T) {
 }
 
 func TestCreatePartner(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the partner creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_partner_create_logger")
 		db := database.TestDatabase(c)
@@ -272,8 +277,8 @@ func TestCreatePartner(t *testing.T) {
 							So(len(ags), ShouldEqual, 2)
 
 							So(ags[1], ShouldResemble, &model.RemoteAgent{
-								ID:          2,
-								Owner:       conf.GlobalConfig.GatewayName,
+								Identifier:  model.ID(2),
+								Owner:       db.Config.GatewayName,
 								Name:        "new_partner",
 								Protocol:    testProto1,
 								Address:     types.Addr("localhost", 2),
@@ -297,6 +302,8 @@ func TestCreatePartner(t *testing.T) {
 }
 
 func TestDeletePartner(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the partner deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_partner_delete_test")
 		db := database.TestDatabase(c)
@@ -354,6 +361,8 @@ func TestDeletePartner(t *testing.T) {
 }
 
 func TestUpdatePartner(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the agent updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_partner_update_logger")
 		db := database.TestDatabase(c)
@@ -409,8 +418,8 @@ func TestUpdatePartner(t *testing.T) {
 
 						Convey("Then the agent should have been updated", func() {
 							exp := &model.RemoteAgent{
-								ID:          old.ID,
-								Owner:       conf.GlobalConfig.GatewayName,
+								Identifier:  old.Identifier,
+								Owner:       db.Config.GatewayName,
 								Name:        newName,
 								Protocol:    newProto,
 								Address:     mustAddr(newAddr),
@@ -460,6 +469,8 @@ func TestUpdatePartner(t *testing.T) {
 }
 
 func TestReplacePartner(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the agent updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_partner_update_logger")
 		db := database.TestDatabase(c)
@@ -507,8 +518,8 @@ func TestReplacePartner(t *testing.T) {
 
 						Convey("Then the agent should have been updated", func() {
 							exp := &model.RemoteAgent{
-								ID:          old.ID,
-								Owner:       conf.GlobalConfig.GatewayName,
+								Identifier:  old.Identifier,
+								Owner:       db.Config.GatewayName,
 								Name:        "update",
 								Protocol:    testProto2,
 								Address:     types.Addr("localhost", 2),

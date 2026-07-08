@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -14,8 +13,7 @@ func importClients(logger *log.Logger, db database.Access, clients []file.Client
 	reset bool,
 ) error {
 	if reset {
-		if err := db.DeleteAll(&model.Client{}).Where("owner=?",
-			conf.GlobalConfig.GatewayName).Run(); err != nil {
+		if err := db.DeleteAll(&model.Client{}).Run(); err != nil {
 			return fmt.Errorf("failed to purge clients: %w", err)
 		}
 	}
@@ -26,8 +24,7 @@ func importClients(logger *log.Logger, db database.Access, clients []file.Client
 			isNew    bool
 		)
 
-		if err := db.Get(&dbClient, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-			client.Name).Run(); database.IsNotFound(err) {
+		if err := db.Get(&dbClient, "name=?", client.Name).Run(); database.IsNotFound(err) {
 			isNew = true
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve client %q: %w", client.Name, err)

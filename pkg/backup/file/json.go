@@ -1,5 +1,11 @@
 package file
 
+import (
+	"encoding/json"
+	"strconv"
+	"time"
+)
+
 func (s *SNMPServer) IsZero() bool {
 	return s.LocalUDPAddress == "" &&
 		s.Community == "" &&
@@ -17,4 +23,29 @@ func (s SNMPConfig) IsZero() bool {
 
 func (e EmailConfig) IsZero() bool {
 	return len(e.Credentials) == 0 && len(e.Templates) == 0
+}
+
+type Duration time.Duration
+
+func (d Duration) IsZero() bool { return d == 0 }
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(time.Duration(d).String())), nil
+}
+
+//nolint:wrapcheck //wrapping adds nothing here
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := json.Unmarshal(b, &str); err != nil {
+		return err
+	}
+
+	duration, err := time.ParseDuration(str)
+	if err != nil {
+		return err
+	}
+
+	*d = Duration(duration)
+
+	return nil
 }

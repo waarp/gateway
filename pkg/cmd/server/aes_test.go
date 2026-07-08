@@ -20,7 +20,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	parse "code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -70,7 +69,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 		So(db.Insert(r66RemAccount).Run(), ShouldBeNil)
 
 		pswdCred := &model.Credential{
-			RemoteAccountID: utils.NewNullInt64(r66RemAccount.ID),
+			RemoteAccountID: r66RemAccount.NullableID(),
 			Type:            auth.Password,
 			Value:           remAccPwd,
 		}
@@ -90,14 +89,14 @@ func TestChangeAESPassphrase(t *testing.T) {
 		So(db.Insert(sftpRemAccount).Run(), ShouldBeNil)
 
 		sshKeyCred := &model.Credential{
-			RemoteAccountID: utils.NewNullInt64(sftpRemAccount.ID),
+			RemoteAccountID: sftpRemAccount.NullableID(),
 			Type:            sftp.AuthSSHPrivateKey,
 			Value:           remAccSSHKey,
 		}
 		So(db.Insert(sshKeyCred).Run(), ShouldBeNil)
 
 		tlsCertCred := &model.Credential{
-			LocalAgentID: utils.NewNullInt64(server.ID),
+			LocalAgentID: server.NullableID(),
 			Type:         auth.TLSCertificate,
 			Value:        servTLSCert,
 			Value2:       servTLSKey,
@@ -120,7 +119,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 			aesFile := filepath.Join(testDir, "aes.key")
 			So(os.WriteFile(aesFile, newPassphrase, 0o600), ShouldBeNil)
 
-			newGCM := makeGCM(newPassphrase)
+			newAEAD := makeAEAD(newPassphrase)
 
 			Convey("When changing the AES passphrase to the new one", func() {
 				configFile := filepath.Join(testDir, "config.ini")
@@ -146,7 +145,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 
 							switch servPwd := protoConfig["serverPassword"].(type) {
 							case string:
-								pswd, newErr := utils.AESDecrypt(newGCM, servPwd)
+								pswd, newErr := database.AESDecrypt(newAEAD, servPwd)
 								So(newErr, ShouldBeNil)
 								So(pswd, ShouldEqual, r66ServPwd)
 							default:
@@ -161,7 +160,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 							var cipherText string
 							So(row.Scan(&cipherText), ShouldBeNil)
 
-							pswd, aesErr := utils.AESDecrypt(newGCM, cipherText)
+							pswd, aesErr := database.AESDecrypt(newAEAD, cipherText)
 							So(aesErr, ShouldBeNil)
 							So(pswd, ShouldEqual, r66ServPwd)
 						})
@@ -174,7 +173,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 						var cipherText string
 						So(row.Scan(&cipherText), ShouldBeNil)
 
-						pswd, aesErr := utils.AESDecrypt(newGCM, cipherText)
+						pswd, aesErr := database.AESDecrypt(newAEAD, cipherText)
 						So(aesErr, ShouldBeNil)
 						So(pswd, ShouldEqual, remAccPwd)
 					})
@@ -185,7 +184,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 						var cipherText string
 						So(row.Scan(&cipherText), ShouldBeNil)
 
-						pswd, aesErr := utils.AESDecrypt(newGCM, cipherText)
+						pswd, aesErr := database.AESDecrypt(newAEAD, cipherText)
 						So(aesErr, ShouldBeNil)
 						So(pswd, ShouldEqual, remAccSSHKey)
 					})
@@ -196,7 +195,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 						var cipherText string
 						So(row.Scan(&cipherText), ShouldBeNil)
 
-						pswd, aesErr := utils.AESDecrypt(newGCM, cipherText)
+						pswd, aesErr := database.AESDecrypt(newAEAD, cipherText)
 						So(aesErr, ShouldBeNil)
 						So(pswd, ShouldEqual, servTLSKey)
 					})
@@ -207,7 +206,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 						var cipherText string
 						So(row.Scan(&cipherText), ShouldBeNil)
 
-						pswd, aesErr := utils.AESDecrypt(newGCM, cipherText)
+						pswd, aesErr := database.AESDecrypt(newAEAD, cipherText)
 						So(aesErr, ShouldBeNil)
 						So(pswd, ShouldEqual, cloudSecret)
 					})
@@ -215,7 +214,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 
 				Convey("Then the AES passphrase file should have been changed", func() {
 					// both in memory
-					So(conf.GlobalConfig.Database.AESPassphrase, ShouldEqual, aesFile)
+					So(db.Config.Database.AESPassphrase, ShouldEqual, aesFile)
 
 					// and on disk
 					serverConfig := &conf.ServerConfig{}
@@ -231,7 +230,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 	})
 }
 
-func makeGCM(passphrase []byte) cipher.AEAD {
+func makeAEAD(passphrase []byte) cipher.AEAD {
 	block, err := aes.NewCipher(passphrase)
 	So(err, ShouldBeNil)
 

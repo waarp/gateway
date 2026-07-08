@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -39,19 +40,20 @@ func setDefaultClientAlgos(sshConf *ssh.ClientConfig) {
 	}
 }
 
-func makePartnerHostKeys(pip *pipeline.Pipeline) ([]ssh.PublicKey, []string, *pipeline.Error) {
+func makePartnerHostKeys(logger *log.Logger, ctx *model.TransferContext,
+) ([]ssh.PublicKey, []string, *pipeline.Error) {
 	var (
 		hostKeys []ssh.PublicKey
 		algos    []string
 	)
 
-	partner := pip.TransCtx.RemoteAgent.Name
-	creds := pip.TransCtx.RemoteAgentCreds
+	partner := ctx.RemoteAgent.Name
+	creds := ctx.RemoteAgentCreds
 
 	for _, cred := range creds {
 		key, err := ParseAuthorizedKey(cred.Value)
 		if err != nil {
-			pip.Logger.Warningf("Failed to parse the SFTP partner %q's hostkey %q: %v",
+			logger.Warningf("Failed to parse the SFTP partner %q's hostkey %q: %v",
 				partner, cred.Name, err)
 
 			continue
@@ -67,7 +69,7 @@ func makePartnerHostKeys(pip *pipeline.Pipeline) ([]ssh.PublicKey, []string, *pi
 	}
 
 	if len(hostKeys) == 0 {
-		pip.Logger.Errorf("No valid hostkey found for partner %q", partner)
+		logger.Errorf("No valid hostkey found for partner %q", partner)
 
 		return nil, nil, pipeline.NewErrorf(types.TeInternal,
 			"no valid hostkey found for partner %q", partner)
@@ -108,22 +110,23 @@ func makeClientAuthMethods(creds model.Credentials) []ssh.AuthMethod {
 	return auths
 }
 
-func makeSSHClientConfig(pip *pipeline.Pipeline, sshConfig *ssh.Config) (*ssh.ClientConfig, *pipeline.Error) {
-	hostKeys, algos, err := makePartnerHostKeys(pip)
+func makeSSHClientConfig(logger *log.Logger, ctx *model.TransferContext, sshConfig *ssh.Config,
+) (*ssh.ClientConfig, *pipeline.Error) {
+	hostKeys, algos, err := makePartnerHostKeys(logger, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	authMethods := makeClientAuthMethods(pip.TransCtx.RemoteAccountCreds)
+	authMethods := makeClientAuthMethods(ctx.RemoteAccountCreds)
 
 	certChecker := &ssh.CertChecker{
-		IsHostAuthority: isHostAuthority(pip.DB, pip.Logger),
+		IsHostAuthority: isHostAuthority(ctx, logger),
 		HostKeyFallback: makeFixedHostKeys(hostKeys),
 	}
 
 	clientConf := &ssh.ClientConfig{
 		Config:            *sshConfig,
-		User:              pip.TransCtx.RemoteAccount.Login,
+		User:              ctx.RemoteAccount.Login,
 		Auth:              authMethods,
 		HostKeyCallback:   certChecker.CheckHostKey,
 		HostKeyAlgorithms: algos,

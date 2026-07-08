@@ -8,7 +8,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func GetOldTransferByRemoteID(db database.ReadAccess, remoteID string,
@@ -108,7 +107,7 @@ func MakeServerTransfer(remoteID, filepath string, account *model.LocalAccount, 
 	newTrans := &model.Transfer{
 		RemoteTransferID: remoteID,
 		RuleID:           rule.ID,
-		LocalAccountID:   utils.NewNullInt64(account.ID),
+		LocalAccountID:   account.NullableID(),
 		Filesize:         model.UnknownSize,
 		Start:            time.Now(),
 		Status:           types.StatusPlanned,

@@ -1,11 +1,5 @@
 package database
 
-import (
-	"xorm.io/builder"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-)
-
 type selectCountBean struct{ SelectBean }
 
 func (s *selectCountBean) Appellation() string { return s.Elem() }
@@ -16,6 +10,7 @@ type CountQuery struct {
 	bean IterateBean
 
 	conds []*condition
+	all   bool
 }
 
 // Where adds a 'WHERE' clause to the 'COUNT' query with the given conditions
@@ -30,22 +25,23 @@ func (c *CountQuery) Where(sql string, args ...any) *CountQuery {
 	return c
 }
 
-// Owner adds a 'WHERE owner = ?' clause to the 'SELECT' query.
-func (c *CountQuery) Owner() *CountQuery {
-	return c.Where("owner=?", conf.GlobalConfig.GatewayName)
+func (c *CountQuery) All() *CountQuery {
+	c.all = true
+	return c
 }
 
 // Run executes the 'COUNT' query and returns the count number.
 func (c *CountQuery) Run() (uint64, error) {
-	logger := c.db.GetLogger()
-	query := c.db.getUnderlying().NoAutoCondition()
+	logger := c.db.getLogger()
+	query := c.db.getUnderlying().Table(c.bean.TableName())
+	addOwnerCond(query, c.all, c.bean, c.db.getOwner())
 
 	for _, cond := range c.conds {
-		query.Where(builder.Expr(cond.sql, cond.args...))
+		query.Where(cond.sql, cond.args...)
 	}
 
-	n, err := query.Count(c.bean)
-	if err != nil {
+	var n int64
+	if err := query.Count(&n).Error; err != nil {
 		logger.Errorf("Failed to count the %s entries: %v", c.bean.Appellation(), err)
 
 		return 0, NewInternalError(err)

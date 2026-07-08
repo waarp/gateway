@@ -107,20 +107,3 @@ func (ts *TransferStep) Scan(v any) error {
 
 	return nil
 }
-
-// FromDB implements xorm/core.Conversion. As xorm ignores standard converters
-// for non-struct types (Value() and Scan()), thus must be mapped to xorm own
-// conversion interface.
-func (ts *TransferStep) FromDB(v []byte) error {
-	return ts.Scan(v)
-}
-
-// ToDB implements xorm/core.Conversion. As xorm ignores standard converters
-// for non-struct types (Value() and Scan()), thus must be mapped to xorm own
-// conversion interface.
-func (ts TransferStep) ToDB() ([]byte, error) {
-	v, err := ts.Value()
-
-	//nolint:forcetypeassert //no need, the type assertion will always succeed
-	return []byte(v.(string)), err
-}

@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"runtime"
+	"slices"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/filewatcher"
 	"github.com/gorilla/mux"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
@@ -19,19 +21,22 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
-	testProto1 = "rest_test_1"
-	testProto2 = "rest_test_2"
+	testProto1  = "rest_test_1"
+	testProto2  = "rest_test_2"
+	testFwProto = filewatcher.TestProtocol
 )
 
 //nolint:gochecknoinits // init is used by design
 func init() {
 	protocols.Register(testProto1, &testModule{})
 	protocols.Register(testProto2, &testModule{})
+	protocols.Register(testFwProto, &testModule{})
 }
 
 func stateCode(service services.Service) utils.StateCode {
@@ -49,6 +54,9 @@ func mustAddr(s string) types.Address {
 
 type testModule struct{}
 
+func (testModule) OptionalFeatures() []features.Feature {
+	return slices.Collect(features.AllFeatures())
+}
 func (testModule) CanMakeTransfer(*model.TransferContext) error { return nil }
 func (testModule) CheckServerConfig(map[string]any) error       { return nil }
 func (testModule) CheckClientConfig(map[string]any) error       { return nil }
@@ -113,7 +121,7 @@ func makeTestRequest(method, host, path string, body io.Reader) *http.Response {
 
 func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
 	var t model.NormalizedTransferView
-	convey.So(db.Get(&t, "id=?", trans.ID).Run(), convey.ShouldBeNil)
+	convey.So(db.Get(&t, "id=?", trans.ID).Eager().Run(), convey.ShouldBeNil)
 
 	return DBTransferToREST(&t)
 }

@@ -24,7 +24,7 @@ type orders map[string]order
 func parseSelectQuery(r *http.Request, db database.ReadAccess, validOrders orders,
 	elem database.SelectBean,
 ) (*database.SelectQuery, error) {
-	query := db.Select(elem)
+	query := db.Select(elem).Eager()
 
 	var err error
 

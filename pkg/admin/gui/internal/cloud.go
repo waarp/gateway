@@ -20,7 +20,7 @@ func GetCloudByID(db database.ReadAccess, id int64) (*model.CloudInstance, error
 func GetCloudInstanceLike(db *database.DB, prefix string) ([]*model.CloudInstance, error) {
 	var clouds model.CloudInstances
 
-	return clouds, db.Select(&clouds).Owner().Where("name LIKE ?", prefix+"%").
+	return clouds, db.Select(&clouds).Where("name LIKE ?", prefix+"%").
 		OrderBy("name", true).Limit(LimitLike, 0).Run()
 }
 

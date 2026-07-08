@@ -5,7 +5,6 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -40,13 +39,14 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router) {
 	makePartnerHandlers(mkHandler)
 	makeRemoteAccountHandlers(mkHandler)
 	makeClientHandlers(mkHandler)
+	makeFilewatcherHandlers(mkHandler)
 	makeCloudHandlers(mkHandler)
 	makeAuthoritiesHandlers(mkHandler)
 	makeSNMPHandlers(mkHandler)
 	makeKeysHandlers(mkHandler)
-	makeEmailHanddlers(mkHandler)
+	makeEmailHandlers(mkHandler)
 
-	if conf.LocalOverrides != nil {
+	if db.Config.Overrides != nil {
 		makeOverrideHandlers(mkHandler)
 	} else {
 		router.PathPrefix("/override").HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -282,10 +282,29 @@ func makeOverrideHandlers(mkHandler HandlerFactory) {
 		overrideSettingsAddressPath   = "/override/addresses/{address}"
 	)
 
-	mkHandler.noDB(overrideSettingsAddressesPath, listAddressOverrides, model.PermAdminRead, http.MethodGet)
-	mkHandler.noDB(overrideSettingsAddressesPath, addAddressOverride, model.PermAdminWrite,
+	mkHandler(overrideSettingsAddressesPath, listAddressOverrides, model.PermAdminRead, http.MethodGet)
+	mkHandler(overrideSettingsAddressesPath, addAddressOverride, model.PermAdminWrite,
 		http.MethodPost, http.MethodPut, http.MethodPatch)
-	mkHandler.noDB(overrideSettingsAddressPath, deleteAddressOverride, model.PermAdminDelete, http.MethodDelete)
+	mkHandler(overrideSettingsAddressPath, deleteAddressOverride, model.PermAdminDelete, http.MethodDelete)
+}
+
+func makeFilewatcherHandlers(mkHandler HandlerFactory) {
+	const (
+		filewatchersPath     = "/filewatchers"
+		filewatcherPath      = "/filewatchers/{filewatcher}"
+		filewatcherStartPath = "/filewatchers/{filewatcher}/start"
+		filewatcherStopPath  = "/filewatchers/{filewatcher}/stop"
+		filewatcherFirePath  = "/filewatchers/{filewatcher}/fire"
+	)
+
+	mkHandler(filewatchersPath, listFilewatchers, model.PermServersRead, http.MethodGet)
+	mkHandler(filewatchersPath, createFilewatcher, model.PermServersWrite, http.MethodPost)
+	mkHandler(filewatcherPath, getFilewatcher, model.PermServersRead, http.MethodGet)
+	mkHandler(filewatcherPath, updateFilewatcher, model.PermServersWrite, http.MethodPatch)
+	mkHandler(filewatcherPath, deleteFilewatcher, model.PermServersDelete, http.MethodDelete)
+	mkHandler(filewatcherStartPath, startFilewatcher, model.PermServersWrite, http.MethodPut)
+	mkHandler(filewatcherStopPath, stopFilewatcher, model.PermServersWrite, http.MethodPut)
+	mkHandler(filewatcherFirePath, fireFilewatcher, model.PermServersWrite, http.MethodPut)
 }
 
 func makeCloudHandlers(mkHandler HandlerFactory) {
@@ -351,7 +370,7 @@ func makeKeysHandlers(mkHandler HandlerFactory) {
 	mkHandler(cryptoKeyPath, deleteCryptoKey, model.PermAdminDelete, http.MethodDelete)
 }
 
-func makeEmailHanddlers(mkHandler HandlerFactory) {
+func makeEmailHandlers(mkHandler HandlerFactory) {
 	const (
 		emailTemplatesPath  = "/email/templates"
 		emailTemplatePath   = "/email/templates/{email_template}"

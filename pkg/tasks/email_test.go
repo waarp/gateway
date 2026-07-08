@@ -54,7 +54,7 @@ func TestMail(t *testing.T) {
 		EmailAddress:  args.Credential.SenderAddress,
 		ServerAddress: *servAddr,
 		Login:         args.Credential.Login,
-		Password:      database.SecretText(args.Credential.Password),
+		Password:      database.secretText(args.Credential.Password),
 	}
 	require.NoError(t, db.Insert(&cred).Run())
 

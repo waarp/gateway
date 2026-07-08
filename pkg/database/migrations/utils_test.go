@@ -52,12 +52,43 @@ func doesTableExist(tb testing.TB, db *sql.DB, dbType, table string) bool {
 
 	switch dbType {
 	case SQLite:
-		row = db.QueryRow(`SELECT name FROM sqlite_master WHERE
-			type='table' AND name=?`, table)
+		row = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table)
 	case PostgreSQL:
 		row = db.QueryRow(`SELECT tablename FROM pg_tables WHERE tablename=$1`, table)
 	case MySQL:
-		row = db.QueryRow(fmt.Sprintf(`SHOW TABLES LIKE '%s'`, table))
+		row = db.QueryRow(`SELECT TABLE_NAME FROM information_schema.TABLES 
+			WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME=?`, table)
+	default:
+		panic(fmt.Sprintf("unknown database type: %s", dbType))
+	}
+
+	if err := row.Scan(&name); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false
+		}
+
+		require.NoError(tb, err)
+	}
+
+	return true
+}
+
+func doesViewExist(tb testing.TB, db *sql.DB, dbType, view string) bool {
+	tb.Helper()
+
+	var (
+		row  *sql.Row
+		name string
+	)
+
+	switch dbType {
+	case SQLite:
+		row = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='view' AND name=?`, view)
+	case PostgreSQL:
+		row = db.QueryRow(`SELECT tablename FROM pg_views WHERE viewname=$1`, view)
+	case MySQL:
+		row = db.QueryRow(`SELECT TABLE_NAME FROM information_schema.TABLES 
+			WHERE TABLE_TYPE='VIEW' AND TABLE_NAME=?`, view)
 	default:
 		panic(fmt.Sprintf("unknown database type: %s", dbType))
 	}

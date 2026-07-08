@@ -115,6 +115,13 @@ func ExportData(db database.ReadAccess, w *os.File, targets []string) error {
 		}
 	}
 
+	if utils.ContainsOneOf(targets, "filewatchers", "all") {
+		data.Filewatchers, expErr = exportFilewatchers(logger, db)
+		if expErr != nil {
+			return expErr
+		}
+	}
+
 	if err := serializeFile(data, w); err != nil {
 		return fmt.Errorf("cannot encode data: %w", err)
 	}

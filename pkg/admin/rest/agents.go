@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -46,14 +45,13 @@ func restServerToDB(restServer *api.InServer, logger *log.Logger,
 	}
 
 	dbServer := &model.LocalAgent{
-		Owner:         conf.GlobalConfig.GatewayName,
 		Name:          restServer.Name.Value,
 		RootDir:       root,
 		ReceiveDir:    rcvDir,
 		SendDir:       sndDir,
 		TmpReceiveDir: tmpDir,
 		Protocol:      restServer.Protocol.Value,
-		ProtoConfig:   model.ProtoConfigMap(restServer.ProtoConfig),
+		ProtoConfig:   model.Map[any](restServer.ProtoConfig),
 	}
 
 	if err := dbServer.Address.Set(restServer.Address.Value); err != nil {
@@ -68,7 +66,7 @@ func restPartnerToDB(restPartner *api.InPartner) (*model.RemoteAgent, error) {
 	dbPartner := &model.RemoteAgent{
 		Name:        restPartner.Name.Value,
 		Protocol:    restPartner.Protocol.Value,
-		ProtoConfig: model.ProtoConfigMap(restPartner.ProtoConfig),
+		ProtoConfig: model.Map[any](restPartner.ProtoConfig),
 	}
 
 	if err := dbPartner.Address.Set(restPartner.Address.Value); err != nil {

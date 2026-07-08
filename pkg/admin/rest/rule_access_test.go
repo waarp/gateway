@@ -11,11 +11,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestAuthorizeRule(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with 1 rule", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_auth_rule_logger")
 		db := database.TestDatabase(c)
@@ -70,7 +71,7 @@ func TestAuthorizeRule(t *testing.T) {
 
 			exp := &model.RuleAccess{
 				RuleID:       rule.ID,
-				LocalAgentID: utils.NewNullInt64(server.ID),
+				LocalAgentID: server.NullableID(),
 			}
 
 			handler := authorizeServer(logger, db)
@@ -87,7 +88,7 @@ func TestAuthorizeRule(t *testing.T) {
 
 				exp := &model.RuleAccess{
 					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(account.ID),
+					LocalAccountID: account.NullableID(),
 				}
 
 				handler := authorizeLocalAccount(logger, db)
@@ -106,7 +107,7 @@ func TestAuthorizeRule(t *testing.T) {
 
 			exp := &model.RuleAccess{
 				RuleID:        rule.ID,
-				RemoteAgentID: utils.NewNullInt64(partner.ID),
+				RemoteAgentID: partner.NullableID(),
 			}
 
 			handler := authorizePartner(logger, db)
@@ -123,7 +124,7 @@ func TestAuthorizeRule(t *testing.T) {
 
 				exp := &model.RuleAccess{
 					RuleID:          rule.ID,
-					RemoteAccountID: utils.NewNullInt64(account.ID),
+					RemoteAccountID: account.NullableID(),
 				}
 
 				handler := authorizeRemoteAccount(logger, db)
@@ -136,6 +137,8 @@ func TestAuthorizeRule(t *testing.T) {
 }
 
 func TestRevokeRule(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with 1 rule", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_revoke_rule_logger")
 		db := database.TestDatabase(c)
@@ -189,7 +192,7 @@ func TestRevokeRule(t *testing.T) {
 			Convey("Given a server access", func() {
 				access := &model.RuleAccess{
 					RuleID:       rule.ID,
-					LocalAgentID: utils.NewNullInt64(server.ID),
+					LocalAgentID: server.NullableID(),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -206,7 +209,7 @@ func TestRevokeRule(t *testing.T) {
 
 				access := &model.RuleAccess{
 					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(account.ID),
+					LocalAccountID: account.NullableID(),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -228,7 +231,7 @@ func TestRevokeRule(t *testing.T) {
 			Convey("Given a partner access", func() {
 				access := &model.RuleAccess{
 					RuleID:        rule.ID,
-					RemoteAgentID: utils.NewNullInt64(partner.ID),
+					RemoteAgentID: partner.NullableID(),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -246,7 +249,7 @@ func TestRevokeRule(t *testing.T) {
 
 				access := &model.RuleAccess{
 					RuleID:          rule.ID,
-					RemoteAccountID: utils.NewNullInt64(account.ID),
+					RemoteAccountID: account.NullableID(),
 				}
 				So(db.Insert(access).Run(), ShouldBeNil)
 
@@ -260,6 +263,8 @@ func TestRevokeRule(t *testing.T) {
 }
 
 func TestRuleAllowAll(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with a rule", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_allow_all_rule_logger")
 		db := database.TestDatabase(c)
@@ -296,19 +301,19 @@ func TestRuleAllowAll(t *testing.T) {
 
 			sAcc := &model.RuleAccess{
 				RuleID:       rule.ID,
-				LocalAgentID: utils.NewNullInt64(s.ID),
+				LocalAgentID: s.NullableID(),
 			}
 			pAcc := &model.RuleAccess{
 				RuleID:        rule.ID,
-				RemoteAgentID: utils.NewNullInt64(p.ID),
+				RemoteAgentID: p.NullableID(),
 			}
 			laAcc := &model.RuleAccess{
 				RuleID:         rule.ID,
-				LocalAccountID: utils.NewNullInt64(la.ID),
+				LocalAccountID: la.NullableID(),
 			}
 			raAcc := &model.RuleAccess{
 				RuleID:          rule.ID,
-				RemoteAccountID: utils.NewNullInt64(ra.ID),
+				RemoteAccountID: ra.NullableID(),
 			}
 
 			So(db.Insert(sAcc).Run(), ShouldBeNil)

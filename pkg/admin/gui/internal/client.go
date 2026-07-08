@@ -8,19 +8,19 @@ import (
 func GetClient(db database.ReadAccess, name string) (*model.Client, error) {
 	var client model.Client
 
-	return &client, db.Get(&client, "name=?", name).Owner().Run()
+	return &client, db.Get(&client, "name=?", name).Run()
 }
 
 func GetClientByID(db database.ReadAccess, id int64) (*model.Client, error) {
 	var client model.Client
 
-	return &client, db.Get(&client, "id=?", id).Owner().Run()
+	return &client, db.Get(&client, "id=?", id).Run()
 }
 
 func GetClientsLike(db *database.DB, prefix string) ([]*model.Client, error) {
 	var clients model.Clients
 
-	return clients, db.Select(&clients).Owner().Where("name LIKE ?", prefix+"%").
+	return clients, db.Select(&clients).Where("name LIKE ?", prefix+"%").
 		OrderBy("name", true).Limit(LimitLike, 0).Run()
 }
 

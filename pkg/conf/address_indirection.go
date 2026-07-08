@@ -32,7 +32,7 @@ type addressOverride struct {
 	Indirections []string `ini-name:"IndirectAddress" description:"Replace the target address with another one"`
 }
 
-func (a *addressOverride) parse() error {
+func (a *addressOverride) Parse() error {
 	a.addressMap = map[string]string{}
 	for _, val := range a.Indirections {
 		slice := strings.Split(val, "->")
@@ -114,15 +114,15 @@ func (a *addressOverride) update() {
 // GetIndirection returns the real address associated with the given target
 // address if it exists in the global LocalOverrides instance. Otherwise, it
 // returns an empty string.
-func GetIndirection(target string) string {
-	if LocalOverrides == nil {
+func (o *ConfigOverride) GetIndirection(target string) string {
+	if o == nil {
 		return ""
 	}
 
-	LocalOverrides.overrideLock.RLock()
-	defer LocalOverrides.overrideLock.RUnlock()
+	o.overrideLock.RLock()
+	defer o.overrideLock.RUnlock()
 
-	return LocalOverrides.ListenAddresses.addressMap[target]
+	return o.ListenAddresses.addressMap[target]
 }
 
 // GetRealAddress returns the real address obtained after indirection has been
@@ -140,21 +140,21 @@ func GetIndirection(target string) string {
 //
 // Finally, if no match is found for the host either, this means that the given
 // address has no known indirection, and so the address is returned as is.
-func GetRealAddress(host, port string) string {
+func (o *ConfigOverride) GetRealAddress(host, port string) string {
 	target := net.JoinHostPort(host, port)
 
-	if LocalOverrides == nil {
+	if o == nil {
 		return target
 	}
 
-	LocalOverrides.overrideLock.RLock()
-	defer LocalOverrides.overrideLock.RUnlock()
+	o.overrideLock.RLock()
+	defer o.overrideLock.RUnlock()
 
-	if realAddr := LocalOverrides.ListenAddresses.addressMap[target]; realAddr != "" {
+	if realAddr := o.ListenAddresses.addressMap[target]; realAddr != "" {
 		return realAddr
 	}
 
-	if realHost := LocalOverrides.ListenAddresses.addressMap[host]; realHost != "" {
+	if realHost := o.ListenAddresses.addressMap[host]; realHost != "" {
 		return net.JoinHostPort(realHost, port)
 	}
 
@@ -163,50 +163,50 @@ func GetRealAddress(host, port string) string {
 
 // GetAllIndirections return a map containing all the address indirections present
 // in the configuration. The returned map is a copy of the real, global map.
-func GetAllIndirections() map[string]string {
-	if LocalOverrides == nil {
+func (o *ConfigOverride) GetAllIndirections() map[string]string {
+	if o == nil {
 		return nil
 	}
 
-	LocalOverrides.overrideLock.RLock()
-	defer LocalOverrides.overrideLock.RUnlock()
+	o.overrideLock.RLock()
+	defer o.overrideLock.RUnlock()
 
-	return maps.Clone(LocalOverrides.ListenAddresses.addressMap)
+	return maps.Clone(o.ListenAddresses.addressMap)
 }
 
 // AddIndirection adds the given address indirection to the global LocalOverrides
 // instance. The associated file will also be updated. If the indirection already
 // exist, the old value will be overwritten.
-func AddIndirection(targetAddr, realAddr string) error {
-	if LocalOverrides == nil {
+func (o *ConfigOverride) AddIndirection(targetAddr, realAddr string) error {
+	if o == nil {
 		return nil
 	}
 
-	LocalOverrides.overrideLock.Lock()
-	defer LocalOverrides.overrideLock.Unlock()
+	o.overrideLock.Lock()
+	defer o.overrideLock.Unlock()
 
 	if err := checkIndirectionConsistency(targetAddr, realAddr); err != nil {
 		return err
 	}
 
-	LocalOverrides.ListenAddresses.addressMap[targetAddr] = realAddr
-	LocalOverrides.ListenAddresses.update()
+	o.ListenAddresses.addressMap[targetAddr] = realAddr
+	o.ListenAddresses.update()
 
-	return LocalOverrides.writeFile()
+	return o.writeFile()
 }
 
 // RemoveIndirection removes the given address indirection from the global
 // LocalOverrides instance, and from its associated file.
-func RemoveIndirection(target string) error {
-	if LocalOverrides == nil {
+func (o *ConfigOverride) RemoveIndirection(target string) error {
+	if o == nil {
 		return nil
 	}
 
-	LocalOverrides.overrideLock.Lock()
-	defer LocalOverrides.overrideLock.Unlock()
+	o.overrideLock.Lock()
+	defer o.overrideLock.Unlock()
 
-	delete(LocalOverrides.ListenAddresses.addressMap, target)
-	LocalOverrides.ListenAddresses.update()
+	delete(o.ListenAddresses.addressMap, target)
+	o.ListenAddresses.update()
 
-	return LocalOverrides.writeFile()
+	return o.writeFile()
 }

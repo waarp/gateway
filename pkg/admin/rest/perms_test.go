@@ -16,6 +16,8 @@ import (
 )
 
 func TestMaskToPerm(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the permission mask converter", t, func() {
 		Convey("Given a permission mask", func() {
 			mask := model.PermTransfersRead | model.PermTransfersWrite |
@@ -64,6 +66,8 @@ func TestMaskToPerm(t *testing.T) {
 }
 
 func TestPermsToMask(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the permission mask converter", t, func() {
 		Convey("Given a permission mask and a permission string", func() {
 			mask := model.PermTransfersRead | model.PermTransfersWrite |
@@ -103,6 +107,8 @@ func TestPermsToMask(t *testing.T) {
 }
 
 func TestPermMiddleware(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with 2 users", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_perm_middleware")
 		db := database.TestDatabase(c)

@@ -2,30 +2,30 @@ package protoutils
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 )
 
-type TraceListener struct {
-	net.Listener
-}
-
-//nolint:wrapcheck //no need to wrap here
-func (l *TraceListener) Accept() (net.Conn, error) {
-	conn, err := l.Listener.Accept()
-	if err != nil {
-		return conn, err
-	}
-
-	analytics.AddIncomingConnection()
-
-	return &TraceServerConn{Conn: conn}, nil
-}
-
 type TraceDialer struct {
 	*net.Dialer
+}
+
+func NewDialerFor(localAddr string) (*TraceDialer, error) {
+	dialer := &net.Dialer{}
+	if localAddr != "" {
+		tcpAddr, err := net.ResolveTCPAddr("tcp", localAddr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse the client's local address %q: %w",
+				localAddr, err)
+		}
+
+		dialer.LocalAddr = tcpAddr
+	}
+
+	return &TraceDialer{Dialer: dialer}, nil
 }
 
 func (d *TraceDialer) Dial(network, address string) (net.Conn, error) {

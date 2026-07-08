@@ -336,4 +336,14 @@ var Migrations = []Change{
 		Up:          ver0_14_0AddTransferStopUp,
 		Down:        ver0_14_0AddTransferStopDown,
 	},
+	{ // #64
+		Description: `Add the "file_watchers" table`,
+		Up:          ver0_16_0AddRemoteFilewatcherTableUp,
+		Down:        ver0_16_0AddRemoteFilewatcherTableDown,
+	},
+	{ // #65,
+		Description: `Add the "normalized_transfer_info" view`,
+		Up:          ver0_16_0AddNormalizedTransferInfoViewUp,
+		Down:        ver0_16_0AddNormalizedTransferInfoViewDown,
+	},
 }

@@ -31,7 +31,7 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		serv := &service{db: db, agent: server}
+		serv := &service{db: db, dbAgent: server}
 
 		Convey("When calling the 'Start' function", func() {
 			err := serv.Start()
@@ -60,35 +60,13 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(cert).Run(), ShouldBeNil)
 
-		serv := &service{db: db, agent: server}
+		serv := &service{db: db, dbAgent: server}
 
 		Convey("When calling the 'Start' function", func() {
 			err := serv.Start()
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
-			})
-		})
-	})
-
-	// Is this still relevant now that certificates can be added post start?
-	SkipConvey("Given an R66-TLS service with no certificate", t, func(c C) {
-		db := database.TestDatabase(c)
-		server := &model.LocalAgent{
-			Name:        "r66_server",
-			Protocol:    R66,
-			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l", "isTLS": true},
-			Address:     types.Addr("localhost", 0),
-		}
-		So(db.Insert(server).Run(), ShouldBeNil)
-
-		serv := &service{db: db, agent: server}
-
-		Convey("When calling the 'Start' function", func() {
-			err := serv.Start()
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, errNoCertificates)
 			})
 		})
 	})
@@ -105,7 +83,7 @@ func TestServiceStop(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		serv := &service{db: db, agent: server}
+		serv := &service{db: db, dbAgent: server}
 		So(serv.Start(), ShouldBeNil)
 
 		Convey("When calling the 'Stop' function", func() {
@@ -126,7 +104,7 @@ func TestR66ServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, R66, servConf)
 		test.AddAuths(c, serverPassword(test.Server))
 
-		serv := &service{db: test.DB, agent: test.Server}
+		serv := &service{db: test.DB, dbAgent: test.Server}
 		c.So(serv.Start(), ShouldBeNil)
 
 		preTasksDone := make(chan bool)

@@ -130,7 +130,7 @@ func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router)
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=?", login).Owner().Run(); err != nil {
+			if err := db.Get(&user, "username=?", login).Run(); err != nil {
 				logger.Errorf("Database error: %v", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 

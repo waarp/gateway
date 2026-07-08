@@ -7,6 +7,8 @@ import (
 )
 
 func TestMaskToPerm(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the permission mask converter", t, func() {
 		Convey("Given a permission mask", func() {
 			mask := PermTransfersRead | PermTransfersWrite |
@@ -56,6 +58,8 @@ func TestMaskToPerm(t *testing.T) {
 }
 
 func TestPermsToMask(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the permission mask converter", t, func() {
 		Convey("Given a permission mask and a permission string", func() {
 			perms := Permissions{

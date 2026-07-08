@@ -24,7 +24,7 @@ func makePGPEncryptor(cryptoKey *model.CryptoKey) (encryptFunc, error) {
 		return nil, ErrEncryptNotPGPKey
 	}
 
-	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key.String())
+	pgpKey, parsErr := pgp.NewKeyFromArmored(cryptoKey.Key)
 	if parsErr != nil {
 		return nil, fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
 	}

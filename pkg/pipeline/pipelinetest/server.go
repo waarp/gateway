@@ -2,7 +2,6 @@ package pipelinetest
 
 import (
 	"context"
-	"encoding/json"
 	"path"
 	"time"
 
@@ -149,7 +148,7 @@ func makeServerConf(c convey.C, data *testData, port uint16, proto string, servC
 	c.So(data.DB.Insert(locAccount).Run(), convey.ShouldBeNil)
 
 	cred := &model.Credential{
-		LocalAccountID: utils.NewNullInt64(locAccount.ID),
+		LocalAccountID: locAccount.NullableID(),
 		Type:           auth.Password,
 		Value:          TestPassword,
 	}
@@ -183,10 +182,10 @@ func (s *ServerContext) StartService(c convey.C) {
 func (s *ServerContext) CheckTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
-	c.So(s.DB.Get(&actual, "id=?", 1).Run(), convey.ShouldBeNil)
+	c.So(s.DB.Get(&actual, "id=?", 1).Eager().Run(), convey.ShouldBeNil)
 
 	remoteID := actual.RemoteTransferID
 	progress := TestFileSize
 	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.testData, &actual,
-		map[string]any{model.FollowID: json.Number(remoteID)})
+		map[string]any{model.FollowID: actual.TransferInfo[model.FollowID]})
 }

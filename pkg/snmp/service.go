@@ -8,7 +8,6 @@ import (
 
 	snmplib "github.com/slayercat/GoSNMPServer"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -38,7 +37,7 @@ func (s *Service) Name() string { return ServiceName }
 
 func (s *Service) Start() error {
 	if s.state.IsRunning() {
-		return utils.ErrAlreadyRunning
+		return nil
 	}
 
 	if err := s.start(); err != nil {
@@ -72,8 +71,7 @@ func (s *Service) start() error {
 
 func (s *Service) startServer() error {
 	var serverConf ServerConfig
-	if err := s.DB.Get(&serverConf, "owner=?", conf.GlobalConfig.GatewayName).
-		Run(); database.IsNotFound(err) {
+	if err := s.DB.Get(&serverConf, "true").Run(); database.IsNotFound(err) {
 		s.server = nil
 
 		return nil // no server configured
@@ -161,20 +159,18 @@ func (s *Service) ReportTransferError(transferID int64) {
 
 func (s *Service) SendTestNotification() error {
 	trans := &model.NormalizedTransferView{
-		HistoryEntry: model.HistoryEntry{
-			ID:               -1,
-			RemoteTransferID: "",
-			IsServer:         false,
-			IsSend:           true,
-			Rule:             "test_rule",
-			Account:          "test_account",
-			Agent:            "test_agent",
-			Client:           "test_client",
-			LocalPath:        "/test/file",
-			ErrCode:          types.TeInternal,
-			ErrDetails:       "This is a test notification",
-		},
-		IsTransfer: true,
+		Identifier:       model.ID(-1),
+		RemoteTransferID: "",
+		IsServer:         false,
+		IsSend:           true,
+		Rule:             "test_rule",
+		Account:          "test_account",
+		Agent:            "test_agent",
+		Client:           "test_client",
+		LocalPath:        "/test/file",
+		ErrCode:          types.TeInternal,
+		ErrDetails:       "This is a test notification",
+		IsTransfer:       true,
 	}
 
 	return s.sendTransferError(trans)

@@ -330,7 +330,7 @@ func (p *Pipeline) EndTransfer() *Error {
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
 
-		if err := p.TransCtx.Transfer.UpdateInfo(p.DB); err != nil {
+		if err := p.TransCtx.Transfer.AfterUpdate(p.DB); err != nil {
 			p.Logger.Errorf("Failed to update transfer infos: %v", err)
 			p.errorTasks()
 			p.storedErr = sErr

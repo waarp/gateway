@@ -27,6 +27,8 @@ func jsonEscape(input any) string {
 }
 
 func TestAddAuthAuthority(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the authority add handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_add_authority")
 		db := database.TestDatabase(c)
@@ -75,7 +77,7 @@ func TestAddAuthAuthority(t *testing.T) {
 							So(authorities[0], ShouldResemble, existing)
 
 							So(authorities[1], ShouldResemble, &model.Authority{
-								ID:             2,
+								Identifier:     model.ID(2),
 								Name:           "new_authority",
 								Type:           auth.AuthorityTLS,
 								PublicIdentity: testhelpers.OtherLocalhostCert,
@@ -90,6 +92,8 @@ func TestAddAuthAuthority(t *testing.T) {
 }
 
 func TestGetAuthAuthority(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the authority get handler", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "rest_get_authority")
@@ -161,6 +165,8 @@ func TestGetAuthAuthority(t *testing.T) {
 }
 
 func TestListAuthAuthority(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the authority get handler", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "rest_list_authority")
@@ -219,6 +225,8 @@ func TestListAuthAuthority(t *testing.T) {
 }
 
 func TestUpdateAuthAuthority(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the authority update handler", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "rest_update_authority")
@@ -284,7 +292,7 @@ func TestUpdateAuthAuthority(t *testing.T) {
 								So(db.Select(&authorities).OrderBy("id", true).Run(), ShouldBeNil)
 								So(authorities, ShouldHaveLength, 1)
 								So(authorities[0], ShouldResemble, &model.Authority{
-									ID:             existing.ID,
+									Identifier:     existing.Identifier,
 									Name:           "new_authority",
 									Type:           existing.Type,
 									PublicIdentity: testhelpers.OtherLocalhostCert,
@@ -300,6 +308,8 @@ func TestUpdateAuthAuthority(t *testing.T) {
 }
 
 func TestReplaceAuthAuthority(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the authority replace handler", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "rest_replace_authority")
@@ -349,7 +359,7 @@ func TestReplaceAuthAuthority(t *testing.T) {
 							So(db.Select(&authorities).OrderBy("id", true).Run(), ShouldBeNil)
 							So(authorities, ShouldHaveLength, 1)
 							So(authorities[0], ShouldResemble, &model.Authority{
-								ID:             existing.ID,
+								Identifier:     existing.Identifier,
 								Name:           "new_authority",
 								Type:           auth.AuthorityTLS,
 								PublicIdentity: testhelpers.OtherLocalhostCert,
@@ -364,6 +374,8 @@ func TestReplaceAuthAuthority(t *testing.T) {
 }
 
 func TestDeleteAuthAuthority(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given the authority delete handler", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "rest_delete_authority")

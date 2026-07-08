@@ -91,6 +91,10 @@ func (t *clientStorTransfer) sendError() {
 	}
 }
 
-func (t *clientStorTransfer) Delete(ctx context.Context, path string, recursive bool) error {
-	return deleteRemoteCtx(ctx, t.client, path, recursive)
+func (t *clientStorTransfer) Delete(ctx context.Context, path string) error {
+	return deleteRemote(ctx, t.client, path)
+}
+
+func (t *clientStorTransfer) DeleteAll(ctx context.Context, path string) error {
+	return deleteAllRemote(ctx, t.client, path)
 }

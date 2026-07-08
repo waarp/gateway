@@ -77,10 +77,7 @@ func (c *client) newClientTransfer(parent context.Context, pip *pipeline.Pipelin
 		return nil, err
 	}
 
-	transport, err := c.getTransport(pip)
-	if err != nil {
-		return nil, err
-	}
+	transport := c.getTransport(pip)
 
 	var asyncURL string
 	if partConf.AsyncMDNAddress != "" {

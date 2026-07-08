@@ -10,16 +10,17 @@ import (
 
 // Data is the top-level structure of the dump file.
 type Data struct {
-	Locals      []LocalAgent  `json:"locals,omitempty" yaml:"locals,omitempty"`
-	Clients     []Client      `json:"clients,omitempty" yaml:"clients,omitempty"`
-	Remotes     []RemoteAgent `json:"remotes,omitempty" yaml:"remotes,omitempty"`
-	Rules       []Rule        `json:"rules,omitempty" yaml:"rules,omitempty"`
-	Users       []User        `json:"users,omitempty" yaml:"users,omitempty"`
-	Clouds      []Cloud       `json:"clouds,omitempty" yaml:"clouds,omitempty"`
-	SNMPConfig  *SNMPConfig   `json:"snmpConfig,omitempty" yaml:"snmpConfig,omitempty"`
-	Authorities []*Authority  `json:"authorities,omitempty" yaml:"authorities,omitempty"`
-	CryptoKeys  []*CryptoKey  `json:"cryptoKeys,omitempty" yaml:"cryptoKeys,omitempty"`
-	EmailConfig *EmailConfig  `json:"emailConfig,omitempty" yaml:"emailConfig,omitempty"`
+	Locals       []LocalAgent  `json:"locals,omitempty" yaml:"locals,omitempty"`
+	Clients      []Client      `json:"clients,omitempty" yaml:"clients,omitempty"`
+	Remotes      []RemoteAgent `json:"remotes,omitempty" yaml:"remotes,omitempty"`
+	Rules        []Rule        `json:"rules,omitempty" yaml:"rules,omitempty"`
+	Users        []User        `json:"users,omitempty" yaml:"users,omitempty"`
+	Clouds       []Cloud       `json:"clouds,omitempty" yaml:"clouds,omitempty"`
+	SNMPConfig   *SNMPConfig   `json:"snmpConfig,omitempty" yaml:"snmpConfig,omitempty"`
+	Authorities  []*Authority  `json:"authorities,omitempty" yaml:"authorities,omitempty"`
+	CryptoKeys   []*CryptoKey  `json:"cryptoKeys,omitempty" yaml:"cryptoKeys,omitempty"`
+	EmailConfig  *EmailConfig  `json:"emailConfig,omitempty" yaml:"emailConfig,omitempty"`
+	Filewatchers *FileWatchers `json:"filewatchers,omitempty" yaml:"filewatchers,omitempty"`
 }
 
 // LocalAgent is the JSON struct representing a local server along with its
@@ -100,6 +101,7 @@ type RemoteAccount struct {
 }
 
 // Certificate is the JSON struct representing a certificate.
+//
 // Deprecated: replaced by Credential.
 type Certificate struct {
 	Name       string `json:"name" yaml:"name"`
@@ -260,4 +262,19 @@ type EmailTemplate struct {
 	MIMEType    string   `json:"mimeType" yaml:"mimeType"`
 	Body        string   `json:"body" yaml:"body"`
 	Attachments []string `json:"attachments,omitempty" yaml:"attachments,omitempty"`
+}
+
+type FileWatchers struct {
+	Remote []RemoteFilewatcher `json:"remote" yaml:"remote"`
+}
+
+type RemoteFilewatcher struct {
+	Flow             string   `json:"flow" yaml:"flow"`
+	Interval         Duration `json:"interval" yaml:"interval"`
+	Pattern          string   `json:"pattern" yaml:"pattern"`
+	Partner          string   `json:"partner" yaml:"partner"`
+	RemoteAccount    string   `json:"remoteAccount" yaml:"remoteAccount"`
+	Client           string   `json:"client" yaml:"client"`
+	Rule             string   `json:"rule" yaml:"rule"`
+	NoDuplicateCheck bool     `json:"noDuplicateCheck" yaml:"noDuplicateCheck"`
 }

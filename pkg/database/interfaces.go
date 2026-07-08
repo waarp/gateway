@@ -5,10 +5,21 @@ import (
 	"fmt"
 	"time"
 
-	"xorm.io/xorm"
+	"gorm.io/gorm"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
+
+type internal interface {
+	getOwner() string
+	getUnderlying() *gorm.DB
+	getLogger() *log.Logger
+
+	AsDB() *DB
+	GetConfig() *conf.ServerConfig
+	Decrypt(cipher string) (string, error)
+}
 
 // ReadAccess is the interface listing all the read operations possible on the
 // database. The interface defines a query building function for each of these
@@ -19,11 +30,7 @@ import (
 // to make these operation more precise. Once the query is defined, it can be
 // executed using the `Run` function.
 type ReadAccess interface {
-	getUnderlying() xorm.Interface
-	AsDB() *DB
-
-	// GetLogger returns the database logger instance.
-	GetLogger() *log.Logger
+	internal
 
 	// Iterate starts building a SQL 'SELECT' query to retrieve entries of the given
 	// model from the database. The request can be narrowed using the IterateQuery
@@ -70,6 +77,8 @@ type ReadAccess interface {
 // executed using the `Run` function.
 type Access interface {
 	ReadAccess
+
+	Encrypt(plain string) (string, error)
 
 	// Insert starts building a SQL 'INSERT' query to add the given model entry
 	// to the database.
@@ -154,6 +163,12 @@ type ReadCallback interface {
 	AfterRead(db ReadAccess) error
 }
 
+// Preloader is an interface which adds a function which returns the list of
+// preloads to be performed when retrieving an entry of that type.
+type Preloader interface {
+	Preloads() []string
+}
+
 // Table is the interface which adds the base methods that all database models
 // must implement.
 //
@@ -181,7 +196,7 @@ type Identifier interface {
 //
 // Iterator instances MUST be closed once all the entries have been retrieved.
 type Iterator struct {
-	*xorm.Rows
+	*sql.Rows
 
 	db     ReadAccess
 	logger *log.Logger
@@ -191,7 +206,7 @@ type Iterator struct {
 // parameter with the parsed values. Returns an error if the line cannot be
 // retrieved, or if the parsed line does not correspond to the given model.
 func (i *Iterator) Scan(bean IterateBean) error {
-	if err := i.Rows.Scan(bean); err != nil {
+	if err := i.db.getUnderlying().ScanRows(i.Rows, bean); err != nil {
 		return fmt.Errorf("cannot scan database row: %w", err)
 	}
 
@@ -209,4 +224,50 @@ func (i *Iterator) Scan(bean IterateBean) error {
 // Close closes the iterator, and releases the connection to the database.
 func (i *Iterator) Close() {
 	_ = i.Rows.Close() //nolint:errcheck // nothing to handle the error
+}
+
+func InsertBatch[T InsertBean](db Access, beans ...T) error {
+	return db.Transaction(func(db *Session) error {
+		return insertBatch(db, beans)
+	})
+}
+
+func insertBatch[T InsertBean](db *Session, beans []T) error {
+	if len(beans) == 0 {
+		return nil
+	}
+
+	logger := db.getLogger()
+	engine := db.getUnderlying()
+	model := beans[0]
+
+	for _, bean := range beans {
+		db.addOwner(bean)
+		if hook, ok := any(bean).(WriteHook); ok {
+			if err := hook.BeforeWrite(db); err != nil {
+				logger.Errorf("%s entry INSERT validation failed: %v", bean.Appellation(), err)
+
+				return fmt.Errorf("%s entry INSERT validation failed: %w", bean.Appellation(), err)
+			}
+		}
+	}
+
+	query := engine.Table(model.TableName())
+	if err := query.Create(&beans).Error; err != nil {
+		logger.Errorf("Failed to insert the new %s entries: %v", model.Appellation(), err)
+
+		return NewInternalError(err)
+	}
+
+	for _, bean := range beans {
+		if callback, ok := any(bean).(InsertCallback); ok {
+			if err := callback.AfterInsert(db); err != nil {
+				logger.Errorf("%s entry INSERT callback failed: %v", bean.Appellation(), err)
+
+				return fmt.Errorf("%s entry INSERT callback failed: %w", bean.Appellation(), err)
+			}
+		}
+	}
+
+	return nil
 }

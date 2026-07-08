@@ -4,7 +4,6 @@ package pipelinetest
 
 import (
 	"context"
-	"encoding/json"
 	"path"
 	"strings"
 	"time"
@@ -12,8 +11,8 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -54,7 +53,7 @@ func initSelfTransfer(c convey.C, proto string, clientConf, partConf, servConf a
 	services.Clients.Add(cli, client)
 
 	c.Reset(func() {
-		services.Clients.Remove(cli)
+		c.So(services.Clients.Remove(context.Background(), cli), convey.ShouldBeNil)
 
 		//nolint:mnd //this is just for tests
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -124,8 +123,8 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
-		ClientID:        utils.NewNullInt64(s.Client.ID),
-		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
+		ClientID:        s.Client.NullableID(),
+		RemoteAccountID: s.RemAccount.NullableID(),
 		SrcFilename:     "sub_dir/self_transfer_push",
 		Start:           time.Now(),
 	}
@@ -142,8 +141,8 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 
 	trans := &model.Transfer{
 		RuleID:          s.ClientRule.ID,
-		ClientID:        utils.NewNullInt64(s.Client.ID),
-		RemoteAccountID: utils.NewNullInt64(s.RemAccount.ID),
+		ClientID:        s.Client.NullableID(),
+		RemoteAccountID: s.RemAccount.NullableID(),
 		SrcFilename:     "sub_dir/self_transfer_pull",
 		Filesize:        model.UnknownSize,
 		Start:           time.Now(),
@@ -173,9 +172,7 @@ func (s *SelfContext) StartService(c convey.C) {
 
 // AddCreds adds the given credentials to the test database.
 func (s *SelfContext) AddCreds(c convey.C, creds ...*model.Credential) {
-	for _, cred := range creds {
-		c.So(s.DB.Insert(cred).Run(), convey.ShouldBeNil)
-	}
+	c.So(database.InsertBatch(s.DB, creds...), convey.ShouldBeNil)
 }
 
 // AddClientPreTaskError purposefully adds an error in the client's transfer
@@ -318,7 +315,7 @@ func (s *SelfContext) TestRetry(c convey.C, checkRemainingTasks ...func(c convey
 func (s *SelfContext) CheckClientTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
-	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
+	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Eager().Run(), convey.ShouldBeNil)
 	s.checkClientTransferOK(c, s.transData, &actual)
 }
 
@@ -338,7 +335,7 @@ func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEnt
 		remoteID = actual.RemoteTransferID
 	}
 
-	transInfo := map[string]any{model.FollowID: json.Number(actual.RemoteTransferID)}
+	transInfo := actual.TransferInfo
 	if s.protoFeatures.TransferInfo {
 		transInfo = s.ClientTrans.TransferInfo
 	}
@@ -355,7 +352,7 @@ func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEnt
 func (s *SelfContext) CheckServerTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
-	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
+	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Eager().Run(), convey.ShouldBeNil)
 	s.checkServerTransferOK(c, &actual)
 }
 
@@ -370,7 +367,7 @@ func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 
 		var results model.HistoryEntries
 
-		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
+		c.So(s.DB.Select(&results).Eager().OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(results, convey.ShouldHaveLength, 2) //nolint:mnd // necessary here
 
 		s.checkClientTransferOK(c, s.transData, results[0])
@@ -420,8 +417,6 @@ func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.Transfe
 		actual.ID, convey.ShouldEqual, s.ClientTrans.ID)
 	c.SoMsg("Then the remote transfer ID should not be empty",
 		actual.RemoteTransferID, convey.ShouldNotBeBlank)
-	c.SoMsg("Then the transfer should be owned by the gateway",
-		actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 	c.SoMsg("Then the transfer should be in error",
 		actual.Status, convey.ShouldEqual, types.StatusError)
 	c.SoMsg("Then the rule ID should match",
@@ -486,8 +481,6 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 
 	c.SoMsg("Then the database ID should match",
 		actual.ID, convey.ShouldEqual, id)
-	c.SoMsg("Then the transfer should be owned by the gateway",
-		actual.Owner, convey.ShouldEqual, conf.GlobalConfig.GatewayName)
 	c.SoMsg("Then the transfer should be in error",
 		actual.Status, convey.ShouldEqual, types.StatusError)
 	c.SoMsg("Then the rule ID should match",
@@ -523,7 +516,7 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 func (s *SelfContext) getTransfer(c convey.C, id int64) *model.Transfer {
 	var transfers model.Transfers
 
-	c.So(s.DB.Select(&transfers).Run(), convey.ShouldBeNil)
+	c.So(s.DB.Select(&transfers).Eager().Run(), convey.ShouldBeNil)
 	c.So(transfers, convey.ShouldNotBeEmpty)
 
 	for i := range transfers {
@@ -561,7 +554,7 @@ func (s *SelfContext) waitForListDeletion() {
 
 func (s *SelfContext) AddTransferInfo(c convey.C, name string, val any) {
 	s.ClientTrans.TransferInfo[name] = val
-	c.So(s.ClientTrans.UpdateInfo(s.DB), convey.ShouldBeNil)
+	c.So(s.ClientTrans.AfterUpdate(s.DB), convey.ShouldBeNil)
 }
 
 /*

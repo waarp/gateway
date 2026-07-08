@@ -21,12 +21,12 @@ func makePGPVerifyDecryptor(dCryptoKey, vCryptoKey *model.CryptoKey) (decryptVer
 		return nil, ErrVerifyNotPGPKey
 	}
 
-	decryptKey, parsErr := pgp.NewKeyFromArmored(dCryptoKey.Key.String())
+	decryptKey, parsErr := pgp.NewKeyFromArmored(dCryptoKey.Key)
 	if parsErr != nil {
 		return nil, fmt.Errorf("failed to parse PGP decryption key: %w", parsErr)
 	}
 
-	verifyKey, parsErr := pgp.NewKeyFromArmored(vCryptoKey.Key.String())
+	verifyKey, parsErr := pgp.NewKeyFromArmored(vCryptoKey.Key)
 	if parsErr != nil {
 		return nil, fmt.Errorf("failed to parse PGP verification key: %w", parsErr)
 	}

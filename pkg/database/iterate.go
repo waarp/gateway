@@ -2,11 +2,8 @@ package database
 
 import (
 	"fmt"
-	"strings"
 
-	"xorm.io/builder"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // IterateBean is the interface that a model must implement in order to be
@@ -31,6 +28,18 @@ type IterateQuery struct {
 	distinct []string
 	order    string
 	asc      bool
+	eager    bool
+	all      bool
+}
+
+func (i *IterateQuery) Eager() *IterateQuery {
+	i.eager = true
+	return i
+}
+
+func (i *IterateQuery) All() *IterateQuery {
+	i.all = true
+	return i
 }
 
 // Where adds a 'WHERE' clause to the 'SELECT' query with the given conditions
@@ -45,21 +54,11 @@ func (i *IterateQuery) Where(sql string, args ...any) *IterateQuery {
 	return i
 }
 
-func (i *IterateQuery) Owner() *IterateQuery {
-	return i.Where("owner = ?", conf.GlobalConfig.GatewayName)
-}
-
 // In add a 'WHERE col IN' condition to the 'SELECT' query. Because the database/sql
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
 func (i *IterateQuery) In(col string, vals ...any) *IterateQuery {
-	sql := &inCond{Builder: &strings.Builder{}}
-	if builder.In(col, vals...).WriteTo(sql) != nil {
-		return i
-	}
-
-	i.conds = append(i.conds, &condition{sql: sql.String(), args: sql.args})
-
+	i.conds = append(i.conds, makeInClause(col, vals...))
 	return i
 }
 
@@ -95,30 +94,38 @@ func (i *IterateQuery) Limit(limit, offset int) *IterateQuery {
 
 // Run executes the 'SELECT' query.
 func (i *IterateQuery) Run() (*Iterator, error) {
-	logger := i.db.GetLogger()
-	query := i.db.getUnderlying().NoAutoCondition().Table(i.bean.TableName())
+	logger := i.db.getLogger()
+	query := i.db.getUnderlying().Table(i.bean.TableName())
+	addOwnerCond(query, i.all, i.bean, i.db.getOwner())
 
 	for _, cond := range i.conds {
-		query.And(cond.sql, cond.args...)
+		query.Where(cond.sql, cond.args...)
 	}
 
-	if i.lim != 0 || i.off != 0 {
-		query.Limit(i.lim, i.off)
+	if i.lim != 0 {
+		query.Limit(i.lim)
+	}
+
+	if i.off != 0 {
+		query.Offset(i.off)
 	}
 
 	if i.order != "" {
 		if i.asc {
-			query.OrderBy(fmt.Sprintf("%s ASC", i.order))
+			query.Order(fmt.Sprintf("%s ASC", i.order))
 		} else {
-			query.OrderBy(fmt.Sprintf("%s DESC", i.order))
+			query.Order(fmt.Sprintf("%s DESC", i.order))
 		}
 	}
 
+	addPreloads(i.eager, query, i.bean)
+
 	if len(i.distinct) > 0 {
-		query.Distinct(i.distinct...)
+		query.Distinct(utils.AsAny(i.distinct)...)
 	}
 
-	rows, err := query.Rows(i.bean)
+	//nolint:rowserrcheck //rows.Err() is exposed in Iterator, and should be handled by the caller
+	rows, err := query.Rows()
 	if err != nil {
 		logger.Errorf("Failed to retrieve the %s entries: %v", i.bean.Appellation(), err)
 

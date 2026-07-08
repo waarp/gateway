@@ -8,7 +8,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -69,11 +68,11 @@ func MakeBasePageData(user *model.User, language, activeSection, activeMenu stri
 ) *GeneralData {
 	return &GeneralData{
 		AppName:      constants.AppName,
-		InstanceName: conf.GlobalConfig.GatewayName,
+		InstanceName: user.Owner,
 		Language:     language,
 		NavbarData: &NavbarData{
 			AppName:      constants.AppName,
-			InstanceName: conf.GlobalConfig.GatewayName,
+			InstanceName: user.Owner,
 			Username:     user.Username,
 			Language:     language,
 			Version:      version.Num,

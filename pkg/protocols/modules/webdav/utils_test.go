@@ -9,12 +9,13 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"github.com/stretchr/testify/require"
 	"github.com/studio-b12/gowebdav"
 	weblib "golang.org/x/net/webdav"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httptransport"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
@@ -22,6 +23,10 @@ const (
 	buffSize = 2000000 // 2MB
 	password = "sesame"
 )
+
+func init() {
+	httptransport.SetTestIdleConnTimeout()
+}
 
 func makeTransport(ctx *gwtesting.TestServerCtx) http.RoundTripper {
 	transport := http.DefaultTransport.(*http.Transport).Clone()

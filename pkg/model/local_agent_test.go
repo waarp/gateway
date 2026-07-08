@@ -11,10 +11,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestLocalAgentTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a `LocalAgent` instance", t, func() {
 		agent := &LocalAgent{}
 
@@ -29,6 +30,8 @@ func TestLocalAgentTableName(t *testing.T) {
 }
 
 func TestLocalAgentBeforeDelete(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -45,14 +48,14 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			agAccess := RuleAccess{RuleID: rule.ID, LocalAgentID: utils.NewNullInt64(ag.ID)}
+			agAccess := RuleAccess{RuleID: rule.ID, LocalAgentID: ag.NullableID()}
 			So(db.Insert(&agAccess).Run(), ShouldBeNil)
 
-			accAccess := RuleAccess{RuleID: rule.ID, LocalAccountID: utils.NewNullInt64(acc.ID)}
+			accAccess := RuleAccess{RuleID: rule.ID, LocalAccountID: acc.NullableID()}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
 			authAg := Credential{
-				LocalAgentID: utils.NewNullInt64(ag.ID),
+				LocalAgentID: ag.NullableID(),
 				Name:         "test agent cert",
 				Type:         testExternalAuth,
 				Value:        "val",
@@ -60,7 +63,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&authAg).Run(), ShouldBeNil)
 
 			authAcc := Credential{
-				LocalAccountID: utils.NewNullInt64(acc.ID),
+				LocalAccountID: acc.NullableID(),
 				Name:           "test account cert",
 				Type:           testInternalAuth,
 				Value:          "val",
@@ -104,7 +107,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			Convey("Given that the agent is used in a transfer", func() {
 				trans := Transfer{
 					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(acc.ID),
+					LocalAccountID: acc.NullableID(),
 					DestFilename:   "file",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
@@ -125,6 +128,8 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 }
 
 func TestLocalAgentBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -151,9 +156,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					expErr := fmt.Sprintf(expMsg, args...)
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) error {
-							return newAgent.BeforeWrite(ses)
-						})
+						err := newAgent.BeforeWrite(db)
 
 						Convey("Then the error should say that "+expErr, func() {
 							So(err, ShouldBeError)
@@ -210,6 +213,8 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 }
 
 func TestLocalAgentAfterUpdate(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	server := LocalAgent{
 		Owner:         "test_gateway",
@@ -227,7 +232,7 @@ func TestLocalAgentAfterUpdate(t *testing.T) {
 	mkPswd := func(tb testing.TB, pswd string) string {
 		tb.Helper()
 
-		crypt, err := utils.AESCrypt(database.GCM, pswd)
+		crypt, err := db.Encrypt(pswd)
 		require.NoError(tb, err)
 
 		return crypt
@@ -266,7 +271,7 @@ func TestLocalAgentAfterUpdate(t *testing.T) {
 		)
 
 		require.NoError(t, db.Insert(&Credential{
-			LocalAgentID: utils.NewNullInt64(server.ID),
+			LocalAgentID: server.NullableID(),
 			Name:         authPassword,
 			Type:         authPassword,
 			Value:        oldPassword,

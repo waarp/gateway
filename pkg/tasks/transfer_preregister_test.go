@@ -79,7 +79,7 @@ func TestTransferPreregister(t *testing.T) {
 	}, db, logger, transCtx, nil))
 
 	var check model.Transfer
-	require.NoError(t, db.Get(&check, "rule_id=?", rule.ID).Run())
+	require.NoError(t, db.Get(&check, "rule_id=?", rule.ID).Eager().Run())
 
 	if rule.IsSend {
 		assert.Equal(t, file, check.SrcFilename)

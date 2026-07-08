@@ -1,6 +1,8 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // DeleteBean is the interface that a model must implement in order to be
 // deletable via the Delete query builder.
@@ -14,29 +16,39 @@ type DeleteBean interface {
 type DeleteQuery struct {
 	db   Access
 	bean DeleteBean
+
+	all bool
+}
+
+func (d *DeleteQuery) All() *DeleteQuery {
+	d.all = true
+	return d
 }
 
 func (d *DeleteQuery) run(s *Session) error {
+	logger := s.getLogger()
+	engine := s.getUnderlying()
+
+	addOwnerCond(engine, d.all, d.bean, s.getOwner())
+
 	if hook, ok := d.bean.(DeletionHook); ok {
 		if err := hook.BeforeDelete(s); err != nil {
-			s.logger.Errorf("%s deletion hook failed: %v", d.bean.Appellation(), err)
+			logger.Errorf("%s deletion hook failed: %v", d.bean.Appellation(), err)
 
 			return fmt.Errorf("%s deletion hook failed: %w", d.bean.Appellation(), err)
 		}
 	}
 
-	query := s.session.NoAutoCondition().Table(d.bean.TableName()).
-		Where("id=?", d.bean.GetID())
-
-	if _, err := query.Delete(d.bean); err != nil {
-		s.logger.Errorf("Failed to delete the %s entry: %v", d.bean.Appellation(), err)
+	query := engine.Table(d.bean.TableName()).Where("id=?", d.bean.GetID())
+	if err := query.Delete(d.bean).Error; err != nil {
+		logger.Errorf("Failed to delete the %s entry: %v", d.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}
 
 	if hook, ok := d.bean.(DeletionCallback); ok {
 		if err := hook.AfterDelete(s); err != nil {
-			s.logger.Errorf("%s deletion callback failed: %v", d.bean.Appellation(), err)
+			logger.Errorf("%s deletion callback failed: %v", d.bean.Appellation(), err)
 
 			return fmt.Errorf("%s deletion callback failed: %w", d.bean.Appellation(), err)
 		}
@@ -51,12 +63,5 @@ func (d *DeleteQuery) Run() error {
 		return err
 	}
 
-	switch db := d.db.(type) {
-	case *DB:
-		return db.Transaction(d.run)
-	case *Session:
-		return d.run(db)
-	default:
-		panic("unknown database accessor type")
-	}
+	return d.db.Transaction(d.run)
 }

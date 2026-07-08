@@ -22,7 +22,7 @@ func TestOk(t *testing.T) {
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
 		serverTransfer := &model.Transfer{
 			RuleID:         ctx.ServerRulePull.ID,
-			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			LocalAccountID: ctx.LocalAccount.NullableID(),
 			SrcFilename:    ctx.TransferPull.SrcFilename,
 			Start:          time.Now().Add(time.Hour),
 			Status:         types.StatusAvailable,
@@ -44,7 +44,7 @@ func TestOk(t *testing.T) {
 
 			t.Run("Then it should have transmitted the transfer info", func(t *testing.T) {
 				var clientTrans model.HistoryEntry
-				require.NoError(t, db.Get(&clientTrans, "id=?", ctx.TransferPull.ID).Run())
+				require.NoError(t, db.Get(&clientTrans, "id=?", ctx.TransferPull.ID).Eager().Run())
 				assert.Equal(t, serverTransfer.TransferInfo[articlesFormatKey],
 					clientTrans.TransferInfo[articlesFormatKey])
 				gwtesting.JSONEqual(t, serverTransfer.TransferInfo[articlesLengthsKey],
@@ -69,7 +69,8 @@ func TestOk(t *testing.T) {
 				var serverTrans model.HistoryEntry
 				require.NoError(t, db.Get(&serverTrans,
 					"is_server=true AND is_send=? AND agent=? AND account=?",
-					ctx.ServerRulePush.IsSend, ctx.Server.Name, ctx.LocalAccount.Login).Run())
+					ctx.ServerRulePush.IsSend, ctx.Server.Name, ctx.LocalAccount.Login).
+					Eager().Run())
 				assert.Equal(t, ctx.TransferPush.TransferInfo[articlesFormatKey],
 					serverTrans.TransferInfo[articlesFormatKey])
 				gwtesting.JSONEqual(t, ctx.TransferPush.TransferInfo[articlesLengthsKey],
@@ -320,7 +321,7 @@ func TestCFT(t *testing.T) {
 	t.Run("Given a PESIT pull transfer", func(t *testing.T) {
 		serverPullTrans := &model.Transfer{
 			RuleID:         ctx.ServerRulePull.ID,
-			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			LocalAccountID: ctx.LocalAccount.NullableID(),
 			SrcFilename:    ctx.TransferPull.SrcFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,
@@ -337,7 +338,7 @@ func TestCFT(t *testing.T) {
 				ctx.CheckPullTransferOK(t)
 
 				var hist model.HistoryEntry
-				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Run())
+				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Eager().Run())
 
 				expectedInfo := maps.Clone(serverPullTrans.TransferInfo)
 				delete(expectedInfo, model.FollowID)
@@ -349,7 +350,7 @@ func TestCFT(t *testing.T) {
 	t.Run("Given a PESIT push client", func(t *testing.T) {
 		serverPushTrans := &model.Transfer{
 			RuleID:         ctx.ServerRulePush.ID,
-			LocalAccountID: ctx.LocalAccount.GetNullID(),
+			LocalAccountID: ctx.LocalAccount.NullableID(),
 			DestFilename:   ctx.TransferPull.DestFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,

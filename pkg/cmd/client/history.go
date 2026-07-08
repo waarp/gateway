@@ -24,7 +24,6 @@ func warnHistoryDeprecated() {
 	fmt.Fprintln(stdOutput, color.Red.Sprint(historyDeprecatedMsg))
 }
 
-// Deprecated: replaced by displayTransfer.
 func displayHistory(w io.Writer, hist *api.OutHistory) {
 	fmt.Fprintf(w, "%s%s (%s as %s) [%s]\n", Style1.bulletPrefix,
 		Style1.color.Sprintf("Transfer %d", hist.ID),
@@ -60,7 +59,6 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 
 // ######################## GET ##########################
 
-// Deprecated: replaced by "transfer" command.
 type HistoryGet struct {
 	Args struct {
 		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
@@ -89,8 +87,6 @@ func (h *HistoryGet) execute(w io.Writer) error {
 
 // ######################## LIST ##########################
 
-// Deprecated: replaced by "transfer" command.
-//
 //nolint:lll // struct tags can be long for command line args
 type HistoryList struct {
 	ListOptions
@@ -163,8 +159,6 @@ func (h *HistoryList) Execute([]string) error {
 	return h.execute(stdOutput)
 }
 
-// Deprecated: replaced by "transfer" command.
-//
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (h *HistoryList) execute(w io.Writer) error {
 	if err := h.listURL(); err != nil {
@@ -191,8 +185,6 @@ func (h *HistoryList) execute(w io.Writer) error {
 
 // ######################## RETRY ##########################
 
-// Deprecated: replaced by "transfer" command.
-//
 //nolint:lll // struct tags can be long for command line args
 type HistoryRetry struct {
 	Args struct {

@@ -4,12 +4,10 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:funlen //splitting would add complexity
@@ -37,8 +35,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 
 		// Check if agent exists
 		exists := true
-		if err := db.Get(&agent, "name=? AND owner=?", src.Name,
-			conf.GlobalConfig.GatewayName).Run(); database.IsNotFound(err) {
+		if err := db.Get(&agent, "name=?", src.Name).Run(); database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve partner %q: %w", src.Name, err)
@@ -118,7 +115,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 
 		if src.Password != "" {
 			pswd := &model.Credential{
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				RemoteAccountID: account.NullableID(),
 				Type:            auth.Password,
 				Value:           src.Password,
 			}

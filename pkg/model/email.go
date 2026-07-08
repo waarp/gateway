@@ -5,7 +5,6 @@ import (
 	"mime"
 	"net/mail"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -26,17 +25,16 @@ var (
 )
 
 type EmailTemplate struct {
-	ID          int64    `xorm:"<- id AUTOINCR"`
-	Name        string   `xorm:"name"`
-	Subject     string   `xorm:"subject"`
-	MIMEType    string   `xorm:"mime_type"`
-	Body        string   `xorm:"body"`
-	Attachments []string `xorm:"attachments"`
+	Identifier
+	Name        string       `gorm:"column:name"`
+	Subject     string       `gorm:"column:subject"`
+	MIMEType    string       `gorm:"column:mime_type"`
+	Body        string       `gorm:"column:body"`
+	Attachments List[string] `gorm:"column:attachments;serializer:json;not null"`
 }
 
 func (*EmailTemplate) TableName() string   { return TableEmailTemplates }
 func (*EmailTemplate) Appellation() string { return NameEmailTemplate }
-func (e *EmailTemplate) GetID() int64      { return e.ID }
 
 func (e *EmailTemplate) BeforeWrite(db database.Access) error {
 	if e.Name == "" {
@@ -69,21 +67,18 @@ func (e *EmailTemplate) BeforeWrite(db database.Access) error {
 }
 
 type SMTPCredential struct {
-	ID            int64               `xorm:"<- id AUTOINCR"`
-	Owner         string              `xorm:"owner"`
-	EmailAddress  string              `xorm:"email_address"`
-	ServerAddress types.Address       `xorm:"server_address"`
-	Login         string              `xorm:"login"`
-	Password      database.SecretText `xorm:"password"`
+	Identifier
+	Owner         string        `gorm:"column:owner"`
+	EmailAddress  string        `gorm:"column:email_address"`
+	ServerAddress types.Address `gorm:"column:server_address"`
+	Login         string        `gorm:"column:login"`
+	Password      string        `gorm:"column:password;serializer:secret"`
 }
 
 func (*SMTPCredential) TableName() string   { return TableSMTPCredentials }
 func (*SMTPCredential) Appellation() string { return NameSMTPCredential }
-func (s *SMTPCredential) GetID() int64      { return s.ID }
 
 func (s *SMTPCredential) BeforeWrite(db database.Access) error {
-	s.Owner = conf.GlobalConfig.GatewayName
-
 	if s.EmailAddress == "" {
 		return ErrSMTPCredentialNoSender
 	}
@@ -96,7 +91,7 @@ func (s *SMTPCredential) BeforeWrite(db database.Access) error {
 		return ErrSMTPCredentialNoAddr
 	}
 
-	if n, err := db.Count(s).Owner().Where("id<>?", s.ID).
+	if n, err := db.Count(s).Where("id<>?", s.ID).
 		Where("email_address=?", s.EmailAddress).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate SMTP credentials: %w", err)
 	} else if n > 0 {

@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 )
 
@@ -11,6 +11,6 @@ const testProtocol = "test_proto"
 func init() {
 	modeltest.AddDummyProtoConfig(testProtocol)
 
-	conf.GlobalConfig.Paths.FilePerms = 0o644
-	conf.GlobalConfig.Paths.DirPerms = 0o755
+	fs.FilePerms = 0o644
+	fs.DirPerms = 0o755
 }

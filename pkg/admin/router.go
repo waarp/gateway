@@ -8,7 +8,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/debug"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
@@ -27,7 +26,7 @@ func MakeHandler(logger *log.Logger, db *database.DB) *mux.Router {
 	rest.MakeRESTHandler(logger, db, restRouter)
 	debug.AddDebugHandler(debugRouter, logger, db)
 
-	if !conf.GlobalConfig.Admin.DisableWebUI {
+	if !db.Config.Admin.DisableWebUI {
 		guiRouter := adminHandler.PathPrefix(gui.Prefix).Subrouter()
 
 		gui.AddGUIRouter(guiRouter, logger, db)

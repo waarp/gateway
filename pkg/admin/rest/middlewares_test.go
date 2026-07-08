@@ -12,6 +12,8 @@ import (
 )
 
 func TestAuthentication(t *testing.T) {
+	t.Parallel()
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

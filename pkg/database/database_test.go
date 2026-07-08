@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
+	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 	. "github.com/smartystreets/goconvey/convey"
-	"xorm.io/xorm/schemas"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 func testSelectForUpdate(db *DB) {
-	if db.engine.Dialect().URI().DBType == schemas.SQLITE {
+	if db.engine.Dialector.Name() == sqliteDialector {
 		// SQLite does not support SELECT FOR UPDATE, it behaves just like a
 		// regular SELECT. So we skip the test.
 		return
@@ -28,7 +28,7 @@ func testSelectForUpdate(db *DB) {
 
 	db2 := &DB{}
 	So(db2.Start(), ShouldBeNil)
-	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
+	Reset(func() { So(db2.close(), ShouldBeNil) })
 
 	transRes := make(chan error, 1)
 	trans2 := func(ses *Session) error {
@@ -45,7 +45,7 @@ func testSelectForUpdate(db *DB) {
 	}
 
 	Convey("When executing a 'SELECT FOR UPDATE' query", func() {
-		_, err := db.engine.Insert(&bean1, &bean2, &bean3)
+		err := db.engine.Create([]*testValid{&bean1, &bean2, &bean3}).Error
 		So(err, ShouldBeNil)
 
 		tErr1 := db.Transaction(func(ses *Session) error {
@@ -56,8 +56,7 @@ func testSelectForUpdate(db *DB) {
 			go func() { transRes <- db2.Transaction(trans2) }()
 			time.Sleep(time.Second)
 
-			err2 := ses.Exec(`UPDATE test_valid SET string='new_str2' 
-				WHERE string='str2'`)
+			err2 := ses.Exec(`UPDATE test_valid SET string='new_str2' WHERE string='str2'`)
 			So(err2, ShouldBeNil)
 
 			return nil
@@ -150,7 +149,7 @@ func testIterate(db *DB) {
 		})
 
 		Convey("With an 'IN' condition", func() {
-			query.Where("string IN (?,?)", "str1", "str2")
+			query.In("string", "str1", "str2")
 			shouldContain(query, bean1, bean2, bean3, bean5)
 		})
 
@@ -158,7 +157,7 @@ func testIterate(db *DB) {
 			b1 := &testValid2{ID: 1, String: "str1"}
 			b2 := &testValid2{ID: 2, String: "str2"}
 			b3 := &testValid2{ID: 3, String: "str3"}
-			_, err := db.getUnderlying().Insert(b1, b2, b3)
+			err := db.getUnderlying().Create([]*testValid2{b1, b2, b3}).Error
 			So(err, ShouldBeNil)
 
 			query.Where("string IN (SELECT string FROM test_valid_2 WHERE id=? OR id=?)", 2, 3)
@@ -178,8 +177,9 @@ func testIterate(db *DB) {
 	}
 
 	Convey("When executing a 'ITERATE' query", func() {
-		_, err := db.engine.Insert(&bean1, &bean2,
-			&bean3, &bean4, &bean5)
+		err := db.engine.Create([]*testValid{
+			&bean1, &bean2, &bean3, &bean4, &bean5,
+		}).Error
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {
@@ -187,10 +187,7 @@ func testIterate(db *DB) {
 		})
 
 		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
-
+			ses := newTransaction(db)
 			runTests(ses)
 		})
 	})
@@ -262,7 +259,7 @@ func testSelect(db *DB) {
 		})
 
 		Convey("With an 'IN' condition", func() {
-			query.Where("string IN (?,?)", "str1", "str2")
+			query.In("string", "str1", "str2")
 			shouldContain(query, &res, bean1, bean2, bean3, bean5)
 		})
 
@@ -270,7 +267,7 @@ func testSelect(db *DB) {
 			b1 := &testValid2{ID: 1, String: "str1"}
 			b2 := &testValid2{ID: 2, String: "str2"}
 			b3 := &testValid2{ID: 3, String: "str3"}
-			_, err := db.getUnderlying().Insert(b1, b2, b3)
+			err := db.getUnderlying().Create([]*testValid2{b1, b2, b3}).Error
 			So(err, ShouldBeNil)
 
 			query.Where("string IN (SELECT string FROM test_valid_2 WHERE id=? OR id=?)", 2, 3)
@@ -290,8 +287,9 @@ func testSelect(db *DB) {
 	}
 
 	Convey("When executing a 'SELECT' query", func() {
-		_, err := db.engine.Insert(bean1, bean2,
-			bean3, bean4, bean5)
+		err := db.engine.Create([]*testValid{
+			bean1, bean2, bean3, bean4, bean5,
+		}).Error
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {
@@ -299,10 +297,7 @@ func testSelect(db *DB) {
 		})
 
 		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
-
+			ses := newTransaction(db)
 			runTests(ses)
 		})
 	})
@@ -318,15 +313,15 @@ func testInsert(db *DB) {
 
 			Convey("Then the record should have been inserted", func() {
 				var actuals []testValid
-				So(db.getUnderlying().Find(&actuals), ShouldBeNil)
+				So(db.getUnderlying().Find(&actuals).Error, ShouldBeNil)
 				So(actuals, ShouldHaveLength, 2)
 
-				exp := testValid{ID: 2, String: "new"}
-				So(actuals, ShouldContain, exp)
+				So(actuals, ShouldContain, testValid{ID: 1, String: "existing"})
+				So(actuals, ShouldContain, testValid{ID: 2, String: "new"})
 			})
 
 			Convey("Then the `WriteHook` should have been called", func() {
-				So(newElem.Hooks, ShouldEqual, "write hook")
+				So(newElem.hooks, ShouldEqual, "write hook")
 			})
 		})
 
@@ -335,12 +330,12 @@ func testInsert(db *DB) {
 			err := db.Insert(&newElem).Run()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldNotBeNil)
+				So(err, ShouldWrap, errWriteHook)
 			})
 
 			Convey("Then the record should NOT have been inserted", func() {
 				var actuals []testValid
-				So(db.getUnderlying().Find(&actuals), ShouldBeNil)
+				So(db.getUnderlying().Find(&actuals).Error, ShouldBeNil)
 				So(actuals, ShouldContain, existing)
 			})
 
@@ -351,7 +346,7 @@ func testInsert(db *DB) {
 	}
 
 	Convey("When executing an 'Insert' query", func() {
-		_, err := db.engine.InsertOne(&existing)
+		err := db.engine.Create(&existing).Error
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {
@@ -359,10 +354,67 @@ func testInsert(db *DB) {
 		})
 
 		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
+			ses := newTransaction(db)
+			runTests(ses)
+		})
+	})
+}
 
+func testInsertBatch(db *DB) {
+	existing := testValid{ID: 1, String: "existing"}
+	newElem2 := testValid{ID: 2, String: "new2"}
+	newElem3 := testValid{ID: 3, String: "new3"}
+
+	runTests := func(db Access) {
+		Convey("With a valid record", func() {
+			So(InsertBatch(db, &newElem2, &newElem3), ShouldBeNil)
+
+			Convey("Then the record should have been inserted", func() {
+				var actuals []testValid
+				So(db.getUnderlying().Find(&actuals).Error, ShouldBeNil)
+				So(actuals, ShouldHaveLength, 3)
+
+				So(actuals, ShouldContain, testValid{ID: 1, String: "existing"})
+				So(actuals, ShouldContain, testValid{ID: 2, String: "new2"})
+				So(actuals, ShouldContain, testValid{ID: 3, String: "new3"})
+			})
+
+			Convey("Then the `WriteHook` should have been called", func() {
+				So(newElem2.hooks, ShouldEqual, "write hook")
+				So(newElem3.hooks, ShouldEqual, "write hook")
+			})
+		})
+
+		Convey("Given that the write hook fails", func() {
+			newElem := testWriteFail{ID: 2}
+			err := InsertBatch(db, &newElem)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldWrap, errWriteHook)
+			})
+
+			Convey("Then the record should NOT have been inserted", func() {
+				var actuals []testValid
+				So(db.getUnderlying().Find(&actuals).Error, ShouldBeNil)
+				So(actuals, ShouldContain, existing)
+			})
+
+			Convey("Then the `WriteHook` should have been called", func() {
+				So(newElem.Hooks, ShouldEqual, "write hook")
+			})
+		})
+	}
+
+	Convey("When executing an 'InsertBatch' query", func() {
+		err := db.engine.Create(&existing).Error
+		So(err, ShouldBeNil)
+
+		Convey("As a Standalone query", func() {
+			runTests(db)
+		})
+
+		Convey("Inside a transaction", func() {
+			ses := newTransaction(db)
 			runTests(ses)
 		})
 	})
@@ -393,7 +445,7 @@ func testGet(db *DB) {
 	}
 
 	Convey("When calling the 'Get' method", func() {
-		_, err := db.engine.Insert(&toGet, &other)
+		err := db.engine.Create([]*testValid{&toGet, &other}).Error
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {
@@ -401,9 +453,7 @@ func testGet(db *DB) {
 		})
 
 		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
+			ses := newTransaction(db)
 
 			runTests(ses)
 		})
@@ -421,7 +471,7 @@ func testUpdate(db *DB) {
 
 			Convey("Then the record should have been updated", func() {
 				var beans []testValid
-				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(db.getUnderlying().Find(&beans).Error, ShouldBeNil)
 				So(beans, ShouldHaveLength, 2)
 				So(beans, ShouldContain, other)
 
@@ -430,7 +480,7 @@ func testUpdate(db *DB) {
 			})
 
 			Convey("Then the `Validate` hook should have been called", func() {
-				So(toUpdate.Hooks, ShouldEqual, "write hook")
+				So(toUpdate.hooks, ShouldEqual, "write hook")
 			})
 		})
 
@@ -450,7 +500,7 @@ func testUpdate(db *DB) {
 
 			Convey("Then only the set columns should have been updated", func() {
 				var beans []testValid
-				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(db.getUnderlying().Find(&beans).Error, ShouldBeNil)
 				So(beans, ShouldHaveLength, 2)
 				So(beans, ShouldContain, other)
 
@@ -459,13 +509,13 @@ func testUpdate(db *DB) {
 			})
 
 			Convey("Then the `Validate` hook should have been called", func() {
-				So(toUpdate.Hooks, ShouldEqual, "write hook")
+				So(toUpdate.hooks, ShouldEqual, "write hook")
 			})
 		})
 	}
 
 	Convey("When calling the 'Update' method", func() {
-		_, err := db.engine.Insert(&toUpdate, &other)
+		err := db.engine.Create([]*testValid{&toUpdate, &other}).Error
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {
@@ -473,10 +523,7 @@ func testUpdate(db *DB) {
 		})
 
 		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
-
+			ses := newTransaction(db)
 			runTests(ses)
 		})
 	})
@@ -493,13 +540,13 @@ func testDelete(db *DB) {
 
 			Convey("Then the record should no longer be present in the database", func() {
 				var beans []testValid
-				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(db.getUnderlying().Find(&beans).Error, ShouldBeNil)
 				So(beans, ShouldHaveLength, 1)
 				So(beans, ShouldNotContain, toDelete1)
 			})
 
 			Convey("Then the `BeforeDelete` hook should have been called", func() {
-				So(toDelete1.Hooks, ShouldEqual, "delete hook")
+				So(toDelete1.hooks, ShouldEqual, "delete hook")
 			})
 		})
 
@@ -507,12 +554,12 @@ func testDelete(db *DB) {
 			err := db.Delete(&toDeleteFail).Run()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldNotBeNil)
+				So(err, ShouldWrap, errDeleteHook)
 			})
 
 			Convey("Then the record should still be present in the database", func() {
 				var beans []testDeleteFail
-				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(db.getUnderlying().Find(&beans).Error, ShouldBeNil)
 				So(beans, ShouldNotBeEmpty)
 				So(beans[0], ShouldResemble, testDeleteFail{ID: 1})
 
@@ -524,7 +571,7 @@ func testDelete(db *DB) {
 			})
 
 			Convey("Then the `BeforeDelete` hook should have been called", func() {
-				So(toDeleteFail.Hooks, ShouldEqual, "delete hook")
+				So(toDeleteFail.hooks, ShouldEqual, "delete hook")
 			})
 		})
 
@@ -539,7 +586,9 @@ func testDelete(db *DB) {
 	}
 
 	Convey("When calling the 'Delete' method", func() {
-		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDeleteFail)
+		err := db.engine.Create([]*testValid{&toDelete1, &toDelete2}).Error
+		So(err, ShouldBeNil)
+		err = db.engine.Create(&toDeleteFail).Error
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {
@@ -547,10 +596,7 @@ func testDelete(db *DB) {
 		})
 
 		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
-
+			ses := newTransaction(db)
 			runTests(ses)
 		})
 	})
@@ -568,14 +614,14 @@ func testDeleteAll(db *DB) {
 
 			Convey("Then all records should have been deleted", func() {
 				var beans []testValid
-				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(db.getUnderlying().Find(&beans).Error, ShouldBeNil)
 				So(beans, ShouldBeEmpty)
 			})
 		})
 	}
 
 	Convey("When calling the 'DeleteAll' method", func() {
-		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDelete3, &toDelete4)
+		err := db.engine.Create([]*testValid{&toDelete1, &toDelete2, &toDelete3, &toDelete4}).Error
 		So(err, ShouldBeNil)
 
 		Convey("As a Standalone query", func() {
@@ -583,10 +629,7 @@ func testDeleteAll(db *DB) {
 		})
 
 		Convey("Inside a transaction", func() {
-			ses := db.newSession()
-			So(ses.session.Begin(), ShouldBeNil)
-			Reset(func() { _ = ses.session.Close() })
-
+			ses := newTransaction(db)
 			runTests(ses)
 		})
 	})
@@ -607,9 +650,8 @@ func testTransaction(db *DB) {
 			So(db.Transaction(trans), ShouldBeNil)
 
 			Convey("Then the new insertion should have been committed", func() {
-				exists, err := db.engine.Exist(&bean)
+				err := checkExists(db, &bean)
 				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
 			})
 		})
 	})
@@ -625,9 +667,8 @@ func testTransaction(db *DB) {
 			So(db.Transaction(trans), ShouldBeError)
 
 			Convey("Then the new insertion should NOT have been committed", func() {
-				exists, err := db.engine.Exist(&bean)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeFalse)
+				err := checkExists(db, &bean)
+				So(err, ShouldBeError, NewNotFoundError(&bean))
 			})
 		})
 	})
@@ -638,23 +679,20 @@ func testResetIncrement(db *DB) {
 	bean2 := testValid{String: "str2"}
 
 	Convey("When calling the 'ResetIncrement' method", func() {
-		_, err := db.engine.Insert(&bean1, &bean2)
+		err := db.engine.Create([]*testValid{&bean1, &bean2}).Error
 		So(err, ShouldBeNil)
-		_, err = db.engine.NoAutoCondition().Where("id=id").Delete(&testValid{})
+		err = db.engine.Delete(&testValid{}).Error
 		So(err, ShouldBeNil)
 
 		Convey("Inside a transaction", func() {
 			Convey("Given that the table is empty", func() {
-				ses := db.newSession()
-				So(ses.session.Begin(), ShouldBeNil)
-				Reset(func() { _ = ses.session.Close() })
-
+				ses := newTransaction(db)
 				So(ses.ResetIncrement(&testValid{}), ShouldBeNil)
-				So(ses.session.Commit(), ShouldBeNil)
+				ses.commit()
 
 				Convey("Then it should have reset the increment", func() {
 					bean3 := testValid{String: "str3"}
-					_, err := db.engine.Insert(&bean3)
+					err := db.engine.Create(&bean3).Error
 					So(err, ShouldBeNil)
 
 					So(bean3.ID, ShouldEqual, 1)
@@ -663,14 +701,11 @@ func testResetIncrement(db *DB) {
 
 			Convey("Given that the table is NOT empty", func() {
 				bean3 := testValid{String: "str3"}
-				_, err := db.engine.Insert(&bean3)
+				err := db.engine.Create(&bean3).Error
 				So(err, ShouldBeNil)
 				So(bean3.ID, ShouldEqual, 3)
 
-				ses := db.newSession()
-				So(ses.session.Begin(), ShouldBeNil)
-				Reset(func() { _ = ses.session.Close() })
-
+				ses := newTransaction(db)
 				So(ses.ResetIncrement(&testValid{}), ShouldBeError, fmt.Sprintf(
 					"cannot reset the increment on table %q while there are still rows in it",
 					bean3.TableName()))
@@ -680,10 +715,10 @@ func testResetIncrement(db *DB) {
 }
 
 func testDatabase(db *DB) {
-	So(db.engine.CreateTables(&testValid{}, &testValid2{}, &testWriteFail{},
+	So(db.engine.AutoMigrate(&testValid{}, &testValid2{}, &testWriteFail{},
 		&testDeleteFail{}), ShouldBeNil)
 	Reset(func() {
-		So(db.engine.DropTables(&testValid{}, &testValid2{}, &testWriteFail{},
+		So(db.engine.Migrator().DropTable(&testValid{}, &testValid2{}, &testWriteFail{},
 			&testDeleteFail{}), ShouldBeNil)
 	})
 
@@ -692,6 +727,7 @@ func testDatabase(db *DB) {
 	testSelect(db)
 	testGet(db)
 	testInsert(db)
+	testInsertBatch(db)
 	testUpdate(db)
 	testDelete(db)
 	testDeleteAll(db)
@@ -700,30 +736,33 @@ func testDatabase(db *DB) {
 }
 
 func TestSqlite(t *testing.T) {
-	conf.GlobalConfig.Log.Level = "CRITICAL"
-	conf.GlobalConfig.Log.LogTo = "stdout"
-	conf.GlobalConfig.Database.Type = SQLite
-	conf.GlobalConfig.Database.Address = filepath.Join(os.TempDir(), "test.db")
-	conf.GlobalConfig.Database.AESPassphrase = filepath.Join(os.TempDir(), "sqlite_test_passphrase.aes")
+	config := conf.ServerConfig{}
+	config.Log.Level = "CRITICAL"
+	config.Log.LogTo = "stdout"
+	config.Database.Type = SQLite
+	config.Database.Address = filepath.Join(os.TempDir(), "test.db")
+	config.Database.AESPassphrase = filepath.Join(os.TempDir(), "sqlite_test_passphrase.aes")
 
-	db := &DB{}
 	defer func() {
-		if err := db.engine.Close(); err != nil {
-			t.Logf("Failed to close database: %v", err)
-		}
-
-		if err := os.Remove(conf.GlobalConfig.Database.AESPassphrase); err != nil {
+		if err := os.Remove(config.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %v", err)
 		}
 
-		if err := os.Remove(conf.GlobalConfig.Database.Address); err != nil {
+		if err := os.Remove(config.Database.Address); err != nil {
 			t.Logf("Failed to delete sqlite file: %v", err)
 		}
 	}()
 
+	db := NewDB(&config)
 	if err := db.start(false); err != nil {
 		t.Fatal(err)
 	}
+
+	defer func() {
+		if err := db.close(); err != nil {
+			t.Logf("Failed to close database: %v", err)
+		}
+	}()
 
 	Convey("Given a Sqlite service", t, func() {
 		testDatabase(db)
@@ -731,30 +770,29 @@ func TestSqlite(t *testing.T) {
 }
 
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
-	conf.GlobalConfig.Log.Level = "CRITICAL"
-	conf.GlobalConfig.Log.LogTo = "stdout"
-	conf.GlobalConfig.Database.Type = SQLite
-	conf.GlobalConfig.Database.Address = filepath.Join(os.TempDir(), "test_no_passphrase.db")
-	conf.GlobalConfig.Database.AESPassphrase = filepath.Join(os.TempDir(), "test_no_passphrase.aes")
+	config := conf.ServerConfig{}
+	config.Log.Level = "CRITICAL"
+	config.Log.LogTo = "stdout"
+	config.Database.Type = SQLite
+	config.Database.Address = filepath.Join(os.TempDir(), "test_no_passphrase.db")
+	config.Database.AESPassphrase = filepath.Join(os.TempDir(), "test_no_passphrase.aes")
 
 	Convey("Given a test database", t, func() {
-		db := &DB{}
+		db := NewDB(&config)
 
 		Convey("When the database service is started", func() {
-			GCM = nil
-
 			So(db.Start(), ShouldBeNil)
 			Reset(func() {
 				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 				defer cancel()
 
 				So(db.Stop(ctx), ShouldBeNil)
-				So(os.Remove(conf.GlobalConfig.Database.Address), ShouldBeNil)
-				So(os.Remove(conf.GlobalConfig.Database.AESPassphrase), ShouldBeNil)
+				So(os.Remove(config.Database.Address), ShouldBeNil)
+				So(os.Remove(config.Database.AESPassphrase), ShouldBeNil)
 			})
 
 			Convey("Then there is a new passphrase file", func() {
-				stats, err := os.Stat(conf.GlobalConfig.Database.AESPassphrase)
+				stats, err := os.Stat(config.Database.AESPassphrase)
 				So(err, ShouldBeNil)
 				So(stats, ShouldNotBeNil)
 
@@ -767,23 +805,25 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 }
 
 func TestDatabaseStartVersionMismatch(t *testing.T) {
-	conf.GlobalConfig.Log.Level = "CRITICAL"
-	conf.GlobalConfig.Log.LogTo = "stdout"
-	conf.GlobalConfig.Database.Type = SQLite
-	conf.GlobalConfig.Database.Address = filepath.Join(os.TempDir(), "test_version_mismatch.db")
-	conf.GlobalConfig.Database.AESPassphrase = filepath.Join(os.TempDir(), "test_version_mismatch.aes")
+	root := t.TempDir()
+
+	config := conf.ServerConfig{}
+	config.Log.Level = "CRITICAL"
+	config.Log.LogTo = "stdout"
+	config.Database.Type = SQLite
+	config.Database.Address = filepath.Join(root, "test_version_mismatch.db")
+	config.Database.AESPassphrase = filepath.Join(root, "test_version_mismatch.aes")
 
 	Convey("Given a test database", t, func() {
-		db := &DB{}
+		db := NewDB(&config)
 		So(db.Start(), ShouldBeNil)
 		Reset(func() {
-			_ = os.Remove(conf.GlobalConfig.Database.Address)
-			_ = os.Remove(conf.GlobalConfig.Database.AESPassphrase)
+			So(db.close(), ShouldBeNil)
 		})
 
 		Convey("Given that the database version does not match the program", func() {
 			ver := &version{Current: "0.0.0"}
-			_, err := db.engine.Table(ver.TableName()).Update(ver)
+			err := db.engine.Updates(ver).Error
 			So(err, ShouldBeNil)
 			So(db.Stop(t.Context()), ShouldBeNil)
 
@@ -791,9 +831,24 @@ func TestDatabaseStartVersionMismatch(t *testing.T) {
 				err := db.Start()
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, "database version mismatch")
+					So(err, ShouldBeError, &badVersionError{exe: vers.Num, db: ver.Current})
 				})
 			})
 		})
 	})
+}
+
+type tTransaction struct {
+	*Session
+}
+
+func (t *tTransaction) commit() {
+	So(t.session.Commit().Error, ShouldBeNil)
+}
+
+func newTransaction(db *DB) *tTransaction {
+	tx := db.engine.Begin()
+	Reset(func() { tx.Rollback() })
+
+	return &tTransaction{&Session{db: db, session: tx}}
 }

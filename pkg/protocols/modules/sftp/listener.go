@@ -17,22 +17,22 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type sshListener struct {
-	DB       *database.DB
-	Logger   *log.Logger
-	Server   *model.LocalAgent
-	SSHConf  *ssh.ServerConfig
-	Listener net.Listener
+	DB     *database.DB
+	Logger *log.Logger
 
+	serverID int64
+	listener net.Listener
 	tracer   func() pipeline.Trace
 	shutdown chan struct{}
 }
 
 func (l *sshListener) listen() {
 	for {
-		conn, err := l.Listener.Accept()
+		conn, err := l.listener.Accept()
 		if err != nil {
 			select {
 			case <-l.shutdown:
@@ -48,14 +48,48 @@ func (l *sshListener) listen() {
 	}
 }
 
+func (l *sshListener) makeSSHConf(server *model.LocalAgent) (*ssh.ServerConfig, error) {
+	var protoConfig ServerConfig
+	if err := utils.JSONConvert(server.ProtoConfig, &protoConfig); err != nil {
+		return nil, fmt.Errorf("cannot parse the protocol configuration of this agent: %w", err)
+	}
+
+	hostKeys, err := server.GetCredentials(l.DB, AuthSSHPrivateKey)
+	if err != nil {
+		l.Logger.Errorf("Failed to retrieve the server host keys: %v", err)
+
+		return nil, fmt.Errorf("failed to retrieve the server host keys: %w", err)
+	}
+
+	sshConf, err1 := getSSHServerConfig(l.DB, l.Logger, hostKeys, &protoConfig, server)
+	if err1 != nil {
+		l.Logger.Errorf("Failed to parse the SSH server configuration: %v", err1)
+
+		return nil, fmt.Errorf("failed to parse the SSH server configuration: %w", err1)
+	}
+
+	return sshConf, nil
+}
+
 //nolint:funlen // factorizing would add complexity
 func (l *sshListener) handleConnection(nConn net.Conn) {
 	defer closeTCPConn(nConn, l.Logger)
 
-	servConn, channels, reqs, connErr := ssh.NewServerConn(nConn, l.SSHConf)
+	var server model.LocalAgent
+	if err := l.DB.Get(&server, "id=?", l.serverID).Run(); err != nil {
+		l.Logger.Errorf("Failed to retrieve server: %v", err)
+		return
+	}
+
+	sshConf, accErr := l.makeSSHConf(&server)
+	if accErr != nil {
+		l.Logger.Errorf("Failed to parse the SSH server configuration: %v", accErr)
+		return
+	}
+
+	servConn, channels, reqs, connErr := ssh.NewServerConn(nConn, sshConf)
 	if connErr != nil {
 		l.Logger.Errorf("Failed to perform handshake: %s", connErr)
-
 		return
 	}
 
@@ -63,11 +97,9 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 
 	go ssh.DiscardRequests(reqs)
 
-	var acc model.LocalAccount
-	if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Server.ID,
-		servConn.User()).Run(); err != nil {
-		l.Logger.Errorf("Failed to retrieve SFTP user: %v", err)
-
+	acc, accErr := server.GetAccount(l.DB, servConn.User())
+	if accErr != nil {
+		l.Logger.Errorf("Failed to retrieve SFTP account: %v", accErr)
 		return
 	}
 
@@ -93,7 +125,7 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 			default:
 				sesWg.Add(1)
 
-				go l.handleSession(sesWg, &acc, newChannel)
+				go l.handleSession(sesWg, acc, newChannel)
 			}
 		}
 	}
@@ -222,12 +254,12 @@ func (l *sshListener) close(ctx context.Context) error {
 	close(l.shutdown)
 
 	defer func() {
-		if err := l.Listener.Close(); err != nil {
+		if err := l.listener.Close(); err != nil {
 			l.Logger.Warningf("An error occurred while closing the network connection: %v", err)
 		}
 	}()
 
-	if err := pipeline.List.StopAllFromServer(ctx, l.Server.ID); err != nil {
+	if err := pipeline.List.StopAllFromServer(ctx, l.serverID); err != nil {
 		l.Logger.Errorf("Failed to stop the ongoing SFTP transfers: %v", err)
 
 		return fmt.Errorf("failed to stop the ongoing SFTP transfers: %w", err)

@@ -17,12 +17,12 @@ func hashPswd(pswd, protocol string) (string, error) {
 	handler := authentication.GetInternalAuthHandler(auth.Password, protocol)
 	serializer, ok := handler.(authentication.Serializer)
 	if !ok {
-		hash, _, err := auth.BcryptAuthHandler{}.ToDB(pswd, "")
+		hash, _, err := auth.BcryptAuthHandler{}.ToDB(nil, pswd, "")
 
 		return hash, err
 	}
 
-	hash, _, err := serializer.ToDB(pswd, "")
+	hash, _, err := serializer.ToDB(nil, pswd, "")
 
 	return hash, err
 }

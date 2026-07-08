@@ -14,6 +14,8 @@ import (
 )
 
 func TestNewAuthoritiesImport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 
@@ -84,6 +86,8 @@ func TestNewAuthoritiesImport(t *testing.T) {
 }
 
 func TestExistingAuthoritiesImport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 

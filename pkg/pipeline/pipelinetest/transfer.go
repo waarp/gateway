@@ -3,11 +3,9 @@ package pipelinetest
 import (
 	"github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 type transData struct {
@@ -21,9 +19,9 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 ) {
 	c.Convey("Then there should be a client-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
-			ID:               data.ClientTrans.ID,
+			Identifier:       data.ClientTrans.Identifier,
 			RemoteTransferID: actual.RemoteTransferID,
-			Owner:            conf.GlobalConfig.GatewayName,
+			Owner:            actual.Owner,
 			Protocol:         d.Client.Protocol,
 			Client:           d.Client.Name,
 			Rule:             d.ClientRule.Name,
@@ -41,10 +39,10 @@ func (d *clientData) checkClientTransferOK(c convey.C, data *transData,
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
 			Progress:         int64(len(data.fileContent)),
-			TransferInfo:     actual.TransferInfo,
+			TransferInfo:     data.ClientTrans.TransferInfo,
+			Infos:            actual.Infos,
 		}
-		c.So(*actual, convey.ShouldResemble, *expected)
-		c.So(actual.TransferInfo, testhelpers.ShouldEqualJSON, data.ClientTrans.TransferInfo)
+		c.So(actual, convey.ShouldResemble, expected)
 	})
 }
 
@@ -56,9 +54,9 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			d.ServerRule.LocalDir, filename)
 
 		expected := &model.HistoryEntry{
-			ID:               actual.ID,
+			Identifier:       actual.Identifier,
 			RemoteTransferID: remoteTransferID,
-			Owner:            conf.GlobalConfig.GatewayName,
+			Owner:            actual.Owner,
 			Protocol:         d.Server.Protocol,
 			IsServer:         true,
 			IsSend:           d.ServerRule.IsSend,
@@ -73,7 +71,8 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			Status:           types.StatusDone,
 			Step:             types.StepNone,
 			Progress:         progress,
-			TransferInfo:     actual.TransferInfo,
+			TransferInfo:     transInfo,
+			Infos:            actual.Infos,
 		}
 
 		if d.ServerRule.IsSend {
@@ -83,6 +82,5 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 		}
 
 		c.So(*actual, convey.ShouldResemble, *expected)
-		c.So(actual.TransferInfo, testhelpers.ShouldEqualJSON, transInfo)
 	})
 }

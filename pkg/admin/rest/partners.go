@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -21,8 +20,7 @@ func retrievePartner(r *http.Request, db *database.DB) (*model.RemoteAgent, erro
 	}
 
 	var partner model.RemoteAgent
-	if err := db.Get(&partner, "name=? AND owner=?", agentName,
-		conf.GlobalConfig.GatewayName).Run(); err != nil {
+	if err := db.Get(&partner, "name=?", agentName).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("partner %q not found", agentName)
 		}
@@ -143,7 +141,7 @@ func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		dbPartner := &model.RemoteAgent{
 			Name:        restPartner.Name.Value,
 			Protocol:    restPartner.Protocol.Value,
-			ProtoConfig: model.ProtoConfigMap(restPartner.ProtoConfig),
+			ProtoConfig: model.Map[any](restPartner.ProtoConfig),
 		}
 
 		if err := dbPartner.Address.Set(restPartner.Address.Value); handleError(w, logger, err) {

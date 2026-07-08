@@ -6,11 +6,9 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type accessTarget interface {
@@ -184,7 +182,7 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 		// RemoteAgent Access
 		return &model.RuleAccess{
 			RuleID:        ruleID,
-			RemoteAgentID: utils.NewNullInt64(agent.ID),
+			RemoteAgentID: agent.NullableID(),
 		}, &agent, nil
 	}
 
@@ -197,7 +195,7 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 
 	return &model.RuleAccess{
 		RuleID:          ruleID,
-		RemoteAccountID: utils.NewNullInt64(account.ID),
+		RemoteAccountID: account.NullableID(),
 	}, &account, nil
 }
 
@@ -206,8 +204,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 	ruleID int64,
 ) (*model.RuleAccess, accessTarget, error) {
 	var agent model.LocalAgent
-	if err := db.Get(&agent, "owner=? AND name=?", conf.GlobalConfig.GatewayName,
-		arr[1]).Run(); err != nil {
+	if err := db.Get(&agent, "name=?", arr[1]).Run(); err != nil {
 		return nil, nil, fmt.Errorf("failed to retrieve local agent %q: %w", arr[1], err)
 	}
 
@@ -215,7 +212,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 		// LocalAgent Access
 		return &model.RuleAccess{
 			RuleID:       ruleID,
-			LocalAgentID: utils.NewNullInt64(agent.ID),
+			LocalAgentID: agent.NullableID(),
 		}, &agent, nil
 	}
 	// LocalAccount Access
@@ -227,7 +224,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 
 	return &model.RuleAccess{
 		RuleID:         ruleID,
-		LocalAccountID: utils.NewNullInt64(account.ID),
+		LocalAccountID: account.NullableID(),
 	}, &account, nil
 }
 

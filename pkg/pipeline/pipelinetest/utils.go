@@ -203,7 +203,7 @@ func initTestData(c convey.C) *testData {
 
 	// Change log level if needed. Set to CRITICAL to avoid polluting stdout
 	// with error messages from error tests.
-	c.So(logging.SetLogBackend("CRITICAL", "stdout", "", ""), convey.ShouldBeNil)
+	c.So(logging.SetLogBackend("ERROR", "stdout", "", ""), convey.ShouldBeNil)
 
 	analytics.GlobalService = &analytics.Service{DB: db}
 	c.So(analytics.GlobalService.Start(), convey.ShouldBeNil)
@@ -224,7 +224,7 @@ func initTestData(c convey.C) *testData {
 	c.So(fs.MkdirAll(fs.JoinPath(home, paths.DefaultOutDir)), convey.ShouldBeNil)
 	c.So(fs.MkdirAll(fs.JoinPath(home, paths.DefaultTmpDir)), convey.ShouldBeNil)
 
-	conf.GlobalConfig.Paths = *paths
+	db.Config.Paths = *paths
 
 	return &testData{
 		DB:       db,

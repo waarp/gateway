@@ -13,11 +13,13 @@ import (
 )
 
 func TestExportHistory(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with 2 history entries", t, func(c C) {
 		db := database.TestDatabase(c)
 
 		hist1 := &model.HistoryEntry{
-			ID:               1,
+			Identifier:       model.ID(1),
 			RemoteTransferID: "123",
 			IsServer:         true,
 			IsSend:           false,
@@ -34,12 +36,12 @@ func TestExportHistory(t *testing.T) {
 			Step:             types.StepNone,
 			Progress:         321,
 			TaskNumber:       10,
-			TransferInfo:     map[string]interface{}{"key": "val"},
+			TransferInfo:     map[string]any{"key": "val"},
 		}
 		So(db.Insert(hist1).Run(), ShouldBeNil)
 
 		hist2 := &model.HistoryEntry{
-			ID:               2,
+			Identifier:       model.ID(2),
 			RemoteTransferID: "567",
 			IsServer:         false,
 			IsSend:           true,
@@ -122,7 +124,7 @@ func TestExportHistory(t *testing.T) {
 			Convey("Then the database entries should be unchanged", func() {
 				var hist model.HistoryEntries
 
-				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
+				So(db.Select(&hist).Eager().OrderBy("id", true).Run(), ShouldBeNil)
 				So(hist, ShouldHaveLength, 2)
 				So(hist[0], ShouldResemble, hist1)
 				So(hist[1], ShouldResemble, hist2)

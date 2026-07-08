@@ -8,11 +8,9 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/compatibility"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:funlen //no easy way to split the function
@@ -46,8 +44,7 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 	}
 
 	var partner model.RemoteAgent
-	if err := db.Get(&partner, "name=? AND owner=?", trans.Partner,
-		conf.GlobalConfig.GatewayName).Run(); err != nil {
+	if err := db.Get(&partner, "name=?", trans.Partner).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return 0, null, null, badRequestf("no partner %q found", trans.Partner)
 		}
@@ -73,26 +70,26 @@ func getTransInfo(db *database.DB, trans *api.InTransfer,
 			return 0, null, null, fmt.Errorf("failed to retrieve client %q: %w", trans.Client, err)
 		}
 
-		clientID = utils.NewNullInt64(client.ID)
+		clientID = client.NullableID()
 	} else {
 		client, err := compatibility.GetDefaultTransferClient(db, partner.Protocol)
 		if err != nil {
 			return 0, null, null, fmt.Errorf("failed to retrieve default client: %w", err)
 		}
 
-		clientID = utils.NewNullInt64(client.ID)
+		clientID = client.NullableID()
 	}
 
-	return rule.ID, utils.NewNullInt64(account.ID), clientID, nil
+	return rule.ID, account.NullableID(), clientID, nil
 }
 
 //nolint:funlen // FIXME should be refactored
 func parseTransferListQuery(r *http.Request, db *database.DB,
 	transfers *model.NormalizedTransfers,
 ) (*database.SelectQuery, error) {
-	query := db.Select(transfers).Where("owner=?", conf.GlobalConfig.GatewayName)
+	query := db.Select(transfers).Eager()
 
-	//nolint:dupl //kept separate for backwards compatibility
+	//nolint:dupl,goconst //kept separate for backwards compatibility
 	sorting := orders{
 		"default":    order{col: "start", asc: true},
 		"id+":        order{col: "id", asc: true},

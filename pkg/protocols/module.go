@@ -7,6 +7,7 @@ package protocols
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 )
 
@@ -21,4 +22,10 @@ type Module interface {
 	// NewClient should return a new instance of a client of the protocol with
 	// the given name and database client ID.
 	NewClient(db *database.DB, client *model.Client) protocol.Client
+	// OptionalFeatures returns a list of features that the protocol supports.
+	OptionalFeatures() []features.Feature
+}
+
+type CustomIDModule interface {
+	IDGenerator() model.IDGenerator
 }

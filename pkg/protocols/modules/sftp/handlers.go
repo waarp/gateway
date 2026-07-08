@@ -164,7 +164,7 @@ func (l *sshListener) listReadDir(realDir string) ([]os.FileInfo, error) {
 
 func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string,
 ) (string, error) {
-	realPath, err := protoutils.GetRealPath(false, l.DB, l.Logger, l.Server, acc, dir)
+	realPath, err := protoutils.GetRealPath(false, l.DB, l.Logger, acc, dir)
 
 	switch {
 	case errors.Is(err, protoutils.ErrPermissionDenied):
@@ -218,7 +218,7 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 
 func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string,
 ) ([]os.FileInfo, error) {
-	entries, err := protoutils.GetRulesPaths(l.DB, l.Server, acc, dir)
+	entries, err := protoutils.GetRulesPaths(l.DB, acc, dir)
 	if errors.Is(err, protoutils.ErrRuleNotFound) {
 		return nil, sftp.ErrSSHFxNoSuchFile
 	} else if err != nil {

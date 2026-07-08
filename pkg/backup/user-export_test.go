@@ -6,12 +6,14 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestExportUsers(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database with some users", t, func(c C) {
 		db := database.TestDatabase(c)
 		So(db.DeleteAll(&model.User{}).Run(), ShouldBeNil)
@@ -29,16 +31,12 @@ func TestExportUsers(t *testing.T) {
 		So(db.Insert(user1).Run(), ShouldBeNil)
 
 		// Change owner for this insert
-		owner := conf.GlobalConfig.GatewayName
-		conf.GlobalConfig.GatewayName = "tata"
-
-		So(db.Insert(&model.User{
+		other := &model.User{
 			Username:     "other",
 			PasswordHash: hash("other_password"),
 			Permissions:  model.PermAll,
-		}).Run(), ShouldBeNil)
-		// Revert database owner
-		conf.GlobalConfig.GatewayName = owner
+		}
+		So(dbtest.InsertAsOwner(db, "tata", other), ShouldBeNil)
 
 		Convey("When calling the exportUsers function", func() {
 			res, err := exportUsers(discard(), db)

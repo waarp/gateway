@@ -44,6 +44,8 @@ func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *lo
 }
 
 func TestTaskTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a Task instance", t, func() {
 		task := &Task{}
 
@@ -58,6 +60,8 @@ func TestTaskTableName(t *testing.T) {
 }
 
 func TestTaskBeforeInsert(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 

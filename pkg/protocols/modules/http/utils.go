@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -235,8 +234,11 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.
 		name := subStr[0]
 		strVal := subStr[1]
 
+		decoder := json.NewDecoder(strings.NewReader(strVal))
+		decoder.UseNumber()
+
 		var value any
-		if err := json.Unmarshal([]byte(strVal), &value); err != nil {
+		if err := decoder.Decode(&value); err != nil {
 			pip.Logger.Errorf("Failed to unmarshall transfer info value %q: %s", strVal, err)
 
 			return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse transfer info value")
@@ -245,7 +247,7 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.
 		pip.TransCtx.Transfer.TransferInfo[name] = value
 	}
 
-	if err := pip.TransCtx.Transfer.AfterInsert(pip.DB); err != nil {
+	if err := pip.TransCtx.Transfer.AfterUpdate(pip.DB); err != nil {
 		pip.Logger.Errorf("Failed to set transfer info: %v", err)
 		pip.SetError(types.TeInternal, "failed to set transfer info")
 
@@ -300,20 +302,16 @@ func sendServerError(pip *pipeline.Pipeline, req *http.Request, resp http.Respon
 	})
 }
 
-func makeRequestURL(scheme string, transCtx *model.TransferContext, filepath string) string {
-	addr := conf.GetRealAddress(transCtx.RemoteAgent.Address.Host,
+func makeRequestURL(scheme string, transCtx *model.TransferContext, filepath string,
+	overrides *conf.ConfigOverride,
+) string {
+	addr := overrides.GetRealAddress(transCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(transCtx.RemoteAgent.Address.Port))
 
 	return scheme + path.Join(addr, filepath)
 }
 
-var ErrRemoteDeleteRecursive = errors.New("HTTP does not support recursive deletion")
-
-func deleteRemoteFile(ctx context.Context, client *http.Client, url string, recursive bool) error {
-	if recursive {
-		return ErrRemoteDeleteRecursive
-	}
-
+func deleteRemoteFile(ctx context.Context, client *http.Client, url string) error {
 	req, reqErr := http.NewRequestWithContext(ctx, http.MethodDelete, url, http.NoBody)
 	if reqErr != nil {
 		return fmt.Errorf("failed to create HTTP DELETE request: %w", reqErr)

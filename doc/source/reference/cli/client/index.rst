@@ -37,3 +37,4 @@ Pour afficher la version du client, utiliser la commande ``waarp-gateway version
    snmp/index
    key/index
    email/index
+   filewatcher/index

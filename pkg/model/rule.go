@@ -12,23 +12,22 @@ import (
 
 // Rule represents a transfer rule.
 type Rule struct {
-	ID int64 `xorm:"<- id AUTOINCR"` // The Rule's ID
+	Identifier
 
-	Name    string `xorm:"name"`    // The rule's name
-	IsSend  bool   `xorm:"is_send"` // The rule's direction (pull/push)
-	Comment string `xorm:"comment"` // An optional comment on the rule.
+	Name    string `gorm:"column:name"`    // The rule's name
+	IsSend  bool   `gorm:"column:is_send"` // The rule's direction (pull/push)
+	Comment string `gorm:"column:comment"` // An optional comment on the rule.
 
 	// The path used to differentiate the rule when the protocol does not allow it.
-	Path string `xorm:"path"`
+	Path string `gorm:"column:path"`
 
-	LocalDir       string `xorm:"local_dir"`             // The local directory for transfers.
-	RemoteDir      string `xorm:"remote_dir"`            // The remote directory for transfers.
-	TmpLocalRcvDir string `xorm:"tmp_local_receive_dir"` // The local temporary directory for transfers.
+	LocalDir       string `gorm:"column:local_dir"`             // The local directory for transfers.
+	RemoteDir      string `gorm:"column:remote_dir"`            // The remote directory for transfers.
+	TmpLocalRcvDir string `gorm:"column:tmp_local_receive_dir"` // The local temporary directory for transfers.
 }
 
 func (*Rule) TableName() string   { return TableRules }
 func (*Rule) Appellation() string { return NameRule }
-func (r *Rule) GetID() int64      { return r.ID }
 
 func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) error {
 	if rulePath == "" || rulePath == "." || rulePath == "/" {

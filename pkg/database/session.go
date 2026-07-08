@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
+	"gorm.io/gorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -17,28 +16,26 @@ import (
 // Session is a struct used to perform transactions on the database. A session
 // can be performed using the Standalone.Transaction method.
 type Session struct {
-	id      int64
 	db      *DB
-	session *xorm.Session
-	logger  *log.Logger
+	session *gorm.DB
 }
 
-func (s *Session) getUnderlying() xorm.Interface {
-	return s.session
-}
-func (s *Session) AsDB() *DB { return s.db }
+func (s *Session) getOwner() string        { return s.db.getOwner() }
+func (s *Session) getUnderlying() *gorm.DB { return s.session }
+func (s *Session) getLogger() *log.Logger  { return s.db.Logger }
 
-// GetLogger returns the database logger instance.
-func (s *Session) GetLogger() *log.Logger {
-	return s.logger
-}
+func (s *Session) AsDB() *DB                     { return s.db }
+func (s *Session) GetConfig() *conf.ServerConfig { return s.db.Config }
+
+func (s *Session) Encrypt(plain string) (string, error)  { return s.db.Encrypt(plain) }
+func (s *Session) Decrypt(cipher string) (string, error) { return s.db.Decrypt(cipher) }
 
 func (s *Session) Transaction(fun TransactionFunc) error { return fun(s) }
 
 func (s *Session) TransactionWithTimeout(dur time.Duration, fun TransactionFunc) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dur)
 	defer cancel()
-	s.session.Context(ctx)
+	s.session = s.session.WithContext(ctx)
 
 	return fun(s)
 }
@@ -139,14 +136,15 @@ func (s *Session) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
 func (s *Session) Exec(query string, args ...any) error {
-	return exec(s.session, s.logger, query, args...)
+	return s.session.Exec(query, args...).Error
 }
 
 // ResetIncrement resets the auto-increment on the given model's ID primary key.
 // The auto-increment can only be reset if the table is empty.
 func (s *Session) ResetIncrement(bean IterateBean) error {
-	if n, err := s.session.NoAutoCondition().Count(bean); err != nil {
-		s.logger.Errorf("Failed to query table %q: %v", bean.TableName(), err)
+	var n int64
+	if err := s.session.Table(bean.TableName()).Count(&n).Error; err != nil {
+		s.getLogger().Errorf("Failed to query table %q: %v", bean.TableName(), err)
 
 		return NewInternalError(err)
 	} else if n != 0 {
@@ -155,18 +153,16 @@ func (s *Session) ResetIncrement(bean IterateBean) error {
 			bean.TableName())
 	}
 
-	var err error
-
-	switch dbType := s.session.Engine().Dialect().URI().DBType; dbType {
-	case schemas.SQLITE:
-		_, err = s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?", bean.TableName())
-	case schemas.POSTGRES:
-		_, err = s.session.Exec("TRUNCATE " + bean.TableName() + " RESTART IDENTITY CASCADE")
-	case schemas.MYSQL:
-		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = 1")
+	switch dbType := s.session.Name(); dbType {
+	case sqliteDialector:
+		s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?", bean.TableName())
+	case postgresDialector:
+		s.session.Exec("TRUNCATE " + bean.TableName() + " RESTART IDENTITY CASCADE")
+	case mysqlDialector:
+		s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = 1")
 	default:
-		s.logger.Errorf("%s databases do not support resetting an auto-increment",
-			conf.GlobalConfig.Database.Type)
+		s.getLogger().Errorf("%s databases do not support resetting an auto-increment",
+			s.db.Config.Database.Type)
 
 		return &InternalError{
 			msg:   fmt.Sprintf("unsupported database: %s", dbType),
@@ -174,8 +170,8 @@ func (s *Session) ResetIncrement(bean IterateBean) error {
 		}
 	}
 
-	if err != nil {
-		s.logger.Errorf("Failed to reset the auto-increment on table %q: %v",
+	if err := s.session.Error; err != nil {
+		s.getLogger().Errorf("Failed to reset the auto-increment on table %q: %v",
 			bean.TableName(), err)
 
 		return NewInternalError(err)
@@ -189,10 +185,10 @@ func (s *Session) ResetIncrement(bean IterateBean) error {
 func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 	var maxID sql.NullInt64
 
-	row := s.session.Tx().QueryRow("SELECT MAX(id) AS maxID FROM " + bean.TableName())
+	row := s.session.Raw("SELECT MAX(id) AS maxID FROM " + bean.TableName()).Row()
 
 	if err := row.Scan(&maxID); err != nil {
-		s.logger.Errorf("Failed to query table %q: %v", bean.TableName(), err)
+		s.getLogger().Errorf("Failed to query table %q: %v", bean.TableName(), err)
 
 		return NewInternalError(err)
 	}
@@ -203,29 +199,27 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 			bean.TableName(), value, maxID.Int64)
 	}
 
-	var err error
+	switch dbType := s.session.Name(); dbType {
+	case sqliteDialector:
+		if delErr := s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?",
+			bean.TableName()).Error; delErr != nil {
+			s.getLogger().Errorf("Failed to delete the SQLite auto-increment on table %q: %v",
+				bean.TableName(), delErr)
 
-	switch dbType := s.session.Engine().Dialect().URI().DBType; dbType {
-	case schemas.SQLITE:
-		if _, delErr := s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?",
-			bean.TableName()); delErr != nil {
-			s.logger.Errorf("Failed to delete the SQLite auto-increment on table %q: %v",
-				bean.TableName(), err)
-
-			return NewInternalError(err)
+			return NewInternalError(delErr)
 		}
 
-		_, err = s.session.Exec("INSERT INTO sqlite_sequence(seq,name) VALUES (?,?)",
+		s.session.Exec("INSERT INTO sqlite_sequence(seq,name) VALUES (?,?)",
 			value, bean.TableName())
-	case schemas.POSTGRES:
-		_, err = s.session.Exec("SELECT setval(pg_get_serial_sequence(?, 'id'), ?)",
+	case postgresDialector:
+		s.session.Exec("SELECT setval(pg_get_serial_sequence(?, 'id'), ?)",
 			bean.TableName(), value)
-	case schemas.MYSQL:
-		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = " +
+	case mysqlDialector:
+		s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = " +
 			utils.FormatInt(value+1))
 	default:
-		s.logger.Errorf("%s databases do not support resetting an auto-increment",
-			conf.GlobalConfig.Database.Type)
+		s.getLogger().Errorf("%s databases do not support resetting an auto-increment",
+			s.db.Config.Database.Type)
 
 		return &InternalError{
 			msg:   fmt.Sprintf("unsupported database: %s", dbType),
@@ -233,8 +227,8 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 		}
 	}
 
-	if err != nil {
-		s.logger.Errorf("Failed to advance the auto-increment on table %q: %v",
+	if err := s.session.Error; err != nil {
+		s.getLogger().Errorf("Failed to advance the auto-increment on table %q: %v",
 			bean.TableName(), err)
 
 		return NewInternalError(err)
@@ -248,5 +242,5 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with caution.
 func (s *Session) QueryRow(query string, args ...any) *sql.Row {
-	return s.session.DB().DB.QueryRow(query, args...)
+	return s.session.Raw(query, args...).Row()
 }

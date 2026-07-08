@@ -8,9 +8,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httptransport"
 )
 
 func init() {
+	httptransport.SetTestIdleConnTimeout()
 	pipelinetest.Register(HTTP, pipelinetest.ProtoFeatures{
 		Protocol: Module{},
 		TransID:  true, RuleName: true, Size: true, TransferInfo: true,

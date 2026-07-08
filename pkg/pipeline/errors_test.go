@@ -15,7 +15,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -74,7 +73,7 @@ func initTestDB(c C, root string) *testContext {
 		FilePerms:     0o600,
 		DirPerms:      0o700,
 	}
-	conf.GlobalConfig.Paths = paths
+	db.Config.Paths = paths
 
 	So(fs.MkdirAll(path.Join(root, paths.DefaultInDir)), ShouldBeNil)
 	So(fs.MkdirAll(path.Join(root, paths.DefaultOutDir)), ShouldBeNil)
@@ -151,8 +150,8 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(fs.MkdirAll(path.Join(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
-		ClientID:        utils.NewNullInt64(ctx.client.ID),
-		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+		ClientID:        ctx.client.NullableID(),
+		RemoteAccountID: ctx.remoteAccount.NullableID(),
 		SrcFilename:     filename,
 		RuleID:          ctx.recv.ID,
 	}
@@ -168,8 +167,8 @@ func mkSendTransfer(ctx *testContext, filename string) *model.Transfer {
 	So(fs.MkdirAll(fs.JoinPath(ctx.root, ctx.send.TmpLocalRcvDir)), ShouldBeNil)
 
 	trans := &model.Transfer{
-		ClientID:        utils.NewNullInt64(ctx.client.ID),
-		RemoteAccountID: utils.NewNullInt64(ctx.remoteAccount.ID),
+		ClientID:        ctx.client.NullableID(),
+		RemoteAccountID: ctx.remoteAccount.NullableID(),
 		SrcFilename:     filename,
 		RuleID:          ctx.send.ID,
 	}

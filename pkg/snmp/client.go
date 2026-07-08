@@ -9,7 +9,6 @@ import (
 
 	"github.com/gosnmp/gosnmp"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -61,8 +60,8 @@ func connect(logger *log.Logger, config *MonitorConfig) (*gosnmp.GoSNMP, error) 
 			UserName:                 config.AuthUsername,
 			AuthenticationProtocol:   getAuthProtocol(config.AuthProtocol),
 			PrivacyProtocol:          getPrivProtocol(config.PrivProtocol),
-			AuthenticationPassphrase: string(config.AuthPassphrase),
-			PrivacyPassphrase:        string(config.PrivPassphrase),
+			AuthenticationPassphrase: config.AuthPassphrase,
+			PrivacyPassphrase:        config.PrivPassphrase,
 			Logger:                   snmpLogger,
 		}
 	}
@@ -126,7 +125,7 @@ func (s *Service) sendTransferError(trans *model.NormalizedTransferView) error {
 				Type:  gosnmp.ObjectIdentifier,
 			}, {
 				Value: InstanceNameOID,
-				Name:  conf.GlobalConfig.GatewayName,
+				Name:  s.DB.Config.GatewayName,
 				Type:  gosnmp.OctetString,
 			}, {
 				Value: utils.FormatInt(trans.ID),
@@ -194,7 +193,7 @@ func (s *Service) sendServiceError(service string, sErr error) error {
 				Type:  gosnmp.ObjectIdentifier,
 			}, {
 				Value: InstanceNameOID,
-				Name:  conf.GlobalConfig.GatewayName,
+				Name:  s.DB.Config.GatewayName,
 				Type:  gosnmp.OctetString,
 			}, {
 				Value: service,

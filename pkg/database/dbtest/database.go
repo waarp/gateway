@@ -6,27 +6,33 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"database/sql"
+	"fmt"
 	"net/url"
-	"strings"
-	"sync"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 )
 
+const memDBType = "memory"
+
 //nolint:gochecknoinits //init is required here
 func init() {
-	database.SupportedRBMS[database.SQLite] = memDBInfo
+	database.SupportedRBMS[memDBType] = memDBInfo
 }
 
-func memDBInfo() *database.DBInfo {
-	config := conf.GlobalConfig.Database
+//nolint:gochecknoglobals //we use a global var here to save time and not have to reinstantiate it for every test
+var testAEAD = makeTestGCM()
+
+func memDBInfo(config *conf.DatabaseConfig) (gorm.Dialector, error) {
 	values := url.Values{}
 	dsn := url.URL{
 		Scheme:   "file",
@@ -44,63 +50,62 @@ func memDBInfo() *database.DBInfo {
 
 	dsn.RawQuery = values.Encode()
 
-	return &database.DBInfo{
-		Driver:    migrations.SqliteDriver,
-		DSN:       dsn.String(),
-		ConnLimit: 1,
+	db, err := sql.Open(database.SQLiteDriver, dsn.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+
+	db.SetMaxOpenConns(1)
+
+	return sqlite.New(sqlite.Config{
+		DSN:  dsn.String(),
+		Conn: db,
+	}), nil
 }
 
-func makeTestGCM(tb testing.TB) {
-	tb.Helper()
-
-	if database.GCM != nil {
-		return
-	}
-
+func makeTestGCM() cipher.AEAD {
 	const aesKeySize = 16
 	key := make([]byte, aesKeySize)
 
-	_, err := rand.Read(key)
-	require.NoError(tb, err, "cannot generate AES key")
+	if _, err := rand.Read(key); err != nil {
+		panic(err)
+	}
 
 	ciph, err := aes.NewCipher(key)
-	require.NoError(tb, err, "cannot create AES cipher block")
+	if err != nil {
+		panic(err)
+	}
 
-	database.GCM, err = cipher.NewGCM(ciph)
-	require.NoError(tb, err, "cannot initialize AES-GCM cipher")
+	gcm, err := cipher.NewGCM(ciph)
+	if err != nil {
+		panic(err)
+	}
+
+	return gcm
 }
-
-// FIXME: remove the global config var, it causes a race condition between tests
-// which use different databases. It requires the addition of this mutex to be
-// able to run tests concurrently.
-//
-//nolint:gochecknoglobals //required here to avoid race condition between tests
-var confLock sync.Mutex
 
 func TestDatabase(tb testing.TB) *database.DB {
 	tb.Helper()
 
-	confLock.Lock()
-	tb.Cleanup(confLock.Unlock)
-
 	const shutdownTimeout = 5 * time.Second
 
-	dbName := strings.ReplaceAll(tb.Name(), "/", "_")
+	// dbName := strings.ReplaceAll(tb.Name(), "/", "_")
+	dbName := filepath.Join(tb.TempDir(), "test.db")
 
-	conf.GlobalConfig.GatewayName = "gw-test"
-	conf.GlobalConfig.Database = conf.DatabaseConfig{
+	config := &conf.ServerConfig{}
+	config.GatewayName = "gw-test"
+	config.Database = conf.DatabaseConfig{
 		Type:    database.SQLite,
 		Address: dbName,
 	}
-	conf.GlobalConfig.Paths.FilePerms = 0o600
-	conf.GlobalConfig.Paths.DirPerms = 0o700
-
-	makeTestGCM(tb)
+	config.Paths.FilePerms = 0o600
+	config.Paths.DirPerms = 0o700
 
 	db := &database.DB{
 		Logger: logtest.GetTestLogger(tb, logtest.WithLevel("WARNING")),
+		Config: config,
 	}
+	db.ChangeAEAD(testAEAD)
 	require.NoError(tb, db.Start(), "cannot start database")
 
 	tb.Cleanup(func() {
@@ -113,11 +118,12 @@ func TestDatabase(tb testing.TB) *database.DB {
 	return db
 }
 
-func ChangeOwner(owner string, f func() error) error {
-	oldOwner := conf.GlobalConfig.GatewayName
-	conf.GlobalConfig.GatewayName = owner
+func InsertAsOwner(db *database.DB, owner string, obj database.InsertBean) error {
+	oldOwner := db.Config.GatewayName
+	db.Config.GatewayName = owner
 
-	defer func() { conf.GlobalConfig.GatewayName = oldOwner }()
+	defer func() { db.Config.GatewayName = oldOwner }()
 
-	return f()
+	//nolint:wrapcheck //wrapping adds nothing here
+	return db.Insert(obj).Run()
 }

@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/lib/pesit"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -105,7 +104,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 	}
 
 	// connect to partner
-	realAddr := conf.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
+	realAddr := c.pip.DB.Config.Overrides.GetRealAddress(c.pip.TransCtx.RemoteAgent.Address.Host,
 		utils.FormatUint(c.pip.TransCtx.RemoteAgent.Address.Port))
 
 	conn, connErr := c.dialer.Dial("tcp", realAddr)

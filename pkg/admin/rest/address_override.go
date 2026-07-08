@@ -5,19 +5,19 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
 type addrOverride struct{ target, real string }
 
-func getAddrOverride(r *http.Request) (*addrOverride, error) {
+func getAddrOverride(db *database.DB, r *http.Request) (*addrOverride, error) {
 	target, ok := mux.Vars(r)["address"]
 	if !ok {
 		return nil, notFound("missing target address")
 	}
 
-	realAddress := conf.GetIndirection(target)
+	realAddress := db.Config.Overrides.GetIndirection(target)
 	if realAddress == "" {
 		return nil, notFound("target address does not exist")
 	}
@@ -25,14 +25,14 @@ func getAddrOverride(r *http.Request) (*addrOverride, error) {
 	return &addrOverride{target: target, real: realAddress}, nil
 }
 
-func listAddressOverrides(logger *log.Logger) http.HandlerFunc {
+func listAddressOverrides(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
-		indirections := conf.GetAllIndirections()
+		indirections := db.Config.Overrides.GetAllIndirections()
 		handleError(w, logger, writeJSON(w, indirections))
 	}
 }
 
-func addAddressOverride(logger *log.Logger) http.HandlerFunc {
+func addAddressOverride(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		indirections := map[string]string{}
 		if err := readJSON(r, &indirections); handleError(w, logger, err) {
@@ -40,7 +40,7 @@ func addAddressOverride(logger *log.Logger) http.HandlerFunc {
 		}
 
 		for target, realAddr := range indirections {
-			if err := conf.AddIndirection(target, realAddr); handleError(w, logger, err) {
+			if err := db.Config.Overrides.AddIndirection(target, realAddr); handleError(w, logger, err) {
 				return
 			}
 		}
@@ -49,14 +49,14 @@ func addAddressOverride(logger *log.Logger) http.HandlerFunc {
 	}
 }
 
-func deleteAddressOverride(logger *log.Logger) http.HandlerFunc {
+func deleteAddressOverride(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		address, addrErr := getAddrOverride(r)
+		address, addrErr := getAddrOverride(db, r)
 		if handleError(w, logger, addrErr) {
 			return
 		}
 
-		if err := conf.RemoveIndirection(address.target); handleError(w, logger, err) {
+		if err := db.Config.Overrides.RemoveIndirection(address.target); handleError(w, logger, err) {
 			return
 		}
 

@@ -7,50 +7,33 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-// LocalOverrides is a global instance of configOverride containing the local
-// configuration overrides defined for this particular gateway node.
-//
-//nolint:gochecknoglobals //global var is required here for simplicity
-var LocalOverrides *configOverride
-
-// configOverride is a struct defining a list of settings local to a gateway instance
-// (or node) which can be used to configOverride settings defined at the cluster level.
-type configOverride struct {
+// ConfigOverride is a struct defining a list of settings local to a gateway instance
+// (or node) which can be used to override settings defined at the cluster level.
+type ConfigOverride struct {
 	overrideLock    sync.RWMutex
 	filename        string
 	ListenAddresses *addressOverride `group:"Address Indirection"`
 }
 
-// newOverride returns a new correctly initialized, instance of configOverride.
-func newOverride(filename string) *configOverride {
-	return &configOverride{
+// NewOverride returns a new correctly initialized, instance of ConfigOverride.
+func NewOverride(filename string) *ConfigOverride {
+	return &ConfigOverride{
 		filename:        filename,
 		ListenAddresses: &addressOverride{addressMap: map[string]string{}},
 	}
 }
 
-// InitTestOverrides is a test helper function to quickly initiate the
-// LocalOverrides global variable. This function should only be used in tests.
-func InitTestOverrides(c convey.C) {
-	ovrdFile := testhelpers.TempFile(c, "test_addr_override_*.ini")
-	LocalOverrides = newOverride(ovrdFile)
-	c.So(LocalOverrides.ListenAddresses.parse(), convey.ShouldBeNil)
+func (o *ConfigOverride) parse() error {
+	return o.ListenAddresses.Parse()
 }
 
-func (o *configOverride) parse() error {
-	return o.ListenAddresses.parse()
-}
-
-func (o *configOverride) writeFile() error {
-	file, err := os.OpenFile(o.filename, os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0o600)
-	if err != nil {
-		return fmt.Errorf("failed to open config override file: %w", err)
+func (o *ConfigOverride) writeFile() error {
+	file, fErr := os.OpenFile(o.filename, os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0o600)
+	if fErr != nil {
+		return fmt.Errorf("failed to open config override file: %w", fErr)
 	}
 
 	if err := o.writeTo(file); err != nil {
@@ -66,7 +49,7 @@ func (o *configOverride) writeFile() error {
 	return nil
 }
 
-func (o *configOverride) writeTo(w io.Writer) error {
+func (o *ConfigOverride) writeTo(w io.Writer) error {
 	parser, err := config.NewParser(o)
 	if err != nil {
 		return fmt.Errorf("failed to initialize the config parser: %w", err)
@@ -85,11 +68,11 @@ func CreateOverride(configFile, nodeID string) error {
 	}
 
 	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+iniExtension)
-	o := newOverride(overrideFile)
+	o := NewOverride(overrideFile)
 
-	p, err := config.NewParser(o)
-	if err != nil {
-		return fmt.Errorf("failed to initialize the config parser: %w", err)
+	p, pErr := config.NewParser(o)
+	if pErr != nil {
+		return fmt.Errorf("failed to initialize the config parser: %w", pErr)
 	}
 
 	if err := p.WriteFile(overrideFile); err != nil {
@@ -99,19 +82,20 @@ func CreateOverride(configFile, nodeID string) error {
 	return nil
 }
 
-func LoadOverride(configPath, nodeID string) (*configOverride, error) {
+func LoadOverride(configPath, nodeID string) (*ConfigOverride, error) {
 	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+iniExtension)
-	o := newOverride(overrideFile)
+	o := NewOverride(overrideFile)
 
-	p, err := config.NewParser(o)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize the config parser: %w", err)
+	p, pErr := config.NewParser(o)
+	if pErr != nil {
+		return nil, fmt.Errorf("failed to initialize the config parser: %w", pErr)
 	}
 
 	if err := p.ParseFile(overrideFile); err != nil {
 		return nil, fmt.Errorf("failed to parse the config override file: %w", err)
 	}
 
+	//nolint:gocritic //it's ok not to check the error before returning here
 	return o, o.parse()
 }
 
@@ -121,11 +105,11 @@ func UpdateOverride(configFile, nodeID string) error {
 	}
 
 	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+iniExtension)
-	o := newOverride(overrideFile)
+	o := NewOverride(overrideFile)
 
-	parser, err := config.NewParser(o)
-	if err != nil {
-		return fmt.Errorf("failed to initialize the config parser: %w", err)
+	parser, pErr := config.NewParser(o)
+	if pErr != nil {
+		return fmt.Errorf("failed to initialize the config parser: %w", pErr)
 	}
 
 	if err := parser.ParseFile(overrideFile); err != nil {

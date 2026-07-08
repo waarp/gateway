@@ -13,6 +13,8 @@ import (
 )
 
 func TestExportRules(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -54,6 +56,8 @@ func TestExportRules(t *testing.T) {
 }
 
 func TestExportRuleAccesses(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -141,6 +145,8 @@ func TestExportRuleAccesses(t *testing.T) {
 }
 
 func TestExportRuleTasks(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -206,7 +212,7 @@ func TestExportRuleTasks(t *testing.T) {
 
 					Convey("Then this result should correspond to the pre1 Task", func() {
 						So(res[0].Type, ShouldEqual, pre1.Type)
-						So(res[0].Args, ShouldResemble, pre1.Args)
+						So(res[0].Args, ShouldResemble, pre1.Args.Map())
 					})
 				})
 			})
@@ -223,9 +229,9 @@ func TestExportRuleTasks(t *testing.T) {
 
 					Convey("Then this result should correspond to the pre1 Task", func() {
 						So(res[0].Type, ShouldEqual, post1.Type)
-						So(res[0].Args, ShouldResemble, post1.Args)
+						So(res[0].Args, ShouldResemble, post1.Args.Map())
 						So(res[1].Type, ShouldEqual, post2.Type)
-						So(res[1].Args, ShouldResemble, post2.Args)
+						So(res[1].Args, ShouldResemble, post2.Args.Map())
 					})
 				})
 			})
@@ -254,7 +260,7 @@ func TestExportRuleTasks(t *testing.T) {
 
 					Convey("Then this result should correspond to the pre1 Task", func() {
 						So(res[0].Type, ShouldEqual, error1.Type)
-						So(res[0].Args, ShouldResemble, error1.Args)
+						So(res[0].Args, ShouldResemble, error1.Args.Map())
 					})
 				})
 			})

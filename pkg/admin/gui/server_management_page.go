@@ -78,7 +78,7 @@ func addServer(db *database.DB, r *http.Request) error {
 	return nil
 }
 
-func parseServerProtoConfig(r *http.Request, protocol string) model.ProtoConfigMap {
+func parseServerProtoConfig(r *http.Request, protocol string) model.Map[any] {
 	switch protocol {
 	case r66.R66, r66.R66TLS:
 		return protoConfigR66Server(r, protocol)
@@ -394,7 +394,7 @@ func switchServerStatus(db *database.DB, r *http.Request) error {
 	state, _ := internal.GetServerStatus(server)
 
 	if state == utils.StateOffline || state == utils.StateError {
-		if restartErr := internal.RestartServer(r.Context(), db, server); restartErr != nil {
+		if restartErr := internal.RestartServer(r.Context(), server); restartErr != nil {
 			return fmt.Errorf("failed to restart client: %w", restartErr)
 		}
 	}

@@ -22,11 +22,11 @@ const (
 )
 
 func (w *webdavFS) propfind(name string) (webdav.File, error) {
-	realPath, err := protoutils.GetRealPath(false, w.db, w.logger, w.server, w.account, name)
+	realPath, err := protoutils.GetRealPath(false, w.db, w.logger, w.account, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build the file path: %w", err)
 	} else if realPath == "" {
-		dir, err2 := protoutils.GetRuleDir(w.db, w.server, w.account, name)
+		dir, err2 := protoutils.GetRuleDir(w.db, w.account, name)
 		if err2 != nil {
 			return nil, fmt.Errorf("failed to get rule directory: %w", err2)
 		}

@@ -1,16 +1,9 @@
 package model
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
-	"math/big"
-	"strings"
 
-	"github.com/bwmarrin/snowflake"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 )
@@ -40,78 +33,6 @@ func getCredentials(db database.ReadAccess, owner authentication.Owner,
 
 	// TODO: get only validate certificates
 	return auths, nil
-}
-
-func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
-) (map[string]any, error) {
-	var infoList TransferInfoList
-	if err := db.Select(&infoList).Where(owner.getTransInfoCondition()).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve the transfer info list: %w", err)
-	}
-
-	infoMap := map[string]any{}
-
-	for _, info := range infoList {
-		decoder := json.NewDecoder(strings.NewReader(info.Value))
-		decoder.UseNumber()
-
-		var val any
-		if err := decoder.Decode(&val); err != nil {
-			return nil, database.NewValidationErrorf(`invalid transfer info value "%v": %w`, info.Value, err)
-		}
-
-		infoMap[info.Name] = val
-	}
-
-	return infoMap, nil
-}
-
-func setTransferInfo(db database.Access, owner transferInfoOwner, info map[string]any,
-) error {
-	//nolint:wrapcheck //wrapping this error would add nothing
-	return db.Transaction(func(ses *database.Session) error {
-		return doSetTransferInfo(ses, owner, info)
-	})
-}
-
-func doSetTransferInfo(ses *database.Session, owner transferInfoOwner, info map[string]any,
-) error {
-	if err := ses.DeleteAll(&TransferInfo{}).
-		Where(owner.getTransInfoCondition()).Run(); err != nil {
-		return fmt.Errorf("failed to delete transfer info: %w", err)
-	}
-
-	for name, val := range info {
-		str, err := json.Marshal(val)
-		if err != nil {
-			return database.NewValidationErrorf(`invalid transfer info value "%v": %w`, val, err)
-		}
-
-		i := &TransferInfo{Name: name, Value: string(str)}
-		owner.setTransInfoOwner(i)
-
-		if err2 := ses.Insert(i).Run(); err2 != nil {
-			return fmt.Errorf("failed to insert transfer info: %w", err2)
-		}
-	}
-
-	return nil
-}
-
-func makeIDGenerator() (*snowflake.Node, error) {
-	var nodeID, mod, machineID big.Int
-
-	nodeID.SetBytes([]byte(conf.GlobalConfig.GatewayName + conf.GlobalConfig.NodeID))
-	mod.SetInt64(math.MaxInt64)
-
-	machineID.Mod(&nodeID, &mod)
-
-	generator, err := snowflake.NewNode(machineID.Int64())
-	if err != nil {
-		return nil, fmt.Errorf("failed to create the ID generator: %w", err)
-	}
-
-	return generator, nil
 }
 
 func countTrue(b ...bool) int {

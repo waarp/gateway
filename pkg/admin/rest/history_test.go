@@ -15,7 +15,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -27,6 +26,8 @@ import (
 const historyURI = "http://localhost:8080/api/history"
 
 func TestGetHistory(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer history get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_get_test")
 		db := database.TestDatabase(c)
@@ -35,7 +36,7 @@ func TestGetHistory(t *testing.T) {
 
 		Convey("Given a database with 1 transfer history", func() {
 			h := &model.HistoryEntry{
-				ID:               1,
+				Identifier:       model.ID(1),
 				RemoteTransferID: "1234",
 				IsServer:         true,
 				IsSend:           false,
@@ -105,11 +106,11 @@ func TestGetHistory(t *testing.T) {
 			})
 
 			Convey("Given a database with an unown 1 transfer history ", func() {
-				gwname := conf.GlobalConfig.GatewayName
-				conf.GlobalConfig.GatewayName = "other"
+				gwname := db.Config.GatewayName
+				db.Config.GatewayName = "other"
 
 				h2 := &model.HistoryEntry{
-					ID:               2,
+					Identifier:       model.ID(2),
 					RemoteTransferID: "1235",
 					IsServer:         true,
 					IsSend:           false,
@@ -128,7 +129,7 @@ func TestGetHistory(t *testing.T) {
 				}
 				So(db.Insert(h2).Run(), ShouldBeNil)
 
-				conf.GlobalConfig.GatewayName = gwname
+				db.Config.GatewayName = gwname
 
 				id2 := utils.FormatInt(h2.ID)
 
@@ -154,6 +155,8 @@ func TestGetHistory(t *testing.T) {
 
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestListHistory(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer history list handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_get_test")
 		db := database.TestDatabase(c)
@@ -164,7 +167,7 @@ func TestListHistory(t *testing.T) {
 
 		Convey("Given a database with 4 transfer history", func() {
 			h1 := &model.HistoryEntry{
-				ID:               1,
+				Identifier:       model.ID(1),
 				RemoteTransferID: "1111",
 				IsServer:         true,
 				IsSend:           false,
@@ -183,7 +186,7 @@ func TestListHistory(t *testing.T) {
 			So(db.Insert(h1).Run(), ShouldBeNil)
 
 			h2 := &model.HistoryEntry{
-				ID:               2,
+				Identifier:       model.ID(2),
 				RemoteTransferID: "2222",
 				IsServer:         false,
 				IsSend:           false,
@@ -203,7 +206,7 @@ func TestListHistory(t *testing.T) {
 			So(db.Insert(h2).Run(), ShouldBeNil)
 
 			h3 := &model.HistoryEntry{
-				ID:               3,
+				Identifier:       model.ID(3),
 				RemoteTransferID: "3333",
 				IsServer:         false,
 				IsSend:           true,
@@ -223,7 +226,7 @@ func TestListHistory(t *testing.T) {
 			So(db.Insert(h3).Run(), ShouldBeNil)
 
 			h4 := &model.HistoryEntry{
-				ID:               4,
+				Identifier:       model.ID(4),
 				RemoteTransferID: "4444",
 				IsServer:         false,
 				IsSend:           true,
@@ -451,6 +454,8 @@ func TestListHistory(t *testing.T) {
 }
 
 func TestRestartHistory(t *testing.T) {
+	t.Parallel()
+
 	Convey("Testing the transfer restart handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_restart_test")
 		db := database.TestDatabase(c)
@@ -474,7 +479,7 @@ func TestRestartHistory(t *testing.T) {
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			pswd := &model.Credential{
-				RemoteAccountID: utils.NewNullInt64(account.ID),
+				RemoteAccountID: account.NullableID(),
 				Type:            auth.Password,
 				Value:           "titi",
 			}
@@ -484,7 +489,7 @@ func TestRestartHistory(t *testing.T) {
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			h := &model.HistoryEntry{
-				ID:               2,
+				Identifier:       model.ID(2),
 				RemoteTransferID: "1234",
 				IsServer:         false,
 				IsSend:           rule.IsSend,

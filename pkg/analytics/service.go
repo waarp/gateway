@@ -28,7 +28,7 @@ func (s *Service) Name() string { return ServiceName }
 
 func (s *Service) Start() error {
 	if s.state.IsRunning() {
-		return utils.ErrAlreadyRunning
+		return nil
 	}
 
 	if err := s.start(); err != nil {

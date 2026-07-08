@@ -1,28 +1,30 @@
 package model
 
 import (
-	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // RemoteAccount represents an account on a remote agent. It is used by the
 // gateway to authenticate on distant servers for transfers.
 type RemoteAccount struct {
-	ID            int64 `xorm:"<- id AUTOINCR"`  // The account's database ID
-	RemoteAgentID int64 `xorm:"remote_agent_id"` // The ID of the RemoteAgent this account is attached to
+	Identifier
+	RemoteAgentID int64 `gorm:"column:remote_agent_id"` // The ID of the RemoteAgent this account is attached to
 
-	Login string `xorm:"login"` // The account's login
+	Login string `gorm:"column:login"` // The account's login
 }
 
-func (*RemoteAccount) TableName() string          { return TableRemAccounts }
-func (*RemoteAccount) Appellation() string        { return NameRemoteAccount }
-func (r *RemoteAccount) GetID() int64             { return r.ID }
-func (r *RemoteAccount) GetNullID() sql.NullInt64 { return utils.NewNullInt64(r.ID) }
-func (r *RemoteAccount) Host() string             { return "" }
-func (*RemoteAccount) IsServer() bool             { return false }
+func newRemoteAccount(id int64) *RemoteAccount {
+	return &RemoteAccount{
+		Identifier: Identifier{ID: id},
+	}
+}
+
+func (*RemoteAccount) TableName() string   { return TableRemAccounts }
+func (*RemoteAccount) Appellation() string { return NameRemoteAccount }
+func (*RemoteAccount) Host() string        { return "" }
+func (*RemoteAccount) IsServer() bool      { return false }
 
 // BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
@@ -77,9 +79,9 @@ func (r *RemoteAccount) GetCredentials(db database.ReadAccess, authTypes ...stri
 
 //nolint:goconst //duplicates are for different tables, best not to factorize
 func (r *RemoteAccount) GetCredCond() (string, int64)         { return "remote_account_id=?", r.ID }
-func (r *RemoteAccount) SetCredOwner(a *Credential)           { a.RemoteAccountID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAccount) SetCredOwner(a *Credential)           { a.RemoteAccountID = r.NullableID() }
 func (r *RemoteAccount) GenAccessSelectCond() (string, int64) { return "remote_account_id=?", r.ID }
-func (r *RemoteAccount) SetAccessTarget(a *RuleAccess)        { a.RemoteAccountID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAccount) SetAccessTarget(a *RuleAccess)        { a.RemoteAccountID = r.NullableID() }
 
 func (r *RemoteAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
 	var rules Rules

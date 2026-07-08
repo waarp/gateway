@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func InsertNewTransfer(db *database.DB,
@@ -27,8 +26,8 @@ func InsertNewTransfer(db *database.DB,
 	trans := &model.Transfer{
 		SrcFilename:          srcFilename,
 		DestFilename:         dstFilename,
-		RemoteAccountID:      utils.NewNullInt64(account.ID),
-		ClientID:             utils.NewNullInt64(client.ID),
+		RemoteAccountID:      account.NullableID(),
+		ClientID:             client.NullableID(),
 		RuleID:               rule.ID,
 		Start:                date,
 		RemainingTries:       remainingTries,
@@ -57,7 +56,7 @@ func RegisterNewTransfer(db *database.DB,
 ) (*model.Transfer, error) {
 	trans := &model.Transfer{
 		Status:         types.StatusAvailable,
-		LocalAccountID: utils.NewNullInt64(account.ID),
+		LocalAccountID: account.NullableID(),
 		RuleID:         rule.ID,
 		Start:          dueDate,
 		TransferInfo:   transferInfos,

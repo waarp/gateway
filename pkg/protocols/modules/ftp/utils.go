@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Error) {
@@ -44,36 +45,25 @@ func getPortInRange(addr string, minPort, maxPort uint16) (uint16, *pipeline.Err
 		"could not find an available port in the range for active mode")
 }
 
-func deleteRemoteCtx(ctx context.Context, client *goftp.Client, path string, recursive bool) error {
-	result := make(chan error)
-	go func() {
-		defer close(result)
-		result <- deleteRemote(client, path, recursive)
-	}()
-
-	select {
-	case err := <-result:
-		return err
-	case <-ctx.Done():
-		return fmt.Errorf("request canceled: %w", ctx.Err())
-	}
-}
-
-func deleteRemote(client *goftp.Client, path string, recursive bool) error {
-	if !recursive {
+func deleteRemote(ctx context.Context, client *goftp.Client, path string) error {
+	return utils.RunWithCtx(ctx, func() error {
 		if err := client.Delete(path); err != nil {
 			return fmt.Errorf("failed to delete file %q: %w", path, err)
 		}
 
 		return nil
-	}
+	})
+}
 
-	info, err := client.Stat(path)
-	if err != nil {
-		return fmt.Errorf("failed to stat file %q: %w", path, err)
-	}
+func deleteAllRemote(ctx context.Context, client *goftp.Client, path string) error {
+	return utils.RunWithCtx(ctx, func() error {
+		info, err := client.Stat(path)
+		if err != nil {
+			return fmt.Errorf("failed to stat file %q: %w", path, err)
+		}
 
-	return deleteRemoteRec(client, info)
+		return deleteRemoteRec(client, info)
+	})
 }
 
 func deleteRemoteRec(client *goftp.Client, info fs.FileInfo) error {

@@ -11,9 +11,7 @@ import (
 	"golang.org/x/net/webdav"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -38,25 +36,38 @@ type server struct {
 	lock   webdav.LockSystem
 }
 
-func NewServer(db *database.DB, dbServer *model.LocalAgent) services.Server {
+func newServer(db *database.DB, dbServer *model.LocalAgent) *server {
 	return &server{db: db, agent: dbServer}
 }
 
 func (s *server) Name() string { return s.agent.Name }
 
-func (s *server) Start() error {
+func (s *server) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	s.logger.Error(err.Error())
+	s.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(s.agent.Name, err)
+}
+
+func (s *server) Start() (retErr error) {
 	if s.state.IsRunning() {
 		return utils.ErrAlreadyRunning
+	}
+
+	s.logger = logging.NewLogger(s.agent.Name)
+	defer s.reportError(retErr)
+
+	if err := s.db.Get(s.agent, "id=?", s.agent.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the WebDAV server: %w", err)
 	}
 
 	s.logger = logging.NewLogger(s.agent.Name)
 	s.logger.Info("Starting WebDAV server...")
 
 	if err := s.start(); err != nil {
-		s.logger.Errorf("Failed to start WebDAV service: %v", err)
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
-
 		return err
 	}
 
@@ -66,18 +77,15 @@ func (s *server) Start() error {
 	return nil
 }
 
-func (s *server) Stop(ctx context.Context) error {
+func (s *server) Stop(ctx context.Context) (retErr error) {
 	if !s.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
 	s.logger.Info("Shutting down WebDAV server")
+	defer s.reportError(retErr)
 
 	if err := s.stop(ctx); err != nil {
-		s.logger.Error(err.Error())
-		s.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(s.agent.Name, err)
-
 		return err
 	}
 
@@ -98,7 +106,7 @@ func (s *server) start() error {
 	}
 
 	s.lock = webdav.NewMemLS()
-	addr := conf.GetRealAddress(s.agent.Address.Host,
+	addr := s.db.Config.Overrides.GetRealAddress(s.agent.Address.Host,
 		utils.FormatUint(s.agent.Address.Port))
 
 	s.server = &http.Server{
@@ -187,10 +195,7 @@ func (s *server) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) listentTLS(l net.Listener) net.Listener {
-	tlsConfig := &tls.Config{
-		MinVersion:         s.conf.MinTLSVersion.TLS(),
-		GetConfigForClient: protoutils.GetServerTLSConfig(s.db, s.logger, s.agent, s.conf.MinTLSVersion),
-	}
+	tlsConfig := protoutils.GetServerTLSConfig(s.db, s.logger, s.agent.ID)
 
 	return tls.NewListener(l, tlsConfig)
 }

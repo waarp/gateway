@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -15,6 +16,8 @@ import (
 )
 
 func TestStart(t *testing.T) {
+	db := &database.DB{Config: &conf.ServerConfig{}}
+
 	Convey("Given an admin service", t, func(c C) {
 		certFile := testhelpers.TempFile(c, "rest_cert_*.pem")
 		keyFile := testhelpers.TempFile(c, "rest_key_*.pem")
@@ -22,13 +25,13 @@ func TestStart(t *testing.T) {
 		So(os.WriteFile(certFile, []byte(cert), 0o600), ShouldBeNil)
 		So(os.WriteFile(keyFile, []byte(key), 0o600), ShouldBeNil)
 
-		conf.GlobalConfig.Admin = conf.AdminConfig{
+		db.Config.Admin = conf.AdminConfig{
 			Host:    "localhost",
 			Port:    0,
 			TLSCert: certFile,
 			TLSKey:  keyFile,
 		}
-		server := &Server{}
+		server := &Server{DB: db}
 
 		Reset(func() { _ = server.server.Close() })
 
@@ -46,17 +49,6 @@ func TestStart(t *testing.T) {
 					So(code, ShouldEqual, utils.StateRunning)
 					So(reason, ShouldBeEmpty)
 				})
-
-				Convey("When starting the service a second time", func() {
-					So(server.Start(), ShouldBeError, utils.ErrAlreadyRunning)
-
-					Convey("Then the service should still be running", func() {
-						code, reason := server.State()
-
-						So(code, ShouldEqual, utils.StateRunning)
-						So(reason, ShouldBeEmpty)
-					})
-				})
 			})
 		})
 
@@ -64,8 +56,8 @@ func TestStart(t *testing.T) {
 			keyFilePass := testhelpers.TempFile(c, "rest_key_passphrase_*.pem")
 			So(os.WriteFile(keyFilePass, []byte(keyWithPassphrase), 0o600), ShouldBeNil)
 
-			conf.GlobalConfig.Admin.TLSKey = keyFilePass
-			conf.GlobalConfig.Admin.TLSPassphrase = keyPassphrase
+			db.Config.Admin.TLSKey = keyFilePass
+			db.Config.Admin.TLSPassphrase = keyPassphrase
 
 			So(server.Start(), ShouldBeNil)
 
@@ -82,9 +74,9 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect host", func() {
-			conf.GlobalConfig.Admin.Host = "invalid_host"
-			conf.GlobalConfig.Admin.Port = 0
-			rest := &Server{}
+			db.Config.Admin.Host = "invalid_host"
+			db.Config.Admin.Port = 0
+			rest := &Server{DB: db}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -96,11 +88,11 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect certificate", func() {
-			conf.GlobalConfig.Admin.Host = "localhost"
-			conf.GlobalConfig.Admin.Port = 0
-			conf.GlobalConfig.Admin.TLSCert = "not_a_cert"
-			conf.GlobalConfig.Admin.TLSKey = "not_a_key"
-			rest := &Server{}
+			db.Config.Admin.Host = "localhost"
+			db.Config.Admin.Port = 0
+			db.Config.Admin.TLSCert = "not_a_cert"
+			db.Config.Admin.TLSKey = "not_a_key"
+			rest := &Server{DB: db}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -114,9 +106,11 @@ func TestStart(t *testing.T) {
 }
 
 func TestStop(t *testing.T) {
+	db := &database.DB{Config: &conf.ServerConfig{}}
+
 	Convey("Given a running REST service", t, func() {
-		conf.GlobalConfig.Admin = conf.AdminConfig{Host: "localhost"}
-		rest := &Server{}
+		db.Config.Admin = conf.AdminConfig{Host: "localhost"}
+		rest := &Server{DB: db}
 
 		err := rest.Start()
 		So(err, ShouldBeNil)

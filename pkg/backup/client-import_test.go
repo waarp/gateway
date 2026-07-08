@@ -6,13 +6,14 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestImportClients(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -64,8 +65,8 @@ func TestImportClients(t *testing.T) {
 						dbClient := dbClients[2]
 
 						So(dbClient, ShouldResemble, &model.Client{
-							ID:                   3,
-							Owner:                conf.GlobalConfig.GatewayName,
+							Identifier:           model.ID(3),
+							Owner:                db.Config.GatewayName,
 							Name:                 newClient.Name,
 							Protocol:             newClient.Protocol,
 							LocalAddress:         mustAddr(newClient.LocalAddress),
@@ -79,7 +80,7 @@ func TestImportClients(t *testing.T) {
 
 					Convey("Then the existing client should have been updated", func() {
 						So(dbClients[0], ShouldResemble, &model.Client{
-							ID:           client.ID,
+							Identifier:   client.Identifier,
 							Owner:        client.Owner,
 							Name:         updatedClient.Name,
 							Protocol:     updatedClient.Protocol,

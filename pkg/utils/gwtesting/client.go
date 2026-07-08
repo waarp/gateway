@@ -17,7 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type TestClientCtx struct {
@@ -44,7 +43,7 @@ func NewTestClientCtx(tb testing.TB, protocol, partnerAddr string,
 		DB:   Database(tb),
 	}
 
-	conf.GlobalConfig.Paths = conf.PathsConfig{
+	ctx.DB.Config.Paths = conf.PathsConfig{
 		GatewayHome: ctx.Root,
 		FilePerms:   0o600,
 		DirPerms:    0o700,
@@ -93,7 +92,7 @@ func (ctx *TestClientCtx) AddPassword(tb testing.TB, pswd string) {
 	tb.Helper()
 
 	cred := &model.Credential{
-		RemoteAccountID: utils.NewNullInt64(ctx.Account.ID),
+		RemoteAccountID: ctx.Account.NullableID(),
 		Type:            auth.Password,
 		Value:           pswd,
 	}
@@ -104,7 +103,7 @@ func (ctx *TestClientCtx) AddCert(tb testing.TB, cert string) {
 	tb.Helper()
 
 	cred := &model.Credential{
-		RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+		RemoteAgentID: ctx.Partner.NullableID(),
 		Type:          auth.TLSTrustedCertificate,
 		Value:         cert,
 	}
@@ -115,7 +114,7 @@ func (ctx *TestClientCtx) AddClientCert(tb testing.TB, cert, key string) {
 	tb.Helper()
 
 	cred := &model.Credential{
-		RemoteAccountID: utils.NewNullInt64(ctx.Account.ID),
+		RemoteAccountID: ctx.Account.NullableID(),
 		Type:            auth.TLSCertificate,
 		Value:           cert,
 		Value2:          key,
@@ -130,8 +129,8 @@ func (ctx *TestClientCtx) makeTransfer(tb testing.TB, file string,
 
 	trans := &model.Transfer{
 		RuleID:          rule.ID,
-		ClientID:        utils.NewNullInt64(ctx.Client.ID),
-		RemoteAccountID: utils.NewNullInt64(ctx.Account.ID),
+		ClientID:        ctx.Client.NullableID(),
+		RemoteAccountID: ctx.Account.NullableID(),
 		SrcFilename:     file,
 	}
 	require.NoError(tb, ctx.DB.Insert(trans).Run())
@@ -139,7 +138,8 @@ func (ctx *TestClientCtx) makeTransfer(tb testing.TB, file string,
 	return trans
 }
 
-func (ctx *TestClientCtx) run(tb testing.TB, file string, rule *model.Rule) error {
+func (ctx *TestClientCtx) MakePipeline(tb testing.TB, file string, rule *model.Rule,
+) *pipeline.Pipeline {
 	tb.Helper()
 	trans := ctx.makeTransfer(tb, file, rule)
 
@@ -154,6 +154,13 @@ func (ctx *TestClientCtx) run(tb testing.TB, file string, rule *model.Rule) erro
 	pip, cErr := pipeline.NewClientPipeline(ctx.DB, logger, transCtx, nil)
 	requireNoError(tb, cErr)
 
+	return pip
+}
+
+func (ctx *TestClientCtx) run(tb testing.TB, file string, rule *model.Rule) error {
+	tb.Helper()
+
+	pip := ctx.MakePipeline(tb, file, rule)
 	transClient, tErr := ctx.Service.InitTransfer(pip)
 	requireNoError(tb, tErr)
 

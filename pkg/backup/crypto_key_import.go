@@ -13,7 +13,7 @@ func importCryptoKeys(logger *log.Logger, db database.Access, keys []*file.Crypt
 	reset bool,
 ) error {
 	if reset {
-		if err := db.DeleteAll(&model.CryptoKey{}).Owner().Run(); err != nil {
+		if err := db.DeleteAll(&model.CryptoKey{}).Run(); err != nil {
 			return fmt.Errorf("failed to purge cryptographic keys: %w", err)
 		}
 	}
@@ -24,7 +24,7 @@ func importCryptoKeys(logger *log.Logger, db database.Access, keys []*file.Crypt
 			isNew bool
 		)
 
-		if err := db.Get(&dbKey, "name=?", key.Name).Owner().Run(); database.IsNotFound(err) {
+		if err := db.Get(&dbKey, "name=?", key.Name).Run(); database.IsNotFound(err) {
 			isNew = true
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve crypto key %q: %w", key.Name, err)
@@ -32,7 +32,7 @@ func importCryptoKeys(logger *log.Logger, db database.Access, keys []*file.Crypt
 
 		dbKey.Name = key.Name
 		dbKey.Type = key.Type
-		dbKey.Key = database.SecretText(key.Key)
+		dbKey.Key = key.Key
 
 		var dbErr error
 

@@ -15,6 +15,12 @@ type UpdateQuery struct {
 	bean UpdateBean
 
 	cols []string
+	all  bool
+}
+
+func (u *UpdateQuery) All() *UpdateQuery {
+	u.all = true
+	return u
 }
 
 // Cols allows to specify the list of columns to update to perform a partial
@@ -27,24 +33,27 @@ func (u *UpdateQuery) Cols(columns ...string) *UpdateQuery {
 }
 
 func (u *UpdateQuery) run(ses *Session) error {
+	logger := ses.getLogger()
+	ses.addOwner(u.bean)
+	addOwnerCond(ses.session, u.all, u.bean, ses.getOwner())
+
 	if hook, ok := u.bean.(WriteHook); ok {
 		if err := hook.BeforeWrite(ses); err != nil {
-			ses.logger.Errorf("%s entry UPDATE validation failed: %v", u.bean.Appellation(), err)
+			logger.Errorf("%s entry UPDATE validation failed: %v", u.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry UPDATE validation failed: %w", u.bean.Appellation(), err)
 		}
 	}
 
-	query := ses.session.NoAutoCondition().Table(u.bean.TableName()).
-		Where("id=?", u.bean.GetID())
-	if len(u.cols) == 0 {
-		query = query.AllCols()
+	query := ses.session.Table(u.bean.TableName()).Where("id=?", u.bean.GetID())
+	if len(u.cols) != 0 {
+		query = query.Select(u.cols)
 	} else {
-		query = query.Cols(u.cols...)
+		query = query.Select("*") //nolint:unqueryvet // "*" is necessary here
 	}
 
-	if _, err := query.Update(u.bean); err != nil {
-		ses.logger.Errorf("Failed to update the %s entry n°%d: %v",
+	if err := query.Updates(u.bean).Error; err != nil {
+		logger.Errorf("Failed to update the %s entry n°%d: %v",
 			u.bean.Appellation(), u.bean.GetID(), err)
 
 		return NewInternalError(err)
@@ -52,7 +61,7 @@ func (u *UpdateQuery) run(ses *Session) error {
 
 	if callback, ok := u.bean.(UpdateCallback); ok {
 		if err := callback.AfterUpdate(ses); err != nil {
-			ses.logger.Errorf("%s entry UPDATE callback failed: %v", u.bean.Appellation(), err)
+			logger.Errorf("%s entry UPDATE callback failed: %v", u.bean.Appellation(), err)
 
 			return fmt.Errorf("%s entry UPDATE callback failed: %w", u.bean.Appellation(), err)
 		}

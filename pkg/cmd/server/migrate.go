@@ -77,7 +77,5 @@ func initMigration(configFile string, verbose []bool) (*conf.ServerConfig, *log.
 		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
-	conf.GlobalConfig = *config
-
 	return config, back.NewLogger("Migration"), nil
 }

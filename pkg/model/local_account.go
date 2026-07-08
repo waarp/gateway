@@ -1,31 +1,38 @@
 package model
 
 import (
-	"database/sql"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // LocalAccount represents an account on a local agent. It is used by remote
 // partners to authenticate on the gateway for transfers.
 type LocalAccount struct {
-	ID           int64 `xorm:"<- id AUTOINCR"` // The account's database ID.
-	LocalAgentID int64 `xorm:"local_agent_id"` // The ID of the LocalAgent this account is attached to.
+	Identifier
+	LocalAgentID int64 `gorm:"column:local_agent_id"` // The ID of the LocalAgent this account is attached to.
+	LocalAgent   LocalAgent
 
-	Login       string       `xorm:"login"`        // The account's login.
-	IPAddresses types.IPList `xorm:"ip_addresses"` // The account's allowed IP addresses.
+	Login       string       `gorm:"column:login"`        // The account's login.
+	IPAddresses types.IPList `gorm:"column:ip_addresses"` // The account's allowed IP addresses.
 }
 
-func (*LocalAccount) TableName() string          { return TableLocAccounts }
-func (*LocalAccount) Appellation() string        { return NameLocalAccount }
-func (l *LocalAccount) GetID() int64             { return l.ID }
-func (l *LocalAccount) GetNullID() sql.NullInt64 { return utils.NewNullInt64(l.ID) }
-func (l *LocalAccount) Host() string             { return "" }
-func (*LocalAccount) IsServer() bool             { return false }
+func newLocalAccount(id int64) *LocalAccount {
+	return &LocalAccount{
+		Identifier: Identifier{ID: id},
+	}
+}
+
+func (*LocalAccount) TableName() string   { return TableLocAccounts }
+func (*LocalAccount) Appellation() string { return NameLocalAccount }
+func (l *LocalAccount) Host() string      { return "" }
+func (*LocalAccount) IsServer() bool      { return false }
+
+func (*LocalAccount) Preloads() []string {
+	return []string{"LocalAgent"}
+}
 
 // GetCredentials fetch in the database then return the associated Credentials if they exist.
 func (l *LocalAccount) GetCredentials(db database.ReadAccess, authTypes ...string,
@@ -82,9 +89,9 @@ func (l *LocalAccount) BeforeDelete(db database.Access) error {
 
 //nolint:goconst //duplicates are for different tables, best not to factorize
 func (l *LocalAccount) GetCredCond() (string, int64)         { return "local_account_id=?", l.ID }
-func (l *LocalAccount) SetCredOwner(a *Credential)           { a.LocalAccountID = utils.NewNullInt64(l.ID) }
+func (l *LocalAccount) SetCredOwner(a *Credential)           { a.LocalAccountID = l.NullableID() }
 func (l *LocalAccount) GenAccessSelectCond() (string, int64) { return "local_account_id=?", l.ID }
-func (l *LocalAccount) SetAccessTarget(a *RuleAccess)        { a.LocalAccountID = utils.NewNullInt64(l.ID) }
+func (l *LocalAccount) SetAccessTarget(a *RuleAccess)        { a.LocalAccountID = l.NullableID() }
 
 func (l *LocalAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
 	var rules Rules
@@ -121,8 +128,7 @@ func (l *LocalAccount) GetProtocol(db database.ReadAccess) (string, error) {
 	return parent.Protocol, nil
 }
 
-func (l *LocalAccount) Authenticate(db database.ReadAccess, localAgent *LocalAgent,
-	authType string, value any,
+func (l *LocalAccount) Authenticate(db database.ReadAccess, authType string, value any,
 ) (*authentication.Result, error) {
-	return authenticate(db, l, authType, localAgent.Protocol, value)
+	return authenticate(db, l, authType, l.LocalAgent.Protocol, value)
 }

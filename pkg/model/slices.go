@@ -34,9 +34,16 @@ func (s Slice[T]) String() string {
 	return builder.String()
 }
 
+func (s Slice[T]) Preloads() []string {
+	if preloader, ok := any(*new(T)).(database.Preloader); ok {
+		return preloader.Preloads()
+	}
+
+	return nil
+}
+
 type (
 	Credentials         = Slice[*Credential]
-	TransferInfoList    = Slice[*TransferInfo]
 	HistoryEntries      = Slice[*HistoryEntry]
 	LocalAccounts       = Slice[*LocalAccount]
 	LocalAgents         = Slice[*LocalAgent]
@@ -55,4 +62,5 @@ type (
 	CryptoKeys          = Slice[*CryptoKey]
 	EmailTemplates      = Slice[*EmailTemplate]
 	SMTPCredentials     = Slice[*SMTPCredential]
+	FileWatchers        = Slice[*FileWatcher]
 )

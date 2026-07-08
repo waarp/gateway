@@ -8,10 +8,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestRuleTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a `rule` instance", t, func() {
 		rule := &Rule{}
 
@@ -26,6 +27,8 @@ func TestRuleTableName(t *testing.T) {
 }
 
 func TestRuleBeforeWrite(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -123,6 +126,8 @@ func TestRuleBeforeWrite(t *testing.T) {
 }
 
 func TestRuleBeforeDelete(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -148,10 +153,10 @@ func TestRuleBeforeDelete(t *testing.T) {
 			account := LocalAccount{LocalAgentID: server.ID, Login: "toto"}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
-			a1 := RuleAccess{RuleID: rule.ID, LocalAgentID: utils.NewNullInt64(server.ID)}
+			a1 := RuleAccess{RuleID: rule.ID, LocalAgentID: server.NullableID()}
 			So(db.Insert(&a1).Run(), ShouldBeNil)
 
-			a2 := RuleAccess{RuleID: rule.ID, LocalAccountID: utils.NewNullInt64(account.ID)}
+			a2 := RuleAccess{RuleID: rule.ID, LocalAccountID: account.NullableID()}
 			So(db.Insert(&a2).Run(), ShouldBeNil)
 
 			Convey("Given that the rule is unused", func() {
@@ -169,7 +174,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 			Convey("Given that the rule is used by a transfer", func() {
 				trans := Transfer{
 					RuleID:         rule.ID,
-					LocalAccountID: utils.NewNullInt64(account.ID),
+					LocalAccountID: account.NullableID(),
 					SrcFilename:    "file",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)

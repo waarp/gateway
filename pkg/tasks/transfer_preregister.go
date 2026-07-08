@@ -73,7 +73,7 @@ func (t *TransferPreregister) ValidateDB(db database.ReadAccess, params map[stri
 		return fmt.Errorf("failed to retrieve rule %q: %w", t.Rule, err)
 	}
 
-	if err := db.Get(&t.server, "name=?", t.Server).Owner().Run(); err != nil {
+	if err := db.Get(&t.server, "name=?", t.Server).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve server %q: %w", t.Server, err)
 	}
 
@@ -104,7 +104,7 @@ func (t *TransferPreregister) Run(_ context.Context, args map[string]string,
 	trans := &model.Transfer{
 		Status:         types.StatusAvailable,
 		RuleID:         t.rule.ID,
-		LocalAccountID: utils.NewNullInt64(t.account.ID),
+		LocalAccountID: t.account.NullableID(),
 		Start:          t.dueDate,
 		TransferInfo:   transferInfo,
 	}

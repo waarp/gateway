@@ -29,7 +29,7 @@ func TestPesitClientPause(t *testing.T) {
 	t.Run("Before data", func(t *testing.T) {
 		db := gwtesting.Database(t)
 		ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
-		cli := newClient(ctx.Client)
+		cli := newClient(db, ctx.Client)
 		require.NoError(t, cli.Start())
 
 		t.Run("Push", func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestPesitClientPause(t *testing.T) {
 	t.Run("After data", func(t *testing.T) {
 		db := gwtesting.Database(t)
 		ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
-		cli := newClient(ctx.Client)
+		cli := newClient(db, ctx.Client)
 		require.NoError(t, cli.Start())
 
 		t.Run("Push", func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestPesitClientPause(t *testing.T) {
 func TestPesitClientCancel(t *testing.T) {
 	db := gwtesting.Database(t)
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
-	cli := newClient(ctx.Client)
+	cli := newClient(db, ctx.Client)
 
 	require.NoError(t, cli.Start())
 
@@ -150,7 +150,7 @@ func TestPesitClientCancel(t *testing.T) {
 func TestClientPreConn(t *testing.T) {
 	db := gwtesting.Database(t)
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
-	cli := newClient(ctx.Client)
+	cli := newClient(db, ctx.Client)
 
 	require.NoError(t, cli.Start())
 

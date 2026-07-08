@@ -29,6 +29,7 @@ linters:
     - wsl_v5
     - gocyclo
     - gomodguard
+    - embeddedstructfieldcheck
 
   # All available settings of specific linters.
   settings:
@@ -632,9 +633,7 @@ linters:
       replace-local: false
       # List of allowed `replace` directives.
       # Default: []
-      replace-allow-list:
-        - xorm.io/xorm
-        - github.com/rclone/rclone
+      replace-allow-list: []
       # Allow to not explain why the version has been retracted in the `retract` directives.
       # Default: false
       retract-allow-no-explanation: false
@@ -2997,10 +2996,11 @@ linters:
 
       # Exclude 'mnd' from migration files (which use magic numbers for column
       # sizes). Also exclude 'dupl' as some migrations might look like each other,
-      # but should be kept separate.
+      # but should be kept separate. Exclude 'goconst' for the same reason.
       - linters:
           - mnd
           - dupl
+          - goconst
         path: pkg/database/migrations/[0-9]+\.[0-9]+\.[0-9]+\.go
 
       # Exclude 'gochecknoglobals' on the file defining the SNMP OIDs.

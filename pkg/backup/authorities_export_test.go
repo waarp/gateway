@@ -13,6 +13,8 @@ import (
 )
 
 func TestAuthoritiesExport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 

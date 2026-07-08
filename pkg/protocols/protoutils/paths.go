@@ -6,7 +6,6 @@ import (
 	"path"
 	"strings"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -22,7 +21,7 @@ var (
 // GetClosestRule returns the rule with the closest path to the given "rulePath".
 // The "isSendPriority" parameter is used to prioritize "send" rules over
 // "receive" rules, or vice-versa.
-func GetClosestRule(db database.ReadAccess, logger *log.Logger, server *model.LocalAgent,
+func GetClosestRule(db database.ReadAccess, logger *log.Logger,
 	acc *model.LocalAccount, rulePath string, isSendPriority bool,
 ) (*model.Rule, error) {
 	rulePath = strings.TrimPrefix(rulePath, "/")
@@ -40,7 +39,7 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger, server *model.Lo
 
 		if err2 := db.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err2 != nil {
 			if database.IsNotFound(err2) {
-				return GetClosestRule(db, logger, server, acc, path.Dir(rulePath), isSendPriority)
+				return GetClosestRule(db, logger, acc, path.Dir(rulePath), isSendPriority)
 			}
 
 			logger.Errorf("Failed to retrieve rule: %v", err2)
@@ -67,18 +66,19 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger, server *model.Lo
 // by first removing the rule's path, and then building the real path using the
 // given server & rule directories.
 func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
-	server *model.LocalAgent, acc *model.LocalAccount, filepath string,
+	acc *model.LocalAccount, filepath string,
 ) (string, error) {
 	filepath = strings.TrimPrefix(filepath, "/")
+	server := &acc.LocalAgent
 
-	rule, err := GetClosestRule(db, logger, server, acc, filepath, true)
+	rule, err := GetClosestRule(db, logger, acc, filepath, true)
 	if errors.Is(err, ErrRuleNotFound) {
 		return "", nil //nolint:nilnil //returning nil here makes more sense than using a sentinel error
 	} else if err != nil {
 		return "", err
 	}
 
-	confPaths := &conf.GlobalConfig.Paths
+	confPaths := &db.GetConfig().Paths
 	rest := strings.TrimPrefix(filepath, rule.Path)
 	rest = strings.TrimPrefix(rest, "/")
 
@@ -109,8 +109,7 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 	return realDir, nil
 }
 
-func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
-	acc *model.LocalAccount, dir string,
+func GetRulesPaths(db database.ReadAccess, acc *model.LocalAccount, dir string,
 ) (FakeDirInfos, error) {
 	dir = strings.TrimPrefix(dir, "/")
 
@@ -127,7 +126,7 @@ func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
 			OR 
 			( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )
 		)`,
-		dir+"%", acc.ID, serv.ID).OrderBy("path", true)
+		dir+"%", acc.ID, acc.LocalAgentID).OrderBy("path", true)
 
 	if err := query.Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve rule list: %w", err)
@@ -159,12 +158,11 @@ func GetRulesPaths(db database.ReadAccess, serv *model.LocalAgent,
 	return entries, nil
 }
 
-func GetRuleDir(db database.ReadAccess, serv *model.LocalAgent,
-	acc *model.LocalAccount, dir string,
+func GetRuleDir(db database.ReadAccess, acc *model.LocalAccount, dir string,
 ) (*FakeDir, error) {
 	dir = strings.TrimPrefix(dir, "/")
 
-	children, err := GetRulesPaths(db, serv, acc, dir)
+	children, err := GetRulesPaths(db, acc, dir)
 	if err != nil {
 		return nil, err
 	}

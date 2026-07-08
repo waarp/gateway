@@ -1,7 +1,7 @@
 Redémarrer un client
 ====================
 
-.. http:delete:: /api/clients/(string:client_name)/restart
+.. http:put:: /api/clients/(string:client_name)/restart
 
    Arrête et relance le client demandé.
 
@@ -18,7 +18,7 @@ Redémarrer un client
 
       .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/clients/sftp_client/restart HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/clients/sftp_client/restart HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**

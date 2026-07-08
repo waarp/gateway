@@ -9,7 +9,7 @@ import (
 // OutHistory is the JSON representation of a history entry in responses sent by
 // the REST interface.
 //
-// Deprecated: replaced by OutTransfer.
+// Replaced by OutTransfer.
 type OutHistory struct {
 	ID             int64                   `json:"id"`
 	RemoteID       string                  `json:"remoteID,omitempty"`

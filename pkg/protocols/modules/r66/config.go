@@ -7,9 +7,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-// serverConfig represents the configuration of a local R66 server.
-type serverConfig struct {
-	sharedServerConfig
+// ServerConfig represents the configuration of a local R66 server.
+type ServerConfig struct {
+	SharedServerConfig
 
 	// The server's password for server authentication.
 	//
@@ -22,17 +22,13 @@ type serverConfig struct {
 	IsTLS *bool `json:"isTLS,omitempty"`
 }
 
-func (c *serverConfig) ValidConf() error {
-	if err := encryptServerPassword(&c.ServerPassword); err != nil {
-		return err
-	}
-
+func (c *ServerConfig) ValidConf() error {
 	return c.ValidShared()
 }
 
 // PartnerConfig represents the configuration of a remote R66 partner.
 type PartnerConfig struct {
-	sharedPartnerConfig
+	SharedPartnerConfig
 
 	// The server's password for server authentication.
 	//
@@ -67,12 +63,12 @@ func (c *PartnerConfig) ValidConf() error {
 	return nil
 }
 
-// clientConfig represents the configuration of a local R66 client.
-type clientConfig struct {
-	sharedClientConfig
+// ClientConfig represents the configuration of a local R66 client.
+type ClientConfig struct {
+	SharedClientConfig
 }
 
 // ValidConf checks if the configuration is valid for an R66 client.
-func (c *clientConfig) ValidConf() error {
+func (c *ClientConfig) ValidConf() error {
 	return c.ValidShared()
 }

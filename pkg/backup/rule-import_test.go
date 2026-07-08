@@ -14,6 +14,8 @@ import (
 
 //nolint:maintidx //FIXME factorize the function if possible to improve maintainability
 func TestImportRules(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -303,6 +305,8 @@ func TestImportRules(t *testing.T) {
 }
 
 func TestImportRuleAccess(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -401,6 +405,8 @@ func TestImportRuleAccess(t *testing.T) {
 }
 
 func TestImportTasks(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -482,7 +488,7 @@ func TestImportTasks(t *testing.T) {
 						Convey("Then the data should correspond to the ones imported", func() {
 							for i := range dbTasks {
 								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
-								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
+								So(dbTasks[i].Args.Map(), ShouldResemble, tasks[i].Args)
 							}
 						})
 					})
@@ -504,7 +510,7 @@ func TestImportTasks(t *testing.T) {
 						Convey("Then the data should correspond to the ones imported", func() {
 							for i := range dbTasks {
 								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
-								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
+								So(dbTasks[i].Args.Map(), ShouldResemble, tasks[i].Args)
 							}
 						})
 					})
@@ -526,7 +532,7 @@ func TestImportTasks(t *testing.T) {
 						Convey("Then the data should correspond to the ones imported", func() {
 							for i := range dbTasks {
 								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
-								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
+								So(dbTasks[i].Args.Map(), ShouldResemble, tasks[i].Args)
 							}
 						})
 					})

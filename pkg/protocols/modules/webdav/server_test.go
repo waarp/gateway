@@ -17,8 +17,6 @@ import (
 )
 
 func TestServerPropfind(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, webdav.Webdav, nil)
 	ctx.AddPassword(t, password)
@@ -42,8 +40,6 @@ func TestServerPropfind(t *testing.T) {
 }
 
 func TestServerUpload(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, webdav.Webdav, nil)
 	ctx.AddPassword(t, password)
@@ -82,8 +78,6 @@ func TestServerUpload(t *testing.T) {
 }
 
 func TestServerDownload(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, webdav.Webdav, nil)
 	ctx.AddPassword(t, password)
@@ -119,8 +113,6 @@ func TestServerDownload(t *testing.T) {
 }
 
 func TestServerPreTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, webdav.Webdav, nil)
 	ctx.AddPassword(t, password)
@@ -146,8 +138,6 @@ func TestServerPreTaskError(t *testing.T) {
 }
 
 func TestServerPostTaskError(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, webdav.Webdav, nil)
 	ctx.AddPassword(t, password)
@@ -173,8 +163,6 @@ func TestServerPostTaskError(t *testing.T) {
 }
 
 func TestServerTLS(t *testing.T) {
-	t.Parallel()
-
 	// Setup DB
 	ctx := gwtesting.NewTestServerCtx(t, webdav.WebdavTLS, nil)
 	ctx.AddPassword(t, password)

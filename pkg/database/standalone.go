@@ -5,24 +5,13 @@ import (
 	"database/sql"
 	"time"
 
-	"xorm.io/xorm"
+	"gorm.io/gorm"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
-func (db *DB) newSession() *Session {
-	return &Session{
-		id:      time.Now().UnixNano(),
-		db:      db,
-		session: db.engine.NewSession(),
-		logger:  db.Logger,
-	}
-}
-
-// If a transaction takes more than this amount of time, print a warning message
-// with a stack trace (for debugging purposes), because transactions should not
-// take that long.
-const warnDuration = 10 * time.Second
+const warnDuration = 1000 * time.Second
 
 // TransactionFunc is the type representing a function meant to be executed inside
 // a transaction using the Standalone.Transaction method.
@@ -36,62 +25,43 @@ func (db *DB) Transaction(fun TransactionFunc) error {
 }
 
 func (db *DB) TransactionWithTimeout(dur time.Duration, fun TransactionFunc) error {
-	ses := db.newSession()
+	ctx, cancel := context.WithTimeout(db.engine.Statement.Context, dur)
+	defer cancel()
+	engine := db.engine.WithContext(ctx)
 
-	if err := ses.session.Begin(); err != nil {
-		db.Logger.Errorf("Failed to start transaction: %v", err)
+	err := engine.Transaction(func(tx *gorm.DB) error {
+		ses := &Session{db: db, session: tx}
+		return fun(ses)
+	})
 
-		return NewInternalError(err)
-	}
-
-	if dur > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), dur)
-		defer cancel()
-		ses.session.Context(ctx)
-	}
-
-	db.sessions.Store(ses.id, ses)
-	defer db.sessions.Delete(ses.id)
-
-	done := make(chan bool)
-
-	defer func() {
-		if err := ses.session.Close(); err != nil {
-			db.Logger.Warningf("an error occurred while closing the session: %v", err)
-		}
-
-		close(done)
-	}()
-
-	if err := fun(ses); err != nil {
-		db.Logger.Trace("Transaction failed, changes have been rolled back")
-
-		if rbErr := ses.session.Rollback(); rbErr != nil {
-			db.Logger.Warningf("an error occurred while rolling back the transaction: %v", rbErr)
-		}
-
+	switch {
+	case err == nil:
+		return nil
+	case isError[*NotFoundError](err),
+		isError[*ValidationError](err),
+		isError[*InternalError](err):
 		return err
-	}
-
-	if err := ses.session.Commit(); err != nil {
-		db.Logger.Errorf("Failed to commit changes: %v", err)
-
+	default:
 		return NewInternalError(err)
 	}
-
-	return nil
 }
 
-func (db *DB) getUnderlying() xorm.Interface {
-	return db.engine
-}
-
-// GetLogger returns the database logger instance.
-func (db *DB) GetLogger() *log.Logger {
+func (db *DB) getOwner() string        { return db.Config.GatewayName }
+func (db *DB) getUnderlying() *gorm.DB { return db.engine }
+func (db *DB) getLogger() *log.Logger {
 	return db.Logger
 }
 
-func (db *DB) AsDB() *DB { return db }
+func (db *DB) AsDB() *DB                     { return db }
+func (db *DB) GetConfig() *conf.ServerConfig { return db.Config }
+
+func (db *DB) Encrypt(plain string) (string, error) {
+	return AESEncrypt(db.AEAD, plain)
+}
+
+func (db *DB) Decrypt(cipher string) (string, error) {
+	return AESDecrypt(db.AEAD, cipher)
+}
 
 // Iterate starts building a SQL 'SELECT' query to retrieve entries of the given
 // model from the database. The request can be narrowed using the IterateQuery
@@ -178,7 +148,7 @@ func (db *DB) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with extreme caution.
 func (db *DB) Exec(query string, args ...any) error {
-	return exec(db.engine.NewSession(), db.Logger, query, args...)
+	return db.engine.Exec(query, args...).Error
 }
 
 // QueryRow returns a single row from the database, which can then be scanned.
@@ -186,5 +156,5 @@ func (db *DB) Exec(query string, args ...any) error {
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with caution.
 func (db *DB) QueryRow(query string, args ...any) *sql.Row {
-	return db.engine.DB().DB.QueryRow(query, args...)
+	return db.engine.ConnPool.QueryRowContext(context.Background(), query, args...)
 }

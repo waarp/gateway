@@ -45,21 +45,6 @@ func hashServerPassword(field *string) error {
 	return nil
 }
 
-func encryptServerPassword(field *string) error {
-	if field == nil || *field == "" {
-		return nil
-	}
-
-	pwd, err := utils.AESCrypt(database.GCM, *field)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt server password: %w", err)
-	}
-
-	*field = pwd
-
-	return nil
-}
-
 func trimRequestPath(filename string) string {
 	filename = strings.ReplaceAll(filename, `\`, `/`)
 

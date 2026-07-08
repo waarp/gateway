@@ -21,7 +21,7 @@ func makePGPSignEncryptor(eCryptoKey, sCryptoKey *model.CryptoKey) (encryptSignF
 		return nil, ErrSignNotPGPKey
 	}
 
-	encryptKey, parsErr := pgp.NewKeyFromArmored(eCryptoKey.Key.String())
+	encryptKey, parsErr := pgp.NewKeyFromArmored(eCryptoKey.Key)
 	if parsErr != nil {
 		return nil, fmt.Errorf("failed to parse PGP encryption key: %w", parsErr)
 	}
@@ -32,7 +32,7 @@ func makePGPSignEncryptor(eCryptoKey, sCryptoKey *model.CryptoKey) (encryptSignF
 		}
 	}
 
-	signKey, parsErr := pgp.NewKeyFromArmored(sCryptoKey.Key.String())
+	signKey, parsErr := pgp.NewKeyFromArmored(sCryptoKey.Key)
 	if parsErr != nil {
 		return nil, fmt.Errorf("failed to parse PGP signing key: %w", parsErr)
 	}

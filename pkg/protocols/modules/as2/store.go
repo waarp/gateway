@@ -62,9 +62,8 @@ func (p *partnerStore) getByAS2From(as2From string) (*as2.Partner, error) {
 }
 
 func (p *partnerStore) getAccount(login string) (*model.LocalAccount, error) {
-	var acc model.LocalAccount
-	if err := p.db.Get(&acc, "login=?", login).And("local_agent_id=?", p.agent.ID).
-		Run(); database.IsNotFound(err) {
+	acc, err := p.agent.GetAccount(p.db, login)
+	if database.IsNotFound(err) {
 		return nil, ErrPartnerNotFound
 	} else if err != nil {
 		p.logger.Errorf("Failed to retrieve the local account %q: %v", login, err)
@@ -72,7 +71,7 @@ func (p *partnerStore) getAccount(login string) (*model.LocalAccount, error) {
 		return nil, ErrDatabase
 	}
 
-	return &acc, nil
+	return acc, nil
 }
 
 func (p *partnerStore) List(ctx context.Context) ([]*as2.Partner, error) {
@@ -108,7 +107,7 @@ type certValidator struct {
 }
 
 func (v *certValidator) Validate(cert, issuer *x509.Certificate) error {
-	res, err := v.acc.Authenticate(v.db, v.agent, auth.TLSTrustedCertificate,
+	res, err := v.acc.Authenticate(v.db, auth.TLSTrustedCertificate,
 		[]*x509.Certificate{cert, issuer})
 	if err != nil {
 		v.logger.Errorf("Failed to authenticate account %q with TLS: %v", v.acc.Login, err)

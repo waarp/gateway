@@ -12,7 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -23,6 +22,8 @@ import (
 )
 
 func TestImportLocalAgents(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -37,12 +38,7 @@ func TestImportLocalAgents(t *testing.T) {
 				Name: agent.Name, Protocol: testProtocol,
 				Address: types.Addr("localhost", 9999),
 			}
-			owner := conf.GlobalConfig.GatewayName
-			conf.GlobalConfig.GatewayName = "toto"
-
-			So(db.Insert(agent2).Run(), ShouldBeNil)
-
-			conf.GlobalConfig.GatewayName = owner
+			So(dbtest.InsertAsOwner(db, "toto", agent2), ShouldBeNil)
 
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -75,9 +71,7 @@ func TestImportLocalAgents(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					var dbAgents model.LocalAgents
-					So(db.Select(&dbAgents).Where("owner=?", conf.GlobalConfig.GatewayName).
-						OrderBy("id", true).Run(),
-						ShouldBeNil)
+					So(db.Select(&dbAgents).OrderBy("id", true).Run(), ShouldBeNil)
 					So(dbAgents, ShouldHaveLength, 3)
 
 					Convey("Then the new agent should have been imported", func() {
@@ -109,9 +103,7 @@ func TestImportLocalAgents(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					var dbAgents model.LocalAgents
-					So(db.Select(&dbAgents).Where("owner=?", conf.GlobalConfig.GatewayName).
-						OrderBy("id", true).Run(),
-						ShouldBeNil)
+					So(db.Select(&dbAgents).OrderBy("id", true).Run(), ShouldBeNil)
 					So(dbAgents, ShouldHaveLength, 1)
 
 					Convey("Then only the imported agent should be left", func() {
@@ -158,7 +150,7 @@ func TestImportLocalAgents(t *testing.T) {
 
 					Convey("Then the database should contain the local agents", func() {
 						var dbAgents model.LocalAgents
-						So(db.Select(&dbAgents).OrderBy("id", true).Run(), ShouldBeNil)
+						So(db.Select(&dbAgents).OrderBy("id", true).All().Run(), ShouldBeNil)
 						So(dbAgents, ShouldHaveLength, 3)
 
 						dbAgent := dbAgents[1]
@@ -193,6 +185,8 @@ func TestImportLocalAgents(t *testing.T) {
 }
 
 func TestImportLocalAccounts(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -210,7 +204,7 @@ func TestImportLocalAccounts(t *testing.T) {
 			So(db.Insert(dbAccount).Run(), ShouldBeNil)
 
 			accPswd := &model.Credential{
-				LocalAccountID: utils.NewNullInt64(dbAccount.ID),
+				LocalAccountID: dbAccount.NullableID(),
 				Type:           auth.Password,
 				Value:          "bar",
 			}
@@ -352,6 +346,8 @@ func TestImportLocalAccounts(t *testing.T) {
 }
 
 func TestR66PasswordImport(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	authentication.AddInternalCredentialTypeForProtocol(auth.Password, r66TLS, &r66auth.BcryptAuthHandler{})

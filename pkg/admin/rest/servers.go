@@ -3,20 +3,16 @@ package rest
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 )
-
-const serviceShutdownTimeout = 5 * time.Second
 
 //nolint:dupl //duplicate is for a completely different type (users), keep separate
 func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
@@ -26,13 +22,21 @@ func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	}
 
 	var serv model.LocalAgent
-	if err := db.Get(&serv, "name=? AND owner=?", serverName, conf.GlobalConfig.GatewayName).
-		Run(); err != nil {
+	if err := db.Get(&serv, "name=?", serverName).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("server %q not found", serverName)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve server %q: %w", serverName, err)
+	}
+
+	if !services.Servers.Exists(serv) {
+		service, err := protocols.MakeServer(db, &serv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make server service %q: %w", serverName, err)
+		}
+
+		services.Servers.Add(&serv, service)
 	}
 
 	return &serv, nil
@@ -54,8 +58,8 @@ func getServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl,goconst //duplicate is for a different type, keep separate
 func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	//nolint:goconst //too specific, keep separate
 	validSorting := orders{
 		"default": order{"name", true},
 		"proto+":  order{"protocol", true},
@@ -71,8 +75,6 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if handleError(w, logger, parseErr) {
 			return
 		}
-
-		query.Where("owner=?", conf.GlobalConfig.GatewayName)
 
 		if err := parseProtoParam(r, query); handleError(w, logger, err) {
 			return
@@ -128,7 +130,8 @@ func doUpdateServer(logger *log.Logger, db *database.DB, w http.ResponseWriter,
 		return
 	}
 
-	if err := services.Servers.Stop(r.Context(), oldServer, false); handleError(w, logger, err) {
+	stopped, stopErr := services.Servers.Stop(r.Context(), oldServer)
+	if handleError(w, logger, stopErr) {
 		return
 	}
 
@@ -148,13 +151,10 @@ func doUpdateServer(logger *log.Logger, db *database.DB, w http.ResponseWriter,
 		return
 	}
 
-	newService, srvErr := protocols.MakeServer(db, dbServer)
-	if handleError(w, logger, srvErr) {
-		return
-	}
-
-	if err := services.Servers.Restart(r.Context(), dbServer, newService); handleError(w, logger, err) {
-		return
+	if stopped {
+		if _, err := services.Servers.Start(dbServer); handleError(w, logger, err) {
+			return
+		}
 	}
 
 	w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
@@ -194,7 +194,7 @@ func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := services.Servers.Stop(r.Context(), dbServer, true); handleError(w, logger, err) {
+		if err := services.Servers.Remove(r.Context(), dbServer); handleError(w, logger, err) {
 			return
 		}
 
@@ -380,7 +380,7 @@ func stopServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := services.Servers.Stop(r.Context(), dbServer, false); handleError(w, logger, err) {
+		if _, err := services.Servers.Stop(r.Context(), dbServer); handleError(w, logger, err) {
 			return
 		}
 
@@ -388,20 +388,8 @@ func stopServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl //duplicate is for clients, best keep separate
 func startServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		dbServer, getErr := getDBServer(r, db)
-		if handleError(w, logger, getErr) {
-			return
-		}
-
-		if err := services.Servers.Start(dbServer); handleError(w, logger, err) {
-			return
-		}
-
-		w.WriteHeader(http.StatusAccepted)
-	}
+	return restartServer(logger, db)
 }
 
 func restartServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -411,13 +399,7 @@ func restartServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		newService, srvErr := protocols.MakeServer(db, dbServer)
-		if handleError(w, logger, srvErr) {
-			return
-		}
-
-		if err := services.Servers.Restart(r.Context(), dbServer,
-			newService); handleError(w, logger, err) {
+		if err := services.Servers.Restart(r.Context(), dbServer); handleError(w, logger, err) {
 			return
 		}
 

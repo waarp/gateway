@@ -48,4 +48,6 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    authorities/index
    snmp/index
    keys/index
+   filewatchers/index
+   email/index
 

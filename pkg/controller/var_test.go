@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"path"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -53,7 +54,7 @@ func initTestDB(c C, rootPath string) *testContext {
 		FilePerms:     0o600,
 		DirPerms:      0o700,
 	}
-	conf.GlobalConfig.Paths = paths
+	db.Config.Paths = paths
 
 	So(fs.MkdirAll(path.Join(rootPath, paths.DefaultInDir)), ShouldBeNil)
 	So(fs.MkdirAll(path.Join(rootPath, paths.DefaultOutDir)), ShouldBeNil)
@@ -115,7 +116,7 @@ func initTestDB(c C, rootPath string) *testContext {
 	So(cliService.Start(), ShouldBeNil)
 
 	services.Clients.Add(client, cliService)
-	Reset(func() { services.Clients.Remove(client) })
+	Reset(func() { services.Clients.Remove(context.Background(), client) })
 
 	return &testContext{
 		root:          rootPath,

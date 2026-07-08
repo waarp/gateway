@@ -5,11 +5,13 @@ package protocolstest
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 )
 
 type TestModule struct{}
 
+func (t TestModule) OptionalFeatures() []features.Feature         { return []features.Feature{} }
 func (t TestModule) CanMakeTransfer(*model.TransferContext) error { return nil }
 func (t TestModule) CheckServerConfig(map[string]any) error       { return nil }
 func (t TestModule) CheckClientConfig(map[string]any) error       { return nil }

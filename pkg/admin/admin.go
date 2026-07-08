@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -65,9 +64,9 @@ func (s *Server) listen() error {
 }
 
 func (s *Server) makeTLSConfig() (*tls.Config, error) {
-	certFile := conf.GlobalConfig.Admin.TLSCert
-	keyFile := conf.GlobalConfig.Admin.TLSKey
-	passphrase := conf.GlobalConfig.Admin.TLSPassphrase
+	certFile := s.DB.Config.Admin.TLSCert
+	keyFile := s.DB.Config.Admin.TLSKey
+	passphrase := s.DB.Config.Admin.TLSPassphrase
 
 	if keyFile == "" {
 		return nil, ErrMissingKeyFile
@@ -129,12 +128,13 @@ func (s *Server) makeTLSConfig() (*tls.Config, error) {
 // If the configuration is invalid, this function returns an error.
 func initServer(serv *Server) error {
 	// Load REST s address
-	config := &conf.GlobalConfig.Admin
-	addr := conf.GetRealAddress(config.Host, utils.FormatUint(config.Port))
+	config := &serv.DB.Config.Admin
+	overrides := serv.DB.Config.Overrides
+	addr := overrides.GetRealAddress(config.Host, utils.FormatUint(config.Port))
 
 	var tlsConfig *tls.Config
 
-	if conf.GlobalConfig.Admin.TLSCert != "" {
+	if serv.DB.Config.Admin.TLSCert != "" {
 		var err error
 		if tlsConfig, err = serv.makeTLSConfig(); err != nil {
 			serv.logger.Errorf("Failed to make TLS configuration: %v", err)
@@ -163,7 +163,7 @@ func initServer(serv *Server) error {
 // the function returns an error.
 func (s *Server) Start() error {
 	if s.state.IsRunning() {
-		return utils.ErrAlreadyRunning
+		return nil
 	}
 
 	s.logger = logging.NewLogger(ServiceName)

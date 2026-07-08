@@ -73,7 +73,7 @@ func (c *Controller) retrieveServerTransfers() (model.Transfers, error) {
 			return nil // cannot start more transfers, limit has been reached
 		}
 
-		query := ses.SelectForUpdate(&transfers).Owner().
+		query := ses.SelectForUpdate(&transfers).
 			In("status", types.StatusAvailable).
 			Where("local_account_id IS NOT NULL").
 			Where("start <= ?", time.Now().UTC())
@@ -114,7 +114,7 @@ func (c *Controller) retrieveClientTransfers() (model.Transfers, error) {
 			return nil // cannot start more transfers, limit has been reached
 		}
 
-		query := ses.SelectForUpdate(&transfers).Owner().
+		query := ses.SelectForUpdate(&transfers).Eager().
 			In("status", types.StatusPlanned, types.StatusInterrupted, types.StatusError).
 			Where("remote_account_id IS NOT NULL").
 			Where("next_retry <= ?", time.Now().UTC())

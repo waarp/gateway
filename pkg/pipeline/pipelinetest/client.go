@@ -1,6 +1,7 @@
 package pipelinetest
 
 import (
+	"context"
 	"path"
 	"sync/atomic"
 	"time"
@@ -53,7 +54,7 @@ func initClient(c convey.C, proto string, clientConf, partConf any,
 	services.Clients.Add(cli, client)
 
 	c.Reset(func() {
-		services.Clients.Remove(cli)
+		c.So(services.Clients.Remove(context.Background(), cli), convey.ShouldBeNil)
 	})
 
 	return &ClientContext{
@@ -173,7 +174,7 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string, clie
 	c.So(db.Insert(remAccount).Run(), convey.ShouldBeNil)
 
 	accPwd := &model.Credential{
-		RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+		RemoteAccountID: remAccount.NullableID(),
 		Type:            auth.Password,
 		Value:           TestPassword,
 	}
@@ -189,8 +190,8 @@ func (cc *ClientContext) addPushTransfer(c convey.C) {
 
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,
-		ClientID:        utils.NewNullInt64(cc.Client.ID),
-		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
+		ClientID:        cc.Client.NullableID(),
+		RemoteAccountID: cc.RemAccount.NullableID(),
 		SrcFilename:     "self_transfer_push",
 		Start:           time.Now(),
 	}
@@ -205,8 +206,8 @@ func (cc *ClientContext) addPullTransfer(c convey.C, cont []byte) {
 
 	trans := &model.Transfer{
 		RuleID:          cc.ClientRule.ID,
-		ClientID:        utils.NewNullInt64(cc.Client.ID),
-		RemoteAccountID: utils.NewNullInt64(cc.RemAccount.ID),
+		ClientID:        cc.Client.NullableID(),
+		RemoteAccountID: cc.RemAccount.NullableID(),
 		SrcFilename:     "self_transfer_pull",
 		Filesize:        model.UnknownSize,
 		Start:           time.Now(),
@@ -233,7 +234,7 @@ func (cc *ClientContext) RunTransfer(c convey.C) {
 func (cc *ClientContext) CheckTransferOK(c convey.C) {
 	var actual model.HistoryEntry
 
-	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Run(), convey.ShouldBeNil)
+	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Eager().Run(), convey.ShouldBeNil)
 	cc.checkClientTransferOK(c, cc.transData, &actual)
 }
 

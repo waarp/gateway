@@ -111,7 +111,7 @@ func Execute(config *conf.DatabaseConfig, logger *log.Logger, targetVersion stri
 		return errUnknownDialect(config.Type)
 	}
 
-	db, err := sql.Open(dbInfo.driver, dbInfo.makeDSN())
+	db, err := sql.Open(dbInfo.driver, dbInfo.makeDSN(config))
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}

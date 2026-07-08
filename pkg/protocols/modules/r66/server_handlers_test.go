@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -38,12 +37,13 @@ func TestValidAuth(t *testing.T) {
 
 		toto := &model.LocalAccount{
 			LocalAgentID: r66Server.ID,
+			LocalAgent:   *r66Server,
 			Login:        "toto",
 		}
 		So(db.Insert(toto).Run(), ShouldBeNil)
 
 		totoPswd := &model.Credential{
-			LocalAccountID: utils.NewNullInt64(toto.ID),
+			LocalAccountID: toto.NullableID(),
 			Type:           auth.Password,
 			Value:          "sesame",
 		}
@@ -52,8 +52,8 @@ func TestValidAuth(t *testing.T) {
 		handler := &authHandler{service: &service{
 			db:      db,
 			logger:  logger,
-			agent:   r66Server,
-			r66Conf: &tlsServerConfig{},
+			dbAgent: r66Server,
+			r66Conf: &ServerConfigTLS{},
 		}}
 
 		Convey("Given an authentication packet", func() {
@@ -153,7 +153,7 @@ func TestValidRequest(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:     "r66 server",
 			Protocol: R66,
-			ProtoConfig: model.ProtoConfigMap{
+			ProtoConfig: model.Map[any]{
 				"blockSize":      json.Number("512"),
 				"serverPassword": "c2VzYW1l",
 			},
@@ -177,9 +177,9 @@ func TestValidRequest(t *testing.T) {
 
 		ses := sessionHandler{
 			authHandler: &authHandler{service: &service{
-				db:     db,
-				logger: logger,
-				agent:  server,
+				db:      db,
+				logger:  logger,
+				dbAgent: server,
 			}},
 			account: account,
 			conf: &r66.Authent{
@@ -280,7 +280,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 	Convey("Given an R66 transfer handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_valid_request")
 		db := database.TestDatabase(c)
-		conf.GlobalConfig.Paths.GatewayHome = root
+		db.Config.Paths.GatewayHome = root
 
 		send := &model.Rule{Name: "send", IsSend: true, LocalDir: "send_dir"}
 		So(db.Insert(send).Run(), ShouldBeNil)
@@ -307,7 +307,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 		So(db.Insert(account).Run(), ShouldBeNil)
 
 		accPswd := &model.Credential{
-			LocalAccountID: utils.NewNullInt64(account.ID),
+			LocalAccountID: account.NullableID(),
 			Type:           auth.Password,
 			Value:          "sesame",
 		}
@@ -317,7 +317,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			trans := &model.Transfer{
 				RemoteTransferID: "1",
 				RuleID:           recv.ID,
-				LocalAccountID:   utils.NewNullInt64(account.ID),
+				LocalAccountID:   account.NullableID(),
 				DestFilename:     "old.file",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
@@ -332,9 +332,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{service: &service{
-						db:     db,
-						logger: logger,
-						agent:  server,
+						db:      db,
+						logger:  logger,
+						dbAgent: server,
 					}},
 				},
 				trans:  &serverTransfer{pip: pip, ctx: ctx},
@@ -366,7 +366,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			trans := &model.Transfer{
 				RemoteTransferID: "1",
 				RuleID:           send.ID,
-				LocalAccountID:   utils.NewNullInt64(account.ID),
+				LocalAccountID:   account.NullableID(),
 				SrcFilename:      "new.file",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
@@ -387,9 +387,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{
 						service: &service{
-							db:     db,
-							logger: logger,
-							agent:  server,
+							db:      db,
+							logger:  logger,
+							dbAgent: server,
 						},
 					},
 				},

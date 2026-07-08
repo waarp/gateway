@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -29,37 +28,37 @@ func getExecTransCtx(tb testing.TB) *model.TransferContext {
 	}
 
 	rule := &model.Rule{
-		ID:     1,
-		Name:   "push",
-		IsSend: true,
+		Identifier: model.ID(1),
+		Name:       "push",
+		IsSend:     true,
 	}
 
 	client := &model.Client{
-		ID:           20,
+		Identifier:   model.ID(20),
 		Name:         "test_client",
 		Protocol:     "test_protocol",
 		LocalAddress: types.Addr("localhost", 9876),
 	}
 
 	partner := &model.RemoteAgent{
-		ID:       10,
-		Name:     "test_partner",
-		Protocol: "test_protocol",
-		Address:  types.Addr("localhost", 1234),
+		Identifier: model.ID(10),
+		Name:       "test_partner",
+		Protocol:   "test_protocol",
+		Address:    types.Addr("localhost", 1234),
 	}
 
 	account := &model.RemoteAccount{
-		ID:            100,
+		Identifier:    model.ID(100),
 		RemoteAgentID: partner.ID,
 		Login:         "test_login",
 	}
 
 	transfer := &model.Transfer{
-		ID:               1000,
+		Identifier:       model.ID(1000),
 		RemoteTransferID: "abcd",
 		RuleID:           rule.ID,
-		ClientID:         utils.NewNullInt64(client.ID),
-		RemoteAccountID:  utils.NewNullInt64(account.ID),
+		ClientID:         client.NullableID(),
+		RemoteAccountID:  account.NullableID(),
 		SrcFilename:      "test.src",
 		DestFilename:     "test.dst",
 		LocalPath:        path.Join(paths.GatewayHome, paths.DefaultOutDir, "test.src"),

@@ -13,7 +13,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocolstest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const testProtocol = "test_proto"
@@ -28,7 +27,7 @@ func TestPurgeCommand(t *testing.T) {
 		db := database.TestDatabase(c)
 
 		t0 := &model.HistoryEntry{
-			ID:               1,
+			Identifier:       model.ID(1),
 			RemoteTransferID: "000",
 			Rule:             "foobar",
 			Client:           "cli",
@@ -43,7 +42,7 @@ func TestPurgeCommand(t *testing.T) {
 		So(db.Insert(t0).Run(), ShouldBeNil)
 
 		t2 := &model.HistoryEntry{
-			ID:               2,
+			Identifier:       model.ID(2),
 			RemoteTransferID: "123",
 			Rule:             "foobar",
 			Client:           "cli",
@@ -59,7 +58,7 @@ func TestPurgeCommand(t *testing.T) {
 		So(db.Insert(t2).Run(), ShouldBeNil)
 
 		t3 := &model.HistoryEntry{
-			ID:               3,
+			Identifier:       model.ID(3),
 			RemoteTransferID: "456",
 			Rule:             "foobar",
 			Client:           "cli",
@@ -192,7 +191,7 @@ func TestPurgeCommand(t *testing.T) {
 			So(db.Insert(&model.Transfer{
 				RemoteTransferID: "789",
 				RuleID:           rule.ID,
-				LocalAccountID:   utils.NewNullInt64(account.ID),
+				LocalAccountID:   account.NullableID(),
 				SrcFilename:      "/src/path",
 				DestFilename:     "/dst/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -201,7 +200,7 @@ func TestPurgeCommand(t *testing.T) {
 			So(db.Insert(&model.Transfer{
 				RemoteTransferID: "147",
 				RuleID:           rule.ID,
-				LocalAccountID:   utils.NewNullInt64(account.ID),
+				LocalAccountID:   account.NullableID(),
 				SrcFilename:      "/src/path",
 				DestFilename:     "/dst/path",
 				Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -233,7 +232,7 @@ func TestPurgeCommand(t *testing.T) {
 					newTrans := &model.Transfer{
 						RemoteTransferID: "258",
 						RuleID:           rule.ID,
-						LocalAccountID:   utils.NewNullInt64(account.ID),
+						LocalAccountID:   account.NullableID(),
 						SrcFilename:      "/src/path",
 						DestFilename:     "/dst/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),
@@ -257,7 +256,7 @@ func TestPurgeCommand(t *testing.T) {
 					newTrans := &model.Transfer{
 						RemoteTransferID: "258",
 						RuleID:           rule.ID,
-						LocalAccountID:   utils.NewNullInt64(account.ID),
+						LocalAccountID:   account.NullableID(),
 						SrcFilename:      "/src/path",
 						DestFilename:     "/dst/path",
 						Start:            time.Date(2022, 1, 1, 1, 0, 0, 0, time.UTC),

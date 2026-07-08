@@ -17,7 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -57,7 +56,7 @@ func TestHTTPSClient(t *testing.T) {
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
 
 			cert := &model.Credential{
-				RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
+				RemoteAgentID: ctx.Partner.NullableID(),
 				Name:          "partner_cert",
 				Type:          auth.TLSTrustedCertificate,
 				Value:         testhelpers.LocalhostCert,
@@ -108,14 +107,14 @@ func TestHTTPSServer(t *testing.T) {
 	Convey("Given a HTTPS server for push transfers", t, func(c C) {
 		ctx := pipelinetest.InitServerPush(c, HTTPS, &serverConfig{})
 		serverCert := &model.Credential{
-			LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
+			LocalAgentID: ctx.Server.NullableID(),
 			Name:         "server_cert",
 			Type:         auth.TLSCertificate,
 			Value:        testhelpers.LocalhostCert,
 			Value2:       testhelpers.LocalhostKey,
 		}
 		clientCert := &model.Credential{
-			LocalAccountID: utils.NewNullInt64(ctx.LocAccount.ID),
+			LocalAccountID: ctx.LocAccount.NullableID(),
 			Name:           "client_cert",
 			Type:           auth.TLSTrustedCertificate,
 			Value:          testhelpers.ClientFooCert,

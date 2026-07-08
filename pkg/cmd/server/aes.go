@@ -28,24 +28,23 @@ func (c *ChangeAESPassphrase) Execute([]string) error {
 }
 
 func (c *ChangeAESPassphrase) run(db *database.DB) error {
-	newGCM, gcmErr := database.NewGCM(c.NewFile)
+	newAEAD, gcmErr := database.NewAEAD(c.NewFile)
 	if gcmErr != nil {
 		return fmt.Errorf("failed to load the AES passphrase file: %w", gcmErr)
 	}
 
 	serverConfig := conf.ServerConfig{}
-
 	parser, parsErr := parse.NewParser(&serverConfig)
 	if parsErr != nil {
 		return fmt.Errorf("failed to initialize the config parser: %w", parsErr)
 	}
 
-	if err := changeAgentsAESPassphrase(db, newGCM); err != nil {
+	if err := changeAgentsAESPassphrase(db, newAEAD); err != nil {
 		return err
 	}
 
-	conf.GlobalConfig.Database.AESPassphrase = c.NewFile
-	serverConfig = conf.GlobalConfig
+	db.Config.Database.AESPassphrase = c.NewFile
+	serverConfig = *db.Config
 
 	if err := parser.WriteFile(c.ConfigFile); err != nil {
 		return fmt.Errorf("failed to update the configuration file: %w", err)
@@ -55,20 +54,18 @@ func (c *ChangeAESPassphrase) run(db *database.DB) error {
 }
 
 type noHookLocalAgent struct {
-	model.LocalAgent `xorm:"extends"`
+	model.LocalAgent
 }
 
 func (*noHookLocalAgent) TableName() string                 { return model.TableLocAgents }
 func (*noHookLocalAgent) Appellation() string               { return model.NameLocalAgent }
 func (*noHookLocalAgent) AfterUpdate(database.Access) error { return nil }
 
-func changeAgentsAESPassphrase(db *database.DB, newGCM cipher.AEAD) error {
-	oldGCM := database.GCM
-	owner := conf.GlobalConfig.GatewayName
+func changeAgentsAESPassphrase(db *database.DB, newAEAD cipher.AEAD) error {
+	owner := db.Config.GatewayName
 
 	var servers model.Slice[*noHookLocalAgent]
-	if err := db.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
-		In("protocol", r66.R66, r66.R66TLS).Run(); err != nil {
+	if err := db.Select(&servers).In("protocol", r66.R66, r66.R66TLS).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve the R66 servers: %w", err)
 	}
 
@@ -86,13 +83,11 @@ func changeAgentsAESPassphrase(db *database.DB, newGCM cipher.AEAD) error {
 	}
 
 	var clouds model.CloudInstances
-	if err := db.Select(&clouds).Where("owner=?", conf.GlobalConfig.GatewayName).
-		Where("secret<>''").Run(); err != nil {
+	if err := db.Select(&clouds).Where("secret<>''").Run(); err != nil {
 		return fmt.Errorf("failed to retrieve the cloud instances: %w", err)
 	}
 
-	database.GCM = newGCM
-	defer func() { database.GCM = oldGCM }()
+	db.ChangeAEAD(newAEAD)
 
 	//nolint:wrapcheck //wrapping adds nothing here
 	return db.Transaction(func(db *database.Session) error {

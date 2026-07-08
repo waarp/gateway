@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httptransport"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -30,7 +31,7 @@ type client struct {
 	logger      *log.Logger
 	protoConfig *clientProtoConfigTLS
 
-	transporter httptransport.Transporter
+	transporter *httptransport.Transporter
 	asyncStore  *asyncStore
 	asyncLists  *protoutils.ConnPool[net.Listener]
 
@@ -53,20 +54,42 @@ func NewClient(db *database.DB, dbClient *model.Client) protocol.Client {
 
 func (c *client) Name() string { return c.dbClient.Name }
 
-func (c *client) Start() error {
+func (c *client) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	c.logger.Error(err.Error())
+	c.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(c.dbClient.Name, err)
+}
+
+func (c *client) Start() (retErr error) {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
 	c.logger = logging.NewLogger(c.dbClient.Name)
+	defer c.reportError(retErr)
+
+	if err := c.db.Get(c.dbClient, "id=?", c.dbClient.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve client from database: %w", err)
+	}
+
+	c.logger = logging.NewLogger(c.dbClient.Name)
 	c.logger.Info("Starting AS2 client...")
 
-	if err := c.start(); err != nil {
-		c.logger.Errorf("Failed to start AS2 client: %v", err)
-		c.state.Set(utils.StateError, err.Error())
-
-		return err
+	if err := utils.JSONConvert(c.dbClient.ProtoConfig, &c.protoConfig); err != nil {
+		return fmt.Errorf("invalid client config: %w", err)
 	}
+
+	var err error
+	if c.transporter, err = httptransport.NewTransporter(c.dbClient.Protocol == AS2TLS,
+		c.dbClient.LocalAddress.String(), c.db.Config.Overrides); err != nil {
+		return fmt.Errorf("failed to initialize the AS2 client's transport: %w", err)
+	}
+
+	c.ctx, c.cancel = context.WithCancelCause(context.Background())
 
 	c.logger.Info("AS2 client started successfully")
 	c.state.Set(utils.StateRunning, "")
@@ -74,48 +97,22 @@ func (c *client) Start() error {
 	return nil
 }
 
-func (c *client) start() error {
-	if err := utils.JSONConvert(c.dbClient.ProtoConfig, &c.protoConfig); err != nil {
-		return fmt.Errorf("invalid client config: %w", err)
-	}
-
-	var err error
-	if c.transporter, err = httptransport.NewTransport(c.dbClient.Protocol == AS2TLS,
-		c.dbClient.LocalAddress.String()); err != nil {
-		return fmt.Errorf("failed to initialize the AS2 client's transport: %w", err)
-	}
-
-	c.ctx, c.cancel = context.WithCancelCause(context.Background())
-
-	return nil
-}
-
-func (c *client) Stop(ctx context.Context) error {
+func (c *client) Stop(ctx context.Context) (retErr error) {
 	if !c.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
 	c.logger.Info("Stopping AS2 client...")
-
-	if err := c.stop(ctx); err != nil {
-		c.logger.Errorf("Failed to stop AS2 client: %v", err)
-		c.state.Set(utils.StateError, err.Error())
-
-		return err
-	}
-
-	c.logger.Info("AS2 client stopped successfully")
-	c.state.Set(utils.StateOffline, "")
-
-	return nil
-}
-
-func (c *client) stop(ctx context.Context) error {
+	defer c.reportError(retErr)
 	defer c.cancel(errClientShuttingDown)
+	defer c.transporter.Close()
 
 	if err := pipeline.List.StopAllFromClient(ctx, c.dbClient.ID); err != nil {
 		return fmt.Errorf("failed to stop running transfers: %w", err)
 	}
+
+	c.logger.Info("AS2 client stopped successfully")
+	c.state.Set(utils.StateOffline, "")
 
 	return nil
 }
@@ -152,14 +149,10 @@ func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, 
 	return cliTrans, nil
 }
 
-func (c *client) getTransport(pip *pipeline.Pipeline) (http.RoundTripper, *pipeline.Error) {
-	transport, err := c.transporter.Get(pip)
-	if err != nil {
-		return nil, pipeline.NewErrorWith(err, types.TeInternal,
-			"failed to initialize the AS2 client's transport")
-	}
+func (c *client) getTransport(pip *pipeline.Pipeline) http.RoundTripper {
+	transport := c.transporter.Connect(pip)
 
-	return newHTTPTransport(transport, pip), nil
+	return newAs2Transport(transport, pip)
 }
 
 func (c *client) listenAsync(pip *pipeline.Pipeline) *pipeline.Error {
@@ -170,27 +163,27 @@ func (c *client) listenAsync(pip *pipeline.Pipeline) *pipeline.Error {
 	return nil
 }
 
-type httpTransport struct {
+type as2Transport struct {
 	rt          http.RoundTripper
 	login, pswd string
 }
 
-func newHTTPTransport(rt http.RoundTripper, pip *pipeline.Pipeline) http.RoundTripper {
+func newAs2Transport(rt http.RoundTripper, pip *pipeline.Pipeline) http.RoundTripper {
 	login := pip.TransCtx.RemoteAccount.Login
 	for _, cred := range pip.TransCtx.RemoteAccountCreds {
 		if cred.Type == auth.Password {
-			return &httpTransport{rt, login, cred.Value}
+			return &as2Transport{rt, login, cred.Value}
 		}
 	}
 
 	return rt
 }
 
-func (h *httpTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	if h.login != "" && h.pswd != "" {
-		r.SetBasicAuth(h.login, h.pswd)
+func (t *as2Transport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if t.login != "" && t.pswd != "" {
+		r.SetBasicAuth(t.login, t.pswd)
 	}
 
 	//nolint:wrapcheck //no need to wrap here
-	return h.rt.RoundTrip(r)
+	return t.rt.RoundTrip(r)
 }

@@ -1,10 +1,9 @@
 package wgd
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
-
-	"xorm.io/xorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
@@ -26,9 +25,7 @@ func (s *SQLCommand) Execute([]string) error {
 		return fmt.Errorf("cannot load server config: %w", confErr)
 	}
 
-	conf.GlobalConfig = *config
-
-	db, dbErr := s.openDB()
+	db, dbErr := s.openDB(&config.Database)
 	if dbErr != nil {
 		return fmt.Errorf("cannot open database: %w", dbErr)
 	}
@@ -44,25 +41,25 @@ func (s *SQLCommand) Execute([]string) error {
 	return s.runQuery(db)
 }
 
-func (s *SQLCommand) openDB() (*xorm.Engine, error) {
+func (s *SQLCommand) openDB(config *conf.DatabaseConfig) (*sql.DB, error) {
 	var driver, dsn string
 
-	switch dbKind := conf.GlobalConfig.Database.Type; dbKind {
+	switch dbKind := config.Type; dbKind {
 	case migrations.SQLite:
 		driver = migrations.SqliteDriver
-		dsn = migrations.SqliteDSN()
+		dsn = migrations.SqliteDSN(config)
 	case migrations.PostgreSQL:
 		driver = migrations.PostgresDriver
-		dsn = migrations.PostgresDSN()
+		dsn = migrations.PostgresDSN(config)
 	case migrations.MySQL:
 		driver = migrations.MysqlDriver
-		dsn = migrations.MysqlDSN()
+		dsn = migrations.MysqlDSN(config)
 	default:
 		//nolint:err113 //this is a base error
 		return nil, fmt.Errorf("unsupported database type %q", dbKind)
 	}
 
-	db, err := xorm.NewEngine(driver, dsn)
+	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("cannot open database: %w", err)
 	}
@@ -70,8 +67,8 @@ func (s *SQLCommand) openDB() (*xorm.Engine, error) {
 	return db, nil
 }
 
-func (s *SQLCommand) runQuery(db *xorm.Engine) error {
-	rows, queryErr := db.DB().Query(s.Args.Query)
+func (s *SQLCommand) runQuery(db *sql.DB) error {
+	rows, queryErr := db.Query(s.Args.Query)
 	if queryErr != nil {
 		return fmt.Errorf("failed to execute query: %w", queryErr)
 	}
@@ -82,7 +79,7 @@ func (s *SQLCommand) runQuery(db *xorm.Engine) error {
 		return fmt.Errorf("failed to retrieve columns names: %w", colErr)
 	}
 
-	res, scanErr := db.ScanStringSlices(rows)
+	res, scanErr := s.scanStringSlices(cols, rows)
 	if scanErr != nil {
 		return fmt.Errorf("failed to scan query result: %w", scanErr)
 	}
@@ -90,6 +87,26 @@ func (s *SQLCommand) runQuery(db *xorm.Engine) error {
 	s.displayResult(cols, res)
 
 	return nil
+}
+
+func (s *SQLCommand) scanStringSlices(cols []string, rows *sql.Rows) ([][]string, error) {
+	row := make([]any, len(cols))
+	var res [][]string
+
+	for rows.Next() {
+		if err := rows.Scan(row...); err != nil {
+			return nil, err //nolint:wrapcheck //wrapping adds nothing here
+		}
+
+		rowStr := make([]string, len(cols))
+		for i, val := range row {
+			rowStr[i] = fmt.Sprintf("%v", val)
+		}
+
+		res = append(res, rowStr)
+	}
+
+	return res, nil
 }
 
 //nolint:forbidigo //we need to output to stdout here

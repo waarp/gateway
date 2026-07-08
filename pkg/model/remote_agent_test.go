@@ -11,10 +11,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestRemoteAgentTableName(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a `RemoteAgent` instance", t, func() {
 		agent := &RemoteAgent{}
 
@@ -29,6 +30,8 @@ func TestRemoteAgentTableName(t *testing.T) {
 }
 
 func TestRemoteAgentBeforeDelete(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -47,18 +50,18 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 
 			agAccess := RuleAccess{
 				RuleID:        rule.ID,
-				RemoteAgentID: utils.NewNullInt64(ag.ID),
+				RemoteAgentID: ag.NullableID(),
 			}
 			So(db.Insert(&agAccess).Run(), ShouldBeNil)
 
 			accAccess := RuleAccess{
 				RuleID:          rule.ID,
-				RemoteAccountID: utils.NewNullInt64(acc.ID),
+				RemoteAccountID: acc.NullableID(),
 			}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
 			authAg := Credential{
-				RemoteAgentID: utils.NewNullInt64(ag.ID),
+				RemoteAgentID: ag.NullableID(),
 				Name:          "test agent cert",
 				Type:          testInternalAuth,
 				Value:         "val",
@@ -66,7 +69,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&authAg).Run(), ShouldBeNil)
 
 			authAcc := Credential{
-				RemoteAccountID: utils.NewNullInt64(acc.ID),
+				RemoteAccountID: acc.NullableID(),
 				Name:            "test account cert",
 				Type:            testExternalAuth,
 				Value:           "val",
@@ -113,8 +116,8 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 
 				trans := &Transfer{
 					RuleID:          rule.ID,
-					ClientID:        utils.NewNullInt64(cli.ID),
-					RemoteAccountID: utils.NewNullInt64(acc.ID),
+					ClientID:        cli.NullableID(),
+					RemoteAccountID: acc.NullableID(),
 					SrcFilename:     "file",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
@@ -135,6 +138,8 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 }
 
 func TestRemoteAgentValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -155,9 +160,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 					expErr := fmt.Sprintf(expMsg, args...)
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) error {
-							return newAgent.BeforeWrite(ses)
-						})
+						err := newAgent.BeforeWrite(db)
 
 						Convey("Then the error should say that "+expErr, func() {
 							So(err, ShouldBeError)
@@ -168,9 +171,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 
 				Convey("Given that the new agent is valid", func() {
 					Convey("When calling the 'BeforeWrite' function", func() {
-						err := db.Transaction(func(ses *database.Session) error {
-							return newAgent.BeforeWrite(ses)
-						})
+						err := newAgent.BeforeWrite(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -215,6 +216,8 @@ func TestRemoteAgentValidate(t *testing.T) {
 }
 
 func TestRemoteAgentAfterUpdate(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	partner := RemoteAgent{
 		Owner:       "test_gateway",
@@ -258,7 +261,7 @@ func TestRemoteAgentAfterUpdate(t *testing.T) {
 		)
 
 		require.NoError(t, db.Insert(&Credential{
-			RemoteAgentID: utils.NewNullInt64(partner.ID),
+			RemoteAgentID: partner.NullableID(),
 			Name:          authPassword,
 			Type:          authPassword,
 			Value:         oldPassword,

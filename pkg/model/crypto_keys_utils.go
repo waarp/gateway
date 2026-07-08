@@ -59,7 +59,7 @@ func (k *CryptoKey) checkKeyHMAC() error {
 }
 
 func (k *CryptoKey) checkKeyPGPPrivate() error {
-	privKey, privErr := pgp.NewKeyFromArmored(k.Key.String())
+	privKey, privErr := pgp.NewKeyFromArmored(k.Key)
 	if privErr != nil {
 		return fmt.Errorf("failed to parse PGP private key: %w", privErr)
 	}
@@ -72,7 +72,7 @@ func (k *CryptoKey) checkKeyPGPPrivate() error {
 }
 
 func (k *CryptoKey) checkKeyPGPPublic() error {
-	pubKey, err := pgp.NewKeyFromArmored(k.Key.String())
+	pubKey, err := pgp.NewKeyFromArmored(k.Key)
 	if err != nil {
 		return fmt.Errorf("failed to parse PGP public key: %w", err)
 	}

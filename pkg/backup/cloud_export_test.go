@@ -12,6 +12,8 @@ import (
 )
 
 func TestExportClouds(t *testing.T) {
+	t.Parallel()
+
 	logger := testhelpers.GetTestLogger(t)
 	fsType := fstest.MakeDummyBackend(t)
 
@@ -34,6 +36,6 @@ func TestExportClouds(t *testing.T) {
 	require.Equal(t, dbCloud.Name, res[0].Name)
 	require.Equal(t, dbCloud.Type, res[0].Type)
 	require.Equal(t, dbCloud.Key, res[0].Key)
-	require.Equal(t, dbCloud.Secret.String(), res[0].Secret)
-	require.Equal(t, dbCloud.Options, res[0].Options)
+	require.Equal(t, dbCloud.Secret, res[0].Secret)
+	require.Equal(t, dbCloud.Options.Map(), res[0].Options)
 }

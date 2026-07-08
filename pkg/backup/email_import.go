@@ -17,7 +17,7 @@ func importEmailConf(logger *log.Logger, db database.Access, config *file.EmailC
 			return fmt.Errorf("failed to delete existing email templates: %w", err)
 		}
 
-		if err := db.DeleteAll(&model.SMTPCredential{}).Owner().Run(); err != nil {
+		if err := db.DeleteAll(&model.SMTPCredential{}).Run(); err != nil {
 			return fmt.Errorf("failed to delete existing SMTP credentials: %w", err)
 		}
 	}
@@ -38,15 +38,14 @@ func importSMTPCredentials(logger *log.Logger, db database.Access,
 ) error {
 	for _, fileCred := range credentials {
 		var dbCred model.SMTPCredential
-		if err := db.Get(&dbCred, "email_address=?", fileCred.EmailAddress).
-			Owner().Run(); err != nil &&
+		if err := db.Get(&dbCred, "email_address=?", fileCred.EmailAddress).Run(); err != nil &&
 			!database.IsNotFound(err) {
 			return fmt.Errorf("failed to retrieve SMTP credential %q: %w", fileCred.EmailAddress, err)
 		}
 
 		dbCred.EmailAddress = fileCred.EmailAddress
 		dbCred.Login = fileCred.Login
-		dbCred.Password = database.SecretText(fileCred.Password)
+		dbCred.Password = fileCred.Password
 
 		if err := dbCred.ServerAddress.Set(fileCred.ServerAddress); err != nil {
 			return fmt.Errorf("invalid SMTP server address: %w", err)

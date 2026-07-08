@@ -36,19 +36,29 @@ type TransferContext struct {
 }
 
 // GetTransferContext retrieves all the information regarding the given transfer
-// from the database, and returns it wrapped in a TransferInfo instance.
+// from the database, and returns it wrapped in a transferInfo instance.
 // An error is returned a problem occurs while accessing the database.
 func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 ) (*TransferContext, error) {
 	transCtx := &TransferContext{
 		Transfer:      trans,
-		Paths:         &conf.GlobalConfig.Paths,
+		Paths:         &db.Config.Paths,
 		Client:        &Client{},
 		Rule:          &Rule{},
 		RemoteAgent:   &RemoteAgent{},
 		RemoteAccount: &RemoteAccount{},
 		LocalAgent:    &LocalAgent{},
 		LocalAccount:  &LocalAccount{},
+	}
+
+	if len(trans.TransferInfo) == 0 {
+		var infos TransferInfos
+		if err := db.Select(&infos).Where("transfer_id=?", trans.ID).Run(); err != nil {
+			logger.Errorf("Failed to retrieve transfer infos: %v", err)
+
+			return nil, fmt.Errorf("failed to retrieve transfer infos: %w", err)
+		}
+		trans.TransferInfo = infos.asMap()
 	}
 
 	if err := db.Select(&transCtx.Authorities).Run(); err != nil {

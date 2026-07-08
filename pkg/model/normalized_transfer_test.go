@@ -4,17 +4,19 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestNormalizedTransferCreateView(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c)
 
@@ -44,17 +46,17 @@ func TestNormalizedTransferCreateView(t *testing.T) {
 
 		trans1 := &Transfer{
 			RuleID:         push.ID,
-			LocalAccountID: utils.NewNullInt64(locAcc.ID),
+			LocalAccountID: locAcc.NullableID(),
 			SrcFilename:    "file1",
 		}
 		trans2 := &Transfer{
 			RuleID:          pull.ID,
-			ClientID:        utils.NewNullInt64(clie.ID),
-			RemoteAccountID: utils.NewNullInt64(remAcc.ID),
+			ClientID:        clie.NullableID(),
+			RemoteAccountID: remAcc.NullableID(),
 			SrcFilename:     "file2",
 		}
 		hist := &HistoryEntry{
-			ID:               3,
+			Identifier:       ID(3),
 			RemoteTransferID: "123456",
 			IsServer:         true,
 			IsSend:           false,
@@ -113,6 +115,8 @@ func TestNormalizedTransferCreateView(t *testing.T) {
 }
 
 func TestNormalizedTransferResume(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 
 	rule := Rule{Name: "rule", IsSend: true}
@@ -134,12 +138,10 @@ func TestNormalizedTransferResume(t *testing.T) {
 	require.NoError(t, db.Insert(&locAccount).Run())
 
 	t.Run("Nominal case", func(t *testing.T) {
-		t.Parallel()
-
 		trans := &Transfer{
 			RuleID:          rule.ID,
-			ClientID:        utils.NewNullInt64(client.ID),
-			RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+			ClientID:        client.NullableID(),
+			RemoteAccountID: remAccount.NullableID(),
 			SrcFilename:     "file.txt",
 			Status:          types.StatusError,
 			ErrCode:         types.TeUnknown,
@@ -151,7 +153,7 @@ func TestNormalizedTransferResume(t *testing.T) {
 		require.NoError(t, db.Get(&original, "id=?", trans.ID).Run())
 
 		actual := utils.Clone(&original)
-		when := time.Now()
+		when := time.Now().UTC()
 		require.NoError(t, actual.Resume(db, when))
 
 		assert.Equal(t, types.StatusPlanned, actual.Status)
@@ -161,10 +163,8 @@ func TestNormalizedTransferResume(t *testing.T) {
 	})
 
 	t.Run("Done transfer", func(t *testing.T) {
-		t.Parallel()
-
 		hist := &HistoryEntry{
-			ID:               1000,
+			Identifier:       ID(1000),
 			RemoteTransferID: "123456",
 			IsServer:         true,
 			IsSend:           false,

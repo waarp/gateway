@@ -34,81 +34,82 @@ type httpClient struct {
 	conf   httpsClientConfig
 
 	logger      *log.Logger
-	transporter httptransport.Transporter
+	transporter *httptransport.Transporter
 	state       utils.State
 }
 
 func (h *httpClient) Name() string { return h.client.Name }
 
-func (h *httpClient) Start() error {
+func (h *httpClient) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	h.logger.Error(err.Error())
+	h.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(h.client.Name, err)
+}
+
+func (h *httpClient) Start() (retErr error) {
 	if h.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
-	if err := h.start(); err != nil {
-		h.logger.Errorf("Failed to start HTTP client: %v", err)
-		h.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(h.client.Name, err)
+	h.logger = logging.NewLogger(h.client.Name)
+	defer h.reportError(retErr)
 
-		return err
+	if err := h.db.Get(h.client, "id=?", h.client.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the HTTP client: %w", err)
 	}
 
-	h.state.Set(utils.StateRunning, "")
-
-	return nil
-}
-
-func (h *httpClient) start() error {
 	h.logger = logging.NewLogger(h.client.Name)
+	h.logger.Info("Starting HTTP client...")
 
 	if err := utils.JSONConvert(h.client.ProtoConfig, &h.conf); err != nil {
-		h.logger.Errorf("Failed to parse the HTTP client's configuration: %v", err)
-
 		return fmt.Errorf("failed to parse the HTTP client's configuration: %w", err)
 	}
 
 	var err error
-	if h.transporter, err = httptransport.NewTransport(h.client.Protocol == HTTPS,
-		h.client.LocalAddress.String()); err != nil {
-		h.logger.Errorf("Failed to initialize the HTTP client's transport: %v", err)
-
+	if h.transporter, err = httptransport.NewTransporter(h.client.Protocol == HTTPS,
+		h.client.LocalAddress.String(), h.db.Config.Overrides); err != nil {
 		return fmt.Errorf("failed to initialize the HTTP client's transport: %w", err)
 	}
+
+	h.state.Set(utils.StateRunning, "")
+	h.logger.Info("HTTP client started successfully")
 
 	return nil
 }
 
 func (h *httpClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
-	transport, err := h.transporter.Get(pip)
-	if err != nil {
-		return nil, pipeline.NewErrorWith(err, types.TeInternal,
-			"failed to initialize the HTTP client's transport")
-	}
+	transport := h.transporter.Connect(pip)
 
 	return newTransferClient(pip, transport, h.client.Protocol == HTTPS), nil
 }
 
-func (h *httpClient) Stop(ctx context.Context) error {
+func (h *httpClient) Stop(ctx context.Context) (retErr error) {
 	if !h.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
-	if err := pipeline.List.StopAllFromClient(ctx, h.client.ID); err != nil {
-		h.logger.Errorf("Failed to interrupt HTTP client's running transfers: %v", err)
-		h.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(h.client.Name, err)
+	defer h.reportError(retErr)
+	defer h.transporter.Close()
 
+	h.logger.Info("Stopping HTTP client...")
+
+	if err := pipeline.List.StopAllFromClient(ctx, h.client.ID); err != nil {
 		return fmt.Errorf("failed to stop the HTTP client's running transfers: %w", err)
 	}
 
 	h.state.Set(utils.StateOffline, "")
+	h.logger.Info("HTTP client stopped successfully")
 
 	return nil
 }
 
 func (h *httpClient) State() (utils.StateCode, string) { return h.state.Get() }
 
-func newTransferClient(pip *pipeline.Pipeline, transport *http.Transport, isHTTPS bool,
+func newTransferClient(pip *pipeline.Pipeline, transport http.RoundTripper, isHTTPS bool,
 ) protocol.TransferClient {
 	client := &http.Client{Transport: transport}
 	scheme := schemeHTTP

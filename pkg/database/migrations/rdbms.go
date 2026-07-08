@@ -8,10 +8,9 @@ import (
 	"strings"
 
 	"code.waarp.fr/lib/migration"
-	// Register the SQL drivers.
-	"github.com/go-sql-driver/mysql"
-	_ "github.com/jackc/pgx/v5/stdlib"
-	_ "modernc.org/sqlite"
+	"github.com/go-sql-driver/mysql"   // Register the MySQL driver.
+	_ "github.com/jackc/pgx/v5/stdlib" // Register the PostgreSQL driver.
+	_ "modernc.org/sqlite"             // Register the SQLite driver.
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
@@ -33,7 +32,7 @@ const (
 
 type dbInfo struct {
 	driver  string
-	makeDSN func() string
+	makeDSN func(config *conf.DatabaseConfig) string
 }
 
 //nolint:gochecknoglobals // global var is used by design
@@ -54,8 +53,7 @@ var rdbms = map[string]dbInfo{
 
 // SqliteDSN takes a database configuration and returns the corresponding
 // SQLite DSN necessary to connect to the database.
-func SqliteDSN() string {
-	config := conf.GlobalConfig.Database
+func SqliteDSN(config *conf.DatabaseConfig) string {
 	values := url.Values{}
 
 	values.Set("mode", "rwc")
@@ -71,9 +69,7 @@ func SqliteDSN() string {
 
 // PostgresDSN takes a database configuration and returns the corresponding
 // PostgreSQL DSN necessary to connect to the database.
-func PostgresDSN() string {
-	config := &conf.GlobalConfig.Database
-
+func PostgresDSN(config *conf.DatabaseConfig) string {
 	dns := []string{}
 	if config.User != "" {
 		dns = append(dns, fmt.Sprintf("user='%s'", config.User))
@@ -110,9 +106,7 @@ func PostgresDSN() string {
 
 // MysqlDSN takes a database configuration and returns the corresponding MySQL
 // DSN necessary to connect to the database.
-func MysqlDSN() string {
-	config := &conf.GlobalConfig.Database
-
+func MysqlDSN(config *conf.DatabaseConfig) string {
 	dsn := mysql.NewConfig()
 	dsn.Addr = config.Address
 	dsn.DBName = config.Name

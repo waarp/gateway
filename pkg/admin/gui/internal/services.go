@@ -11,7 +11,7 @@ import (
 )
 
 func GetServerStatus(server *model.LocalAgent) (state utils.StateCode, reason string) {
-	service, hasService := services.Servers.Load(server)
+	service, hasService := services.Servers.Get(server)
 	if !hasService {
 		return utils.StateOffline, ""
 	}
@@ -20,7 +20,7 @@ func GetServerStatus(server *model.LocalAgent) (state utils.StateCode, reason st
 }
 
 func GetClientStatus(client *model.Client) (state utils.StateCode, reason string) {
-	service, hasService := services.Clients.Load(client)
+	service, hasService := services.Clients.Get(client)
 	if !hasService {
 		return utils.StateOffline, ""
 	}
@@ -58,34 +58,28 @@ func AddClient(db *database.DB, client *model.Client) error {
 	return nil
 }
 
-func RestartServer(ctx context.Context, db *database.DB, server *model.LocalAgent) error {
-	newService, err := protocols.MakeServer(db, server)
-	if err != nil {
-		return err
-	}
-
-	return services.Servers.Restart(ctx, server, newService)
+func RestartServer(ctx context.Context, server *model.LocalAgent) error {
+	return services.Servers.Restart(ctx, server)
 }
 
-func RestartClient(ctx context.Context, db *database.DB, client *model.Client) error {
-	newService, err := protocols.MakeClient(db, client)
-	if err != nil {
-		return err
-	}
-
-	return services.Clients.Restart(ctx, client, newService)
+func RestartClient(ctx context.Context, client *model.Client) error {
+	return services.Clients.Restart(ctx, client)
 }
 
 func StopServer(ctx context.Context, server *model.LocalAgent) error {
-	return services.Servers.Stop(ctx, server, false)
+	_, err := services.Servers.Stop(ctx, server)
+
+	return err
 }
 
 func StopClient(ctx context.Context, client *model.Client) error {
-	return services.Clients.Stop(ctx, client, false)
+	_, err := services.Clients.Stop(ctx, client)
+
+	return err
 }
 
 func RemoveServer(ctx context.Context, db *database.DB, server *model.LocalAgent) error {
-	if err := services.Servers.Stop(ctx, server, true); err != nil {
+	if err := services.Servers.Remove(ctx, server); err != nil {
 		return err
 	}
 
@@ -93,7 +87,7 @@ func RemoveServer(ctx context.Context, db *database.DB, server *model.LocalAgent
 }
 
 func RemoveClient(ctx context.Context, db *database.DB, client *model.Client) error {
-	if err := services.Clients.Stop(ctx, client, false); err != nil {
+	if err := services.Clients.Remove(ctx, client); err != nil {
 		return err
 	}
 

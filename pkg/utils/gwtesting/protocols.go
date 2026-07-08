@@ -21,9 +21,12 @@ type ProtoFeatures struct {
 //nolint:gochecknoglobals //global var is required here for more flexibility
 var protocolsList = map[string]ProtoFeatures{}
 
-func Register(
-	proto string, features ProtoFeatures,
+func Register(proto string, features ProtoFeatures,
 ) {
 	protocolsList[proto] = features
 	model.Protocols[proto] = features.Protocol
+
+	if customIDer, ok := features.Protocol.(interface{ IDGenerator() model.IDGenerator }); ok {
+		model.IDGenerators[proto] = customIDer.IDGenerator()
+	}
 }

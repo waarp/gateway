@@ -37,30 +37,43 @@ type httpService struct {
 
 func (h *httpService) Name() string { return h.agent.Name }
 
-func (h *httpService) Start() error {
+func (h *httpService) reportError(err error) {
+	if err == nil {
+		return
+	}
+
+	h.logger.Error(err.Error())
+	h.state.Set(utils.StateError, err.Error())
+	snmp.ReportServiceFailure(h.agent.Name, err)
+}
+
+func (h *httpService) Start() (retErr error) {
 	if h.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
 
-	if err := h.start(); err != nil {
-		h.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(h.agent.Name, err)
+	h.logger = logging.NewLogger(h.agent.Name)
+	defer h.reportError(retErr)
 
+	if err := h.db.Get(h.agent, "id=?", h.agent.ID).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve the HTTP agent: %w", err)
+	}
+
+	h.logger = logging.NewLogger(h.agent.Name)
+	h.logger.Info("Starting HTTP server...")
+
+	if err := h.start(); err != nil {
 		return err
 	}
 
 	h.state.Set(utils.StateRunning, "")
+	h.logger.Infof("HTTP server started successfully on %q", h.serv.Addr)
 
 	return nil
 }
 
 func (h *httpService) start() error {
-	h.logger = logging.NewLogger(h.agent.Name)
-	h.logger.Info("Starting HTTP server...")
-
 	if err := utils.JSONConvert(h.agent.ProtoConfig, &h.conf); err != nil {
-		h.logger.Errorf("Failed to parse server configuration: %v", err)
-
 		return fmt.Errorf("failed to parse server configuration: %w", err)
 	}
 
@@ -78,58 +91,36 @@ func (h *httpService) start() error {
 			}
 		},
 	}
-	// h.serv.SetKeepAlivesEnabled(false)
 
 	if err := h.listen(); err != nil {
 		return err
 	}
-
-	h.logger.Infof("HTTP server started successfully on %q", h.serv.Addr)
 
 	h.shutdown = make(chan struct{})
 
 	return nil
 }
 
-func (h *httpService) Stop(ctx context.Context) error {
+func (h *httpService) Stop(ctx context.Context) (retErr error) {
 	if !h.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
 
-	if err := h.stop(ctx); err != nil {
-		h.logger.Notice("Forcing service shutdown...")
-		_ = h.serv.Close() //nolint:errcheck //error is irrelevant at this point
-		h.logger.Notice("Server was shut down forcefully.")
-
-		h.state.Set(utils.StateError, err.Error())
-		snmp.ReportServiceFailure(h.agent.Name, err)
-
-		return err
-	}
-
-	h.state.Set(utils.StateOffline, "")
-
-	return nil
-}
-
-func (h *httpService) stop(ctx context.Context) error {
-	h.logger.Debug("Interrupting transfers...")
+	h.logger.Info("Stopping HTTP server...")
+	defer h.reportError(retErr)
+	defer h.serv.Close() //nolint:errcheck // error does not matter at this point
+	close(h.shutdown)
 
 	if err := pipeline.List.StopAllFromServer(ctx, h.agent.ID); err != nil {
-		h.logger.Errorf("Failed to interrupt HTTP transfers: %v", err)
-
 		return fmt.Errorf("could not halt the service gracefully: %w", err)
 	}
 
-	h.logger.Debug("Closing listener...")
-
 	if err := h.serv.Shutdown(ctx); err != nil {
-		h.logger.Errorf("Error while closing HTTP listener: %v", err)
-
 		return fmt.Errorf("failed to stop the HTTP listener: %w", err)
 	}
 
-	h.logger.Info("HTTP server shutdown successful")
+	h.state.Set(utils.StateOffline, "")
+	h.logger.Info("HTTP server stopped successfully")
 
 	return nil
 }

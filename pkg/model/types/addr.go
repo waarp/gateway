@@ -1,6 +1,7 @@
 package types
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"net"
@@ -22,6 +23,15 @@ func Addr(host string, port uint16) Address {
 	return Address{Host: host, Port: port}
 }
 
+func MustAddr(str string) Address {
+	addr, err := NewAddress(str)
+	if err != nil {
+		panic(err)
+	}
+
+	return *addr
+}
+
 // NewAddress parses the given string as an address and returns it, if it is valid.
 func NewAddress(str string) (*Address, error) {
 	addr := &Address{}
@@ -32,11 +42,25 @@ func NewAddress(str string) (*Address, error) {
 	return addr, nil
 }
 
-func (a *Address) IsSet() bool               { return a.Host != "" || a.Port != 0 }
-func (a *Address) FromDB(bytes []byte) error { return a.Set(string(bytes)) }
-func (a *Address) ToDB() ([]byte, error)     { return []byte(a.String()), nil }
+func (a *Address) IsSet() bool { return a.Host != "" || a.Port != 0 }
 
-func (a *Address) String() string {
+func (a *Address) Scan(src any) error {
+	switch val := src.(type) {
+	case string:
+		return a.Set(val)
+	case []byte:
+		return a.Set(string(val))
+	default:
+		//nolint:err113 //too specific to have a base error
+		return fmt.Errorf("unsupported address type %T", src)
+	}
+}
+
+func (a Address) Value() (driver.Value, error) {
+	return a.String(), nil
+}
+
+func (a Address) String() string {
 	if !a.IsSet() {
 		return ""
 	}

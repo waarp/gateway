@@ -4,17 +4,18 @@
 package model
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"fmt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 // FileInfo represents the file_info database table, which contains all the
 // protocol-specific information attached to a transfer.
 type FileInfo struct {
-	TransferID uint64 `xorm:"notnull unique(infoName) 'transfer_id'"`
-	IsHistory  bool   `xorm:"notnull 'is_history'"`
-	Name       string `xorm:"notnull unique(infoName) 'name'"`
-	Value      string `xorm:"notnull 'value'"`
+	TransferID uint64 `gorm:"column:notnull unique(infoName) 'transfer_id'"`
+	IsHistory  bool   `gorm:"column:notnull 'is_history'"`
+	Name       string `gorm:"column:notnull unique(infoName) 'name'"`
+	Value      string `gorm:"column:notnull 'value'"`
 }
 
 // TableName returns the name of the transfers table.

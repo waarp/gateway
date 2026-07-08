@@ -3,6 +3,7 @@ package sftp
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
@@ -22,13 +23,21 @@ func (Module) NewClient(db *database.DB, cli *model.Client) protocol.Client {
 }
 
 func (Module) CheckServerConfig(conf map[string]any) error {
-	return protoutils.ValidateProtoConfig(conf, &serverConfig{})
+	return protoutils.ValidateProtoConfig(conf, &ServerConfig{})
 }
 
 func (Module) CheckClientConfig(conf map[string]any) error {
-	return protoutils.ValidateProtoConfig(conf, &clientConfig{})
+	return protoutils.ValidateProtoConfig(conf, &ClientConfig{})
 }
 
 func (Module) CheckPartnerConfig(conf map[string]any) error {
-	return protoutils.ValidateProtoConfig(conf, &partnerConfig{})
+	return protoutils.ValidateProtoConfig(conf, &PartnerConfig{})
+}
+
+func (m Module) OptionalFeatures() []features.Feature {
+	return []features.Feature{
+		features.Listing,
+		features.Deletion,
+		features.RecursiveDeletion,
+	}
 }

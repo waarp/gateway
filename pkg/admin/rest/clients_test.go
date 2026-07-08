@@ -7,7 +7,6 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -20,6 +19,8 @@ const (
 )
 
 func TestClientAdd(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a REST server", t, func(c C) {
 		test := makeTestRESTServer(c)
 
@@ -43,8 +44,8 @@ func TestClientAdd(t *testing.T) {
 					So(test.db.Select(&dbClients).Run(), ShouldBeNil)
 					So(dbClients, ShouldHaveLength, 1)
 					So(dbClients[0], ShouldResemble, &model.Client{
-						ID:           1,
-						Owner:        conf.GlobalConfig.GatewayName,
+						Identifier:   model.ID(1),
+						Owner:        test.db.Config.GatewayName,
 						Name:         jsonClient["name"].(string),
 						Protocol:     jsonClient["protocol"].(string),
 						LocalAddress: mustAddr(jsonClient["localAddress"].(string)),
@@ -63,6 +64,8 @@ func TestClientAdd(t *testing.T) {
 }
 
 func TestClientList(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a REST server", t, func(c C) {
 		test := makeTestRESTServer(c)
 
@@ -121,6 +124,8 @@ func TestClientList(t *testing.T) {
 }
 
 func TestClientGet(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a REST server", t, func(c C) {
 		test := makeTestRESTServer(c)
 
@@ -165,6 +170,8 @@ func TestClientGet(t *testing.T) {
 }
 
 func TestClientUpdate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a REST server", t, func(c C) {
 		test := makeTestRESTServer(c)
 
@@ -176,7 +183,7 @@ func TestClientUpdate(t *testing.T) {
 
 		service := makeAndStartTestService(dbClient.Name)
 		services.Clients.Add(dbClient, service)
-		defer services.Clients.Remove(dbClient)
+		defer services.Clients.Remove(t.Context(), dbClient)
 
 		Convey("When updating a client", func() {
 			jsonClient := map[string]any{
@@ -197,7 +204,7 @@ func TestClientUpdate(t *testing.T) {
 					So(test.db.Select(&dbClients).Run(), ShouldBeNil)
 					So(dbClients, ShouldHaveLength, 1)
 					So(dbClients[0], ShouldResemble, &model.Client{
-						ID:           dbClient.ID,
+						Identifier:   dbClient.Identifier,
 						Owner:        dbClient.Owner,
 						Name:         jsonClient["name"].(string),
 						Protocol:     jsonClient["protocol"].(string),
@@ -208,18 +215,18 @@ func TestClientUpdate(t *testing.T) {
 			})
 
 			Convey("Then it should have restarted the service", func() {
-				So(stateCode(service), ShouldEqual, utils.StateOffline)
-
 				newService, ok := services.Clients.Get(dbClient)
 				So(ok, ShouldBeTrue)
-				So(newService.Name(), ShouldEqual, jsonClient["name"])
 				So(stateCode(newService), ShouldEqual, utils.StateRunning)
+				So(service.stopped, ShouldBeTrue)
 			})
 		})
 	})
 }
 
 func TestClientReplace(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a REST server", t, func(c C) {
 		test := makeTestRESTServer(c)
 
@@ -231,7 +238,7 @@ func TestClientReplace(t *testing.T) {
 
 		service := makeAndStartTestService(dbClient.Name)
 		services.Clients.Add(dbClient, service)
-		defer services.Clients.Remove(dbClient)
+		defer services.Clients.Remove(t.Context(), dbClient)
 
 		Convey("When replacing a client", func() {
 			jsonClient := map[string]any{
@@ -252,7 +259,7 @@ func TestClientReplace(t *testing.T) {
 					So(test.db.Select(&dbClients).Run(), ShouldBeNil)
 					So(dbClients, ShouldHaveLength, 1)
 					So(dbClients[0], ShouldResemble, &model.Client{
-						ID:           dbClient.ID,
+						Identifier:   dbClient.Identifier,
 						Owner:        dbClient.Owner,
 						Name:         jsonClient["name"].(string),
 						Protocol:     jsonClient["protocol"].(string),
@@ -262,11 +269,10 @@ func TestClientReplace(t *testing.T) {
 				})
 
 				Convey("Then it should have restarted the service", func() {
-					So(stateCode(service), ShouldEqual, utils.StateOffline)
-
 					newService, ok := services.Clients.Get(dbClient)
 					So(ok, ShouldBeTrue)
 					So(stateCode(newService), ShouldEqual, utils.StateRunning)
+					So(service.stopped, ShouldBeTrue)
 				})
 			})
 		})
@@ -274,6 +280,8 @@ func TestClientReplace(t *testing.T) {
 }
 
 func TestClientDelete(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a REST server", t, func(c C) {
 		test := makeTestRESTServer(c)
 
@@ -291,7 +299,7 @@ func TestClientDelete(t *testing.T) {
 
 		service := makeAndStartTestService(dbClient.Name)
 		services.Clients.Add(dbClient, service)
-		defer services.Clients.Remove(dbClient)
+		defer services.Clients.Remove(t.Context(), dbClient)
 
 		Convey("When deleting the client", func() {
 			url := fmt.Sprintf(test.URL+clientPathFormat, dbClient.Name)

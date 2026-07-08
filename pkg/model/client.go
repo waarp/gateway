@@ -4,37 +4,32 @@ import (
 	"fmt"
 	"strings"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 //nolint:lll //descriptions exceed the max length but are more readable this way
 type Client struct {
-	ID    int64  `xorm:"<- id AUTOINCR"` // The client's database ID.
-	Owner string `xorm:"owner"`          // The client's owner (the gateway to which it belongs)
+	Identifier
+	Owner    string `gorm:"column:owner"`    // The client's owner (the gateway to which it belongs)
+	Name     string `gorm:"column:name"`     // The client's name.
+	Protocol string `gorm:"column:protocol"` // The client's protocol.
 
-	Name     string `xorm:"name"`     // The client's name.
-	Protocol string `xorm:"protocol"` // The client's protocol.
-
-	LocalAddress         types.Address `xorm:"local_address"`          // The client's local address (optional).
-	NbOfAttempts         int8          `xorm:"nb_of_attempts"`         // The number of times the client will automatically re-attempt a transfer.
-	FirstRetryDelay      int32         `xorm:"first_retry_delay"`      // The delay (in seconds) between the original attempt and the first re-attempt.
-	RetryIncrementFactor float32       `xorm:"retry_increment_factor"` // The factor by which the delay will be multiplied at each re-attempt.
+	LocalAddress         types.Address `gorm:"column:local_address"`          // The client's local address (optional).
+	NbOfAttempts         int8          `gorm:"column:nb_of_attempts"`         // The number of times the client will automatically re-attempt a transfer.
+	FirstRetryDelay      int32         `gorm:"column:first_retry_delay"`      // The delay (in seconds) between the original attempt and the first re-attempt.
+	RetryIncrementFactor float32       `gorm:"column:retry_increment_factor"` // The factor by which the delay will be multiplied at each re-attempt.
 
 	// The client's protocol configuration as a map.
-	ProtoConfig ProtoConfigMap `xorm:"proto_config"`
+	ProtoConfig Map[any] `gorm:"column:proto_config;serializer:json"`
 
-	Disabled bool // Should the client be launched at startup.
+	Disabled bool `gorm:"column:disabled"` // Should the client be launched at startup.
 }
 
-func (c *Client) GetID() int64      { return c.ID }
 func (*Client) TableName() string   { return TableClients }
 func (*Client) Appellation() string { return "client" }
 
 func (c *Client) BeforeWrite(db database.Access) error {
-	c.Owner = conf.GlobalConfig.GatewayName
-
 	if c.Name == "" {
 		c.Name = c.Protocol
 	}
@@ -58,15 +53,14 @@ func (c *Client) BeforeWrite(db database.Access) error {
 	}
 
 	if c.ProtoConfig == nil {
-		c.ProtoConfig = map[string]any{}
+		c.ProtoConfig = Map[any]{}
 	}
 
 	if err := CheckClientConfig(c.Protocol, c.ProtoConfig); err != nil {
 		return database.WrapAsValidationError(err)
 	}
 
-	if n, err := db.Count(c).Where("id<>? AND owner=? AND name=?", c.ID, c.Owner,
-		c.Name).Run(); err != nil {
+	if n, err := db.Count(c).Where("id<>? AND name=?", c.ID, c.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate clients: %w", err)
 	} else if n != 0 {
 		return database.NewValidationErrorf("a client named %q already exist", c.Name)

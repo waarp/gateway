@@ -65,7 +65,7 @@ func TestAddressOverrideParse(t *testing.T) {
 			for _, test := range testCases {
 				Convey("Given "+test.desc, func() {
 					over.Indirections = append(over.Indirections, test.value)
-					err := over.parse()
+					err := over.Parse()
 					test.check(&test, err)
 				})
 			}
@@ -75,7 +75,7 @@ func TestAddressOverrideParse(t *testing.T) {
 
 func TestOverrideWrite(t *testing.T) {
 	Convey("Given an configOverride parser", t, func() {
-		over := configOverride{
+		over := ConfigOverride{
 			ListenAddresses: &addressOverride{
 				Indirections: []string{
 					"192.168.1.1 -> waarp.org",
@@ -113,7 +113,7 @@ func TestOverrideWrite(t *testing.T) {
 
 func TestAddIndirection(t *testing.T) {
 	Convey("Given an address configOverride", t, func(c C) {
-		LocalOverrides = &configOverride{
+		overrides := &ConfigOverride{
 			filename: testhelpers.TempFile(c, "test_override_add_indirection_*.ini"),
 			ListenAddresses: &addressOverride{
 				addressMap: map[string]string{
@@ -123,31 +123,31 @@ func TestAddIndirection(t *testing.T) {
 		}
 
 		Convey("When adding a new indirection", func() {
-			So(AddIndirection("1.2.3.4", "9.8.7.6"), ShouldBeNil)
+			So(overrides.AddIndirection("1.2.3.4", "9.8.7.6"), ShouldBeNil)
 
 			Convey("Then it should have added the indirection", func() {
-				So(LocalOverrides.ListenAddresses.addressMap["1.2.3.4"],
+				So(overrides.ListenAddresses.addressMap["1.2.3.4"],
 					ShouldEqual, "9.8.7.6")
-				So(LocalOverrides.ListenAddresses.Indirections, ShouldContain,
+				So(overrides.ListenAddresses.Indirections, ShouldContain,
 					"1.2.3.4 -> 9.8.7.6")
-				So(LocalOverrides.ListenAddresses.Indirections, ShouldContain,
+				So(overrides.ListenAddresses.Indirections, ShouldContain,
 					"localhost:5555 -> 127.0.0.1:8080")
 			})
 		})
 
 		Convey("When updating an existing indirection", func() {
-			So(AddIndirection("localhost:5555", "9.8.7.6:5432"), ShouldBeNil)
+			So(overrides.AddIndirection("localhost:5555", "9.8.7.6:5432"), ShouldBeNil)
 
 			Convey("Then it should have updated the indirection", func() {
-				So(LocalOverrides.ListenAddresses.addressMap["localhost:5555"],
+				So(overrides.ListenAddresses.addressMap["localhost:5555"],
 					ShouldEqual, "9.8.7.6:5432")
-				So(LocalOverrides.ListenAddresses.Indirections, ShouldContain,
+				So(overrides.ListenAddresses.Indirections, ShouldContain,
 					"localhost:5555 -> 9.8.7.6:5432")
 			})
 		})
 
 		Convey("When adding a new inconsistent indirection", func() {
-			err := AddIndirection("localhost:5555", "9.8.7.6")
+			err := overrides.AddIndirection("localhost:5555", "9.8.7.6")
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, "address \"9.8.7.6\" is missing a port number: "+
@@ -159,7 +159,7 @@ func TestAddIndirection(t *testing.T) {
 
 func TestRemoveIndirection(t *testing.T) {
 	Convey("Given an address configOverride", t, func(c C) {
-		LocalOverrides = &configOverride{
+		overrides := &ConfigOverride{
 			filename: testhelpers.TempFile(c, "test_override_remove_indirection_*.ini"),
 			ListenAddresses: &addressOverride{
 				addressMap: map[string]string{
@@ -170,23 +170,23 @@ func TestRemoveIndirection(t *testing.T) {
 		}
 
 		Convey("When removing an existing indirection", func() {
-			So(RemoveIndirection("localhost:5555"), ShouldBeNil)
+			So(overrides.RemoveIndirection("localhost:5555"), ShouldBeNil)
 
 			Convey("Then it should have removed the indirection", func() {
-				So(LocalOverrides.ListenAddresses.addressMap["1.2.3.4"],
+				So(overrides.ListenAddresses.addressMap["1.2.3.4"],
 					ShouldEqual, "9.8.7.6")
-				So(LocalOverrides.ListenAddresses.Indirections, ShouldResemble,
+				So(overrides.ListenAddresses.Indirections, ShouldResemble,
 					[]string{"1.2.3.4 -> 9.8.7.6"})
 			})
 		})
 
 		Convey("When removing a non-existing indirection", func() {
-			So(RemoveIndirection("unknown"), ShouldBeNil)
+			So(overrides.RemoveIndirection("unknown"), ShouldBeNil)
 
 			Convey("Then it should not have deleted anything", func() {
-				So(LocalOverrides.ListenAddresses.Indirections, ShouldContain,
+				So(overrides.ListenAddresses.Indirections, ShouldContain,
 					"localhost:5555 -> 127.0.0.1:8080")
-				So(LocalOverrides.ListenAddresses.Indirections, ShouldContain,
+				So(overrides.ListenAddresses.Indirections, ShouldContain,
 					"1.2.3.4 -> 9.8.7.6")
 			})
 		})
@@ -195,7 +195,7 @@ func TestRemoveIndirection(t *testing.T) {
 
 func TestGetRealAddress(t *testing.T) {
 	Convey("Given an address configOverride", t, func() {
-		LocalOverrides = &configOverride{
+		overrides := &ConfigOverride{
 			ListenAddresses: &addressOverride{
 				addressMap: map[string]string{
 					"localhost:5555": "127.0.0.1:8080",
@@ -205,7 +205,7 @@ func TestGetRealAddress(t *testing.T) {
 		}
 
 		Convey("Given a full address match", func() {
-			redirect := GetRealAddress("localhost", "5555")
+			redirect := overrides.GetRealAddress("localhost", "5555")
 
 			Convey("Then it should return the associated address", func() {
 				So(redirect, ShouldEqual, "127.0.0.1:8080")
@@ -213,7 +213,7 @@ func TestGetRealAddress(t *testing.T) {
 		})
 
 		Convey("Given a host match", func() {
-			redirect := GetRealAddress("1.2.3.4", "5555")
+			redirect := overrides.GetRealAddress("1.2.3.4", "5555")
 
 			Convey("Then it should return the associated host with the old port", func() {
 				So(redirect, ShouldEqual, "9.8.7.6:5555")
@@ -221,7 +221,7 @@ func TestGetRealAddress(t *testing.T) {
 		})
 
 		Convey("Given no match", func() {
-			redirect := GetRealAddress("192.168.1.1", "6666")
+			redirect := overrides.GetRealAddress("192.168.1.1", "6666")
 
 			Convey("Then it should return the address as is", func() {
 				So(redirect, ShouldEqual, "192.168.1.1:6666")
