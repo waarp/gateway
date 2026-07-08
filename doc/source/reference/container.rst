@@ -482,7 +482,6 @@ Voici le processus suivi lors du démarrage :
    :Écriture du fichier de configuration;
 
    if (Utilisation de Manager) then (oui)
-
       if (Certificats présents) then (oui)
       else (non)
          :Génération de certificats
@@ -492,35 +491,28 @@ Voici le processus suivi lors du démarrage :
       if (Gateway est déclarée dans Manager) then (oui)
          :Téléchargement de la configuration
          depuis Manager;
-
          :Import de la configuration
          dans Gatewayd;
       else (non)
+         :Vérification des variables
+         d'environnement requises;
+         :Enregistrement dans Manager;
+         :Création du flux de configuration;
+         :Téléchargement de la configuration
+         depuis Manager;
+         :Import de la configuration
+         dans Gatewayd;
       endif
 
+      :Exécution des migrations
+      de la base de données;
+
+      :Lancement de Gatewayd;
    else (non)
-   endif
+      :Exécution des migrations
+      de la base de données;
 
-   :Lancement de Gatewayd;
-
-   if (Gateway est déclarée dans Manager) then (oui)
-   else (non)
-      :Vérification des variables
-      d'environnement requises
-      pour l'enregistrement du partenaire;
-
-      :Enregistrement dans Manager;
-
-      :Création du flux de
-      configuration;
-
-      :Téléchargement de la configuration
-      depuis Manager;
-
-      :Import de la configuration
-      dans Gatewayd;
-         
-      :Redémarrage de Gatewayd;
+      :Lancement de Gatewayd;
    endif
 
    stop
