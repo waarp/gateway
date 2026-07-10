@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :fix:`591` Les images OCI sont maintenant toujours basées sur la dernière
+  version stable de Debian.
 * :feature:`592` Les images OCI utilisent des utilisateurs non prévilégiés.
 * :bug:`575` Correction de l'unité du ``checkpointSize`` : la valeur est en
   kilo-octets, pas en octets. Le défaut passe donc de 65535 à 65.

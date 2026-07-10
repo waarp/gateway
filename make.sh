@@ -327,7 +327,11 @@ build_container() {
     -e "s|; \(AESPassphrase =\) |\1 /app/etc/|" \
     "$dest/etc/gatewayd.ini"
 
-  $DOCKER_CMD image build --load -t "$IMAGE_TAG" .
+  $DOCKER_CMD image build \
+    --load \
+    --pull=newer \
+    --build-arg VERSION="$(cat VERSION | tr -d '\n')" \
+    --tag "$IMAGE_TAG" .
 }
 
 t_bump() {
