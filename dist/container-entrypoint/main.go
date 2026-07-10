@@ -71,8 +71,11 @@ func runMigrations(serverConf *conf.ServerConfig) {
 
 	deadline := time.Now().Add(time.Duration(timeout) * time.Second)
 
+	confFile := defaultConfigFile
+	setStringFromEnv("CONFIG", &confFile)
+
 	for {
-		cmd := exec.Command(gatewaydBin, "migrate", "--config", defaultConfigFile)
+		cmd := exec.Command(gatewaydBin, "migrate", "--config", confFile)
 		out, err := cmd.CombinedOutput()
 
 		for line := range strings.SplitSeq(string(out), "\n") {
