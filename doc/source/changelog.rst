@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`596` Les images OCI exécutent les migrations de base de données vant
+  le langement de Gateway
 * :fix:`591` Les images OCI sont maintenant toujours basées sur la dernière
   version stable de Debian.
 * :feature:`592` Les images OCI utilisent des utilisateurs non prévilégiés.

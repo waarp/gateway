@@ -254,6 +254,19 @@ utilisé par :program:`waarp-gatewayd`.
    configuration.
 
 
+.. envvar:: WAARP_GATEWAY_DB_MIGRATION_TIMEOUT
+
+   Délai maximum en secondes pour attendre que la base de données soit
+   disponible avant d'exécuter les migrations. Par défaut: ``30`` secondes.
+
+   Les migrations de la base de données sont exécutées automatiquement au
+   démarrage du container. Si la base de données n'est pas encore accessible,
+   l'entrypoint va réessayer jusqu'à ce que le délai soit écoulé.
+
+   Si les migrations échouent après ce délai, le container s'arrête avec
+   un code d'erreur.
+
+
 .. envvar:: WAARP_GATEWAY_MAX_IN
 
    Le nombre maximum autorisé de transferts entrants simultanés. Illimité par
@@ -406,6 +419,44 @@ Synchronisation depuis manager
    d'environnement, un certificat sera généré lors du démarrage du container.
 
 
+Codes de sortie
+================
+
+L'entrypoint du container peut s'arrêter avec les codes de sortie suivants :
+
+.. list-table::
+   :header-rows: 1
+   :widths: 10 20 80
+
+   * - Code
+     - Nom
+     - Description
+   * - 0
+     - Succès
+     - Le container s'est démarré correctement et Waarp Gateway est en cours d'exécution.
+   * - 1
+     - ``ExitBadConfFile``
+     - Erreur lors de la lecture ou de l'écriture du fichier de configuration.
+   * - 2
+     - ``ExitCodeBadConfValue``
+     - Valeur de configuration invalide fournie via les variables d'environnement.
+   * - 3
+     - ``ExitManagerConfError``
+     - Erreur lors de la synchronisation de la configuration avec Waarp Manager.
+   * - 4
+     - ``ExitCannotCreateCerts``
+     - Erreur lors de la génération ou de la vérification des certificats.
+   * - 5
+     - ``ExitGatewayError``
+     - Erreur lors du démarrage de Waarp Gateway.
+   * - 6
+     - ``ExitDBMigrateError``
+     - Les migrations de la base de données ont échoué après avoir dépassé le délai configuré.
+   * - 7
+     - ``exitLogBackendError``
+     - Erreur lors de l'initialisation du système de logging.
+
+
 Séquence de démarrage
 =====================
 
@@ -431,7 +482,6 @@ Voici le processus suivi lors du démarrage :
    :Écriture du fichier de configuration;
 
    if (Utilisation de Manager) then (oui)
-
       if (Certificats présents) then (oui)
       else (non)
          :Génération de certificats
@@ -441,35 +491,28 @@ Voici le processus suivi lors du démarrage :
       if (Gateway est déclarée dans Manager) then (oui)
          :Téléchargement de la configuration
          depuis Manager;
-
          :Import de la configuration
          dans Gatewayd;
       else (non)
+         :Vérification des variables
+         d'environnement requises;
+         :Enregistrement dans Manager;
+         :Création du flux de configuration;
+         :Téléchargement de la configuration
+         depuis Manager;
+         :Import de la configuration
+         dans Gatewayd;
       endif
 
+      :Exécution des migrations
+      de la base de données;
+
+      :Lancement de Gatewayd;
    else (non)
-   endif
+      :Exécution des migrations
+      de la base de données;
 
-   :Lancement de Gatewayd;
-
-   if (Gateway est déclarée dans Manager) then (oui)
-   else (non)
-      :Vérification des variables
-      d'environnement requises
-      pour l'enregistrement du partenaire;
-
-      :Enregistrement dans Manager;
-
-      :Création du flux de
-      configuration;
-
-      :Téléchargement de la configuration
-      depuis Manager;
-
-      :Import de la configuration
-      dans Gatewayd;
-         
-      :Redémarrage de Gatewayd;
+      :Lancement de Gatewayd;
    endif
 
    stop

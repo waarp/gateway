@@ -307,7 +307,7 @@ build_container() {
   rm -rf "$dest"
   mkdir -p "$dest"/{etc,bin,share,data/db}
 
-  # build container-entrypoint
+  echo "    --> building container-entrypoint"
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/container-entrypoint_linux_amd64" ./dist/container-entrypoint
@@ -327,6 +327,7 @@ build_container() {
     -e "s|; \(AESPassphrase =\) |\1 /app/etc/|" \
     "$dest/etc/gatewayd.ini"
 
+  echo "    --> building the image"
   $DOCKER_CMD image build \
     --load \
     --pull=newer \
