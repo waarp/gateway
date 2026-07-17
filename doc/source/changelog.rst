@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`-` Lors d'un transfert SFTP *push*, Gateway ne crée désormais plus de
+  fichier vide lorsqu'une erreur se produit avant le début de l'envoi de données.
+* :bug:`-` Si Gateway échoue à vérifier ou à créer le dossier parent lors d'un
+  transfert SFTP *push*, cette erreur n'est désormais plus bloquante. L'erreur
+  sera loggée en *warning* et Gateway tentera de poursuivre le transfert malgré
+  tout.
 * :feature:`596` Les images OCI exécutent les migrations de base de données vant
   le langement de Gateway
 * :fix:`591` Les images OCI sont maintenant toujours basées sur la dernière

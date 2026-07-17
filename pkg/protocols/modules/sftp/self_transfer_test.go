@@ -59,10 +59,10 @@ func TestPushClientPreError(t *testing.T) {
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
 			ctx.AddClientPreTaskError(c)
+			ctx.NoWaitServer()
 			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
@@ -72,8 +72,7 @@ func TestPushClientPreError(t *testing.T) {
 					types.StepPreTasks)
 				// The state of the server transfer is undefined here. Since SFTP
 				// has no mechanism for transmitting errors from client to server,
-				// the server considers the transfer "done", when in reality it
-				// failed.
+				// no transfer took place from the server's point of view.
 			})
 		})
 	})
@@ -97,7 +96,7 @@ func TestPushServerPreError(t *testing.T) {
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Error on remote partner: pre-tasks failed",
-					types.StepSetup)
+					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PUSH PRE[1]: task failed",
@@ -115,10 +114,10 @@ func TestPullClientPreError(t *testing.T) {
 
 		Convey("Given that an error occurs in client pre-tasks", func(c C) {
 			ctx.AddClientPreTaskError(c)
+			ctx.NoWaitServer()
 			ctx.RunTransfer(c, true)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerShouldHavePreTasked(c)
 				ctx.ClientShouldHavePreTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
 
@@ -128,8 +127,7 @@ func TestPullClientPreError(t *testing.T) {
 					types.StepPreTasks)
 				// The state of the server transfer is undefined here. Since SFTP
 				// has no mechanism for transmitting errors from client to server,
-				// the server considers the transfer "done", when in reality it
-				// failed.
+				// no transfer took place from the server's point of view.
 			})
 		})
 	})
@@ -153,7 +151,7 @@ func TestPullServerPreError(t *testing.T) {
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Error on remote partner: pre-tasks failed",
-					types.StepSetup)
+					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
 					"Task TASKERR @ PULL PRE[1]: task failed",

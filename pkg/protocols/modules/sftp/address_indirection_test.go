@@ -53,7 +53,6 @@ func TestAddressIndirection(t *testing.T) {
 				So(cli.Request(), ShouldBeNil)
 
 				defer func() {
-					_ = cli.sftpFile.Close()
 					cli.conns.CloseConnFor(ctx.RemAccount)
 				}()
 
