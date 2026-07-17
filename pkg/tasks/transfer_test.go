@@ -30,6 +30,8 @@ func (t *testClientPipeline) Run() error {
 func (t *testClientPipeline) Interrupt(context.Context) error { return nil }
 
 func TestTransferRun(t *testing.T) {
+	t.Parallel()
+
 	replaceArg := func(tb testing.TB, args map[string]string, key, value string) {
 		oldVal := args[key]
 		args[key] = value

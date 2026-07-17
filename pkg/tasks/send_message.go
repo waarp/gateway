@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	SendMessageAckSentKey   = "__ackSent__"
-	SendMessageAckSentToKey = "__ackSentTo__"
-	SendMessageAckSentAsKey = "__ackSentAs__"
-	SendMessageAckSentOnKey = "__ackSentOn__"
+	SendMessageAckExpectedKey = "__ackExpected__"
+	SendMessageAckSentKey     = "__ackSent__"
+	SendMessageAckSentToKey   = "__ackSentTo__"
+	SendMessageAckSentAsKey   = "__ackSentAs__"
+	SendMessageAckSentOnKey   = "__ackSentOn__"
 )
 
 type MessageSender interface {
@@ -47,9 +48,9 @@ type sendMessageTask struct {
 	Client  string `json:"client"`
 	Message string `json:"message"`
 
-	partner *model.RemoteAgent
-	account *model.RemoteAccount
-	client  *model.Client
+	partner model.RemoteAgent
+	account model.RemoteAccount
+	client  model.Client
 }
 
 func (t *sendMessageTask) ValidateDB(db database.ReadAccess, args map[string]string) error {
@@ -69,17 +70,18 @@ func (t *sendMessageTask) ValidateDB(db database.ReadAccess, args map[string]str
 		return ErrSendMessageNoClient
 	}
 
-	if err := db.Get(t.client, "name=?", t.Client).Run(); err != nil {
+	if err := db.Get(&t.client, "name=?", t.Client).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve client %q: %w", t.Client, err)
 	}
 
-	if err := db.Get(t.partner, "name=?", t.Partner).Run(); err != nil {
+	if err := db.Get(&t.partner, "name=?", t.Partner).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve partner %q: %w", t.Partner, err)
 	}
 
-	var err error
-	if t.account, err = t.partner.GetAccount(db, t.Account); err != nil {
+	if account, err := t.partner.GetAccount(db, t.Account); err != nil {
 		return fmt.Errorf("failed to retrieve account %q: %w", t.Account, err)
+	} else {
+		t.account = *account
 	}
 
 	return nil
@@ -101,13 +103,18 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 	logger.Infof("SENDMESSAGE: sending message to partner %q as %q", t.Partner, t.Account)
 	tID := transCtx.Transfer.RemoteTransferID
 
-	if err := sender.SendMessage(db, logger, t.client, t.partner, t.account, tID, t.Message); err != nil {
+	if err := sender.SendMessage(db, logger, &t.client, &t.partner, &t.account, tID, t.Message); err != nil {
 		return fmt.Errorf("SENDMESSAGE failed: %w", err)
 	}
 
 	logger.Infof("SENDMESSAGE: F.MESSAGE sent successfully to %s as %s", t.Partner, t.Account)
 
 	// Mark the transfer as ACK-sent for GUI visibility.
+	if transCtx.Transfer.TransferInfo == nil {
+		transCtx.Transfer.TransferInfo = map[string]any{}
+	}
+
+	delete(transCtx.Transfer.TransferInfo, SendMessageAckExpectedKey)
 	transCtx.Transfer.TransferInfo[SendMessageAckSentKey] = true
 	transCtx.Transfer.TransferInfo[SendMessageAckSentToKey] = t.Partner
 	transCtx.Transfer.TransferInfo[SendMessageAckSentAsKey] = t.Account

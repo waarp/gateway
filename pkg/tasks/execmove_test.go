@@ -12,6 +12,8 @@ import (
 )
 
 func TestExecMoveValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given an 'EXECMOVE' task", t, func() {
 		exec := &execMoveTask{}
 
@@ -81,6 +83,8 @@ func TestExecMoveValidate(t *testing.T) {
 }
 
 func TestExecMoveRun(t *testing.T) {
+	t.Parallel()
+
 	transCtx := getExecTransCtx(t)
 
 	Convey("Given an 'EXECMOVE' task", t, func(c C) {

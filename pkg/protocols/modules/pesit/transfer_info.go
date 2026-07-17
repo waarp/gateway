@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"slices"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/lib/pesit"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -21,7 +21,7 @@ const (
 	customerIDKey   = "__customerID__"
 	bankIDKey       = "__bankID__"
 
-	ackExpectedKey   = "__ackExpected__"
+	ackExpectedKey   = tasks.SendMessageAckExpectedKey
 	ackSentKey       = tasks.SendMessageAckSentKey
 	ackSentOnKey     = tasks.SendMessageAckSentOnKey
 	ackReceivedKey   = "__ackReceived__"
@@ -168,13 +168,4 @@ func addArticleFormat(pip *pipeline.Pipeline, f interface {
 },
 ) {
 	pip.TransCtx.Transfer.TransferInfo[articlesFormatKey] = f.ArticleFormat().String()
-}
-
-func expectsAck(pip *pipeline.Pipeline) bool {
-	val, err := utils.GetAs[bool](pip.TransCtx.Transfer.TransferInfo, ackExpectedKey)
-	if err != nil {
-		return false
-	}
-
-	return val
 }

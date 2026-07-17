@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
+  supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des
+  métadonnées avant un rebond ou conditionner des tâches suivantes.
 * :bug:`-` Lors d'un transfert SFTP *push*, Gateway ne crée désormais plus de
   fichier vide lorsqu'une erreur se produit avant le début de l'envoi de données.
 * :bug:`-` Si Gateway échoue à vérifier ou à créer le dossier parent lors d'un

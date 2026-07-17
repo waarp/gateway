@@ -21,6 +21,7 @@ const (
 	Rename      = "RENAME"
 	Transfer    = "TRANSFER"
 	Preregister = "PREREGISTER"
+	SetInfo     = "SETINFO"
 
 	Encrypt          = "ENCRYPT"
 	Decrypt          = "DECRYPT"
@@ -60,6 +61,7 @@ func init() {
 	model.ValidTasks[Rename] = newRunner[*renameTask] // "RENAME" is in fact a "change target" task
 	model.ValidTasks[Transfer] = newRunner[*TransferTask]
 	model.ValidTasks[Preregister] = newRunner[*TransferPreregister]
+	model.ValidTasks[SetInfo] = newRunner[*setInfoTask]
 
 	// File encryption & signing
 	model.ValidTasks[Encrypt] = newRunner[*encrypt]

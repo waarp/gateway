@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -33,6 +32,8 @@ type testFile struct {
 }
 
 func TestMail(t *testing.T) {
+	t.Parallel()
+
 	// Path to the JSON file containing the task arguments.
 	const argsJsonFile = ""
 
@@ -54,7 +55,7 @@ func TestMail(t *testing.T) {
 		EmailAddress:  args.Credential.SenderAddress,
 		ServerAddress: *servAddr,
 		Login:         args.Credential.Login,
-		Password:      database.secretText(args.Credential.Password),
+		Password:      args.Credential.Password,
 	}
 	require.NoError(t, db.Insert(&cred).Run())
 
@@ -73,7 +74,7 @@ func TestMail(t *testing.T) {
 	}
 
 	tCtx := &model.TransferContext{
-		Transfer: &model.Transfer{ID: 1234},
+		Transfer: &model.Transfer{Identifier: model.ID(1234)},
 	}
 
 	require.NoError(t, task.Run(ctx, taskParams, db, logger, tCtx, nil))

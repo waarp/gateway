@@ -12,6 +12,8 @@ import (
 )
 
 func TestCopyRenameTaskValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a valid argument", t, func() {
 		args := map[string]string{
 			"path": "path/to/dest",
@@ -46,6 +48,8 @@ func TestCopyRenameTaskValidate(t *testing.T) {
 }
 
 func TestCopyRenameTaskRun(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a Runner for the 'COPYRENAME' task", t, func(c C) {
 		root := t.TempDir()
 		logger := testhelpers.TestLogger(c, "task_copyrename")

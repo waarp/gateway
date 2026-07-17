@@ -13,6 +13,8 @@ import (
 )
 
 func TestCopyTaskValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a valid model.Task", t, func() {
 		args := map[string]string{
 			"path": "path/to/dest",
@@ -47,6 +49,8 @@ func TestCopyTaskValidate(t *testing.T) {
 }
 
 func TestCopyTaskRun(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a Runner for the 'COPY' task", t, func(c C) {
 		root := t.TempDir()
 		logger := testhelpers.TestLogger(c, "task_copy")

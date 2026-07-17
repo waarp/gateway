@@ -222,10 +222,6 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		return transErrToPesitErr(pipErr)
 	}
 
-	if expectsAck(pip) {
-		pip.WaitAck = true
-	}
-
 	pip.SetInterruptionHandlers(t.Pause, t.Interrupt, t.Cancel)
 	t.pip = pip
 

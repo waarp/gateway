@@ -82,13 +82,15 @@ func sendMessage(db database.ReadAccess, logger *log.Logger,
 	pesitClient.SetNSDUUsage(partConf.UseNSDU.Value)
 
 	for _, cred := range accountCreds {
-		if cred.Type == PreConnectionAuth {
-			pesitClient.SetPreConnectionUsage(true)
-			pesitClient.SetPreConnectLogin(cred.Value)
-			pesitClient.SetPreConnectPassword(cred.Value2)
-
-			break
+		if cred.Type != PreConnectionAuth {
+			continue
 		}
+
+		pesitClient.SetPreConnectionUsage(true)
+		pesitClient.SetPreConnectLogin(cred.Value)
+		pesitClient.SetPreConnectPassword(cred.Value2)
+
+		break
 	}
 
 	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}

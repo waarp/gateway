@@ -49,8 +49,7 @@ type Pipeline struct {
 	storedErr *Error
 	errOnce   sync.Once
 
-	Runner  *tasks.Runner
-	WaitAck bool
+	Runner *tasks.Runner
 }
 
 //nolint:funlen //function is fine as is
@@ -331,7 +330,8 @@ func (p *Pipeline) EndTransfer() *Error {
 		p.TransCtx.Transfer.TaskNumber = 0
 
 		// If transfer is waiting for acknowledgement, do not mark it as done yet
-		if p.WaitAck {
+		if expectsAck, jsErr := utils.GetAs[bool](p.TransCtx.Transfer.TransferInfo,
+			tasks.SendMessageAckExpectedKey); jsErr == nil && expectsAck {
 			if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
 				p.Logger.Errorf("Failed to update transfer: %v", err)
 				p.errorTasks()

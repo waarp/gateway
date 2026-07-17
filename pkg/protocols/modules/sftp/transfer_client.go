@@ -107,11 +107,11 @@ func (c *transferClient) requestReceive(filepath string) *pipeline.Error {
 func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 	filepath := c.pip.TransCtx.Transfer.RemotePath
 
-	var err error
-	if c.sftpFile, err = c.sftpSession.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC); err != nil {
-		c.pip.Logger.Errorf("Failed to create remote file: %v", err)
+	var openErr error
+	if c.sftpFile, openErr = c.sftpSession.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC); openErr != nil {
+		c.pip.Logger.Errorf("Failed to create remote file: %v", openErr)
 
-		return fromSFTPErr(err, types.TeUnknownRemote, c.pip)
+		return fromSFTPErr(openErr, types.TeUnknownRemote, c.pip)
 	}
 
 	if _, err := c.sftpFile.ReadFrom(file); err != nil {
@@ -131,11 +131,11 @@ func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	filepath := c.pip.TransCtx.Transfer.RemotePath
 
-	var err error
-	if c.sftpFile, err = c.sftpSession.Open(filepath); err != nil {
-		c.pip.Logger.Errorf("Failed to open remote file: %v", err)
+	var openErr error
+	if c.sftpFile, openErr = c.sftpSession.Open(filepath); openErr != nil {
+		c.pip.Logger.Errorf("Failed to open remote file: %v", openErr)
 
-		return fromSFTPErr(err, types.TeUnknownRemote, c.pip)
+		return fromSFTPErr(openErr, types.TeUnknownRemote, c.pip)
 	}
 
 	if c.pip.TransCtx.Transfer.Progress != 0 {

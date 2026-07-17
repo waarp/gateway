@@ -34,6 +34,10 @@ func (*RemoteAccount) Preloads() []string { return []string{"RemoteAgent"} }
 //
 //nolint:dupl // too many differences to be factorized easily
 func (r *RemoteAccount) BeforeWrite(db database.Access) error {
+	if r.RemoteAgent.ID != 0 {
+		r.RemoteAgentID = r.RemoteAgent.ID
+	}
+
 	if r.RemoteAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}

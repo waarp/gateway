@@ -12,6 +12,8 @@ import (
 )
 
 func TestMoveRenameTaskValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a valid model.Task", t, func() {
 		args := map[string]string{
 			"path": "path/to/dest",
@@ -46,6 +48,8 @@ func TestMoveRenameTaskValidate(t *testing.T) {
 }
 
 func TestMoveRenameTaskRun(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 
 	Convey("Given a Runner for a sending transfer", t, func(c C) {

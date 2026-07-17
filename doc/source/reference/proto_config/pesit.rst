@@ -87,6 +87,10 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par
   défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.
+* **expectsAck** (*boolean*) - Spécifie que le partenaire attend systématiquement
+  un *acknowledgement* pour les transferts *pull*. Voir la section ":ref:`Messages
+  <ref-pesit-messages>`" de la documentation PeSIT pour plus de détails sur les
+  *acknowledgements*.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.

@@ -12,6 +12,8 @@ import (
 )
 
 func TestTranscode(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	logger := testhelpers.GetTestLogger(t)
 

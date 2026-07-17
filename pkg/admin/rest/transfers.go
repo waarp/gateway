@@ -400,7 +400,7 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 
 		for i := 0; ; i += batchSize {
 			var transfers model.Transfers
-			if err := ses.Select(&transfers).In("status", statuses...).
+			if err := ses.Select(&transfers).In("status", statuses...).Eager().
 				Limit(batchSize, i).Run(); err != nil {
 				logger.Errorf("Failed to retrieve transfers: %v", err)
 
@@ -411,12 +411,18 @@ func cancelDBTransfer(db *database.DB, logger *log.Logger, w http.ResponseWriter
 				break
 			}
 
-			for _, trans := range transfers {
+			hists := make([]*model.HistoryEntry, len(transfers))
+			for j, trans := range transfers {
 				trans.Status = types.StatusCancelled
 
-				if err := trans.CopyToHistory(ses, logger, time.Time{}); err != nil {
+				var err error
+				if hists[j], err = trans.MakeHistoryEntry(ses, time.Time{}); err != nil {
 					return fmt.Errorf("failed to move transfer %d to history: %w", trans.ID, err)
 				}
+			}
+
+			if err := database.InsertBatch(ses, hists...); err != nil {
+				return fmt.Errorf("failed to insert history entries: %w", err)
 			}
 		}
 

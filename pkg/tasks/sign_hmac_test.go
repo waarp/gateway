@@ -29,6 +29,7 @@ func TestSignHMACMD5(t *testing.T) {
 
 func testSignHMAC(t *testing.T, method string) {
 	t.Helper()
+	t.Parallel()
 
 	const testFileContent = `Lorem ipsum dolor sit amet, consectetur adipiscing
 elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim

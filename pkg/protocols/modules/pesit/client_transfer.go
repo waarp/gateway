@@ -105,8 +105,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 		return pipeline.NewErrorWith(err, types.TeInternal, "failed to parse the pesit partner's proto config")
 	}
 
-	if partConf.ExpectsAck || expectsAck(c.pip) {
-		c.pip.WaitAck = true
+	if partConf.ExpectsAck {
 		c.pip.TransCtx.Transfer.TransferInfo[ackExpectedKey] = true
 	}
 

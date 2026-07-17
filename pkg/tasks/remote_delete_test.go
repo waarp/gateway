@@ -28,6 +28,8 @@ func (t *testRemoteDeleter) Delete(ctx context.Context, path string, recursive b
 }
 
 func TestRemoteDelete(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 	mkTask := model.ValidTasks[RemoteDelete]

@@ -49,6 +49,7 @@ var formFiles = []taskCategory{
 			{tasknames.Rename, "tasks/rename/rename.gohtml", "tasks/rename/rename.yaml"},
 			{tasknames.Transfer, "tasks/transfer/transfer.gohtml", "tasks/transfer/transfer.yaml"},
 			{tasknames.Preregister, "tasks/preregister/preregister.gohtml", "tasks/preregister/preregister.yaml"},
+			{tasknames.SetInfo, "tasks/setinfo/setinfo.gohtml", "tasks/setinfo/setinfo.yaml"},
 		},
 	}, {
 		Name: "fileAlterations",

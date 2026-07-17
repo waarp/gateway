@@ -44,6 +44,7 @@ func TestArchiveTarZlib(t *testing.T) {
 
 func testArchive(t *testing.T, extension string) {
 	t.Helper()
+	t.Parallel()
 
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)

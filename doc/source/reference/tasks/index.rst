@@ -43,13 +43,14 @@ Liste des traitements
    rename
    transfer
    preregister
+   sendmessage
+   setinfo
    transcode
    change_newline
    archive
    extract
    icap
    email
-   sendmessage
    encrypt
    decrypt
    sign
