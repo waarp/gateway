@@ -94,7 +94,7 @@ type ServerConfig struct {
 	// Deprecated: This is no longer useful as the library detects the preconnection stage.
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
-	// this server. Default is 65KB.
+	// this server. Default is 65535.
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
 }
 
@@ -145,7 +145,7 @@ type PartnerConfig struct {
 	// Accepted values are: "standard" or "non-standard". Default is "standard".
 	CompatibilityMode CompatibilityMode `json:"compatibilityMode,omitempty"`
 	// MaxMessageSize defines the maximum allowed size for PeSIT packages sent to
-	// this partner. Default is 65KB.
+	// this partner. Default is 65535.
 	MaxMessageSize uint16 `json:"maxMessageSize,omitempty"`
 	// DisablePreConnection disables the pre-connection authentication when
 	// connecting to this partner. By default, the pre-connection authentication
