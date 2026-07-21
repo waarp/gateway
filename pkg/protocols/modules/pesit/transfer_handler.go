@@ -17,13 +17,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
-
-const bytesPerKB int64 = 1024
-
-var _ tasks.MessageSender = &transferHandler{}
 
 type transferHandler struct {
 	db      *database.DB

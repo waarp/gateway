@@ -37,7 +37,11 @@ func TestMessage(t *testing.T) {
 	require.NoError(t, db.Insert(client).Run())
 
 	transCtx := &model.TransferContext{
-		Transfer: &model.Transfer{RemoteTransferID: "123456"},
+		Transfer: &model.Transfer{
+			RemoteTransferID: "123456",
+			SrcFilename:      "test_filename",
+			TransferInfo:     map[string]any{"key": "value"},
+		},
 	}
 	remote := &testMessageRemote{}
 	task := &sendMessageTask{}
@@ -54,25 +58,33 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, partner, remote.partner)
 	assert.Equal(t, account, remote.account)
 	assert.Equal(t, transCtx.Transfer.RemoteTransferID, remote.transferID)
+	assert.Equal(t, transCtx.Transfer.TransferInfo, remote.infos)
+	assert.Equal(t, transCtx.Transfer.SrcFilename, remote.filename)
 	assert.Equal(t, "hello world!", remote.message)
 }
+
+var _ MessageSender = &testMessageRemote{}
 
 type testMessageRemote struct {
 	client     *model.Client
 	partner    *model.RemoteAgent
 	account    *model.RemoteAccount
+	infos      map[string]any
 	transferID string
+	filename   string
 	message    string
 }
 
 func (t *testMessageRemote) SendMessage(_ *database.DB, _ *log.Logger,
 	client *model.Client, partner *model.RemoteAgent, account *model.RemoteAccount,
-	transferID, message string,
+	transferInfo map[string]any, transferID, filename, message string,
 ) error {
 	t.client = client
 	t.partner = partner
 	t.account = account
+	t.infos = transferInfo
 	t.transferID = transferID
+	t.filename = filename
 	t.message = message
 
 	return nil

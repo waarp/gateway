@@ -1,6 +1,7 @@
 package pesit
 
 import (
+	"io"
 	"net"
 	"testing"
 
@@ -27,8 +28,8 @@ func TestMessageHandlerClient(t *testing.T) {
 		destPartnerName = "dest_partner"
 		password        = "sesame"
 
-		followID = 123456
-		message  = "transfer acknowledged"
+		followID   = 123456
+		msgContent = "transfer acknowledged"
 	)
 
 	// ############ SETUP LOCAL SERVER ###############
@@ -102,7 +103,6 @@ func TestMessageHandlerClient(t *testing.T) {
 
 	// ############ CONNECT ###############
 	pesitClient := pesit.NewClient(locAccount.Login, password, server.Name)
-	pesitClient.SetNSDUUsage(true)
 	conn, err := net.Dial("tcp", server.Address.String())
 	require.NoError(t, err)
 	require.NoError(t, pesitClient.Connect(conn))
@@ -110,13 +110,20 @@ func TestMessageHandlerClient(t *testing.T) {
 	// ############ SEND MESSAGE ###############
 	transferID, err := utils.ParseUint[uint32](transDest.RemoteTransferID)
 	require.NoError(t, err)
-	require.NoError(t, pesitClient.SendMessage(transferID, message))
+	message, err := pesitClient.NewMessage(pesit.FileACK, transDest.SrcFilename, transferID,
+		pesit.WithClientLogin(locAccount.Login))
+	require.NoError(t, err)
+	_, err = io.WriteString(message, msgContent)
+	require.NoError(t, err)
+	require.NoError(t, message.Close())
 
 	// ############ CHECK ORIGIN ###############
 	assert.Equal(t, origAccount.Login, origPartnerServer.login)
 	assert.Equal(t, password, origPartnerServer.pswd)
-	assert.Equal(t, transOrig.RemoteTransferID, utils.FormatUint(origPartnerServer.msg.TransferID))
-	assert.Equal(t, message, origPartnerServer.msg.Message)
+	assert.Equal(t, pesit.FileACK, origPartnerServer.msgType)
+	assert.Equal(t, transOrig.RemoteTransferID, utils.FormatUint(origPartnerServer.msgTransID))
+	assert.Equal(t, transDest.SrcFilename, origPartnerServer.msgFilename)
+	assert.Equal(t, msgContent, origPartnerServer.msgContent)
 
 	// ############ CHECK TRANSFERS ###############
 	var check model.NormalizedTransfers
@@ -149,8 +156,8 @@ func TestMessageHandlerServer(t *testing.T) {
 		destPartnerName = "dest_partner"
 		password        = "sesame"
 
-		followID = 123456
-		message  = "transfer acknowledged"
+		followID   = 123456
+		msgContent = "transfer acknowledged"
 	)
 
 	// ############ SETUP LOCAL SERVER ###############
@@ -226,7 +233,6 @@ func TestMessageHandlerServer(t *testing.T) {
 
 	// ############ CONNECT ###############
 	pesitClient := pesit.NewClient(destLocAccount.Login, password, server.Name)
-	pesitClient.SetNSDUUsage(true)
 	conn, err := net.Dial("tcp", server.Address.String())
 	require.NoError(t, err)
 	require.NoError(t, pesitClient.Connect(conn))
@@ -234,13 +240,20 @@ func TestMessageHandlerServer(t *testing.T) {
 	// ############ SEND MESSAGE ###############
 	transferID, err := utils.ParseUint[uint32](transDest.RemoteTransferID)
 	require.NoError(t, err)
-	require.NoError(t, pesitClient.SendMessage(transferID, message))
+	message, err := pesitClient.NewMessage(pesit.FileACK, transDest.SrcFilename, transferID,
+		pesit.WithClientLogin(destLocAccount.Login))
+	require.NoError(t, err)
+	_, err = io.WriteString(message, msgContent)
+	require.NoError(t, err)
+	require.NoError(t, message.Close())
 
 	// ############ CHECK ORIGIN ###############
 	assert.Equal(t, origAccount.Login, origPartnerServer.login)
 	assert.Equal(t, password, origPartnerServer.pswd)
-	assert.Equal(t, transOrig.RemoteTransferID, utils.FormatUint(origPartnerServer.msg.TransferID))
-	assert.Equal(t, message, origPartnerServer.msg.Message)
+	assert.Equal(t, pesit.FileACK, origPartnerServer.msgType)
+	assert.Equal(t, transOrig.RemoteTransferID, utils.FormatUint(origPartnerServer.msgTransID))
+	assert.Equal(t, transDest.SrcFilename, origPartnerServer.msgFilename)
+	assert.Equal(t, msgContent, origPartnerServer.msgContent)
 
 	// ############ CHECK TRANSFERS ###############
 	var check model.NormalizedTransfers

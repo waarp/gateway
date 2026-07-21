@@ -26,6 +26,8 @@ code.waarp.fr/lib/pesit v0.1.7-0.20260720141718-c3cb019d7b24 h1:LKJUPNTAxqV+gsyS
 code.waarp.fr/lib/pesit v0.1.7-0.20260720141718-c3cb019d7b24/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
 code.waarp.fr/lib/pesit v0.1.7-0.20260721163551-7bfdfde1d17c h1:paIYJXiFvleA/GEA7E0J81oZCkN/+EImE6gS+bKxkf4=
 code.waarp.fr/lib/pesit v0.1.7-0.20260721163551-7bfdfde1d17c/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.7-0.20260721212326-f1933c67605c h1:7XsyOuoHaPx4yjtGRQt0gWyBgzrRkXfoZ757UptJmHg=
+code.waarp.fr/lib/pesit v0.1.7-0.20260721212326-f1933c67605c/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
 code.waarp.fr/lib/r66 v1.0.8 h1:RHNbOzY95eKPA/yYHU559tdY2eAqQvjR+Fz+R3WTS7w=
 code.waarp.fr/lib/r66 v1.0.8/go.mod h1:APiI1uK3RliA/0opgYWCzS7q3GxdypkRiaesjhclUZI=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=

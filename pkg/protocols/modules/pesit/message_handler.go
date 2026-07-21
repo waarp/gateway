@@ -1,8 +1,10 @@
 package pesit
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"code.waarp.fr/lib/pesit"
@@ -15,33 +17,47 @@ import (
 
 var ErrDatabase = pesit.NewDiagnostic(pesit.CodeInternalError, "database error")
 
+var _ pesit.MessageHandler = &service{}
+
 // HandleMessage implements pesit.MessageHandler. It is called when a remote
 // partner sends a F.MESSAGE on an established connection. The message metadata
 // is logged and persisted as TransferInfo on the referenced transfer (if found).
 //
 //nolint:gocritic //cannot change function signature
-func (s *service) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageRequest) error {
-	s.logger.Infof("F.MESSAGE received from %q: transferID=%d customerID=%q bankID=%q message=%q",
-		msg.ClientLogin, msg.TransferID, msg.CustomerID, msg.BankID, msg.Message)
+func (s *service) HandleMessage(req *pesit.MessageRequest, cont io.Reader,
+) (*pesit.MessageResult, error) {
+	content, rErr := io.ReadAll(cont)
+	if rErr != nil {
+		s.logger.Errorf("Failed to read message: %s", rErr)
 
-	if msg.TransferID == 0 {
-		return nil
+		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to read message")
 	}
 
-	remoteID := utils.FormatUint(msg.TransferID)
+	s.logger.Infof("F.MESSAGE received from %q: transferID=%d customerID=%q bankID=%q message=%q",
+		req.ClientLogin, req.TransferID, req.CustomerID, req.BankID, string(content))
+
+	if req.MessageType != pesit.FileACK {
+		return &pesit.MessageResult{}, nil
+	}
+
+	if req.TransferID == 0 {
+		return &pesit.MessageResult{}, nil
+	}
+
+	remoteID := utils.FormatUint(req.TransferID)
 
 	// Find the outgoing transfer that this ACK references.
 	var outTrans model.NormalizedTransferView
 	if err := s.db.Get(&outTrans, `remote_transfer_id=?`, remoteID).
-		And("is_transfer=true").And("is_send=true").And("agent=?", msg.ClientLogin).
+		And("is_transfer=true").And("is_send=true").And("agent=?", req.ClientLogin).
 		OrderBy("start", false).Eager().Run(); database.IsNotFound(err) {
-		s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", msg.TransferID)
+		s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", req.TransferID)
 
-		return nil
+		return &pesit.MessageResult{}, nil
 	} else if err != nil {
-		s.logger.Debugf("Failed to retrieve transfer for F.MESSAGE transferID=%d: %v", msg.TransferID, err)
+		s.logger.Debugf("Failed to retrieve transfer for F.MESSAGE transferID=%d: %v", req.TransferID, err)
 
-		return ErrDatabase
+		return nil, ErrDatabase
 	}
 
 	outTrans.TransferInfo[ackReceivedKey] = true
@@ -50,20 +66,20 @@ func (s *service) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageRequ
 	if err := outTrans.UpdateInfo(s.db); err != nil {
 		s.logger.Errorf("Failed to update transfer for F.MESSAGE: %v", err)
 
-		return ErrDatabase
+		return nil, ErrDatabase
 	}
 
-	if err := s.relayMessage(&outTrans, &msg); err != nil {
+	if err := s.relayMessage(&outTrans, bytes.NewReader(content)); err != nil {
 		s.logger.Errorf("Failed to relay message: %v", err)
 
-		return err
+		return &pesit.MessageResult{}, err
 	}
 
 	var realOutTrans model.Transfer
 	if err := s.db.Get(&realOutTrans, "id=?", outTrans.ID).Eager().Run(); err != nil {
-		s.logger.Errorf("Failed to retrieve transfer for F.MESSAGE transferID=%d: %v", msg.TransferID, err)
+		s.logger.Errorf("Failed to retrieve transfer for F.MESSAGE transferID=%d: %v", req.TransferID, err)
 
-		return ErrDatabase
+		return nil, ErrDatabase
 	}
 
 	realOutTrans.Status = types.StatusDone
@@ -71,16 +87,18 @@ func (s *service) HandleMessage(_ *pesit.ServerConnection, msg pesit.MessageRequ
 	if err := realOutTrans.MoveToHistory(s.db, s.logger, time.Now()); err != nil {
 		s.logger.Errorf("Failed to move transfer to history: %v", err)
 
-		return ErrDatabase
+		return nil, ErrDatabase
 	}
 
-	return nil
+	return &pesit.MessageResult{}, nil
 }
 
 // relayMessage attempts to relay a F.MESSAGE upstream through the Store &
 // Forward chain. It follows the __followID__ link to find the original
 // incoming transfer, resolves the upstream partner, and sends the message.
-func (s *service) relayMessage(outTrans *model.NormalizedTransferView, msg *pesit.MessageRequest) error {
+func (s *service) relayMessage(outTrans *model.NormalizedTransferView,
+	message io.Reader,
+) error {
 	// Follow the chain: outgoing transfer (B→C) → __followID__ → incoming transfer (A→B)
 	followID, idErr := utils.GetAs[uint64](outTrans.TransferInfo, model.FollowID)
 	if idErr != nil {
@@ -109,7 +127,7 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView, msg *pesi
 	}
 
 	if inTrans.IsServer() {
-		if err := s.relayServerMessage(&inTrans, transferID, msg.Message); err != nil {
+		if err := s.relayServerMessage(&inTrans, transferID, message); err != nil {
 			return err
 		}
 	} else {
@@ -120,7 +138,7 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView, msg *pesi
 			return ErrDatabase
 		}
 
-		if err := s.relayClientMessage(transCtx, transferID, msg.Message); err != nil {
+		if err := s.relayClientMessage(transCtx, transferID, message); err != nil {
 			return err
 		}
 	}
@@ -140,11 +158,16 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView, msg *pesi
 }
 
 func (s *service) relayClientMessage(transCtx *model.TransferContext,
-	transferID uint32, message string,
+	transferID uint32, message io.Reader,
 ) error {
+	filename := transCtx.Transfer.SrcFilename
+	if filename == "" {
+		filename = transCtx.Transfer.DestFilename
+	}
+
 	if err := sendMessage(s.db, s.logger, transCtx.RemoteAgent, transCtx.RemoteAccount,
 		transCtx.RemoteAgentCreds, transCtx.RemoteAccountCreds, transCtx.Authorities,
-		transferID, message); err != nil {
+		transCtx.Transfer.TransferInfo, transferID, filename, message); err != nil {
 		s.logger.Errorf("Failed to send message: %v", err)
 
 		if diag, isDiag := errors.AsType[pesit.Diagnostic](err); isDiag {
@@ -159,7 +182,8 @@ func (s *service) relayClientMessage(transCtx *model.TransferContext,
 	return nil
 }
 
-func (s *service) relayServerMessage(trans *model.Transfer, transferID uint32, message string,
+func (s *service) relayServerMessage(trans *model.Transfer, transferID uint32,
+	message io.Reader,
 ) error {
 	var inTrans model.NormalizedTransferView
 	if err := s.db.Get(&inTrans, `id=?`, trans.ID).Run(); err != nil {
@@ -182,8 +206,13 @@ func (s *service) relayServerMessage(trans *model.Transfer, transferID uint32, m
 		return ErrDatabase
 	}
 
+	filename := inTrans.SrcFilename
+	if filename == "" {
+		filename = inTrans.DestFilename
+	}
+
 	if err := sendInitialMessage(s.db, s.logger, &partner, account,
-		transferID, message); err != nil {
+		trans.TransferInfo, transferID, filename, message); err != nil {
 		s.logger.Errorf("Failed to send message: %v", err)
 
 		if diag, isDiag := errors.AsType[pesit.Diagnostic](err); isDiag {

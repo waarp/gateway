@@ -3,7 +3,10 @@ package pesit
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
+	"strings"
+	"time"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -11,36 +14,41 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+var _ tasks.MessageSender = &transferHandler{}
+
 func (t *transferHandler) SendMessage(db *database.DB, logger *log.Logger,
 	_ *model.Client, partner *model.RemoteAgent, account *model.RemoteAccount,
-	transferID, message string,
+	infos map[string]any, transferID, filename, message string,
 ) error {
 	tID, idErr := utils.ParseUint[uint32](transferID)
 	if idErr != nil {
 		return fmt.Errorf("failed to parse transfer ID: %w", idErr)
 	}
 
-	return sendInitialMessage(db, logger, partner, account, tID, message)
+	return sendInitialMessage(db, logger, partner, account, infos, tID, filename,
+		strings.NewReader(message))
 }
 
 func (c *clientTransfer) SendMessage(db *database.DB, logger *log.Logger,
 	_ *model.Client, partner *model.RemoteAgent, account *model.RemoteAccount,
-	transferID, message string,
+	infos map[string]any, transferID, filename, message string,
 ) error {
 	tID, idErr := utils.ParseUint[uint32](transferID)
 	if idErr != nil {
 		return fmt.Errorf("failed to parse transfer ID: %w", idErr)
 	}
 
-	return sendInitialMessage(db, logger, partner, account, tID, message)
+	return sendInitialMessage(db, logger, partner, account, infos, tID, filename,
+		strings.NewReader(message))
 }
 
 func sendInitialMessage(db database.ReadAccess, logger *log.Logger,
 	partner *model.RemoteAgent, account *model.RemoteAccount,
-	transferID uint32, message string,
+	infos map[string]any, transferID uint32, filename string, message io.Reader,
 ) error {
 	partnerCreds, dbErr := partner.GetCredentials(db)
 	if dbErr != nil {
@@ -58,13 +66,13 @@ func sendInitialMessage(db database.ReadAccess, logger *log.Logger,
 	}
 
 	return sendMessage(db, logger, partner, account, partnerCreds, accountCreds,
-		authorities, transferID, message)
+		authorities, infos, transferID, filename, message)
 }
 
 func sendMessage(db database.ReadAccess, logger *log.Logger,
 	partner *model.RemoteAgent, account *model.RemoteAccount,
 	partnerCreds, accountCreds []*model.Credential, authorities []*model.Authority,
-	transferID uint32, message string,
+	infos map[string]any, transferID uint32, filename string, message io.Reader,
 ) error {
 	var partConf PartnerConfigTLS
 	if err := utils.JSONConvert(partner.ProtoConfig, &partConf); err != nil {
@@ -125,8 +133,32 @@ func sendMessage(db database.ReadAccess, logger *log.Logger,
 
 	defer pesitClient.Close(nil)
 
-	if err := pesitClient.SendMessage(transferID, message); err != nil {
-		return fmt.Errorf("failed to send message: %w", err)
+	var customerID, bankID string
+
+	if custID, err := utils.GetAs[string](infos, customerIDKey); err == nil {
+		customerID = custID
+	}
+
+	if bkID, err := utils.GetAs[string](infos, bankIDKey); err == nil {
+		bankID = bkID
+	}
+
+	mw, msgErr := pesitClient.NewMessage(pesit.FileACK, filename, transferID,
+		pesit.WithClientLogin(pesitClient.ClientLogin()),
+		pesit.WithServerLogin(pesitClient.ServerLogin()),
+		pesit.WithCreationTime(time.Now()),
+		pesit.WithClientID(customerID),
+		pesit.WithBankID(bankID))
+	if msgErr != nil {
+		return fmt.Errorf("failed to create PeSIT message: %w", msgErr)
+	}
+
+	if _, err := io.Copy(mw, message); err != nil {
+		return fmt.Errorf("failed to write PeSIT message: %w", err)
+	}
+
+	if err := mw.Close(); err != nil {
+		return fmt.Errorf("failed to close PeSIT message: %w", err)
 	}
 
 	return nil

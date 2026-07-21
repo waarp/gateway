@@ -23,7 +23,7 @@ const (
 type MessageSender interface {
 	SendMessage(db *database.DB, logger *log.Logger, client *model.Client,
 		partner *model.RemoteAgent, account *model.RemoteAccount,
-		transferID, message string) error
+		transferInfo map[string]any, transferID, filename, message string) error
 }
 
 var (
@@ -103,7 +103,13 @@ func (t *sendMessageTask) Run(_ context.Context, args map[string]string, db *dat
 	logger.Infof("SENDMESSAGE: sending message to partner %q as %q", t.Partner, t.Account)
 	tID := transCtx.Transfer.RemoteTransferID
 
-	if err := sender.SendMessage(db, logger, &t.client, &t.partner, &t.account, tID, t.Message); err != nil {
+	filename := transCtx.Transfer.SrcFilename
+	if filename == "" {
+		filename = transCtx.Transfer.DestFilename
+	}
+
+	if err := sender.SendMessage(db, logger, &t.client, &t.partner, &t.account,
+		transCtx.Transfer.TransferInfo, tID, filename, t.Message); err != nil {
 		return fmt.Errorf("SENDMESSAGE failed: %w", err)
 	}
 

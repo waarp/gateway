@@ -25,7 +25,7 @@ func getPassword(creds []*model.Credential) string {
 }
 
 func makeReservationSpaceKB(info fs.FileInfo) uint32 {
-	sizeKB := float64(info.Size()) / float64(bytesPerKB)
+	sizeKB := float64(info.Size()) / float64(bytesPerKiB)
 	floor := math.Floor(sizeKB)
 
 	return uint32(floor) + 1

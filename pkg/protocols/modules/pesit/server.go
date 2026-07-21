@@ -17,6 +17,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const bytesPerKiB = 1024
+
 type service struct {
 	db     *database.DB
 	logger *log.Logger
