@@ -11,14 +11,14 @@ import (
 )
 
 const (
-	// DefaultCheckpointSize defines the default checkpoint size (in kilobytes) if
-	// omitted by the user in the proto config. Default is 65KB.
-	DefaultCheckpointSize uint16 = 65
+	// DefaultCheckpointSize defines the default checkpoint size (in bytes) if
+	// omitted by the user in the proto config. Default is 65535 bytes.
+	DefaultCheckpointSize uint32 = math.MaxUint16
 	// DefaultCheckpointWindow defines the default checkpoint window if omitted
 	// by the user in the proto config. Default is 2.
 	DefaultCheckpointWindow uint8 = 2
 	// DefaultMessageSize defines the default PeSIT message size (in bytes) if
-	// omitted by the user in the proto config. Default is 65,535 bytes.
+	// omitted by the user in the proto config. Default is 65535 bytes.
 	DefaultMessageSize uint16 = math.MaxUint16
 )
 
@@ -55,9 +55,9 @@ type CheckPointConfig struct {
 	// DisableCheckpoints will disable checkpoints on this agent if set to true.
 	// By default, checkpoints are enabled.
 	DisableCheckpoints bool `json:"disableCheckpoints"`
-	// CheckpointSize defines the size (in kilobytes) of the checkpoint set for the
-	// connections to this agent. Default is 65KB.
-	CheckpointSize uint16 `json:"checkpointSize,omitempty"`
+	// CheckpointSize defines the size (in bytes) of the checkpoint set for the
+	// connections to this agent. Default is 65535.
+	CheckpointSize uint32 `json:"checkpointSize,omitempty"`
 	// CheckpointWindow defines the number of checkpoints that can go unacknowledged
 	// without stopping the transfer. Default is 2.
 	CheckpointWindow uint8 `json:"checkpointWindow,omitempty"`
@@ -131,9 +131,9 @@ type PartnerConfig struct {
 	// DisableRestart will disable checkpoints on this agent if set to true.
 	// By default, checkpoints are enabled.
 	DisableCheckpoints api.Nullable[bool] `json:"disableCheckpoints"`
-	// CheckpointSize defines the size (in kilobytes) of the checkpoint set for the
-	// connections to this agent. Default is 65KB.
-	CheckpointSize uint16 `json:"checkpointSize,omitempty"`
+	// CheckpointSize defines the size (in bytes) of the checkpoint set for the
+	// connections to this agent. Default is 65535.
+	CheckpointSize uint `json:"checkpointSize,omitempty"`
 	// CheckpointWindow defines the number of checkpoints that can go unacknowledged
 	// without stopping the transfer. Default is 2.
 	CheckpointWindow uint8 `json:"checkpointWindow,omitempty"`

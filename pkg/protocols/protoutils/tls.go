@@ -3,6 +3,7 @@ package protoutils
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -213,4 +214,12 @@ func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger) (*tls.Co
 	}
 
 	return config, nil
+}
+
+func CheckClientCert(user *model.LocalAccount, certs []*x509.Certificate) bool {
+	if len(certs) == 0 {
+		return false
+	}
+
+	return auth.GetClientCertLogin(certs[0]) == user.Login
 }
