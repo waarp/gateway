@@ -53,6 +53,23 @@ func (c *transferClient) request() *pipeline.Error {
 }
 
 func (c *transferClient) requestSend(filepath string) *pipeline.Error {
+	// Check parent dir, if it doesn't exist, try to create it
+	parentDir := path.Dir(c.pip.TransCtx.Transfer.RemotePath)
+	if stat, statErr := c.sftpSession.Stat(parentDir); statErr == nil {
+		if perm := stat.Mode().Perm(); perm&0o200 == 0 {
+			c.pip.Logger.Errorf("Remote parent directory %q is not writable (permissions %s)",
+				parentDir, perm.String())
+
+			return pipeline.NewError(types.TeForbidden, "cannot write to remote parent directory")
+		}
+	} else if !os.IsNotExist(statErr) {
+		c.pip.Logger.Warningf("Failed to check parent directory: %v", statErr)
+	}
+
+	if mkdirErr := c.sftpSession.MkdirAll(parentDir); mkdirErr != nil {
+		c.pip.Logger.Warningf("Failed to create remote parent directory: %v", mkdirErr)
+	}
+
 	if c.pip.TransCtx.Transfer.Progress > 0 {
 		if stat, statErr := c.sftpSession.Stat(filepath); statErr != nil {
 			c.pip.Logger.Warningf("Failed to retrieve the remote file's size: %v", statErr)
@@ -66,26 +83,21 @@ func (c *transferClient) requestSend(filepath string) *pipeline.Error {
 		}
 	}
 
-	var err error
-
-	c.sftpFile, err = c.sftpSession.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-	if err != nil {
-		c.pip.Logger.Errorf("Failed to create remote file: %v", err)
-
-		return fromSFTPErr(err, types.TeUnknownRemote, c.pip)
-	}
-
 	return nil
 }
 
 func (c *transferClient) requestReceive(filepath string) *pipeline.Error {
-	var err error
+	if stat, statErr := c.sftpSession.Stat(filepath); os.IsNotExist(statErr) {
+		c.pip.Logger.Errorf("Remote file %q does not exist", filepath)
 
-	c.sftpFile, err = c.sftpSession.Open(filepath)
-	if err != nil {
-		c.pip.Logger.Errorf("Failed to open remote file: %v", err)
+		return fromSFTPErr(statErr, types.TeUnknownRemote, c.pip)
+	} else if statErr != nil {
+		c.pip.Logger.Warningf("Failed to check the remote file %q: %v", filepath, statErr)
+	} else if perm := stat.Mode().Perm(); perm&0o400 == 0 {
+		c.pip.Logger.Errorf("Remote file %q is not readable (permissions %s)",
+			filepath, perm.String())
 
-		return fromSFTPErr(err, types.TeUnknownRemote, c.pip)
+		return pipeline.NewError(types.TeForbidden, "remote file is not readable")
 	}
 
 	return nil
@@ -93,10 +105,13 @@ func (c *transferClient) requestReceive(filepath string) *pipeline.Error {
 
 // Send copies the content from the local source file to the remote one.
 func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
-	// Check parent dir, if it doesn't exist, try to create it
-	parentDir := path.Dir(c.pip.TransCtx.Transfer.RemotePath)
-	if mkdirErr := c.sftpSession.MkdirAll(parentDir); mkdirErr != nil {
-		c.pip.Logger.Warningf("Failed to create remote parent directory: %v", mkdirErr)
+	filepath := c.pip.TransCtx.Transfer.RemotePath
+
+	var openErr error
+	if c.sftpFile, openErr = c.sftpSession.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC); openErr != nil {
+		c.pip.Logger.Errorf("Failed to create remote file: %v", openErr)
+
+		return fromSFTPErr(openErr, types.TeUnknownRemote, c.pip)
 	}
 
 	if _, err := c.sftpFile.ReadFrom(file); err != nil {
@@ -114,6 +129,15 @@ func (c *transferClient) Send(file protocol.SendFile) *pipeline.Error {
 }
 
 func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
+	filepath := c.pip.TransCtx.Transfer.RemotePath
+
+	var openErr error
+	if c.sftpFile, openErr = c.sftpSession.Open(filepath); openErr != nil {
+		c.pip.Logger.Errorf("Failed to open remote file: %v", openErr)
+
+		return fromSFTPErr(openErr, types.TeUnknownRemote, c.pip)
+	}
+
 	if c.pip.TransCtx.Transfer.Progress != 0 {
 		if _, err := c.sftpFile.Seek(c.pip.TransCtx.Transfer.Progress, io.SeekStart); err != nil {
 			c.pip.Logger.Errorf("Failed to seek into remote SFTP file: %v", err)

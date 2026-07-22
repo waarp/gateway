@@ -198,8 +198,7 @@ func (l *sshListener) makeFileReader(acc *model.LocalAccount) internal.ReaderAtF
 		l.Logger.Infof("Download of file %q requested by %q using rule %q",
 			filePath, acc.Login, rule.Name)
 
-		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule,
-			model.UnknownSize, l.tracer)
+		pip, err := l.newServerPipeline(filePath, acc, rule, model.UnknownSize)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +236,7 @@ func (l *sshListener) makeFileWriter(acc *model.LocalAccount) internal.WriterAtF
 			size = int64(r.Attributes().Size)
 		}
 
-		pip, err := newServerPipeline(l.DB, l.Logger, filePath, acc, rule, size, l.tracer)
+		pip, err := l.newServerPipeline(filePath, acc, rule, size)
 		if err != nil {
 			return nil, err
 		}

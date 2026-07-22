@@ -17,6 +17,8 @@ import (
 )
 
 func TestTransferPreregister(t *testing.T) {
+	t.Parallel()
+
 	logger := testhelpers.GetTestLogger(t)
 	db := dbtest.TestDatabase(t)
 

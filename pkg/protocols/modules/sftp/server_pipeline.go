@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -39,10 +38,10 @@ func mkServerTransfer(db *database.DB, filepath string, account *model.LocalAcco
 }
 
 // initPipeline initializes the pipeline.
-func initPipeline(db *database.DB, logger *log.Logger, filepath string,
-	account *model.LocalAccount, rule *model.Rule, size int64, setTrace func() pipeline.Trace,
+func (l *sshListener) initPipeline(filepath string, account *model.LocalAccount,
+	rule *model.Rule, size int64,
 ) (*serverPipeline, error) {
-	trans, tErr := mkServerTransfer(db, filepath, account, rule)
+	trans, tErr := mkServerTransfer(l.DB, filepath, account, rule)
 	if tErr != nil {
 		return nil, tErr
 	}
@@ -51,13 +50,13 @@ func initPipeline(db *database.DB, logger *log.Logger, filepath string,
 		trans.Filesize = size
 	}
 
-	pip, pErr := pipeline.NewServerPipeline(db, logger, trans, snmp.GlobalService)
+	pip, pErr := pipeline.NewServerPipeline(l.DB, l.Logger, trans, l, snmp.GlobalService)
 	if pErr != nil {
 		return nil, toSFTPErr(pErr)
 	}
 
-	if setTrace != nil {
-		pip.Trace = setTrace()
+	if l.tracer != nil {
+		pip.Trace = l.tracer()
 	}
 
 	ctx, cancel := context.WithCancelCause(context.Background())
@@ -75,10 +74,10 @@ func initPipeline(db *database.DB, logger *log.Logger, filepath string,
 
 // newServerPipeline creates a new serverPipeline, executes the transfer's
 // pre-tasks, and returns the pipeline.
-func newServerPipeline(db *database.DB, logger *log.Logger, filepath string,
-	account *model.LocalAccount, rule *model.Rule, size int64, setTrace func() pipeline.Trace,
+func (l *sshListener) newServerPipeline(filepath string, account *model.LocalAccount,
+	rule *model.Rule, size int64,
 ) (*serverPipeline, error) {
-	servPip, pErr := initPipeline(db, logger, filepath, account, rule, size, setTrace)
+	servPip, pErr := l.initPipeline(filepath, account, rule, size)
 	if pErr != nil {
 		return nil, pErr
 	}

@@ -29,7 +29,7 @@ func (c *Controller) checkServerTransfers() {
 	}
 
 	for _, trans := range expiredTrans {
-		pip, pipErr := pipeline.NewServerPipeline(c.DB, c.logger, trans, snmp.GlobalService)
+		pip, pipErr := pipeline.NewServerPipeline(c.DB, c.logger, trans, c, snmp.GlobalService)
 		if pipErr != nil {
 			continue
 		}

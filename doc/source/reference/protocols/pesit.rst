@@ -163,3 +163,58 @@ avec des articles de 4096 octets max.
 Pour conserver le découpage en articles d'un transfert à l'autre en cas de rebond,
 pensez donc bien à activer l'option ``copyInfo`` de la tâche TRANSFER pour que la
 clé soit copiée sur le nouveau transfert.
+
+.. _ref-pesit-messages:
+
+Messages
+--------
+
+Le protocol PeSIT intègre également la possibilité d'envoyer des messages hors
+transfert. Ces messages sont typiquement utilisés pour confirmer (*acknowledge*)
+qu'un transfert a bien terminé, même après plusieurs rebonds.
+
+Il est possible d'informer Gateway qu'un transfert attend un *acknowledgement*.
+Lorsqu'un transfert est marqué comme nécessitant un ACK, le transfert restera en
+statut "RUNNING" (en cours) jusqu'à la réception de l'ACK. Une fois l'ACK reçu,
+le transfert passera en statut "DONE" (terminé).
+
+Un transfert en attente d'*acknowledgement* est marqué comme tel par la présence
+de la clé ``__ackExpected__`` dans les *transfer info*. Une fois l'ACK reçu,
+cette clé est supprimée et remplacée par ``__ackReceived__``  indiquant que l'ACK
+a été reçu, et ``__ackReceivedOn__`` indiquant la date (format ISO 8601) à laquelle
+l'ACK a été reçu.
+
+Réciproquement, lorsque Gateway envoie un ACK pour un transfert, une clé ``__ackSent__``
+sera ajoutée aux informations du transfert en question; ainsi que ``__ackSentOn__``,
+``__ackSentTo__`` et ``__ackSentAs__`` indiquant respectivement la date, le partenaire
+et le compte distant utilisés pour l'envoi de l'ACK.
+
+Il existe 2 moyens pour marquer un transfert comme nécessitant un ACK :
+
+1) En ajoutant directement la clé ``__ackExpected__`` avec la valeur ``true`` aux
+   *transfer info* du transfert. Cela peut être fait dans la commande de création
+   du transfert, dans la définition des tâches TRANSFER/PREREGISTER pour les rebonds,
+   ou bien via la tâche SETINFO pour un transfert en cours.
+2) Via l'option ``expectsAck`` de la :doc:`configuration protocolaire <../proto_config/pesit>`
+   du partenaire PeSIT avec lequel le transfert prend place.
+
+**Émission**
+
+L'émission de messages de confirmation par Gateway se fait via la tâche
+:doc:`SENDMESSAGE <../tasks/sendmessage>`. Celle-ci est typiquement placée en
+fin de chaîne de post-traitements. À noter que celle-ci ne doit être utilisée
+que si Gateway est bien le destinataire final du transfert. Si ce n'est pas le
+cas, voir la section ci-dessous.
+
+**Relay**
+
+Lorsqu'un flux passe par Gateway mais que celle-ci n'est pas destinataire final
+du flux, Gateway est capable de relayer le message de confirmation vers l'émetteur
+original du flux.
+
+À la réception de l'ACK, Gateway marquera les deux transferts (entrant et sortant)
+comme terminés, et renverra le message reçu a la source du transfert entrant. Pour
+pouvoir faire le lien entre les deux transferts, ceux-ci doivent impérativement
+avoir le même *follow ID* (clé ``__followID__`` des transfer info). Il est donc
+impératif de bien spécifier l'option ``copyInfo`` à ``true`` dans la tâche
+TRANSFER programmant le rebond, sans quoi, Gateway ne pourra pas relayer le message.

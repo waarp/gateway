@@ -238,6 +238,8 @@ func (s *SelfContext) AddServerDataError(_ convey.C) {
 	s.hasServerDataError = true
 }
 
+func (s *SelfContext) NoWaitServer() { close(s.servDone) }
+
 // RunTransfer executes the test self-transfer in its entirety.
 func (s *SelfContext) RunTransfer(c convey.C, willFail bool) {
 	pip, err := controller.NewClientPipeline(s.DB, s.ClientTrans)

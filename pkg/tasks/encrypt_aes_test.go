@@ -27,6 +27,7 @@ func TestEncryptAESOFB(t *testing.T) {
 
 func testEncryptAES(t *testing.T, method string) {
 	t.Helper()
+	t.Parallel()
 
 	const testFileContent = `Lorem ipsum dolor sit amet, consectetur adipiscing
 elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim

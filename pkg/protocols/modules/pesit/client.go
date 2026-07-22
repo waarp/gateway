@@ -18,7 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type client struct {
+type clientService struct {
 	db       *database.DB
 	dbClient *model.Client
 	state    utils.State
@@ -28,13 +28,13 @@ type client struct {
 	conf *ClientConfigTLS
 }
 
-func newClient(db *database.DB, cli *model.Client) *client {
-	return &client{db: db, dbClient: cli}
+func newClient(db *database.DB, cli *model.Client) *clientService {
+	return &clientService{db: db, dbClient: cli}
 }
 
-func (c *client) Name() string { return c.dbClient.Name }
+func (c *clientService) Name() string { return c.dbClient.Name }
 
-func (c *client) reportError(err error) {
+func (c *clientService) reportError(err error) {
 	if err == nil {
 		return
 	}
@@ -44,7 +44,7 @@ func (c *client) reportError(err error) {
 	snmp.ReportServiceFailure(c.dbClient.Name, err)
 }
 
-func (c *client) Start() (retErr error) {
+func (c *clientService) Start() (retErr error) {
 	if c.state.IsRunning() {
 		return utils.ErrAlreadyRunning
 	}
@@ -79,7 +79,7 @@ func (c *client) Start() (retErr error) {
 	return nil
 }
 
-func (c *client) Stop(ctx context.Context) (retErr error) {
+func (c *clientService) Stop(ctx context.Context) (retErr error) {
 	if !c.state.IsRunning() {
 		return utils.ErrNotRunning
 	}
@@ -97,15 +97,15 @@ func (c *client) Stop(ctx context.Context) (retErr error) {
 	return nil
 }
 
-func (c *client) State() (utils.StateCode, string) {
+func (c *clientService) State() (utils.StateCode, string) {
 	return c.state.Get()
 }
 
-func (c *client) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
+func (c *clientService) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
 	return c.initTransfer(pip)
 }
 
-func (c *client) initTransfer(pip *pipeline.Pipeline) (*clientTransfer, *pipeline.Error) {
+func (c *clientService) initTransfer(pip *pipeline.Pipeline) (*clientTransfer, *pipeline.Error) {
 	var pesitID uint32
 
 	if pip.TransCtx.Rule.IsSend || pip.TransCtx.Transfer.Step > types.StepSetup {

@@ -49,6 +49,7 @@ var formFiles = []taskCategory{
 			{tasknames.Rename, "tasks/rename/rename.gohtml", "tasks/rename/rename.yaml"},
 			{tasknames.Transfer, "tasks/transfer/transfer.gohtml", "tasks/transfer/transfer.yaml"},
 			{tasknames.Preregister, "tasks/preregister/preregister.gohtml", "tasks/preregister/preregister.yaml"},
+			{tasknames.SetInfo, "tasks/setinfo/setinfo.gohtml", "tasks/setinfo/setinfo.yaml"},
 		},
 	}, {
 		Name: "fileAlterations",
@@ -67,6 +68,7 @@ var formFiles = []taskCategory{
 		Tasks: []taskInfo{
 			{tasknames.Icap, "tasks/icap/icap.gohtml", "tasks/icap/icap.yaml"},
 			{tasknames.Email, "tasks/email/email.gohtml", "tasks/email/email.yaml"},
+			{tasknames.SendMessage, "tasks/sendmessage/sendmessage.gohtml", "tasks/sendmessage/sendmessage.yaml"},
 		},
 	}, {
 		Name: "crypto",

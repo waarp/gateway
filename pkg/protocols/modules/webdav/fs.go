@@ -147,7 +147,7 @@ func (w *webdavFS) getFile(ctx context.Context, filepath string, rule *model.Rul
 		return nil, tErr
 	}
 
-	pip, pErr := pipeline.NewServerPipeline(w.db, w.logger, trans, snmp.GlobalService)
+	pip, pErr := pipeline.NewServerPipeline(w.db, w.logger, trans, w, snmp.GlobalService)
 	if pErr != nil {
 		w.logger.Errorf("Failed to create transfer pipeline: %v", pErr)
 

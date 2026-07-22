@@ -26,10 +26,10 @@ de configuration du protocole pour un client PeSIT est la suivante :
   transferts effectués avec ce client. Par défaut, les checkpoints sont activés.
   Cette valeur peut être écrasée au cas par cas dans la configuration des
   partenaires (voir ci-dessous).
-* **checkpointSize** (*integer*) - Spécifie la taille (en kilo-octets) des blocs
+* **checkpointSize** (*integer*) - Spécifie la taille (en octets) des blocs
   de données entre chaque checkpoint lors d'un transfert. N'a aucun effet si les
   checkpoints sont désactivés. Par défaut, les blocs entre checkpoints font
-  65 Ko (65 535 octets).
+  65 535 octets (65Ko).
 * **checkpointWindow** (*integer*) - Spécifie le nombre de checkpoints pouvant
   rester sans réponse avant que le transfert soit stoppé. N'a aucun effet si
   les checkpoints sont désactivés. Par défaut, le transfert sera stoppé si 2
@@ -42,7 +42,7 @@ de configuration du protocole pour un client PeSIT est la suivante :
    {
      "disableRestart": false,
      "disableCheckpoints": false,
-     "checkpointSize": 32,
+     "checkpointSize": 65535,
      "checkpointWindow": 2
    }
 
@@ -65,7 +65,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disableCheckpoints** (*boolean*) - Désactive les checkpoints pour tous les
   transferts effectués avec ce partenaire. Par défaut, la valeur donnée dans la
   configuration du client est utilisée.
-* **checkpointSize** (*integer*) - Spécifie la taille (en kilo-octets, PI 7) des blocs de
+* **checkpointSize** (*integer*) - Spécifie la taille (en octets) des blocs de
   données entre chaque checkpoint lors d'un transfert. N'a aucun effet si les
   checkpoints sont désactivés. Par défaut, la valeur donnée dans la configuration
   du client est utilisée.
@@ -87,6 +87,10 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par
   défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.
+* **expectsAck** (*boolean*) - Spécifie que le partenaire attend systématiquement
+  un *acknowledgement* pour les transferts *pull*. Voir la section ":ref:`Messages
+  <ref-pesit-messages>`" de la documentation PeSIT pour plus de détails sur les
+  *acknowledgements*.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.
@@ -98,7 +102,7 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
    {
      "disableRestart": false,
      "disableCheckpoints": false,
-     "checkpointSize": 32,
+     "checkpointSize": 65535,
      "checkpointWindow": 2,
      "useNSDU": true,
      "compatibilityMode": "axway",
@@ -116,11 +120,11 @@ est la suivante :
   effectués avec ce serveur. Par défaut, le "restart" est activé.
 * **disableCheckpoints** (*boolean*) - Désactive les checkpoints pour tous les
   transferts effectués avec ce serveur. Par défaut, les checkpoints sont activés.
-* **checkpointSize** (*integer*) - Spécifie la taille maximale (en kilo-octets, PI 7) des 
+* **checkpointSize** (*integer*) - Spécifie la taille maximale (en octets) des
   blocs de données entre chaque checkpoint lors d'un transfert. Si un client se
   connectant au serveur demande une taille plus grande, celle-ci sera rabaissée
   à ce maximum. N'a aucun effet si les checkpoints sont désactivés. Par défaut,
-  les blocs entre checkpoints font 32 Ko (32 768 octets).
+  les blocs entre checkpoints font 65 535 octets (65Ko).
 * **checkpointWindow** (*integer*) - Spécifie le nombre maximum de checkpoints 
   pouvant rester sans réponse avant que le transfert soit stoppé. Si un client se
   connectant au serveur demande un interval plus grand, celui-ci sera rabaissé
@@ -145,7 +149,7 @@ est la suivante :
    {
      "disableRestart": false,
      "disableCheckpoints": false,
-     "checkpointSize": 32,
+     "checkpointSize": 65535,
      "checkpointWindow": 1,
      "maxMessageSize": 65535,
      "minTLSVersion": "v1.2"

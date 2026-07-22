@@ -183,7 +183,7 @@ func (s *server) runTransfer(parent context.Context, trans *model.Transfer, payl
 
 func (s *server) initPipeline(cancel context.CancelCauseFunc, trans *model.Transfer,
 ) (*pipeline.Pipeline, *pipeline.Error) {
-	pip, err := pipeline.NewServerPipeline(s.db, s.logger, trans, snmp.GlobalService)
+	pip, err := pipeline.NewServerPipeline(s.db, s.logger, trans, s, snmp.GlobalService)
 	if err != nil {
 		s.logger.Errorf("Failed to initialize transfer pipeline: %v", err)
 

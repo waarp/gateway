@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -19,6 +20,12 @@ const (
 	organizationKey = "__organization__"
 	customerIDKey   = "__customerID__"
 	bankIDKey       = "__bankID__"
+
+	ackExpectedKey   = tasks.SendMessageAckExpectedKey
+	ackSentKey       = tasks.SendMessageAckSentKey
+	ackSentOnKey     = tasks.SendMessageAckSentOnKey
+	ackReceivedKey   = "__ackReceived__"
+	ackReceivedOnKey = "__ackReceivedOn__"
 
 	clientConnFreetextKey  = "__clientConnFreetext__"
 	clientTransFreetextKey = "__clientTransFreetext__"

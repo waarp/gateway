@@ -172,19 +172,28 @@ func GetServerTLSConfig(db database.ReadAccess, logger *log.Logger, agentID int6
 }
 
 func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger) (*tls.Config, error) {
-	minVersion := GetMinTLSVersion(ctx.Client.ProtoConfig)
-	if partMinVersion := GetMinTLSVersion(ctx.RemoteAgent.ProtoConfig); partMinVersion != 0 {
+	minTLSVersion := GetMinTLSVersion(ctx.Client.ProtoConfig)
+	return GetClientTLSConf(logger, ctx.RemoteAgent, minTLSVersion,
+		ctx.RemoteAgentCreds, ctx.RemoteAccountCreds, ctx.Authorities)
+}
+
+func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
+	clientMinTLSversion uint16, partnerCreds, accountCreds []*model.Credential,
+	authorities []*model.Authority,
+) (*tls.Config, error) {
+	minVersion := clientMinTLSversion
+	if partMinVersion := GetMinTLSVersion(partner.ProtoConfig); partMinVersion != 0 {
 		minVersion = partMinVersion
 	}
 
 	config := &tls.Config{
-		ServerName:       ctx.RemoteAgent.Address.Host,
+		ServerName:       partner.Address.Host,
 		RootCAs:          utils.TLSCertPool(),
 		VerifyConnection: compatibility.LogSha1(logger),
 		MinVersion:       minVersion,
 	}
 
-	for _, cred := range ctx.RemoteAccountCreds {
+	for _, cred := range accountCreds {
 		if cred.Type != auth.TLSCertificate {
 			continue
 		}
@@ -197,7 +206,7 @@ func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger) (*tls.Co
 		config.Certificates = append(config.Certificates, cert)
 	}
 
-	for _, cred := range ctx.RemoteAgentCreds {
+	for _, cred := range partnerCreds {
 		if cred.Type != auth.TLSTrustedCertificate {
 			continue
 		}
@@ -205,7 +214,7 @@ func GetClientTLSConfig(ctx *model.TransferContext, logger *log.Logger) (*tls.Co
 		config.RootCAs.AppendCertsFromPEM([]byte(cred.Value))
 	}
 
-	for _, authority := range ctx.Authorities {
+	for _, authority := range authorities {
 		if len(authority.ValidHosts) != 0 && !slices.Contains(authority.ValidHosts, config.ServerName) {
 			continue
 		}

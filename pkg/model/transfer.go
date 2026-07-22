@@ -299,9 +299,9 @@ func (t *Transfer) makeAgentInfo(db database.ReadAccess,
 	return proto, client, agent, account, nil
 }
 
-// makeHistoryEntry converts the `Transfer` entry into an equivalent `HistoryEntry`
+// MakeHistoryEntry converts the `Transfer` entry into an equivalent `HistoryEntry`
 // entry with the given time as the end date.
-func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*HistoryEntry, error) {
+func (t *Transfer) MakeHistoryEntry(db database.ReadAccess, stop time.Time) (*HistoryEntry, error) {
 	var rule Rule
 	if err := db.Get(&rule, "id=?", t.RuleID).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve rule name: %w", err)
@@ -341,13 +341,14 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 		Step:             t.Step,
 		Progress:         t.Progress,
 		TaskNumber:       t.TaskNumber,
+		TransferInfo:     t.TransferInfo,
 	}
 
 	return &hist, nil
 }
 
 func (t *Transfer) CopyToHistory(db database.Access, logger *log.Logger, end time.Time) error {
-	hist, hErr := t.makeHistoryEntry(db, end)
+	hist, hErr := t.MakeHistoryEntry(db, end)
 	if hErr != nil {
 		logger.Errorf("Failed to convert transfer to history: %v", hErr)
 
@@ -360,28 +361,13 @@ func (t *Transfer) CopyToHistory(db database.Access, logger *log.Logger, end tim
 		return fmt.Errorf("failed to create new history entry: %w", err)
 	}
 
-	if err := db.Exec(`UPDATE transfer_info SET history_id=transfer_id, 
-			transfer_id=null WHERE transfer_id=?`, t.ID); err != nil {
-		logger.Errorf("Failed to update transfer info target: %v", err)
-
-		return fmt.Errorf("failed to update transfer info target: %w", err)
-	}
-
-	/*
-		if err := ses.Exec(`UPDATE file_info SET history_id=transfer_id, transfer_id=null`); err != nil {
-			logger.Errorf("Failed to update file info target: %v", err)
-
-			return err
-		}
-	*/
-
 	return nil
 }
 
 // MoveToHistory removes the transfer entry from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
-func (t *Transfer) MoveToHistory(db *database.DB, logger *log.Logger, end time.Time) error {
+func (t *Transfer) MoveToHistory(db database.Access, logger *log.Logger, end time.Time) error {
 	if err := db.Transaction(func(ses *database.Session) error {
 		if err := t.CopyToHistory(ses, logger, end); err != nil {
 			return err

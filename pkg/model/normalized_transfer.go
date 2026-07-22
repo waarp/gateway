@@ -149,6 +149,19 @@ func (n *NormalizedTransferView) Restart(db database.Access, date time.Time) (*T
 	return n.asHistoryEntry().Restart(db, date)
 }
 
+func (n *NormalizedTransferView) UpdateInfo(db database.Access) error {
+	if !n.IsTransfer {
+		return nil
+	}
+
+	trans := &Transfer{
+		Identifier:   n.Identifier,
+		TransferInfo: n.TransferInfo,
+	}
+
+	return trans.AfterUpdate(db)
+}
+
 type NormalizedTransferInfo struct {
 	OwnerID int64  `gorm:"column:owner_id"`
 	Name    string `gorm:"column:name"`

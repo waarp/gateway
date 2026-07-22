@@ -11,6 +11,7 @@ import (
 type RemoteAccount struct {
 	Identifier
 	RemoteAgentID int64 `gorm:"column:remote_agent_id"` // The ID of the RemoteAgent this account is attached to
+	RemoteAgent   RemoteAgent
 
 	Login string `gorm:"column:login"` // The account's login
 }
@@ -26,11 +27,17 @@ func (*RemoteAccount) Appellation() string { return NameRemoteAccount }
 func (*RemoteAccount) Host() string        { return "" }
 func (*RemoteAccount) IsServer() bool      { return false }
 
+func (*RemoteAccount) Preloads() []string { return []string{"RemoteAgent"} }
+
 // BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
 //
 //nolint:dupl // too many differences to be factorized easily
 func (r *RemoteAccount) BeforeWrite(db database.Access) error {
+	if r.RemoteAgent.ID != 0 {
+		r.RemoteAgentID = r.RemoteAgent.ID
+	}
+
 	if r.RemoteAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}

@@ -63,7 +63,7 @@ func TestServerSelectFile(t *testing.T) {
 
 		var (
 			fileSize         = int64(len(fileContent))
-			reservationSpace = uint32(fileSize / bytesPerKB)
+			reservationSpace = uint32(fileSize / bytesPerKiB)
 			filePath         = path.Join(ctx.ServerRulePush.Path, fileName)
 		)
 
@@ -135,7 +135,7 @@ func TestServerSelectFile(t *testing.T) {
 		)
 
 		var (
-			reservationSpace = uint32(fileSize / bytesPerKB)
+			reservationSpace = uint32(fileSize / bytesPerKiB)
 			filePath         = path.Join(ctx.ServerRulePull.Path, fileName)
 			dstFilePath      = fs.JoinPath(db.Config.Paths.GatewayHome,
 				ctx.Server.RootDir, ctx.ServerRulePull.LocalDir, fileName)
@@ -239,7 +239,7 @@ func TestServerOpenFile(t *testing.T) {
 
 		var (
 			fileSize         = int64(len(fileContent))
-			reservationSpace = uint32(fileSize / bytesPerKB)
+			reservationSpace = uint32(fileSize / bytesPerKiB)
 			filePath         = path.Join(ctx.ServerRulePush.Path, fileName)
 		)
 
@@ -304,7 +304,7 @@ func TestServerOpenFile(t *testing.T) {
 		)
 
 		var (
-			reservationSpace = uint32(fileSize / bytesPerKB)
+			reservationSpace = uint32(fileSize / bytesPerKiB)
 			filePath         = path.Join(ctx.ServerRulePull.Path, fileName)
 			dstFilePath      = fs.JoinPath(db.Config.Paths.GatewayHome,
 				ctx.Server.RootDir, ctx.ServerRulePull.LocalDir, fileName)
@@ -404,7 +404,7 @@ func TestServerStartData(t *testing.T) {
 
 		var (
 			fileSize         = int64(len(fileContent))
-			reservationSpace = uint32(fileSize / bytesPerKB)
+			reservationSpace = uint32(fileSize / bytesPerKiB)
 			filePath         = path.Join(ctx.ServerRulePush.Path, fileName)
 			checkpointSize   = fileSize / 2
 		)
@@ -475,7 +475,7 @@ func TestServerStartData(t *testing.T) {
 		)
 
 		var (
-			reservationSpace = uint32(fileSize / bytesPerKB)
+			reservationSpace = uint32(fileSize / bytesPerKiB)
 			filePath         = path.Join(ctx.ServerRulePull.Path, fileName)
 			dstFilePath      = fs.JoinPath(db.Config.Paths.GatewayHome,
 				ctx.Server.RootDir, ctx.ServerRulePull.LocalDir, fileName)

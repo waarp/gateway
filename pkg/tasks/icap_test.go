@@ -14,6 +14,8 @@ import (
 )
 
 func TestIcapTaskReqModRun(t *testing.T) {
+	t.Parallel()
+
 	const (
 		filename    = "test.file"
 		fileContent = "Hello World"

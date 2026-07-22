@@ -12,6 +12,8 @@ import (
 )
 
 func TestDeleteTaskValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a model.Task", t, func() {
 		args := map[string]string{}
 
@@ -27,6 +29,8 @@ func TestDeleteTaskValidate(t *testing.T) {
 }
 
 func TestDeleteTaskRun(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 
 	Convey("Given a processor for a sending transfer", t, func(c C) {

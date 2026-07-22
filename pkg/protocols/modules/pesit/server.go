@@ -17,7 +17,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-type server struct {
+const bytesPerKiB = 1024
+
+type service struct {
 	db     *database.DB
 	logger *log.Logger
 	tracer func() pipeline.Trace
@@ -28,7 +30,7 @@ type server struct {
 	conf       ServerConfigTLS
 }
 
-func (s *server) listen() (string, error) {
+func (s *service) listen() (string, error) {
 	s.server = pesit.NewServer(s)
 	s.server.Logger = s.logger.AsStdLogger(log.LevelDebug)
 	s.server.NetworkTrace = s.logger.AsStdLogger(log.LevelTrace)
@@ -63,7 +65,7 @@ func (s *server) listen() (string, error) {
 	return list.Addr().String(), nil
 }
 
-func (s *server) stop(ctx context.Context) error {
+func (s *service) stop(ctx context.Context) error {
 	if err := s.server.Close(ctx); err != nil {
 		return fmt.Errorf("failed to shut down pesit server: %w", err)
 	}
@@ -71,7 +73,7 @@ func (s *server) stop(ctx context.Context) error {
 	return nil
 }
 
-func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, error) {
+func (s *service) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, error) {
 	if pass, err := s.getPassword(); err != nil {
 		return nil, err
 	} else if pass != "" {
@@ -117,13 +119,13 @@ func (s *server) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, e
 	}, nil
 }
 
-func (s *server) Release(conn *pesit.ServerConnection) {
+func (s *service) Release(conn *pesit.ServerConnection) {
 	s.logger.Debugf("Connection closed to %v", conn)
 }
 
 var ErrPasswordDBError = errors.New("failed to retrieve the server password")
 
-func (s *server) getPassword() (string, error) {
+func (s *service) getPassword() (string, error) {
 	var pass model.Credential
 	if err := s.db.Get(&pass, "type=?", auth.Password).And(s.localAgent.GetCredCond()).Run(); err != nil {
 		if database.IsNotFound(err) {
@@ -138,7 +140,7 @@ func (s *server) getPassword() (string, error) {
 	return pass.Value, nil
 }
 
-func (s *server) authenticate(conn *pesit.ServerConnection) (*model.LocalAccount, error) {
+func (s *service) authenticate(conn *pesit.ServerConnection) (*model.LocalAccount, error) {
 	authenticated := false
 	login := conn.ClientLogin()
 	password := conn.ClientPassword()

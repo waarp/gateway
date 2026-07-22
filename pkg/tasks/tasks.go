@@ -21,6 +21,7 @@ const (
 	Rename      = "RENAME"
 	Transfer    = "TRANSFER"
 	Preregister = "PREREGISTER"
+	SetInfo     = "SETINFO"
 
 	Encrypt          = "ENCRYPT"
 	Decrypt          = "DECRYPT"
@@ -38,6 +39,7 @@ const (
 	Icap         = "ICAP"
 	Email        = "EMAIL"
 	RemoteDelete = "REMOTEDELETE"
+	SendMessage  = "SENDMESSAGE"
 )
 
 //nolint:gochecknoinits //init is required here
@@ -59,6 +61,7 @@ func init() {
 	model.ValidTasks[Rename] = newRunner[*renameTask] // "RENAME" is in fact a "change target" task
 	model.ValidTasks[Transfer] = newRunner[*TransferTask]
 	model.ValidTasks[Preregister] = newRunner[*TransferPreregister]
+	model.ValidTasks[SetInfo] = newRunner[*setInfoTask]
 
 	// File encryption & signing
 	model.ValidTasks[Encrypt] = newRunner[*encrypt]
@@ -80,6 +83,9 @@ func init() {
 	model.ValidTasks[Icap] = newRunner[*icapTask]
 	model.ValidTasks[Email] = newRunner[*emailTask]
 	model.ValidTasks[RemoteDelete] = newRunner[*remoteDelete]
+
+	// PeSIT messaging
+	model.ValidTasks[SendMessage] = newRunner[*sendMessageTask]
 }
 
 func newRunner[T model.TaskRunner]() model.TaskRunner {

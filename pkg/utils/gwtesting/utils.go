@@ -42,6 +42,13 @@ func Addr(tb testing.TB, addr string) types.Address {
 	return *parsed
 }
 
+func Address(tb testing.TB) types.Address {
+	tb.Helper()
+	port := GetLocalPort(tb)
+
+	return types.Addr("localhost", port)
+}
+
 func requireNoError(tb testing.TB, err *pipeline.Error) {
 	tb.Helper()
 

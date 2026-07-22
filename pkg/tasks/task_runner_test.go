@@ -19,6 +19,8 @@ import (
 )
 
 func TestSetup(t *testing.T) {
+	t.Parallel()
+
 	root := filepath.ToSlash(t.TempDir())
 	rootAlt := filepath.ToSlash(t.TempDir())
 
@@ -356,6 +358,8 @@ func TestSetup(t *testing.T) {
 }
 
 func TestRunTasks(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given a processor", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "test_run_tasks")
 		db := database.TestDatabase(c)

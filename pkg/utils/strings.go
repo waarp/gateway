@@ -5,6 +5,7 @@
 package utils
 
 import (
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -61,4 +62,13 @@ func TrimSplit(str, sep string) []string {
 	}
 
 	return s
+}
+
+func ReadString(r io.Reader) (string, error) {
+	cont, err := io.ReadAll(r)
+	if err != nil {
+		return "", err //nolint:wrapcheck //wrapping adds nothing here
+	}
+
+	return string(cont), nil
 }

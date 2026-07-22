@@ -108,6 +108,7 @@ func PostgresDSN(config *conf.DatabaseConfig) string {
 // DSN necessary to connect to the database.
 func MysqlDSN(config *conf.DatabaseConfig) string {
 	dsn := mysql.NewConfig()
+	dsn.Net = "tcp"
 	dsn.Addr = config.Address
 	dsn.DBName = config.Name
 	dsn.User = config.User

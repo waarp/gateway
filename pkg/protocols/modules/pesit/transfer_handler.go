@@ -20,8 +20,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const bytesPerKB int64 = 1024
-
 type transferHandler struct {
 	db      *database.DB
 	logger  *log.Logger
@@ -212,7 +210,7 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		return tErr
 	}
 
-	pip, pipErr := pipeline.NewServerPipeline(t.db, t.logger, trans, snmp.GlobalService)
+	pip, pipErr := pipeline.NewServerPipeline(t.db, t.logger, trans, t, snmp.GlobalService)
 	if pipErr != nil {
 		t.logger.Errorf("Failed to initialize pipeline: %v", pipErr)
 

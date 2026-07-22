@@ -15,6 +15,8 @@ import (
 )
 
 func TestManualIcap(t *testing.T) {
+	t.Parallel()
+
 	const (
 		filename    = "test.txt"
 		fileContent = "Hello World"

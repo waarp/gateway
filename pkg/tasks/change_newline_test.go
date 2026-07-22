@@ -15,6 +15,8 @@ import (
 )
 
 func TestChangeNewline(t *testing.T) {
+	t.Parallel()
+
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
 

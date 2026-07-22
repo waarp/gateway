@@ -85,6 +85,8 @@ func getExecTransCtx(tb testing.TB) *model.TransferContext {
 }
 
 func TestExecValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given an 'EXEC' task", t, func() {
 		exec := &execTask{}
 
@@ -154,6 +156,8 @@ func TestExecValidate(t *testing.T) {
 }
 
 func TestExecRun(t *testing.T) {
+	t.Parallel()
+
 	transCtx := getExecTransCtx(t)
 
 	Convey("Given an 'EXEC' task", t, func(c C) {

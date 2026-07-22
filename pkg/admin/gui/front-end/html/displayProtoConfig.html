@@ -264,6 +264,13 @@
             <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.disablePreConnection true }}checked{{ end }} disabled>
         </div>
     </div>
+    <hr style="border-top: 1px solid #ababab;">
+    <div class="flex-label-input mt-2 align-items-center">
+        <label class="col-form-label label-light-bold me-3">{{ index .tab "expectsAck" }} <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="{{ index $.tab "tooltipExpectsAck" }}"></i> :</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" {{ if eq .ProtoConfig.expectsAck true }}checked{{ end }} disabled>
+        </div>
+    </div>
     {{ if eq .Protocol "pesit-tls" }}
         <hr style="border-top: 1px solid #ababab;">
         <div class="flex-label-input mt-4">

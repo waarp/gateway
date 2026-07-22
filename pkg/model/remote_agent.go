@@ -174,3 +174,14 @@ func (r *RemoteAgent) AfterUpdate(db database.Access) error {
 
 	return nil
 }
+
+func (r *RemoteAgent) GetAccount(db database.ReadAccess, login string) (*RemoteAccount, error) {
+	var acc RemoteAccount
+	if err := db.Get(&acc, "remote_agent_id=? AND login=?", r.ID, login).Run(); err != nil {
+		return &acc, fmt.Errorf("failed to retrieve the remote account: %w", err)
+	}
+
+	acc.RemoteAgent = *r
+
+	return &acc, nil
+}

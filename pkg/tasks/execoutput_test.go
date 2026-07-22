@@ -11,6 +11,8 @@ import (
 )
 
 func TestExecOutputValidate(t *testing.T) {
+	t.Parallel()
+
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
 		exec := &execOutputTask{}
 
@@ -80,6 +82,8 @@ func TestExecOutputValidate(t *testing.T) {
 }
 
 func TestExecOutputRun(t *testing.T) {
+	t.Parallel()
+
 	transCtx := getExecTransCtx(t)
 
 	Convey("Given an 'EXECOUTPUT' task", t, func(c C) {
