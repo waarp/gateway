@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 var ErrNonLocalTmpDir = errors.New("the tmp dir must be local")
@@ -301,6 +303,8 @@ func (wg *WG) Start() error {
 	gwName := wg.Config.GatewayName
 
 	wg.Logger.Infof("Waarp Gateway %q is starting", gwName)
+	wg.Logger.Infof("Gateway version %s built on %s with %s", version.Num,
+		version.Date, runtime.Version())
 
 	if err := wg.startServices(); err != nil {
 		return err
