@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.16.0 <2026-22-07>`
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des
   métadonnées avant un rebond ou conditionner des tâches suivantes.
@@ -12,11 +13,11 @@ Historique des versions
   transfert SFTP *push*, cette erreur n'est désormais plus bloquante. L'erreur
   sera loggée en *warning* et Gateway tentera de poursuivre le transfert malgré
   tout.
-* :feature:`596` Les images OCI exécutent les migrations de base de données vant
-  le langement de Gateway
+* :feature:`596` Les images OCI exécutent les migrations de base de données avant
+  le lancement de Gateway.
 * :fix:`591` Les images OCI sont maintenant toujours basées sur la dernière
   version stable de Debian.
-* :feature:`592` Les images OCI utilisent des utilisateurs non prévilégiés.
+* :feature:`592` Les images OCI utilisent des utilisateurs non privilégiés.
 * :bug:`575` Correction de l'unité du ``checkpointSize`` : la valeur est en
   kilo-octets, pas en octets. Le défaut passe donc de 65535 à 65.
 * :feature:`516` Ajout de le possibilité de configurer des *filewatchers* pour
