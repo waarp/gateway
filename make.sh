@@ -330,7 +330,7 @@ build_container() {
   echo "    --> building the image"
   $DOCKER_CMD image build \
     --load \
-    --pull=newer \
+    --pull \
     --build-arg VERSION="$(cat VERSION | tr -d '\n')" \
     --tag "$IMAGE_TAG" .
 }
