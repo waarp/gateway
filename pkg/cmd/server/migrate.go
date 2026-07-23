@@ -26,7 +26,7 @@ type MigrateCommand struct {
 }
 
 func (cmd *MigrateCommand) Execute([]string) error {
-	if cmd.Args.Version == "" {
+	if cmd.Args.Version == "" || cmd.Args.Version == "latest" {
 		cmd.Args.Version = version.Num
 	}
 
