@@ -13,12 +13,8 @@ import (
 	"strings"
 )
 
-const (
-	minArgs       = 2
-	exitErrorCode = 2
-)
-
 var (
+	errNoArguments  = errors.New("updateconf needs at least 1 parameter")
 	errFileNotFound = errors.New("file not found in archive")
 	errNoConfDir    = errors.New("configuration directory not found or invalid")
 )
@@ -30,43 +26,40 @@ var (
 	AppName = "Gateway"
 )
 
-//nolint:forbidigo //prints are needed here
-func Do() {
-	if len(os.Args) < minArgs {
-		fmt.Println("updateconf needs at least 1 parameter")
-		os.Exit(exitErrorCode)
+func Do(args []string) error {
+	if len(args) == 0 {
+		return errNoArguments
 	}
 
 	fmt.Println("Start of updateconf")
 
-	archFile := os.Args[1]
+	archFile := args[0]
 	instance := getConfFilename(archFile)
 
 	archReader, opErr := zip.OpenReader(archFile)
 	if opErr != nil {
-		fmt.Println("Cannot open archive:", opErr)
-		os.Exit(exitErrorCode)
+		return fmt.Errorf("failed to open archive: %w", opErr)
 	}
+
+	defer archReader.Close() //nolint:errcheck //ignore error
 
 	// Import
 	if err := importConf(&archReader.Reader, instance); err != nil {
-		fmt.Println("Cannot import configuration:", err)
-
-		_ = archReader.Close() //nolint:errcheck //ignore error
-
-		os.Exit(exitErrorCode)
+		return fmt.Errorf("failed to import configuration: %w", err)
 	}
 
 	// Additional files
-	if err := moveToConf(&archReader.Reader, "get-file.list"); err != nil {
-		fmt.Println("Cannot write configuration file:", err)
-
-		_ = archReader.Close() //nolint:errcheck //ignore error
+	// Filewatcher
+	if err := moveToConf(&archReader.Reader, "fw.json"); err != nil {
+		return fmt.Errorf("failed to write filewatcher configuration file: %w", err)
 	}
 
-	_ = archReader.Close() //nolint:errcheck //ignore error
+	// Get-Remote
+	if err := moveToConf(&archReader.Reader, "get-file.list"); err != nil {
+		return fmt.Errorf("failed to write get-remote configuration file: %w", err)
+	}
 
-	fmt.Println("End of process updateconf")
+	return nil
 }
 
 func getConfFilename(archfile string) string {
