@@ -18,6 +18,10 @@ const (
 //nolint:gochecknoglobals //global var is needed here
 var list = map[string][]Feature{}
 
+func Reset() {
+	list = map[string][]Feature{}
+}
+
 func Register(protocol string, features ...Feature) {
 	list[protocol] = append(list[protocol], features...)
 }

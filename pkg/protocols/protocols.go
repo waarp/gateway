@@ -4,6 +4,7 @@ import (
 	"iter"
 	"slices"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
@@ -13,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 )
 
 var ErrUnknownProtocol = model.ErrUnknownProtocol
@@ -42,6 +44,17 @@ func init() {
 	// WebDAV
 	Register(webdav.Webdav, webdav.Module{})
 	Register(webdav.WebdavTLS, webdav.ModuleTLS{})
+}
+
+func Reset() {
+	model.Protocols = map[string]model.Protocol{}
+	model.IDGenerators = map[string]model.IDGenerator{}
+
+	clientMakers = map[string]func(*database.DB, *model.Client) protocol.Client{}
+	serverMakers = map[string]func(*database.DB, *model.LocalAgent) protocol.Server{}
+	list = []string{}
+
+	features.Reset()
 }
 
 // Register registers a new protocol module.
