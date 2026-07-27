@@ -1,7 +1,7 @@
 Supprimer une règle
 ===================
 
-.. http:delete:: /api/rules/(string:rule_name)
+.. http:delete:: /api/rules/(string:rule_name)/(string:direction)
 
    Supprime la règle demandée.
 

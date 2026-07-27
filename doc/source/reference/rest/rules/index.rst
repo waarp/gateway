@@ -14,6 +14,13 @@ blanche, se référer aux chapitres :
 - :any:`reference-rest-partners-authorize`
 - :any:`reference-rest-partners-accounts-authorize`
 
+.. note::
+
+   Pour identifier une règle, il faut non seulement spécifier son nom dans l'URL,
+   mais également sa direction. La direction peut être soit ``send`` (envoi),
+   soit ``receive`` (réception).
+
+
 **Sommaire**
 
 .. toctree::

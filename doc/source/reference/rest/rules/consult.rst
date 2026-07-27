@@ -1,7 +1,7 @@
 Consulter une règle
 ===================
 
-.. http:get:: /api/rules/(string:rule_name)
+.. http:get:: /api/rules/(string:rule_name)/(string:direction)
 
    .. deprecated:: 0.5.0
 
