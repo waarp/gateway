@@ -1,8 +1,8 @@
 package backup
 
 import (
+	"io"
 	"runtime"
-	"slices"
 	"testing"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -11,11 +11,13 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/authtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocolstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -23,15 +25,14 @@ const testProtocol = "test_proto"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	modeltest.AddDummyProtoConfig(testProtocol)
-	modeltest.AddDummyProtoConfig(r66TLS)
-	features.Register(testProtocol, slices.Collect(features.AllFeatures())...)
+	protocols.Register(testProtocol, protocolstest.TestModule{})
 
 	modeltest.AddDummyTask("COPY")
 	modeltest.AddDummyTask("MOVE")
 	modeltest.AddDummyTask("DELETE")
 
 	authtest.AddDummyAuthHandler(r66LegacyCert, r66TLS)
+	modeltest.AddDummyProtoConfig(r66TLS)
 }
 
 func discard() *log.Logger {
@@ -39,6 +40,10 @@ func discard() *log.Logger {
 	convey.So(err, convey.ShouldBeNil)
 
 	return back.NewLogger("discard")
+}
+
+func nolog(tb testing.TB) *log.Logger {
+	return logtest.GetTestLogger(tb, logtest.WithWriter(io.Discard))
 }
 
 func hash(pwd string) string {

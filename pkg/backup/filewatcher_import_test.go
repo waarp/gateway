@@ -95,7 +95,7 @@ func TestFilewatcherImport(t *testing.T) {
 			t.Parallel()
 			db, _, account, client, rule, _ := setup(t)
 
-			require.NoError(t, importFilewatchers(logger, db, input, true))
+			require.NoError(t, importFilewatchers(logger, db, input, true, false))
 
 			var fws model.FileWatchers
 			require.NoError(t, db.Select(&fws).Eager().Run())
@@ -114,7 +114,7 @@ func TestFilewatcherImport(t *testing.T) {
 			t.Parallel()
 			db, _, account, client, rule, existing := setup(t)
 
-			require.NoError(t, importFilewatchers(logger, db, input, false))
+			require.NoError(t, importFilewatchers(logger, db, input, false, false))
 
 			var fws model.FileWatchers
 			require.NoError(t, db.Select(&fws).Eager().OrderBy("id", true).Run())
@@ -151,7 +151,7 @@ func TestFilewatcherImport(t *testing.T) {
 
 		db, _, account, client, rule, _ := setup(t)
 
-		require.NoError(t, importFilewatchers(logger, db, input, true))
+		require.NoError(t, importFilewatchers(logger, db, input, true, false))
 
 		var fws model.FileWatchers
 		require.NoError(t, db.Select(&fws).Eager().Run())

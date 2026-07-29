@@ -53,6 +53,9 @@ type Credential struct {
 
 func (*Credential) TableName() string   { return TableCredentials }
 func (*Credential) Appellation() string { return NameCredentials }
+func (c *Credential) IsInternal() bool {
+	return c.LocalAccountID.Valid || c.RemoteAgentID.Valid
+}
 
 // BeforeWrite checks if the new `Crypto` entry is valid and can be inserted
 // in the database.

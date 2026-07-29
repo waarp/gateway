@@ -28,6 +28,7 @@ type Client struct {
 
 func (*Client) TableName() string   { return TableClients }
 func (*Client) Appellation() string { return "client" }
+func (c *Client) GetName() string   { return c.Name }
 
 func (c *Client) BeforeWrite(db database.Access) error {
 	if c.Name == "" {

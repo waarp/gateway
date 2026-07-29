@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"context"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -10,7 +11,7 @@ import (
 )
 
 func importSNMPConfig(logger *log.Logger, db database.Access, config *file.SNMPConfig,
-	reset bool,
+	reset, restart bool,
 ) error {
 	if reset {
 		if err := db.DeleteAll(&snmp.MonitorConfig{}).Run(); err != nil {
@@ -26,14 +27,23 @@ func importSNMPConfig(logger *log.Logger, db database.Access, config *file.SNMPC
 		return nil
 	}
 
-	if err := importSNMPServer(logger, db, config.Server); err != nil {
+	if restart && snmp.GlobalService == nil {
+		snmp.GlobalService = &snmp.Service{DB: db.AsDB()}
+		if err := snmp.GlobalService.Start(); err != nil {
+			return fmt.Errorf("failed to start SNMP server config: %w", err)
+		}
+	}
+
+	if err := importSNMPServer(logger, db, config.Server, restart); err != nil {
 		return err
 	}
 
-	return importSNMPMonitors(logger, db, config.Monitors)
+	return importSNMPMonitors(logger, db, config.Monitors, restart)
 }
 
-func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPServer) error {
+func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPServer,
+	restart bool,
+) error {
 	if server == nil {
 		return nil
 	}
@@ -66,10 +76,18 @@ func importSNMPServer(logger *log.Logger, db database.Access, server *file.SNMPS
 		return fmt.Errorf("failed to import SNMP server config: %w", dbErr)
 	}
 
+	if restart {
+		if err := snmp.GlobalService.ReloadServerConf(context.Background()); err != nil {
+			return fmt.Errorf("failed to reload SNMP server config: %w", err)
+		}
+	}
+
 	return nil
 }
 
-func importSNMPMonitors(logger *log.Logger, db database.Access, monitors []*file.SNMPMonitor) error {
+func importSNMPMonitors(logger *log.Logger, db database.Access, monitors []*file.SNMPMonitor,
+	restart bool,
+) error {
 	for _, monitor := range monitors {
 		var dbMonitor snmp.MonitorConfig
 		if err := db.Get(&dbMonitor, "name=?", monitor.Name).
@@ -104,6 +122,12 @@ func importSNMPMonitors(logger *log.Logger, db database.Access, monitors []*file
 
 		if dbErr != nil {
 			return fmt.Errorf("failed to import SNMP monitor %q: %w", dbMonitor.Name, dbErr)
+		}
+
+		if restart {
+			if err := snmp.GlobalService.ReloadMonitorsConf(); err != nil {
+				return fmt.Errorf("failed to reload SNMP server config: %w", err)
+			}
 		}
 	}
 

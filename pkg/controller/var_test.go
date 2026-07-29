@@ -112,7 +112,7 @@ func initTestDB(c C, rootPath string) *testContext {
 	}
 	So(db.Insert(remAccount).Run(), ShouldBeNil)
 
-	cliService := &protocolstest.TestService{}
+	cliService := protocolstest.NewTestClient(db, client)
 	So(cliService.Start(), ShouldBeNil)
 
 	services.Clients.Add(client, cliService)

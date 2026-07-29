@@ -18,10 +18,23 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var errDry = database.NewValidationError("dry run")
+
+//nolint:gochecknoinits //init is needed here
+func init() {
+	tasks.ImportData = func(db database.Access, logger *log.Logger, file *tasks.UpdateconfFile) error {
+		data, err := ParseData(file)
+		if err != nil {
+			return err
+		}
+
+		return Import(db, logger, data, []string{"all"}, false, false, false)
+	}
+}
 
 // ImportData reads the content of the reader r, parses it as json and imports
 // the subsets specified in targets.
@@ -41,7 +54,7 @@ func ImportData(db *database.DB, r importFile, targets []string, dry, reset bool
 		return err
 	}
 
-	return Import(db, logging.NewLogger("import"), data, targets, dry, reset)
+	return Import(db, logging.NewLogger("import"), data, targets, dry, reset, false)
 }
 
 func ParseData(r importFile) (*file.Data, error) {
@@ -59,7 +72,7 @@ func ParseData(r importFile) (*file.Data, error) {
 
 //nolint:gocognit,gocyclo,cyclop,funlen //function cannot realistically be split
 func Import(db database.Access, logger *log.Logger, data *file.Data, targets []string,
-	dry, reset bool,
+	dry, reset, startServices bool,
 ) error {
 	const timeout = 10 * time.Minute
 
@@ -77,7 +90,7 @@ func Import(db database.Access, logger *log.Logger, data *file.Data, targets []s
 		}
 
 		if utils.ContainsOneOf(targets, "clients", "all") {
-			if err := importClients(logger, ses, data.Clients, reset); err != nil {
+			if err := importClients(logger, ses, data.Clients, reset, startServices); err != nil {
 				return err
 			}
 		}
@@ -89,7 +102,7 @@ func Import(db database.Access, logger *log.Logger, data *file.Data, targets []s
 		}
 
 		if utils.ContainsOneOf(targets, "servers", "all") {
-			if err := importLocalAgents(logger, ses, data.Locals, reset); err != nil {
+			if err := importLocalAgents(logger, ses, data.Locals, reset, startServices); err != nil {
 				return err
 			}
 		}
@@ -119,13 +132,13 @@ func Import(db database.Access, logger *log.Logger, data *file.Data, targets []s
 		}
 
 		if utils.ContainsOneOf(targets, "snmp", "all") {
-			if err := importSNMPConfig(logger, ses, data.SNMPConfig, reset); err != nil {
+			if err := importSNMPConfig(logger, ses, data.SNMPConfig, reset, startServices); err != nil {
 				return err
 			}
 		}
 
 		if utils.ContainsOneOf(targets, "filewatchers", "all") {
-			if err := importFilewatchers(logger, ses, data.Filewatchers, reset); err != nil {
+			if err := importFilewatchers(logger, ses, data.Filewatchers, reset, startServices); err != nil {
 				return err
 			}
 		}

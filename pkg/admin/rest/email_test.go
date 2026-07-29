@@ -205,10 +205,9 @@ func TestUpdateEmailTemplate(t *testing.T) {
 
 	t.Run("Valid request", func(t *testing.T) {
 		const (
-			templateName     = "template2_new"
-			templateSubject  = "Email subject 2 new"
-			templateMimeType = "text/json"
-			templateBody     = "This is yet another email template"
+			templateName    = "template2_new"
+			templateSubject = "Email subject 2 new"
+			templateBody    = "This is yet another email template"
 
 			expectedLocation = EmailTemplatesPath + "/" + templateName
 		)
@@ -218,7 +217,6 @@ func TestUpdateEmailTemplate(t *testing.T) {
 		require.NoError(t, json.NewEncoder(&reqBody).Encode(map[string]any{
 			"name":        templateName,
 			"subject":     templateSubject,
-			"mimeType":    templateMimeType,
 			"body":        templateBody,
 			"attachments": templateAttachments,
 		}))
@@ -244,7 +242,7 @@ func TestUpdateEmailTemplate(t *testing.T) {
 
 			assert.Equal(t, templateName, check.Name)
 			assert.Equal(t, templateSubject, check.Subject)
-			assert.Equal(t, templateMimeType, check.MIMEType)
+			assert.Equal(t, dbTemplate2.MIMEType, check.MIMEType)
 			assert.Equal(t, templateBody, check.Body)
 			assert.Equal(t, templateAttachments, check.Attachments.List())
 		})
@@ -469,10 +467,9 @@ func TestUpdateSMTPCredential(t *testing.T) {
 
 	t.Run("Valid request", func(t *testing.T) {
 		const (
-			credSender   = "example@new.com"
-			credServer   = "smtp.new.com:123"
-			credLogin    = "toto"
-			credPassword = "titi"
+			credSender = "example@new.com"
+			credServer = "smtp.new.com:123"
+			credLogin  = "toto"
 
 			expectedLocation = SMTPCredentialsPath + "/" + credSender
 		)
@@ -482,7 +479,6 @@ func TestUpdateSMTPCredential(t *testing.T) {
 			"emailAddress":  credSender,
 			"serverAddress": credServer,
 			"login":         credLogin,
-			"password":      credPassword,
 		}))
 
 		req := makeRequest(http.MethodPost, &reqBody, SMTPCredentialPath, dbCredential2.EmailAddress)
@@ -507,7 +503,7 @@ func TestUpdateSMTPCredential(t *testing.T) {
 			assert.Equal(t, credSender, check.EmailAddress)
 			assert.Equal(t, credServer, check.ServerAddress.String())
 			assert.Equal(t, credLogin, check.Login)
-			assert.Equal(t, credPassword, check.Password)
+			assert.Equal(t, dbCredential2.Password, check.Password)
 		})
 	})
 }

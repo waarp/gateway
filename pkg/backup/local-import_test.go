@@ -3,183 +3,186 @@ package backup
 import (
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
-	r66lib "code.waarp.fr/lib/r66"
-	. "github.com/smartystreets/goconvey/convey"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
-
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+	r66lib "code.waarp.fr/lib/r66"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestImportLocalAgents(t *testing.T) {
 	t.Parallel()
 
-	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c)
+	setup := func(tb testing.TB) (*database.DB, *log.Logger, *model.LocalAgent, *model.LocalAgent) {
+		tb.Helper()
 
-		Convey("Given a database with some local agent", func() {
-			agent := &model.LocalAgent{
-				Name: "server", Protocol: testProtocol,
-				Address: types.Addr("localhost", 2022),
-			}
+		db := dbtest.TestDatabase(t)
+		logger := nolog(t)
 
-			// add another LocalAgent with the same name but different owner
-			agent2 := &model.LocalAgent{
-				Name: agent.Name, Protocol: testProtocol,
-				Address: types.Addr("localhost", 9999),
-			}
-			So(dbtest.InsertAsOwner(db, "toto", agent2), ShouldBeNil)
+		agent := &model.LocalAgent{
+			Name: "server", Protocol: testProtocol,
+			Address: types.Addr("localhost", 2022),
+		}
+		other := &model.LocalAgent{
+			Name: "other", Protocol: testProtocol,
+			Address: types.Addr("localhost", 8888),
+		}
+		require.NoError(t, db.Insert(agent).Run())
+		require.NoError(t, db.Insert(other).Run())
 
-			So(db.Insert(agent).Run(), ShouldBeNil)
+		service1, err := protocols.MakeServer(db, agent)
+		require.NoError(tb, err)
+		require.NoError(t, service1.Start())
+		service2, err := protocols.MakeServer(db, other)
+		require.NoError(tb, err)
+		require.NoError(t, service2.Start())
 
-			other := &model.LocalAgent{
-				Name: "other", Protocol: testProtocol,
-				Address: types.Addr("localhost", 8888),
-			}
-			So(db.Insert(other).Run(), ShouldBeNil)
+		services.Servers.Add(agent, service1)
+		services.Servers.Add(other, service2)
 
-			Convey("Given a list of new agents", func() {
-				newServer := LocalAgent{
-					Name:          "foo",
-					Protocol:      testProtocol,
-					Configuration: map[string]any{},
-					Address:       "localhost:1111",
-					Accounts: []LocalAccount{
-						{
-							Login:    "acc1",
-							Password: "pwd",
-						}, {
-							Login:    "acc2",
-							Password: "pwd",
-						},
-					},
-				}
-				newServers := []LocalAgent{newServer}
+		return db, logger, agent, other
+	}
 
-				Convey("When calling the importLocals method", func() {
-					err := importLocalAgents(discard(), db, newServers, false)
-					So(err, ShouldBeNil)
+	t.Run("Insert new", func(t *testing.T) {
+		db, logger, agent, other := setup(t)
 
-					var dbAgents model.LocalAgents
-					So(db.Select(&dbAgents).OrderBy("id", true).Run(), ShouldBeNil)
-					So(dbAgents, ShouldHaveLength, 3)
+		newServer := LocalAgent{
+			Name:          "foo",
+			Protocol:      testProtocol,
+			Configuration: map[string]any{},
+			Address:       "localhost:1111",
+			Accounts: []LocalAccount{
+				{
+					Login:    "acc1",
+					Password: "pwd",
+				}, {
+					Login:    "acc2",
+					Password: "pwd",
+				},
+			},
+		}
+		newServers := []LocalAgent{newServer}
 
-					Convey("Then the new agent should have been imported", func() {
-						dbAgent := dbAgents[2]
+		t.Run("No reset", func(t *testing.T) {
+			require.NoError(t, importLocalAgents(logger, db, newServers, false, true))
 
-						So(dbAgent.Name, ShouldEqual, newServer.Name)
-						So(dbAgent.Protocol, ShouldEqual, newServer.Protocol)
-						So(dbAgent.ProtoConfig.Map(), ShouldResemble, newServer.Configuration)
+			var dbAgents model.LocalAgents
+			require.NoError(t, db.Select(&dbAgents).OrderBy("id", true).Run())
+			require.Len(t, dbAgents, 3)
+			dbAgent := dbAgents[2]
 
-						Convey("Then the local accounts should have been imported", func() {
-							var accounts model.LocalAccounts
-							So(db.Select(&accounts).Where("local_agent_id=?",
-								dbAgent.ID).Run(), ShouldBeNil)
-							So(accounts, ShouldHaveLength, 2)
+			t.Run("Check servers", func(t *testing.T) {
+				assert.Equal(t, agent, dbAgents[0])
+				assert.Equal(t, other, dbAgents[1])
 
-							So(accounts[0].Login, ShouldEqual, newServer.Accounts[0].Login)
-							So(accounts[1].Login, ShouldEqual, newServer.Accounts[1].Login)
-						})
-					})
-
-					Convey("Then the other local agents should be unchanged", func() {
-						So(dbAgents[0], ShouldResemble, agent)
-						So(dbAgents[1], ShouldResemble, other)
-					})
-				})
-
-				Convey("When calling the importLocals method with reset ON", func() {
-					err := importLocalAgents(discard(), db, newServers, true)
-					So(err, ShouldBeNil)
-
-					var dbAgents model.LocalAgents
-					So(db.Select(&dbAgents).OrderBy("id", true).Run(), ShouldBeNil)
-					So(dbAgents, ShouldHaveLength, 1)
-
-					Convey("Then only the imported agent should be left", func() {
-						dbAgent := dbAgents[0]
-
-						So(dbAgent.Name, ShouldEqual, newServer.Name)
-						So(dbAgent.Protocol, ShouldEqual, newServer.Protocol)
-						So(dbAgent.ProtoConfig.Map(), ShouldResemble, newServer.Configuration)
-					})
-				})
+				assert.Equal(t, newServer.Name, dbAgent.Name)
+				assert.Equal(t, newServer.Protocol, dbAgent.Protocol)
+				assert.Equal(t, newServer.Configuration, dbAgent.ProtoConfig.Map())
 			})
 
-			Convey("Given a list of fully updated agents", func() {
-				agent1 := LocalAgent{
-					Name:          agent.Name,
-					Protocol:      testProtocol,
-					Configuration: map[string]any{},
-					Address:       "localhost:6666",
-					Accounts: []LocalAccount{
-						{
-							Login:    "toto",
-							Password: "pwd",
-						},
-					},
-					Credentials: []Credential{
-						{
-							Type:   auth.TLSCertificate,
-							Value:  testhelpers.LocalhostCert,
-							Value2: testhelpers.LocalhostKey,
-						},
-					},
-				}
-				agents := []LocalAgent{agent1}
+			t.Run("Check accounts", func(t *testing.T) {
+				var accounts model.LocalAccounts
+				require.NoError(t, db.Select(&accounts).Where("local_agent_id=?", dbAgent.ID).Run())
+				require.Len(t, accounts, 2)
 
-				Convey("When calling the importLocals method", func() {
-					var accs model.LocalAccounts
-					So(db.Select(&accs).Run(), ShouldBeNil)
-
-					err := importLocalAgents(discard(), db, agents, false)
-
-					Convey("Then it should return no error", func() {
-						So(err, ShouldBeNil)
-					})
-
-					Convey("Then the database should contain the local agents", func() {
-						var dbAgents model.LocalAgents
-						So(db.Select(&dbAgents).OrderBy("id", true).All().Run(), ShouldBeNil)
-						So(dbAgents, ShouldHaveLength, 3)
-
-						dbAgent := dbAgents[1]
-
-						Convey("Then the data should correspond to the "+
-							"one imported", func() {
-							So(dbAgent.Name, ShouldEqual, agent1.Name)
-							So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
-							So(dbAgent.ProtoConfig.Map(), ShouldResemble, agent1.Configuration)
-
-							var accounts model.LocalAccounts
-							So(db.Select(&accounts).Where("local_agent_id=?",
-								dbAgent.ID).Run(), ShouldBeNil)
-
-							So(accounts, ShouldHaveLength, 1)
-
-							var cryptos model.Credentials
-							So(db.Select(&cryptos).Where("local_agent_id=?",
-								dbAgent.ID).Run(), ShouldBeNil)
-
-							So(accounts, ShouldHaveLength, 1)
-						})
-
-						Convey("Then the other agents should be unchanged", func() {
-							So(dbAgents[2], ShouldResemble, other)
-						})
-					})
-				})
+				assert.Equal(t, newServer.Accounts[0].Login, accounts[0].Login)
+				assert.Equal(t, newServer.Accounts[1].Login, accounts[1].Login)
 			})
+
+			t.Run("Check services", func(t *testing.T) {
+				state, exists := services.Servers.State(dbAgent)
+				require.True(t, exists)
+				assert.Equal(t, utils.StateRunning, state)
+			})
+		})
+
+		t.Run("With reset", func(t *testing.T) {
+			require.NoError(t, importLocalAgents(logger, db, newServers, true, false))
+
+			var dbAgents model.LocalAgents
+			require.NoError(t, db.Select(&dbAgents).OrderBy("id", true).Run())
+			require.Len(t, dbAgents, 1)
+
+			dbAgent := dbAgents[0]
+
+			assert.Equal(t, newServer.Name, dbAgent.Name)
+			assert.Equal(t, newServer.Protocol, dbAgent.Protocol)
+			assert.Equal(t, newServer.Configuration, dbAgent.ProtoConfig.Map())
+		})
+	})
+
+	t.Run("Update existing", func(t *testing.T) {
+		db, logger, agent, other := setup(t)
+
+		updatedAgent := LocalAgent{
+			Name:          agent.Name,
+			Protocol:      testProtocol,
+			Configuration: map[string]any{},
+			Address:       "localhost:6666",
+			Accounts: []LocalAccount{
+				{
+					Login:    "toto",
+					Password: "pwd",
+				},
+			},
+			Credentials: []Credential{
+				{
+					Type:   auth.TLSCertificate,
+					Value:  testhelpers.LocalhostCert,
+					Value2: testhelpers.LocalhostKey,
+				},
+			},
+		}
+		agents := []LocalAgent{updatedAgent}
+
+		require.NoError(t, importLocalAgents(logger, db, agents, false, true))
+
+		var dbAgents model.LocalAgents
+		require.NoError(t, db.Select(&dbAgents).OrderBy("id", true).All().Run())
+		require.Len(t, dbAgents, 2)
+		dbAgent := dbAgents[0]
+
+		t.Run("Check servers", func(t *testing.T) {
+			assert.Equal(t, other, dbAgents[1])
+
+			assert.Equal(t, updatedAgent.Name, dbAgent.Name)
+			assert.Equal(t, updatedAgent.Protocol, dbAgent.Protocol)
+			assert.Equal(t, updatedAgent.Configuration, dbAgent.ProtoConfig.Map())
+		})
+
+		t.Run("Check accounts", func(t *testing.T) {
+			var accounts model.LocalAccounts
+			require.NoError(t, db.Select(&accounts).Where("local_agent_id=?", dbAgent.ID).Run())
+			require.Len(t, accounts, 1)
+		})
+
+		t.Run("Check credentials", func(t *testing.T) {
+			var credentials model.Credentials
+			require.NoError(t, db.Select(&credentials).Where("local_agent_id=?", dbAgent.ID).Run())
+			assert.Len(t, credentials, 1)
+
+			assert.Equal(t, updatedAgent.Credentials[0].Type, credentials[0].Type)
+			assert.Equal(t, updatedAgent.Credentials[0].Value, credentials[0].Value)
+			assert.Equal(t, updatedAgent.Credentials[0].Value2, credentials[0].Value2)
+		})
+
+		t.Run("Check services", func(t *testing.T) {
+			state, exists := services.Servers.State(dbAgent)
+			require.True(t, exists)
+			assert.Equal(t, utils.StateRunning, state)
+			service, _ := services.Servers.Get(dbAgent)
+			assert.Equal(t, updatedAgent.Name, service.Name())
 		})
 	})
 }
@@ -187,160 +190,107 @@ func TestImportLocalAgents(t *testing.T) {
 func TestImportLocalAccounts(t *testing.T) {
 	t.Parallel()
 
-	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c)
+	setup := func(tb testing.TB) (*database.DB, *log.Logger, *model.LocalAgent,
+		*model.LocalAccount, *model.Credential,
+	) {
+		tb.Helper()
 
-		Convey("Given a database with some a local agent and some local accounts", func() {
-			agent := &model.LocalAgent{
-				Name: "server", Protocol: testProtocol,
-				Address: types.Addr("localhost", 2022),
-			}
-			So(db.Insert(agent).Run(), ShouldBeNil)
+		db := dbtest.TestDatabase(tb)
+		logger := nolog(tb)
 
-			dbAccount := &model.LocalAccount{
-				LocalAgentID: agent.ID,
-				Login:        "foo",
-			}
-			So(db.Insert(dbAccount).Run(), ShouldBeNil)
+		agent := &model.LocalAgent{
+			Name: "server", Protocol: testProtocol,
+			Address: types.Addr("localhost", 2022),
+		}
+		require.NoError(t, db.Insert(agent).Run())
 
-			accPswd := &model.Credential{
-				LocalAccountID: dbAccount.NullableID(),
-				Type:           auth.Password,
-				Value:          "bar",
-			}
-			So(db.Insert(accPswd).Run(), ShouldBeNil)
+		dbAccount := &model.LocalAccount{
+			LocalAgentID: agent.ID,
+			Login:        "foo",
+		}
+		require.NoError(t, db.Insert(dbAccount).Run())
 
-			Convey("Given a list of new accounts", func() {
-				account1 := LocalAccount{Login: "toto", Password: "pwd"}
-				account2 := LocalAccount{Login: "tata", Password: "pwd"}
-				accounts := []LocalAccount{account1, account2}
-				So(preprocessLocalAccounts(accounts, agent.Protocol), ShouldBeNil)
+		accPswd := &model.Credential{
+			LocalAccountID: dbAccount.NullableID(),
+			Type:           auth.Password,
+			Value:          "bar",
+		}
+		require.NoError(t, db.Insert(accPswd).Run())
 
-				Convey("When calling the importLocalAccounts method", func() {
-					err := importLocalAccounts(discard(), db, accounts, agent)
+		return db, logger, agent, dbAccount, accPswd
+	}
 
-					Convey("Then it should return no error", func() {
-						So(err, ShouldBeNil)
-					})
-					Convey("Then the database should contains the local "+
-						"accounts", func() {
-						var accounts model.LocalAccounts
-						So(db.Select(&accounts).Where("local_agent_id=?",
-							agent.ID).OrderBy("id", true).Run(), ShouldBeNil)
+	t.Run("New accounts", func(t *testing.T) {
+		db, logger, dbAgent, dbAccount, dbPswd := setup(t)
 
-						So(accounts, ShouldHaveLength, 3)
+		fileAccount1 := LocalAccount{Login: "toto", Password: "pwd"}
+		fileAccount2 := LocalAccount{Login: "tata", Password: "pwd"}
+		fileAccounts := []LocalAccount{fileAccount1, fileAccount2}
+		require.NoError(t, preprocessLocalAccounts(fileAccounts, dbAgent.Protocol))
+		require.NoError(t, importLocalAccounts(logger, db, fileAccounts, dbAgent))
 
-						Convey("Then the exiting account should be unchanged", func() {
-							So(accounts[0], ShouldResemble, dbAccount)
-						})
+		var accounts model.LocalAccounts
+		require.NoError(t, db.Select(&accounts).OrderBy("id", true).Run())
+		require.Len(t, accounts, 3)
 
-						Convey("Then the 1st account should have been imported", func() {
-							var pswd model.Credential
-							So(db.Get(&pswd, "local_account_id=? AND type=?",
-								accounts[1].ID, auth.Password).Run(), ShouldBeNil)
+		t.Run("Check accounts", func(t *testing.T) {
+			assert.Equal(t, dbAccount, accounts[0])
+			assert.Equal(t, dbAgent.ID, accounts[1].LocalAgentID)
+			assert.Equal(t, fileAccount1.Login, accounts[1].Login)
+			assert.Equal(t, dbAgent.ID, accounts[1].LocalAgentID)
+			assert.Equal(t, fileAccount2.Login, accounts[2].Login)
+		})
 
-							So(accounts[1].Login, ShouldEqual, account1.Login)
-							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-								[]byte(account1.Password)), ShouldBeNil)
-						})
+		t.Run("Check credentials", func(t *testing.T) {
+			var creds model.Credentials
+			require.NoError(t, db.Select(&creds).OrderBy("local_account_id", true).Run())
+			require.Len(t, creds, 3)
 
-						Convey("Then the 2nd account should have been imported", func() {
-							var pswd model.Credential
-							So(db.Get(&pswd, "local_account_id=? AND type=?",
-								accounts[2].ID, auth.Password).Run(), ShouldBeNil)
+			assert.Equal(t, dbPswd, creds[0])
 
-							So(accounts[2].Login, ShouldEqual, account2.Login)
-							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-								[]byte(account2.Password)), ShouldBeNil)
-						})
-					})
-				})
-			})
+			assert.Equal(t, accounts[1].ID, creds[1].LocalAccountID.Int64)
+			assert.Equal(t, auth.Password, creds[1].Type)
+			assert.True(t, utils.IsHashOf(creds[1].Value, fileAccount1.Password))
 
-			Convey("Given a list of fully updated agents", func() {
-				account1 := LocalAccount{
-					Login:    dbAccount.Login,
-					Password: "notbar",
-					Credentials: []Credential{
-						{
-							Type:  auth.TLSTrustedCertificate,
-							Value: testhelpers.ClientFooCert,
-						},
-					},
-				}
-				accounts := []LocalAccount{account1}
-				So(preprocessLocalAccounts(accounts, agent.Protocol), ShouldBeNil)
+			assert.Equal(t, accounts[2].ID, creds[2].LocalAccountID.Int64)
+			assert.Equal(t, auth.Password, creds[2].Type)
+			assert.True(t, utils.IsHashOf(creds[2].Value, fileAccount2.Password))
+			assert.True(t, utils.IsHashOf(creds[2].Value, fileAccount2.Password))
+		})
+	})
 
-				Convey("When calling the importLocalAccounts method", func() {
-					err := importLocalAccounts(discard(), db, accounts, agent)
+	t.Run("Update existing", func(t *testing.T) {
+		db, logger, dbAgent, dbAccount, dbPswd := setup(t)
 
-					Convey("Then it should return no error", func() {
-						So(err, ShouldBeNil)
-					})
-					Convey("Then the database should contains the "+
-						"local accounts", func() {
-						var accounts model.LocalAccounts
-						So(db.Select(&accounts).Where("local_agent_id=?",
-							agent.ID).Run(), ShouldBeNil)
+		fileAccount := LocalAccount{
+			Login: "foo",
+			Credentials: []Credential{
+				{
+					Type:  auth.TLSTrustedCertificate,
+					Value: testhelpers.ClientFooCert,
+				},
+			},
+		}
+		fileAccounts := []LocalAccount{fileAccount}
 
-						So(accounts, ShouldHaveLength, 1)
+		require.NoError(t, importLocalAccounts(logger, db, fileAccounts, dbAgent))
 
-						Convey("Then the data should correspond to the "+
-							"one imported", func() {
-							So(accounts[0].Login, ShouldEqual, dbAccount.Login)
+		var accounts model.LocalAccounts
+		require.NoError(t, db.Select(&accounts).OrderBy("id", true).Run())
+		require.Len(t, accounts, 1)
 
-							var pswd model.Credential
-							So(db.Get(&pswd, "local_account_id=? AND type=?",
-								accounts[0].ID, auth.Password).Run(), ShouldBeNil)
-							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-								[]byte(account1.Password)), ShouldBeNil)
+		assert.Equal(t, accounts[0].Login, dbAccount.Login)
 
-							var cert model.Credential
-							So(db.Get(&cert, "local_account_id=? AND type=?",
-								accounts[0].ID, auth.TLSTrustedCertificate).Run(), ShouldBeNil)
-							So(cert.Value, ShouldEqual, account1.Credentials[0].Value)
-						})
-					})
-				})
-			})
+		t.Run("Check credentials", func(t *testing.T) {
+			var creds model.Credentials
+			require.NoError(t, db.Select(&creds).OrderBy("local_account_id", true).Run())
+			require.Len(t, creds, 2)
 
-			Convey("Given a list of partially updated agents", func() {
-				account1 := LocalAccount{
-					Login: "foo",
-					Credentials: []Credential{
-						{
-							Type:  auth.TLSTrustedCertificate,
-							Value: testhelpers.ClientFooCert,
-						},
-					},
-				}
-				accounts := []LocalAccount{account1}
+			assert.Equal(t, dbPswd, creds[0])
 
-				Convey("When calling the importLocalAccounts method", func() {
-					err := importLocalAccounts(discard(), db, accounts, agent)
-
-					Convey("Then it should return no error", func() {
-						So(err, ShouldBeNil)
-					})
-					Convey("Then the database should contains the "+
-						"local accounts", func() {
-						var accounts model.LocalAccounts
-						So(db.Select(&accounts).Where("local_agent_id=?",
-							agent.ID).Run(), ShouldBeNil)
-
-						So(accounts, ShouldHaveLength, 1)
-
-						Convey("Then the data should correspond to the one imported", func() {
-							So(accounts[0].Login, ShouldEqual, dbAccount.Login)
-
-							var cert model.Credential
-							So(db.Get(&cert, "local_account_id=? AND type=?",
-								accounts[0].ID, auth.TLSTrustedCertificate).Run(), ShouldBeNil)
-							So(cert.Value, ShouldEqual, account1.Credentials[0].Value)
-						})
-					})
-				})
-			})
+			assert.Equal(t, accounts[0].ID, creds[1].LocalAccountID.Int64)
+			assert.Equal(t, auth.TLSTrustedCertificate, creds[1].Type)
+			assert.Equal(t, fileAccount.Credentials[0].Value, creds[1].Value)
 		})
 	})
 }

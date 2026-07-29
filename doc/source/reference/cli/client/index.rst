@@ -38,3 +38,4 @@ Pour afficher la version du client, utiliser la commande ``waarp-gateway version
    key/index
    email/index
    filewatcher/index
+   updateconf/index

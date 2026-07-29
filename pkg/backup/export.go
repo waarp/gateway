@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
@@ -30,17 +30,25 @@ func printExportFileHeader(f io.Writer, prefix string) {
 	)
 }
 
+type exportFile interface {
+	io.Writer
+	Name() string
+}
+
 // ExportData extracts from the database the subsets specified in targets,
 // serializes it in JSON, and writes the result in the writer w.
 //
 // Possible values for targets are 'rules' for the transfer rules, 'servers' for
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
-//
-//nolint:funlen,gocognit,cyclop //function cannot be easily split
-func ExportData(db database.ReadAccess, w *os.File, targets []string) error {
+func ExportData(db database.ReadAccess, w exportFile, targets []string) error {
 	logger := logging.NewLogger("export")
 
+	return Export(db, logger, w, targets)
+}
+
+//nolint:funlen,gocognit,cyclop //function cannot be easily split
+func Export(db database.ReadAccess, logger *log.Logger, w exportFile, targets []string) error {
 	var expErr error
 
 	data := &file.Data{}
@@ -129,7 +137,7 @@ func ExportData(db database.ReadAccess, w *os.File, targets []string) error {
 	return nil
 }
 
-func serializeFile(data *file.Data, f *os.File) error {
+func serializeFile(data *file.Data, f exportFile) error {
 	var serErr error
 
 	ext := filepath.Ext(f.Name())

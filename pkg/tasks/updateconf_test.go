@@ -7,12 +7,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/authtest"
@@ -25,6 +27,13 @@ func TestUpdateConf(t *testing.T) {
 	logger := logtest.GetTestLogger(t)
 	root := fstest.TestRoot(t)
 	t.Setenv(conf.ConfigDirEnvVar, root.Name())
+
+	var importedFile string
+	ImportData = func(_ database.Access, _ *log.Logger, file *UpdateconfFile) error {
+		importedFile = file.Name()
+
+		return nil
+	}
 
 	// Setup data
 	const (
@@ -45,9 +54,7 @@ func TestUpdateConf(t *testing.T) {
 	require.NoError(t, task.Run(t.Context(), params, db, logger, transCtx, nil))
 
 	// Check conf was imported
-	var servers model.LocalAgents
-	require.NoError(t, db.Select(&servers).Owner().Run())
-	assert.NotEmpty(t, servers)
+	assert.Equal(t, db.Config.GatewayName+".json", importedFile)
 
 	// Check FW file was moved
 	cont, err := root.ReadFile(updateconfFwFilename)
@@ -363,7 +370,7 @@ func getConfJson(tb testing.TB) string {
 
 	authtest.AddDummyAuthHandler("ssh_private_key", "sftp")
 
-	database.BcryptRounds = 12
+	database.BcryptRounds = bcrypt.MinCost
 
 	return confJson
 }
