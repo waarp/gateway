@@ -72,3 +72,13 @@ func ReadString(r io.Reader) (string, error) {
 
 	return string(cont), nil
 }
+
+func EqualFold(str string, candidates ...string) bool {
+	for _, candidate := range candidates {
+		if strings.EqualFold(str, candidate) {
+			return true
+		}
+	}
+
+	return false
+}

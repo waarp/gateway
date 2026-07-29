@@ -1,9 +1,14 @@
 package backup
 
 import (
+	"context"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -66,4 +71,32 @@ func preprocessPasswordHashes(creds []file.Credential, protocol string) (bool, e
 
 func isR66(proto string) bool {
 	return proto == r66 || proto == r66TLS
+}
+
+//nolint:wrapcheck // wrapping errors adds nothing here
+func restartService[T services.Service](list services.ServiceMap[T], obj database.Identifier,
+	disabled bool, mkService func() (T, error),
+) error {
+	// Service already exists: restart if running, otherwise leave as is.
+	state, exists := list.State(obj)
+	if state == utils.StateRunning {
+		return list.Restart(context.Background(), obj)
+	} else if exists {
+		return nil
+	}
+
+	// Service does not exist: add to list and start if not disabled.
+	service, servErr := mkService()
+	if servErr != nil {
+		return servErr
+	}
+
+	list.Add(obj, service)
+	if !disabled {
+		_, err := list.Start(obj)
+
+		return err
+	}
+
+	return nil
 }

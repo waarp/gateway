@@ -6,12 +6,13 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	filewatchers "code.waarp.fr/apps/gateway/gateway/pkg/filewatcher"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func importFilewatchers(logger *log.Logger, db database.Access, config *file.FileWatchers,
-	reset bool,
+	reset, restart bool,
 ) error {
 	if reset {
 		if err := db.DeleteAll(&model.FileWatcher{}).Run(); err != nil {
@@ -23,10 +24,11 @@ func importFilewatchers(logger *log.Logger, db database.Access, config *file.Fil
 		return nil
 	}
 
-	return importRemoteFilewatchers(logger, db, config.Remote)
+	return importRemoteFilewatchers(logger, db, config.Remote, restart)
 }
 
 func importRemoteFilewatchers(logger *log.Logger, db database.Access, fws []file.RemoteFilewatcher,
+	restart bool,
 ) error {
 	for _, filewatcher := range fws {
 		var dbFW model.FileWatcher
@@ -76,6 +78,13 @@ func importRemoteFilewatchers(logger *log.Logger, db database.Access, fws []file
 
 		if dbErr != nil {
 			return fmt.Errorf("failed to import remote filewatcher %q: %w", dbFW.Flow, dbErr)
+		}
+
+		if restart {
+			return restartService(filewatchers.Filewatchers, dbFW, dbFW.Disabled,
+				func() (*filewatchers.Service, error) {
+					return filewatchers.NewFilewatcher(db.AsDB(), &dbFW), nil
+				})
 		}
 	}
 

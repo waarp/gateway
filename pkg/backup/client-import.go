@@ -5,12 +5,14 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 )
 
 func importClients(logger *log.Logger, db database.Access, clients []file.Client,
-	reset bool,
+	reset, restart bool,
 ) error {
 	if reset {
 		if err := db.DeleteAll(&model.Client{}).Run(); err != nil {
@@ -54,6 +56,13 @@ func importClients(logger *log.Logger, db database.Access, clients []file.Client
 
 		if dbErr != nil {
 			return fmt.Errorf("failed to import client %q: %w", dbClient.Name, dbErr)
+		}
+
+		if restart {
+			return restartService(services.Clients, dbClient, dbClient.Disabled,
+				func() (services.Client, error) {
+					return protocols.MakeClient(db.AsDB(), &dbClient)
+				})
 		}
 	}
 

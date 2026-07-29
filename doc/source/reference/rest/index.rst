@@ -50,4 +50,5 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    keys/index
    filewatchers/index
    email/index
+   updateconf/index
 

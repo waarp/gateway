@@ -30,7 +30,7 @@ func TestControllerListen(t *testing.T) {
 		client := &model.Client{Name: "client", Protocol: testProtocol}
 		So(db.Insert(client).Run(), ShouldBeNil)
 
-		cliService := &protocolstest.TestService{}
+		cliService := protocolstest.NewTestClient(db, client)
 		So(cliService.Start(), ShouldBeNil)
 
 		services.Clients.Add(client, cliService)

@@ -177,3 +177,14 @@ func (s *ServiceMap[T]) StopAll(ctx context.Context) error {
 }
 
 func (s *ServiceMap[T]) Range(f func(int64, T) bool) { s.m.Range(f) }
+
+func (s *ServiceMap[T]) State(obj database.Identifier) (utils.StateCode, bool) {
+	service, ok := s.Get(obj)
+	if !ok {
+		return 0, false
+	}
+
+	state, _ := service.State()
+
+	return state, true
+}

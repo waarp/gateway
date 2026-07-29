@@ -39,6 +39,7 @@ func newLocalAgent(id int64) *LocalAgent {
 func (*LocalAgent) TableName() string   { return TableLocAgents }
 func (*LocalAgent) Appellation() string { return "server" }
 func (*LocalAgent) IsServer() bool      { return true }
+func (l *LocalAgent) GetName() string   { return l.Name }
 func (l *LocalAgent) Host() string      { return "" }
 
 func (l *LocalAgent) validateProtoConfig() error {

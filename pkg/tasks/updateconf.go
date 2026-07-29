@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
@@ -21,6 +20,9 @@ const (
 	updateconfFwFilename        = "fw.json"
 	updateconfGetRemoteFilename = "get-file.list"
 )
+
+//nolint:gochecknoglobals //init is needed here to avoid import cycle
+var ImportData func(database.Access, *log.Logger, *UpdateconfFile) error
 
 var ErrUpdateconfEmptyFile = errors.New("zip file is empty")
 
@@ -113,17 +115,10 @@ func (u *updateconfTask) importConfig(db *database.DB, logger *log.Logger, arch 
 
 	defer rc.Close()
 
-	file := &updateconfFile{rc, filename}
-	data, err := backup.ParseData(file)
-	if err != nil {
-		return fmt.Errorf("failed to parse import file %q: %w", filename, err)
-	}
-
-	if err = backup.Import(db, logger, data, []string{"all"}, false, false); err != nil {
+	file := &UpdateconfFile{rc, filename}
+	if err = ImportData(db, logger, file); err != nil {
 		return fmt.Errorf("failed to import data: %w", err)
 	}
-
-	// FIXME: start/restart all imported services
 
 	return nil
 }
@@ -146,10 +141,10 @@ func (*updateconfTask) copyFile(arch *zip.Reader, name string) error {
 	return nil
 }
 
-type updateconfFile struct {
+type UpdateconfFile struct {
 	io.ReadCloser
 
 	filename string
 }
 
-func (u *updateconfFile) Name() string { return u.filename }
+func (u *UpdateconfFile) Name() string { return u.filename }

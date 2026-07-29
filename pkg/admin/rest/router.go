@@ -45,6 +45,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router) {
 	makeSNMPHandlers(mkHandler)
 	makeKeysHandlers(mkHandler)
 	makeEmailHandlers(mkHandler)
+	makeUpdateconfHandler(mkHandler)
 
 	if db.Config.Overrides != nil {
 		makeOverrideHandlers(mkHandler)
@@ -391,4 +392,13 @@ func makeEmailHandlers(mkHandler HandlerFactory) {
 	mkHandler(smtpCredentialPath, getSMTPCredential, model.PermRulesRead, http.MethodGet)
 	mkHandler(smtpCredentialPath, updateSMTPCredential, model.PermRulesWrite, http.MethodPatch)
 	mkHandler(smtpCredentialPath, deleteSMTPCredential, model.PermRulesDelete, http.MethodDelete)
+}
+
+func makeUpdateconfHandler(mkHandler HandlerFactory) {
+	const (
+		updateconfPath = "/updateconf"
+	)
+
+	mkHandler(updateconfPath, exportconf, model.PermAdminRead, http.MethodGet)
+	mkHandler(updateconfPath, updateconf, model.PermAdminWrite, http.MethodPost)
 }

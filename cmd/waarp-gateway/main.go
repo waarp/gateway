@@ -242,6 +242,11 @@ type commands struct {
 		} `command:"credential" description:"Manage the SMTP credentials"`
 	} `command:"email" description:"Manage the gateway's email configuration"`
 
+	Updateconf struct {
+		Import wg.UpdateconfImport `command:"import" description:"Import a configuration file into the gateway"`
+		Export wg.UpdateconfExport `command:"export" description:"Export the gateway's configuration to a file"`
+	} `command:"updateconf" description:"Manage the gateway's configuration"`
+
 	Version wg.Version `command:"version" description:"Print the program version and exit"`
 }
 

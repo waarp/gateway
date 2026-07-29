@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`502` Ajout de handlers REST pour importer et exporter la configuration
+  de Gateway. La documentation de ces handlers est disponible :doc:`ici
+  <reference/rest/updateconf/index>`. Deux commandes terminal ont également été
+  ajoutées au client ``waarp-gateway``,
+
 * :release:`0.16.0 <2026-22-07>`
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des
