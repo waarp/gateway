@@ -47,6 +47,8 @@ func TestSetup(t *testing.T) {
 				"baseFileName": "#BASEFILENAME#", "fileExtension": "#FILEEXTENSION#",
 				"timestamp":        fmt.Sprintf("#TIMESTAMP(%s)#", timestampTsFormat),
 				"defaultTimestamp": `#TIMESTAMP#`, "remoteTransferID": "#REMOTETRANSFERID#",
+				"startTimestamp":        fmt.Sprintf(`#STARTTIMESTAMP(%s)#`, timestampTsFormat),
+				"defaultStartTimestamp": "#STARTTIMESTAMP#",
 			},
 		}
 
@@ -112,6 +114,7 @@ func TestSetup(t *testing.T) {
 				ErrCode:          types.TeConnection,
 				ErrDetails:       `error message`,
 				TransferInfo:     map[string]any{"foo": "bar", "id": 123},
+				Start:            time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 			}
 
 			r := &Runner{db: db, transCtx: transCtx}
@@ -359,6 +362,28 @@ func TestSetup(t *testing.T) {
 							valT, tErr := time.ParseInLocation(defaultTsGoFormat, val, time.Local)
 							So(tErr, ShouldBeNil)
 							So(valT, ShouldHappenWithin, timestampPrecision, now)
+						})
+					})
+
+					Convey("Then res should contain a `startTimestamp` entry", func() {
+						val, ok := res["startTimestamp"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[transferInfo] should contain the resolved variable", func() {
+							valT, tErr := time.ParseInLocation(timestampGoFormat, val, time.Local)
+							So(tErr, ShouldBeNil)
+							So(valT, ShouldHappenWithin, time.Duration(0), transCtx.Transfer.Start)
+						})
+					})
+
+					Convey("Then res should contain a `defaultStartTimestamp` entry", func() {
+						val, ok := res["defaultStartTimestamp"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[transferInfo] should contain the resolved variable", func() {
+							valT, tErr := time.ParseInLocation(defaultTsGoFormat, val, time.Local)
+							So(tErr, ShouldBeNil)
+							So(valT, ShouldHappenWithin, time.Duration(0), transCtx.Transfer.Start)
 						})
 					})
 				})
