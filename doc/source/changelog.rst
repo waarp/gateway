@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`599` Ajout d'une variable de substitution ``#STARTTIMESTAMP#`` pour
+  les tâches permettant d'obtenir un timestamp au format libre de la date de
+  début du transfert en cours. Voir la :ref:`page <reference-tasks-substitutions>`
+  sur les variables de substitution pour plus de détails.
 * :feature:`-` Ajout d'une variable #REMOTETRANSFERID# aux tâches permettant
   d'obtenir l'identifiant protocolaire du transfert en cours.
 
