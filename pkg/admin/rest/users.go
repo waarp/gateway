@@ -78,6 +78,16 @@ func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
+		requestUser := getRequestUser(r)
+		if !requestUser.HasPermission(model.PermUsersRead) && requestUser.ID != dbUser.ID {
+			logger.Warningf("User %q tried method %q on %q without sufficient privileges",
+				requestUser.Username, r.Method, r.URL)
+			http.Error(w, "you do not have sufficient privileges to perform this action",
+				http.StatusForbidden)
+
+			return
+		}
+
 		restUser := DBUserToREST(dbUser)
 		handleError(w, logger, writeJSON(w, restUser))
 	}
@@ -138,11 +148,31 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
+		requestUser := getRequestUser(r)
+		userCanWrite := requestUser.HasPermission(model.PermUsersWrite)
+		if !userCanWrite && oldUser.ID != requestUser.ID {
+			logger.Warningf("User %q tried method %q on %q without sufficient privileges",
+				requestUser.Username, r.Method, r.URL)
+			http.Error(w, "you do not have sufficient privileges to perform this action",
+				http.StatusForbidden)
+
+			return
+		}
+
 		restUser := &api.InUser{
 			Username: asNullable(oldUser.Username),
 			Password: asNullable(oldUser.PasswordHash),
 		}
 		if err := readJSON(r, restUser); handleError(w, logger, err) {
+			return
+		}
+
+		if !userCanWrite && restUser.Perms.IsSet() {
+			logger.Warningf("User %q tried method %q on %q without sufficient privileges",
+				requestUser.Username, r.Method, r.URL)
+			http.Error(w, "you do not have sufficient privileges to modify permissions",
+				http.StatusForbidden)
+
 			return
 		}
 

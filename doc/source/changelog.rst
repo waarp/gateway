@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`393` Un utilisateur REST peut désormais consulter ses propres informations
+  et changer son nom et son mot de passe, même s'il n'a pas les droits pour
+  lire/écrire des utilisateurs. Cette exception ne concerne que l'utilisateur
+  lui-même (il reste impossible pour cet utilisateur de consulter ou modifier les
+  autres utilisateur). Il reste également impossible pour un tel utilisateur de
+  modifier ses propres permissions.
+
 * :release:`0.16.0 <2026-22-07>`
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des

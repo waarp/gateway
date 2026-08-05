@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -147,3 +148,12 @@ func (t *testFileInfo) Mode() fs.FileMode  { return t.mode }
 func (t *testFileInfo) ModTime() time.Time { return t.modTime }
 func (t *testFileInfo) IsDir() bool        { return t.mode.IsDir() }
 func (t *testFileInfo) Sys() any           { return nil }
+
+func assertBodyMatches(tb testing.TB, body *bytes.Buffer, expected any) {
+	tb.Helper()
+
+	rawExpected, err := json.Marshal(expected)
+	require.NoError(tb, err)
+
+	assert.JSONEq(tb, string(rawExpected), body.String())
+}

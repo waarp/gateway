@@ -26,3 +26,8 @@ type Perms struct {
 	Users          string `json:"users" yaml:"users"`
 	Administration string `json:"administration" yaml:"administration"`
 }
+
+func (p *Perms) IsSet() bool {
+	return p.Transfers != "" || p.Servers != "" || p.Partners != "" ||
+		p.Rules != "" || p.Users != "" || p.Administration != ""
+}

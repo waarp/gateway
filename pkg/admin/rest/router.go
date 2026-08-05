@@ -63,8 +63,8 @@ func makeUserHandlers(mkHandler HandlerFactory) {
 
 	mkHandler(usersPath, listUsers, model.PermUsersRead, http.MethodGet)
 	mkHandler(usersPath, addUser, model.PermUsersWrite, http.MethodPost)
-	mkHandler(userPath, getUser, model.PermUsersRead, http.MethodGet)
-	mkHandler(userPath, updateUser, model.PermUsersWrite, http.MethodPatch)
+	mkHandler(userPath, getUser, 0, http.MethodGet)
+	mkHandler(userPath, updateUser, 0, http.MethodPatch)
 	mkHandler(userPath, replaceUser, model.PermUsersWrite, http.MethodPut)
 	mkHandler(userPath, deleteUser, model.PermUsersDelete, http.MethodDelete)
 }
