@@ -31,5 +31,5 @@ func formatTime(tsFormat string, t time.Time) string {
 		goFormat = strings.ReplaceAll(goFormat, tsTokens[i], goTokens[i])
 	}
 
-	return t.Format(goFormat)
+	return t.Local().Format(goFormat)
 }

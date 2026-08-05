@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`599` Ajout d'une variable de substitution ``#STARTTIMESTAMP#`` pour
+  les tâches permettant d'obtenir un timestamp au format libre de la date de
+  début du transfert en cours. Voir la :ref:`page <reference-tasks-substitutions>`
+  sur les variables de substitution pour plus de détails.
+
 * :release:`0.16.0 <2026-22-07>`
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des

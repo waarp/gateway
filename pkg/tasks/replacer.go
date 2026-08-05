@@ -82,6 +82,12 @@ func getReplacers() replacersMap {
 
 			return formatTime(format, time.Now()), nil
 		},
+		`#STARTTIMESTAMP(\([^\)]*\))?#`: func(ctx *model.TransferContext, match string) (string, error) {
+			format := strings.TrimPrefix(match, "#STARTTIMESTAMP")
+			format = strings.TrimSuffix(format, "#")
+
+			return formatTime(format, ctx.Transfer.Start), nil
+		},
 		"#REMOTEHOST#":   getRemote,
 		"#REMOTEHOSTIP#": notImplemented("#REMOTEHOSTIP#"),
 		"#LOCALHOST#":    getLocal,

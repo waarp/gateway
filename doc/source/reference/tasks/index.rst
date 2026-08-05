@@ -74,42 +74,47 @@ correspondant au transfert.
 
 Les substitutions disponibles sont les suivantes :
 
-======================= =============
-Marqueur                Signification
-======================= =============
-``#TRUEFULLPATH#``      Le chemin réel du fichier sur le disque
-``#TRUEFILENAME#``      Le nom réel du fichier sur le disque
-``#BASEFILENAME#``      Le nom du fichier sur disque (sans extension)
-``#FILEEXTENSION#``     L'extension du fichier (avec le point inclus, ex: ``.txt``)
-``#ORIGINALFULLPATH#``  Le chemin d'origine du fichier avant le transfert
-``#ORIGINALFILENAME#``  Le nom d'origine du fichier avant le transfert
-``#FILESIZE#``          La taille du fichier
-``#HOMEPATH#``          Le dossier racine de la Gateway. Ce chemin est toujours
-                        absolu.
-``#INPATH#``            Le dossier de réception. Ce chemin est toujours absolu.
-``#OUTPATH#``           Le dossier d'envoi. Ce chemin est toujours absolu.
-``#WORKPATH#``          Le dossier temporaire de réception. Ce chemin est toujours absolu.
-``#RULE#``              La règle utilisée par le transfert
-``#DATE#``              La date (au format ``AAAAMMJJ``) au moment de l'exécution
-                        de la tâche
-``#HOUR#``              L'heure (au format ``HHMMSS``) au moment de l'exécution
-                        de la tâche
-``#TIMESTAMP(format)#`` Un timestamp au format personnalisable. Le format est
-                        constitué d'une suite de token qui seront remplacés par
-                        leur valeur correspondante. La table de correspondance
-                        peut être consultée :ref:`ci-dessous <ref-timestamp-format>`.
-                        Par défaut, le format ``YYYY-MM-DD_HHmmss`` est utilisé.
-``#REMOTEHOST#``        L'identifiant du partenaire distant
-``#LOCALHOST#``         L'identifiant du partenaire local
-``#TRANSFERID#``        L'identifiant du transfert
-``#REQUESTERHOST#``     L'identifiant du partenaire qui a demandé le transfert
-``#REQUESTEDHOST#``     L'identifiant du partenaire qui a reçu la demande de
-                        transfert
-``#FULLTRANSFERID#``    Un identifiant "étendu" pour le transfert (de la forme
-                        ``identifiantDeTransfert_idClient_idServeur``)
-``#ERRORMSG#``          Message d'erreur (dans les traitements d'erreur)
-``#ERRORCODE#``         Code d'erreur (dans les traitements d'erreur)
-======================= =============
+============================ =============
+Marqueur                     Signification
+============================ =============
+``#TRUEFULLPATH#``           Le chemin réel du fichier sur le disque
+``#TRUEFILENAME#``           Le nom réel du fichier sur le disque
+``#BASEFILENAME#``           Le nom du fichier sur disque (sans extension)
+``#FILEEXTENSION#``          L'extension du fichier (avec le point inclus, ex: ``.txt``)
+``#ORIGINALFULLPATH#``       Le chemin d'origine du fichier avant le transfert
+``#ORIGINALFILENAME#``       Le nom d'origine du fichier avant le transfert
+``#FILESIZE#``               La taille du fichier
+``#HOMEPATH#``               Le dossier racine de la Gateway. Ce chemin est toujours
+                             absolu.
+``#INPATH#``                 Le dossier de réception. Ce chemin est toujours absolu.
+``#OUTPATH#``                Le dossier d'envoi. Ce chemin est toujours absolu.
+``#WORKPATH#``               Le dossier temporaire de réception. Ce chemin est toujours absolu.
+``#RULE#``                   La règle utilisée par le transfert
+``#DATE#``                   La date (au format ``AAAAMMJJ``) au moment de l'exécution
+                             de la tâche
+``#HOUR#``                   L'heure (au format ``HHMMSS``) au moment de l'exécution
+                             de la tâche
+``#TIMESTAMP(format)#``      Un timestamp du moment d'exécution des tâches. Le format
+                             est constitué d'une suite de token qui seront remplacés
+                             par leur valeur correspondante. La table de correspondance
+                             peut être consultée :ref:`ci-dessous <ref-timestamp-format>`.
+                             Par défaut, le format ``YYYY-MM-DD_HHmmss`` est utilisé.
+``#STARTTIMESTAMP(format)#`` Un timestamp du début du transfert. Le format est
+                             constitué d'une suite de token qui seront remplacés par
+                             leur valeur correspondante. La table de correspondance
+                             peut être consultée :ref:`ci-dessous <ref-timestamp-format>`.
+                             Par défaut, le format ``YYYY-MM-DD_HHmmss`` est utilisé.
+``#REMOTEHOST#``             L'identifiant du partenaire distant
+``#LOCALHOST#``              L'identifiant du partenaire local
+``#TRANSFERID#``             L'identifiant du transfert
+``#REQUESTERHOST#``          L'identifiant du partenaire qui a demandé le transfert
+``#REQUESTEDHOST#``          L'identifiant du partenaire qui a reçu la demande de
+                             transfert
+``#FULLTRANSFERID#``         Un identifiant "étendu" pour le transfert (de la forme
+                             ``identifiantDeTransfert_idClient_idServeur``)
+``#ERRORMSG#``               Message d'erreur (dans les traitements d'erreur)
+``#ERRORCODE#``              Code d'erreur (dans les traitements d'erreur)
+============================ =============
 
 En plus de ces marqueurs standards, il est également possible de référencer les
 :term:`infos de transfert` dans la définition d'un traitement. Pour ce faire,
@@ -142,53 +147,53 @@ laissé inchangé. Par exemple, si un format de timestamp contient le caractère
 ci-dessous, il sera donc laissé tel quel dans le timestamp final.
 
 .. table::
-   :widths: 40 10 20
+   :widths: 30 10 20 60
 
-   +------------------------+-------+------------------+
-   | Unité de temps         | Token | Valeur           |
-   +========================+=======+==================+
-   | **Année**              | YYYY  | 2025             |
-   |                        +-------+------------------+
-   |                        | YY    | 25               |
-   +------------------------+-------+------------------+
-   | **Mois**               | MMMM  | January          |
-   |                        +-------+------------------+
-   |                        | MMM   | Jan              |
-   |                        +-------+------------------+
-   |                        | MM    | 01..12           |
-   |                        +-------+------------------+
-   |                        | M     | 1..12            |
-   +------------------------+-------+------------------+
-   | **Jour**               | DD    | 01..31           |
-   |                        +-------+------------------+
-   |                        | D     | 1..31            |
-   +------------------------+-------+------------------+
-   | **Jour de la semaine** | dddd  | Monday           |
-   |                        +-------+------------------+
-   |                        | ddd   | Mon              |
-   +------------------------+-------+------------------+
-   | **AM/PM**              | PM    | AM/PM            |
-   |                        +-------+------------------+
-   |                        | pm    | am/pm            |
-   +------------------------+-------+------------------+
-   | **Heure**              | HH    | 00..23           |
-   |                        +-------+------------------+
-   |                        | hh    | 01..12           |
-   |                        +-------+------------------+
-   |                        | h     | 1..12            |
-   +------------------------+-------+------------------+
-   | **Minutes**            | mm    | 00..59           |
-   |                        +-------+------------------+
-   |                        | m     | 0..59            |
-   +------------------------+-------+------------------+
-   | **Secondes**           | ss    | 00..59           |
-   |                        +-------+------------------+
-   |                        | s     | 0..59            |
-   +------------------------+-------+------------------+
-   | **Fuseau horaire**     | tz    | UTC, MST, CET... |
-   |                        +-------+------------------+
-   |                        | zz    | -06:00 .. +06:00 |
-   |                        +-------+------------------+
-   |                        | z     | -0600 .. +0600   |
-   +------------------------+-------+------------------+
+   +------------------------+-------+------------------+--------------------------------------------+
+   | Unité de temps         | Token | Valeur           | Description                                |
+   +========================+=======+==================+============================================+
+   | **Année**              | YYYY  | 2025             | Numéro d'année complet                     |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | YY    | 25               | Numéro d'année abrégé                      |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **Mois**               | MMMM  | January          | Nom complet du mois                        |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | MMM   | Jan              | Nom abrégé du mois                         |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | MM    | 01..12           | Numéro de mois (2 caractères)              |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | M     | 1..12            | Numéro de mois                             |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **Jour**               | DD    | 01..31           | Numéro du jour (2 caractères)              |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | D     | 1..31            | Numéro du jour                             |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **Jour de la semaine** | dddd  | Monday           | Nom complet du jour de la semaine          |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | ddd   | Mon              | Nom abrégé du jour de la semaine           |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **AM/PM**              | PM    | AM/PM            | Période du jour en majuscules              |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | pm    | am/pm            | Période du jour en minuscules              |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **Heure**              | HH    | 00..23           | Heure en format 24h (2 caractères)         |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | hh    | 01..12           | Heure en format 12h (2 caractères)         |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | h     | 1..12            | Heure en format 12h                        |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **Minutes**            | mm    | 00..59           | Minutes complétées (2 caractères)          |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | m     | 0..59            | Minutes                                    |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **Secondes**           | ss    | 00..59           | Secondes (2 caractères)                    |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | s     | 0..59            | Secondes                                   |
+   +------------------------+-------+------------------+--------------------------------------------+
+   | **Fuseau horaire**     | tz    | UTC, MST, CET... | Nom du fuseau horaire                      |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | zz    | -06:00 .. +06:00 | Décalage du fuseau horaire avec séparateur |
+   |                        +-------+------------------+--------------------------------------------+
+   |                        | z     | -0600 .. +0600   | Décalage du fuseau horaire                 |
+   +------------------------+-------+------------------+--------------------------------------------+
 
