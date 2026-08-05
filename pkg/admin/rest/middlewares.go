@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,6 +16,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
+
+type requestUserKey struct{}
 
 // AuthenticationMiddleware checks if the request is authenticated using Basic HTTP
 // authentication.
@@ -49,9 +52,19 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
+			setRequestUser(r, &user)
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func setRequestUser(r *http.Request, user *model.User) {
+	*r = *r.WithContext(context.WithValue(r.Context(), requestUserKey{}, user))
+}
+
+func getRequestUser(r *http.Request) *model.User {
+	//nolint:forcetypeassert //assertion always succeeds here
+	return r.Context().Value(requestUserKey{}).(*model.User)
 }
 
 type responseRecorder struct {

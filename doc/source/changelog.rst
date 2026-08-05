@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`393` Un utilisateur REST peut désormais consulter ses propres informations
+  et changer son nom et son mot de passe, même s'il n'a pas les droits pour
+  lire/écrire des utilisateurs. Cette exception ne concerne que l'utilisateur
+  lui-même (il reste impossible pour cet utilisateur de consulter ou modifier les
+  autres utilisateur). Il reste également impossible pour un tel utilisateur de
+  modifier ses propres permissions.
 * :bug:`-` Correction d'un bug des handlers REST de mise à jours pour les
   template d'email et les identifiants SMTP. Ce bug faisait que tous les champs
   omis étaient réinitialisés à leur valeur par défaut. Les champs omis sont

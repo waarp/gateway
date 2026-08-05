@@ -7,12 +7,17 @@ import (
 	"strings"
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -30,15 +35,12 @@ func TestGetUser(t *testing.T) {
 
 		Convey("Given a database with 2 users", func() {
 			// add a user from another gateway
-			owner := db.Config.GatewayName
-			db.Config.GatewayName = "foobar"
 			other := &model.User{
 				Username:     "existing",
 				PasswordHash: hash("existing1"),
 				Permissions:  model.PermTransfersWrite,
 			}
-			So(db.Insert(other).Run(), ShouldBeNil)
-			db.Config.GatewayName = owner
+			So(dbtest.InsertAsOwner(db, "foobar", other), ShouldBeNil)
 
 			expected := &model.User{
 				Username:     other.Username,
@@ -47,9 +49,11 @@ func TestGetUser(t *testing.T) {
 			}
 			So(db.Insert(expected).Run(), ShouldBeNil)
 
+			r, err := http.NewRequest(http.MethodGet, "", nil)
+			So(err, ShouldBeNil)
+			setRequestUser(r, expected)
+
 			Convey("Given a request with the valid username parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, "", nil)
-				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"user": expected.Username})
 
 				Convey("When sending the request to the handler", func() {
@@ -77,8 +81,6 @@ func TestGetUser(t *testing.T) {
 			})
 
 			Convey("Given a request with a non-existing username parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, "", nil)
-				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"user": "toto"})
 
 				Convey("When sending the request to the handler", func() {
@@ -421,7 +423,7 @@ func TestUpdateUser(t *testing.T) {
 					model.PermServersRead | model.PermServersDelete |
 					model.PermPartnersWrite |
 					model.PermRulesRead | model.PermRulesWrite |
-					model.PermUsersRead,
+					model.PermUsersWrite,
 			}
 			other := &model.User{
 				Username:     "other",
@@ -442,13 +444,14 @@ func TestUpdateUser(t *testing.T) {
 						"servers": "=rw",
 						"partners": "+d",
 						"rules": "=rd",
-						"users": "+w"
+						"users": "+r"
 					}
 				}`)
+				r, err := http.NewRequest(http.MethodPatch, usersURI+old.Username, body)
+				So(err, ShouldBeNil)
+				setRequestUser(r, old)
 
 				Convey("Given an existing username parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, usersURI+old.Username, body)
-					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
 
 					Convey("When sending the request to the handler", func() {
@@ -497,8 +500,6 @@ func TestUpdateUser(t *testing.T) {
 				})
 
 				Convey("Given an invalid username parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, usersURI+"toto", body)
-					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"user": "toto"})
 
 					Convey("When sending the request to the handler", func() {
@@ -525,10 +526,11 @@ func TestUpdateUser(t *testing.T) {
 
 			Convey("Given that a password is not given", func() {
 				body := strings.NewReader(`{"username": "upd_user"}`)
+				r, err := http.NewRequest(http.MethodPut, usersURI+old.Username, body)
+				So(err, ShouldBeNil)
+				setRequestUser(r, old)
 
 				Convey("Given an existing username parameter", func() {
-					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username, body)
-					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
 
 					Convey("When sending the request to the handler", func() {
@@ -578,10 +580,11 @@ func TestUpdateUser(t *testing.T) {
 
 			Convey("Given that a username is not given", func() {
 				body := strings.NewReader(`{"password": "upd_password"}`)
+				r, err := http.NewRequest(http.MethodPut, usersURI+old.Username, body)
+				So(err, ShouldBeNil)
+				setRequestUser(r, old)
 
 				Convey("Given an existing username parameter", func() {
-					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username, body)
-					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
 
 					Convey("When sending the request to the handler", func() {
@@ -756,5 +759,156 @@ func TestReplaceUser(t *testing.T) {
 				})
 			})
 		})
+	})
+}
+
+// Test to retrieve a user when the user is not authorized to read the user table.
+// The intended behavior is that, without read permission, a user is still allowed
+// to consult their own data, but not other users'.
+func TestGetUserUnauthorized(t *testing.T) {
+	t.Parallel()
+
+	db := dbtest.TestDatabase(t)
+	logger := logtest.GetTestLogger(t)
+
+	user1 := &model.User{
+		Username:     "user1",
+		PasswordHash: "passwordHash1",
+	}
+	require.NoError(t, db.Insert(user1).Run())
+
+	user2 := &model.User{
+		Username:     "user2",
+		PasswordHash: "passwordHash2",
+	}
+	require.NoError(t, db.Insert(user2).Run())
+
+	handler := getUser(logger, db)
+
+	// User tries to retrieve themselves (allowed)
+	t.Run("Self", func(t *testing.T) {
+		t.Parallel()
+
+		req := makeRequest(http.MethodGet, nil, "/api/users/{user}", user1.Username)
+		w := httptest.NewRecorder()
+		setRequestUser(req, user1)
+		handler.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assertBodyMatches(t, w.Body, map[string]any{
+			"username": user1.Username,
+			"perms": Perms{
+				Transfers:      "---",
+				Servers:        "---",
+				Partners:       "---",
+				Rules:          "---",
+				Users:          "---",
+				Administration: "---",
+			},
+		})
+	})
+
+	// User tries to retrieve any other user (forbidden)
+	t.Run("Other", func(t *testing.T) {
+		t.Parallel()
+
+		req := makeRequest(http.MethodGet, nil, "/api/users/{user}", user1.Username)
+		w := httptest.NewRecorder()
+		setRequestUser(req, user2)
+		handler.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Equal(t,
+			"you do not have sufficient privileges to perform this action\n",
+			w.Body.String())
+	})
+}
+
+// Test to update a user when the user is not authorized to write to the user table.
+// The intended behavior is that, even without rights, a user is allowed to change
+// their name and password, but not their permissions.
+func TestUpdateUserUnauthorized(t *testing.T) {
+	t.Parallel()
+
+	db := dbtest.TestDatabase(t)
+	logger := logtest.GetTestLogger(t)
+
+	user1 := &model.User{
+		Username:     "user1",
+		PasswordHash: "passwordHash1",
+		Permissions:  model.PermServersRead,
+	}
+	require.NoError(t, db.Insert(user1).Run())
+
+	user2 := &model.User{
+		Username:     "user2",
+		PasswordHash: "passwordHash2",
+		Permissions:  model.PermRulesWrite,
+	}
+	require.NoError(t, db.Insert(user2).Run())
+
+	handler := updateUser(logger, db)
+
+	// User updates themselves with new permissions (forbidden)
+	t.Run("Self with perms", func(t *testing.T) {
+		body := mkBody(t, map[string]any{
+			"username": "new_user1",
+			"password": "new_password1",
+			"perms":    map[string]any{"users": "rwd"},
+		})
+		req := makeRequest(http.MethodPatch, body, "/api/users/{user}", user1.Username)
+		w := httptest.NewRecorder()
+		setRequestUser(req, user1)
+		handler.ServeHTTP(w, req)
+
+		// Reply with 403
+		assert.Equal(t, http.StatusForbidden, w.Code)
+
+		// User is unchanged
+		var check model.User
+		require.NoError(t, db.Get(&check, "id=?", user1.ID).Run())
+		assert.Equal(t, user1, &check)
+	})
+
+	// User updates themselves without new permissions (allowed)
+	t.Run("Self", func(t *testing.T) {
+		body := mkBody(t, map[string]any{
+			"username": "new_user1",
+			"password": "new_password1",
+		})
+		req := makeRequest(http.MethodPatch, body, "/api/users/{user}", user1.Username)
+		w := httptest.NewRecorder()
+		setRequestUser(req, user1)
+		handler.ServeHTTP(w, req)
+
+		// Reply with 201
+		assert.Equal(t, http.StatusCreated, w.Code)
+
+		// User has changed (except permissions)
+		var check model.User
+		require.NoError(t, db.Get(&check, "id=?", user1.ID).Run())
+		assert.Equal(t, "new_user1", check.Username)
+		assert.True(t, utils.IsHashOf(check.PasswordHash, "new_password1"))
+		assert.Equal(t, user1.Permissions, check.Permissions)
+	})
+
+	// User updates another user (forbidden)
+	t.Run("Other", func(t *testing.T) {
+		body := mkBody(t, map[string]any{
+			"username": "new_user2",
+			"password": "new_password2",
+		})
+		req := makeRequest(http.MethodPatch, body, "/api/users/{user}", user2.Username)
+		w := httptest.NewRecorder()
+		setRequestUser(req, user1)
+		handler.ServeHTTP(w, req)
+
+		// Reply with 403
+		assert.Equal(t, http.StatusForbidden, w.Code)
+
+		// User is unchanged
+		var check model.User
+		require.NoError(t, db.Get(&check, "id=?", user2.ID).Run())
+		assert.Equal(t, user2, &check)
 	})
 }

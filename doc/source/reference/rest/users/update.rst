@@ -6,6 +6,12 @@ Modifier un utilisateur
    Met à jour l'utilisateur demandé avec les informations renseignées en JSON.
    Les champs non-spécifiés resteront inchangés.
 
+   .. note::
+      Un utilisateur peut toujours modifier son propre nom et mot de passe. En
+      revanche, un utilisateur sans droit d'écriture sur les utilisateurs ne
+      pourra ni changer les informations d'autres utilisateur, ni changer ses
+      propres permissions.
+
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :reqjson string username: Le nom de l'utilisateur
