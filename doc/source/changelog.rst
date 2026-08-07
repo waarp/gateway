@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`67` Une tâche ``CHMOD`` permettant de modifier les permissions d'un
+  fichier a été ajoutée. Voir la :doc:`documentation<reference/tasks/chmod>` de
+  la tâche pour plus de détails.
+
 * :release:`0.16.0 <2026-22-07>`
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des

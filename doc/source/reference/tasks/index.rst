@@ -58,7 +58,7 @@ Liste des traitements
    encrypt_sign
    decrypt_verify
    updateconf
-
+   chmod
 
 
 .. _reference-tasks-substitutions:

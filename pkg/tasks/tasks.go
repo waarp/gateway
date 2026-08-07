@@ -12,6 +12,7 @@ const (
 	Move       = "MOVE"
 	MoveRename = "MOVERENAME"
 	Delete     = "DELETE"
+	Chmod      = "CHMOD"
 
 	Exec       = "EXEC"
 	ExecMove   = "EXECMOVE"
@@ -50,6 +51,7 @@ func init() {
 	model.ValidTasks[Move] = newRunner[*moveTask]
 	model.ValidTasks[MoveRename] = newRunner[*moveRenameTask]
 	model.ValidTasks[Delete] = newRunner[*deleteTask]
+	model.ValidTasks[Chmod] = newRunner[*chmodTask]
 
 	// Execution tasks
 	model.ValidTasks[Exec] = newRunner[*execTask]
