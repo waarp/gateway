@@ -111,7 +111,7 @@ func TestGetFileInfo(t *testing.T) {
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, &r66.Error{
 						Code:   r66.IncorrectCommand,
-						Detail: "rule not found",
+						Detail: "rule does not exist",
 					})
 				})
 			})
@@ -141,7 +141,7 @@ func TestGetFileInfo(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, &r66.Error{
-							Code:   r66.IncorrectCommand,
+							Code:   r66.FileNotAllowed,
 							Detail: "you do not have the rights to use this transfer rule",
 						})
 					})

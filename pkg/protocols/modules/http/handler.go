@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"path"
@@ -13,13 +14,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
 type httpHandler struct {
 	agent   *model.LocalAgent
 	account *model.LocalAccount
-	rule    model.Rule
+	rule    *model.Rule
 
 	tracer func() pipeline.Trace
 	db     *database.DB
@@ -39,48 +41,25 @@ func (h *httpHandler) getRule(isSend bool) bool {
 		}
 	}
 
-	return h.getRuleFromName(name, isSend)
-}
+	var err error
+	if h.rule, err = protoutils.GetRule(h.db, h.account, name, isSend); err != nil {
+		switch {
+		case errors.Is(err, protoutils.ErrRuleNotFound):
+			h.logger.Warningf("User %q requested unknown rule %q", h.account.Login, name)
+			h.sendError(http.StatusNotFound, types.TeInternal, "rule not found")
+		case errors.Is(err, protoutils.ErrPermissionDenied):
+			h.logger.Warningf("User %q requested unauthorized rule %q", h.account.Login, name)
+			h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to use this rule")
 
-func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
-	if err := h.db.Get(&h.rule, "name=? AND is_send=?", name, isSend).Run(); err != nil {
-		if database.IsNotFound(err) {
-			h.rule.IsSend = isSend
-			msg := fmt.Sprintf("No %s rule with name '%s' found", h.rule.Direction(), name)
-
-			h.logger.Warning(msg)
-			h.sendError(http.StatusBadRequest, types.TeInternal, "rule not found")
-
-			return false
+		default:
+			h.logger.Errorf("Failed to retrieve rule: %v", err)
+			h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to retrieve rule")
 		}
-
-		h.logger.Errorf("Failed to retrieve transfer rule: %v", err)
-		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to retrieve transfer rule")
 
 		return false
 	}
 
 	return true
-}
-
-func (h *httpHandler) checkRulePermission() bool {
-	isAuthorized, err := h.rule.IsAuthorized(h.db, h.account)
-	if err != nil {
-		h.logger.Errorf("Failed to retrieve rule permissions: %v", err)
-		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to check rule permissions")
-
-		return false
-	}
-
-	if isAuthorized {
-		return true
-	}
-
-	h.logger.Warningf("Account %s is not allowed to use %s rule %s", h.account.Login,
-		h.rule.Direction(), h.rule.Name)
-	h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to use this rule")
-
-	return false
 }
 
 func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
@@ -134,10 +113,6 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 		return nil, false
 	}
 
-	if !h.checkRulePermission() {
-		return nil, false
-	}
-
 	filepath := strings.TrimPrefix(h.req.URL.Path, "/")
 	remoteID := h.req.Header.Get(httpconst.TransferID)
 
@@ -161,20 +136,20 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 
 func (h *httpHandler) mkTransfer(remoteID, filepath string) (*model.Transfer, *pipeline.Error) {
 	if trans, err := pipeline.GetOldTransferByRemoteID(h.db, remoteID, h.account,
-		&h.rule); err == nil {
+		h.rule); err == nil {
 		return trans, nil
 	} else if !database.IsNotFound(err) {
 		return nil, err
 	}
 
 	if trans, err := pipeline.GetAvailableTransferByFilename(h.db, filepath, remoteID,
-		h.account, &h.rule); err == nil {
+		h.account, h.rule); err == nil {
 		return trans, nil
 	} else if !database.IsNotFound(err) {
 		return nil, err
 	}
 
-	return pipeline.MakeServerTransfer(remoteID, filepath, h.account, &h.rule), nil
+	return pipeline.MakeServerTransfer(remoteID, filepath, h.account, h.rule), nil
 }
 
 func (h *httpHandler) handleHead() {
@@ -191,36 +166,30 @@ func (h *httpHandler) handleHead() {
 	var trans model.Transfer
 
 	if err := h.db.Get(&trans, "remote_transfer_id=? AND local_account_id=?",
-		remoteID, h.account.ID).OrderBy("start", false).Run(); err != nil {
-		if database.IsNotFound(err) {
-			h.sendError(http.StatusBadRequest, types.TeInternal, "unknown transfer ID")
+		remoteID, h.account.ID).OrderBy("start", false).Run(); database.IsNotFound(err) {
+		h.sendError(http.StatusBadRequest, types.TeInternal, "unknown transfer ID")
 
-			return
-		}
-
+		return
+	} else if err != nil {
+		h.logger.Errorf("Failed to retrieve transfer: %v", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "database error")
 
 		return
 	}
 
 	var rule model.Rule
-	if err := h.db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
-		if database.IsNotFound(err) {
-			h.sendError(http.StatusBadRequest, types.TeInternal, "unknown rule ID")
+	if err := h.db.Get(&rule, "id=?", trans.RuleID).Run(); database.IsNotFound(err) {
+		h.sendError(http.StatusBadRequest, types.TeInternal, "unknown rule ID")
 
-			return
-		}
-
+		return
+	} else if err != nil {
+		h.logger.Errorf("Failed to retrieve rule: %v", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "database error")
 
 		return
 	}
 
-	if ok, err := rule.IsAuthorized(h.db, h.account); err != nil {
-		h.sendError(http.StatusInternalServerError, types.TeInternal, "database error")
-
-		return
-	} else if !ok {
+	if !rule.IsAuthorized(h.account) {
 		h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to see this transfer")
 	}
 

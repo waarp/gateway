@@ -64,6 +64,7 @@ type ReadAccess interface {
 	// The request can then be executed using the CountQuery.Run method.
 	Count(obj IterateBean) *CountQuery
 
+	Query(query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
 }
 

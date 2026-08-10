@@ -2,6 +2,7 @@ package r66
 
 import (
 	"context"
+	"errors"
 	"path"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -111,34 +113,28 @@ func (s *sessionHandler) checkRequest(req *r66.Request) *r66.Error {
 	return nil
 }
 
-func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r66.Error) {
-	var rule model.Rule
-	if err := s.db.Get(&rule, "name=? AND is_send=?", ruleName, isSend).Run(); err != nil {
-		if database.IsNotFound(err) {
-			rule.IsSend = isSend
-			s.logger.Warningf("Requested %s transfer rule %q does not exist",
-				rule.Direction(), ruleName)
+func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, error) {
+	rule, err := protoutils.GetRule(s.db, s.account, ruleName, isSend)
+	if err != nil {
+		switch {
+		case errors.Is(err, protoutils.ErrRuleNotFound):
+			s.logger.Warningf("User %q requested unknown rule %q", s.account.Login, ruleName)
 
 			return nil, internal.NewR66Error(r66.IncorrectCommand, "rule does not exist")
+		case errors.Is(err, protoutils.ErrPermissionDenied):
+			s.logger.Warningf("User %q does not have permission to use rule %q",
+				s.account.Login, ruleName)
+
+			return nil, internal.NewR66Error(r66.FileNotAllowed,
+				"you do not have the rights to use this transfer rule")
+		default:
+			s.logger.Errorf("Failed to retrieve transfer rule: %v", err)
+
+			return nil, errDatabase
 		}
-
-		s.logger.Errorf("Failed to retrieve transfer rule: %v", err)
-
-		return nil, errDatabase
 	}
 
-	ok, err := rule.IsAuthorized(s.db, s.account)
-	if err != nil {
-		s.logger.Errorf("Failed to check rule permissions: %v", err)
-
-		return nil, errDatabase
-	}
-
-	if !ok {
-		return nil, internal.NewR66Error(r66.FileNotAllowed, "you do not have the rights to use this transfer rule")
-	}
-
-	return &rule, nil
+	return rule, nil
 }
 
 func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model.Transfer, *r66.Error) {
@@ -276,30 +272,14 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 }
 
 func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, error) {
-	var rule model.Rule
-
-	if err := s.db.Get(&rule, "name=? AND is_send=?", ruleName, true).Run(); database.IsNotFound(err) {
-		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule not found"}
-	} else if err != nil {
-		s.logger.Errorf("Failed to retrieve rule: %v", err)
-
-		return nil, errDatabase
-	}
-
-	if ok, err := rule.IsAuthorized(s.db, s.account); err != nil {
-		s.logger.Errorf("Failed to check rule permissions: %v", err)
-
-		return nil, errDatabase
-	} else if !ok {
-		return nil, &r66.Error{
-			Code:   r66.IncorrectCommand,
-			Detail: "you do not have the rights to use this transfer rule",
-		}
+	rule, err := s.getRule(ruleName, true)
+	if err != nil {
+		return nil, err
 	}
 
 	pattern := path.Clean(pat)
 
-	dir, err := s.makeDir(&rule)
+	dir, err := s.makeDir(rule)
 	if err != nil {
 		return nil, err
 	}
