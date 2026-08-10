@@ -1,147 +1,236 @@
 #
 # check https://nfpm.goreleaser.com/configuration for detailed usage
 #
+# There is deliberately a SINGLE "contents" list here. An
+# "overrides.<format>.contents" block REPLACES this list instead of extending
+# it, so maintaining one list per format meant every addition had to be made
+# three times -- and example_config.yaml, added only to the top-level block,
+# shipped in no package at all for years (issue #387). Entries that genuinely
+# differ between formats carry a "packager" key instead.
+#
+# Every entry declares file_info.mode. Without it nFPM copies whatever mode the
+# source file happens to have on the build machine, which is how gatewayd.ini
+# shipped 0600 in 0.12.9 and 0644 in 0.16.0 from this very same manifest. Modes
+# must be written as unquoted octal literals with a leading zero: nFPM reads
+# "755" as decimal and silently produces 0o1363, and it rejects "0755" quoted.
+#
 name: "waarp-gateway"
 arch: "amd64"
 platform: "linux"
 version: v0.16.0
 release: 1
-section: "default"
-priority: "extra"
-#replaces:
-#- foobar
-#provides:
-#- bar
-depends:
-- unzip
-#- bar
-#recommends:
-#- whatever
-#suggests:
-#- something-else
-#conflicts:
-#- not-foo
-#- not-bar
+section: "net"
+priority: "optional"
 maintainer: "Waarp <dev@waarp.org>"
+license: "GPL-3.0-or-later"
 description: |
-  Waarp Gateway is a gateway that provides protocol break and protocol
-  interoperability
+  file transfer gateway providing protocol break and interoperability
+  Waarp Gateway relays file transfers between partners that do not speak the
+  same protocol. It terminates each transfer and re-emits it, which lets an
+  R66 partner exchange files with an SFTP, FTP, HTTP, AS2, WebDAV or PeSIT one,
+  and keeps the internal network from accepting direct external connections.
+  The service is not started on installation: the database has to be migrated
+  first.
 vendor: "Waarp"
 homepage: "http://www.waarp.fr"
-#license: "MIT"
-#changelog: "changelog.yaml"
+
 contents:
+  #
+  # Programs
+  #
   - src: ./build/waarp-gateway_linux_amd64
     dst: "/usr/bin/waarp-gateway"
+    file_info:
+      mode: 0755
   - src: ./build/waarp-gatewayd_linux_amd64
     dst: "/usr/bin/waarp-gatewayd"
-  - src: ./build/get-remote_linux_amd64
-    dst: "/usr/share/waarp-gateway/get-remote"
-  - src: ./build/updateconf_linux_amd64
-    dst: "/usr/share/waarp-gateway/updateconf"
+    file_info:
+      mode: 0755
 
-  - src: ./build/waarp-gatewayd.ini
-    dst: "/etc/waarp-gateway/gatewayd.ini"
-    type: config
+  #
+  # Helper programs.
+  #
+  # These are compiled binaries and must not live under /usr/share, which is
+  # reserved for architecture-independent data. The right directory differs
+  # between the two families: "rpm --eval %{_libexecdir}" gives /usr/libexec on
+  # RHEL, Alma, Rocky and openSUSE Tumbleweed, but /usr/lib on Leap 15 -- and
+  # /usr/libexec is only permitted by Debian Policy from 4.7.0 (2024), so it is
+  # not valid on bullseye or bookworm.
+  #
+  - dst: "/usr/libexec/waarp-gateway"
+    type: dir
+    packager: rpm
+    file_info:
+      mode: 0755
+  - src: ./build/get-remote_linux_amd64
+    dst: "/usr/libexec/waarp-gateway/get-remote"
+    packager: rpm
+    file_info:
+      mode: 0755
+  - src: ./build/updateconf_linux_amd64
+    dst: "/usr/libexec/waarp-gateway/updateconf"
+    packager: rpm
+    file_info:
+      mode: 0755
+
+  - dst: "/usr/lib/waarp-gateway"
+    type: dir
+    packager: deb
+    file_info:
+      mode: 0755
+  - src: ./build/get-remote_linux_amd64
+    dst: "/usr/lib/waarp-gateway/get-remote"
+    packager: deb
+    file_info:
+      mode: 0755
+  - src: ./build/updateconf_linux_amd64
+    dst: "/usr/lib/waarp-gateway/updateconf"
+    packager: deb
+    file_info:
+      mode: 0755
+
+  #
+  # Compatibility shims kept at the pre-0.17 locations, to be removed in 1.0.
+  # Rules and integration scripts that hardcoded the absolute path keep
+  # working, and get told where the helper went. One script serves both names:
+  # it works out which helper is wanted from its own basename.
+  #
+  - src: ./dist/compat/deprecated-path-shim
+    dst: "/usr/share/waarp-gateway/get-remote"
+    file_info:
+      mode: 0755
+  - src: ./dist/compat/deprecated-path-shim
+    dst: "/usr/share/waarp-gateway/updateconf"
+    file_info:
+      mode: 0755
+
+  #
+  # Data
+  #
+  - dst: "/usr/share/waarp-gateway"
+    type: dir
+    file_info:
+      mode: 0755
   - src: ./dist/example_config.yaml
     dst: "/usr/share/waarp-gateway/example_config.yaml"
+    file_info:
+      mode: 0644
+  - src: ./doc/source/reference/waarp-gateway.mib
+    dst: "/usr/share/waarp-gateway/waarp-gateway.mib"
+    file_info:
+      mode: 0644
+  - src: ./dist/copyright
+    dst: "/usr/share/doc/waarp-gateway/copyright"
+    file_info:
+      mode: 0644
 
+  #
+  # systemd units.
+  #
+  # /usr/lib/systemd/system for both formats: /lib/systemd/system is an aliased
+  # path on any merged-/usr system and lintian rejects it (DEP-17).
+  #
+  - src: ./dist/waarp-gatewayd.service
+    dst: "/usr/lib/systemd/system/waarp-gatewayd.service"
+    file_info:
+      mode: 0644
+  - src: ./dist/waarp-gateway-get-remote.service
+    dst: "/usr/lib/systemd/system/waarp-gateway-get-remote.service"
+    file_info:
+      mode: 0644
+  - src: ./dist/waarp-gateway-get-remote.timer
+    dst: "/usr/lib/systemd/system/waarp-gateway-get-remote.timer"
+    file_info:
+      mode: 0644
+
+  #
+  # Configuration.
+  #
+  # "config|noreplace" and not "config": nFPM maps a bare "config" to a plain
+  # %config on RPM, which overwrites the administrator's edited file on every
+  # upgrade.
+  #
+  # The directory is group-writable because the daemon writes into it as the
+  # waarp user: passphrase.aes, the cluster override file, and fw.json /
+  # get-file.list from the UPDATECONF task. With 0750 a fresh install never
+  # starts at all, since the AES key is loaded before the database is created.
+  #
+  # The sticky bit is what keeps that from being a hole. Directory write
+  # permission alone would let the daemon account unlink or rename any file
+  # here regardless of its mode -- gatewayd.ini, or a TLS key the administrator
+  # parked in the directory. With 01770 only the owner of a file may remove or
+  # rename it, while creation still works, which is all the daemon needs: every
+  # file it writes it also owns, and it opens them in place rather than
+  # renaming over them.
+  #
+  - dst: "/etc/waarp-gateway"
+    type: dir
+    file_info:
+      mode: 01770
+  - src: ./build/waarp-gatewayd.ini
+    dst: "/etc/waarp-gateway/gatewayd.ini"
+    type: "config|noreplace"
+    file_info:
+      mode: 0640
+  # /etc/default and not /etc/waarp-gateway: this file is read by systemd and
+  # by nothing else -- running get-remote by hand does not source it -- so it
+  # is service-manager configuration, which is what /etc/default is for on
+  # Debian and /etc/sysconfig on RHEL. One path rather than one per family:
+  # /etc/default exists on both (verified on debian:stable-slim and
+  # rockylinux:9), nothing in policy requires the split, and the unit names the
+  # path explicitly for anyone who looks in /etc/sysconfig first.
+  #
+  # root:root 0640 because the address carries the credentials in its URL, as
+  # the CLI documentation shows. systemd reads it as root before dropping to
+  # User=waarp, so the waarp account needs no access to it.
+  - src: ./dist/waarp-gateway-get-remote.default
+    dst: "/etc/default/waarp-gateway-get-remote"
+    type: "config|noreplace"
+    file_info:
+      mode: 0640
+
+  #
+  # State.
+  #
   - dst: "/var/lib/waarp-gateway"
     type: dir
+    file_info:
+      mode: 0750
   - dst: "/var/lib/waarp-gateway/in"
     type: dir
+    file_info:
+      mode: 0750
   - dst: "/var/lib/waarp-gateway/out"
     type: dir
-  - dst: "/var/lib/waarp-gateway/work"
+    file_info:
+      mode: 0750
+  - dst: "/var/lib/waarp-gateway/tmp"
     type: dir
+    file_info:
+      mode: 0750
   - dst: "/var/lib/waarp-gateway/db"
     type: dir
+    file_info:
+      mode: 0750
   - dst: "/var/log/waarp-gateway"
     type: dir
+    file_info:
+      mode: 0750
 
 scripts:
   preinstall: dist/preinst.sh
   postinstall: dist/postinst.sh
+  preremove: dist/prerm.sh
+  postremove: dist/postrm.sh
 
-#symlinks:
-#  /sbin/foo: "/usr/local/bin/foo"
-
+# useradd and groupadd, used by dist/preinst.sh, come from different packages
+# on the two families. The obsolete "unzip" dependency that used to sit here
+# served a shell script unpackaged back in 2021 and deleted since; all it did
+# by then was make "dpkg -i" fail outright on a minimal system.
 overrides:
-  rpm:
-    contents:
-      - src: dist/waarp-gatewayd.service
-        dst: /usr/lib/systemd/system/waarp-gatewayd.service
-      - src: dist/waarp-gateway-get-remote.service
-        dst: /usr/lib/systemd/system/waarp-gateway-get-remote.service
-      - src: dist/waarp-gateway-get-remote.timer
-        dst: /usr/lib/systemd/system/waarp-gateway-get-remote.timer
-      - src: ./build/waarp-gateway_linux_amd64
-        dst: "/usr/bin/waarp-gateway"
-      - src: ./build/waarp-gatewayd_linux_amd64
-        dst: "/usr/bin/waarp-gatewayd"
-      - src: ./build/get-remote_linux_amd64
-        dst: "/usr/share/waarp-gateway/get-remote"
-      - src: ./build/updateconf_linux_amd64
-        dst: "/usr/share/waarp-gateway/updateconf"
-      - src: ./doc/source/reference/waarp-gateway.mib
-        dst: "/usr/share/waarp-gateway/waarp-gateway.mib"
-
-      - src: ./build/waarp-gatewayd.ini
-        dst: "/etc/waarp-gateway/gatewayd.ini"
-        type: config
-
-      - dst: "/var/lib/waarp-gateway"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/in"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/out"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/work"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/db"
-        type: dir
-      - dst: "/var/log/waarp-gateway"
-        type: dir
   deb:
-    contents:
-      - src: dist/waarp-gatewayd.service
-        dst: /lib/systemd/system/waarp-gatewayd.service
-      - src: dist/waarp-gateway-get-remote.service
-        dst: /lib/systemd/system/waarp-gateway-get-remote.service
-      - src: dist/waarp-gateway-get-remote.timer
-        dst: /lib/systemd/system/waarp-gateway-get-remote.timer
-
-      - src: ./build/waarp-gateway_linux_amd64
-        dst: "/usr/bin/waarp-gateway"
-      - src: ./build/waarp-gatewayd_linux_amd64
-        dst: "/usr/bin/waarp-gatewayd"
-      - src: ./build/get-remote_linux_amd64
-        dst: "/usr/share/waarp-gateway/get-remote"
-      - src: ./build/updateconf_linux_amd64
-        dst: "/usr/share/waarp-gateway/updateconf"
-
-      - src: ./doc/source/reference/waarp-gateway.mib
-        dst: "/usr/share/waarp-gateway/waarp-gateway.mib"
-      - src: ./build/waarp-gatewayd.ini
-        dst: "/etc/waarp-gateway/gatewayd.ini"
-        type: config
-
-      - dst: "/var/lib/waarp-gateway"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/in"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/out"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/work"
-        type: dir
-      - dst: "/var/lib/waarp-gateway/db"
-        type: dir
-      - dst: "/var/log/waarp-gateway"
-        type: dir
-#    scripts:
-#      preinstall: ./scripts/preinstall.sh
-#      postremove: ./scripts/postremove.sh
-#  deb:
-#    scripts:
-#      postinstall: ./scripts/postinstall.sh
-#      preremove: ./scripts/preremove.sh
+    depends:
+      - passwd
+  rpm:
+    depends:
+      - shadow-utils

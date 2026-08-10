@@ -35,14 +35,44 @@ Installez le RPM avec la commande :
 Installation sur Debian et dérivés
 ==================================
 
-Vous pouvez également télécharger la dernière version du fichier DEB sur notre
+Vous pouvez télécharger la dernière version du fichier DEB sur notre
 `page de téléchargements`_.
 
 Installez le DEB avec la commande :
 
 .. code-block:: bash
 
-   rpm -i waarp-gateway-[version].rpm
+   apt install ./waarp-gateway_[version]-1_amd64.deb
+
+La commande ``dpkg -i`` fonctionne également, le paquet ne dépendant que de
+composants présents sur tout système Debian.
+
+
+.. _install-layout:
+
+.. note::
+
+   Le service n'est ni activé ni démarré par l'installation, la base de données
+   devant être migrée au préalable. Voir :ref:`service_management` et
+   :doc:`../administration/migrate`.
+
+.. _install-deprecated-paths:
+
+Emplacements dépréciés
+----------------------
+
+Jusqu'à la version 0.16.0 incluse, ``get-remote`` et ``updateconf`` étaient
+installés dans :file:`/usr/share/waarp-gateway/`. Ce n'était pas conforme aux
+politiques Debian et RPM, qui réservent :file:`/usr/share` aux données
+indépendantes de l'architecture.
+
+Les anciens chemins restent fonctionnels **jusqu'à la version 1.0** : ils sont
+occupés par un script de compatibilité qui relaie l'appel vers le nouvel
+emplacement, en affichant un avertissement. Si vos règles de transfert ou vos
+scripts d'intégration utilisent le chemin absolu, remplacez-le par le simple
+nom du programme (``updateconf``, ``get-remote``) : cette forme est résolue
+correctement aussi bien sur une installation par paquet que sur une archive
+portable ou dans un container.
 
 
 Utilisation du container avec Docker

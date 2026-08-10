@@ -206,6 +206,14 @@ func runExec(ctx context.Context, logger *log.Logger, transCtx *model.TransferCo
 
 		return stdout, runErr
 	default:
+		// A program that succeeded may still have something worth reading on
+		// stderr. Dropping it here is what made the deprecation notice of the
+		// compatibility shims invisible to everyone whose setup still worked,
+		// which is exactly the population that has to migrate.
+		if msg := stderr.String(); msg != "" {
+			logger.Warningf("Program wrote to stderr: %s", msg)
+		}
+
 		return stdout, nil
 	}
 }
