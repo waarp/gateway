@@ -17,10 +17,15 @@ var (
 	errValid = errors.New("validation failed")
 )
 
+const (
+	taskSuccess = "TESTSUCCESS"
+	taskFail    = "TESTFAIL"
+)
+
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ValidTasks["TESTSUCCESS"] = func() TaskRunner { return &testTaskSuccess{} }
-	ValidTasks["TESTFAIL"] = func() TaskRunner { return &testTaskFail{} }
+	ValidTasks[taskSuccess] = func() TaskRunner { return &testTaskSuccess{} }
+	ValidTasks[taskFail] = func() TaskRunner { return &testTaskFail{} }
 }
 
 type testTaskSuccess struct{}
@@ -77,7 +82,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 				RuleID: r.ID,
 				Chain:  ChainPre,
 				Rank:   0,
-				Type:   "TESTSUCCESS",
+				Type:   taskSuccess,
 			}
 			So(db.Insert(&t).Run(), ShouldBeNil)
 
@@ -86,7 +91,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 					RuleID: 0,
 					Chain:  ChainPre,
 					Rank:   0,
-					Type:   "TESTSUCCESS",
+					Type:   taskSuccess,
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
@@ -104,7 +109,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 					RuleID: r.ID,
 					Chain:  "XXX",
 					Rank:   0,
-					Type:   "TESTSUCCESS",
+					Type:   taskSuccess,
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {
@@ -122,7 +127,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 					RuleID: t.RuleID,
 					Chain:  t.Chain,
 					Rank:   t.Rank,
-					Type:   "TESTSUCCESS",
+					Type:   taskSuccess,
 				}
 
 				Convey("When calling the `BeforeWrite` method", func() {

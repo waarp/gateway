@@ -237,6 +237,15 @@ func (s *Session) AdvanceIncrement(bean Table, value int64) error {
 	return nil
 }
 
+// Query returns multiple rows from the database, which can then be scanned.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with caution.
+func (s *Session) Query(query string, args ...any) (*sql.Rows, error) {
+	//nolint:wrapcheck //wrapping adds nothing here
+	return s.session.Raw(query, args...).Rows()
+}
+
 // QueryRow returns a single row from the database, which can then be scanned.
 //
 // Be aware that, since this method bypasses the data models, all the models'

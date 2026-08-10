@@ -66,12 +66,7 @@ func restRuleToDB(rule *api.InRule, logger *log.Logger) (*model.Rule, error) {
 }
 
 // DBRuleToREST transforms the given database transfer rule into its JSON equivalent.
-func DBRuleToREST(db *database.DB, dbRule *model.Rule) (*api.OutRule, error) {
-	access, accErr := makeRuleAccess(db, dbRule)
-	if accErr != nil {
-		return nil, accErr
-	}
-
+func DBRuleToREST(dbRule *model.Rule) (*api.OutRule, error) {
 	in := utils.NormalizePath(dbRule.LocalDir)
 	out := utils.NormalizePath(dbRule.RemoteDir)
 
@@ -93,10 +88,10 @@ func DBRuleToREST(db *database.DB, dbRule *model.Rule) (*api.OutRule, error) {
 		LocalDir:       dbRule.LocalDir,
 		RemoteDir:      dbRule.RemoteDir,
 		TmpLocalRcvDir: dbRule.TmpLocalRcvDir,
-		Authorized:     *access,
-	}
-	if err := doListTasks(db, rule, dbRule.ID); err != nil {
-		return nil, err
+		Authorized:     *makeRuleAccess(dbRule),
+		PreTasks:       FromRuleTasks(dbRule.PreTasks),
+		PostTasks:      FromRuleTasks(dbRule.PostTasks),
+		ErrorTasks:     FromRuleTasks(dbRule.ErrorTasks),
 	}
 
 	return rule, nil
@@ -104,12 +99,12 @@ func DBRuleToREST(db *database.DB, dbRule *model.Rule) (*api.OutRule, error) {
 
 // DBRulesToREST transforms the given list of database transfer rules into its JSON
 // equivalent.
-func DBRulesToREST(db *database.DB, dbRules []*model.Rule) ([]*api.OutRule, error) {
+func DBRulesToREST(dbRules []*model.Rule) ([]*api.OutRule, error) {
 	restRules := make([]*api.OutRule, len(dbRules))
 
 	for i, dbRule := range dbRules {
 		var err error
-		if restRules[i], err = DBRuleToREST(db, dbRule); err != nil {
+		if restRules[i], err = DBRuleToREST(dbRule); err != nil {
 			return nil, err
 		}
 	}
@@ -137,8 +132,8 @@ func retrieveDBRule(r *http.Request, db *database.DB) (*model.Rule, error) {
 	}
 
 	var rule model.Rule
-	if err := db.Get(&rule, "name=? AND is_send=?", ruleName,
-		direction == "send").Run(); err != nil {
+	if err := db.Get(&rule, "name=? AND is_send=?", ruleName, direction == "send").
+		Eager().Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFoundf("%s rule %q not found", direction, ruleName)
 		}
@@ -184,7 +179,7 @@ func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restRule, convErr := DBRuleToREST(db, dbRule)
+		restRule, convErr := DBRuleToREST(dbRule)
 		if handleError(w, logger, convErr) {
 			return
 		}
@@ -194,6 +189,7 @@ func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	//nolint:goconst //keep separate
 	validSorting := orders{
 		"default": order{col: "name", asc: true},
 		"name+":   order{col: "name", asc: true},
@@ -212,7 +208,7 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		restRules, convErr := DBRulesToREST(db, dbRules)
+		restRules, convErr := DBRulesToREST(dbRules)
 		if handleError(w, logger, convErr) {
 			return
 		}

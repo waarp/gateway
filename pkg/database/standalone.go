@@ -151,6 +151,15 @@ func (db *DB) Exec(query string, args ...any) error {
 	return db.engine.Exec(query, args...).Error
 }
 
+// Query returns multiple rows from the database, which can then be scanned.
+//
+// Be aware that, since this method bypasses the data models, all the models'
+// hooks will be skipped. Thus, this method should be used with caution.
+func (db *DB) Query(query string, args ...any) (*sql.Rows, error) {
+	//nolint:wrapcheck //wrapping adds nothing here
+	return db.engine.ConnPool.QueryContext(context.Background(), query, args...)
+}
+
 // QueryRow returns a single row from the database, which can then be scanned.
 //
 // Be aware that, since this method bypasses the data models, all the models'

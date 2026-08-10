@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -24,10 +25,29 @@ type Rule struct {
 	LocalDir       string `gorm:"column:local_dir"`             // The local directory for transfers.
 	RemoteDir      string `gorm:"column:remote_dir"`            // The remote directory for transfers.
 	TmpLocalRcvDir string `gorm:"column:tmp_local_receive_dir"` // The local temporary directory for transfers.
+
+	Tasks      []*Task `gorm:"foreignKey:RuleID;references:ID"`
+	PreTasks   []*Task `gorm:"-"`
+	PostTasks  []*Task `gorm:"-"`
+	ErrorTasks []*Task `gorm:"-"`
+
+	AuthorizedServers        []*LocalAgent    `gorm:"many2many:rule_access"`
+	AuthorizedPartners       []*RemoteAgent   `gorm:"many2many:rule_access"`
+	AuthorizedLocalAccounts  []*LocalAccount  `gorm:"many2many:rule_access"`
+	AuthorizedRemoteAccounts []*RemoteAccount `gorm:"many2many:rule_access"`
 }
 
 func (*Rule) TableName() string   { return TableRules }
 func (*Rule) Appellation() string { return NameRule }
+func (*Rule) Preloads() []string {
+	return []string{
+		"Tasks",
+		"AuthorizedServers",
+		"AuthorizedPartners",
+		"AuthorizedLocalAccounts", "AuthorizedLocalAccounts.LocalAgent",
+		"AuthorizedRemoteAccounts", "AuthorizedRemoteAccounts.RemoteAgent",
+	}
+}
 
 func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) error {
 	if rulePath == "" || rulePath == "." || rulePath == "/" {
@@ -119,40 +139,53 @@ func (r *Rule) BeforeDelete(db database.Access) error {
 	return nil
 }
 
-// IsAuthorized returns whether the given target is authorized to use the rule
-// for transfers. It will return true either if the rule has no restrictions, or
-// if the target has been given access to the rule.
-//
-// Valid target types are: LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
-func (r *Rule) IsAuthorized(db database.ReadAccess, target database.IterateBean) (bool, error) {
-	var perms RuleAccess
-	if n, err := db.Count(&perms).Where("rule_id=?", r.ID).Run(); err != nil {
-		return false, fmt.Errorf("failed to count rule accesses: %w", err)
-	} else if n == 0 {
-		return true, nil
+func (r *Rule) AfterRead(database.ReadAccess) error {
+	return r.fillPreloadedTasks()
+}
+
+func (r *Rule) fillPreloadedTasks() error {
+	if len(r.Tasks) == 0 {
+		return nil
 	}
 
-	var query *database.CountQuery
+	slices.SortFunc(r.Tasks, func(a, b *Task) int { return int(a.Rank - b.Rank) })
 
-	switch object := target.(type) {
-	case *LocalAgent:
-		query = db.Count(&perms).Where("rule_id=? AND local_agent_id=?", r.ID, object.ID)
-	case *RemoteAgent:
-		query = db.Count(&perms).Where("rule_id=? AND remote_agent_id=?", r.ID, object.ID)
-	case *LocalAccount:
-		query = db.Count(&perms).Where("rule_id=? AND ( local_account_id=? OR "+
-			"local_agent_id=? )", r.ID, object.ID, object.LocalAgentID)
-	case *RemoteAccount:
-		query = db.Count(&perms).Where("rule_id=? AND ( remote_account_id=? OR "+
-			"remote_agent_id=? )", r.ID, object.ID, object.RemoteAgentID)
-	default:
-		return false, database.NewValidationErrorf("%T is not a valid target model for RuleAccess", target)
+	r.PreTasks = make([]*Task, 0, len(r.Tasks))
+	r.PostTasks = make([]*Task, 0, len(r.Tasks))
+	r.ErrorTasks = make([]*Task, 0, len(r.Tasks))
+
+	for _, task := range r.Tasks {
+		switch task.Chain {
+		case ChainPre:
+			r.PreTasks = append(r.PreTasks, task)
+		case ChainPost:
+			r.PostTasks = append(r.PostTasks, task)
+		case ChainError:
+			r.ErrorTasks = append(r.ErrorTasks, task)
+		}
 	}
 
-	permCount, err := query.Run()
-	if err != nil {
-		return false, fmt.Errorf("failed to count rule accesses: %w", err)
+	return nil
+}
+
+func (r *Rule) IsAuthorized(acc *LocalAccount) bool {
+	// Check if rule has permissions at all (if none, it is authorized)
+	if len(r.AuthorizedServers) == 0 && len(r.AuthorizedPartners) == 0 &&
+		len(r.AuthorizedLocalAccounts) == 0 && len(r.AuthorizedRemoteAccounts) == 0 {
+		return true
 	}
 
-	return permCount != 0, nil
+	for _, authAcc := range r.AuthorizedLocalAccounts {
+		if authAcc.ID == acc.ID {
+			return true
+		}
+	}
+
+	for _, authServ := range r.AuthorizedServers {
+		if authServ.ID == acc.LocalAgentID {
+			return true
+		}
+	}
+
+	return false
 }

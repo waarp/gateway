@@ -172,9 +172,8 @@ func TestGetRule(t *testing.T) {
 						So(contentType, ShouldEqual, "application/json")
 					})
 
-					Convey("Then the body should contain the requested rule "+
-						"in JSON format", func() {
-						r, err := DBRuleToREST(db, recv)
+					Convey("Then the body should contain the requested rule in JSON format", func() {
+						r, err := DBRuleToREST(recv)
 						So(err, ShouldBeNil)
 						exp, err := json.Marshal(r)
 						So(err, ShouldBeNil)
@@ -207,9 +206,8 @@ func TestGetRule(t *testing.T) {
 						So(contentType, ShouldEqual, "application/json")
 					})
 
-					Convey("Then the body should contain the requested rule "+
-						"in JSON format", func() {
-						r, err := DBRuleToREST(db, send)
+					Convey("Then the body should contain the requested rule in JSON format", func() {
+						r, err := DBRuleToREST(send)
 						So(err, ShouldBeNil)
 						exp, err := json.Marshal(r)
 						So(err, ShouldBeNil)
@@ -398,9 +396,9 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Insert(r2).Run(), ShouldBeNil)
 
-			rule1, err := DBRuleToREST(db, r1)
+			rule1, err := DBRuleToREST(r1)
 			So(err, ShouldBeNil)
-			rule2, err := DBRuleToREST(db, r2)
+			rule2, err := DBRuleToREST(r2)
 			So(err, ShouldBeNil)
 
 			Convey("Given a valid request", func() {

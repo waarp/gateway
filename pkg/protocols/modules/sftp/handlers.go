@@ -6,11 +6,9 @@ import (
 	"io"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/pkg/sftp"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp/internal"
@@ -181,39 +179,18 @@ func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string,
 func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 	isSendPriority bool,
 ) (*model.Rule, error) {
-	rulePath = strings.TrimPrefix(rulePath, "/")
-	if rulePath == "" || rulePath == "." || rulePath == "/" {
+	rule, err := protoutils.GetClosestRule(l.DB, l.Logger, acc, rulePath, isSendPriority)
+
+	switch {
+	case errors.Is(err, protoutils.ErrPermissionDenied):
+		return nil, sftp.ErrSSHFxPermissionDenied
+	case errors.Is(err, protoutils.ErrRuleNotFound):
 		return nil, sftp.ErrSSHFxNoSuchFile
+	case err != nil:
+		return nil, err //nolint:wrapcheck //no need to wrap here
 	}
 
-	var rule model.Rule
-	if err1 := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err1 != nil {
-		if !database.IsNotFound(err1) {
-			l.Logger.Errorf("Failed to retrieve rule: %v", err1)
-
-			return nil, ErrDatabase
-		}
-
-		if err2 := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err2 != nil {
-			if database.IsNotFound(err2) {
-				return l.getClosestRule(acc, path.Dir(rulePath), isSendPriority)
-			}
-
-			l.Logger.Errorf("Failed to retrieve rule: %v", err2)
-
-			return nil, ErrDatabase
-		}
-	}
-
-	if ok, err := rule.IsAuthorized(l.DB, acc); err != nil {
-		l.Logger.Errorf("Failed to check rule permissions: %v", err)
-
-		return nil, ErrDatabase
-	} else if !ok {
-		return &rule, sftp.ErrSSHFxPermissionDenied
-	}
-
-	return &rule, nil
+	return rule, nil
 }
 
 func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string,

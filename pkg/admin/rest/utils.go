@@ -1,13 +1,10 @@
 package rest
 
 import (
-	"errors"
 	"reflect"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
-
-var ErrServiceNotFound = errors.New("service not found")
 
 func asNullable[T any](val T) api.Nullable[T] {
 	return api.Nullable[T]{Value: val, Valid: !reflect.ValueOf(val).IsZero()}

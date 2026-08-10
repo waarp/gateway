@@ -30,14 +30,16 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger,
 	}
 
 	var rule model.Rule
-	if err1 := db.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err1 != nil {
+	if err1 := db.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).
+		Eager().Run(); err1 != nil {
 		if !database.IsNotFound(err1) {
 			logger.Errorf("Failed to retrieve rule: %v", err1)
 
 			return nil, ErrDatabase
 		}
 
-		if err2 := db.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err2 != nil {
+		if err2 := db.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).
+			Eager().Run(); err2 != nil {
 			if database.IsNotFound(err2) {
 				return GetClosestRule(db, logger, acc, path.Dir(rulePath), isSendPriority)
 			}
@@ -48,11 +50,7 @@ func GetClosestRule(db database.ReadAccess, logger *log.Logger,
 		}
 	}
 
-	if ok, err := rule.IsAuthorized(db, acc); err != nil {
-		logger.Errorf("Failed to check rule permissions: %v", err)
-
-		return nil, ErrDatabase
-	} else if !ok {
+	if !rule.IsAuthorized(acc) {
 		logger.Errorf("Account %q is not allowed to use %s rule %q",
 			acc.Login, rule.Direction(), rule.Name)
 
@@ -172,4 +170,21 @@ func GetRuleDir(db database.ReadAccess, acc *model.LocalAccount, dir string,
 	}
 
 	return &FakeDir{name: dir, children: children}, nil
+}
+
+func GetRule(db database.ReadAccess, acc *model.LocalAccount, name string, isSend bool,
+) (*model.Rule, error) {
+	var rule model.Rule
+	if err := db.Get(&rule, "name=? AND is_send=?", name, isSend).Eager().
+		Run(); database.IsNotFound(err) {
+		return nil, ErrRuleNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to retrieve rule: %w", err)
+	}
+
+	if !rule.IsAuthorized(acc) {
+		return nil, ErrPermissionDenied
+	}
+
+	return &rule, nil
 }
