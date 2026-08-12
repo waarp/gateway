@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"bytes"
 	"os"
 	"path"
 	"path/filepath"
@@ -8,8 +9,11 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -223,4 +227,67 @@ func TestExecRun(t *testing.T) {
 			})
 		})
 	})
+}
+
+// A program that succeeds may still have something to say on stderr, and until
+// now runExec only journalled that buffer when the program had failed. The
+// compatibility shims installed at the pre-0.17 helper paths write their
+// deprecation notice there, so on every working invocation -- which is to say
+// for the whole population the notice is aimed at -- it was discarded and the
+// administrator was never told to migrate.
+func TestRunExecReportsStderrOfASuccessfulProgram(t *testing.T) {
+	t.Parallel()
+
+	logs := &bytes.Buffer{}
+	logger := logtest.GetTestLogger(t, logtest.WithWriter(logs))
+
+	_, err := runExec(t.Context(), logger, getExecTransCtx(t), map[string]string{
+		"path": "sh",
+		"args": "-c 'echo the-real-output; echo a-deprecation-notice >&2'",
+	})
+	require.NoError(t, err)
+
+	assert.Contains(t, logs.String(), "a-deprecation-notice",
+		"stderr of a successful program must be journalled, not dropped")
+}
+
+// The warning must not disturb what the task reads back: EXECMOVE takes the
+// last line of stdout as the transferred file's new path, and EXECOUTPUT parses
+// it for a NEWFILENAME: prefix.
+func TestRunExecKeepsStdoutOutOfTheStderrWarning(t *testing.T) {
+	t.Parallel()
+
+	logs := &bytes.Buffer{}
+	logger := logtest.GetTestLogger(t, logtest.WithWriter(logs))
+
+	output, err := runExec(t.Context(), logger, getExecTransCtx(t), map[string]string{
+		"path": "sh",
+		"args": "-c 'echo the-real-output; echo a-deprecation-notice >&2'",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "the-real-output\n", output.String(),
+		"the returned buffer must carry stdout alone")
+}
+
+// A program that writes nothing to stderr must not produce an empty warning
+// line, which would be pure noise on every single transfer.
+//
+// The assertion is on the message rather than on a "[WARNING]" marker: the
+// handler pads the level to eight characters ("%-8s"), so a literal
+// "[WARNING]" never appears in the output and such a check could never fail.
+func TestRunExecStaysSilentWhenStderrIsEmpty(t *testing.T) {
+	t.Parallel()
+
+	logs := &bytes.Buffer{}
+	logger := logtest.GetTestLogger(t, logtest.WithWriter(logs))
+
+	_, err := runExec(t.Context(), logger, getExecTransCtx(t), map[string]string{
+		"path": "sh",
+		"args": "-c 'echo only-stdout'",
+	})
+	require.NoError(t, err)
+
+	assert.NotContains(t, logs.String(), "Program wrote to stderr",
+		"a program with no stderr output must not be reported as a warning")
 }

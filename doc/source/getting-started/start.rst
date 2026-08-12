@@ -7,7 +7,7 @@ La configuration par défaut installée par les packages est suffisante pour
 lancer Waarp Gateway.
 
 Celle-ci peut être trouvée dans le fichier
-:file:`/etc/waarp-gateway/waarp-gateway.ini`.
+:file:`/etc/waarp-gateway/gatewayd.ini`.
 
 .. seealso::
 

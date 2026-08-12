@@ -10,7 +10,11 @@ shift || true
 #####################################################################
 
 t_test() {
-  go test "$@" ./cmd/... ./pkg/... -shuffle=on
+  go test "$@" ./cmd/... ./pkg/... ./dist/... -shuffle=on
+}
+
+t_check_packages() {
+  ./dist/check-packages.sh "$@"
 }
 
 t_check() {
@@ -22,7 +26,7 @@ t_check() {
   echo "L'intégration continue utilise toujours la dernière version de "
   echo "golangci-lint, en utilisant le fichier de configuration .golangci.yml."
 
-  go vet ./cmd/... ./pkg/...
+  go vet ./cmd/... ./pkg/... ./dist/...
   golangci-lint run --timeout 5m
 }
 
@@ -336,12 +340,18 @@ build_container() {
 }
 
 t_bump() {
-  if [ -z "$1" ]; then
+  if [ -z "${1:-}" ]; then
     echo "ERROR: bump needs the version to be specified as the first argument"
+    # Without this return the function carried on and wrote an empty VERSION
+    # and 'version: v' into dist/nfpm.yaml, then exited 0. nfpm happily built
+    # from that, producing a package dpkg-deb refuses to read.
+    return 1
   fi
 
   echo "$1" > VERSION
-  sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
+  # Anchored: an unanchored 'version:' also matches any comment or nested key
+  # containing that word, and rewrites it to end of line.
+  sed -i -e "s|^version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
 }
 
 set_docker_cmd() {
@@ -363,6 +373,10 @@ Available actions:
   build dist         Builds binaries for distribution
   package [FLAVORS]  Generates packages
   check              Run static analysis
+  check-packages     Validates the generated DEB and RPM packages: policy
+    [deb|rpm]        linting, install on a minimal system, permissions, an
+                     actual daemon start, and the install/upgrade/remove/purge
+                     lifecycle. Runs in disposable containers.
   test               Run tests
   test watch         Starts convey to watch code and run tests when
                      it has been changed
@@ -423,6 +437,10 @@ case $ACTION in
 
   check)
     t_check
+    ;;
+
+  check-packages)
+    t_check_packages "$@"
     ;;
 
   test)

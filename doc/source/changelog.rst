@@ -3,7 +3,30 @@
 Historique des versions
 =======================
 
-* :release:`0.16.0 <2026-22-07>`
+* :bug:`387` Les paquets DEB et RPM respectent désormais les politiques de
+  *packaging* Debian et RPM. Les units *systemd* sont installées dans
+  :file:`/usr/lib/systemd/system` et non plus dans un chemin aliasé, le fichier
+  d'exemple de configuration est effectivement livré (il ne l'était dans aucun
+  paquet), la dépendance obsolète à ``unzip`` est supprimée, et les permissions
+  des répertoires de configuration et de données sont corrigées.
+* :bug:`387` Les utilitaires ``get-remote`` et ``updateconf``, qui sont des
+  binaires compilés, quittent :file:`/usr/share/waarp-gateway` pour
+  :file:`/usr/libexec/waarp-gateway` (RPM) et :file:`/usr/lib/waarp-gateway`
+  (DEB). Les anciens chemins restent fonctionnels **jusqu'à la version 1.0**
+  grâce à un script de compatibilité qui relaie l'appel en affichant un
+  avertissement. Préférez désormais invoquer ces programmes par leur simple
+  nom, forme valable sur tous les types de déploiement. Voir
+  :ref:`install-deprecated-paths`.
+* :bug:`387` Les mises à jour RPM n'écrasent plus le fichier de
+  configuration modifié par l'administrateur.
+* :bug:`387` Le *timer* ``waarp-gateway-get-remote`` référençait une unité
+  inexistante et n'a donc jamais pu déclencher le service associé.
+* :bug:`-` La sortie d'erreur d'un programme externe lancé par une tâche
+  ``EXEC``, ``EXECMOVE`` ou ``EXECOUTPUT`` est désormais journalisée en
+  *warning* même lorsque le programme se termine correctement. Elle n'était
+  jusqu'ici journalisée qu'en cas d'échec, et donc perdue le reste du temps.
+
+* :release:`0.16.0 <2026-07-22>`
 * :feature:`576` Nouvelle tâche ``SETINFO`` : permet de positionner, modifier ou
   supprimer une clé TransferInfo en pré/post-traitement. Utile pour injecter des
   métadonnées avant un rebond ou conditionner des tâches suivantes.
@@ -145,7 +168,7 @@ Historique des versions
 * :bug:`525` Correction d'un bug sous Windows qui causait une duplication du
   *host* et du *share* dans les chemins UNC.
 
-* :release:`0.14.2 <2026-13-02>`
+* :release:`0.14.2 <2026-02-13>`
 * :bug:`524` Les chemins UNC sous Windows sont désormais correctement traités
   comme des chemins absolus, et ne devraient donc plus être rattachés au dossier
   racine de l'application.
@@ -160,7 +183,7 @@ Historique des versions
   programmes externes appellés dans les tâches de règles.
 * :bug:`520` L'utilitaire *get-remote* n'éssayera plus de transférer des dossiers.
 
-* :release:`0.14.1 <2026-14-01>`
+* :release:`0.14.1 <2026-01-14>`
 * :support:`511` Le dossier ``/etc/waarp-gateway`` créé par les packages Linux
   appartiendra désormais à l'utilisateur ``waarp:waarp`` au lieu de ``root:root``.
 * :support:`512` Les packages Linux créent désormais correctement les dossiers
@@ -485,7 +508,7 @@ Historique des versions
   d'un fichier de transfer. Voir :doc:`la documentation de la tâche TRANSCODE
   <reference/tasks/transcode>` pour plus de détails.
 
-* :release:`0.11.6 <2025-31-01>`
+* :release:`0.11.6 <2025-01-31>`
 * :bug:`437` Correction du listing de fichier via R66 sous Windows. Précédemment,
   les fichiers renvoyés par le serveur R66 étaient corrects, mais la racine du
   serveur R66 n'était pas correctement retirée des chemins renvoyés (exposant au
@@ -510,7 +533,7 @@ Historique des versions
   - les moniteurs SNMP distants
   - les autorités d'authentification
 
-* :release:`0.11.4 <2024-17-12>`
+* :release:`0.11.4 <2024-12-17>`
 * :bug:`-` Lors de l'utilisation des tâches COPY, COPYRENAME, MOVE et MOVERENAME,
   si le dossier de destination n'existe pas, il sera désormais correctement créé.
   Précédemment, un bug empêchait sa création lorsque celui-ci se trouvait sur une

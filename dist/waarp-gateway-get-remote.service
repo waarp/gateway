@@ -1,8 +1,15 @@
 [Unit]
-Description=Verifies files on sftp partners for Waarp Gateway
+Description=Verifies files on remote partners for Waarp Gateway
+Documentation=https://doc.waarp.org/waarp-gateway/latest/fr/
 
 [Service]
 Type=oneshot
 User=waarp
 Group=waarp
-ExecStart=/usr/share/waarp-gateway/get-remote
+# get-remote exits with status 4 when WAARP_GATEWAY_ADDRESS is unset, so the
+# timer can do nothing until this file has been filled in. Before 0.17 nothing
+# set that variable at all, which -- together with the wrong Unit= name in the
+# timer -- is why this service had never run since it was first packaged.
+# The leading "-" keeps the unit loadable when the file is absent.
+EnvironmentFile=-/etc/default/waarp-gateway-get-remote
+ExecStart=/bin/sh -c 'PATH=/usr/libexec/waarp-gateway:/usr/lib/waarp-gateway:$PATH exec get-remote'

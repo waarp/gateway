@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# Compatibility shim for the pre-0.17 location of the helper programs.
+#
+# get-remote and updateconf used to be installed in /usr/share/waarp-gateway.
+# They are compiled binaries, so /usr/share was the wrong place for them and
+# both lintian and rpmlint reject it. They now live in the packager's libexec
+# directory, and this script keeps the old absolute paths working for rules and
+# integration scripts that hardcoded them.
+#
+# TO BE REMOVED IN 1.0. Until then the paths above stay functional, per
+# semantic versioning. See doc/source/changelog.rst.
+#
+# The same file is installed under both old names; it works out which helper is
+# wanted from its own name.
+#
+# Three things here are load-bearing and must not be "cleaned up":
+#
+#   * `exec`, not a plain call. Waarp's EXEC, EXECMOVE and EXECOUTPUT tasks
+#     halt a timed-out program by signalling the DIRECT CHILD only (haltExec,
+#     pkg/tasks/exec_unix.go). `exec` keeps the PID, so the signal reaches the
+#     real binary. Without it SIGINT lands on this shell, which ignores it
+#     while waiting on its child; haltExec never escalates to SIGKILL,
+#     cmd.Wait() never returns, and the task goroutine hangs forever with the
+#     helper leaked. Measured at 441s before a test timeout killed it, on both
+#     dash and bash.
+#
+#   * The warning goes to stderr and never to stdout. EXECMOVE reads the last
+#     line of stdout as the transferred file's new path, and EXECOUTPUT parses
+#     it for a NEWFILENAME: prefix; a line on stdout would corrupt both.
+#
+#   * "$@" stays quoted. Waarp has already split the arguments with shlex, so
+#     an unquoted $@ would re-split any path or option containing a space.
+#
+
+# Parameter expansion rather than basename(1): this script is exec'd once per
+# transfer for rules still on the old paths, and the fork is 39% of everything
+# it does before handing over.
+name=${0##*/}
+
+for dir in /usr/libexec/waarp-gateway /usr/lib/waarp-gateway; do
+    if [ -x "$dir/$name" ]; then
+        echo "WARNING: /usr/share/waarp-gateway/$name is deprecated and will be removed" >&2
+        echo "         in Waarp Gateway 1.0. The program now lives in $dir/$name." >&2
+        echo "         Prefer invoking it as plain \"$name\": that resolves correctly on" >&2
+        echo "         package, portable and container installations alike." >&2
+
+        exec "$dir/$name" "$@"
+    fi
+done
+
+echo "ERROR: $name was found in neither /usr/libexec/waarp-gateway nor" >&2
+echo "       /usr/lib/waarp-gateway. The installation looks broken." >&2
+
+exit 127

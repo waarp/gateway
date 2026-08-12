@@ -1,0 +1,16 @@
+# Environment for waarp-gateway-get-remote.service.
+#
+# Read by systemd only. Running get-remote by hand does not source this file;
+# export the variable in your shell for that.
+#
+# The get-remote helper is deprecated since 0.16.0, superseded by filewatchers.
+# Neither the service nor the timer is enabled by the package, and get-remote
+# exits immediately with status 4 when WAARP_GATEWAY_ADDRESS is unset, so
+# nothing happens at all until the line below is uncommented.
+
+# Address of the Gateway REST API. Credentials go in the URL, so this file is
+# likely to hold a password -- which is why it is installed 0640 root:root.
+#WAARP_GATEWAY_ADDRESS=http://admin:admin_password@127.0.0.1:8080
+
+# Set to any non-empty value to skip TLS certificate verification.
+#WAARP_GATEWAY_INSECURE=
