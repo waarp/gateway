@@ -17,7 +17,7 @@
 name: "waarp-gateway"
 arch: "amd64"
 platform: "linux"
-version: v0.16.0
+version: v0.16.1
 release: 1
 section: "net"
 priority: "optional"

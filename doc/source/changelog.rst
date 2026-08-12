@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+
+* :release:`0.16.1 <2026-08-12>`
 * :bug:`387` Les paquets DEB et RPM respectent désormais les politiques de
   *packaging* Debian et RPM. Les units *systemd* sont installées dans
   :file:`/usr/lib/systemd/system` et non plus dans un chemin aliasé, le fichier

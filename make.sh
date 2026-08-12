@@ -349,9 +349,11 @@ t_bump() {
   fi
 
   echo "$1" > VERSION
-  # Anchored: an unanchored 'version:' also matches any comment or nested key
-  # containing that word, and rewrites it to end of line.
   sed -i -e "s|^version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
+
+  local release_line
+  release_line="* :release:\`$1 <$(date +%F)>\`"
+  sed -i -e "0,/^\* :/s|^\* :|\n$release_line\n&|" doc/source/changelog.rst
 }
 
 set_docker_cmd() {
