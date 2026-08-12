@@ -1,7 +1,7 @@
 Modifier une règle
 ==================
 
-.. http:patch:: /api/rules/(string:rule_name)
+.. http:patch:: /api/rules/(string:rule_name)/(string:direction)
 
    .. deprecated:: 0.5.0
 

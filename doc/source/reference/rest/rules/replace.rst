@@ -1,7 +1,7 @@
 Remplacer une règle
 ===================
 
-.. http:put:: /api/rules/(string:rule_name)
+.. http:put:: /api/rules/(string:rule_name)/(string:direction)
 
    .. deprecated:: 0.5.0
 
