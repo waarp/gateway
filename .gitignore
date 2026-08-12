@@ -1,7 +1,5 @@
 doc/.venv
 doc/build
-CLAUDE.md
-.claude/*
 *.ini
 .idea
 waarp_gatewayd_test.db
@@ -9,9 +7,8 @@ waarp_gatewayd_test.db
 *.iml
 build/
 .vagrant
-pkg/admin/.DS_Store
-pkg/admin/gui/.DS_Store
-pkg/admin/gui/front_end/.DS_Store
 pkg/admin/gui/front_end/javaScript/LICENSE
 pkg/admin/gui/front_end/javaScript/README.md
 .DS_Store
+.claude
+CLAUDE.md
