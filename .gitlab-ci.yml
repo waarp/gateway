@@ -31,26 +31,11 @@ stages:
   - upload
   - release
 
-code_navigation:
-  stage: test
-  allow_failure: true # recommended
-  rules:
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-  script:
-    - scip-go -o dump.scip
-  after_script:
-    - scip convert --from dump.scip --to dump.lsif
-    - ls -lh dump.scip dump.lsif
-  artifacts:
-    reports:
-      lsif: dump.lsif
-
 lint:
   stage: test
-  image: golangci/golangci-lint:latest
   script:
-    - golangci-lint cache status
-    - golangci-lint run --timeout 15m --output.junit-xml.path lint.junit.xml --output.text.path stdout --output.code-climate.path=gl-code-quality-report.json
+    - go tool golangci-lint cache status
+    - go tool golangci-lint run --timeout 15m --output.junit-xml.path lint.junit.xml --output.text.path stdout --output.code-climate.path=gl-code-quality-report.json
   cache:
     - key: go_dependencies_cache
       paths:
