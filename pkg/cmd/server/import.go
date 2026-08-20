@@ -25,8 +25,10 @@ func MakeLogConf(verbose []bool) conf.LogConfig {
 		logConf = conf.LogConfig{LogTo: stderr, Level: "WARNING"}
 	case 2: //nolint:mnd // useless here
 		logConf = conf.LogConfig{LogTo: stderr, Level: "INFO"}
-	default:
+	case 3: //nolint:mnd // useless here
 		logConf = conf.LogConfig{LogTo: stderr, Level: "DEBUG"}
+	default:
+		logConf = conf.LogConfig{LogTo: stderr, Level: "TRACE"}
 	}
 
 	return logConf

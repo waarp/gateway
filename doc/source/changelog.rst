@@ -4,6 +4,9 @@ Historique des versions
 =======================
 
 
+* :bug:`609` Correction de la migration vers les version 0.16.x pour mySQL/mariaDB.
+* :bug:`-` Correction du packaging pour les containers OCI avec docker.
+
 * :release:`0.16.1 <2026-08-12>`
 * :bug:`387` Les paquets DEB et RPM respectent désormais les politiques de
   *packaging* Debian et RPM. Les units *systemd* sont installées dans
