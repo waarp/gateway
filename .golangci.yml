@@ -22,6 +22,7 @@ linters:
     - nonamedreturns
     - prealloc
     - exhaustruct
+    - exhaustruct_v5
     - containedctx
     - noinlineerr
     - noctx
@@ -3096,11 +3097,19 @@ formatters:
     gofumpt:
       # Module path which contains the source code being formatted.
       # Default: ""
-      module-path: github.com/org/project
+      module-path: code.waarp.fr/apps/gateway/gateway
 
-      # Choose whether to use the extra rules.
-      # Default: false
-      extra-rules: true
+      # Extra formatting rules.
+      extra:
+        # Groups function parameters with repeated types.
+        # Default: false
+        group-params: true
+        # Clothes naked returns in functions with named results.
+        # Default: false
+        clothe-returns: true
+        # Multi-line function calls with the opening parenthesis at the end of a line should place the closing parenthesis at the start of a line.
+        # Default: false
+        balance-calls: true
 
     goimports:
       # A list of prefixes, which, if set, checks import paths

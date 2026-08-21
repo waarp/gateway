@@ -87,7 +87,7 @@ func userInit(db database.Access) error {
 }
 
 func countAdmins(db database.ReadAccess) (uint64, error) {
-	n, err := db.Count(&User{}).Where("permissions&?", PermUsersWrite).Run()
+	n, err := db.Count(&User{}).Where("permissions&? <> 0", PermUsersWrite).Run()
 	if err != nil {
 		return 0, fmt.Errorf("failed to count the number of admins: %w", err)
 	}

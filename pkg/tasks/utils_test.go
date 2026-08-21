@@ -1,6 +1,9 @@
 package tasks
 
 import (
+	"runtime"
+	"strings"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 )
@@ -13,4 +16,34 @@ func init() {
 
 	fs.FilePerms = 0o644
 	fs.DirPerms = 0o755
+}
+
+func isWindowsRuntime() bool {
+	return runtime.GOOS == "windows"
+}
+
+func shellCmd() string {
+	if isWindowsRuntime() {
+		return "cmd.exe"
+	}
+
+	return "sh"
+}
+
+func shellCmdArgs(args string) string {
+	if isWindowsRuntime() {
+		args = strings.ReplaceAll(args, ";", "&")
+
+		return "/C " + args
+	}
+
+	return "-c " + args
+}
+
+func endl() string {
+	if isWindowsRuntime() {
+		return "\r\n"
+	}
+
+	return "\n"
 }

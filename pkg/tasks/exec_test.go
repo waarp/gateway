@@ -242,8 +242,8 @@ func TestRunExecReportsStderrOfASuccessfulProgram(t *testing.T) {
 	logger := logtest.GetTestLogger(t, logtest.WithWriter(logs))
 
 	_, err := runExec(t.Context(), logger, getExecTransCtx(t), map[string]string{
-		"path": "sh",
-		"args": "-c 'echo the-real-output; echo a-deprecation-notice >&2'",
+		"path": shellCmd(),
+		"args": shellCmdArgs(`'echo the-real-output; echo a-deprecation-notice >&2'`),
 	})
 	require.NoError(t, err)
 
@@ -261,12 +261,12 @@ func TestRunExecKeepsStdoutOutOfTheStderrWarning(t *testing.T) {
 	logger := logtest.GetTestLogger(t, logtest.WithWriter(logs))
 
 	output, err := runExec(t.Context(), logger, getExecTransCtx(t), map[string]string{
-		"path": "sh",
-		"args": "-c 'echo the-real-output; echo a-deprecation-notice >&2'",
+		"path": shellCmd(),
+		"args": shellCmdArgs(`'echo the-real-output; echo a-deprecation-notice >&2'`),
 	})
 	require.NoError(t, err)
 
-	assert.Equal(t, "the-real-output\n", output.String(),
+	assert.Equal(t, "the-real-output"+endl(), output.String(),
 		"the returned buffer must carry stdout alone")
 }
 
@@ -283,8 +283,8 @@ func TestRunExecStaysSilentWhenStderrIsEmpty(t *testing.T) {
 	logger := logtest.GetTestLogger(t, logtest.WithWriter(logs))
 
 	_, err := runExec(t.Context(), logger, getExecTransCtx(t), map[string]string{
-		"path": "sh",
-		"args": "-c 'echo only-stdout'",
+		"path": shellCmd(),
+		"args": shellCmdArgs(`'echo only-stdout'`),
 	})
 	require.NoError(t, err)
 
