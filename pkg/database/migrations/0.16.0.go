@@ -11,7 +11,7 @@ func ver0_16_0AddRemoteFilewatcherTableUp(db Actions) error {
 			{Name: "owner", Type: Varchar(100), NotNull: true},
 			{Name: "disabled", Type: Boolean{}, NotNull: true, Default: false},
 			{Name: "flow", Type: Varchar(50), NotNull: true},
-			{Name: "interval", Type: BigInt{}, NotNull: true},
+			{Name: quote(db, "interval"), Type: BigInt{}, NotNull: true},
 			{Name: "pattern", Type: Text{}, NotNull: true},
 			{Name: "remote_account_id", Type: BigInt{}, NotNull: true},
 			{Name: "client_id", Type: BigInt{}, NotNull: true},

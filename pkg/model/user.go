@@ -50,7 +50,7 @@ func (u *User) BeforeWrite(db database.Access) error {
 		return database.NewValidationError("the user password cannot be empty")
 	}
 
-	n, err := db.Count(u).Where("id<>?AND username=?", u.ID, u.Username).Run()
+	n, err := db.Count(u).Where("id<>? AND username=?", u.ID, u.Username).Run()
 	if err != nil {
 		return fmt.Errorf("failed to check usernames: %w", err)
 	} else if n != 0 {
