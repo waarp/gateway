@@ -4,6 +4,9 @@ Historique des versions
 =======================
 
 
+* :release:`0.16.2 <2026-08-21>`
+* :bug:`-` Correction d'une erreur de syntaxe dans une des requêtes PostgreSQL
+  faite au démarrage de l'application.
 * :bug:`609` Correction de la migration vers les version 0.16.x pour mySQL/mariaDB.
 * :bug:`-` Correction du packaging pour les containers OCI avec docker.
 
