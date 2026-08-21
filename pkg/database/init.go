@@ -36,7 +36,7 @@ func (db *DB) initDatabase() error {
 	dbExist := db.engine.Migrator().HasTable(&version{})
 
 	if !dbExist {
-		if err2 := migrations.DoMigration(sqlDB, logger, vers.Num, db.engine.Name(), nil); err2 != nil {
+		if err2 := migrations.DoMigration(sqlDB, logger, vers.Num, dialect, nil); err2 != nil {
 			logger.Criticalf("Database initialization failed: %v", err2)
 
 			return fmt.Errorf("database initialization failed: %w", err2)
