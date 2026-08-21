@@ -348,11 +348,18 @@ t_bump() {
     return 1
   fi
 
-  echo "$1" > VERSION
-  sed -i -e "s|^version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
+  local version=${1#"v"} 
+
+  if ! grep "$version" pkg/database/migrations/versions.go &>/dev/null; then
+    echo "ERROR: version $version does not exist in pkg/database/migrations/list.go"
+    return 1
+  fi
+
+  echo "$version" > VERSION
+  sed -i -e "s|^version:.*|version: v$version|" dist/nfpm.yaml
 
   local release_line
-  release_line="* :release:\`$1 <$(date +%F)>\`"
+  release_line="* :release:\`$version <$(date +%F)>\`"
   sed -i -e "0,/^\* :/s|^\* :|\n$release_line\n&|" doc/source/changelog.rst
 }
 
