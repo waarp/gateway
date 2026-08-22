@@ -331,9 +331,15 @@ build_container() {
     -e "s|; \(AESPassphrase =\) |\1 /app/etc/|" \
     "$dest/etc/gatewayd.ini"
 
+  # The image runs under an arbitrary uid with gid 0 (OpenShift), so the whole
+  # tree needs group reading access and group write access in etc and data. Set
+  # here so COPY carries it: a recursive chmod in the Containerfile rewrites
+  # every inode and duplicates the payload layer.
+  chmod -R g+rX "$dest"
+  chmod -R g+rwX "$dest"/{etc,data}
+
   echo "    --> building the image"
   $DOCKER_CMD image build \
-    --load \
     --pull \
     --build-arg VERSION="$(cat VERSION | tr -d '\n')" \
     --tag "$IMAGE_TAG" .

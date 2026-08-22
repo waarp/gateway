@@ -1,4 +1,4 @@
-FROM debian:stable-slim
+FROM docker.io/library/debian:stable-slim
 
 ARG VERSION=latest
 LABEL org.opencontainers.image.vendor="Waarp" \
@@ -13,10 +13,8 @@ LABEL org.opencontainers.image.vendor="Waarp" \
 
 RUN useradd -r -u 1001 -g 0 -d /app -s /bin/false waarp
 
+# COPY forces uid/gid 0 and carries the modes make.sh set on the tree.
 COPY ./build/waarp-gateway-docker /app
-
-RUN chown -R :0 /app && \
-    chmod -R g+rwX /app
 
 VOLUME ["/app/etc", "/app/data"]
 EXPOSE 8080/tcp
