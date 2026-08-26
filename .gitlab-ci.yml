@@ -90,21 +90,17 @@ package:
   stage: build
   rules:
     - if: $CI_COMMIT_TAG
+    # Exercises the image build from a manual pipeline without tagging: only
+    # the transit tag is produced, since the upload jobs are tag-only.
+    - if: $BUILD_PACKAGES_TEST
   before_script:
-    - >
-      apt update -y
-      && apt install -y docker.io
-      && apt clean
-      && rm -rf /var/lib/apt/lists/*
     - git config url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
   script:
     - ./make.sh build dist
-    # make.sh reads IMAGE_TAG, so the image is built under the transit tag from
-    # the start: nothing in this job ever names the released tag.
     - export IMAGE_TAG="$STAGING_IMAGE_TAG"
     - ./make.sh package
-    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
-    - docker push "$STAGING_IMAGE_TAG"
+    - echo "$CI_JOB_TOKEN" | podman login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - podman push "$STAGING_IMAGE_TAG"
   after_script:
     - export FULLVERSION=$(git describe --tags --abbrev=0)
     - echo VERSION=${FULLVERSION#v} >>version.env
@@ -172,6 +168,9 @@ check-packages-rpm:
 upload-packages:
   stage: upload
   image: curlimages/curl:latest
+  variables:
+    # Only the artifacts of the package job are needed, never the sources.
+    GIT_STRATEGY: none
   rules:
     - if: $CI_COMMIT_TAG
   script:
@@ -186,25 +185,25 @@ upload-packages:
     - |
       curl --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/${PACKAGE_DOC} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}
 
-# This is where the image is actually released. Being in the upload stage, it
-# only runs once check-packages-deb and check-packages-rpm have passed, so the
-# versioned and latest tags never appear for a build whose packages are broken.
 upload-docker:
-  image: docker:18.09
+  image: quay.io/skopeo/stable:latest
   stage: upload
+  variables:
+    # The job only moves tags in the registry; it never reads the sources.
+    GIT_STRATEGY: none
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
-    - docker pull "$STAGING_IMAGE_TAG"
-    - docker tag "$STAGING_IMAGE_TAG" "$IMAGE_TAG"
-    - docker tag "$STAGING_IMAGE_TAG" "$LATEST_IMAGE_TAG"
-    - docker push "$IMAGE_TAG"
-    - docker push "$LATEST_IMAGE_TAG"
+    - echo "$CI_JOB_TOKEN" | skopeo login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - skopeo copy --all "docker://$STAGING_IMAGE_TAG" "docker://$IMAGE_TAG"
+    - skopeo copy --all "docker://$STAGING_IMAGE_TAG" "docker://$LATEST_IMAGE_TAG"
 
 release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
+  variables:
+    # release-cli only talks to the API, with variables the runner provides.
+    GIT_STRATEGY: none
   rules:
     - if: $CI_COMMIT_TAG
   script:
