@@ -48,14 +48,14 @@ Historique des versions
   tout.
 * :feature:`596` Les images OCI exécutent les migrations de base de données avant
   le lancement de Gateway.
-* :fix:`591` Les images OCI sont maintenant toujours basées sur la dernière
+* :bug:`591` Les images OCI sont maintenant toujours basées sur la dernière
   version stable de Debian.
 * :feature:`592` Les images OCI utilisent des utilisateurs non privilégiés.
 * :bug:`575` Correction de l'unité du ``checkpointSize`` : la valeur est en
   kilo-octets, pas en octets. Le défaut passe donc de 65535 à 65.
 * :feature:`516` Ajout de le possibilité de configurer des *filewatchers* pour
   surveiller un dossier sur un partenaire distant. Voir la documentation
-  :doc:`REST <reference/rest/filewatchers>` ou :doc:`CLI <reference/cli/client/filewatcher`
+  :doc:`REST <reference/rest/filewatchers/index>` ou :doc:`CLI <reference/cli/client/filewatcher/index>`
   pour plus de détails. Ces *filewatchers* remplissent une mission similaire à
   l'outil *get-remote* livré avec Gateway. Celui-ci est par conséquent désormais
   déprécié.

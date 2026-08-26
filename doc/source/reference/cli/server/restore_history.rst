@@ -11,8 +11,8 @@
 généré par la commande :ref:`reference-cmd-waarp-gatewayd-purge` à l'aide de
 l'option ``-e``.
 
-La structure et le contenu du fichier JSON est documenté :any:`ici
-<reference-history-dump-json>`.
+La structure et le contenu du fichier JSON est documenté :ref:`ici
+<reference-backup-json>`.
 
 Cette commande accepte les options suivantes :
 

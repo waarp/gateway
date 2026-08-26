@@ -108,7 +108,8 @@ Marqueur                Signification
 ``#FULLTRANSFERID#``    Un identifiant "étendu" pour le transfert (de la forme
                         ``identifiantDeTransfert_idClient_idServeur``)
 ``#ERRORMSG#``          Message d'erreur (dans les traitements d'erreur)
-``#ERRORCODE#``         Code d'erreur (dans les traitements d'erreur)
+``#ERRORCODE#``         Code d'erreur R66 sous forme d'un caractère simple
+                        (dans les traitements d'erreur)
 ======================= =============
 
 En plus de ces marqueurs standards, il est également possible de référencer les
