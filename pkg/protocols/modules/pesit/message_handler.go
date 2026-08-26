@@ -44,12 +44,19 @@ func (s *service) HandleMessage(req *pesit.MessageRequest, cont io.Reader,
 		return &pesit.MessageResult{}, nil
 	}
 
+	partner, partErr := s.findPartnerByLogin(req.ClientLogin)
+	if partErr != nil {
+		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "failed to find partner")
+	}
+
 	remoteID := utils.FormatUint(req.TransferID)
 
 	// Find the outgoing transfer that this ACK references.
 	var outTrans model.NormalizedTransferView
 	if err := s.db.Get(&outTrans, `remote_transfer_id=?`, remoteID).
-		And("is_transfer=true").And("is_send=true").And("agent=?", req.ClientLogin).
+		And("is_transfer=true").
+		And("is_send=true").
+		And("agent=?", partner.Name).
 		OrderBy("start", false).Eager().Run(); database.IsNotFound(err) {
 		s.logger.Debugf("No matching transfer found for F.MESSAGE transferID=%d", req.TransferID)
 
@@ -93,6 +100,25 @@ func (s *service) HandleMessage(req *pesit.MessageRequest, cont io.Reader,
 	return &pesit.MessageResult{}, nil
 }
 
+func (s *service) findPartnerByLogin(login string) (*model.RemoteAgent, error) {
+	var pesitPartners model.RemoteAgents
+	if err := s.db.Select(&pesitPartners).Run(); err != nil {
+		s.logger.Errorf("Failed to retrieve remote agents: %v", err)
+
+		return nil, ErrDatabase
+	}
+
+	for _, partner := range pesitPartners {
+		if partner.Name == login || partner.ProtoConfig["login"] == login {
+			return partner, nil
+		}
+	}
+
+	s.logger.Warningf("No partner found for login %q", login)
+
+	return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "no partner found for login")
+}
+
 // relayMessage attempts to relay a F.MESSAGE upstream through the Store &
 // Forward chain. It follows the __followID__ link to find the original
 // incoming transfer, resolves the upstream partner, and sends the message.
@@ -108,8 +134,10 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView,
 	}
 
 	var inTrans model.Transfer
-	if err := s.db.Get(&inTrans, `id = (SELECT transfer_id FROM transfer_info WHERE
-		name=? AND value=?)`, model.FollowID, followID).Eager().Run(); database.IsNotFound(err) {
+	if err := s.db.Get(&inTrans, "id<>?", outTrans.ID).
+		And(`id = (SELECT transfer_id FROM transfer_info WHERE name=? AND value=?)`,
+			model.FollowID, followID).
+		Eager().Run(); database.IsNotFound(err) {
 		s.logger.Debugf("No upstream transfer found for followID %d", followID)
 
 		return nil
@@ -192,9 +220,9 @@ func (s *service) relayServerMessage(trans *model.Transfer, transferID uint32,
 		return ErrDatabase
 	}
 
-	var partner model.RemoteAgent
-	if err := s.db.Get(&partner, "name=?", inTrans.Account).Run(); err != nil {
-		s.logger.Errorf("Failed to retrieve partner %q: %v", inTrans.Account, err)
+	partner, partErr := s.findPartnerByLogin(inTrans.Account)
+	if partErr != nil {
+		s.logger.Errorf("Failed to retrieve partner %q: %v", inTrans.Account, partErr)
 
 		return ErrDatabase
 	}
@@ -211,7 +239,7 @@ func (s *service) relayServerMessage(trans *model.Transfer, transferID uint32,
 		filename = inTrans.DestFilename
 	}
 
-	if err := sendInitialMessage(s.db, s.logger, &partner, account,
+	if err := sendInitialMessage(s.db, s.logger, partner, account,
 		trans.TransferInfo, transferID, filename, message); err != nil {
 		s.logger.Errorf("Failed to send message: %v", err)
 

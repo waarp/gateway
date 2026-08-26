@@ -3,7 +3,14 @@
 Historique des versions
 =======================
 
-* :fix:`619` Correction d'inadéquations entre les codes d'erreur de Gateway et
+* :bug:`615` Correction d'une erreur qui faisait que Gateway renvoyait parfois
+  un ACK reçu au partenaire l'ayant envoyé.
+* :bug:`615` Correction d'un bug qui empêchait les ACKs reçus d'être acceptés si
+  le compte local utilisé et le partenaire l'utilisant n'avaient pas le même nom.
+  Les deux peuvent désormais avoir un nom différent, mais le serveur doit utiliser
+  le login du compte local comme login de partenaire. Voir la :doc:`documentation
+  PeSIT <reference/protocols/pesit>` pour plus de détails.
+* :bug:`619` Correction d'inadéquations entre les codes d'erreur de Gateway et
   les codes d'erreur protocolaires R66.
 
 * :release:`0.16.2 <2026-08-21>`

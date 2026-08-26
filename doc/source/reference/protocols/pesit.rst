@@ -218,3 +218,8 @@ pouvoir faire le lien entre les deux transferts, ceux-ci doivent impérativement
 avoir le même *follow ID* (clé ``__followID__`` des transfer info). Il est donc
 impératif de bien spécifier l'option ``copyInfo`` à ``true`` dans la tâche
 TRANSFER programmant le rebond, sans quoi, Gateway ne pourra pas relayer le message.
+
+Il est également impératif que les partenaires concernés (que ce soit l'émetteur
+ou le destinataire du message) utilisent le même login en client et serveur.
+Plus précisément, le partenaire doit avoir le login du compte local utilisé soit
+comme nom, soit comme valeur du champ ``login`` dans sa configuration protocolaire.
