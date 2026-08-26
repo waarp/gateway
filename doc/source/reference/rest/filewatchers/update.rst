@@ -13,7 +13,7 @@ Modifier un filewatcher
    :reqjson string interval: La fréquence à laquelle le *filewatcher* interrogera
       le partenaire distant pour obtenir la liste des fichiers à récupérer.
    :reqjson string pattern: Le pattern de fichier à matcher (format
-      `glob<https://en.wikipedia.org/wiki/Glob_(programming)>`_.
+      `glob <https://en.wikipedia.org/wiki/Glob_(programming)>`_.
    :reqjson bool noDuplicateCheck: Indique si la détection de doublons est désactivée.
       Par défaut, le *filewatcher* ignore les fichiers qui ont déjà été récupérés
       lors d'un précédent passage. Mettre à *true* désactive cette vérification.
