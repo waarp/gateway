@@ -64,6 +64,7 @@ l'exploitation de l'application :
    administration/service
    administration/backup
    administration/purge
+   administration/migrate
 
 La dernière section présente la référence des diverses commandes et paramètres
 de l'application.
