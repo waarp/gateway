@@ -24,9 +24,11 @@ func TestMessageHandlerClient(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 
 	const (
-		origPartnerName = "origin_partner"
-		destPartnerName = "dest_partner"
-		password        = "sesame"
+		origPartnerName  = "origin_partner"
+		origPartnerLogin = "origin_partner_login"
+		destPartnerName  = "dest_partner"
+		destPartnerLogin = "dest_partner_login"
+		password         = "sesame"
 
 		followID   = 123456
 		msgContent = "transfer acknowledged"
@@ -35,7 +37,7 @@ func TestMessageHandlerClient(t *testing.T) {
 	// ############ SETUP LOCAL SERVER ###############
 	server := &model.LocalAgent{Name: "server", Address: gwtesting.Address(t), Protocol: Pesit}
 	require.NoError(t, db.Insert(server).Run())
-	locAccount := &model.LocalAccount{LocalAgentID: server.ID, Login: destPartnerName}
+	locAccount := &model.LocalAccount{LocalAgentID: server.ID, Login: destPartnerLogin}
 	require.NoError(t, db.Insert(locAccount).Run())
 	require.NoError(t, db.Insert(&model.Credential{
 		LocalAccountID: locAccount.NullableID(),
@@ -45,9 +47,10 @@ func TestMessageHandlerClient(t *testing.T) {
 	// ############ SETUP ORIGIN PARTNER ###############
 	origPartnerServer := makeTestMessageServer(t)
 	origPartner := &model.RemoteAgent{
-		Name:     origPartnerName,
-		Protocol: Pesit,
-		Address:  types.MustAddr(origPartnerServer.addr),
+		Name:        origPartnerName,
+		Protocol:    Pesit,
+		Address:     types.MustAddr(origPartnerServer.addr),
+		ProtoConfig: map[string]any{"login": origPartnerLogin},
 	}
 	require.NoError(t, db.Insert(origPartner).Run())
 	origAccount := &model.RemoteAccount{RemoteAgentID: origPartner.ID, Login: server.Name}
@@ -59,9 +62,10 @@ func TestMessageHandlerClient(t *testing.T) {
 
 	// ############ SETUP DEST PARTNER ###############
 	destPartner := &model.RemoteAgent{
-		Name:     destPartnerName,
-		Protocol: Pesit,
-		Address:  types.Addr("localhost", 1234),
+		Name:        destPartnerName,
+		Protocol:    Pesit,
+		Address:     types.Addr("localhost", 1234),
+		ProtoConfig: map[string]any{"login": destPartnerLogin},
 	}
 	require.NoError(t, db.Insert(destPartner).Run())
 	destAccount := &model.RemoteAccount{RemoteAgentID: destPartner.ID, Login: server.Name}
@@ -152,9 +156,11 @@ func TestMessageHandlerServer(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 
 	const (
-		origPartnerName = "origin_partner"
-		destPartnerName = "dest_partner"
-		password        = "sesame"
+		origPartnerName  = "origin_partner"
+		origPartnerLogin = "origin_partner_login"
+		destPartnerName  = "dest_partner"
+		destPartnerLogin = "dest_partner_login"
+		password         = "sesame"
 
 		followID   = 123456
 		msgContent = "transfer acknowledged"
@@ -163,22 +169,23 @@ func TestMessageHandlerServer(t *testing.T) {
 	// ############ SETUP LOCAL SERVER ###############
 	server := &model.LocalAgent{Name: "server", Address: gwtesting.Address(t), Protocol: Pesit}
 	require.NoError(t, db.Insert(server).Run())
-	destLocAccount := &model.LocalAccount{LocalAgentID: server.ID, Login: destPartnerName}
+	destLocAccount := &model.LocalAccount{LocalAgentID: server.ID, Login: destPartnerLogin}
 	require.NoError(t, db.Insert(destLocAccount).Run())
 	require.NoError(t, db.Insert(&model.Credential{
 		LocalAccountID: destLocAccount.NullableID(),
 		Type:           auth.Password,
 		Value:          password,
 	}).Run())
-	origLocAccount := &model.LocalAccount{LocalAgentID: server.ID, Login: origPartnerName}
+	origLocAccount := &model.LocalAccount{LocalAgentID: server.ID, Login: origPartnerLogin}
 	require.NoError(t, db.Insert(origLocAccount).Run())
 
 	// ############ SETUP ORIGIN PARTNER ###############
 	origPartnerServer := makeTestMessageServer(t)
 	origPartner := &model.RemoteAgent{
-		Name:     origPartnerName,
-		Protocol: Pesit,
-		Address:  types.MustAddr(origPartnerServer.addr),
+		Name:        origPartnerName,
+		Protocol:    Pesit,
+		Address:     types.MustAddr(origPartnerServer.addr),
+		ProtoConfig: map[string]any{"login": origPartnerLogin},
 	}
 	require.NoError(t, db.Insert(origPartner).Run())
 	origAccount := &model.RemoteAccount{RemoteAgentID: origPartner.ID, Login: server.Name}
@@ -190,9 +197,10 @@ func TestMessageHandlerServer(t *testing.T) {
 
 	// ############ SETUP DEST PARTNER ###############
 	destPartner := &model.RemoteAgent{
-		Name:     destPartnerName,
-		Protocol: Pesit,
-		Address:  types.Addr("localhost", 1234),
+		Name:        destPartnerName,
+		Protocol:    Pesit,
+		Address:     types.Addr("localhost", 1234),
+		ProtoConfig: map[string]any{"login": destPartnerLogin},
 	}
 	require.NoError(t, db.Insert(destPartner).Run())
 	destAccount := &model.RemoteAccount{RemoteAgentID: destPartner.ID, Login: server.Name}
