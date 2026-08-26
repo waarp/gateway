@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :fix:`619` Correction d'inadéquations entre les codes d'erreur de Gateway et
+  les codes d'erreur protocolaires R66.
 
 * :release:`0.16.2 <2026-08-21>`
 * :bug:`-` Correction d'une erreur de syntaxe dans une des requêtes PostgreSQL

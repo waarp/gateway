@@ -196,7 +196,7 @@ func (tec TransferErrorCode) R66Code() rune {
 	case TeExternalOperation:
 		return 'E'
 	case TeWarning:
-		return 'w'
+		return 'W'
 	case TeStopped:
 		return 'H'
 	case TeCanceled:
@@ -210,6 +210,6 @@ func (tec TransferErrorCode) R66Code() rune {
 	case TeShuttingDown:
 		return 'S'
 	default:
-		return '.'
+		return '-'
 	}
 }

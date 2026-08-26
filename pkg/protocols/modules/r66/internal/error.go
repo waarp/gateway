@@ -27,8 +27,7 @@ func NewR66Errorf(code rune, details string, args ...any) *r66.Error {
 //
 //nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
 func ToR66Error(err error) *r66.Error {
-	var rErr *r66.Error
-	if errors.As(err, &rErr) {
+	if rErr, ok := errors.AsType[*r66.Error](err); ok {
 		return rErr
 	}
 
@@ -51,7 +50,7 @@ func ToR66Error(err error) *r66.Error {
 	case types.TeConnectionReset:
 		return NewR66Error(r66.Disconnection, tErr.Redacted())
 	case types.TeUnknownRemote:
-		return NewR66Error(r66.QueryRemotelyUnknown, tErr.Redacted())
+		return NewR66Error(r66.NotKnownHost, tErr.Redacted())
 	case types.TeExceededLimit:
 		return NewR66Error(r66.ServerOverloaded, tErr.Redacted())
 	case types.TeBadAuthentication:
@@ -59,7 +58,7 @@ func ToR66Error(err error) *r66.Error {
 	case types.TeDataTransfer:
 		return NewR66Error(r66.TransferError, tErr.Redacted())
 	case types.TeIntegrity:
-		return NewR66Error(r66.FinalOp, tErr.Redacted())
+		return NewR66Error(r66.MD5Error, tErr.Redacted())
 	case types.TeFinalization:
 		return NewR66Error(r66.FinalOp, tErr.Redacted())
 	case types.TeExternalOperation:
@@ -83,11 +82,18 @@ func ToR66Error(err error) *r66.Error {
 	}
 }
 
+type interrupter interface {
+	Pause(ctx context.Context) error
+	Cancel(ctx context.Context) error
+}
+
+var _ interrupter = (*pipeline.Pipeline)(nil)
+
 // FromR66Error takes an R66 error (most likely of type r66.Error) and returns
 // the corresponding types.TransferError.
 //
 //nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
-func FromR66Error(err error, pip *pipeline.Pipeline) *pipeline.Error {
+func FromR66Error(err error, pip interrupter) *pipeline.Error {
 	var rErr *r66.Error
 	if !errors.As(err, &rErr) {
 		return pipeline.NewError(types.TeUnknownRemote,
@@ -114,32 +120,28 @@ func FromR66Error(err error, pip *pipeline.Pipeline) *pipeline.Error {
 		return pipeline.NewError(types.TeIntegrity, details)
 	case r66.Disconnection:
 		return pipeline.NewError(types.TeConnectionReset, details)
-	case r66.RemoteShutdown:
+	case r66.RemoteShutdown, r66.Shutdown:
 		return pipeline.NewError(types.TeShuttingDown, details)
 	case r66.FinalOp:
 		return pipeline.NewError(types.TeFinalization, details)
 	case r66.Unimplemented:
 		return pipeline.NewError(types.TeUnimplemented, details)
-	case r66.Shutdown:
-		return pipeline.NewError(types.TeShuttingDown, details)
-	case r66.RemoteError:
-		return pipeline.NewError(types.TeUnknownRemote, details)
 	case r66.Internal:
 		return pipeline.NewError(types.TeInternal, details)
 	case r66.Warning:
 		return pipeline.NewError(types.TeWarning, details)
-	case r66.Unknown:
+	case r66.NotKnownHost:
 		return pipeline.NewError(types.TeUnknownRemote, details)
+	case r66.Unknown:
+		return pipeline.NewError(types.TeUnknown, details)
 	case r66.FileNotFound:
 		return pipeline.NewError(types.TeFileNotFound, details)
-	case r66.CommandNotFound:
-		return pipeline.NewError(types.TeUnimplemented, details)
-	case r66.IncorrectCommand:
+	case r66.CommandNotFound, r66.IncorrectCommand:
 		return pipeline.NewError(types.TeUnimplemented, details)
 	case r66.FileNotAllowed:
 		return pipeline.NewError(types.TeForbidden, details)
 	case r66.SizeNotAllowed:
-		return pipeline.NewError(types.TeForbidden, details)
+		return pipeline.NewError(types.TeBadSize, details)
 	case r66.StoppedTransfer:
 		if pErr := pip.Pause(context.Background()); pErr != nil {
 			return pipeline.NewErrorWith(pErr, types.TeInternal, "failed to pause transfer")
@@ -153,6 +155,6 @@ func FromR66Error(err error, pip *pipeline.Pipeline) *pipeline.Error {
 
 		return nil
 	default:
-		return pipeline.NewError(types.TeUnknownRemote, details)
+		return pipeline.NewError(types.TeUnknown, details)
 	}
 }
