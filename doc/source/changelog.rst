@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`618` Les transferts en attente d'acquittement ont désormais une date de
+  fin correspondant au moment où le transfert s'est terminé. Précédemment, ces
+  transferts n'avaient pas de date de fin tant que l'acquittement n'avait pas été
+  reçu.
 * :bug:`622` Ajout d'un garde-fou refusant les acquittements PeSIT si le
   transfert concerné est encore en cours.
 * :bug:`614` Correction d'un bug de la commande ``waarp-gatewayd sql`` qui

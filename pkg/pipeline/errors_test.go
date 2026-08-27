@@ -4,9 +4,13 @@ import (
 	"errors"
 	"path"
 	"sync/atomic"
+	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -65,6 +69,23 @@ func initTestDB(c C, root string) *testContext {
 	db := database.TestDatabase(c)
 	logger := testhelpers.TestLogger(c, "Pipeline test")
 
+	return makeTransferCtx(db, logger, root, func(err error) {
+		So(err, ShouldBeNil)
+	})
+}
+
+func initTransferCtx(tb testing.TB) *testContext {
+	db := dbtest.TestDatabase(tb)
+	logger := logtest.GetTestLogger(tb)
+	root := tb.TempDir()
+
+	return makeTransferCtx(db, logger, root, func(err error) {
+		require.NoError(tb, err)
+	})
+}
+
+func makeTransferCtx(db *database.DB, logger *log.Logger, root string, assertNoError func(error),
+) *testContext {
 	paths := conf.PathsConfig{
 		GatewayHome:   root,
 		DefaultInDir:  "in",
@@ -75,9 +96,9 @@ func initTestDB(c C, root string) *testContext {
 	}
 	db.Config.Paths = paths
 
-	So(fs.MkdirAll(path.Join(root, paths.DefaultInDir)), ShouldBeNil)
-	So(fs.MkdirAll(path.Join(root, paths.DefaultOutDir)), ShouldBeNil)
-	So(fs.MkdirAll(path.Join(root, paths.DefaultTmpDir)), ShouldBeNil)
+	assertNoError(fs.MkdirAll(path.Join(root, paths.DefaultInDir)))
+	assertNoError(fs.MkdirAll(path.Join(root, paths.DefaultOutDir)))
+	assertNoError(fs.MkdirAll(path.Join(root, paths.DefaultTmpDir)))
 
 	send := &model.Rule{
 		Name:      "send",
@@ -94,42 +115,42 @@ func initTestDB(c C, root string) *testContext {
 		RemoteDir:      "rRemote",
 		TmpLocalRcvDir: "rTmp",
 	}
-	c.So(db.Insert(recv).Run(), ShouldBeNil)
-	c.So(db.Insert(send).Run(), ShouldBeNil)
+	assertNoError(db.Insert(recv).Run())
+	assertNoError(db.Insert(send).Run())
 
-	So(fs.MkdirAll(path.Join(root, send.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(path.Join(root, recv.LocalDir)), ShouldBeNil)
-	So(fs.MkdirAll(path.Join(root, recv.TmpLocalRcvDir)), ShouldBeNil)
+	assertNoError(fs.MkdirAll(path.Join(root, send.LocalDir)))
+	assertNoError(fs.MkdirAll(path.Join(root, recv.LocalDir)))
+	assertNoError(fs.MkdirAll(path.Join(root, recv.TmpLocalRcvDir)))
 
 	server := &model.LocalAgent{
 		Name: "server", Protocol: testProtocol,
 		Address: types.Addr("localhost", 1111),
 	}
-	So(db.Insert(server).Run(), ShouldBeNil)
+	assertNoError(db.Insert(server).Run())
 
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        "toto",
 	}
-	So(db.Insert(locAccount).Run(), ShouldBeNil)
+	assertNoError(db.Insert(locAccount).Run())
 
 	client := &model.Client{
 		Name: "client", Protocol: testProtocol,
 		LocalAddress: types.Addr("127.0.0.1", 2000),
 	}
-	So(db.Insert(client).Run(), ShouldBeNil)
+	assertNoError(db.Insert(client).Run())
 
 	partner := &model.RemoteAgent{
 		Name: "partner", Protocol: testProtocol,
 		Address: types.Addr("localhost", 2222),
 	}
-	So(db.Insert(partner).Run(), ShouldBeNil)
+	assertNoError(db.Insert(partner).Run())
 
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         "titi",
 	}
-	So(db.Insert(remAccount).Run(), ShouldBeNil)
+	assertNoError(db.Insert(remAccount).Run())
 
 	return &testContext{
 		root:          root,

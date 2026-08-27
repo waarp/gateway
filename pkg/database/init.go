@@ -31,7 +31,19 @@ func (db *DB) initDatabase() error {
 		return fmt.Errorf("failed to retrieve db connection: %w", sqlErr)
 	}
 
-	dialect := db.Config.Database.Type
+	var dialect string
+	switch db.engine.Name() {
+	case sqliteDialector:
+		dialect = migrations.SQLite
+	case postgresDialector:
+		dialect = migrations.PostgreSQL
+	case mysqlDialector:
+		dialect = migrations.MySQL
+	default:
+		//nolint:err113 //too specific
+		return fmt.Errorf("unsupported database dialect %q", db.engine.Name())
+	}
+
 	logger := db.Logger
 	dbExist := db.engine.Migrator().HasTable(&version{})
 

@@ -131,6 +131,10 @@ func (t *Transfer) checkMandatoryValues(rule *Rule, protocol string) error {
 
 	t.RemotePath = filepath.ToSlash(t.RemotePath)
 
+	if t.ID == 0 {
+		t.NextRetry = t.Start
+	}
+
 	return nil
 }
 
@@ -314,7 +318,13 @@ func (t *Transfer) MakeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 
 	if !types.ValidateStatusForHistory(t.Status) {
 		return nil, database.NewValidationErrorf(
-			"a transfer cannot be recorded in history with status %q", t.Status)
+			"a transfer cannot be recorded in history with status %q",
+			t.Status,
+		)
+	}
+
+	if !t.Stop.IsZero() {
+		stop = t.Stop
 	}
 
 	hist := HistoryEntry{

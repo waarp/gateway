@@ -12,6 +12,10 @@ import (
 func TestTimestamp(t *testing.T) {
 	t.Parallel()
 
+	type testStruct struct {
+		Start time.Time `gorm:"serializer:timestamp;type:timestamp"`
+	}
+
 	for _, tc := range []struct {
 		name  string
 		getDB func(testing.TB) *gorm.DB
@@ -23,10 +27,6 @@ func TestTimestamp(t *testing.T) {
 			db := tc.getDB(t)
 			sqlDB, err := db.DB()
 			require.NoError(t, err)
-
-			type testStruct struct {
-				Start time.Time `gorm:"serializer:timestamp;type:timestamp"`
-			}
 
 			require.NoError(t, db.AutoMigrate(&testStruct{}))
 
