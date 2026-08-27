@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`614` Correction d'un bug de la commande ``waarp-gatewayd sql`` qui
+  renvoyait une erreur lorsque l'option ``-s`` était utilisée.
 * :bug:`620` Correction d'une mauvaise requête SQL qui pouvait causer la
   réutilisation prématurée d'identifiants de transfer PeSIT.
 * :bug:`615` Correction d'une erreur qui faisait que Gateway renvoyait parfois

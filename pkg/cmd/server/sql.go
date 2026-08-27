@@ -91,16 +91,26 @@ func (s *SQLCommand) runQuery(db *sql.DB) error {
 
 func (s *SQLCommand) scanStringSlices(cols []string, rows *sql.Rows) ([][]string, error) {
 	row := make([]any, len(cols))
+	rowPtrs := make([]any, len(cols))
+
+	for i := range row {
+		rowPtrs[i] = &row[i]
+	}
+
 	var res [][]string
 
 	for rows.Next() {
-		if err := rows.Scan(row...); err != nil {
+		if err := rows.Scan(rowPtrs...); err != nil {
 			return nil, err //nolint:wrapcheck //wrapping adds nothing here
 		}
 
 		rowStr := make([]string, len(cols))
 		for i, val := range row {
-			rowStr[i] = fmt.Sprintf("%v", val)
+			if b, ok := val.([]byte); ok {
+				rowStr[i] = string(b)
+			} else {
+				rowStr[i] = fmt.Sprintf("%v", val)
+			}
 		}
 
 		res = append(res, rowStr)
