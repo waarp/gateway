@@ -70,20 +70,16 @@ type IDGenerator struct {
 }
 
 func (i *IDGenerator) Init(db database.ReadAccess) error {
-	row := db.QueryRow(`SELECT MAX(remote_transfer_id) FROM normalized_transfers
+	row := db.QueryRow(`SELECT MAX(CAST(remote_transfer_id AS INTEGER)) FROM normalized_transfers
 		WHERE is_send=true AND protocol IN (?, ?)`, Pesit, PesitTLS)
 
-	var val sql.NullString
+	var val sql.NullInt32
 	if err := row.Scan(&val); err != nil {
 		return fmt.Errorf("failed to scan pesit counter: %w", err)
 	}
 
 	if val.Valid {
-		lastID, convErr := utils.ParseUint[uint32](val.String)
-		if convErr != nil {
-			return fmt.Errorf("failed to parse pesit transfer ID: %w", convErr)
-		}
-		i.count.Store(lastID)
+		i.count.Store(uint32(val.Int32))
 	}
 
 	return nil

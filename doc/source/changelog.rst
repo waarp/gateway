@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`620` Correction d'une mauvaise requête SQL qui pouvait causer la
+  réutilisation prématurée d'identifiants de transfer PeSIT.
 * :bug:`615` Correction d'une erreur qui faisait que Gateway renvoyait parfois
   un ACK reçu au partenaire l'ayant envoyé.
 * :bug:`615` Correction d'un bug qui empêchait les ACKs reçus d'être acceptés si
