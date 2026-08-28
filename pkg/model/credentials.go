@@ -131,7 +131,9 @@ func (c *Credential) getHandler(protocol string) (authentication.Handler, error)
 
 	if handler == nil {
 		return nil, database.NewValidationErrorf(
-			"protocol %q does not support the authentication method %q", protocol, c.Type)
+			"protocol %q does not support the authentication method %q",
+			protocol, c.Type,
+		)
 	}
 
 	return handler, nil
@@ -148,7 +150,9 @@ func (c *Credential) validate(db database.Access) error {
 		return fmt.Errorf("failed to check for duplicate credentials: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
-			"an authentication method with the same name %q already exist", c.Name)
+			"an authentication method with the same name %q already exist",
+			c.Name,
+		)
 	}
 
 	if handler.CanOnlyHaveOne() {
@@ -161,7 +165,7 @@ func (c *Credential) validate(db database.Access) error {
 		}
 	}
 
-	if err := handler.Validate(c.Value, c.Value2, "", owner.Host(), owner.IsServer()); err != nil {
+	if err := handler.Validate(db, c.Value, c.Value2, "", owner.Host(), owner.IsServer()); err != nil {
 		return database.NewValidationErrorf("failed to validate authentication value: %w", err)
 	}
 
@@ -195,7 +199,9 @@ func (c *Credential) AfterRead(db database.ReadAccess) error {
 
 		if c.Value, c.Value2, err = des.FromDB(db, c.Value, c.Value2); err != nil {
 			return database.NewValidationErrorf(
-				"failed to deserialize the authentication value: %w", err)
+				"failed to deserialize the authentication value: %w",
+				err,
+			)
 		}
 	}
 

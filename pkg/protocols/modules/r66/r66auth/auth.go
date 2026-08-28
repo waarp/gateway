@@ -45,7 +45,7 @@ type LegacyCertificate struct{}
 
 func (r *LegacyCertificate) CanOnlyHaveOne() bool { return true }
 
-func (r *LegacyCertificate) Validate(_, _, _, _ string, _ bool) error {
+func (r *LegacyCertificate) Validate(_ database.ReadAccess, _, _, _, _ string, _ bool) error {
 	if !compatibility.IsLegacyR66CertificateAllowed {
 		return ErrLegacyCertNotAllowed
 	}

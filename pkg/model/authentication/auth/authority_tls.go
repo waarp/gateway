@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -15,6 +16,8 @@ import (
 const (
 	AuthorityTLS = "tls_authority"
 )
+
+var ErrNotCACertificate = errors.New("the provided certificate is not a CA certificate")
 
 //nolint:gochecknoinits //init is required here
 func init() {
@@ -29,32 +32,48 @@ func (*TLSAuthorityHandler) Validate(identity string) error {
 		return err
 	}
 
-	options := &x509.VerifyOptions{KeyUsages: []x509.ExtKeyUsage{
-		x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth,
-	}}
+	if !cert.IsCA {
+		return ErrNotCACertificate
+	}
 
-	return verifyCert(cert, nil, options)
+	store := x509.NewCertPool()
+	store.AddCert(cert)
+
+	return verifyCertChain([]*x509.Certificate{cert}, store, "", x509.ExtKeyUsageAny)
 }
 
 func AddTLSAuthorities(db database.ReadAccess, tlsConfig *tls.Config) error {
+	return addTLSAuthorities(db, tlsConfig.RootCAs, tlsConfig.ServerName)
+}
+
+func addTLSAuthorities(db database.ReadAccess, store *x509.CertPool, host string) error {
 	var authorities model.Authorities
 	if err := db.Select(&authorities).Where("type=?", AuthorityTLS).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve the TLS certification authorities: %w", err)
 	}
 
-	if tlsConfig.RootCAs == nil {
-		tlsConfig.RootCAs = utils.TLSCertPool()
+	if store == nil {
+		store = utils.TLSCertPool()
 	}
 
 	for _, authority := range authorities {
 		// If the authority is not valid for the server name, skip it
-		if len(authority.ValidHosts) != 0 && !slices.Contains(
-			authority.ValidHosts, tlsConfig.ServerName) {
+		if host != "" && len(authority.ValidHosts) != 0 &&
+			!slices.Contains(authority.ValidHosts, host) {
 			continue
 		}
 
-		tlsConfig.RootCAs.AppendCertsFromPEM([]byte(authority.PublicIdentity))
+		store.AppendCertsFromPEM([]byte(authority.PublicIdentity))
 	}
 
 	return nil
+}
+
+func newTLSRootPool(db database.ReadAccess, host string) (*x509.CertPool, error) {
+	pool := utils.TLSCertPool()
+	if err := addTLSAuthorities(db, pool, host); err != nil {
+		return nil, err
+	}
+
+	return pool, nil
 }

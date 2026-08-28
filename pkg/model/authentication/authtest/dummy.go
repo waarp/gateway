@@ -7,8 +7,11 @@ import (
 
 type dummyAuthHandler struct{}
 
-func (dummyAuthHandler) CanOnlyHaveOne() bool                     { return false }
-func (dummyAuthHandler) Validate(_, _, _, _ string, _ bool) error { return nil }
+func (dummyAuthHandler) CanOnlyHaveOne() bool { return false }
+func (dummyAuthHandler) Validate(_ database.ReadAccess, _, _, _, _ string, _ bool) error {
+	return nil
+}
+
 func (dummyAuthHandler) Authenticate(database.ReadAccess, authentication.Owner, any) (*authentication.Result, error) {
 	return authentication.Success(), nil
 }
