@@ -12,10 +12,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var ErrDatabase = pesit.NewDiagnostic(pesit.CodeInternalError, "database error")
+var (
+	ErrDatabase   = pesit.NewDiagnostic(pesit.CodeInternalError, "database error")
+	ErrACKRunning = pesit.NewDiagnostic(pesit.CodeParameterError, "cannot acknowledge a running transfer")
+)
 
 var _ pesit.MessageHandler = &service{}
 
@@ -65,6 +69,10 @@ func (s *service) HandleMessage(req *pesit.MessageRequest, cont io.Reader,
 		s.logger.Debugf("Failed to retrieve transfer for F.MESSAGE transferID=%d: %v", req.TransferID, err)
 
 		return nil, ErrDatabase
+	}
+
+	if pipeline.List.Exists(outTrans.ID) {
+		return nil, ErrACKRunning
 	}
 
 	outTrans.TransferInfo[ackReceivedKey] = true
