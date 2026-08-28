@@ -332,6 +332,7 @@ func (p *Pipeline) EndTransfer() *Error {
 		// If transfer is waiting for acknowledgement, do not mark it as done yet
 		if expectsAck, jsErr := utils.GetAs[bool](p.TransCtx.Transfer.TransferInfo,
 			tasks.SendMessageAckExpectedKey); jsErr == nil && expectsAck {
+			p.TransCtx.Transfer.Stop = time.Now()
 			if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
 				p.Logger.Errorf("Failed to update transfer: %v", err)
 				p.errorTasks()

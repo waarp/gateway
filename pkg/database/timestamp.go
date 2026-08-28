@@ -38,12 +38,17 @@ func (timestamp) Scan(_ context.Context, field *schema.Field, dst reflect.Value,
 	return nil
 }
 
+//nolint:nilnil // returning "nil nil" is required here to store zero timestamps as "NULL" in db
 func (timestamp) Value(_ context.Context, _ *schema.Field, _ reflect.Value, fieldValue any) (any, error) {
 	switch val := fieldValue.(type) {
 	case time.Time:
+		if val.IsZero() {
+			return nil, nil
+		}
+
 		return val.UTC(), nil
 	case nil:
-		return time.Time{}, nil
+		return nil, nil
 	default:
 		//nolint:err113 //too specific to have a base error
 		return nil, fmt.Errorf("invalid timestamp type %T", fieldValue)

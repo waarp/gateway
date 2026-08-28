@@ -95,7 +95,7 @@ func TestDatabase(tb testing.TB) *database.DB {
 	config := &conf.ServerConfig{}
 	config.GatewayName = "gw-test"
 	config.Database = conf.DatabaseConfig{
-		Type:    database.SQLite,
+		Type:    memDBType,
 		Address: dbName,
 	}
 	config.Paths.FilePerms = 0o600
