@@ -35,7 +35,7 @@ func (BcryptAuthHandler) ToDB(_ database.Access, plain, _ string) (hashed, _ str
 	return hashed, "", nil
 }
 
-func (BcryptAuthHandler) Validate(value, _, _, _ string, _ bool) error {
+func (BcryptAuthHandler) Validate(_ database.ReadAccess, value, _, _, _ string, _ bool) error {
 	if _, err := bcrypt.Cost([]byte(value)); err == nil {
 		return nil // password is already hashed
 	}
@@ -103,7 +103,7 @@ func (AESPasswordHandler) FromDB(db database.ReadAccess, cipher, _ string,
 	return plainPwd, "", nil
 }
 
-func (AESPasswordHandler) Validate(_, _, _, _ string, _ bool) error {
+func (AESPasswordHandler) Validate(_ database.ReadAccess, _, _, _, _ string, _ bool) error {
 	// TODO add more verifications (min length, character variety...)
 	return nil
 }

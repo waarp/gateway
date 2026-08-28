@@ -50,8 +50,8 @@ func (TLSCertHandler) FromDB(db database.ReadAccess, cert, encryptedPk string,
 	return cert, plainPk, nil
 }
 
-func (TLSCertHandler) Validate(value, value2, _, host string, isServer bool) error {
-	if err := checkCert(value, value2, host, isServer); err != nil {
+func (TLSCertHandler) Validate(db database.ReadAccess, value, value2, _, host string, isServer bool) error {
+	if err := checkCert(db, value, value2, host, isServer); err != nil {
 		return fmt.Errorf("failed to validate certificate: %w", err)
 	}
 
@@ -62,7 +62,7 @@ type TLSTrustedCertHandler struct{}
 
 func (TLSTrustedCertHandler) CanOnlyHaveOne() bool { return false }
 
-func (TLSTrustedCertHandler) Validate(value, _, _, host string, isServer bool) error {
+func (TLSTrustedCertHandler) Validate(_ database.ReadAccess, value, _, _, host string, isServer bool) error {
 	if err := checkRemoteSelfSignedCert(value, host, isServer); err != nil {
 		return fmt.Errorf("failed to validate certificate: %w", err)
 	}
@@ -79,8 +79,12 @@ func (TLSTrustedCertHandler) Authenticate(db database.ReadAccess,
 			return nil, rootErr
 		}
 
-		if err := verifyCertChain(chain, rootCAs, owner.Host(),
-			owner.IsServer()); err != nil {
+		usage := x509.ExtKeyUsageServerAuth
+		if !owner.IsServer() {
+			usage = x509.ExtKeyUsageClientAuth
+		}
+
+		if err := verifyCertChain(chain, rootCAs, owner.Host(), usage); err != nil {
 			return authentication.Failure(err.Error()), nil
 		}
 
@@ -144,46 +148,32 @@ func ParseRawCertChain(rawCerts [][]byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func verifyCert(cert *x509.Certificate, trustedRoots []*x509.Certificate,
-	options *x509.VerifyOptions,
-) error {
-	roots := utils.TLSCertPool()
-
-	for _, root := range trustedRoots {
-		roots.AddCert(root)
-	}
-
-	// if subject == issuer, then the certificate is self-signed, so we add it to the roots
-	if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
-		roots.AddCert(cert)
-	}
-
-	options.Roots = roots
-
-	if _, err := cert.Verify(*options); err != nil {
-		return fmt.Errorf("certificate is invalid: %w", err)
-	}
-
-	return nil
-}
-
-func checkCert(certPEM, keyPEM, host string, isServer bool) error {
-	cert, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
+func checkCert(db database.ReadAccess, certPEM, keyPEM, host string, isServer bool) error {
+	tlsCert, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
 	if err != nil {
-		return fmt.Errorf("failed to parse the x509 certificate: %w", err)
+		return fmt.Errorf("failed to parse the key/certificate pair: %w", err)
 	}
 
-	//nolint:errcheck //cert if already parsed above, so checking for errors here is redundant
-	leaf, _ := x509.ParseCertificate(cert.Certificate[0])
-
-	options := &x509.VerifyOptions{DNSName: host}
-	if isServer {
-		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-	} else {
-		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+	chain, err := ParseRawCertChain(tlsCert.Certificate)
+	if err != nil {
+		return err
 	}
 
-	return verifyCert(leaf, nil, options)
+	usage := x509.ExtKeyUsageServerAuth
+	if !isServer {
+		usage = x509.ExtKeyUsageClientAuth
+	}
+
+	roots, err := newTLSRootPool(db, host)
+	if err != nil {
+		return err
+	}
+
+	if len(chain) == 1 && bytes.Equal(chain[0].RawIssuer, chain[0].RawSubject) {
+		roots.AddCert(chain[0])
+	}
+
+	return verifyCertChain(chain, roots, host, usage)
 }
 
 func checkRemoteSelfSignedCert(certPEM, host string, isServer bool) error {
@@ -192,14 +182,15 @@ func checkRemoteSelfSignedCert(certPEM, host string, isServer bool) error {
 		return err
 	}
 
-	options := &x509.VerifyOptions{DNSName: host}
-	if isServer {
-		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-	} else {
-		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+	usage := x509.ExtKeyUsageServerAuth
+	if !isServer {
+		usage = x509.ExtKeyUsageClientAuth
 	}
 
-	return verifyCert(cert, nil, options)
+	roots := x509.NewCertPool()
+	roots.AddCert(cert)
+
+	return verifyCertChain([]*x509.Certificate{cert}, roots, host, usage)
 }
 
 func parseTLSCertChain(cert *tls.Certificate) ([]*x509.Certificate, error) {
@@ -245,18 +236,13 @@ func makeRootCAs(db database.ReadAccess, owner authentication.Owner) (*x509.Cert
 }
 
 func verifyCertChain(certChain []*x509.Certificate, rootCAs *x509.CertPool,
-	host string, isServer bool,
+	host string, usages ...x509.ExtKeyUsage,
 ) error {
 	options := x509.VerifyOptions{
 		DNSName:       host,
 		Roots:         rootCAs,
 		Intermediates: x509.NewCertPool(),
-	}
-
-	if isServer {
-		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-	} else {
-		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+		KeyUsages:     usages,
 	}
 
 	for i := 1; i < len(certChain); i++ {

@@ -101,7 +101,7 @@ type Handler interface {
 
 	// Validate checks whether the given authentication value is valid. If it's
 	// not, the function should return an error. This function is required.
-	Validate(value, value2, protocol, host string, isServer bool) error
+	Validate(db database.ReadAccess, value, value2, protocol, host string, isServer bool) error
 }
 
 // InternalAuthHandler is a struct regrouping the various function necessary to

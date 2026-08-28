@@ -70,8 +70,10 @@ func checkPesitLogin(login string) error {
 
 type pesitBcryptAuthHandler struct{ auth.BcryptAuthHandler }
 
-func (p pesitBcryptAuthHandler) Validate(val, val2, protocol, host string, isServer bool) error {
-	if err := p.BcryptAuthHandler.Validate(val, val2, protocol, host, isServer); err != nil {
+func (p pesitBcryptAuthHandler) Validate(db database.ReadAccess, val, val2,
+	protocol, host string, isServer bool,
+) error {
+	if err := p.BcryptAuthHandler.Validate(db, val, val2, protocol, host, isServer); err != nil {
 		return err //nolint:wrapcheck //wrapping adds nothing here
 	}
 
@@ -84,8 +86,10 @@ func (p pesitBcryptAuthHandler) Validate(val, val2, protocol, host string, isSer
 
 type pesitAESAuthHandler struct{ auth.AESPasswordHandler }
 
-func (p pesitAESAuthHandler) Validate(val, val2, protocol, host string, isServer bool) error {
-	if err := p.AESPasswordHandler.Validate(val, val2, protocol, host, isServer); err != nil {
+func (p pesitAESAuthHandler) Validate(db database.ReadAccess, val, val2,
+	protocol, host string, isServer bool,
+) error {
+	if err := p.AESPasswordHandler.Validate(db, val, val2, protocol, host, isServer); err != nil {
 		return err //nolint:wrapcheck //wrapping adds nothing here
 	}
 
@@ -113,7 +117,9 @@ func (p preConnectionAuthExtHandler) ToDB(db database.Access, login, plainPwd st
 }
 
 func (p preConnectionAuthExtHandler) CanOnlyHaveOne() bool { return true }
-func (p preConnectionAuthExtHandler) Validate(login, pwd, _, _ string, isServer bool) error {
+func (p preConnectionAuthExtHandler) Validate(_ database.ReadAccess,
+	login, pwd, _, _ string, isServer bool,
+) error {
 	if isServer {
 		return ErrPreConnAuthOnServer
 	}

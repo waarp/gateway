@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`613` Correction d'un bug empêchant l'insertion de certificats en base de
+  données lorsque ceux-ci avaient des intermédiaires.
+* :bug:`613` Correction d'un bug empêchant l'insertion de certificats signés par
+  des autorités de certifications spécifiques à Gateway.
 * :bug:`618` Les transferts en attente d'acquittement ont désormais une date de
   fin correspondant au moment où le transfert s'est terminé. Précédemment, ces
   transferts n'avaient pas de date de fin tant que l'acquittement n'avait pas été

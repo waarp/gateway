@@ -31,7 +31,7 @@ type sshPublicKey struct{}
 
 func (*sshPublicKey) CanOnlyHaveOne() bool { return false }
 
-func (*sshPublicKey) Validate(pbkey, _, _, _ string, _ bool) error {
+func (*sshPublicKey) Validate(_ database.ReadAccess, pbkey, _, _, _ string, _ bool) error {
 	if _, err := ParseAuthorizedKey(pbkey); err != nil {
 		return fmt.Errorf("failed to parse SSH public key: %w", err)
 	}
@@ -45,8 +45,8 @@ func (*sshPublicKey) Authenticate(db database.ReadAccess, owner authentication.O
 	switch value := val.(type) {
 	case ssh.PublicKey:
 		var keys model.Credentials
-		if err := db.Select(&keys).Where("type=?", AuthSSHPublicKey).Where(
-			owner.GetCredCond()).Run(); err != nil {
+		if err := db.Select(&keys).Where("type=?", AuthSSHPublicKey).
+			Where(owner.GetCredCond()).Run(); err != nil {
 			return nil, fmt.Errorf("failed to retrieve the SSH public keys: %w", err)
 		}
 
@@ -89,7 +89,7 @@ func (*sshPrivateKey) FromDB(db database.ReadAccess, encrypted, _ string,
 	return plain, "", nil
 }
 
-func (*sshPrivateKey) Validate(pkey, _, _, _ string, _ bool) error {
+func (*sshPrivateKey) Validate(_ database.ReadAccess, pkey, _, _, _ string, _ bool) error {
 	if _, err := ssh.ParsePrivateKey([]byte(pkey)); err != nil {
 		return fmt.Errorf("failed to parse SSH private key: %w", err)
 	}
