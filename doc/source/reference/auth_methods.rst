@@ -144,6 +144,13 @@ donc posséder un certificat TLS à envoyer, ainsi que la clé privée associée
 certificat (pour pouvoir chiffrer les messages). Il s'agit donc de l'authentification
 de type `tls_certificate`.
 
+.. note::
+
+   Pour pouvoir ajouter un certificat local, Gateway doit connaître l'autorité
+   l'ayant signé afin de pouvoir le valider. Il faut donc soit que cette autorité
+   ai été renseignée au préalable, soit qu'il s'agisse d'une autorité système.
+   Les certificats auto-signés ne sont pas concernés par cette restriction.
+
 À l'inverse, pour qu'un tier puisse s'authentifier après de la *gateway* via cette
 méthode, il faut que la *gateway* puisse vérifier le certificat qui lui est envoyé.
 Il y a 3 cas de figure possible dans ce cas:

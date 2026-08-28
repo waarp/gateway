@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.16.3 <2026-08-28>`
 * :bug:`613` Correction d'un bug empêchant l'insertion de certificats en base de
   données lorsque ceux-ci avaient des intermédiaires.
 * :bug:`613` Correction d'un bug empêchant l'insertion de certificats signés par
