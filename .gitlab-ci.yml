@@ -224,7 +224,11 @@ upload-packages:
       curl --fail-with-body --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/${PACKAGE_DOC} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}
 
 upload-docker:
-  image: quay.io/skopeo/stable:latest
+  image:
+    name: quay.io/skopeo/stable:latest
+    # The image's entrypoint is skopeo itself, so the runner's shell would be
+    # passed to it as arguments.
+    entrypoint: [ "" ]
   stage: upload
   # Moves the released tags in the registry: never cancel it.
   interruptible: false
