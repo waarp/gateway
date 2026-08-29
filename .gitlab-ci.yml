@@ -1,5 +1,12 @@
 default:
   image: code.waarp.fr:5000/oci/build-base:latest
+  # The runner takes one job at a time, so a superseded pipeline holds the
+  # queue. Publishing jobs opt out individually.
+  interruptible: true
+
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
 
 variables:
   VERSION: "${CI_COMMIT_TAG}"
@@ -19,10 +26,11 @@ variables:
   PACKAGE_LIN: "waarp-gateway-${VERSION}.linux.tar.gz"
   PACKAGE_WIN: "waarp-gateway-${VERSION}.windows.zip"
   PACKAGE_DOC: "waarp-gateway-doc-${VERSION}.zip"
-  GOPATH: "$CI_PROJECT_DIR/.gocache"
-  GOCACHE: "${GOPATH}/go-build"
-  GOLANGCI_LINT_CACHE: "$CI_PROJECT_DIR/.golangci-lint-cache"
-  GOPRIVATE: "code.waarp.fr/*"
+  GOPATH: "$CI_PROJECT_DIR/.cache/gopath"
+  GOMODCACHE: "$CI_PROJECT_DIR/.cache/gomod"
+  GOCACHE: "$CI_PROJECT_DIR/.cache/gobuild"
+  GOLANGCI_LINT_CACHE: "$CI_PROJECT_DIR/.cache/golangci"
+  CACHE_COMPRESSION_LEVEL: "fastest"
 
 stages:
   - test
@@ -31,17 +39,49 @@ stages:
   - upload
   - release
 
+# Anchors for the two Go caches. Kept in a hidden job so they are ordinary
+# "cache:" entries, valid wherever they are referenced.
+.go-cache-anchors:
+  cache:
+    # Read-only everywhere: "warm-deps" is the only writer. Keyed on go.sum so
+    # a dependency bump starts a fresh entry rather.
+    - &cache_gomod
+      key:
+        files: [ go.sum ]
+        prefix: gomod
+      paths: [ .cache/gomod ]
+      policy: pull
+    # One key per job: lint, "-covermode atomic" and the static netgo builds
+    # produce disjoint entries.
+    # Shared across branches, since the Go build cache is content-addressed and
+    # discards what it has not used for five days.
+    - &cache_gobuild
+      key: "gobuild-$CI_JOB_NAME"
+      paths: [ .cache/gobuild ]
+      when: always
+
+# Sole writer of the module cach
+warm-deps:
+  stage: .pre
+  rules:
+    - changes: [ go.sum ]
+  script:
+    - go mod download
+  cache:
+    - <<: *cache_gomod
+      policy: pull-push
+
 lint:
   stage: test
   script:
     - go tool golangci-lint cache status
     - go tool golangci-lint run --timeout 15m --output.junit-xml.path lint.junit.xml --output.text.path stdout --output.code-climate.path=gl-code-quality-report.json
   cache:
-    - key: go_dependencies_cache
-      paths:
-        - $GOPATH
-      when: always
-    - key: $CI_COMMIT_REF_SLUG
+    - *cache_gomod
+    - *cache_gobuild
+    # A fixed key: golangci-lint indexes by content hash, so sharing across
+    # branches is safe.
+    - key: golangci-lint
       paths:
         - $GOLANGCI_LINT_CACHE
       when: always
@@ -53,16 +93,14 @@ lint:
 tests:
   stage: test
   script:
-    - env
     - gotestsum --junitfile tests.junit.xml --rerun-fails --format-icons hivis --packages ./... -- -coverprofile=coverage.txt -covermode atomic -shuffle on
   after_script:
     - gocover-cobertura < coverage.txt > coverage.xml
     - go tool cover -func=coverage.txt | grep "total:"
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
   cache:
-    - key: go_dependencies_cache
-      paths:
-        - $GOPATH
+    - *cache_gomod
+    - *cache_gobuild
   artifacts:
     reports:
       junit: tests.junit.xml
@@ -82,19 +120,18 @@ compile:
       - build/*.rpm
     expire_in: 1 day
   cache:
-    - key: go_dependencies_cache
-      paths:
-        - $GOPATH
+    - *cache_gomod
+    - *cache_gobuild
 
 package:
   stage: build
+  # Publishes a transit image tag, so it must not be cancelled mid-push.
+  interruptible: false
   rules:
     - if: $CI_COMMIT_TAG
     # Exercises the image build from a manual pipeline without tagging: only
     # the transit tag is produced, since the upload jobs are tag-only.
     - if: $BUILD_PACKAGES_TEST
-  before_script:
-    - git config url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
   script:
     - ./make.sh build dist
     - export IMAGE_TAG="$STAGING_IMAGE_TAG"
@@ -106,9 +143,8 @@ package:
     - echo VERSION=${FULLVERSION#v} >>version.env
     - ls build/
   cache:
-    - key: go_dependencies_cache
-      paths:
-        - $GOPATH
+    - *cache_gomod
+    - *cache_gobuild
   artifacts:
     paths:
       - build/*.rpm
@@ -168,6 +204,8 @@ check-packages-rpm:
 upload-packages:
   stage: upload
   image: curlimages/curl:latest
+  # Tag-only, and it writes to the package registry: never cancel it.
+  interruptible: false
   variables:
     # Only the artifacts of the package job are needed, never the sources.
     GIT_STRATEGY: none
@@ -188,6 +226,8 @@ upload-packages:
 upload-docker:
   image: quay.io/skopeo/stable:latest
   stage: upload
+  # Moves the released tags in the registry: never cancel it.
+  interruptible: false
   variables:
     # The job only moves tags in the registry; it never reads the sources.
     GIT_STRATEGY: none
@@ -201,6 +241,8 @@ upload-docker:
 release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
+  # Creates the GitLab release: never cancel it.
+  interruptible: false
   variables:
     # release-cli only talks to the API, with variables the runner provides.
     GIT_STRATEGY: none
