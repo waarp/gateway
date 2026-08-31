@@ -24,10 +24,10 @@ func (c *ChangeAESPassphrase) Execute([]string) error {
 		return initErr
 	}
 
-	return c.run(db)
+	return c.Run(db)
 }
 
-func (c *ChangeAESPassphrase) run(db *database.DB) error {
+func (c *ChangeAESPassphrase) Run(db *database.DB) error {
 	newAEAD, gcmErr := database.NewAEAD(c.NewFile)
 	if gcmErr != nil {
 		return fmt.Errorf("failed to load the AES passphrase file: %w", gcmErr)

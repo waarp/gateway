@@ -40,10 +40,10 @@ func (p *PurgeCommand) Execute([]string) error {
 		return initErr
 	}
 
-	return p.run(db, time.Now(), os.Stdin, os.Stdout)
+	return p.Run(db, time.Now(), os.Stdin, os.Stdout)
 }
 
-func (p *PurgeCommand) run(db *database.DB, now time.Time, in io.Reader,
+func (p *PurgeCommand) Run(db *database.DB, now time.Time, in io.Reader,
 	out io.Writer,
 ) error {
 	if err := p.checkArguments(db, now); err != nil {
@@ -157,6 +157,7 @@ func (p *PurgeCommand) userConfirm(db database.ReadAccess, in io.Reader,
 
 	fmt.Fprintln(out)
 
+	//nolint:goconst //the other instances are for different commands
 	if scanErr != nil || proceed != "YES" {
 		fmt.Fprintln(out, "Purge aborted.")
 

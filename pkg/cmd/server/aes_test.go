@@ -129,7 +129,7 @@ func TestChangeAESPassphrase(t *testing.T) {
 					NewFile:    aesFile,
 				}
 
-				So(command.run(db), ShouldBeNil)
+				So(command.Run(db), ShouldBeNil)
 
 				Convey("Then the passphrase should have been changed", func() {
 					Convey("Then the R66 server passwords should have been re-encrypted", func() {

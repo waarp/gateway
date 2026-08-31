@@ -25,11 +25,15 @@ func (s *SQLCommand) Execute([]string) error {
 		return fmt.Errorf("cannot load server config: %w", confErr)
 	}
 
-	db, dbErr := s.openDB(&config.Database)
+	db, dbErr := s.OpenDB(&config.Database)
 	if dbErr != nil {
 		return fmt.Errorf("cannot open database: %w", dbErr)
 	}
 
+	return s.Run(db)
+}
+
+func (s *SQLCommand) Run(db *sql.DB) error {
 	if !s.Select {
 		if _, err := db.Exec(s.Args.Query); err != nil {
 			return fmt.Errorf("failed to execute query: %w", err)
@@ -41,7 +45,7 @@ func (s *SQLCommand) Execute([]string) error {
 	return s.runQuery(db)
 }
 
-func (s *SQLCommand) openDB(config *conf.DatabaseConfig) (*sql.DB, error) {
+func (s *SQLCommand) OpenDB(config *conf.DatabaseConfig) (*sql.DB, error) {
 	var driver, dsn string
 
 	switch dbKind := config.Type; dbKind {

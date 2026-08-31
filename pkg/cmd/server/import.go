@@ -138,7 +138,7 @@ type RestoreHistCommand struct {
 	Verbose    []bool `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 }
 
-func (r *RestoreHistCommand) Execute([]string) error {
+func (r *RestoreHistCommand) ConfirmPrompt() bool {
 	var yes string
 
 	fmt.Fprintln(os.Stdout, "You are about to restore a transfer history backup.")
@@ -151,6 +151,14 @@ func (r *RestoreHistCommand) Execute([]string) error {
 	if _, err := fmt.Fscanf(os.Stdin, "%s", &yes); yes != "YES" || err != nil {
 		fmt.Fprintln(os.Stderr, "Import aborted.")
 
+		return false
+	}
+
+	return true
+}
+
+func (r *RestoreHistCommand) Execute([]string) error {
+	if !r.ConfirmPrompt() {
 		return nil
 	}
 
@@ -159,8 +167,10 @@ func (r *RestoreHistCommand) Execute([]string) error {
 		return fmt.Errorf("error at init: %w", initErr)
 	}
 
-	defer func() { _ = db.Stop(context.Background()) }() //nolint:errcheck // cannot handle the error
+	return r.Run(db, logger)
+}
 
+func (r *RestoreHistCommand) Run(db *database.DB, logger *log.Logger) error {
 	f, opErr := os.Open(r.File)
 	if opErr != nil {
 		return fmt.Errorf("failed to open file: %w", opErr)
