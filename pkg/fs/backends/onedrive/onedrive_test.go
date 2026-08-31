@@ -1,7 +1,6 @@
 package onedrive
 
 import (
-	"os"
 	"testing"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal/backtest"
@@ -16,9 +15,9 @@ func TestOneDrive(t *testing.T) {
 		driveID = "b!DoXLzayCDEqhLT5H107_ks7hUsDDwPJPlR5iTWhg2CxYuCODHjHUTJOI3xBLJIth"
 	)
 
-	clientID := os.Getenv("ONEDRIVE_CLIENT_ID")
-	clientSecret := os.Getenv("ONEDRIVE_CLIENT_SECRET")
-	tenantID := os.Getenv("ONEDRIVE_TENANT_ID")
+	clientID := backtest.EnvOrSkip(t, "ONEDRIVE_CLIENT_ID")
+	clientSecret := backtest.EnvOrSkip(t, "ONEDRIVE_CLIENT_SECRET")
+	tenantID := backtest.EnvOrSkip(t, "ONEDRIVE_TENANT_ID")
 
 	opts := map[string]string{
 		"region":             "global",

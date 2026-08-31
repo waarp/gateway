@@ -12,6 +12,9 @@ import (
 func TestS3(t *testing.T) {
 	const bucket = "waarp-gateway-tests"
 
+	backtest.EnvOrSkip(t, "AWS_ACCESS_KEY_ID")
+	backtest.EnvOrSkip(t, "AWS_SECRET_ACCESS_KEY")
+
 	opts := map[string]string{
 		"env_auth": "true",
 		"bucket":   bucket,

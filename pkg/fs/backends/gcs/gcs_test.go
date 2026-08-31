@@ -15,6 +15,8 @@ func TestGCS(t *testing.T) {
 		projectNb = "1048684374782"
 	)
 
+	backtest.EnvOrSkip(t, "GOOGLE_APPLICATION_CREDENTIALS")
+
 	opts := map[string]string{
 		"bucket":             bucket,
 		"env_auth":           "true",
