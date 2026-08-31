@@ -1,6 +1,10 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+
+	"gorm.io/gorm/clause"
+)
 
 // UpdateBean is the interface that a model must implement in order to be
 // updatable via the Access.Update query builder.
@@ -45,7 +49,12 @@ func (u *UpdateQuery) run(ses *Session) error {
 		}
 	}
 
-	query := ses.session.Table(u.bean.TableName()).Where("id=?", u.bean.GetID())
+	// Associations are handled by the models' own hooks. Without this, the "*"
+	// below makes GORM upsert them with an ON CONFLICT clause which has no
+	// conflict target, and which PostgreSQL therefore rejects.
+	query := ses.session.Table(u.bean.TableName()).Where("id=?", u.bean.GetID()).
+		Omit(clause.Associations)
+
 	if len(u.cols) != 0 {
 		query = query.Select(u.cols)
 	} else {
