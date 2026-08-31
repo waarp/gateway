@@ -156,5 +156,5 @@ func (db *DB) Exec(query string, args ...any) error {
 // Be aware that, since this method bypasses the data models, all the models'
 // hooks will be skipped. Thus, this method should be used with caution.
 func (db *DB) QueryRow(query string, args ...any) *sql.Row {
-	return db.engine.ConnPool.QueryRowContext(context.Background(), query, args...)
+	return db.engine.Raw(query, args...).Row()
 }
