@@ -140,7 +140,7 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	}
 
 	if followID := r.FormValue("followID"); followID != "" {
-		query.Where("id IN (SELECT CONCAT(transfer_id, history_id) "+
+		query.Where("id IN (SELECT COALESCE(transfer_id, history_id) "+
 			"FROM transfer_info WHERE name=? AND value=?)",
 			model.FollowID, followID)
 	}
