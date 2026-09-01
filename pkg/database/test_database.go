@@ -135,6 +135,10 @@ func initTestDBConf(c convey.C) *conf.ServerConfig {
 func resetDB(db *DB) {
 	config := &db.Config.Database
 
+	if db.engine == nil {
+		convey.So(db.initEngine(), convey.ShouldBeNil)
+	}
+
 	switch config.Type {
 	case PostgreSQL:
 		err := db.engine.Exec("DROP SCHEMA IF EXISTS public CASCADE").Error
@@ -198,7 +202,9 @@ func initTestDatabase(c convey.C) *DB {
 
 // SimulateError adds a database hook which always returns an error to simulate
 // a database error for test purposes.
-func SimulateError(_ convey.C, db *DB) {
+func SimulateError(c convey.C, db *DB) {
+	c.Reset(func() { db.engine.Error = nil })
+
 	//nolint:errcheck //error is always non-nil here
 	_ = db.engine.AddError(ErrSimulated)
 }
