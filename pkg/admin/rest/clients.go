@@ -77,7 +77,7 @@ func getDBClient(r *http.Request, db *database.DB) (*model.Client, error) {
 		return nil, fmt.Errorf("failed to retrieve client %q: %w", clientName, err)
 	}
 
-	if !services.Clients.Exists(client) {
+	if !services.Clients.Exists(&client) {
 		service, err := protocols.MakeClient(db, &client)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make client service %q: %w", clientName, err)
@@ -257,7 +257,7 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if _, err := services.Clients.Stop(r.Context(), dbClient); handleError(w, logger, err) {
+		if _, err := services.Clients.Start(dbClient); handleError(w, logger, err) {
 			return
 		}
 
@@ -266,7 +266,18 @@ func startClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func stopClient(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return restartClient(logger, db)
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbClient, getErr := getDBClient(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		if _, err := services.Clients.Stop(r.Context(), dbClient); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+	}
 }
 
 func restartClient(logger *log.Logger, db *database.DB) http.HandlerFunc {

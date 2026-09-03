@@ -3,9 +3,15 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -16,6 +22,9 @@ import (
 const (
 	clientsPathFormat = "/clients"
 	clientPathFormat  = "/clients/%s"
+
+	clientAPIPath  = "/clients/{client}"
+	clientsAPIPath = "/clients"
 )
 
 func TestClientAdd(t *testing.T) {
@@ -51,12 +60,12 @@ func TestClientAdd(t *testing.T) {
 						LocalAddress: mustAddr(jsonClient["localAddress"].(string)),
 						ProtoConfig:  jsonClient["protoConfig"].(map[string]any),
 					})
-				})
 
-				Convey("Then it should have added (but not started) the service", func() {
-					newService, ok := services.Clients.Get(id(1))
-					So(ok, ShouldBeTrue)
-					So(stateCode(newService), ShouldEqual, utils.StateOffline)
+					Convey("Then it should have added (but not started) the service", func() {
+						newService, ok := services.Clients.Get(dbClients[0])
+						So(ok, ShouldBeTrue)
+						So(stateCode(newService), ShouldEqual, utils.StateOffline)
+					})
 				})
 			})
 		})
@@ -323,4 +332,69 @@ func TestClientDelete(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestClientStart(t *testing.T) {
+	// Setup
+	logger := logtest.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+
+	dbClient := &model.Client{
+		Name:         "test_client",
+		Protocol:     testProto1,
+		LocalAddress: types.Addr("localhost", 12345),
+	}
+	require.NoError(t, db.Insert(dbClient).Run())
+
+	client, err := protocols.MakeClient(db, dbClient)
+	require.NoError(t, err)
+	services.Clients.Add(dbClient, client)
+
+	// Request
+	handler := startClient(logger, db)
+	req := makeRequest(http.MethodPatch, nil, clientAPIPath, dbClient.Name)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	// Check response
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Empty(t, w.Body.String())
+
+	// Check service
+	service, exists := services.Clients.Get(dbClient)
+	assert.True(t, exists)
+	assert.Equal(t, utils.StateRunning, stateCode(service))
+}
+
+func TestClientStop(t *testing.T) {
+	// Setup
+	logger := logtest.GetTestLogger(t)
+	db := dbtest.TestDatabase(t)
+
+	dbClient := &model.Client{
+		Name:         "test_client",
+		Protocol:     testProto1,
+		LocalAddress: types.Addr("localhost", 12345),
+	}
+	require.NoError(t, db.Insert(dbClient).Run())
+
+	client, err := protocols.MakeClient(db, dbClient)
+	require.NoError(t, err)
+	require.NoError(t, client.Start())
+	services.Clients.Add(dbClient, client)
+
+	// Request
+	handler := stopClient(logger, db)
+	req := makeRequest(http.MethodPatch, nil, clientAPIPath, dbClient.Name)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	// Check response
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Empty(t, w.Body.String())
+
+	// Check service
+	service, exists := services.Clients.Get(dbClient)
+	assert.True(t, exists)
+	assert.Equal(t, utils.StateOffline, stateCode(service))
 }

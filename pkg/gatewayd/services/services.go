@@ -11,6 +11,7 @@ import (
 	"github.com/puzpuzpuz/xsync/v4"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -18,8 +19,8 @@ import (
 //nolint:gochecknoglobals //global vars are required here
 var (
 	Core    = serviceList{}
-	Clients = NewServiceMap[Client]()
-	Servers = NewServiceMap[Server]()
+	Clients = NewServiceMap[*model.Client, Client]()
+	Servers = NewServiceMap[*model.LocalAgent, Server]()
 )
 
 type (
@@ -38,30 +39,30 @@ type serviceList []Service
 
 func (s *serviceList) Add(service Service) { *s = append(*s, service) }
 
-type ServiceMap[T Service] struct {
-	m *xsync.Map[int64, T]
+type ServiceMap[O database.Identifier, S Service] struct {
+	m *xsync.Map[int64, S]
 }
 
-func NewServiceMap[T Service]() ServiceMap[T] {
-	return ServiceMap[T]{m: xsync.NewMap[int64, T]()}
+func NewServiceMap[O database.Identifier, T Service]() ServiceMap[O, T] {
+	return ServiceMap[O, T]{m: xsync.NewMap[int64, T]()}
 }
 
-func (s ServiceMap[T]) Get(obj database.Identifier) (T, bool) {
+func (s ServiceMap[O, S]) Get(obj O) (S, bool) {
 	return s.m.Load(obj.GetID())
 }
 
-func (s ServiceMap[T]) Add(obj database.Identifier, service T) {
+func (s ServiceMap[O, S]) Add(obj O, service S) {
 	s.m.Store(obj.GetID(), service)
 }
 
-func (s ServiceMap[T]) Exists(obj database.Identifier) bool {
+func (s ServiceMap[O, S]) Exists(obj O) bool {
 	_, ok := s.Get(obj)
 
 	return ok
 }
 
-func (s ServiceMap[T]) Remove(ctx context.Context, obj database.Identifier) (retErr error) {
-	s.m.Compute(obj.GetID(), func(service T, loaded bool) (T, xsync.ComputeOp) {
+func (s ServiceMap[O, S]) Remove(ctx context.Context, obj O) (retErr error) {
+	s.m.Compute(obj.GetID(), func(service S, loaded bool) (S, xsync.ComputeOp) {
 		if !loaded {
 			return service, xsync.CancelOp
 		}
@@ -76,8 +77,8 @@ func (s ServiceMap[T]) Remove(ctx context.Context, obj database.Identifier) (ret
 	return retErr //nolint:wrapcheck //no need to wrap here
 }
 
-func (s ServiceMap[T]) Start(obj database.Identifier) (started bool, retErr error) {
-	s.m.Compute(obj.GetID(), func(service T, loaded bool) (_ T, op xsync.ComputeOp) {
+func (s ServiceMap[O, S]) Start(obj O) (started bool, retErr error) {
+	s.m.Compute(obj.GetID(), func(service S, loaded bool) (_ S, op xsync.ComputeOp) {
 		if !loaded {
 			retErr = ServiceNotFoundError(obj.GetID())
 
@@ -102,8 +103,8 @@ func (s ServiceMap[T]) Start(obj database.Identifier) (started bool, retErr erro
 	return started, retErr
 }
 
-func (s ServiceMap[T]) Stop(ctx context.Context, obj database.Identifier) (stopped bool, retErr error) {
-	s.m.Compute(obj.GetID(), func(service T, loaded bool) (T, xsync.ComputeOp) {
+func (s ServiceMap[O, S]) Stop(ctx context.Context, obj O) (stopped bool, retErr error) {
+	s.m.Compute(obj.GetID(), func(service S, loaded bool) (S, xsync.ComputeOp) {
 		if !loaded {
 			retErr = ServiceNotFoundError(obj.GetID())
 
@@ -128,8 +129,8 @@ func (s ServiceMap[T]) Stop(ctx context.Context, obj database.Identifier) (stopp
 	return stopped, retErr
 }
 
-func (s ServiceMap[T]) Restart(ctx context.Context, obj database.Identifier) (retErr error) {
-	s.m.Compute(obj.GetID(), func(service T, loaded bool) (T, xsync.ComputeOp) {
+func (s ServiceMap[O, S]) Restart(ctx context.Context, obj O) (retErr error) {
+	s.m.Compute(obj.GetID(), func(service S, loaded bool) (S, xsync.ComputeOp) {
 		if !loaded {
 			retErr = ServiceNotFoundError(obj.GetID())
 
@@ -156,11 +157,11 @@ func (s ServiceMap[T]) Restart(ctx context.Context, obj database.Identifier) (re
 	return retErr
 }
 
-func (s *ServiceMap[T]) StopAll(ctx context.Context) error {
+func (s *ServiceMap[O, S]) StopAll(ctx context.Context) error {
 	errChan := make(chan error, s.m.Size())
 
 	wg := sync.WaitGroup{}
-	s.m.Range(func(_ int64, service T) bool {
+	s.m.Range(func(_ int64, service S) bool {
 		if state, _ := service.State(); state == utils.StateRunning {
 			wg.Go(func() {
 				errChan <- service.Stop(ctx)
@@ -176,4 +177,4 @@ func (s *ServiceMap[T]) StopAll(ctx context.Context) error {
 	return errors.Join(utils.Collect(errChan)...)
 }
 
-func (s *ServiceMap[T]) Range(f func(int64, T) bool) { s.m.Range(f) }
+func (s *ServiceMap[O, S]) Range(f func(int64, S) bool) { s.m.Range(f) }

@@ -30,7 +30,7 @@ func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 		return nil, fmt.Errorf("failed to retrieve server %q: %w", serverName, err)
 	}
 
-	if !services.Servers.Exists(serv) {
+	if !services.Servers.Exists(&serv) {
 		service, err := protocols.MakeServer(db, &serv)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make server service %q: %w", serverName, err)
@@ -389,7 +389,18 @@ func stopServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func startServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return restartServer(logger, db)
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbServer, getErr := getDBServer(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		if _, err := services.Servers.Start(dbServer); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+	}
 }
 
 func restartServer(logger *log.Logger, db *database.DB) http.HandlerFunc {

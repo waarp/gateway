@@ -312,12 +312,13 @@ func TestCreateServer(t *testing.T) {
 								TmpReceiveDir: "tmp",
 								ProtoConfig:   map[string]any{},
 							})
-						})
 
-						Convey("Then it should have added (but not started) the server to the service list", func() {
-							newService, ok := services.Servers.Get(id(2))
-							So(ok, ShouldBeTrue)
-							So(stateCode(newService), ShouldEqual, utils.StateOffline)
+							Convey("Then it should have added (but not started) "+
+								"the server to the service list", func() {
+								newService, ok := services.Servers.Get(res[1])
+								So(ok, ShouldBeTrue)
+								So(stateCode(newService), ShouldEqual, utils.StateOffline)
+							})
 						})
 
 						Convey("Then the existing server should still be "+
