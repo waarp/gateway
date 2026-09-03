@@ -34,10 +34,14 @@ func init() {
 }
 
 func TestTLS(t *testing.T) {
-	Convey("Given an R66-TLS server & client", t, func(c C) {
+	FocusConvey("Given an R66-TLS server & client", t, func(c C) {
 		ctx := pipelinetest.InitSelfPushTransfer(c, R66TLS, cliConfTLS, partConfTLS, servConfTLS)
 		ctx.AddCreds(c, serverPassword(ctx.Server), partnerPassword(ctx.Partner))
 		ctx.StartService(c)
+		So(ctx.DB.DeleteAll(&model.Credential{}).
+			Where("remote_account_id=? OR local_account_id=?",
+				ctx.RemAccount.ID, ctx.LocAccount.ID).Run(),
+			ShouldBeNil)
 
 		connect := func() *pipeline.Error {
 			pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
@@ -143,7 +147,7 @@ func TestTLS(t *testing.T) {
 				SoMsg("Then it should return an error", connErr, ShouldNotBeNil)
 				SoMsg("And it should be a bad certificate error",
 					connErr.Code(), ShouldEqual, types.TeBadAuthentication)
-				So(connErr.Details(), ShouldContainSubstring, "remote error: tls: bad certificate")
+				So(connErr.Details(), ShouldContainSubstring, "authentication failed")
 			})
 		})
 
@@ -163,7 +167,7 @@ func TestTLS(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the client provides a legacy certificate", func() {
+		FocusConvey("Given that the client provides a legacy certificate", func() {
 			compatibility.IsLegacyR66CertificateAllowed = true
 			defer func() { compatibility.IsLegacyR66CertificateAllowed = false }()
 
@@ -173,7 +177,7 @@ func TestTLS(t *testing.T) {
 				Type:            r66auth.AuthLegacyCertificate,
 			}
 
-			Convey("Given that the legacy certificate was expected", func(c C) {
+			FocusConvey("Given that the legacy certificate was expected", func(c C) {
 				locAccLegacyCert := &model.Credential{
 					Name:           "loc_acc_legacy_cert",
 					LocalAccountID: ctx.LocAccount.NullableID(),
@@ -183,7 +187,7 @@ func TestTLS(t *testing.T) {
 				ctx.AddCreds(c, remAccLegacyCert, locAccLegacyCert,
 					localAgentCert, remotePartnerCert)
 
-				Convey("When connecting to the server", func() {
+				FocusConvey("When connecting to the server", func() {
 					SoMsg("Then it should not return an error",
 						connect(), ShouldBeNil)
 				})
@@ -195,9 +199,13 @@ func TestTLS(t *testing.T) {
 
 				ctx.AddCreds(c, localAgentCert, remotePartnerCert)
 
-				Convey("When connecting to the server", func() {
-					SoMsg("Then it should not return an error",
-						connect(), ShouldBeNil)
+				FocusConvey("When connecting to the server", func() {
+					connErr := connect()
+
+					SoMsg("Then it should return an error", connErr, ShouldNotBeNil)
+					SoMsg("And it should be a bad certificate error",
+						connErr.Code(), ShouldEqual, types.TeBadAuthentication)
+					So(connErr.Details(), ShouldContainSubstring, "A: authentication failed")
 				})
 			})
 

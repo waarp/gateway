@@ -83,13 +83,13 @@ func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentic
 
 	switch {
 	case c.LocalAgentID.Valid:
-		owner = newLocalAgent(c.LocalAgentID.Int64)
+		owner = &LocalAgent{ID: c.LocalAgentID.Int64}
 	case c.RemoteAgentID.Valid:
-		owner = newRemoteAgent(c.RemoteAgentID.Int64)
+		owner = &RemoteAgent{ID: c.RemoteAgentID.Int64}
 	case c.LocalAccountID.Valid:
-		owner = newLocalAccount(c.LocalAccountID.Int64)
+		owner = &LocalAccount{ID: c.LocalAccountID.Int64}
 	case c.RemoteAccountID.Valid:
-		owner = newRemoteAccount(c.RemoteAccountID.Int64)
+		owner = &RemoteAccount{ID: c.RemoteAccountID.Int64}
 	default:
 		return nil, nil, database.NewValidationError("the authentication method is missing an owner")
 	}

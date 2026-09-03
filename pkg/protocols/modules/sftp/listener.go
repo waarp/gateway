@@ -103,6 +103,10 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 		return
 	}
 
+	if !acc.CheckIP(l.Logger, servConn.RemoteAddr().String()) {
+		return
+	}
+
 	sesWg := &sync.WaitGroup{}
 	defer sesWg.Wait()
 

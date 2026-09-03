@@ -3,7 +3,6 @@ package protoutils
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -129,11 +128,10 @@ func MakeServerTLSConfig(db database.ReadAccess, logger *log.Logger, agentID int
 	}
 
 	return &tls.Config{
-		MinVersion:            GetMinTLSVersion(agent.ProtoConfig),
-		Certificates:          tlsCerts,
-		ClientAuth:            tls.RequestClientCert,
-		VerifyPeerCertificate: auth.VerifyClientCert(db, logger, &agent),
-		VerifyConnection:      compatibility.LogSha1(logger),
+		MinVersion:       GetMinTLSVersion(agent.ProtoConfig),
+		Certificates:     tlsCerts,
+		ClientAuth:       tls.RequestClientCert,
+		VerifyConnection: compatibility.LogSha1(logger),
 	}, nil
 }
 
@@ -191,19 +189,24 @@ func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
 		RootCAs:          utils.TLSCertPool(),
 		VerifyConnection: compatibility.LogSha1(logger),
 		MinVersion:       minVersion,
-	}
+		GetClientCertificate: func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			for _, cred := range accountCreds {
+				if cred.Type != auth.TLSCertificate {
+					continue
+				}
 
-	for _, cred := range accountCreds {
-		if cred.Type != auth.TLSCertificate {
-			continue
-		}
+				cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse client certificate %s: %w", cred.Name, err)
+				}
 
-		cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse client certificate %s: %w", cred.Name, err)
-		}
+				if info.SupportsCertificate(&cert) == nil {
+					return &cert, nil
+				}
+			}
 
-		config.Certificates = append(config.Certificates, cert)
+			return &tls.Certificate{}, nil
+		},
 	}
 
 	for _, cred := range partnerCreds {
@@ -223,12 +226,4 @@ func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
 	}
 
 	return config, nil
-}
-
-func CheckClientCert(user *model.LocalAccount, certs []*x509.Certificate) bool {
-	if len(certs) == 0 {
-		return false
-	}
-
-	return auth.GetClientCertLogin(certs[0]) == user.Login
 }

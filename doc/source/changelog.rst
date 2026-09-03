@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`625` Il est désormais possible pour un partenaire client de s'authentifier
+  avec un certificat dont le SAN/CN ne correspond pas son login. Dans ce cas de
+  figure, le certificat doit en revanche avoir été préalablement rattaché au
+  compte utilisé par le partenaire.
+
 * :release:`0.16.3 <2026-08-28>`
 * :bug:`613` Correction d'un bug empêchant l'insertion de certificats en base de
   données lorsque ceux-ci avaient des intermédiaires.

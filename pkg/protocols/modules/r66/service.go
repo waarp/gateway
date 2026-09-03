@@ -65,14 +65,15 @@ func (s *service) makeTLSConf() *tls.Config {
 
 			legacyConfig := &tls.Config{
 				MinVersion:   protoutils.GetMinTLSVersion(s.dbAgent.ProtoConfig),
+				MaxVersion:   tls.VersionTLS12,
 				Certificates: []tls.Certificate{compatibility.LegacyR66Cert},
 				ClientAuth:   tls.RequestClientCert,
 			}
 
 			if !r66auth.UsesLegacyCert(s.db, s.dbAgent) {
 				var err error
-				if legacyConfig.Certificates, err = protoutils.GetServerCertificates(
-					s.db, s.logger, s.dbAgent); err != nil {
+				if legacyConfig.Certificates, err = protoutils.GetServerCertificates(s.db,
+					s.logger, s.dbAgent); err != nil {
 					return nil, err
 				}
 			}
@@ -158,7 +159,7 @@ func (s *service) listen() error {
 	}
 
 	go func() {
-		if err := s.server.Serve(s.list); err != nil {
+		if err := s.server.Serve(s.list); !s.server.IsClosed() {
 			s.logger.Errorf("Server stopped unexpectedly: %q", err)
 			s.state.Set(utils.StateError, fmt.Sprintf("server stopped unexpectedly: %v", err))
 		}

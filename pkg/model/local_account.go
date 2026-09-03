@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -17,12 +18,6 @@ type LocalAccount struct {
 
 	Login       string       `gorm:"column:login"`        // The account's login.
 	IPAddresses types.IPList `gorm:"column:ip_addresses"` // The account's allowed IP addresses.
-}
-
-func newLocalAccount(id int64) *LocalAccount {
-	return &LocalAccount{
-		Identifier: Identifier{ID: id},
-	}
 }
 
 func (*LocalAccount) TableName() string   { return TableLocAccounts }
@@ -95,11 +90,15 @@ func (l *LocalAccount) SetAccessTarget(a *RuleAccess)        { a.LocalAccountID 
 
 func (l *LocalAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
 	var rules Rules
-	if err := db.Select(&rules).Where(fmt.Sprintf(
-		`id IN (SELECT DISTINCT rule_id FROM %s WHERE local_agent_id=? OR 
-			local_account_id=?)
-		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
-		TableRuleAccesses, TableRuleAccesses), l.LocalAgentID, l.ID).Run(); err != nil {
+	if err := db.Select(&rules).Where(
+		fmt.Sprintf(
+			`id IN (SELECT DISTINCT rule_id FROM %s WHERE local_agent_id=? OR 
+				local_account_id=?)
+		  	 OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+			TableRuleAccesses, TableRuleAccesses,
+		),
+		l.LocalAgentID, l.ID,
+	).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
 	}
 
@@ -131,4 +130,13 @@ func (l *LocalAccount) GetProtocol(db database.ReadAccess) (string, error) {
 func (l *LocalAccount) Authenticate(db database.ReadAccess, authType string, value any,
 ) (*authentication.Result, error) {
 	return authenticate(db, l, authType, l.LocalAgent.Protocol, value)
+}
+
+func (l *LocalAccount) CheckIP(logger *log.Logger, addr string) bool {
+	res := len(l.IPAddresses) == 0 || l.IPAddresses.Contains(addr)
+	if !res {
+		logger.Warningf("Unauthorized IP address %q for account %q", addr, l.Login)
+	}
+
+	return res
 }

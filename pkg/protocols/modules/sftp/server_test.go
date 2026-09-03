@@ -99,21 +99,6 @@ func TestAuth(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 					})
-
-					Convey("When logging in from an unauthorized IP", func() {
-						clientAddr, addrErr := net.ResolveTCPAddr("tcp", "1.2.3.4:22")
-						require.NoError(t, addrErr)
-
-						connMetadata := testConnMetadata{
-							user:       login,
-							remoteAddr: clientAddr,
-						}
-
-						Convey("Then it should fail", func() {
-							_, err := callback(connMetadata)
-							So(err, ShouldBeError, ErrUnauthorizedIP)
-						})
-					})
 				})
 			})
 		}

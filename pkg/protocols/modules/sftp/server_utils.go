@@ -11,7 +11,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 func makeServerConf(db *database.DB, logger *log.Logger,
@@ -23,11 +22,9 @@ func makeServerConf(db *database.DB, logger *log.Logger,
 	}
 
 	conf := &ssh.ServerConfig{
-		Config: ssh.Config{
-			KeyExchanges: protoConfig.KeyExchanges,
-			Ciphers:      protoConfig.Ciphers,
-			MACs:         protoConfig.MACs,
-		},
+		KeyExchanges:      protoConfig.KeyExchanges,
+		Ciphers:           protoConfig.Ciphers,
+		MACs:              protoConfig.MACs,
 		PublicKeyCallback: certChecker.Authenticate,
 		PasswordCallback:  passwordCallback(db, logger, agent),
 	}
@@ -62,13 +59,6 @@ func userKeyCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgen
 			return nil, ErrAuthFailed
 		}
 
-		if len(acc.IPAddresses) > 0 {
-			remoteIP := protoutils.GetIP(conn.RemoteAddr().String())
-			if !acc.IPAddresses.Contains(remoteIP) {
-				return nil, ErrUnauthorizedIP
-			}
-		}
-
 		return &ssh.Permissions{}, nil
 	}
 }
@@ -81,13 +71,6 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 			logger.Errorf("Failed to retrieve user credentials: %v", accErr)
 
 			return nil, ErrDatabase
-		}
-
-		if len(acc.IPAddresses) > 0 {
-			remoteIP := protoutils.GetIP(conn.RemoteAddr().String())
-			if !acc.IPAddresses.Contains(remoteIP) {
-				return nil, ErrUnauthorizedIP
-			}
 		}
 
 		if res, err := acc.Authenticate(db, auth.Password, pass); err != nil {

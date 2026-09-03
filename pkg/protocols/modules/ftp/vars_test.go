@@ -24,23 +24,24 @@ func init() {
 
 type testClientContext struct {
 	remoteAddr net.Addr
+	extra      any
 }
 
-func (t testClientContext) RemoteAddr() net.Addr { return t.remoteAddr }
+func (t *testClientContext) RemoteAddr() net.Addr { return t.remoteAddr }
+func (t *testClientContext) SetExtra(extra any)   { t.extra = extra }
+func (t *testClientContext) Extra() any           { return t.extra }
 
-func (testClientContext) Path() string                                  { panic("not implemented") }
-func (testClientContext) SetPath(string)                                { panic("not implemented") }
-func (testClientContext) SetListPath(string)                            { panic("not implemented") }
-func (testClientContext) SetDebug(bool)                                 { panic("not implemented") }
-func (testClientContext) Debug() bool                                   { panic("not implemented") }
-func (testClientContext) ID() uint32                                    { panic("not implemented") }
-func (testClientContext) LocalAddr() net.Addr                           { panic("not implemented") }
-func (testClientContext) GetClientVersion() string                      { panic("not implemented") }
-func (testClientContext) Close() error                                  { panic("not implemented") }
-func (testClientContext) HasTLSForControl() bool                        { panic("not implemented") }
-func (testClientContext) HasTLSForTransfers() bool                      { panic("not implemented") }
-func (testClientContext) GetLastCommand() string                        { panic("not implemented") }
-func (testClientContext) GetLastDataChannel() ftplib.DataChannel        { panic("not implemented") }
-func (testClientContext) SetTLSRequirement(ftplib.TLSRequirement) error { panic("not implemented") }
-func (testClientContext) SetExtra(extra any)                            { panic("not implemented") }
-func (testClientContext) Extra() any                                    { panic("not implemented") }
+func (*testClientContext) Path() string                                  { panic("not implemented") }
+func (*testClientContext) SetPath(string)                                { panic("not implemented") }
+func (*testClientContext) SetListPath(string)                            { panic("not implemented") }
+func (*testClientContext) SetDebug(bool)                                 { panic("not implemented") }
+func (*testClientContext) Debug() bool                                   { panic("not implemented") }
+func (*testClientContext) ID() uint32                                    { panic("not implemented") }
+func (*testClientContext) LocalAddr() net.Addr                           { panic("not implemented") }
+func (*testClientContext) GetClientVersion() string                      { panic("not implemented") }
+func (*testClientContext) Close() error                                  { panic("not implemented") }
+func (*testClientContext) HasTLSForControl() bool                        { panic("not implemented") }
+func (*testClientContext) HasTLSForTransfers() bool                      { panic("not implemented") }
+func (*testClientContext) GetLastCommand() string                        { panic("not implemented") }
+func (*testClientContext) GetLastDataChannel() ftplib.DataChannel        { panic("not implemented") }
+func (*testClientContext) SetTLSRequirement(ftplib.TLSRequirement) error { panic("not implemented") }

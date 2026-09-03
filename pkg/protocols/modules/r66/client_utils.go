@@ -200,7 +200,9 @@ func makeClientTLSConfig(logger *log.Logger, ctx *model.TransferContext) (*tls.C
 
 	for _, cred := range ctx.RemoteAccountCreds {
 		if cred.Type == r66auth.AuthLegacyCertificate {
-			tlsConf.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
+			tlsConf.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+				return &compatibility.LegacyR66Cert, nil
+			}
 
 			break
 		}

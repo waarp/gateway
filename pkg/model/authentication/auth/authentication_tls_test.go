@@ -162,7 +162,6 @@ func TestAuthentCert(t *testing.T) {
 		Name:           "test_root_ca",
 		Type:           AuthorityTLS,
 		PublicIdentity: rootCertPEM,
-		ValidHosts:     []string{"localhost", "waarp-gateway.test"},
 	}
 	require.NoError(t, db.Insert(authority).Run())
 
@@ -172,6 +171,16 @@ func TestAuthentCert(t *testing.T) {
 		Address:  types.Addr("localhost", 443),
 	}
 	require.NoError(t, db.Insert(partner).Run())
+
+	server := &model.LocalAgent{
+		Name:     "test_server",
+		Protocol: protocol,
+		Address:  types.Addr("localhost", 1234),
+	}
+	require.NoError(t, db.Insert(server).Run())
+
+	localAccount := &model.LocalAccount{LocalAgentID: server.ID, Login: "test_login"}
+	require.NoError(t, db.Insert(localAccount).Run())
 
 	t.Run("Valid public", func(t *testing.T) {
 		t.Parallel()
@@ -224,6 +233,37 @@ func TestAuthentCert(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, result.Success)
 		assert.Empty(t, result.Reason)
+	})
+
+	t.Run("Know client cert", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, db.Insert(&model.Credential{
+			LocalAccountID: localAccount.NullableID(),
+			Type:           TLSTrustedCertificate,
+			Value:          leafCertPEM,
+		}).Run())
+
+		pemChain := joinCerts(leafCertPEM, intermediateCertPEM, rootCertPEM)
+		chain, err := utils.ParsePEMCertChain(pemChain)
+		require.NoError(t, err)
+
+		result, err := handler.Authenticate(db, localAccount, chain)
+		require.NoError(t, err)
+		assert.True(t, result.Success)
+		assert.Empty(t, result.Reason)
+	})
+
+	t.Run("Unknown client cert", func(t *testing.T) {
+		t.Parallel()
+
+		chain, err := utils.ParsePEMCertChain(intermediateCertPEM)
+		require.NoError(t, err)
+
+		result, err := handler.Authenticate(db, localAccount, chain)
+		require.NoError(t, err)
+		assert.False(t, result.Success)
+		assert.Contains(t, result.Reason, "unknown client certificate")
 	})
 
 	t.Run("Unknown authority", func(t *testing.T) {

@@ -49,6 +49,10 @@ func (s *server) auth(r *http.Request) bool {
 		return false
 	}
 
+	if !acc.CheckIP(s.logger, r.RemoteAddr) {
+		return false
+	}
+
 	setUserCtxVal(r, acc)
 
 	// Retrieve account password from db

@@ -24,12 +24,6 @@ type RemoteAgent struct {
 	ProtoConfig Map[any] `gorm:"column:proto_config;serializer:json"`
 }
 
-func newRemoteAgent(id int64) *RemoteAgent {
-	return &RemoteAgent{
-		Identifier: Identifier{ID: id},
-	}
-}
-
 func (*RemoteAgent) TableName() string   { return TableRemAgents }
 func (*RemoteAgent) Appellation() string { return NameRemoteAgent }
 func (*RemoteAgent) IsServer() bool      { return true }
@@ -73,7 +67,8 @@ func (r *RemoteAgent) BeforeWrite(db database.Access) error {
 		return fmt.Errorf("failed to check for duplicate remote agents: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
-			"a remote agent with the same name %q already exist", r.Name)
+			"a remote agent with the same name %q already exist", r.Name,
+		)
 	}
 
 	return nil
@@ -107,10 +102,14 @@ func (r *RemoteAgent) GenAccessSelectCond() (string, int64) { return "remote_age
 
 func (r *RemoteAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
 	var rules Rules
-	if err := db.Select(&rules).Where(fmt.Sprintf(
-		`id IN (SELECT DISTINCT rule_id FROM %s WHERE remote_agent_id=?)
-		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
-		TableRuleAccesses, TableRuleAccesses), r.ID).Run(); err != nil {
+	if err := db.Select(&rules).Where(
+		fmt.Sprintf(
+			`id IN (SELECT DISTINCT rule_id FROM %s WHERE remote_agent_id=?)
+		  	 OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+			TableRuleAccesses, TableRuleAccesses,
+		),
+		r.ID,
+	).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
 	}
 
