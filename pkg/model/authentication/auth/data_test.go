@@ -150,9 +150,7 @@ NZf+ZrB++UHn+R3DkdTRONFzauBa9szSiF04kkUdsxC+ZsQnQtAprAyvNju0UoMT
 gmmQk8B1RYcONpLUmrhhufKvoXSgZNUIqGBIDuWCbbXVrXDlrzpwJaztW9d26xly
 RQofO+NMTLpRABuxMLZnang=
 -----END PRIVATE KEY-----`
-)
 
-const (
 	clientCertPEM = testhelpers.ClientFooCert
 	clientPKeyPEM = testhelpers.ClientFooKey
 	serverCertPEM = testhelpers.LocalhostCert

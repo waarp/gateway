@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"net"
+	"net/netip"
 	"slices"
 	"strings"
 )
@@ -42,8 +43,13 @@ func (l *IPList) fromString(str string) error {
 
 func (l IPList) String() string     { return strings.Join(l, ipAddrSeparator) }
 func (l *IPList) Add(ips ...string) { *l = append(*l, ips...) }
-func (l *IPList) Contains(ip string) bool {
-	return slices.Contains(*l, ip)
+func (l *IPList) Contains(addr string) bool {
+	ip, err := netip.ParseAddrPort(addr)
+	if err != nil {
+		return false
+	}
+
+	return slices.Contains(*l, ip.Addr().String())
 }
 
 func (l *IPList) Validate() error {

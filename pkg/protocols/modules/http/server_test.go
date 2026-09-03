@@ -92,7 +92,7 @@ func TestAuth(t *testing.T) {
 					_, ok := server.checkAuthent(w, req)
 					So(ok, ShouldBeFalse)
 					So(w.Code, ShouldEqual, http.StatusUnauthorized)
-					So(w.Body.String(), ShouldEqual, "Unauthorized IP address\n")
+					So(w.Body.String(), ShouldEqual, "auth: unauthorized IP address\n")
 				})
 			})
 		})

@@ -5,7 +5,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
@@ -31,13 +30,6 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 		return nil, internal.NewR66Error(r66.Internal, "database error")
 	}
 
-	if len(acc.IPAddresses) > 0 {
-		remoteIP := protoutils.GetIP(authent.Address)
-		if !acc.IPAddresses.Contains(remoteIP) {
-			return nil, internal.NewR66Error(r66.BadAuthent, "unauthorized IP address")
-		}
-	}
-
 	var authenticated bool
 
 	if certAuthenticated, err := a.certAuth(authent, acc); err != nil {
@@ -58,11 +50,15 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 		return nil, internal.NewR66Error(r66.BadAuthent, "authentication failed")
 	}
 
+	if !acc.CheckIP(a.logger, authent.Address) {
+		return nil, internal.NewR66Error(r66.BadAuthent, "unauthorized IP address")
+	}
+
 	authent.Filesize = true
 
 	if authent.FinalHash = authent.FinalHash && !a.r66Conf.NoFinalHash; authent.FinalHash {
 		if _, err := internal.GetHasher(authent.Digest); err != nil {
-			return nil, internal.NewR66Error(r66.BadAuthent, "unsuported hash algorithm")
+			return nil, internal.NewR66Error(r66.BadAuthent, "unsupported hash algorithm")
 		}
 
 		if len(a.r66Conf.FinalHashAlgos) != 0 && !utils.ContainsOneOf(a.r66Conf.FinalHashAlgos, authent.Digest) {
@@ -90,13 +86,12 @@ func (a *authHandler) certAuth(authent *r66.Authent, acc *model.LocalAccount,
 		return compatibility.IsLegacyR66Cert(authent.TLS.PeerCertificates[0]), nil
 	}
 
-	// Otherwise, check do normal certificate authentication.
-	if res, err := acc.Authenticate(a.db, auth.TLSTrustedCertificate, authent.TLS.PeerCertificates); err != nil {
-		a.logger.Errorf("Failed to authenticate account %q: %v", acc.Login, err)
-
+	// Otherwise, do normal certificate authentication.
+	success, err := protoutils.CertificateAuthentication(a.db, a.logger, acc, authent.TLS)
+	if err != nil {
 		return false, internal.NewR66Error(r66.Internal, "internal authentication error")
-	} else if !res.Success {
-		return false, internal.NewR66Error(r66.BadAuthent, "authentication failed")
+	} else if !success {
+		return false, nil
 	}
 
 	return true, nil
@@ -104,18 +99,11 @@ func (a *authHandler) certAuth(authent *r66.Authent, acc *model.LocalAccount,
 
 func (a *authHandler) passwordAuth(authent *r66.Authent, acc *model.LocalAccount,
 ) (bool, *r66.Error) {
-	if len(authent.Password) == 0 {
-		return false, nil
-	}
-
-	if res, err := acc.Authenticate(a.db, auth.Password, authent.Password); err != nil {
-		a.logger.Errorf("Failed to authenticate account %q: %v", acc.Login, err)
-
+	success, err := protoutils.PasswordAuthentication(a.db, a.logger, acc, string(authent.Password))
+	if err != nil {
 		return false, internal.NewR66Error(r66.Internal, "internal authentication error")
-	} else if !res.Success {
-		a.logger.Warningf("Authentication failed for account %q: %s", authent.Login, res.Reason)
-
-		return false, internal.NewR66Error(r66.BadAuthent, "authentication failed")
+	} else if !success {
+		return false, nil
 	}
 
 	return true, nil

@@ -30,16 +30,10 @@ type LocalAgent struct {
 	ProtoConfig Map[any] `gorm:"column:proto_config;serializer:json"`
 }
 
-func newLocalAgent(id int64) *LocalAgent {
-	return &LocalAgent{
-		Identifier: Identifier{ID: id},
-	}
-}
-
 func (*LocalAgent) TableName() string   { return TableLocAgents }
 func (*LocalAgent) Appellation() string { return "server" }
 func (*LocalAgent) IsServer() bool      { return true }
-func (l *LocalAgent) Host() string      { return "" }
+func (l *LocalAgent) Host() string      { return l.Address.Host }
 
 func (l *LocalAgent) validateProtoConfig() error {
 	if err := CheckServerConfig(l.Protocol, l.ProtoConfig); err != nil {
@@ -115,7 +109,8 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 		return fmt.Errorf("failed to check for duplicate local agents: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
-			"a local agent with the same name %q already exist", l.Name)
+			"a local agent with the same name %q already exist", l.Name,
+		)
 	}
 
 	if n, err := db.Count(l).Where("id<>? AND address=?", l.ID, l.Address.String()).
@@ -123,7 +118,8 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 		return fmt.Errorf("failed to check for duplicate local agent addresses: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
-			"a local agent with the same address %q already exist", l.Address.String())
+			"a local agent with the same address %q already exist", l.Address.String(),
+		)
 	}
 
 	if err := compatibility.EncryptR66ServerPassword(db, l.Protocol, l.ProtoConfig); err != nil {
@@ -162,10 +158,14 @@ func (l *LocalAgent) GenAccessSelectCond() (string, int64) { return "local_agent
 
 func (l *LocalAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
 	var rules Rules
-	if err := db.Select(&rules).Where(fmt.Sprintf(
-		`id IN (SELECT DISTINCT rule_id FROM %s WHERE local_agent_id=?)
-		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
-		TableRuleAccesses, TableRuleAccesses), l.ID).Run(); err != nil {
+	if err := db.Select(&rules).Where(
+		fmt.Sprintf(
+			`id IN (SELECT DISTINCT rule_id FROM %s WHERE local_agent_id=?)
+		  	 OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+			TableRuleAccesses, TableRuleAccesses,
+		),
+		l.ID,
+	).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
 	}
 

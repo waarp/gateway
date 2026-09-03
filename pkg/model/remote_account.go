@@ -16,12 +16,6 @@ type RemoteAccount struct {
 	Login string `gorm:"column:login"` // The account's login
 }
 
-func newRemoteAccount(id int64) *RemoteAccount {
-	return &RemoteAccount{
-		Identifier: Identifier{ID: id},
-	}
-}
-
 func (*RemoteAccount) TableName() string   { return TableRemAccounts }
 func (*RemoteAccount) Appellation() string { return NameRemoteAccount }
 func (*RemoteAccount) Host() string        { return "" }
@@ -58,7 +52,8 @@ func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 		return fmt.Errorf("failed to check for duplicate remote accounts: %w", err)
 	} else if n > 0 {
 		return database.NewValidationErrorf(
-			"a remote account with the same login %q already exist", r.Login)
+			"a remote account with the same login %q already exist", r.Login,
+		)
 	}
 
 	return nil
@@ -92,11 +87,15 @@ func (r *RemoteAccount) SetAccessTarget(a *RuleAccess)        { a.RemoteAccountI
 
 func (r *RemoteAccount) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error) {
 	var rules Rules
-	if err := db.Select(&rules).Where(fmt.Sprintf(
-		`id IN (SELECT DISTINCT rule_id FROM %s WHERE remote_agent_id=? OR 
-			remote_account_id=?)
-		  OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
-		TableRuleAccesses, TableRuleAccesses), r.RemoteAgentID, r.ID).Run(); err != nil {
+	if err := db.Select(&rules).Where(
+		fmt.Sprintf(
+			`id IN (SELECT DISTINCT rule_id FROM %s WHERE remote_agent_id=? OR 
+				remote_account_id=?)
+			 OR (SELECT COUNT(*) FROM %s WHERE rule_id = id) = 0`,
+			TableRuleAccesses, TableRuleAccesses,
+		),
+		r.RemoteAgentID, r.ID,
+	).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve the authorized rules: %w", err)
 	}
 

@@ -49,7 +49,8 @@ func GetAs[T any](m map[string]any, key string) (t T, _ error) {
 		if err := JSONConvert(asAny, &t); err != nil {
 			return t, fmt.Errorf(
 				`key %q: %w: value "%v" is not convertible to type %T`,
-				key, ErrIncorrectValueType, asAny, t)
+				key, ErrIncorrectValueType, asAny, t,
+			)
 		}
 
 		return t, nil
@@ -72,4 +73,15 @@ func Clone[T any](orig *T) *T {
 	*clone = *orig
 
 	return clone
+}
+
+func Join[T any](elems ...*T) []*T {
+	joined := make([]*T, 0, len(elems))
+	for _, elem := range elems {
+		if elem != nil {
+			joined = append(joined, elem)
+		}
+	}
+
+	return joined
 }

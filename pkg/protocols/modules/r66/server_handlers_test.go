@@ -106,7 +106,7 @@ func TestValidAuth(t *testing.T) {
 			Convey("Given an incorrect hash digest", func() {
 				packet.Digest = "BAD"
 
-				shouldFailWith("the credentials are incorrect", "A: unsuported hash algorithm")
+				shouldFailWith("the credentials are incorrect", "A: unsupported hash algorithm")
 			})
 
 			Convey("Given that the account is IP-restricted", func() {

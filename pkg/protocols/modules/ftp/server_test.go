@@ -13,7 +13,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestAuth(t *testing.T) {
@@ -49,7 +48,7 @@ func TestAuth(t *testing.T) {
 
 		So(db.Insert(locAccount).Run(), ShouldBeNil)
 		So(db.Insert(&model.Credential{
-			LocalAccountID: utils.NewNullInt64(locAccount.ID),
+			LocalAccountID: locAccount.NullableID(),
 			Type:           auth.Password,
 			Value:          password,
 		}).Run(), ShouldBeNil)
@@ -59,9 +58,10 @@ func TestAuth(t *testing.T) {
 				clientAddr, addrErr := net.ResolveTCPAddr("tcp", "127.0.0.1:21")
 				require.NoError(t, addrErr)
 
-				cc := testClientContext{remoteAddr: clientAddr}
+				cc := &testClientContext{remoteAddr: clientAddr}
 
 				Convey("Then it should succeed", func() {
+					So(server.handler.PreAuthUser(cc, login), ShouldBeNil)
 					_, err := server.handler.AuthUser(cc, login, password)
 					So(err, ShouldBeNil)
 				})
@@ -76,9 +76,10 @@ func TestAuth(t *testing.T) {
 				clientAddr, addrErr := net.ResolveTCPAddr("tcp", "1.2.3.4:21")
 				require.NoError(t, addrErr)
 
-				cc := testClientContext{remoteAddr: clientAddr}
+				cc := &testClientContext{remoteAddr: clientAddr}
 
 				Convey("Then it should succeed", func() {
+					So(server.handler.PreAuthUser(cc, login), ShouldBeNil)
 					_, err := server.handler.AuthUser(cc, login, password)
 					So(err, ShouldBeNil)
 				})
@@ -88,9 +89,10 @@ func TestAuth(t *testing.T) {
 				clientAddr, addrErr := net.ResolveTCPAddr("tcp", "9.8.7.6:21")
 				require.NoError(t, addrErr)
 
-				cc := testClientContext{remoteAddr: clientAddr}
+				cc := &testClientContext{remoteAddr: clientAddr}
 
 				Convey("Then it should fail", func() {
+					So(server.handler.PreAuthUser(cc, login), ShouldBeNil)
 					_, err := server.handler.AuthUser(cc, login, password)
 					So(err, ShouldBeError, "unauthorized IP address")
 				})

@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -88,7 +87,7 @@ func (h *httpService) makeHandler() http.HandlerFunc {
 //nolint:funlen //function is fine for now
 func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 ) (*model.LocalAccount, bool) {
-	var authentified bool
+	var authenticated bool
 
 	login, pswd, ok := r.BasicAuth()
 	if !ok || login == "" {
@@ -107,44 +106,30 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 		return nil, false
 	}
 
-	if len(acc.IPAddresses) > 0 {
-		remoteIP := protoutils.GetIP(r.RemoteAddr)
-		if !acc.IPAddresses.Contains(remoteIP) {
-			http.Error(w, "Unauthorized IP address", http.StatusUnauthorized)
+	if success, err := protoutils.CertificateAuthentication(h.db, h.logger, acc, r.TLS); err != nil {
+		http.Error(w, "internal authentication error", http.StatusInternalServerError)
 
-			return nil, false
-		}
+		return nil, false
+	} else if success {
+		authenticated = true
 	}
 
-	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-		if cn := r.TLS.PeerCertificates[0].Subject.CommonName; cn != login {
-			h.logger.Warningf("Mismatched login %q and certificate subject %q", login, cn)
-			unauthorized(w, "auth: mismatched login and certificate subject")
+	if success, err := protoutils.PasswordAuthentication(h.db, h.logger, acc, pswd); err != nil {
+		http.Error(w, "internal authentication error", http.StatusInternalServerError)
 
-			return nil, false
-		}
-
-		authentified = true
+		return nil, false
+	} else if success {
+		authenticated = true
 	}
 
-	if pswd != "" {
-		if res, err := acc.Authenticate(h.db, auth.Password, pswd); err != nil {
-			h.logger.Errorf("Failed to check password for user %q: %v", acc.Login, err)
-			http.Error(w, "internal authentication error", http.StatusInternalServerError)
+	if !authenticated {
+		unauthorized(w, "auth: invalid authentication")
 
-			return nil, false
-		} else if !res.Success {
-			h.logger.Warningf("Invalid credentials for user %q: %s", acc.Login, res.Reason)
-			unauthorized(w, "auth: invalid credentials")
-
-			return nil, false
-		}
-
-		authentified = true
+		return nil, false
 	}
 
-	if !authentified {
-		unauthorized(w, "missing credentials")
+	if !acc.CheckIP(h.logger, r.RemoteAddr) {
+		unauthorized(w, "auth: unauthorized IP address")
 
 		return nil, false
 	}

@@ -4,14 +4,13 @@ import (
 	"context"
 	"crypto/x509"
 	"errors"
-	"fmt"
 
 	"code.waarp.fr/lib/as2"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -99,6 +98,8 @@ func (p *partnerStore) list() ([]*as2.Partner, error) {
 	return partners, nil
 }
 
+var ErrAuthentication = errors.New("authentication failed")
+
 type certValidator struct {
 	db     *database.DB
 	logger *log.Logger
@@ -107,16 +108,13 @@ type certValidator struct {
 }
 
 func (v *certValidator) Validate(cert, issuer *x509.Certificate) error {
-	res, err := v.acc.Authenticate(v.db, auth.TLSTrustedCertificate,
-		[]*x509.Certificate{cert, issuer})
+	chain := utils.Join(cert, issuer)
+
+	success, err := protoutils.DoCertificateAuthentication(v.db, v.logger, v.acc, chain)
 	if err != nil {
-		v.logger.Errorf("Failed to authenticate account %q with TLS: %v", v.acc.Login, err)
-
 		return ErrDatabase
-	}
-
-	if !res.Success {
-		return fmt.Errorf("%w: %s", ErrStoreInvalidCert, res.Reason)
+	} else if !success {
+		return ErrAuthentication
 	}
 
 	return nil

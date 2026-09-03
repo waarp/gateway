@@ -165,6 +165,20 @@ Il y a 3 cas de figure possible dans ce cas:
   doit être renseignée au préalable avec son certificat. Une fois cela fait, tous
   les certificats tiers signés par cette autorité pourront être utilisés.
 
+.. note::
+
+   Pour les certificats *serveur*, conformément à la norme TLS, il est impératif
+   qu'au moins une des adresses déclarées dans les SAN du certificat corresponde
+   à l'adresse publique du serveur. Sans cela, aucune connexion ne sera possible
+   avec le serveur. Cela vaut à la fois pour les serveur locaux et les serveurs
+   partenaires distants.
+
+   Pour les certificats *clients*, les SAN ou le CN doivent correspondre au login
+   du compte utilisé pour que Gateway puisse faire la correlation entre le compte
+   et son certificat. Si ce n'est pas le cas, alors le certificat doit être
+   préalablement rattaché au compte concerné pour que la correlation puisse se
+   faire.
+
 Clés SSH
 --------
 

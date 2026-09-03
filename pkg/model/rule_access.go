@@ -64,13 +64,13 @@ func (r *RuleAccess) BeforeWrite(db database.Access) error {
 
 	switch {
 	case r.LocalAgentID.Valid:
-		target = newLocalAgent(r.LocalAgentID.Int64)
+		target = &LocalAgent{ID: r.LocalAgentID.Int64}
 	case r.RemoteAgentID.Valid:
-		target = newRemoteAgent(r.RemoteAgentID.Int64)
+		target = &RemoteAgent{ID: r.RemoteAgentID.Int64}
 	case r.LocalAccountID.Valid:
-		target = newLocalAccount(r.LocalAccountID.Int64)
+		target = &LocalAccount{ID: r.LocalAccountID.Int64}
 	case r.RemoteAccountID.Valid:
-		target = newRemoteAccount(r.RemoteAccountID.Int64)
+		target = &RemoteAccount{ID: r.RemoteAccountID.Int64}
 	default:
 		return database.NewValidationError("the rule access is missing a target") // impossible
 	}
@@ -82,8 +82,8 @@ func (r *RuleAccess) BeforeWrite(db database.Access) error {
 			target.GetID())
 	}
 
-	if n, err := db.Count(r).Where("rule_id=?", r.RuleID).Where(
-		target.GenAccessSelectCond()).Run(); err != nil {
+	if n, err := db.Count(r).Where("rule_id=?", r.RuleID).
+		Where(target.GenAccessSelectCond()).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate accesses: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError("the target has already been granted access " +

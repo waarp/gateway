@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -62,6 +61,11 @@ type TLSTrustedCertHandler struct{}
 
 func (TLSTrustedCertHandler) CanOnlyHaveOne() bool { return false }
 
+func (TLSTrustedCertHandler) ToDB(_ database.Access, cert, _ string,
+) (certificate, _ string, err error) {
+	return cert, "", nil
+}
+
 func (TLSTrustedCertHandler) Validate(_ database.ReadAccess, value, _, _, host string, isServer bool) error {
 	if err := checkRemoteSelfSignedCert(value, host, isServer); err != nil {
 		return fmt.Errorf("failed to validate certificate: %w", err)
@@ -74,21 +78,7 @@ func (TLSTrustedCertHandler) Authenticate(db database.ReadAccess,
 	owner authentication.Owner, val any,
 ) (*authentication.Result, error) {
 	doVerify := func(chain []*x509.Certificate) (*authentication.Result, error) {
-		rootCAs, rootErr := makeRootCAs(db, owner)
-		if rootErr != nil {
-			return nil, rootErr
-		}
-
-		usage := x509.ExtKeyUsageServerAuth
-		if !owner.IsServer() {
-			usage = x509.ExtKeyUsageClientAuth
-		}
-
-		if err := verifyCertChain(chain, rootCAs, owner.Host(), usage); err != nil {
-			return authentication.Failure(err.Error()), nil
-		}
-
-		return authentication.Success(), nil
+		return AuthenticateRemoteCert(db, owner, chain)
 	}
 
 	switch value := val.(type) {
@@ -101,10 +91,41 @@ func (TLSTrustedCertHandler) Authenticate(db database.ReadAccess,
 		return doVerify(chain)
 	case []*x509.Certificate:
 		return doVerify(value)
+	case nil:
+		return authentication.Failure("no certificate chain provided"), nil
 	default:
 		//nolint:err113 //this is a base error
 		return nil, fmt.Errorf(`unknown TLS certificate type "%T"`, value)
 	}
+}
+
+func AuthenticateRemoteCert(db database.ReadAccess, owner authentication.Owner, chain []*x509.Certificate,
+) (*authentication.Result, error) {
+	if len(chain) == 0 {
+		return authentication.Failure("no certificate chain provided"), nil
+	}
+
+	rootCAs, trustedCerts, rootErr := makeRootCAs(db, owner)
+	if rootErr != nil {
+		return nil, rootErr
+	}
+
+	usage := x509.ExtKeyUsageServerAuth
+	if !owner.IsServer() {
+		usage = x509.ExtKeyUsageClientAuth
+	}
+
+	if err := verifyCertChain(chain, rootCAs, owner.Host(), usage); err != nil {
+		return authentication.Failure(err.Error()), nil
+	}
+
+	if !owner.IsServer() {
+		if !matchClientCert(owner, trustedCerts, chain[0]) {
+			return authentication.Failure("unknown client certificate"), nil
+		}
+	}
+
+	return authentication.Success(), nil
 }
 
 var errInvalidPEM = errors.New("certificate input is not a valid PEM block")
@@ -208,22 +229,31 @@ func parseTLSCertChain(cert *tls.Certificate) ([]*x509.Certificate, error) {
 	return chain, nil
 }
 
-func makeRootCAs(db database.ReadAccess, owner authentication.Owner) (*x509.CertPool, error) {
+func makeRootCAs(db database.ReadAccess, owner authentication.Owner,
+) (*x509.CertPool, []*x509.Certificate, error,
+) {
 	rootCAs := utils.TLSCertPool()
 
-	var trustedCert model.Credentials
-	if err := db.Select(&trustedCert).Where("type=?", TLSTrustedCertificate).
+	var trustedCreds model.Credentials
+	if err := db.Select(&trustedCreds).Where("type=?", TLSTrustedCertificate).
 		Where(owner.GetCredCond()).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve the trusted certificates: %w", err)
+		return nil, nil, fmt.Errorf("failed to retrieve the trusted certificates: %w", err)
 	}
 
-	for i := range trustedCert {
-		rootCAs.AppendCertsFromPEM([]byte(trustedCert[i].Value))
+	trustedCerts := make([]*x509.Certificate, len(trustedCreds))
+	for i, cred := range trustedCreds {
+		cert, err := ParseCertPEM(cred.Value)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse credential %q: %w", cred.Name, err)
+		}
+
+		trustedCerts[i] = cert
+		rootCAs.AddCert(cert)
 	}
 
 	var trustedAuthorities model.Authorities
 	if err := db.Select(&trustedAuthorities).Where("type=?", AuthorityTLS).Run(); err != nil {
-		return nil, fmt.Errorf("failed to retrieve the TLS certification authorities: %w", err)
+		return nil, nil, fmt.Errorf("failed to retrieve the TLS certification authorities: %w", err)
 	}
 
 	for _, aut := range trustedAuthorities {
@@ -232,7 +262,7 @@ func makeRootCAs(db database.ReadAccess, owner authentication.Owner) (*x509.Cert
 		}
 	}
 
-	return rootCAs, nil
+	return rootCAs, trustedCerts, nil
 }
 
 func verifyCertChain(certChain []*x509.Certificate, rootCAs *x509.CertPool,
@@ -257,67 +287,27 @@ func verifyCertChain(certChain []*x509.Certificate, rootCAs *x509.CertPool,
 	return nil
 }
 
-//nolint:err113 //dynamic errors are needed here
-func VerifyClientCert(db database.ReadAccess, logger *log.Logger, server *model.LocalAgent,
-) func([][]byte, [][]*x509.Certificate) error {
-	return func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
-		if len(rawCerts) == 0 {
-			return nil
-		}
-
-		certs := make([]*x509.Certificate, len(rawCerts))
-
-		for i, asn1Data := range rawCerts {
-			var err error
-			if certs[i], err = x509.ParseCertificate(asn1Data); err != nil {
-				logger.Warningf("Failed to parse client certificate: %v", err)
-
-				return fmt.Errorf("tls: failed to parse client certificate: %w", err)
-			}
-		}
-
-		leaf := certs[0]
-		login := GetClientCertLogin(leaf)
-		if login == "" {
-			return errors.New("tls: client certificate has no subject")
-		}
-
-		var acc model.LocalAccount
-		if err := db.Get(&acc, "local_agent_id=? AND login=?", server.ID, login).
-			Run(); err != nil {
-			if database.IsNotFound(err) {
-				logger.Warningf("Unknown certificate subject %q", login)
-
-				return fmt.Errorf("tls: unknown certificate subject %q", login)
-			}
-
-			logger.Errorf("Failed to retrieve user credentials: %v", err)
-
-			return errors.New("failed to retrieve user credentials")
-		}
-
-		if res, err := acc.Authenticate(db, TLSTrustedCertificate, certs); err != nil {
-			logger.Errorf("Failed to authenticate client certificate: %v", err)
-
-			return errors.New("internal authentication error")
-		} else if !res.Success {
-			logger.Warningf("Failed to verify client certificate %q: %v", login, res.Reason)
-
-			return fmt.Errorf("invalid client certificate: %s", res.Reason)
-		}
-
-		return nil
-	}
-}
-
-func GetClientCertLogin(cert *x509.Certificate) (login string) {
-	for _, dns := range cert.DNSNames {
-		return dns
+func matchClientCert(owner authentication.Owner, trustedCerts []*x509.Certificate,
+	leaf *x509.Certificate,
+) bool {
+	locAcc, isLocAcc := owner.(*model.LocalAccount)
+	if !isLocAcc {
+		return false
 	}
 
-	for _, email := range cert.EmailAddresses {
-		return email
+	if slices.Contains(leaf.DNSNames, locAcc.Login) {
+		return true
 	}
 
-	return cert.Subject.CommonName
+	if leaf.Subject.CommonName == locAcc.Login {
+		return true
+	}
+
+	for _, candidate := range trustedCerts {
+		if candidate.Equal(leaf) {
+			return true
+		}
+	}
+
+	return false
 }

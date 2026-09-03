@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -93,31 +92,40 @@ func (h *handler) ClientDisconnected(ftplib.ClientContext) {
 }
 
 //nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
+func (h *handler) PreAuthUser(cc ftplib.ClientContext, user string) error {
+	acc, err := h.dbServer.GetAccount(h.db, user)
+	if err != nil && !database.IsNotFound(err) {
+		h.logger.Errorf("Failed to retrieve TLS account: %v", err)
+
+		return errors.New("internal authentication error")
+	}
+
+	if acc == nil {
+		acc = &model.LocalAccount{}
+	}
+
+	cc.SetExtra(acc)
+
+	return nil
+}
+
+//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
 func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.ClientDriver, error) {
 	h.logger.Debugf("Received authentication request from account %q", user)
 
-	acc, accErr := h.dbServer.GetAccount(h.db, user)
-	if accErr != nil && !database.IsNotFound(accErr) {
-		h.logger.Errorf("Failed to retrieve account: %v", accErr)
-
+	acc, ok := cc.Extra().(*model.LocalAccount)
+	if !ok {
 		return nil, errors.New("internal authentication error")
 	}
 
-	if len(acc.IPAddresses) > 0 {
-		remoteIP := protoutils.GetIP(cc.RemoteAddr().String())
-		if !acc.IPAddresses.Contains(remoteIP) {
-			return nil, errors.New("unauthorized IP address")
-		}
-	}
-
-	if res, err := acc.Authenticate(h.db, auth.Password, pass); err != nil {
-		h.logger.Errorf("Failed to authenticate account %q: %v", user, err)
-
+	if success, err := protoutils.PasswordAuthentication(h.db, h.logger, acc, pass); err != nil {
 		return nil, errors.New("internal authentication error")
-	} else if !res.Success {
-		h.logger.Warningf("Invalid credentials for account %q: %s", user, res.Reason)
-
+	} else if !success {
 		return nil, errors.New("invalid credentials")
+	}
+
+	if !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
+		return nil, errors.New("unauthorized IP address")
 	}
 
 	h.logger.Debugf("Account %q authenticated successfully", user)
@@ -139,62 +147,32 @@ func (h *handler) GetTLSConfig() (*tls.Config, error) {
 	return h.tlsConfig, nil
 }
 
-func (h *handler) mkTLSConfig() {
-	h.tlsConfig = &tls.Config{
-		MinVersion: h.serverConf.MinTLSVersion.TLS(),
-		ClientAuth: tls.RequestClientCert,
-		//nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
-		GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			dbCerts, dbErr := h.dbServer.GetCredentials(h.db, auth.TLSCertificate)
-			if dbErr != nil {
-				h.logger.Errorf("Failed to retrieve TLS certificates: %v", dbErr)
-
-				return nil, errors.New("internal database error")
-			}
-
-			for _, dbCert := range dbCerts {
-				cert, err := tls.X509KeyPair([]byte(dbCert.Value), []byte(dbCert.Value2))
-				if err != nil {
-					h.logger.Warningf("Failed to parse TLS certificate: %v", err)
-				}
-
-				if chi.SupportsCertificate(&cert) == nil {
-					return &cert, nil
-				}
-			}
-
-			return nil, errors.New("no valid TLS certificate found")
-		},
-	}
-}
-
 //nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
-func (h *handler) VerifyConnection(_ ftplib.ClientContext, user string,
+func (h *handler) VerifyConnection(cc ftplib.ClientContext, user string,
 	tlsConn *tls.Conn,
 ) (ftplib.ClientDriver, error) {
-	certs := tlsConn.ConnectionState().PeerCertificates
-	if len(certs) == 0 {
+	h.logger.Debugf("Received authentication request from account %q", user)
+
+	acc, ok := cc.Extra().(*model.LocalAccount)
+	if !ok {
+		return nil, errors.New("internal authentication error")
+	}
+
+	state := tlsConn.ConnectionState()
+
+	success, err := protoutils.CertificateAuthentication(h.db, h.logger, acc, &state)
+	if err != nil {
+		return nil, errors.New("internal authentication error")
+	} else if !success {
 		//nolint:nilnil //returning "nil, nil" here is required by the interface's definition
 		return nil, nil
 	}
 
-	acc, err := h.dbServer.GetAccount(h.db, user)
-	if err != nil && !database.IsNotFound(err) {
-		h.logger.Errorf("Failed to retrieve TLS account: %v", err)
-
-		return nil, errors.New("internal authentication error")
+	if !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
+		return nil, errors.New("unauthorized IP address")
 	}
 
-	res, err := acc.Authenticate(h.db, auth.TLSTrustedCertificate, certs)
-	if err != nil {
-		h.logger.Errorf("Failed to authenticate account %q with TLS: %v", user, err)
-
-		return nil, errors.New("internal authentication error")
-	} else if !res.Success {
-		h.logger.Warningf("Invalid credentials for account %q: %s", user, res.Reason)
-
-		return nil, errors.New("invalid credentials")
-	}
+	h.logger.Debugf("Account %q authenticated successfully", user)
 
 	return &serverFS{
 		db:     h.db,

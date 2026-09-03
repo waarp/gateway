@@ -54,11 +54,9 @@ func (s *service) listen() (string, error) {
 	}
 
 	go func() {
-		if err := s.server.Serve(list); err != nil {
-			if !errors.Is(err, net.ErrClosed) {
-				s.logger.Errorf("unexpected error: %v", err)
-				s.state.Set(utils.StateError, err.Error())
-			}
+		if err := s.server.Serve(list); !errors.Is(err, net.ErrClosed) {
+			s.logger.Errorf("unexpected error: %v", err)
+			s.state.Set(utils.StateError, err.Error())
 		}
 	}()
 
@@ -152,19 +150,17 @@ func (s *service) authenticate(conn *pesit.ServerConnection) (*model.LocalAccoun
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "database error")
 	}
 
-	if tlsState, isTLS := conn.TLSConnectionState(); isTLS {
-		if len(tlsState.PeerCertificates) > 0 {
-			if protoutils.CheckClientCert(user, tlsState.PeerCertificates) {
-				authenticated = true
-			}
+	if tlsState, isTLS := conn.TLSConnectionState(); isTLS && len(tlsState.PeerCertificates) > 0 {
+		if success, err := protoutils.CertificateAuthentication(s.db, s.logger, user, &tlsState); err != nil {
+			return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to check the authentication")
+		} else if success {
+			authenticated = true
 		}
 	}
 
-	if pwdRes, pwdErr := user.Authenticate(s.db, auth.Password, password); pwdErr != nil {
-		s.logger.Errorf("Failed to authenticate account %q: %v", login, pwdErr)
-
+	if success, err := protoutils.PasswordAuthentication(s.db, s.logger, user, password); err != nil {
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "failed to check the authentication")
-	} else if pwdRes.Success {
+	} else if success {
 		authenticated = true
 	}
 
@@ -173,6 +169,11 @@ func (s *service) authenticate(conn *pesit.ServerConnection) (*model.LocalAccoun
 
 		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "invalid credentials")
 	}
+
+	// TODO: uncomment
+	// if !user.CheckIP(s.logger, conn.Conn().RemoteAddr().String()) {
+	//	 return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "unauthorized IP address")
+	// }
 
 	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
 

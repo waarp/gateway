@@ -181,8 +181,9 @@ func TestHTTPSServer(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				req.SetBasicAuth(ctx.LocAccount.Login, "")
-				_, err = client.Do(req)
-				SoMsg("Then it should return an error", err, ShouldNotBeNil)
+				resp, err := client.Do(req)
+				So(err, ShouldBeNil)
+				SoMsg("Then it should return an error code", resp.StatusCode, ShouldEqual, http.StatusUnauthorized)
 			})
 		})
 	})

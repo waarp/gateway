@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -84,7 +85,7 @@ func (s *service) start() error {
 	}
 
 	if s.agent.Protocol == FTPS {
-		s.handler.mkTLSConfig()
+		s.handler.tlsConfig = protoutils.GetServerTLSConfig(s.db, s.logger, s.agent.ID)
 	}
 
 	s.server = ftplib.NewFtpServer(s.handler)
