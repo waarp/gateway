@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`627` Les handlers REST et les commandes CLI pour arrêter et démarrer des
+  clients fonctionnent désormais correctement. Une régression en version 0.16
+  avait affecté leur fonctionnement.
 * :bug:`625` Il est désormais possible pour un partenaire client de s'authentifier
   avec un certificat dont le SAN/CN ne correspond pas son login. Dans ce cas de
   figure, le certificat doit en revanche avoir été préalablement rattaché au

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -16,10 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
-
-type id int64
-
-func (t id) GetID() int64 { return int64(t) }
 
 type testService struct {
 	name    string
@@ -53,14 +50,18 @@ func (t *testService) Stop(context.Context) error {
 func TestStatus(t *testing.T) {
 	t.Parallel()
 
+	serv1 := &model.LocalAgent{ID: 1}
+	serv2 := &model.LocalAgent{ID: 2}
+	serv3 := &model.LocalAgent{ID: 3}
+
 	Convey("Given a gateway with some services", t, func(c C) {
 		services.Core.Add(&testService{name: "Running Core Service", state: utils.NewState(utils.StateRunning, "")})
 		services.Core.Add(&testService{name: "Offline Core Service", state: utils.NewState(utils.StateOffline, "")})
 		services.Core.Add(&testService{name: "Error Core Service", state: utils.NewState(utils.StateError, "Test Reason")})
 
-		services.Servers.Add(id(1), &testService{name: "Running Server", state: utils.NewState(utils.StateRunning, "")})
-		services.Servers.Add(id(2), &testService{name: "Offline Server", state: utils.NewState(utils.StateOffline, "")})
-		services.Servers.Add(id(3), &testService{name: "Error Server", state: utils.NewState(utils.StateError, "Test Reason")})
+		services.Servers.Add(serv1, &testService{name: "Running Server", state: utils.NewState(utils.StateRunning, "")})
+		services.Servers.Add(serv2, &testService{name: "Offline Server", state: utils.NewState(utils.StateOffline, "")})
+		services.Servers.Add(serv3, &testService{name: "Error Server", state: utils.NewState(utils.StateError, "Test Reason")})
 
 		statuses := map[string]api.Status{
 			"Error Core Service":   {State: utils.StateError.String(), Reason: "Test Reason"},

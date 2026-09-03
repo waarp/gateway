@@ -152,7 +152,7 @@ func TestAddFilewatcher(t *testing.T) {
 	assert.Equal(t, existing.Rule.ID, dbFW.RuleID)
 
 	// Check services
-	service, ok := filewatcher.Filewatchers.Get(dbFW)
+	service, ok := filewatcher.Filewatchers.Get(&dbFW)
 	require.True(t, ok)
 	assert.Equal(t, newFWFlow, service.Name())
 }
@@ -243,7 +243,7 @@ func TestUpdateFilewatcher(t *testing.T) {
 	assert.Equal(t, newFWPattern, dbFW.Pattern)
 
 	// Check services
-	service, ok := filewatcher.Filewatchers.Get(dbFW)
+	service, ok := filewatcher.Filewatchers.Get(&dbFW)
 	require.True(t, ok)
 	assert.Equal(t, newFWFlow, service.Name())
 }

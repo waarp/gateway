@@ -18,7 +18,7 @@ import (
 )
 
 //nolint:gochecknoglobals //global var is needed here
-var Filewatchers = services.NewServiceMap[*Service]()
+var Filewatchers = services.NewServiceMap[*model.FileWatcher, *Service]()
 
 var ErrRuleSend = errors.New("cannot retrieve remote files with a send rule")
 
