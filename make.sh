@@ -144,7 +144,7 @@ build_static_binaries() {
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gatewayd_${GOOS}_${GOARCH}" ./cmd/waarp-gatewayd
 
-  # get-remotes
+  # get-remote
   CGO_ENABLED=0 go build -ldflags "-s -w" \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/get-remote_${GOOS}_${GOARCH}" ./dist/get-remote
