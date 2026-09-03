@@ -1,14 +1,20 @@
-doc/.venv
-doc/build
-*.ini
-.idea
-waarp_gatewayd_test.db
-*.goconvey
+# IDE files
+.idea/
 *.iml
-build/
-.vagrant
-pkg/admin/gui/front_end/javaScript/LICENSE
-pkg/admin/gui/front_end/javaScript/README.md
 .DS_Store
+
+# AI files
 .claude
 CLAUDE.md
+
+# Build artifacts
+doc/.venv
+doc/build
+build/
+
+# Test artifacts
+etc/
+*.ini
+*.db
+*.goconvey
+.vagrant
