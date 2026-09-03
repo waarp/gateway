@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`628` Les transferts préenregistrés via API REST ou commande CLI sont
+  désormais bien enregistrés avec leurs informations de transferts. Celles-ci
+  étaient incorrectement ignorées jusqu'à présent.
 * :bug:`627` Les handlers REST et les commandes CLI pour arrêter et démarrer des
   clients fonctionnent désormais correctement. Une régression en version 0.16
   avait affecté leur fonctionnement.

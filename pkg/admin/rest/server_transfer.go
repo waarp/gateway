@@ -80,6 +80,7 @@ func preregisterServerTransfer(logger *log.Logger, db *database.DB) http.Handler
 			LocalAccountID: account.NullableID(),
 			Start:          rTrans.DueDate,
 			Status:         types.StatusAvailable,
+			TransferInfo:   rTrans.TransferInfo,
 		}
 
 		if *rTrans.IsSend {
