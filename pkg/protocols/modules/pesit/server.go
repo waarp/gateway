@@ -170,10 +170,10 @@ func (s *service) authenticate(conn *pesit.ServerConnection) (*model.LocalAccoun
 		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "invalid credentials")
 	}
 
-	// TODO: uncomment
-	// if !user.CheckIP(s.logger, conn.Conn().RemoteAddr().String()) {
-	//	 return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "unauthorized IP address")
-	// }
+	rawConn, _ := conn.ClientAddr()
+	if rawConn != nil && !user.CheckIP(s.logger, rawConn.RemoteAddr().String()) {
+		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "unauthorized IP address")
+	}
 
 	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
 
