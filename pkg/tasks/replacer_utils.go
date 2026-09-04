@@ -5,7 +5,10 @@ import (
 	"time"
 )
 
-const defaultTSFormat = "YYYY-MM-DD_HHmmss"
+const (
+	defaultTSFormat = "YYYY-MM-DD_HHmmss"
+	isoTSFormat     = "YYYY-MM-DDTHH:mm:sszz"
+)
 
 func formatTime(tsFormat string, t time.Time) string {
 	tsTokens := []string{
@@ -14,7 +17,7 @@ func formatTime(tsFormat string, t time.Time) string {
 	}
 	goTokens := []string{
 		`2006`, `06`, `January`, `Jan`, `01`, `1`, `02`, `2`, `Monday`, `Mon`,
-		`15`, `03`, `3`, `PM`, `pm`, `04`, `4`, `05`, `5`, `MST`, `-07:00`, `-0700`,
+		`15`, `03`, `3`, `PM`, `pm`, `04`, `4`, `05`, `5`, `MST`, `Z07:00`, `Z0700`,
 	}
 
 	if tsFormat != "" {

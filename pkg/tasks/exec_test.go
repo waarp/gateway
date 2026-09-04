@@ -16,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -71,6 +72,7 @@ func getExecTransCtx(tb testing.TB) *model.TransferContext {
 		Start:            time.Now(),
 		Status:           types.StatusRunning,
 		Step:             types.StepPreTasks,
+		TransferInfo:     map[string]any{},
 	}
 
 	return &model.TransferContext{
@@ -290,4 +292,31 @@ func TestRunExecStaysSilentWhenStderrIsEmpty(t *testing.T) {
 
 	assert.NotContains(t, logs.String(), "Program wrote to stderr",
 		"a program with no stderr output must not be reported as a warning")
+}
+
+func TestRunExecEnvVars(t *testing.T) {
+	t.Parallel()
+
+	logger := logtest.GetTestLogger(t)
+	ctx := getExecTransCtx(t)
+
+	const (
+		tiKey = "key"
+		tiVal = "val"
+	)
+	ctx.Transfer.TransferInfo[tiKey] = tiVal
+
+	path, args := "sh", `-c "echo $WAARP_TRANSFERID $WAARP_TI_key"`
+	if isWindowsRuntime() {
+		path, args = "cmd", `/C "echo %WAARP_TRANSFERID% %WAARP_TI_key%"`
+	}
+
+	output, err := runExec(t.Context(), logger, ctx, map[string]string{
+		"path": path,
+		"args": args,
+	})
+	require.NoError(t, err)
+
+	assert.Contains(t, output.String(), utils.FormatInt(ctx.Transfer.ID))
+	assert.Contains(t, output.String(), tiVal)
 }
