@@ -123,11 +123,22 @@ renseignée.
 
 Ces valeurs de substitutions sont également disponibles pour les programmes externes
 appelés par les tâches EXEC sous forme de variables d'environnement. Ces variables
-d'environnement ont exactement le même nom que leurs variables de substitution
-correspondantes (ex: ``#TRUEFULLPATH#``). Par ailleurs, Waarp Gateway met à
-disposition des programmes externes les variables d'environnement ``WAARP_CONFIG_FILE``
-et ``WAARP_CONFIG_DIR`` contenant, respectivement, le chemin du fichier de
-configuration de Waarp Gateway, et le dossier parent de ce fichier.
+d'environnement ont la forme ``WAARP_<nom_de_variable>`` sans les dièses ``#``
+(ex: ``WAARP_TRANSFERID``).
+
+Par ailleurs, Waarp Gateway met à disposition des programmes externes les variables
+d'environnement ``WAARP_CONFIG_FILE`` et ``WAARP_CONFIG_DIR`` contenant, respectivement,
+le chemin du fichier de configuration de Waarp Gateway, et le dossier parent de ce fichier.
+
+.. note::
+
+   Les variables normalement personnalisables ne le sont plus lorsqu'elles sont
+   passées en variables d'environnement.
+
+   En conséquence, les variables ``#TIMESTAMP(format)#`` et ``#STARTTIMESTAMP(format)#``
+   décrites ci-dessus sont disponibles sous les noms ``WAARP_TIMESTAMP`` et
+   ``WAARP_STARTTIMESTAMP`` respectivement, et la date sera toujours au format
+   ISO-8601.
 
 .. _ref-timestamp-format:
 

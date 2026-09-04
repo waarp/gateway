@@ -3,6 +3,10 @@ package tasks
 import (
 	"runtime"
 	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
@@ -46,4 +50,11 @@ func endl() string {
 	}
 
 	return "\n"
+}
+
+func TestISOTSFormat(t *testing.T) {
+	ts := time.Now()
+	str := formatTime(isoTSFormat, ts)
+
+	assert.Equal(t, ts.Format(time.RFC3339), str)
 }

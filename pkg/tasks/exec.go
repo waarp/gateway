@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/shlex"
@@ -109,18 +110,51 @@ func makeCmd(transCtx *model.TransferContext, script, args string) (*exec.Cmd, e
 	cmd.Env = os.Environ()
 	cmd.WaitDelay = execWaitDelay
 
-	for key, replaceFunc := range getReplacers() {
-		value, err := replaceFunc(transCtx, key)
-		if errors.Is(err, errNotImplemented) {
-			continue
-		} else if err != nil {
-			return nil, fmt.Errorf("failed to get replacement value %s: %w", key, err)
-		}
+	replacers := getReplacers()
+	replacers.addInfo(transCtx)
 
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+	for key, replaceFunc := range replacers {
+		if err := addEnvVar(cmd, transCtx, key, replaceFunc); err != nil {
+			return nil, err
+		}
 	}
 
 	return cmd, nil
+}
+
+func addEnvVar(cmd *exec.Cmd, transCtx *model.TransferContext, key string, replaceFunc replacer,
+) error {
+	varName := strings.Trim(key, "#")
+	varName, _, _ = strings.Cut(varName, "(")
+
+	var (
+		value string
+		err   error
+	)
+
+	switch varName {
+	case `TIMESTAMP`:
+		value, err = replaceFunc(transCtx, fmt.Sprintf("#TIMESTAMP(%s)#", isoTSFormat))
+	case `STARTTIMESTAMP`:
+		value, err = replaceFunc(transCtx, fmt.Sprintf("#STARTTIMESTAMP(%s)#", isoTSFormat))
+	default:
+		value, err = replaceFunc(transCtx, key)
+	}
+
+	if err != nil {
+		if errors.Is(err, errNotImplemented) {
+			return nil
+		}
+
+		return fmt.Errorf("failed to get replacement value %s: %w", key, err)
+	}
+
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("%s=%s", key, value),           // Old deprecated variable
+		fmt.Sprintf("WAARP_%s=%s", varName, value), // New variable
+	)
+
+	return nil
 }
 
 func runCmd(ctx context.Context, cmd *exec.Cmd, timeout time.Duration, logger *log.Logger,

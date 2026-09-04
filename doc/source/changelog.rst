@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`-` Les variables d'environnement fournies aux tâches EXEC ont désormais
+  le format ``WAARP_<nom_de_variable>`` au lieu de ``#nom_de_variable#`, car cet
+  ancien format ne fonctionnait pas sur Linux. Les anciens noms de variables
+  restent disponibles sous Windows, mais sont désormais dépréciés.
+* :bug:`616` Les *transfer info* sont désormais correctement passées au programmes
+  externes appelés via tâches EXEC en variables d'environnement. Les variables
+  de remplacement personnalisables (ex: ``#TIMESTAMP#``) sont également désormais
+  correctement passées aux programmes externes sous un format fixe.
 * :bug:`628` Les transferts préenregistrés via API REST ou commande CLI sont
   désormais bien enregistrés avec leurs informations de transferts. Celles-ci
   étaient incorrectement ignorées jusqu'à présent.
