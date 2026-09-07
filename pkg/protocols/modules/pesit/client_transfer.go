@@ -238,7 +238,7 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 		}
 
 		if err := setFileOrganization(c.pip, c.pTrans); err != nil {
-			return nil
+			return err
 		}
 
 		if err := setFileEncoding(c.pip, c.pTrans); err != nil {

@@ -235,7 +235,7 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		}
 
 		if err := setFileOrganization(t.pip, req); err != nil {
-			return nil
+			return err
 		}
 
 		if err := setFileEncoding(t.pip, req); err != nil {
