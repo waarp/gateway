@@ -38,7 +38,7 @@ func TestPesitClientPause(t *testing.T) {
 
 			transfer, err := cli.initTransfer(pip.Pip)
 			requireNoError(t, err)
-			requireNoError(t, transfer.Request(), "Failed to connect to partner")
+			requireNoError(t, transfer.request(), "Failed to connect to partner")
 
 			requireNoError(t, transfer.Pause(), "Failed to pause transfer")
 			checkIsPaused(t, &pip)
@@ -50,7 +50,7 @@ func TestPesitClientPause(t *testing.T) {
 
 			transfer, err := cli.initTransfer(pip.Pip)
 			requireNoError(t, err)
-			requireNoError(t, transfer.Request(), "Failed to connect to partner")
+			requireNoError(t, transfer.request(), "Failed to connect to partner")
 
 			requireNoError(t, transfer.Pause(), "Failed to pause transfer")
 			checkIsPaused(t, &pip)
@@ -107,7 +107,7 @@ func TestPesitClientCancel(t *testing.T) {
 			transfer, err := cli.initTransfer(pip.Pip)
 			requireNoError(t, err)
 
-			requireNoError(t, transfer.Request(), "Failed to connect to partner")
+			requireNoError(t, transfer.request(), "Failed to connect to partner")
 			requireNoError(t, transfer.Cancel(), "Failed to cancel the transfer")
 
 			t.Run("Then it should have canceled the server transfer", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestPesitClientCancel(t *testing.T) {
 			transfer, err := cli.initTransfer(pip.Pip)
 			requireNoError(t, err)
 
-			requireNoError(t, transfer.Request(), "Failed to connect to partner")
+			requireNoError(t, transfer.request(), "Failed to connect to partner")
 			requireNoError(t, transfer.Cancel(), "Failed to cancel the transfer")
 
 			t.Run("Then it should have canceled the server transfer", func(t *testing.T) {
@@ -167,7 +167,7 @@ func TestClientPreConn(t *testing.T) {
 		pip := ctx.PushPipeline(t)
 		trans := pip.Client.(*clientTransfer)
 
-		requireNoError(t, trans.Request())
+		requireNoError(t, trans.request())
 		t.Cleanup(func() {
 			_ = pip.Pip.Cancel(context.Background())
 		})
