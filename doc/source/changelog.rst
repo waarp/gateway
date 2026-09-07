@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`636` La tâche SETINFO préserve désormais le typage des valeurs passées.
+  Précédemment, toutes les valeurs étaient converties en chaîne de caractères.
+
 * :release:`0.16.4 <2026-09-04>`
 * :bug:`-` Les variables d'environnement fournies aux tâches EXEC ont désormais
   le format ``WAARP_<nom_de_variable>`` au lieu de ``#nom_de_variable#`, car cet

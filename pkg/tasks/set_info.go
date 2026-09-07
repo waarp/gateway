@@ -14,8 +14,8 @@ import (
 var ErrSetInfoMissingKey = errors.New(`missing "key" argument`)
 
 type setInfoTask struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key   string    `json:"key"`
+	Value jsonValue `json:"value"`
 }
 
 func (t *setInfoTask) Validate(args map[string]string) error {
@@ -45,7 +45,7 @@ func (t *setInfoTask) Run(_ context.Context, args map[string]string, _ *database
 
 	old, existed := transCtx.Transfer.TransferInfo[t.Key]
 
-	if t.Value == "" {
+	if t.Value.Val == nil {
 		// Empty value = delete the key.
 		delete(transCtx.Transfer.TransferInfo, t.Key)
 
@@ -56,7 +56,7 @@ func (t *setInfoTask) Run(_ context.Context, args map[string]string, _ *database
 		return nil
 	}
 
-	transCtx.Transfer.TransferInfo[t.Key] = t.Value
+	transCtx.Transfer.TransferInfo[t.Key] = t.Value.Val
 
 	if existed {
 		logger.Debugf("SETINFO: updated key %q: %v -> %v", t.Key, old, t.Value)

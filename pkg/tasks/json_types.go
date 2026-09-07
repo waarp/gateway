@@ -116,3 +116,29 @@ func (j *jsonObject) UnmarshalJSON(bytes []byte) error {
 
 	return nil
 }
+
+type jsonValue struct {
+	Val any
+}
+
+func (j *jsonValue) UnmarshalJSON(b []byte) error {
+	str, uqErr := strconv.Unquote(string(b))
+	if uqErr != nil {
+		return fmt.Errorf("failed to unquote object: %w", uqErr)
+	}
+
+	if !json.Valid([]byte(str)) {
+		j.Val = str
+
+		return nil
+	}
+
+	decoder := json.NewDecoder(strings.NewReader(str))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&j.Val); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON: %w", err)
+	}
+
+	return nil
+}

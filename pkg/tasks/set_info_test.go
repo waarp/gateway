@@ -1,12 +1,14 @@
 package tasks
 
 import (
+	"encoding/json"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSetInfo(t *testing.T) {
@@ -35,6 +37,18 @@ func TestSetInfo(t *testing.T) {
 		)
 	})
 
+	t.Run("Add number", func(t *testing.T) {
+		t.Parallel()
+		task, transCtx := &setInfoTask{}, mkCtx()
+		params := map[string]string{"key": "newKey", "value": "123"}
+
+		require.NoError(t, task.Run(t.Context(), params, nil, logger, transCtx, nil))
+		assert.Equal(t,
+			map[string]any{"existingKey": "existingValue", "newKey": json.Number("123")},
+			transCtx.Transfer.TransferInfo,
+		)
+	})
+
 	t.Run("Update", func(t *testing.T) {
 		t.Parallel()
 		task, transCtx := &setInfoTask{}, mkCtx()
@@ -50,7 +64,7 @@ func TestSetInfo(t *testing.T) {
 	t.Run("Delete", func(t *testing.T) {
 		t.Parallel()
 		task, transCtx := &setInfoTask{}, mkCtx()
-		params := map[string]string{"key": "existingKey", "value": ""}
+		params := map[string]string{"key": "existingKey"}
 
 		require.NoError(t, task.Run(t.Context(), params, nil, logger, transCtx, nil))
 		assert.Equal(t,

@@ -7,8 +7,7 @@ Le traitement ``SETINFO`` permet de positionner, modifier ou supprimer une clé
 dans les :term:`infos de transfert<infos de transfert>` du transfert en cours.
 
 Cette tâche est utile en pré-traitement pour injecter des métadonnées avant un
-rebond via la tâche ``TRANSFER`` (avec ``copyInfo: true``), ou pour conditionner
-l'exécution de tâches suivantes via le mécanisme de :ref:`conditions <ref-task-sendmessage>`.
+rebond via la tâche ``TRANSFER`` (avec ``copyInfo: true``).
 
 Paramètres
 ----------
@@ -18,7 +17,7 @@ Paramètres
   personnalisée.
 * **value** (*string*, optionnel) — La valeur à affecter à la clé. Supporte
   la substitution de variables (``#TRUEFILENAME#``, ``#TRANSFERID#``, etc.).
-  Si la valeur est **vide**, la clé est **supprimée** du TransferInfo.
+  Si cette valeur est **omise** ou nulle, la clé est **supprimée** du TransferInfo.
 
 Exemples
 --------
@@ -60,7 +59,7 @@ disponible) :
      - type: SETINFO
        args:
          key: "__tempKey__"
-         value: ""
+
 
 **Injecter un identifiant métier dynamique** :
 
