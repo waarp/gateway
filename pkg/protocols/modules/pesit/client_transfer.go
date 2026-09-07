@@ -54,7 +54,8 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 				uint(c.clientConf.CheckpointSize)),
 			utils.If(config.CheckpointWindow != 0,
 				config.CheckpointWindow,
-				c.clientConf.CheckpointWindow))
+				c.clientConf.CheckpointWindow),
+		)
 
 		// configure restarts
 		c.client.AllowRestart(!utils.If(config.DisableRestart.Valid,
@@ -87,7 +88,9 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 	return setFreetext(c.pip, clientConnFreetextKey, c.client)
 }
 
-func (c *clientTransfer) Request() *pipeline.Error {
+func (c *clientTransfer) Request() *pipeline.Error { return nil }
+
+func (c *clientTransfer) request() *pipeline.Error {
 	var fileInfo fs.FileInfo
 
 	if c.pip.TransCtx.Rule.IsSend {
@@ -120,7 +123,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 		return pipeline.NewErrorWith(connErr, types.TeConnection, "failed to connect to partner")
 	}
 
-	if err := c.request(fileInfo, &partConf, conn); err != nil {
+	if err := c.sendRequest(fileInfo, &partConf, conn); err != nil {
 		if closeErr := conn.Close(); closeErr != nil {
 			c.pip.Logger.Warningf("Failed to close connection: %v", closeErr)
 		}
@@ -132,7 +135,7 @@ func (c *clientTransfer) Request() *pipeline.Error {
 }
 
 //nolint:funlen,gocognit,gocyclo,cyclop //no easy way to split the function for now
-func (c *clientTransfer) request(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
+func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
 	conn net.Conn,
 ) *pipeline.Error {
 	serverLogin := c.pip.TransCtx.RemoteAgent.Name
@@ -298,6 +301,10 @@ func (c *clientTransfer) authenticateServer() *pipeline.Error {
 }
 
 func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
+	if err := c.request(); err != nil {
+		return err
+	}
+
 	copyArticle := func(article io.Writer, file io.Reader) *pipeline.Error {
 		if _, err := io.Copy(article, file); err != nil {
 			c.pip.Logger.Errorf("Failed to send data: %v", err)
@@ -343,6 +350,10 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 }
 
 func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
+	if err := c.request(); err != nil {
+		return err
+	}
+
 	return c.dataTransfer(func() *pipeline.Error {
 		var articleLengths []uint16
 
@@ -471,8 +482,10 @@ func (c *clientTransfer) Cancel() *pipeline.Error {
 
 func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pipeline.Error {
 	defer func() {
-		if err := c.client.Close(pErr); err != nil {
-			c.pip.Logger.Warningf("failed to close connection: %v", err)
+		if c.client != nil {
+			if err := c.client.Close(pErr); err != nil {
+				c.pip.Logger.Warningf("failed to close connection: %v", err)
+			}
 		}
 	}()
 

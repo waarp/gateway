@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`631` Dans le cas d'un transfert client PeSIT, les pré-tâches sont désormais
+  exécutées avant l'ouverture de la connexion au lieu d'après.
 * :bug:`636` La tâche SETINFO préserve désormais le typage des valeurs passées.
   Précédemment, toutes les valeurs étaient converties en chaîne de caractères.
 
