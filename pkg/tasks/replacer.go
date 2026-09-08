@@ -30,7 +30,8 @@ func getReplacers() replacersMap {
 		"#BASEFILENAME#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return strings.TrimSuffix(
 				path.Base(ctx.Transfer.LocalPath),
-				path.Ext(ctx.Transfer.LocalPath)), nil
+				path.Ext(ctx.Transfer.LocalPath),
+			), nil
 		},
 		"#FILEEXTENSION#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return path.Ext(ctx.Transfer.LocalPath), nil

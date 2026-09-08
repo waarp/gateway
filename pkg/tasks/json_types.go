@@ -104,7 +104,7 @@ type jsonObject map[string]any
 func (j *jsonObject) UnmarshalJSON(bytes []byte) error {
 	str, uqErr := strconv.Unquote(string(bytes))
 	if uqErr != nil {
-		return fmt.Errorf("failed to unquote object: %w", uqErr)
+		return fmt.Errorf("failed to unquote object %s: %w", bytes, uqErr)
 	}
 
 	var m map[string]any
