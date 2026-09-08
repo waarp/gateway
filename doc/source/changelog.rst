@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`-` Ajout d'une variable #REMOTETRANSFERID# aux tâches permettant
+  d'obtenir l'identifiant protocolaire du transfert en cours.
+
 * :release:`0.16.6 <2026-10-02>`
 * :bug:`679` Serveur PeSIT : une erreur survenant pendant l'échange de données
   après la fin du transfert (par exemple lorsque le partenaire interrompt la
