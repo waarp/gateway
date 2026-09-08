@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`-` Ajout d'une variable #REMOTETRANSFERID# aux tâches permettant
+  d'obtenir l'identifiant protocolaire du transfert en cours.
+
 * :bug:`639` Correction d'une erreur pouvant survenir lors d'un import si un
   compte distant renseignait un mot de passe à la fois via le champ "password"
   et le champ "credentials". Désormais, si les deux champs sont présents en

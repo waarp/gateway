@@ -89,6 +89,9 @@ func getReplacers() replacersMap {
 		"#TRANSFERID#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return utils.FormatInt(ctx.Transfer.ID), nil
 		},
+		"#REMOTETRANSFERID#": func(ctx *model.TransferContext, _ string) (string, error) {
+			return ctx.Transfer.RemoteTransferID, nil
+		},
 		"#REQUESTERHOST#": getClient,
 		"#REQUESTEDHOST#": getServer,
 		"#FULLTRANSFERID#": func(ctx *model.TransferContext, match string) (string, error) {
