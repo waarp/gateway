@@ -14,7 +14,7 @@ Historique des versions
 
 * :release:`0.16.4 <2026-09-04>`
 * :bug:`-` Les variables d'environnement fournies aux tâches EXEC ont désormais
-  le format ``WAARP_<nom_de_variable>`` au lieu de ``#nom_de_variable#`, car cet
+  le format ``WAARP_<nom_de_variable>`` au lieu de ``#nom_de_variable#``, car cet
   ancien format ne fonctionnait pas sur Linux. Les anciens noms de variables
   restent disponibles sous Windows, mais sont désormais dépréciés.
 * :bug:`616` Les *transfer info* sont désormais correctement passées au programmes

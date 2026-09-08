@@ -483,7 +483,7 @@ func TestListTransfer(t *testing.T) {
 
 			t3 := &model.Transfer{
 				RuleID:          r2.ID,
-				ClientID:        cli2.NullableID(),
+				ClientID:        cli1.NullableID(),
 				RemoteAccountID: a1.NullableID(),
 				SrcFilename:     "/source/file3.test",
 				DestFilename:    "/dest/file3.test",
