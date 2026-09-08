@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`634` Ajouter un transfert avec un partenaire et un client dont les
+  protocoles ne correspondent pas lève désormais une erreur explicite au moment
+  de sa création. Précédemment, dans ce cas de figure, aucune erreur n'était
+  levée à l'insertion, et une erreur générique était levée au moment de la connexion.
 * :bug:`631` Dans le cas d'un transfert client PeSIT, les pré-tâches sont désormais
   exécutées avant l'ouverture de la connexion au lieu d'après.
 * :bug:`636` La tâche SETINFO préserve désormais le typage des valeurs passées.
@@ -10,7 +14,7 @@ Historique des versions
 
 * :release:`0.16.4 <2026-09-04>`
 * :bug:`-` Les variables d'environnement fournies aux tâches EXEC ont désormais
-  le format ``WAARP_<nom_de_variable>`` au lieu de ``#nom_de_variable#`, car cet
+  le format ``WAARP_<nom_de_variable>`` au lieu de ``#nom_de_variable#``, car cet
   ancien format ne fonctionnait pas sur Linux. Les anciens noms de variables
   restent disponibles sous Windows, mais sont désormais dépréciés.
 * :bug:`616` Les *transfer info* sont désormais correctement passées au programmes

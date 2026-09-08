@@ -162,7 +162,8 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	case t.LocalAccountID.Valid && t.RemoteAccountID.Valid:
 		return database.NewValidationError("the transfer cannot have both a local and remote account ID")
 	case t.RemoteAccountID.Valid:
-		if err := db.Get(&RemoteAccount{}, "id=?", t.RemoteAccountID.Int64).Run(); err != nil {
+		var account RemoteAccount
+		if err := db.Get(&account, "id=?", t.RemoteAccountID.Int64).Eager().Run(); err != nil {
 			if database.IsNotFound(err) {
 				return database.NewValidationErrorf("the remote account %d does not exist",
 					t.RemoteAccountID.Int64)
@@ -183,6 +184,13 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 			}
 
 			return fmt.Errorf("failed to retrieve client: %w", err)
+		}
+
+		if account.RemoteAgent.Protocol != client.Protocol {
+			return database.NewValidationErrorf(
+				"the partner's protocol %q does not match the client's protocol %q",
+				account.RemoteAgent.Protocol, client.Protocol,
+			)
 		}
 
 		t.setRetryParameters(&client)

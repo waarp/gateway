@@ -199,6 +199,20 @@ func TestTransferBeforeWrite(t *testing.T) {
 					SoMsg("Then it should not return any error",
 						trans.BeforeWrite(db), ShouldBeNil)
 				})
+
+				Convey("Given that the partner & client protocols do not match", func() {
+					client := Client{Name: "existing", Protocol: protoR66}
+					So(db.Insert(&client).Run(), ShouldBeNil)
+
+					trans.ClientID = client.NullableID()
+
+					SoMsg("Then it should return an error",
+						trans.BeforeWrite(db), ShouldBeError,
+						fmt.Sprintf(
+							"the partner's protocol %q does not match the client's protocol %q",
+							partner.Protocol, client.Protocol,
+						))
+				})
 			})
 		})
 	})
