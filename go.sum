@@ -28,6 +28,8 @@ code.waarp.fr/lib/migration v1.5.0 h1:WltX1vXhQpqU7tZIfN6R5qYqCwZFe6ZuspfBEXsPjE
 code.waarp.fr/lib/migration v1.5.0/go.mod h1:6mpsrRY3g/XWUAYhareOo+luuFle68eAaAbsyp6jfCs=
 code.waarp.fr/lib/pesit v0.1.8 h1:74lgaLJPf4HOFcOseuIKaSURfHoontkqy3MlyH8y9Y8=
 code.waarp.fr/lib/pesit v0.1.8/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.9 h1:6j5a2HGL6P9tl/aLMXl4KGs06YWwh89IxXYG+sMpSG4=
+code.waarp.fr/lib/pesit v0.1.9/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
 code.waarp.fr/lib/r66 v1.0.8 h1:RHNbOzY95eKPA/yYHU559tdY2eAqQvjR+Fz+R3WTS7w=
 code.waarp.fr/lib/r66 v1.0.8/go.mod h1:APiI1uK3RliA/0opgYWCzS7q3GxdypkRiaesjhclUZI=
 codeberg.org/chavacava/garif v0.2.0 h1:F0tVjhYbuOCnvNcU3YSpO6b3Waw6Bimy4K0mM8y6MfY=
