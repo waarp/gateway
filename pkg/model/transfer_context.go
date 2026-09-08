@@ -158,6 +158,14 @@ func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *Trans
 		return nil, fmt.Errorf("failed to retrieve the transfer client: %w", err)
 	}
 
+	if transCtx.Client.Protocol != transCtx.RemoteAgent.Protocol {
+		//nolint:err113 //too specific
+		return nil, fmt.Errorf(
+			"the partner's protocol %q does not match the client's protocol %q",
+			transCtx.RemoteAgent.Protocol, transCtx.Client.Protocol,
+		)
+	}
+
 	var err error
 	if transCtx.RemoteAccountCreds, err = transCtx.RemoteAccount.GetCredentials(db); err != nil {
 		logger.Errorf("Failed to retrieve remote account auth methods: %v", err)

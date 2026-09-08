@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`634` Ajouter un transfert avec un partenaire et un client dont les
+  protocoles ne correspondent pas lève désormais une erreur explicite au moment
+  de sa création. Précédemment, dans ce cas de figure, aucune erreur n'était
+  levée à l'insertion, et une erreur générique était levée au moment de la connexion.
 * :bug:`631` Dans le cas d'un transfert client PeSIT, les pré-tâches sont désormais
   exécutées avant l'ouverture de la connexion au lieu d'après.
 * :bug:`636` La tâche SETINFO préserve désormais le typage des valeurs passées.
