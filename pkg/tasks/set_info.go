@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -11,22 +10,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var ErrSetInfoMissingKey = errors.New(`missing "key" argument`)
-
 type setInfoTask struct {
-	Key   string    `json:"key"`
-	Value jsonValue `json:"value"`
+	args map[string]jsonValue
 }
 
 func (t *setInfoTask) Validate(args map[string]string) error {
 	*t = setInfoTask{}
 
-	if err := utils.JSONConvert(args, t); err != nil {
+	if err := utils.JSONConvert(args, &t.args); err != nil {
 		return fmt.Errorf("failed to parse SETINFO arguments: %w", err)
-	}
-
-	if t.Key == "" {
-		return ErrSetInfoMissingKey
 	}
 
 	return nil
@@ -43,26 +35,39 @@ func (t *setInfoTask) Run(_ context.Context, args map[string]string, _ *database
 		transCtx.Transfer.TransferInfo = map[string]any{}
 	}
 
-	old, existed := transCtx.Transfer.TransferInfo[t.Key]
-
-	if t.Value.Val == nil {
-		// Empty value = delete the key.
-		delete(transCtx.Transfer.TransferInfo, t.Key)
-
-		if existed {
-			logger.Debugf("SETINFO: deleted key %q (was %v)", t.Key, old)
-		}
+	// Old behavior: set 1 key
+	if key, hasKey := args["key"]; hasKey {
+		t.setInfo(logger, transCtx, key, t.args["value"])
 
 		return nil
 	}
 
-	transCtx.Transfer.TransferInfo[t.Key] = t.Value.Val
-
-	if existed {
-		logger.Debugf("SETINFO: updated key %q: %v -> %v", t.Key, old, t.Value)
-	} else {
-		logger.Debugf("SETINFO: added key %q = %v", t.Key, t.Value)
+	// New behavior: set multiple keys
+	for key, val := range t.args {
+		t.setInfo(logger, transCtx, key, val)
 	}
 
 	return nil
+}
+
+func (t *setInfoTask) setInfo(logger *log.Logger, transCtx *model.TransferContext,
+	key string, jv jsonValue,
+) {
+	old, existed := transCtx.Transfer.TransferInfo[key]
+	val := jv.Val
+
+	if val != nil && val != "" {
+		transCtx.Transfer.TransferInfo[key] = val
+
+		if existed {
+			logger.Debugf("SETINFO: updated key %q: %v -> %v", key, old, val)
+		} else {
+			logger.Debugf("SETINFO: added key %q = %v", key, val)
+		}
+	} else if existed {
+		// Empty value = delete the key.
+		delete(transCtx.Transfer.TransferInfo, key)
+
+		logger.Debugf("SETINFO: deleted key %q (was %v)", key, old)
+	}
 }

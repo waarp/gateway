@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`632` La tâche SETINFO permet désormais d'assigner plusieurs valeurs
+  en une fois au lieu d'une seule. Voir la :doc:`documentation de la tâche
+  <reference/tasks/setinfo>` pour plus de détails.
 * :feature:`635` Ajout d'une variable #REMOTETRANSFERID# aux tâches permettant
   d'obtenir l'identifiant protocolaire du transfert en cours.
 * :feature:`578` Cipher suites TLS configurables via ``cipherSuites`` dans la

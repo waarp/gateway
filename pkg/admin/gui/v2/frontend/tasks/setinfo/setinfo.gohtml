@@ -1,21 +1,90 @@
 <!-- Task description -->
 <p class="task-description">{{ .Text.description }}</p>
 
-<!-- Key -->
-{{ template "textInputRow" dict
-    "label" .Text.key
-    "tooltip" .Text.keyTooltip
-    "fieldName" "key"
-    "fieldType" "text"
-    "value" .Task.Args.key
-}}
+<!-- Key/value pairs -->
+<script>
+    function setInfoAddPair(key, value) {
+        const template = document.getElementById("setInfoPairTemplate")
+        const row = template.content.firstElementChild.cloneNode(true)
 
-<!-- Value -->
-{{ template "textInputRow" dict
-    "label" .Text.value
-    "tooltip" .Text.valueTooltip
-    "fieldName" "value"
-    "fieldType" "text"
-    "value" .Task.Args.value
-    "optional" "true"
-}}
+        row.querySelector(".setinfo-key").value = key || ""
+        row.querySelector(".setinfo-value").value = value || ""
+
+        document.getElementById("setInfoPairs").appendChild(row)
+    }
+
+    function setInfoRemovePair(buttonEl) {
+        const list = document.getElementById("setInfoPairs")
+        buttonEl.closest(".setinfo-pair").remove()
+
+        // Always keep at least one (empty) pair in the form.
+        if (list.children.length === 0) setInfoAddPair()
+    }
+
+    function setInfoApplyKeys(hiddenEl) {
+        const rows = hiddenEl.parentElement.querySelectorAll(".setinfo-pair")
+        rows.forEach(row => {
+            const key = row.querySelector(".setinfo-key").value.trim()
+            row.querySelector(".setinfo-value").name = key
+        })
+    }
+</script>
+
+<template id="setInfoPairTemplate">
+    <div class="setinfo-pair d-flex flex-nowrap align-items-center gap-2 mb-2 w-100 mw-100"
+         style="box-sizing: border-box; overflow: hidden">
+        <input type="text"
+               class="form-control setinfo-key"
+               style="flex: 1 1 0; width: 0; min-width: 0"
+               placeholder="{{ .Text.key }}"
+               title="{{ .Text.keyTooltip }}"
+               form=""
+               required>
+        <span class="setinfo-separator flex-shrink-0 fw-bold">:</span>
+        <input type="text"
+               class="form-control setinfo-value"
+               style="flex: 1 1 0; width: 0; min-width: 0"
+               placeholder="{{ .Text.value }}"
+               title="{{ .Text.valueTooltip }}">
+        <button type="button"
+                class="btn btn-outline-danger setinfo-remove flex-shrink-0"
+                title="{{ .Text.removePair }}"
+                onclick="setInfoRemovePair(this)">
+            <i class="bi bi-trash"></i>
+        </button>
+    </div>
+</template>
+
+<div class="form-input">
+    <label class="col-form-label">
+        {{ .Text.pairs }}
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="right"
+           data-bs-title="{{ .Text.pairsTooltip }}">
+        </i> :
+    </label>
+    <input type="hidden" onsubmit="setInfoApplyKeys(this)">
+
+    <div id="setInfoPairs" class="w-100 mw-100"></div>
+
+    <button type="button"
+            class="btn btn-outline-primary btn-sm setinfo-add"
+            onclick="setInfoAddPair()">
+        <i class="bi bi-plus-lg"></i> {{ .Text.addPair }}
+    </button>
+</div>
+
+<script defer>
+    {{ if .Task.Args.key }}
+        {{/* Legacy format: a single "key"/"value" pair */}}
+        setInfoAddPair({{ .Task.Args.key }}, {{ .Task.Args.value }})
+    {{ else }}
+        {{ range $key, $value := .Task.Args }}
+            setInfoAddPair({{ $key }}, {{ $value }})
+        {{ end }}
+    {{ end }}
+
+    if (document.getElementById("setInfoPairs").children.length === 0)
+        setInfoAddPair()
+</script>

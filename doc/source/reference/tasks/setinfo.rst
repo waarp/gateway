@@ -3,6 +3,8 @@
 SETINFO
 =======
 
+.. versionadded:: 0.16.0
+
 Le traitement ``SETINFO`` permet de positionner, modifier ou supprimer une clé
 dans les :term:`infos de transfert<infos de transfert>` du transfert en cours.
 
@@ -12,54 +14,21 @@ rebond via la tâche ``TRANSFER`` (avec ``copyInfo: true``).
 Paramètres
 ----------
 
-* **key** (*string*, **obligatoire**) — La clé TransferInfo à positionner.
-  Exemples : ``__fileEncoding__``, ``__replyPartner__``, ou toute clé
-  personnalisée.
-* **value** (*string*, optionnel) — La valeur à affecter à la clé. Supporte
+* **key** (*string*) — [DÉPRÉCIÉ] La clé TransferInfo à positionner.
+* **value** (*string*) — [DÉPRÉCIÉ] La valeur à affecter à la clé. Supporte
   la substitution de variables (``#TRUEFILENAME#``, ``#TRANSFERID#``, etc.).
-  Si cette valeur est **omise** ou nulle, la clé est **supprimée** du TransferInfo.
+  Si cette valeur est omise ou nulle, la clé est supprimée du TransferInfo.
+
+.. versionchanged:: 0.17.0
+
+   Les informations de transfert peuvent être données tel quel sous forme d'un
+   objet JSON ou YAML. Les clés "key" et "value" restent réservées pour maintenir
+   la rétro-compatibilité, mais elles ne sont plus obligatoires. Si une clé est
+   spécifiée avec une valeur vide (``""``) ou nulle (``"null"``), alors la clé
+   sera supprimée des informations de transfert.
 
 Exemples
 --------
-
-**Injecter l'encodage avant un rebond** :
-
-.. code-block:: yaml
-
-   pre:
-     - type: SETINFO
-       args:
-         key: "__fileEncoding__"
-         value: "EBCDIC"
-     - type: TRANSFER
-       args:
-         to: "destinataire"
-         copyInfo: true
-
-**Positionner l'adresse de retour manuellement** (quand PI 99 REPLY= n'est pas
-disponible) :
-
-.. code-block:: yaml
-
-   pre:
-     - type: SETINFO
-       args:
-         key: "__replyPartner__"
-         value: "partenaire-emetteur"
-     - type: SETINFO
-       args:
-         key: "__replyAccount__"
-         value: "mon-login"
-
-**Supprimer une clé** (valeur vide) :
-
-.. code-block:: yaml
-
-   pre:
-     - type: SETINFO
-       args:
-         key: "__tempKey__"
-
 
 **Injecter un identifiant métier dynamique** :
 
@@ -68,5 +37,16 @@ disponible) :
    pre:
      - type: SETINFO
        args:
-         key: "batchId"
-         value: "BATCH-#DATE#-#HOUR#"
+         batchId: "BATCH-#DATE#-#HOUR#"
+
+**Supprimer une clé** (valeur nulle) :
+
+.. code-block:: yaml
+
+   pre:
+     - type: SETINFO
+       args:
+         "__tempKey__": "null"
+
+
+
