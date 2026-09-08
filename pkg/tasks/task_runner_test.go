@@ -49,6 +49,7 @@ func TestSetup(t *testing.T) {
 				"defaultTimestamp":      `#TIMESTAMP#`,
 				"startTimestamp":        fmt.Sprintf(`#STARTTIMESTAMP(%s)#`, timestampTsFormat),
 				"defaultStartTimestamp": "#STARTTIMESTAMP#",
+				"remoteTransferID":      "#REMOTETRANSFERID#",
 			},
 		}
 
@@ -103,17 +104,18 @@ func TestSetup(t *testing.T) {
 			}
 
 			transCtx.Transfer = &model.Transfer{
-				Identifier:      model.ID(transferID),
-				RemoteAccountID: transCtx.RemoteAccount.NullableID(),
-				ClientID:        transCtx.Client.NullableID(),
-				SrcFilename:     "src/file",
-				DestFilename:    "dst/file",
-				LocalPath:       path.Join(root, transCtx.Rule.LocalDir, "file.test"),
-				RemotePath:      path.Join(transCtx.Rule.RemoteDir, "file.rem"),
-				ErrCode:         types.TeConnection,
-				ErrDetails:      `error message`,
-				TransferInfo:    map[string]any{"foo": "bar", "id": 123},
-				Start:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				Identifier:       model.ID(transferID),
+				RemoteTransferID: "123456",
+				RemoteAccountID:  transCtx.RemoteAccount.NullableID(),
+				ClientID:         transCtx.Client.NullableID(),
+				SrcFilename:      "src/file",
+				DestFilename:     "dst/file",
+				LocalPath:        path.Join(root, transCtx.Rule.LocalDir, "file.test"),
+				RemotePath:       path.Join(transCtx.Rule.RemoteDir, "file.rem"),
+				ErrCode:          types.TeConnection,
+				ErrDetails:       `error message`,
+				TransferInfo:     map[string]any{"foo": "bar", "id": 123},
+				Start:            time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 			}
 
 			r := &Runner{db: db, transCtx: transCtx}
@@ -212,6 +214,15 @@ func TestSetup(t *testing.T) {
 
 						Convey("Then res[transferID] should contain the resolved variable", func() {
 							So(val, ShouldEqual, utils.FormatInt(r.transCtx.Transfer.ID))
+						})
+					})
+
+					Convey("Then res should contain an entry `remoteRransferID`", func() {
+						val, ok := res["remoteTransferID"]
+						So(ok, ShouldBeTrue)
+
+						Convey("Then res[remoteTransferID] should contain the resolved variable", func() {
+							So(val, ShouldEqual, r.transCtx.Transfer.RemoteTransferID)
 						})
 					})
 
