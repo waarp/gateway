@@ -101,7 +101,8 @@ Marqueur                Signification
                         Par défaut, le format ``YYYY-MM-DD_HHmmss`` est utilisé.
 ``#REMOTEHOST#``        L'identifiant du partenaire distant
 ``#LOCALHOST#``         L'identifiant du partenaire local
-``#TRANSFERID#``        L'identifiant du transfert
+``#TRANSFERID#``        L'identifiant local du transfert en base de données
+``#REMOTETRANSFERID#``  L'identifiant protocolaire du transfert
 ``#REQUESTERHOST#``     L'identifiant du partenaire qui a demandé le transfert
 ``#REQUESTEDHOST#``     L'identifiant du partenaire qui a reçu la demande de
                         transfert

@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`-` Ajout d'une variable #REMOTETRANSFERID# aux tâches permettant
+  d'obtenir l'identifiant protocolaire du transfert en cours.
 * :feature:`681` Les information de connexion TLS et SSH (ciphers, certificats,
   etc...) sont désormais loggés en niveau DEBUG lors de l'ouverture de la connexion.
 * :bug:`685` Correction d'un bug qui faisait que les transferts n'étaient pas
