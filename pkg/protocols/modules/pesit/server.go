@@ -89,9 +89,7 @@ func (s *service) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, 
 		}
 	}
 
-	if !s.conf.DisableRestart {
-		conn.AllowRestart(true)
-	}
+	conn.AllowRestart(!s.conf.DisableRestart)
 
 	if conn.NewClientPassword() != "" {
 		s.logger.Warningf("Connection from %q refused, clients are not allowed to change their password",

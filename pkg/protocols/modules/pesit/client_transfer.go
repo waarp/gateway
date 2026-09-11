@@ -189,7 +189,7 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 
 	// configure recovery if transfer is resumed
 	if prog := c.pip.TransCtx.Transfer.Progress; prog != 0 ||
-		c.pip.TransCtx.Transfer.Step > types.StepSetup {
+		c.pip.TransCtx.Transfer.Step > types.StepData {
 		if !c.client.HasRestart() {
 			return pipeline.NewError(types.TeForbidden,
 				"cannot resume transfer, server does not allow restarts")
