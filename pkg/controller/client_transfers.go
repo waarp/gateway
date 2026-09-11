@@ -1,12 +1,15 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"math"
+	"runtime/debug"
 	"slices"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -57,8 +60,20 @@ func (c *Controller) runClientTransfers() {
 		go func(t *model.Transfer) {
 			defer c.wg.Done()
 
-			if err := pip.Run(); err != nil {
+			if err := runProtected(c.logger, t.ID, pip.Run); err != nil {
 				c.logger.Errorf("Transfer n°%d failed: %v", t.ID, err)
+
+				if errors.Is(err, errTransferPanicked) {
+					// The pipeline never got to record the failure: record it
+					// here, or the transfer would stay "running" forever.
+					if recErr := runProtected(c.logger, t.ID, func() error {
+						pip.Pip.SetError(types.TeInternal, err.Error())
+
+						return nil
+					}); recErr != nil {
+						c.logger.Errorf("Failed to record the failure of transfer n°%d: %v", t.ID, recErr)
+					}
+				}
 			}
 		}(trans)
 	}
@@ -152,3 +167,19 @@ func (c *Controller) retrieveClientTransfers() (model.Transfers, error) {
 		return t.Status != types.StatusRunning
 	}), nil
 }
+
+// runProtected runs one transfer and turns a panic in it into an error: one
+// faulty transfer (a bug in a protocol module, an unexpected configuration)
+// must never take the whole gateway down with every other transfer.
+func runProtected(logger *log.Logger, transferID int64, run func() error) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Criticalf("Transfer n°%d panicked: %v\n%s", transferID, r, debug.Stack())
+			err = fmt.Errorf("%w: %v", errTransferPanicked, r)
+		}
+	}()
+
+	return run()
+}
+
+var errTransferPanicked = errors.New("transfer aborted after an internal error")
