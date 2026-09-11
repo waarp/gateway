@@ -172,6 +172,11 @@ func (wg *WG) startServers() error {
 		return fmt.Errorf("failed to retrieve servers from the database: %w", err)
 	}
 
+	// Services are read for the configured gateway name only: saying how
+	// many were found, and for whom, is what tells a mismatch apart from an
+	// empty database.
+	wg.Logger.Infof("Starting %d server(s) owned by %q", len(servers), wg.DBService.Config.GatewayName)
+
 	for _, server := range servers {
 		serverService, mkErr := protocols.MakeServer(wg.DBService, server)
 		if mkErr != nil {
@@ -198,6 +203,8 @@ func (wg *WG) startClients() error {
 	if err := wg.DBService.Select(&dbClients).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve clients from the database: %w", err)
 	}
+
+	wg.Logger.Infof("Starting %d client(s) owned by %q", len(dbClients), wg.DBService.Config.GatewayName)
 
 	for _, client := range dbClients {
 		clientService, mkErr := protocols.MakeClient(wg.DBService, client)
