@@ -5,20 +5,10 @@ package compatibility
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"os"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
-
-//nolint:gochecknoinits //must use init here
-func init() {
-	if err := os.Setenv("GODEBUG", "x509sha1=1"); err != nil {
-		logging.NewLogger("TLS").Warningf(
-			"Failed to set the SHA1 environment variable, SHA1 signed certificates will not be accepted: %v", err)
-	}
-}
 
 // LogSha1 takes a client tls.Config instance and adds a trigger which
 // logs a deprecation warning when a remote server uses a certificate signed
@@ -27,6 +17,7 @@ func init() {
 //
 // Once SHA-1 certificates are definitely phased out from the x509 library,
 // this function can be changed to a noop (or just straight up removed).
+// TODO: SHA-1 certificates are deprecated.
 func LogSha1(logger *log.Logger) func(tls.ConnectionState) error {
 	return func(state tls.ConnectionState) error {
 		if len(state.PeerCertificates) > 0 {

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`637` ``updateconf`` tombait en erreur au démarrage avec l'erreur
+  "Program returned error: fatal error: removed GODEBUG 'x509sha1' set to old
+  value '1' in environment" lorsqu'il était appellé par ``waarp-gatewayd``.
+  Cette erreur affectait les versions 0.16.2 à 0.16.4.
 * :bug:`634` Ajouter un transfert avec un partenaire et un client dont les
   protocoles ne correspondent pas lève désormais une erreur explicite au moment
   de sa création. Précédemment, dans ce cas de figure, aucune erreur n'était
