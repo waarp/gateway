@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -138,8 +138,12 @@ func serializeFile(data *file.Data, f *os.File) error {
 		const yamlIndent = 2
 
 		printExportFileHeader(f, "# ")
-		encoder := yaml.NewEncoder(f)
-		encoder.SetIndent(yamlIndent)
+		encoder := yaml.NewEncoder(f,
+			yaml.Indent(yamlIndent),
+			yaml.CustomMarshaler(func(num json.Number) ([]byte, error) {
+				return []byte(num), nil
+			}),
+		)
 		serErr = encoder.Encode(data)
 	default:
 		encoder := json.NewEncoder(f)

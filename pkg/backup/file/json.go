@@ -7,6 +7,10 @@ import (
 )
 
 func (s *SNMPServer) IsZero() bool {
+	if s == nil {
+		return true
+	}
+
 	return s.LocalUDPAddress == "" &&
 		s.Community == "" &&
 		!s.V3Only &&
