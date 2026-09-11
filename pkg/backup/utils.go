@@ -27,6 +27,16 @@ func hashPswd(pswd, protocol string) (string, error) {
 	return hash, err
 }
 
+func hasPasswordCred(creds []file.Credential) bool {
+	for _, cred := range creds {
+		if cred.Type == auth.Password {
+			return true
+		}
+	}
+
+	return false
+}
+
 func pswdCred(value string) file.Credential {
 	return file.Credential{
 		Name:  auth.Password,

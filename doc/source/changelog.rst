@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`639` Correction d'une erreur pouvant survenir lors d'un import si un
+  compte distant renseignait un mot de passe à la fois via le champ "password"
+  et le champ "credentials". Désormais, si les deux champs sont présents en
+  même temps, le champ "credentials" sera la valeur utilisée.
 * :bug:`638` Correction d'un bug de l'export YAML qui faisait que les valeurs
   numériques de *proto config* étaient exportées en chaînes de caractères au lieu
   de nombres, rendant tout ré-import de cet export impossible. À noter que

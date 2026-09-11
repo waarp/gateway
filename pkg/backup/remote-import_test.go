@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -183,7 +182,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 			So(db.Insert(dbAccount).Run(), ShouldBeNil)
 
 			pswd := &model.Credential{
-				RemoteAccountID: utils.NewNullInt64(dbAccount.ID),
+				RemoteAccountID: dbAccount.NullableID(),
 				Type:            auth.Password,
 				Value:           "sesame",
 			}
@@ -207,6 +206,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 				accounts := []RemoteAccount{
 					account1, account2,
 				}
+
+				preprocessRemoteAccounts(accounts)
 
 				Convey("When calling the importRemoteAccounts method", func() {
 					err := importRemoteAccounts(discard(), db, accounts, agent)
@@ -266,6 +267,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 					},
 				}
 				accounts := []RemoteAccount{account1}
+				preprocessRemoteAccounts(accounts)
 
 				Convey("When calling the importRemoteAccounts method", func() {
 					err := importRemoteAccounts(discard(), db, accounts, agent)
@@ -308,6 +310,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 					}},
 				}
 				accounts := []RemoteAccount{account1}
+				preprocessRemoteAccounts(accounts)
 
 				Convey("When calling the importRemoteAccounts method", func() {
 					err := importRemoteAccounts(discard(), db, accounts, agent)
@@ -323,13 +326,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 						So(len(accounts), ShouldEqual, 1)
 
-						Convey("Then ip should have updated the account", func() {
+						Convey("Then it should have updated the account", func() {
 							So(accounts[0].Login, ShouldEqual, account1.Login)
-
-							var pwd model.Credential
-							So(db.Get(&pwd, "remote_account_id=? AND type=?",
-								accounts[0].ID, auth.Password).Run(), ShouldBeNil)
-							So(pwd.Value, ShouldEqual, pswd.Value)
 
 							var cert model.Credential
 							So(db.Get(&cert, "remote_account_id=? AND type=?",

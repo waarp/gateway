@@ -59,6 +59,23 @@ func TestPreprocess(t *testing.T) {
 					"serverPassword": "old_sesame",
 				},
 				Credentials: []file.Credential{pswdCred("sesame")},
+			}, {
+				Name: "remoteAccountsPartner",
+				Accounts: []file.RemoteAccount{
+					{
+						Login: "empty",
+					}, {
+						Login:    "passwordOnly",
+						Password: "sesame",
+					}, {
+						Login:       "credOnly",
+						Credentials: []file.Credential{pswdCred("sesame")},
+					}, {
+						Login:       "password&cred",
+						Password:    "sesame1",
+						Credentials: []file.Credential{pswdCred("sesame2")},
+					},
+				},
 			},
 		},
 		Users: []file.User{
@@ -116,7 +133,7 @@ func TestPreprocess(t *testing.T) {
 
 	t.Run("Partners", func(t *testing.T) {
 		t.Parallel()
-		require.Len(t, data.Remotes, 5)
+		require.Len(t, data.Remotes, 6)
 
 		t.Run("With conf password", func(t *testing.T) {
 			t.Parallel()
@@ -148,6 +165,36 @@ func TestPreprocess(t *testing.T) {
 			t.Parallel()
 			withBoth := data.Remotes[4]
 			assertHasHashOf(t, withBoth.Credentials, "sesame")
+		})
+	})
+
+	t.Run("RemoteAccounts", func(t *testing.T) {
+		t.Parallel()
+
+		require.Len(t, data.Remotes, 6)
+		partner := data.Remotes[5]
+		require.Equal(t, partner.Name, "remoteAccountsPartner")
+		require.Len(t, partner.Accounts, 4)
+
+		t.Run("Empty", func(t *testing.T) {
+			t.Parallel()
+			assert.Empty(t, partner.Accounts[0].Credentials)
+		})
+
+		t.Run("Password only", func(t *testing.T) {
+			t.Parallel()
+			assert.Contains(t, partner.Accounts[1].Credentials, pswdCred("sesame"))
+		})
+
+		t.Run("Cred only", func(t *testing.T) {
+			t.Parallel()
+			assert.Contains(t, partner.Accounts[2].Credentials, pswdCred("sesame"))
+		})
+
+		t.Run("Password & cred", func(t *testing.T) {
+			t.Parallel()
+			assert.NotContains(t, partner.Accounts[3].Credentials, pswdCred("sesame1"))
+			assert.Contains(t, partner.Accounts[3].Credentials, pswdCred("sesame2"))
 		})
 	})
 
