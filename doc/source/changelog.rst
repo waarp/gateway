@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`638` Correction d'un bug de l'export YAML qui faisait que les valeurs
+  numériques de *proto config* étaient exportées en chaînes de caractères au lieu
+  de nombres, rendant tout ré-import de cet export impossible. À noter que
+  l'export en format JSON n'était pas affecté par ce problème.
 * :bug:`637` ``updateconf`` tombait en erreur au démarrage avec l'erreur
   "Program returned error: fatal error: removed GODEBUG 'x509sha1' set to old
   value '1' in environment" lorsqu'il était appellé par ``waarp-gatewayd``.

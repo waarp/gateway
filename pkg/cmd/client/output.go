@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 var ErrUnknownOutputFormat = errors.New("unknown output format")
@@ -31,8 +31,7 @@ func outputObject[T any](w io.Writer, obj T, formatting *OutputFormat,
 		}
 	case "yaml":
 		const indent = 2
-		encoder := yaml.NewEncoder(w)
-		encoder.SetIndent(indent)
+		encoder := yaml.NewEncoder(w, yaml.Indent(indent))
 
 		if err := encoder.Encode(obj); err != nil {
 			return fmt.Errorf("failed to encode YAML object: %w", err)
