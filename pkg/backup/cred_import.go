@@ -12,6 +12,10 @@ import (
 func credentialsImport(logger *log.Logger, db database.Access, list []file.Credential,
 	owner model.CredOwnerTable,
 ) error {
+	if err := db.DeleteAll(&model.Credential{}).Where(owner.GetCredCond()).Run(); err != nil {
+		return fmt.Errorf("failed to delete credentials: %w", err)
+	}
+
 	for _, src := range list {
 		// Create model with basic info to check existence
 		var credential model.Credential
@@ -19,8 +23,7 @@ func credentialsImport(logger *log.Logger, db database.Access, list []file.Crede
 		// Check if crypto exists
 		var exist bool
 
-		dbErr := db.Get(&credential, "name=?", src.Name).And(
-			owner.GetCredCond()).Run()
+		dbErr := db.Get(&credential, "name=?", src.Name).And(owner.GetCredCond()).Run()
 		if dbErr == nil {
 			exist = true
 		} else if !database.IsNotFound(dbErr) {

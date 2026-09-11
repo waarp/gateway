@@ -93,7 +93,19 @@ func preprocessPartners(partners []file.RemoteAgent) error {
 				delete(partner.Configuration, "serverPassword")
 			}
 		}
+
+		preprocessRemoteAccounts(partner.Accounts)
 	}
 
 	return nil
+}
+
+func preprocessRemoteAccounts(accounts []file.RemoteAccount) {
+	for i := range accounts {
+		account := &accounts[i]
+
+		if account.Password != "" && !hasPasswordCred(account.Credentials) {
+			account.Credentials = append(account.Credentials, pswdCred(account.Password))
+		}
+	}
 }

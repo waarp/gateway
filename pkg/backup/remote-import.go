@@ -7,7 +7,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 )
 
 //nolint:funlen //splitting would add complexity
@@ -111,23 +110,6 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 
 		if dbErr != nil {
 			return fmt.Errorf("failed to create/update remote account %q: %w", account.Login, dbErr)
-		}
-
-		if src.Password != "" {
-			pswd := &model.Credential{
-				RemoteAccountID: account.NullableID(),
-				Type:            auth.Password,
-				Value:           src.Password,
-			}
-
-			if err := db.DeleteAll(&model.Credential{}).Where("type=?", pswd.Type).
-				Where(account.GetCredCond()).Run(); err != nil {
-				return fmt.Errorf("failed to delete the old password: %w", err)
-			}
-
-			if err := db.Insert(pswd).Run(); err != nil {
-				return fmt.Errorf("failed to insert the new password: %w", err)
-			}
 		}
 
 		if err := credentialsImport(logger, db, src.Credentials, &account); err != nil {
