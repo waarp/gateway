@@ -29,8 +29,10 @@ const (
 
 	clientConnFreetextKey  = "__clientConnFreetext__"
 	clientTransFreetextKey = "__clientTransFreetext__"
-	serverConnFreetextKey  = "__serverConnFreetext__"
-	serverTransFreetextKey = "__serverTransFreetext__"
+	// Legacy profile: PI 99 as received, when PI 94 took its place as free text.
+	clientTransFreetextRawKey = "__clientTransFreetextRaw__"
+	serverConnFreetextKey     = "__serverConnFreetext__"
+	serverTransFreetextKey    = "__serverTransFreetext__"
 
 	articlesLengthsKey = "__articlesLengths__"
 	articlesFormatKey  = "__articlesFormat__"

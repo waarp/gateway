@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`643` En mode de compatibilité ``non-standard``, le serveur PeSIT
+  accepte désormais les appelants qui utilisent le profil de pré-connexion
+  historique pris en charge par la bibliothèque PeSIT. Le paramètre libre que
+  ces appelants envoient en PI 94 est exposé comme ``__clientTransFreetext__`` ;
+  le PI 99 structuré qu'ils envoient est conservé tel quel dans
+  ``__clientTransFreetextRaw__``. Nécessite lib/pesit v0.1.10.
 * :bug:`639` Correction d'une erreur pouvant survenir lors d'un import si un
   compte distant renseignait un mot de passe à la fois via le champ "password"
   et le champ "credentials". Désormais, si les deux champs sont présents en

@@ -33,6 +33,9 @@ type service struct {
 func (s *service) listen() (string, error) {
 	s.server = pesit.NewServer(s)
 	s.server.Logger = s.logger.AsStdLogger(log.LevelDebug)
+	// Standard mode is the specification, strictly; non-standard mode is
+	// where the conventions of other implementations are accepted.
+	s.server.AllowLegacyProfile = s.conf.CompatibilityMode == CompatibilityModeNonStandard
 	s.server.NetworkTrace = s.logger.AsStdLogger(log.LevelTrace)
 	realAddr := s.db.Config.Overrides.GetRealAddress(s.localAgent.Address.Host,
 		utils.FormatUint(s.localAgent.Address.Port))
