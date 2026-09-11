@@ -230,7 +230,7 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 	// Legacy profile: the free text (PI 99) is a structured header, and the
 	// caller's free parameter travels apart, in PI 94. The parameter is what
 	// rules expect as free text; the header stays available under its own key.
-	if parm := req.LegacyParm(); parm != "" {
+	if parm := req.LegacyParm(); req.LegacyProfile() && parm != "" {
 		setTransInfo(t.pip, clientTransFreetextRawKey, req.FreeText())
 		setTransInfo(t.pip, clientTransFreetextKey, parm)
 	}
