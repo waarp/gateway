@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`652` Un incident interne (« panic ») survenant dans un transfert client
+  arrêtait toute la passerelle, et avec elle tous les transferts en cours. Il
+  est désormais journalisé avec sa pile d'appels, le transfert concerné passe en
+  erreur et la passerelle continue.
 * :bug:`639` Correction d'une erreur pouvant survenir lors d'un import si un
   compte distant renseignait un mot de passe à la fois via le champ "password"
   et le champ "credentials". Désormais, si les deux champs sont présents en
