@@ -63,6 +63,12 @@ func pesitErrToPipErr(msg string, pErr pesit.Diagnostic) *pipeline.Error {
 //nolint:unparam //leave the default code parameter, we might need it later
 func toPesitErr(defaultCode pesit.DiagnosticCode, err error) pesit.Diagnostic {
 	if pErr, ok := errors.AsType[*pipeline.Error](err); ok {
+		// A nil *pipeline.Error in a non-nil error interface: there is nothing
+		// to convert, and calling it would panic.
+		if pErr == nil {
+			return pesit.NewDiagnostic(defaultCode, "transfer error without details")
+		}
+
 		return transErrToPesitErr(pErr)
 	}
 

@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`654` Une opération sur le fichier survenant après la fin du transfert
+  (dernière écriture d'une goroutine de données alors que le partenaire
+  interrompt le transfert au même instant) renvoyait une erreur nulle mais
+  typée, que le serveur PeSIT déréférençait : la passerelle entière tombait.
+  L'erreur est désormais toujours renseignée, et le module PeSIT tolère le cas.
 * :bug:`641` Le serveur PeSIT répond désormais une erreur de paramètre (et non
   plus « database error », qui laissait croire à une panne) lorsqu'aucune règle
   ne correspond au nom de fichier demandé par le partenaire. Le journal indique

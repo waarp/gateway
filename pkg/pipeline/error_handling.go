@@ -26,6 +26,13 @@ func (p *Pipeline) internalErrorWithMsg(code types.TransferErrorCode, msg, extMs
 		p.processError(code, msg, extMsg, cause)
 	})
 
+	// The pipeline may have stopped through another path, without an error
+	// of its own (a normal end): the caller still needs one, or it would go
+	// on, and a nil *Error in an error interface is not nil.
+	if p.storedErr == nil {
+		return NewError(code, extMsg)
+	}
+
 	return p.storedErr
 }
 
@@ -90,6 +97,10 @@ func (f *FileStream) internalErrorWithMsg(code types.TransferErrorCode, msg, ext
 
 		f.processError(code, msg, extMsg, cause)
 	})
+
+	if f.storedErr == nil {
+		return NewError(code, extMsg)
+	}
 
 	return f.storedErr
 }
