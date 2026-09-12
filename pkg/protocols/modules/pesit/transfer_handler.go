@@ -161,8 +161,15 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	}
 
 	if rule.IsSend {
+		articleSize, sizeErr := getSendArticlesSize(t.pip, nil)
+		if sizeErr != nil {
+			t.pip.SetError(sizeErr.Code(), sizeErr.Details())
+
+			return pesit.NewDiagnostic(pesit.CodeInternalError, sizeErr.Details())
+		}
+
 		req.SetArticleFormat(getArticlesFormat(t.pip))
-		req.SetArticleSize(getArticlesSize(t.pip))
+		req.SetArticleSize(articleSize)
 	} else {
 		addArticleFormat(t.pip, req)
 	}
@@ -336,6 +343,16 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 			return nil
 		}
 
+		// The restart point counts the bytes sent, which a delimited text file
+		// does not map to a file offset: the transfer has to start over.
+		if separator, sepErr := getArticlesSeparator(t.pip); sepErr != nil {
+			return toPesitErr(pesit.CodeInternalError, sepErr)
+		} else if separator != nil && t.pip.TransCtx.Rule.IsSend {
+			return pesit.NewDiagnostic(pesit.CodeOtherTransferError,
+				"cannot restart the transfer of a delimited text file, request it again from the start")
+		}
+
+		// If the server is the receiver, set the recovery point
 		// If the server is the receiver, it chooses the recovery point:
 		// the last point before what was received.
 		if !t.pip.TransCtx.Rule.IsSend {
@@ -389,6 +406,22 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 	format := getArticlesFormat(t.pip)
 	lengths, isMArticles := isMultiArticles(t.pip)
+
+	separator, sepErr := getArticlesSeparator(t.pip)
+	if sepErr != nil {
+		return toPesitErr(pesit.CodeInternalError, sepErr)
+	}
+
+	// A delimited text file: one article per record, bounded by the
+	// article size announced when the file was selected.
+	if format == pesit.FormatVariable && separator != nil {
+		if err := sendDelimitedArticles(trans, t.file, separator, int(trans.ArticleSize())); err != nil {
+			return toPesitErr(pesit.CodeOtherTransferError, err)
+		}
+
+		return nil
+	}
+
 	size := getArticlesSize(t.pip)
 
 	trans.SetArticleFormat(format)

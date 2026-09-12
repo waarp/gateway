@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`653` En émission PeSIT, un fichier texte en format variable était
+  découpé tous les 4096 octets, ou envoyé en un seul article lorsqu'une seule
+  longueur était donnée dans ``__articlesLengths__`` ; un partenaire écrivant un
+  enregistrement par article le tronquait sans erreur. La nouvelle info de
+  transfert ``__articlesSeparator__`` (``LF`` ou ``CRLF``) envoie un article par
+  enregistrement, borné par le PI 32 (longueur configurée, ou plus long
+  enregistrement du fichier). La reprise d'un tel transfert n'est pas prise en
+  charge : il est à soumettre de nouveau.
 * :feature:`643` En mode de compatibilité ``non-standard``, le serveur PeSIT
   accepte désormais les appelants qui utilisent le profil de pré-connexion
   historique pris en charge par la bibliothèque PeSIT. Le paramètre libre que
