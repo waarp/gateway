@@ -139,7 +139,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	req.StopReceived = stopReceived(t.pip)
 	req.ConnectionAborted = connectionAborted(t.pip)
-	req.RestartReceived = restartReceived(t.pip)
+	req.RestartReceived = restartReceived(t.pip, req)
 	req.CheckpointRequestReceived = checkpointRequestReceived(t.pip)
 
 	if req.TransferID() == 0 {
@@ -303,19 +303,32 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("Checking for recovery")
 
 	if err := utils.RunWithCtx(t.ctx, func() error {
-		// If the request is not a recovery, there is nothing to do
+		// Synchronisation points are counted by both sides on the interval
+		// negotiated with the peer (PI 7), which is not necessarily the
+		// configured one.
+		interval := int64(dtr.CheckpointSize())
+
+		// A request that is not a restart, for a transfer already known
+		// (an earlier attempt was interrupted): the peer sends the whole
+		// file again, so the file must be written from its beginning.
 		if !dtr.IsRecovered() {
+			if t.pip.TransCtx.Transfer.Progress > 0 {
+				if _, err := t.file.Seek(0, io.SeekStart); err != nil {
+					return toPesitErr(pesit.CodeInternalError, err)
+				}
+			}
+
 			return nil
 		}
 
-		// If the server is the receiver, set the recovery point
+		// If the server is the receiver, it chooses the recovery point:
+		// the last point before what was received.
 		if !t.pip.TransCtx.Rule.IsSend {
-			recoveryPoint := uint32(t.pip.TransCtx.Transfer.Progress / int64(t.conf.CheckpointSize))
-			dtr.SetRecoveryPoint(recoveryPoint)
+			dtr.SetRecoveryPoint(recoveryPoint(t.pip.TransCtx.Transfer.Progress, interval))
 		}
 
 		// Then change the file offset to the corresponding byte
-		offset := int64(dtr.RecoveryPoint()) * int64(t.conf.CheckpointSize)
+		offset := recoveryOffset(dtr.RecoveryPoint(), interval)
 		if _, err := t.file.Seek(offset, io.SeekStart); err != nil {
 			return toPesitErr(pesit.CodeInternalError, err)
 		}
@@ -554,4 +567,25 @@ func (t *transferHandler) handleError(err error) {
 		pipErr := pesitErrToPipErr("error on remote client", pesitErr)
 		t.pip.SetError(pipErr.Code(), pipErr.Details())
 	}
+}
+
+// recoveryPoint returns the last synchronisation point reached before
+// progress bytes, for the interval (in bytes) negotiated with the peer. Without
+// checkpoints, a transfer can only start over.
+func recoveryPoint(progress, interval int64) uint32 {
+	if interval <= 0 || progress <= 0 {
+		return 0
+	}
+
+	return uint32(progress / interval) //nolint:gosec // bounded by the file size
+}
+
+// recoveryOffset returns the byte offset of a synchronisation point, for the
+// interval (in bytes) negotiated with the peer.
+func recoveryOffset(point uint32, interval int64) int64 {
+	if interval <= 0 {
+		return 0
+	}
+
+	return int64(point) * interval
 }

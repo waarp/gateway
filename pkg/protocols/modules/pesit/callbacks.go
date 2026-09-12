@@ -57,21 +57,27 @@ func connectionAborted(pip *pipeline.Pipeline) func(error) {
 	}
 }
 
-func restartReceived(pip *pipeline.Pipeline) func(uint32, error) uint32 {
-	return func(checkpoint uint32, _ error) uint32 {
+// checkpointSizer gives the checkpoint interval negotiated for a transfer.
+type checkpointSizer interface{ CheckpointSize() uint32 }
+
+// restartReceived repositions the file at the synchronisation point the peer
+// restarts from (F.RESYN), and answers with the point actually reached.
+func restartReceived(pip *pipeline.Pipeline, trans checkpointSizer) func(uint32, error) uint32 {
+	return func(checkpointNb uint32, _ error) uint32 {
 		if pip.Stream == nil {
 			return 0 // data transfer hasn't started yet
 		}
 
-		const checkpointSize = 1 // TODO: replace with real value once obtainable
-		offset := checkpointSize * checkpoint
+		// The interval negotiated with the peer (PI 7), in bytes.
+		checkpointSize := int64(trans.CheckpointSize())
+		offset := recoveryOffset(checkpointNb, checkpointSize)
 
-		newOff, err := pip.Stream.Seek(int64(offset), io.SeekStart)
+		newOff, err := pip.Stream.Seek(offset, io.SeekStart)
 		if err != nil {
 			pip.Logger.Errorf("Restart request failed: %v", err)
 		}
 
-		return uint32(newOff)
+		return recoveryPoint(newOff, checkpointSize)
 	}
 }
 

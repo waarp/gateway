@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`650` La reprise d'un transfert PeSIT interrompu côté serveur produisait
+  un fichier corrompu marqué terminé : le point de reprise était calculé avec
+  l'intervalle de synchronisation configuré et non avec celui négocié avec le
+  partenaire, et une nouvelle demande du partenaire pour un transfert connu
+  reprenait le fichier partiel au lieu de le réécrire depuis le début. Le point
+  et le décalage utilisent désormais l'intervalle négocié, une demande qui n'est
+  pas une reprise repart du début du fichier, et la reprise en cours de session
+  (RESYN) répond le point réellement atteint.
 * :bug:`652` Un incident interne (« panic ») survenant dans un transfert client
   arrêtait toute la passerelle, et avec elle tous les transferts en cours. Il
   est désormais journalisé avec sa pile d'appels, le transfert concerné passe en

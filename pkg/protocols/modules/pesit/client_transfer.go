@@ -213,7 +213,7 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 
 	c.pTrans.StopReceived = stopReceived(c.pip)
 	c.pTrans.ConnectionAborted = connectionAborted(c.pip)
-	c.pTrans.RestartReceived = restartReceived(c.pip)
+	c.pTrans.RestartReceived = restartReceived(c.pip, c.pTrans)
 	c.pTrans.CheckpointRequestReceived = checkpointRequestReceived(c.pip)
 
 	if err := setFreetext(c.pip, clientTransFreetextKey, c.pTrans); err != nil {
