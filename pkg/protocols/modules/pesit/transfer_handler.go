@@ -59,6 +59,12 @@ func (t *transferHandler) getRuleByPrefix(filepath string, isSend bool) (*model.
 func (t *transferHandler) getRuleByName(name string, isSend bool) (*model.Rule, error) {
 	var rule model.Rule
 	if err := t.db.Get(&rule, "name=? AND is_send=?", name, isSend).Run(); err != nil {
+		if database.IsNotFound(err) {
+			t.logger.Errorf("No %s rule named %q", utils.If(isSend, "send", "receive"), name)
+
+			return nil, pesit.NewDiagnostic(pesit.CodeParameterError, "no rule found for filename")
+		}
+
 		t.logger.Errorf("Failed to retrieve rule: %v", err)
 
 		return nil, pesit.NewDiagnostic(pesit.CodeInternalError, "database error")

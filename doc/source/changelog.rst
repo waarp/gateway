@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`641` Le serveur PeSIT répond désormais une erreur de paramètre (et non
+  plus « database error », qui laissait croire à une panne) lorsqu'aucune règle
+  ne correspond au nom de fichier demandé par le partenaire. Le journal indique
+  la règle recherchée et sa direction.
 * :bug:`650` La reprise d'un transfert PeSIT interrompu côté serveur produisait
   un fichier corrompu marqué terminé : le point de reprise était calculé avec
   l'intervalle de synchronisation configuré et non avec celui négocié avec le
