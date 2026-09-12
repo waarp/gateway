@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`653` En émission PeSIT, un fichier texte en format variable était
+  découpé tous les 4096 octets, ou envoyé en un seul article lorsqu'une seule
+  longueur était donnée dans ``__articlesLengths__`` ; un partenaire écrivant un
+  enregistrement par article le tronquait sans erreur. La nouvelle info de
+  transfert ``__articlesSeparator__`` (``LF`` ou ``CRLF``) envoie un article par
+  enregistrement, borné par le PI 32 (longueur configurée, ou plus long
+  enregistrement du fichier). La reprise d'un tel transfert n'est pas prise en
+  charge : il est à soumettre de nouveau.
 * :bug:`639` Correction d'une erreur pouvant survenir lors d'un import si un
   compte distant renseignait un mot de passe à la fois via le champ "password"
   et le champ "credentials". Désormais, si les deux champs sont présents en

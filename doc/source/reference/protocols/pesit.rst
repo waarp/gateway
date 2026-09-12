@@ -160,6 +160,19 @@ de transfert info sous le nom de clé ``__articlesFormat__``.
 articles. En l'absence de ces attributs, Gateway utilisera un découpage variable
 avec des articles de 4096 octets max.
 
+Pour un fichier texte en format variable, dont les enregistrements sont délimités
+par une fin de ligne, la clé ``__articlesSeparator__`` (valeurs ``LF`` ou ``CRLF``)
+demande à Gateway d'envoyer **un article par enregistrement**, le séparateur exclu.
+La longueur d'article annoncée (PI 32) est alors le maximum de
+``__articlesLengths__`` si cette clé est présente, ou à défaut la longueur du plus
+long enregistrement du fichier ; un enregistrement plus long que le PI 32 met le
+transfert en erreur avant l'envoi, là où le partenaire le tronquerait. Sans cette
+clé, un fichier texte est découpé en articles de longueur fixe, ce qu'un partenaire
+écrivant un enregistrement par article restitue mal. La reprise d'un transfert
+interrompu n'est pas prise en charge dans ce mode (le point de reprise compte les
+octets envoyés, sans les séparateurs) : le transfert est refusé et doit être soumis
+de nouveau.
+
 Pour conserver le découpage en articles d'un transfert à l'autre en cas de rebond,
 pensez donc bien à activer l'option ``copyInfo`` de la tâche TRANSFER pour que la
 clé soit copiée sur le nouveau transfert.

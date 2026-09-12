@@ -3,6 +3,7 @@ package pesit
 import (
 	"cmp"
 	"errors"
+	"io"
 	"reflect"
 	"slices"
 
@@ -32,8 +33,9 @@ const (
 	serverConnFreetextKey  = "__serverConnFreetext__"
 	serverTransFreetextKey = "__serverTransFreetext__"
 
-	articlesLengthsKey = "__articlesLengths__"
-	articlesFormatKey  = "__articlesFormat__"
+	articlesLengthsKey   = "__articlesLengths__"
+	articlesFormatKey    = "__articlesFormat__"
+	articlesSeparatorKey = "__articlesSeparator__"
 )
 
 func setPesitInfo[T cmp.Ordered, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {
@@ -168,4 +170,63 @@ func addArticleFormat(pip *pipeline.Pipeline, f interface {
 },
 ) {
 	pip.TransCtx.Transfer.TransferInfo[articlesFormatKey] = f.ArticleFormat().String()
+}
+
+// getArticlesSeparator returns the separator ending each record of the file
+// to send when the transfer info declares one (a delimited text file), nil
+// otherwise.
+func getArticlesSeparator(pip *pipeline.Pipeline) ([]byte, *pipeline.Error) {
+	name, err := utils.GetAs[string](pip.TransCtx.Transfer.TransferInfo, articlesSeparatorKey)
+	if errors.Is(err, utils.ErrKeyNotFound) {
+		return nil, nil
+	} else if err != nil {
+		return nil, pipeline.NewError(types.TeInternal, err.Error())
+	}
+
+	if name == "" {
+		return nil, nil
+	}
+
+	separator, parseErr := parseArticlesSeparator(name)
+	if parseErr != nil {
+		return nil, pipeline.NewError(types.TeInternal, parseErr.Error())
+	}
+
+	return separator, nil
+}
+
+// getSendArticlesSize returns the article size (PI 32) to announce for a file
+// to send: the longest configured length or, for a delimited text file
+// without configured lengths, the longest record of the file. The file is
+// read through the given stream when there is one (it is then left at its
+// position), or opened from its path otherwise.
+func getSendArticlesSize(pip *pipeline.Pipeline, file io.ReadSeeker) (uint16, *pipeline.Error) {
+	separator, sepErr := getArticlesSeparator(pip)
+	if sepErr != nil {
+		return 0, sepErr
+	}
+
+	if _, hasLengths := isMultiArticles(pip); separator == nil || hasLengths ||
+		getArticlesFormat(pip) != pesit.FormatVariable {
+		return getArticlesSize(pip), nil
+	}
+
+	var (
+		size uint16
+		err  error
+	)
+
+	if file != nil {
+		size, err = longestRecord(file, separator)
+	} else {
+		size, err = longestRecordOf(pip.TransCtx.Transfer.LocalPath, separator)
+	}
+
+	if err != nil {
+		pip.Logger.Errorf("Failed to measure the records of the file: %v", err)
+
+		return 0, pipeline.NewError(types.TeInternal, "failed to measure the records of the file")
+	}
+
+	return size, nil
 }

@@ -31,6 +31,9 @@ var _ interface {
 } = &clientTransfer{}
 
 type clientTransfer struct {
+	// sendFile is the file being sent, read by the request to size the articles.
+	sendFile io.ReadSeeker
+
 	isTLS      bool
 	pip        *pipeline.Pipeline
 	clientConf *ClientConfigTLS
@@ -195,6 +198,15 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 				"cannot resume transfer, server does not allow restarts")
 		}
 
+		// The restart point counts the bytes sent, which a delimited text file
+		// does not map to a file offset: the transfer has to start over.
+		if separator, sepErr := getArticlesSeparator(c.pip); sepErr != nil {
+			return sepErr
+		} else if separator != nil && c.pip.TransCtx.Rule.IsSend {
+			return pipeline.NewError(types.TeForbidden,
+				"cannot resume the transfer of a delimited text file, cancel it and submit it again")
+		}
+
 		c.pTrans.SetRecovered(true)
 
 		if c.pip.TransCtx.Rule.IsSend && c.client.HasCheckpoints() {
@@ -207,8 +219,13 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 	c.pTrans.SetMessageSize(partConf.MaxMessageSize)
 
 	if c.pip.TransCtx.Rule.IsSend {
+		articleSize, sizeErr := getSendArticlesSize(c.pip, c.sendFile)
+		if sizeErr != nil {
+			return sizeErr
+		}
+
 		c.pTrans.SetArticleFormat(getArticlesFormat(c.pip))
-		c.pTrans.SetArticleSize(getArticlesSize(c.pip))
+		c.pTrans.SetArticleSize(articleSize)
 	}
 
 	c.pTrans.StopReceived = stopReceived(c.pip)
@@ -301,20 +318,26 @@ func (c *clientTransfer) authenticateServer() *pipeline.Error {
 }
 
 func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
+	c.sendFile = fullFile
+
 	if err := c.request(); err != nil {
 		return err
 	}
 
+	sendFailed := func(err error) *pipeline.Error {
+		c.pip.Logger.Errorf("Failed to send data: %v", err)
+
+		pErr := toPesitErr(pesit.CodeOtherTransferError, err)
+		if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
+			c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
+		}
+
+		return toPipErr(types.TeDataTransfer, "failed to send data", err)
+	}
+
 	copyArticle := func(article io.Writer, file io.Reader) *pipeline.Error {
 		if _, err := io.Copy(article, file); err != nil {
-			c.pip.Logger.Errorf("Failed to send data: %v", err)
-
-			pErr := toPesitErr(pesit.CodeOtherTransferError, err)
-			if hErr := c.halt(pesit.StopError, pErr); hErr != nil {
-				c.pip.Logger.Warningf("Failed to send error to partner: %v", hErr)
-			}
-
-			return toPipErr(types.TeDataTransfer, "failed to send data", err)
+			return sendFailed(err)
 		}
 
 		return nil
@@ -323,6 +346,22 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 	return c.dataTransfer(func() *pipeline.Error {
 		format := getArticlesFormat(c.pip)
 		articleLengths, isMArt := isMultiArticles(c.pip)
+
+		separator, sepErr := getArticlesSeparator(c.pip)
+		if sepErr != nil {
+			return sepErr
+		}
+
+		// A delimited text file: one article per record, bounded by the
+		// article size announced with the request.
+		if format == pesit.FormatVariable && separator != nil {
+			if err := sendDelimitedArticles(c.pTrans, fullFile, separator,
+				int(c.pTrans.ArticleSize())); err != nil {
+				return sendFailed(err)
+			}
+
+			return nil
+		}
 
 		if format == pesit.FormatFixed || !isMArt {
 			return copyArticle(c.pTrans, fullFile)
