@@ -32,6 +32,8 @@ code.waarp.fr/lib/pesit v0.1.10-0.20260914132350-1573c2b24932 h1:lRLwB7Pw6yIv1n+
 code.waarp.fr/lib/pesit v0.1.10-0.20260914132350-1573c2b24932/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
 code.waarp.fr/lib/pesit v0.1.10-0.20260914133445-4b12a65a1998 h1:GzApXR+I+ehgO0uPl9civdwiHdPuQ2BYmjPul+X9Ueg=
 code.waarp.fr/lib/pesit v0.1.10-0.20260914133445-4b12a65a1998/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
+code.waarp.fr/lib/pesit v0.1.10 h1:Jg7CEASNQG/fXcyQECTdcL2DFoQkQKI61k0IBYj0sls=
+code.waarp.fr/lib/pesit v0.1.10/go.mod h1:j0w246yKZT461URAONacmnzxVwDH1eIgnC1dnpBICc0=
 code.waarp.fr/lib/r66 v1.0.8 h1:RHNbOzY95eKPA/yYHU559tdY2eAqQvjR+Fz+R3WTS7w=
 code.waarp.fr/lib/r66 v1.0.8/go.mod h1:APiI1uK3RliA/0opgYWCzS7q3GxdypkRiaesjhclUZI=
 codeberg.org/chavacava/garif v0.2.0 h1:F0tVjhYbuOCnvNcU3YSpO6b3Waw6Bimy4K0mM8y6MfY=
