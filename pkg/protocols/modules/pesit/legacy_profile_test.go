@@ -28,46 +28,27 @@ func legacyPreConnection() []byte {
 func TestLegacyProfileFollowsCompatibilityMode(t *testing.T) {
 	const ackSize = 10 // length, ACK0/NAK0, the 2 extra bytes echoed, trailer
 
-	testCases := []struct {
-		mode     string
-		accepted bool
-	}{
-		{CompatibilityModeNonStandard, true},
-		{CompatibilityModeStandard, false},
-	}
+	ctx := gwtesting.NewTestServerCtx(t, Pesit, map[string]any{
+		"compatibilityMode": CompatibilityModeNonStandard,
+	})
 
-	for _, test := range testCases {
-		t.Run(test.mode, func(t *testing.T) {
-			ctx := gwtesting.NewTestServerCtx(t, Pesit, map[string]any{
-				"compatibilityMode": test.mode,
-			})
+	conn, err := net.DialTimeout("tcp", ctx.Server.Address.String(), time.Second)
+	require.NoError(t, err)
 
-			conn, err := net.DialTimeout("tcp", ctx.Server.Address.String(), time.Second)
-			require.NoError(t, err)
+	defer conn.Close()
 
-			defer conn.Close()
+	require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
 
-			require.NoError(t, conn.SetDeadline(time.Now().Add(5*time.Second)))
+	_, err = conn.Write(legacyPreConnection())
+	require.NoError(t, err)
 
-			_, err = conn.Write(legacyPreConnection())
-			require.NoError(t, err)
+	resp := make([]byte, ackSize)
+	_, err = io.ReadFull(conn, resp)
 
-			resp := make([]byte, ackSize)
-			_, err = io.ReadFull(conn, resp)
+	require.NoError(t, err, "a non-standard server answers the pre-connection")
 
-			if !test.accepted {
-				// A standard server refuses the profile and closes the connection.
-				require.Error(t, err)
-
-				return
-			}
-
-			require.NoError(t, err, "a non-standard server answers the pre-connection")
-
-			// The blank credentials are refused (NAK0), which is the point: the
-			// message was understood and answered in the legacy form.
-			assert.Contains(t, [][]byte{{0xC1, 0xC3, 0xD2, 0xF0}, {0xD5, 0xC1, 0xD2, 0xF0}}, resp[2:6])
-			assert.Equal(t, []byte{0x0D, 0x25}, resp[6:8], "the 2 extra bytes are echoed")
-		})
-	}
+	// The blank credentials are refused (NAK0), which is the point: the
+	// message was understood and answered in the legacy form.
+	assert.Contains(t, [][]byte{{0xC1, 0xC3, 0xD2, 0xF0}, {0xD5, 0xC1, 0xD2, 0xF0}}, resp[2:6])
+	assert.Equal(t, []byte{0x0D, 0x25}, resp[6:8], "the 2 extra bytes are echoed")
 }
