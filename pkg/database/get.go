@@ -88,7 +88,7 @@ func (g *GetQuery) Run() error {
 	result := query.Take(g.bean)
 	if getErr := result.Error; errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		logger.Debugf("No %s found with conditions (%s)", g.bean.Appellation(),
-			explainStmt(query))
+			explainConds(query.Dialector, g.conds))
 
 		return NewNotFoundError(g.bean)
 	} else if getErr != nil {
