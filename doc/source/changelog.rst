@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`645` Le charset de connexion à une base de données MySQL (et variantes)
+  est désormais fixé à "utf8mb4". Précédemment, ce charset dépendait du charset
+  en usage sur la base de données ou la table concernée, ce qui produisait des
+  erreurs si leur charset n'était pas UFT8.
+
 * :release:`0.16.5 <2026-09-15>`
 * :bug:`653` En émission PeSIT, un fichier texte en format variable était
   découpé tous les 4096 octets, ou envoyé en un seul article lorsqu'une seule

@@ -26,14 +26,14 @@ func testSelectForUpdate(db *DB) {
 	bean2 := testValid{ID: 2, String: "str2"}
 	bean3 := testValid{ID: 3, String: "str2"}
 
-	db2 := &DB{}
+	db2 := NewDB(db.Config)
 	So(db2.Start(), ShouldBeNil)
 	Reset(func() { So(db2.close(), ShouldBeNil) })
 
 	transRes := make(chan error, 1)
 	trans2 := func(ses *Session) error {
 		var beans validList
-		if err := ses.Select(&beans).Where("string='str2'").Run(); err != nil {
+		if err := ses.SelectForUpdate(&beans).Where("string='str2'").Run(); err != nil {
 			return err
 		}
 
@@ -68,7 +68,7 @@ func testSelectForUpdate(db *DB) {
 		So(tErr2, ShouldBeNil)
 
 		var res []testValid
-		So(db.engine.Find(&res), ShouldBeNil)
+		So(db.engine.Find(&res).Error, ShouldBeNil)
 		So(res, ShouldContain, testValid{ID: 1, String: "str1"})
 		So(res, ShouldContain, testValid{ID: 2, String: "new_str2"})
 		So(res, ShouldContain, testValid{ID: 3, String: "new_str2"})

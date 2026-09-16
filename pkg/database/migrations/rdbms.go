@@ -127,5 +127,8 @@ func MysqlDSN(config *conf.DatabaseConfig) string {
 		dsn.TLSConfig = "db"
 	}
 
+	//nolint:errcheck // mysql.Charset never returns an error
+	_ = dsn.Apply(mysql.Charset("utf8mb4", ""))
+
 	return dsn.FormatDSN()
 }
