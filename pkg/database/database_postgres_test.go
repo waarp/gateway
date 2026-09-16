@@ -4,7 +4,6 @@
 package database
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -22,18 +21,23 @@ func TestPostgreSQL(t *testing.T) {
 	config.Database.Password = "postgres"
 	config.Database.Name = "waarp_gateway_test"
 	config.Database.Address = "localhost:5432"
-	config.Database.AESPassphrase = filepath.Join(os.TempDir(), "pgsql_test_passphrase.aes")
+	config.Database.AESPassphrase = filepath.Join(t.TempDir(), "pgsql_test_passphrase.aes")
 
 	db := NewDB(config)
 	if err := db.start(false); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := db.engine.Close(); err != nil {
-			t.Logf("Failed to close database: %v", err)
+		if err := db.engine.Exec("DROP SCHEMA IF EXISTS public CASCADE").Error; err != nil {
+			t.Logf("Failed to drop schema: %v", err)
 		}
-		if err := os.Remove(db.Config.Database.AESPassphrase); err != nil {
-			t.Logf("Failed to delete passphrase file: %v", err)
+
+		if err := db.engine.Exec("CREATE SCHEMA public").Error; err != nil {
+			t.Logf("Failed to restore schema: %v", err)
+		}
+
+		if err := db.close(); err != nil {
+			t.Logf("Failed to close database: %v", err)
 		}
 	}()
 
