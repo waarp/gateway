@@ -111,10 +111,18 @@ func checkExists(db Access, bean exister) error {
 	return nil
 }
 
-func explainStmt(query *gorm.DB) string {
-	return query.Statement.ToSQL(func(tx *gorm.DB) *gorm.DB {
-		return tx
-	})
+func explainConds(dialector gorm.Dialector, conds []*condition) string {
+	sql := make([]string, 0, len(conds))
+
+	for _, cond := range conds {
+		if cond == nil {
+			continue
+		}
+
+		sql = append(sql, dialector.Explain(cond.sql, cond.args...))
+	}
+
+	return strings.Join(sql, " AND ")
 }
 
 type gormLogger struct {

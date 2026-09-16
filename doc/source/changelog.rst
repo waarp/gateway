@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.16.5 <2026-09-15>`
 * :bug:`653` En émission PeSIT, un fichier texte en format variable était
   découpé tous les 4096 octets, ou envoyé en un seul article lorsqu'une seule
   longueur était donnée dans ``__articlesLengths__`` ; un partenaire écrivant un
