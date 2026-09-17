@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`659` Gateway envoie désormais systématiquement un certificat client
+  lorsque le partenaire le demande, y compris lorsque, en apparence, celui-ci
+  ne devrait pas être accepté par le partenaire.
 * :bug:`645` Le charset de connexion à une base de données MySQL (et variantes)
   est désormais fixé à "utf8mb4". Précédemment, ce charset dépendait du charset
   en usage sur la base de données ou la table concernée, ce qui produisait des
