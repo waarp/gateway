@@ -184,25 +184,35 @@ func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
 		minVersion = partMinVersion
 	}
 
+	accCerts := make([]*tls.Certificate, 0, len(accountCreds))
+	for _, cred := range accountCreds {
+		if cred.Type != auth.TLSCertificate {
+			continue
+		}
+
+		cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse client certificate %s: %w", cred.Name, err)
+		}
+
+		accCerts = append(accCerts, &cert)
+	}
+
 	config := &tls.Config{
 		ServerName:       partner.Address.Host,
 		RootCAs:          utils.TLSCertPool(),
 		VerifyConnection: compatibility.LogSha1(logger),
 		MinVersion:       minVersion,
 		GetClientCertificate: func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-			for _, cred := range accountCreds {
-				if cred.Type != auth.TLSCertificate {
-					continue
+			// Prefer the standards-compliant choice when one exists.
+			for _, cert := range accCerts {
+				if info.SupportsCertificate(cert) == nil {
+					return cert, nil
 				}
-
-				cert, err := utils.X509KeyPair(cred.Value, cred.Value2)
-				if err != nil {
-					return nil, fmt.Errorf("failed to parse client certificate %s: %w", cred.Name, err)
-				}
-
-				if info.SupportsCertificate(&cert) == nil {
-					return &cert, nil
-				}
+			}
+			// Fallback: send the configured certificate anyway and let the server decide.
+			if len(accCerts) > 0 {
+				return accCerts[0], nil
 			}
 
 			return &tls.Certificate{}, nil
