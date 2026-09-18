@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -21,17 +20,26 @@ const transferTimeout = 10 * time.Minute
 
 var ErrTransferTimedOut = errors.New("transfer timed out")
 
-type Pipeline controller.ClientPipeline
+type Pipeline struct {
+	*controller.ClientPipeline
+
+	serTransEnd chan struct{}
+}
 
 func (p Pipeline) Run() error {
-	pip := controller.ClientPipeline(p)
 	ctx, cancel := context.WithTimeout(context.Background(), transferTimeout)
-
 	defer cancel()
-	// defer pip.Cancel(ctx) //nolint:errcheck //error is unimportant here
 
 	select {
-	case err := <-utils.GoRun((&pip).Run):
+	case err := <-utils.GoRun(func() error {
+		if err := p.ClientPipeline.Run(); err != nil {
+			return err //nolint:wrapcheck //wrapping adds nothing here
+		}
+
+		<-p.serTransEnd
+
+		return nil
+	}):
 		return err
 	case <-ctx.Done():
 		return ErrTransferTimedOut
@@ -44,7 +52,7 @@ func (ctx *TransferCtx) PushPipeline(tb testing.TB) Pipeline {
 	pip, err := controller.NewClientPipeline(ctx.DB, ctx.TransferPush)
 	require.NoError(tb, err, "Failed to initialize the test push pipeline")
 
-	return Pipeline(*pip)
+	return Pipeline{pip, ctx.servTransEnd}
 }
 
 func (ctx *TransferCtx) PullPipeline(tb testing.TB) Pipeline {
@@ -53,14 +61,14 @@ func (ctx *TransferCtx) PullPipeline(tb testing.TB) Pipeline {
 	pip, err := controller.NewClientPipeline(ctx.DB, ctx.TransferPull)
 	require.NoError(tb, err, "Failed to initialize the test pull pipeline")
 
-	return Pipeline(*pip)
+	return Pipeline{pip, ctx.servTransEnd}
 }
 
 func (ctx *TransferCtx) RetryPush(tb testing.TB) Pipeline {
 	tb.Helper()
 	require.NoError(tb, ctx.DB.DeleteAll(&model.Task{}).In("rule_id",
 		ctx.ClientRulePush.ID, ctx.ServerRulePush.ID).Where("type=?", taskstest.TaskErr).Run())
-	ctx.ServerService.SetTracer(func() pipeline.Trace { return pipeline.Trace{} })
+	ctx.ServerService.SetTracer(ctx.serverTrace)
 
 	return ctx.PushPipeline(tb)
 }
@@ -69,7 +77,7 @@ func (ctx *TransferCtx) RetryPull(tb testing.TB) Pipeline {
 	tb.Helper()
 	require.NoError(tb, ctx.DB.DeleteAll(&model.Task{}).In("rule_id",
 		ctx.ClientRulePull.ID, ctx.ServerRulePull.ID).Where("type=?", taskstest.TaskErr).Run())
-	ctx.ServerService.SetTracer(func() pipeline.Trace { return pipeline.Trace{} })
+	ctx.ServerService.SetTracer(ctx.serverTrace)
 
 	return ctx.PullPipeline(tb)
 }

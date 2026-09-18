@@ -16,6 +16,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
+const chanBuf = 10
+
 type TestServerCtx struct {
 	Root string
 	DB   *database.DB
@@ -33,7 +35,6 @@ type TestServerCtx struct {
 func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any) *TestServerCtx {
 	tb.Helper()
 	require.Contains(tb, protocolsList, protocol)
-	const chanBuf = 10
 
 	port := GetLocalPort(tb)
 	ctx := &TestServerCtx{
@@ -78,7 +79,7 @@ func NewTestServerCtx(tb testing.TB, protocol string, serverConf map[string]any)
 	ctx.Service.SetTracer(func() pipeline.Trace {
 		return pipeline.Trace{
 			OnTransferEnd: func() {
-				close(ctx.endChan)
+				ctx.endChan <- true
 			},
 		}
 	})

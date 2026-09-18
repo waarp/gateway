@@ -197,6 +197,9 @@ func TestErrorPostTasksClient(t *testing.T) {
 	})
 }
 
+// Server post-tasks are executed in a separate goroutine, and thus, errors are
+// NOT sent to the client (as the client considers the transfer to be complete
+// at that stage). This also means that no retry is possible.
 func TestErrorPostTasksServer(t *testing.T) {
 	db := gwtesting.Database(t)
 	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
@@ -207,14 +210,7 @@ func TestErrorPostTasksServer(t *testing.T) {
 		pip := ctx.PullPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
-			require.Error(t, pip.Run(), "Then the transfer should fail")
-
-			newPip := ctx.RetryPull(t)
-			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
-
-			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
-				ctx.CheckPullTransferOK(t)
-			})
+			require.NoError(t, pip.Run())
 		})
 	})
 
@@ -224,14 +220,7 @@ func TestErrorPostTasksServer(t *testing.T) {
 		pip := ctx.PushPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
-			require.Error(t, pip.Run(), "Then the transfer should fail")
-
-			newPip := ctx.RetryPush(t)
-			require.NoError(t, newPip.Run(), "Then the new transfer should execute without error")
-
-			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
-				ctx.CheckPushTransferOK(t)
-			})
+			require.NoError(t, pip.Run())
 		})
 	})
 }

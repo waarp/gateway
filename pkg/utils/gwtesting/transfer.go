@@ -61,6 +61,8 @@ type TransferCtx struct {
 
 	ClientRulePush, ClientRulePull *model.Rule
 	ServerRulePush, ServerRulePull *model.Rule
+
+	servTransEnd chan struct{}
 }
 
 //nolint:funlen //function length is fine (for now)
@@ -70,7 +72,7 @@ func TestTransferCtxUnstarted(tb testing.TB, db *database.DB, proto string,
 	tb.Helper()
 	tb.Cleanup(pipeline.List.Reset)
 
-	ctx := &TransferCtx{DB: db}
+	ctx := &TransferCtx{DB: db, servTransEnd: make(chan struct{}, chanBuf)}
 	port := GetLocalPort(tb)
 
 	db.Config.Paths = conf.PathsConfig{
@@ -340,6 +342,7 @@ func (ctx *TransferCtx) startServer(tb testing.TB) {
 		"The service must implement the interface for test services")
 
 	ctx.ServerService = service.(TestService) //nolint:forcetypeassert,errcheck //type is checked above
+	ctx.ServerService.SetTracer(ctx.serverTrace)
 
 	require.NoError(tb, service.Start(), "Failed to start the server")
 	tb.Cleanup(func() {
@@ -376,15 +379,17 @@ func (ctx *TransferCtx) AddServerDataError(tb testing.TB, rule *model.Rule) {
 
 	if rule.IsSend {
 		ctx.ServerService.SetTracer(func() pipeline.Trace {
-			return pipeline.Trace{
-				OnRead: func(int64) error { return ErrTest },
-			}
+			trace := ctx.serverTrace()
+			trace.OnRead = func(int64) error { return ErrTest }
+
+			return trace
 		})
 	} else {
 		ctx.ServerService.SetTracer(func() pipeline.Trace {
-			return pipeline.Trace{
-				OnWrite: func(int64) error { return ErrTest },
-			}
+			trace := ctx.serverTrace()
+			trace.OnWrite = func(int64) error { return ErrTest }
+
+			return trace
 		})
 	}
 }
@@ -393,4 +398,12 @@ func (ctx *TransferCtx) AddCred(tb testing.TB, cred *model.Credential) {
 	tb.Helper()
 
 	require.NoError(tb, ctx.DB.Insert(cred).Run())
+}
+
+func (ctx *TransferCtx) serverTrace() pipeline.Trace {
+	return pipeline.Trace{
+		OnTransferEnd: func() {
+			ctx.servTransEnd <- struct{}{}
+		},
+	}
 }
