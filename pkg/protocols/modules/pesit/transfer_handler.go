@@ -548,23 +548,21 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 		return nil
 	}
 
-	if err := utils.RunWithCtx(t.ctx, func() error {
-		if err := t.pip.PostTasks(); err != nil {
-			return transErrToPesitErr(err)
+	go func(pip *pipeline.Pipeline) {
+		if err := pip.PostTasks(); err != nil {
+			pip.Logger.Errorf("Transfer post-tasks failed: %v", err)
+
+			return
 		}
 
-		if err := t.pip.EndTransfer(); err != nil {
-			return transErrToPesitErr(err)
+		if err := pip.EndTransfer(); err != nil {
+			pip.Logger.Errorf("Transfer finalization failed: %v", err)
+
+			return
 		}
 
-		return nil
-	}); err != nil {
-		t.pip.Logger.Debugf("Transfer finalization failed: %v", err)
-
-		return err
-	}
-
-	t.pip.Logger.Debug("Transfer finalization successful")
+		pip.Logger.Debug("Transfer finalization successful")
+	}(t.pip)
 
 	return nil
 }
