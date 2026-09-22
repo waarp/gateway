@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`661` Le serveur PeSIT accepte désormais les F.MESSAGE ne contenant pas
+  de login (PI 3). Le login fourni à la connexion est utilisée en son absence.
 * :bug:`623` Le serveur PeSIT de Gateway n'attend désormais plus la fin des
   post-tâches pour répondre aux requêtes de désélection de fichier. Ces tâches
   sont désormais exécutées séparément après la fin du transfert.

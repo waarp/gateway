@@ -114,8 +114,7 @@ func TestMessageHandlerClient(t *testing.T) {
 	// ############ SEND MESSAGE ###############
 	transferID, err := utils.ParseUint[uint32](transDest.RemoteTransferID)
 	require.NoError(t, err)
-	message, err := pesitClient.NewMessage(pesit.FileACK, transDest.SrcFilename, transferID,
-		pesit.WithClientLogin(locAccount.Login))
+	message, err := pesitClient.NewMessage(pesit.FileACK, transDest.SrcFilename, transferID)
 	require.NoError(t, err)
 	_, err = io.WriteString(message, msgContent)
 	require.NoError(t, err)
@@ -248,8 +247,7 @@ func TestMessageHandlerServer(t *testing.T) {
 	// ############ SEND MESSAGE ###############
 	transferID, err := utils.ParseUint[uint32](transDest.RemoteTransferID)
 	require.NoError(t, err)
-	message, err := pesitClient.NewMessage(pesit.FileACK, transDest.SrcFilename, transferID,
-		pesit.WithClientLogin(destLocAccount.Login))
+	message, err := pesitClient.NewMessage(pesit.FileACK, transDest.SrcFilename, transferID)
 	require.NoError(t, err)
 	_, err = io.WriteString(message, msgContent)
 	require.NoError(t, err)

@@ -40,17 +40,13 @@ func (s *service) HandleMessage(req *pesit.MessageRequest, cont io.Reader,
 	s.logger.Infof("F.MESSAGE received from %q: transferID=%d customerID=%q bankID=%q message=%q",
 		req.ClientLogin, req.TransferID, req.CustomerID, req.BankID, string(content))
 
-	if req.MessageType != pesit.FileACK {
-		return &pesit.MessageResult{}, nil
-	}
-
-	if req.TransferID == 0 {
+	if req.MessageType != pesit.FileACK || req.TransferID == 0 {
 		return &pesit.MessageResult{}, nil
 	}
 
 	partner, partErr := s.findPartnerByLogin(req.ClientLogin)
 	if partErr != nil {
-		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "failed to find partner")
+		return nil, partErr
 	}
 
 	remoteID := utils.FormatUint(req.TransferID)
