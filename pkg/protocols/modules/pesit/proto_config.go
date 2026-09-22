@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -155,6 +156,11 @@ type PartnerConfig struct {
 	// transfers. If this is set, then pull transfers will not be finalized until
 	// an acknowledgement is received.
 	ExpectsAck bool `json:"expectsAck,omitempty"`
+	// AckTimeout specifies the amount of time that Gateway will wait for the
+	// partner's acknowledgement. If no acknowledgement has been received once
+	// the timeout has elapsed, the transfer will fall in error. The duration
+	// must be specified in a valid Go duration format (e.g., "10s", "1m", "1h", ...).
+	AckTimeout string `json:"ackTimeout,omitempty"`
 }
 
 func (p *PartnerConfig) ValidConf() error {
@@ -172,6 +178,16 @@ func (p *PartnerConfig) ValidConf() error {
 
 	if p.MaxMessageSize == 0 {
 		p.MaxMessageSize = DefaultMessageSize
+	}
+
+	if !p.ExpectsAck {
+		p.AckTimeout = ""
+	}
+
+	if p.AckTimeout != "" {
+		if _, err := time.ParseDuration(p.AckTimeout); err != nil {
+			return fmt.Errorf("invalid ack timeout duration %q: %w", p.AckTimeout, err)
+		}
 	}
 
 	return nil

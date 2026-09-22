@@ -151,7 +151,7 @@ func (n *NormalizedTransferView) Restart(db database.Access, date time.Time) (*T
 
 func (n *NormalizedTransferView) UpdateInfo(db database.Access) error {
 	if !n.IsTransfer {
-		return nil
+		return n.asHistoryEntry().UpdateInfo(db)
 	}
 
 	trans := &Transfer{

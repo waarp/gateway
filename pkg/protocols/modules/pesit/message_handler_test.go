@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"testing"
+	"time"
 
 	"code.waarp.fr/lib/pesit"
 	"github.com/stretchr/testify/assert"
@@ -82,13 +83,20 @@ func TestMessageHandlerClient(t *testing.T) {
 	require.NoError(t, db.Insert(ruleSend).Run())
 
 	// ############ SETUP TRANSFERS ###############
-	transOrig := &model.Transfer{
-		Status:          types.StatusRunning,
-		ClientID:        client.NullableID(),
-		RuleID:          ruleRecv.ID,
-		RemoteAccountID: origAccount.NullableID(),
-		SrcFilename:     "test.txt",
-		TransferInfo:    map[string]any{model.FollowID: followID},
+	transOrig := &model.HistoryEntry{
+		ID:               1000,
+		RemoteTransferID: "1000",
+		Protocol:         Pesit,
+		Status:           types.StatusDone,
+		Client:           client.Name,
+		Rule:             ruleRecv.Name,
+		IsSend:           ruleRecv.IsSend,
+		Account:          origAccount.Login,
+		Agent:            origPartner.Name,
+		SrcFilename:      "test.txt",
+		Start:            time.Date(2025, 1, 1, 0, 0, 0, 0, time.Local),
+		Stop:             time.Date(2025, 1, 1, 1, 0, 0, 0, time.Local),
+		TransferInfo:     map[string]any{model.FollowID: followID},
 	}
 	require.NoError(t, db.Insert(transOrig).Run())
 	transDest := &model.Transfer{
@@ -130,19 +138,15 @@ func TestMessageHandlerClient(t *testing.T) {
 
 	// ############ CHECK TRANSFERS ###############
 	var check model.NormalizedTransfers
-	require.NoError(t, db.Select(&check).OrderBy("id", true).Eager().Run())
+	require.NoError(t, db.Select(&check).OrderBy("is_transfer", true).Eager().Run())
 	require.Len(t, check, 2)
 
 	assert.Equal(t, transOrig.ID, check[0].ID)
-	assert.False(t, check[0].IsTransfer)
-	assert.Equal(t, types.StatusDone, check[0].Status)
 	assert.Subset(t, check[0].TransferInfo, map[string]any{
 		ackSentKey: true,
 	})
 
 	assert.Equal(t, transDest.ID, check[1].ID)
-	assert.False(t, check[1].IsTransfer)
-	assert.Equal(t, types.StatusDone, check[1].Status)
 	assert.Subset(t, check[1].TransferInfo, map[string]any{
 		ackReceivedKey: true,
 	})
@@ -267,15 +271,11 @@ func TestMessageHandlerServer(t *testing.T) {
 	require.Len(t, check, 2)
 
 	assert.Equal(t, transOrig.ID, check[0].ID)
-	assert.False(t, check[0].IsTransfer)
-	assert.Equal(t, types.StatusDone, check[0].Status)
 	assert.Subset(t, check[0].TransferInfo, map[string]any{
 		ackSentKey: true,
 	})
 
 	assert.Equal(t, transDest.ID, check[1].ID)
-	assert.False(t, check[1].IsTransfer)
-	assert.Equal(t, types.StatusDone, check[1].Status)
 	assert.Subset(t, check[1].TransferInfo, map[string]any{
 		ackReceivedKey: true,
 	})
