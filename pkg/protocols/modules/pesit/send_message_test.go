@@ -111,7 +111,7 @@ func makeTestMessageServer(tb testing.TB) *testMessageServer {
 
 	logger := logtest.GetTestLogger(tb,
 		logtest.WithName("test_message_server"),
-		logtest.WithLevel("TRACE"),
+		logtest.WithLevel("INFO"),
 	)
 	handler := &testMessageServer{}
 	serv := pesit.NewServer(handler)

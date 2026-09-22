@@ -6,6 +6,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -270,7 +271,7 @@ func (p *Pipeline) EndData() *Error {
 		return p.stateErr("EndDataDone", p.machine.Current())
 	}
 
-	return nil
+	return p.waitACK()
 }
 
 // PostTasks executes the transfer's post-tasks. If an error occurs, the pipeline
@@ -328,24 +329,6 @@ func (p *Pipeline) EndTransfer() *Error {
 		p.Runner.Stop()
 		p.TransCtx.Transfer.Step = types.StepNone
 		p.TransCtx.Transfer.TaskNumber = 0
-
-		// If transfer is waiting for acknowledgement, do not mark it as done yet
-		if expectsAck, jsErr := utils.GetAs[bool](p.TransCtx.Transfer.TransferInfo,
-			tasks.SendMessageAckExpectedKey); jsErr == nil && expectsAck {
-			p.TransCtx.Transfer.Stop = time.Now()
-			if err := p.DB.Update(p.TransCtx.Transfer).Run(); err != nil {
-				p.Logger.Errorf("Failed to update transfer: %v", err)
-				p.errorTasks()
-				p.storedErr = sErr
-
-				return
-			}
-
-			p.doneWaitAck()
-
-			return
-		}
-
 		p.TransCtx.Transfer.Status = types.StatusDone
 
 		if err := p.TransCtx.Transfer.MoveToHistory(p.DB, p.Logger, time.Now()); err != nil {
@@ -544,15 +527,6 @@ func (p *Pipeline) doneErr(status types.TransferStatus) {
 	p.done(stateInError)
 }
 
-func (p *Pipeline) doneWaitAck() {
-	defer func() {
-		p.Logger.Infof("Transfer finished in %s, awaiting acknowledgement",
-			time.Since(p.TransCtx.Transfer.Start))
-	}()
-
-	p.done(stateAllDone)
-}
-
 func (p *Pipeline) doneOK() {
 	defer func() {
 		p.Logger.Infof("Transfer ended without errors in %s",
@@ -588,4 +562,119 @@ func incrementRetryDelay(trans *model.Transfer) {
 	} else {
 		trans.NextRetryDelay = int32(newDelay)
 	}
+}
+
+const (
+	AckWaitSince     = "__ackWaitSince__"
+	AckWaitTimeout   = "__ackWaitTimeout__"
+	AckReceived      = "__ackReceived__"
+	AckReceivedOnKey = "__ackReceivedOn__"
+
+	ackDefaultTimeout = 10 * time.Minute
+)
+
+func (p *Pipeline) waitACK() *Error {
+	trans := p.TransCtx.Transfer
+
+	// Check if transfer needs to wait for ACK. If not, return immediately.
+	waiting, waitErr := p.isWaitingACK(trans)
+	if waitErr != nil {
+		return waitErr
+	} else if !waiting {
+		return nil
+	}
+
+	// If ACK has already been received, return immediately as well.
+	received, recErr := p.hasReceivedACK(trans)
+	if recErr != nil {
+		return recErr
+	} else if received {
+		return nil
+	}
+
+	// Update transfer infos with the current time
+	waitStart := time.Now()
+	trans.TransferInfo[AckWaitSince] = waitStart
+
+	if err := trans.AfterUpdate(p.DB); err != nil {
+		return p.internalErrorWithMsg(types.TeInternal,
+			"failed to update transfer info", "database error", err)
+	}
+
+	// Retrieve the ACK wait timeout
+	waitDuration, durErr := p.getACKWaitDuration(trans)
+	if durErr != nil {
+		return durErr
+	}
+
+	// Periodically poll the database to see if ACK has been received.
+	for range p.updTicker.C {
+		if p.machine.HasEnded() {
+			return p.storedErr
+		}
+
+		// Retrieve transfer from database
+		var check model.Transfer
+		if err := p.DB.Get(&check, "id=?", trans.ID).Run(); err != nil {
+			return p.internalErrorWithMsg(types.TeInternal,
+				"failed to retrieve transfer from database",
+				"database error", err)
+		}
+
+		received, recErr = p.hasReceivedACK(&check)
+		if recErr != nil {
+			return recErr
+		} else if received {
+			return nil
+		}
+
+		// If ACK was not received, check if timeout has been reached
+		if time.Since(waitStart) > waitDuration {
+			return p.internalError(types.TeExpired, "ACK wait timeout reached", nil)
+		}
+	}
+
+	return nil
+}
+
+func (p *Pipeline) isWaitingACK(trans *model.Transfer) (bool, *Error) {
+	waiting, err := utils.GetAs[bool](trans.TransferInfo, tasks.SendMessageAckExpectedKey)
+	if errors.Is(err, utils.ErrKeyNotFound) {
+		return false, nil
+	} else if err != nil {
+		return false, p.internalErrorWithMsg(types.TeInternal,
+			"failed to retrieve ACK wait status", "error while waiting for ACK", err)
+	}
+
+	return waiting, nil
+}
+
+func (p *Pipeline) hasReceivedACK(trans *model.Transfer) (bool, *Error) {
+	received, err := utils.GetAs[bool](trans.TransferInfo, AckReceived)
+	if errors.Is(err, utils.ErrKeyNotFound) {
+		return false, nil
+	} else if err != nil {
+		return false, p.internalErrorWithMsg(types.TeInternal,
+			"failed to retrieve ACK receive status", "error while waiting for ACK", err)
+	}
+
+	return received, nil
+}
+
+func (p *Pipeline) getACKWaitDuration(trans *model.Transfer) (time.Duration, *Error) {
+	waitDurationStr, jsErr := utils.GetAs[string](trans.TransferInfo, AckWaitTimeout)
+	if errors.Is(jsErr, utils.ErrKeyNotFound) {
+		return ackDefaultTimeout, nil
+	} else if jsErr != nil {
+		return 0, p.internalErrorWithMsg(types.TeInternal,
+			"failed to retrieve ACK wait timeout", "error while waiting for ACK", jsErr)
+	}
+
+	waitDuration, durErr := time.ParseDuration(waitDurationStr)
+	if durErr != nil {
+		return 0, p.internalErrorWithMsg(types.TeInternal,
+			"failed to parse ACK wait timeout", "error while waiting for ACK", durErr)
+	}
+
+	return waitDuration, nil
 }

@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -33,6 +34,27 @@ type TransferContext struct {
 
 	Paths       *conf.PathsConfig
 	Authorities Authorities
+}
+
+func GetHistoryContext(db *database.DB, logger *log.Logger, trans *NormalizedTransferView,
+) (*TransferContext, error) {
+	if trans.IsTransfer {
+		var realTrans Transfer
+		if err := db.Get(&realTrans, "id=?", trans.ID).Run(); err != nil {
+			logger.Errorf("Failed to retrieve transfer: %v", err)
+
+			return nil, fmt.Errorf("failed to retrieve transfer: %w", err)
+		}
+
+		return GetTransferContext(db, logger, &realTrans)
+	}
+
+	realTrans, err := trans.Restart(db, time.Time{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to restart transfer: %w", err)
+	}
+
+	return GetTransferContext(db, logger, realTrans)
 }
 
 // GetTransferContext retrieves all the information regarding the given transfer

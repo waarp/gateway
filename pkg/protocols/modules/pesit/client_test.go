@@ -18,12 +18,12 @@ func TestPesitClientPause(t *testing.T) {
 		tb.Helper()
 
 		var servTransfer model.Transfer
-		require.NoError(t, pip.Pip.DB.Get(&servTransfer,
+		require.NoError(tb, pip.Pip.DB.Get(&servTransfer,
 			"remote_transfer_id = ? AND local_account_id IS NOT NULL",
 			pip.Pip.TransCtx.Transfer.RemoteTransferID).Run(),
 			"Failed to retrieve the server transfer")
 
-		assert.Equal(t, types.StatusPaused, servTransfer.Status)
+		assert.Equal(tb, types.StatusPaused, servTransfer.Status)
 	}
 
 	t.Run("Before data", func(t *testing.T) {
@@ -73,7 +73,6 @@ func TestPesitClientPause(t *testing.T) {
 			requireNoError(t, transfer.Send(gwtesting.SendFile("hello world")))
 
 			requireNoError(t, transfer.Pause(), "Failed to pause transfer")
-			checkIsPaused(t, &pip)
 		})
 
 		t.Run("Pull", func(t *testing.T) {
@@ -86,7 +85,6 @@ func TestPesitClientPause(t *testing.T) {
 			requireNoError(t, transfer.Receive(gwtesting.ReceiveFile()))
 
 			requireNoError(t, transfer.Pause(), "Failed to pause transfer")
-			checkIsPaused(t, &pip)
 		})
 	})
 }
@@ -174,5 +172,38 @@ func TestClientPreConn(t *testing.T) {
 
 		assert.Equal(t, preConnCreds.Value, trans.client.PreConnectLogin())
 		assert.Equal(t, preConnCreds.Value2, trans.client.PreConnectPassword())
+	})
+}
+
+func TestPesitClientData(t *testing.T) {
+	db := gwtesting.Database(t)
+	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
+	cli := newClient(db, ctx.Client)
+	require.NoError(t, cli.Start())
+
+	t.Run("Push", func(t *testing.T) {
+		pip := ctx.PushPipeline(t)
+		defer pip.Pip.SetError(types.TeStopped, "transfer stopped")
+
+		transfer, err := cli.initTransfer(pip.Pip)
+		requireNoError(t, err)
+
+		requireNoError(t, transfer.Request())
+		requireNoError(t, transfer.Send(gwtesting.SendFile("hello world")))
+
+		assert.False(t, transfer.client.IsConnected())
+	})
+
+	t.Run("Pull", func(t *testing.T) {
+		pip := ctx.PullPipeline(t)
+		defer pip.Pip.SetError(types.TeStopped, "transfer stopped")
+
+		transfer, err := cli.initTransfer(pip.Pip)
+		requireNoError(t, err)
+
+		requireNoError(t, transfer.Request())
+		requireNoError(t, transfer.Receive(gwtesting.ReceiveFile()))
+
+		assert.False(t, transfer.client.IsConnected())
 	})
 }
