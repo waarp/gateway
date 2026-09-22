@@ -11,8 +11,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -30,6 +28,8 @@ var _ pesit.MessageHandler = &service{}
 //nolint:gocritic //cannot change function signature
 func (s *service) HandleMessage(req *pesit.MessageRequest, cont io.Reader,
 ) (*pesit.MessageResult, error) {
+	receivedTime := time.Now()
+
 	content, rErr := io.ReadAll(cont)
 	if rErr != nil {
 		s.logger.Errorf("Failed to read message: %s", rErr)
@@ -67,36 +67,19 @@ func (s *service) HandleMessage(req *pesit.MessageRequest, cont io.Reader,
 		return nil, ErrDatabase
 	}
 
-	if pipeline.List.Exists(outTrans.ID) {
-		return nil, ErrACKRunning
-	}
-
-	outTrans.TransferInfo[ackReceivedKey] = true
-	outTrans.TransferInfo[ackReceivedOnKey] = time.Now().Format(time.RFC3339)
-
-	if err := outTrans.UpdateInfo(s.db); err != nil {
-		s.logger.Errorf("Failed to update transfer for F.MESSAGE: %v", err)
-
-		return nil, ErrDatabase
-	}
-
 	if err := s.relayMessage(&outTrans, bytes.NewReader(content)); err != nil {
 		s.logger.Errorf("Failed to relay message: %v", err)
 
 		return &pesit.MessageResult{}, err
 	}
 
-	var realOutTrans model.Transfer
-	if err := s.db.Get(&realOutTrans, "id=?", outTrans.ID).Eager().Run(); err != nil {
-		s.logger.Errorf("Failed to retrieve transfer for F.MESSAGE transferID=%d: %v", req.TransferID, err)
+	outTrans.TransferInfo[ackReceivedKey] = true
+	outTrans.TransferInfo[ackReceivedOnKey] = receivedTime
+	delete(outTrans.TransferInfo, ackExpectedKey)
+	delete(outTrans.TransferInfo, ackWaitSinceKey)
 
-		return nil, ErrDatabase
-	}
-
-	realOutTrans.Status = types.StatusDone
-	delete(realOutTrans.TransferInfo, ackExpectedKey)
-	if err := realOutTrans.MoveToHistory(s.db, s.logger, time.Now()); err != nil {
-		s.logger.Errorf("Failed to move transfer to history: %v", err)
+	if err := outTrans.UpdateInfo(s.db); err != nil {
+		s.logger.Errorf("Failed to update transfer for F.MESSAGE: %v", err)
 
 		return nil, ErrDatabase
 	}
@@ -137,18 +120,27 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView,
 		return nil
 	}
 
-	var inTrans model.Transfer
-	if err := s.db.Get(&inTrans, "id<>?", outTrans.ID).
-		And(`id = (SELECT transfer_id FROM transfer_info WHERE name=? AND value=?)`,
-			model.FollowID, followID).
-		Eager().Run(); database.IsNotFound(err) {
-		s.logger.Debugf("No upstream transfer found for followID %d", followID)
-
-		return nil
-	} else if err != nil {
-		s.logger.Errorf("Failed to find incoming transfer: %v", err)
+	var infos model.Slice[model.NormalizedTransferInfo]
+	if err := s.db.Select(&infos).Where("name=?", model.FollowID).
+		Where("value=?", followID).Run(); err != nil {
+		s.logger.Errorf("Failed to find followID: %v", err)
 
 		return ErrDatabase
+	}
+
+	var inTrans model.NormalizedTransferView
+	for _, info := range infos {
+		if info.OwnerID == outTrans.ID {
+			continue
+		}
+
+		if err := s.db.Get(&inTrans, "id=?", info.OwnerID).Run(); err != nil {
+			s.logger.Errorf("Failed to retrieve transfer: %v", err)
+
+			return ErrDatabase
+		}
+
+		break
 	}
 
 	transferID, idErr := utils.ParseUint[uint32](inTrans.RemoteTransferID)
@@ -158,12 +150,12 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView,
 		return ErrDatabase
 	}
 
-	if inTrans.IsServer() {
+	if inTrans.IsServer {
 		if err := s.relayServerMessage(&inTrans, transferID, message); err != nil {
 			return err
 		}
 	} else {
-		transCtx, tErr := model.GetTransferContext(s.db, s.logger, &inTrans)
+		transCtx, tErr := model.GetHistoryContext(s.db, s.logger, &inTrans)
 		if tErr != nil {
 			s.logger.Errorf("Failed to get transfer context: %v", tErr)
 
@@ -175,13 +167,11 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView,
 		}
 	}
 
-	inTrans.Status = types.StatusDone
 	inTrans.TransferInfo[ackSentKey] = true
 	inTrans.TransferInfo[ackSentOnKey] = time.Now().Format(time.RFC3339)
-	delete(inTrans.TransferInfo, ackExpectedKey)
 
-	if err := inTrans.MoveToHistory(s.db, s.logger, time.Now()); err != nil {
-		s.logger.Errorf("Failed to move transfer to history: %v", err)
+	if err := inTrans.UpdateInfo(s.db); err != nil {
+		s.logger.Errorf("Failed to update transfer info: %v", err)
 
 		return ErrDatabase
 	}
@@ -214,16 +204,9 @@ func (s *service) relayClientMessage(transCtx *model.TransferContext,
 	return nil
 }
 
-func (s *service) relayServerMessage(trans *model.Transfer, transferID uint32,
+func (s *service) relayServerMessage(inTrans *model.NormalizedTransferView, transferID uint32,
 	message io.Reader,
 ) error {
-	var inTrans model.NormalizedTransferView
-	if err := s.db.Get(&inTrans, `id=?`, trans.ID).Run(); err != nil {
-		s.logger.Errorf("Failed to retrieve transfer context: %v", err)
-
-		return ErrDatabase
-	}
-
 	partner, partErr := s.findPartnerByLogin(inTrans.Account)
 	if partErr != nil {
 		s.logger.Errorf("Failed to retrieve partner %q: %v", inTrans.Account, partErr)
@@ -244,7 +227,7 @@ func (s *service) relayServerMessage(trans *model.Transfer, transferID uint32,
 	}
 
 	if err := sendInitialMessage(s.db, s.logger, partner, account,
-		trans.TransferInfo, transferID, filename, message); err != nil {
+		inTrans.TransferInfo, transferID, filename, message); err != nil {
 		s.logger.Errorf("Failed to send message: %v", err)
 
 		if diag, isDiag := errors.AsType[pesit.Diagnostic](err); isDiag {

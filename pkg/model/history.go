@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/bwmarrin/snowflake"
@@ -202,6 +203,30 @@ func (h *HistoryEntry) AfterInsert(db database.Access) error {
 	}
 
 	return nil
+}
+
+//nolint:dupl //too complicated to factorize
+func (h *HistoryEntry) UpdateInfo(db database.Access) error {
+	if reflect.DeepEqual(h.TransferInfo, h.Infos.asMap()) {
+		return nil
+	}
+
+	h.Infos = make(TransferInfos, 0, len(h.TransferInfo))
+	for k, v := range h.TransferInfo {
+		h.Infos = append(h.Infos, TransferInfo{HistoryID: h.NullableID(), Name: k, Value: v})
+	}
+
+	return db.Transaction(func(db *database.Session) error {
+		if err := db.DeleteAll(TransferInfo{}).Where("history_id=?", h.GetID()).Run(); err != nil {
+			return fmt.Errorf("failed to delete transfer info: %w", err)
+		}
+
+		if err := database.InsertBatch[TransferInfo](db, h.Infos...); err != nil {
+			return fmt.Errorf("failed to insert transfer info: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (h *HistoryEntry) AfterRead(database.ReadAccess) error {

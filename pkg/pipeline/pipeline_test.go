@@ -1076,6 +1076,7 @@ func TestPipelineAwaitACK(t *testing.T) {
 	// ########## SETUP ##########
 	ctx := initTransferCtx(t)
 	trans := &model.Transfer{
+		Status:          types.StatusRunning,
 		RuleID:          ctx.send.ID,
 		ClientID:        ctx.client.NullableID(),
 		RemoteAccountID: ctx.remoteAccount.NullableID(),
@@ -1093,6 +1094,9 @@ func TestPipelineAwaitACK(t *testing.T) {
 	pip, pipErr := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
 	require.Nil(t, pipErr)
 
+	trans.TransferInfo[AckReceived] = true
+	require.NoError(t, trans.AfterUpdate(ctx.db))
+
 	// ########## RUN TRANSFER ##########
 	require.Nil(t, pip.PreTasks())
 	_, pipErr = pip.StartData()
@@ -1102,9 +1106,48 @@ func TestPipelineAwaitACK(t *testing.T) {
 	require.Nil(t, pip.EndTransfer())
 
 	// ########## CHECK HISTORY ##########
+	var check model.HistoryEntry
+	require.NoError(t, ctx.db.Get(&check, "id=?", trans.ID).Run())
+
+	assert.Equal(t, types.StatusDone, check.Status)
+	assert.NotZero(t, check.Stop)
+}
+
+func TestPipelineAwaitACKTimeout(t *testing.T) {
+	// ########## SETUP ##########
+	ctx := initTransferCtx(t)
+	trans := &model.Transfer{
+		Status:          types.StatusRunning,
+		RuleID:          ctx.send.ID,
+		ClientID:        ctx.client.NullableID(),
+		RemoteAccountID: ctx.remoteAccount.NullableID(),
+		SrcFilename:     "text.txt",
+		TransferInfo: map[string]any{
+			tasks.SendMessageAckExpectedKey: true,
+			AckWaitTimeout:                  "1s",
+		},
+	}
+	require.NoError(t, ctx.db.Insert(trans).Run())
+	require.NoError(t, fs.WriteFullFile(fs.JoinPath(ctx.root, ctx.send.LocalDir,
+		trans.SrcFilename), []byte(testTransferFileContent)), ShouldBeNil)
+
+	// ########## INIT PIPELINE ##########
+	transCtx, err := model.GetTransferContext(ctx.db, ctx.logger, trans)
+	require.NoError(t, err)
+
+	pip, pipErr := NewClientPipeline(ctx.db, ctx.logger, transCtx, nil)
+	require.Nil(t, pipErr)
+
+	// ########## RUN TRANSFER ##########
+	require.Nil(t, pip.PreTasks())
+	_, pipErr = pip.StartData()
+	require.Nil(t, pipErr)
+	require.Error(t, pip.EndData())
+
+	// ########## CHECK HISTORY ##########
 	var check model.Transfer
 	require.NoError(t, ctx.db.Get(&check, "id=?", trans.ID).Run())
 
-	assert.Equal(t, types.StatusRunning, check.Status)
-	assert.NotZero(t, check.Stop)
+	assert.Equal(t, types.StatusError, check.Status)
+	assert.Equal(t, types.TeExpired, check.ErrCode)
 }

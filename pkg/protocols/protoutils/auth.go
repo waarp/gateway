@@ -52,7 +52,7 @@ func PasswordAuthentication(db database.ReadAccess, logger *log.Logger,
 	acc *model.LocalAccount, password string,
 ) (bool, error) {
 	if password == "" {
-		logger.Debugf("No client certificate provided")
+		logger.Debugf("No password provided")
 
 		return false, nil
 	}
