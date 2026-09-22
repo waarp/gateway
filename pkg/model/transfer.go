@@ -239,6 +239,7 @@ func (t *Transfer) AfterInsert(db database.Access) error {
 	return nil
 }
 
+//nolint:dupl //too complicated to factorize
 func (t *Transfer) AfterUpdate(db database.Access) error {
 	if len(t.Infos) == 0 {
 		if err := db.Select(&t.Infos).Where("transfer_id=?", t.ID).Run(); err != nil {
@@ -246,7 +247,7 @@ func (t *Transfer) AfterUpdate(db database.Access) error {
 		}
 	}
 
-	oldInfo := t.Infos.asMap()
+	oldInfo := t.Infos.AsMap()
 
 	var deleted []any
 	for oldKey := range oldInfo {
@@ -305,7 +306,7 @@ func (t *Transfer) AfterUpdate(db database.Access) error {
 }
 
 func (t *Transfer) AfterRead(database.ReadAccess) error {
-	t.TransferInfo = t.Infos.asMap()
+	t.TransferInfo = t.Infos.AsMap()
 
 	return nil
 }

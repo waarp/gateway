@@ -27,6 +27,7 @@ func TestUpdateconfTargets(t *testing.T) {
 	// Setup
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
+	services.Clients.Reset()
 	t.Cleanup(services.Clients.Reset)
 
 	body := mkBody(t, map[string]any{
@@ -65,6 +66,7 @@ func TestUpdateconfDefaultTargets(t *testing.T) {
 	// Setup
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
+	services.Clients.Reset()
 	t.Cleanup(services.Clients.Reset)
 
 	body := mkBody(t, map[string]any{
@@ -178,6 +180,7 @@ func TestUpdateconfRestart(t *testing.T) {
 	// Setup
 	db := dbtest.TestDatabase(t)
 	logger := testhelpers.GetTestLogger(t)
+	services.Clients.Reset()
 	t.Cleanup(services.Clients.Reset)
 
 	const newClientName = "restart-client"
