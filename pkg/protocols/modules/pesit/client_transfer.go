@@ -477,9 +477,13 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 		return toPipErr(types.TeFinalization, "failed to end transfer", err)
 	}
 
+	c.pTrans = nil
+
 	if err := c.client.Close(nil); err != nil {
 		c.pip.Logger.Warningf("failed to close client: %v", err)
 	}
+
+	c.client = nil
 
 	return nil
 }

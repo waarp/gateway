@@ -143,6 +143,12 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView,
 		break
 	}
 
+	if inTrans.ID == 0 {
+		s.logger.Debugf(`No upstream transfer found for followID "%d"`, followID)
+
+		return nil
+	}
+
 	transferID, idErr := utils.ParseUint[uint32](inTrans.RemoteTransferID)
 	if idErr != nil {
 		s.logger.Errorf("Failed to parse remote transfer ID: %v", idErr)

@@ -207,7 +207,7 @@ func (h *HistoryEntry) AfterInsert(db database.Access) error {
 
 //nolint:dupl //too complicated to factorize
 func (h *HistoryEntry) UpdateInfo(db database.Access) error {
-	if reflect.DeepEqual(h.TransferInfo, h.Infos.asMap()) {
+	if reflect.DeepEqual(h.TransferInfo, h.Infos.AsMap()) {
 		return nil
 	}
 
@@ -230,7 +230,7 @@ func (h *HistoryEntry) UpdateInfo(db database.Access) error {
 }
 
 func (h *HistoryEntry) AfterRead(database.ReadAccess) error {
-	h.TransferInfo = h.Infos.asMap()
+	h.TransferInfo = h.Infos.AsMap()
 
 	return nil
 }
