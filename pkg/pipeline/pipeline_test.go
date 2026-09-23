@@ -1142,7 +1142,8 @@ func TestPipelineAwaitACKTimeout(t *testing.T) {
 	require.Nil(t, pip.PreTasks())
 	_, pipErr = pip.StartData()
 	require.Nil(t, pipErr)
-	require.Error(t, pip.EndData())
+	require.Nil(t, pip.EndData())
+	require.Error(t, pip.PostTasks())
 
 	// ########## CHECK HISTORY ##########
 	var check model.Transfer

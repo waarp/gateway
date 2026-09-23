@@ -191,7 +191,8 @@ func TestPesitClientData(t *testing.T) {
 		requireNoError(t, transfer.Request())
 		requireNoError(t, transfer.Send(gwtesting.SendFile("hello world")))
 
-		assert.False(t, transfer.client.IsConnected())
+		assert.Nil(t, transfer.pTrans)
+		assert.Nil(t, transfer.client)
 	})
 
 	t.Run("Pull", func(t *testing.T) {
@@ -204,6 +205,7 @@ func TestPesitClientData(t *testing.T) {
 		requireNoError(t, transfer.Request())
 		requireNoError(t, transfer.Receive(gwtesting.ReceiveFile()))
 
-		assert.False(t, transfer.client.IsConnected())
+		assert.Nil(t, transfer.pTrans)
+		assert.Nil(t, transfer.client)
 	})
 }

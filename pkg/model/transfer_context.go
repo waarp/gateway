@@ -82,7 +82,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		}
 
 		trans.Infos = infos
-		trans.TransferInfo = infos.asMap()
+		trans.TransferInfo = infos.AsMap()
 	}
 
 	if err := db.Select(&transCtx.Authorities).Run(); err != nil {
