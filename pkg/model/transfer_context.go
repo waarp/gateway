@@ -80,7 +80,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 
 			return nil, fmt.Errorf("failed to retrieve transfer infos: %w", err)
 		}
-		trans.TransferInfo = infos.asMap()
+		trans.TransferInfo = infos.AsMap()
 	}
 
 	if err := db.Select(&transCtx.Authorities).Run(); err != nil {

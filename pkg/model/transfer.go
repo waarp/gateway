@@ -239,8 +239,9 @@ func (t *Transfer) AfterInsert(db database.Access) error {
 	return nil
 }
 
+//nolint:dupl //too complicated to factorize
 func (t *Transfer) AfterUpdate(db database.Access) error {
-	if reflect.DeepEqual(t.TransferInfo, t.Infos.asMap()) {
+	if reflect.DeepEqual(t.TransferInfo, t.Infos.AsMap()) {
 		return nil
 	}
 
@@ -263,7 +264,7 @@ func (t *Transfer) AfterUpdate(db database.Access) error {
 }
 
 func (t *Transfer) AfterRead(database.ReadAccess) error {
-	t.TransferInfo = t.Infos.asMap()
+	t.TransferInfo = t.Infos.AsMap()
 
 	return nil
 }

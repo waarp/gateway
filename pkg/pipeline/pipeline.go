@@ -271,7 +271,7 @@ func (p *Pipeline) EndData() *Error {
 		return p.stateErr("EndDataDone", p.machine.Current())
 	}
 
-	return p.waitACK()
+	return nil
 }
 
 // PostTasks executes the transfer's post-tasks. If an error occurs, the pipeline
@@ -291,6 +291,10 @@ func (p *Pipeline) PostTasks() *Error {
 		}
 
 		return nil
+	}
+
+	if err := p.waitACK(); err != nil {
+		return err
 	}
 
 	p.TransCtx.Transfer.Step = types.StepPostTasks
@@ -577,7 +581,7 @@ func (p *Pipeline) waitACK() *Error {
 	trans := p.TransCtx.Transfer
 
 	// Check if transfer needs to wait for ACK. If not, return immediately.
-	waiting, waitErr := p.isWaitingACK(trans)
+	waiting, waitErr := p.isWaitingACK()
 	if waitErr != nil {
 		return waitErr
 	} else if !waiting {
@@ -585,7 +589,7 @@ func (p *Pipeline) waitACK() *Error {
 	}
 
 	// If ACK has already been received, return immediately as well.
-	received, recErr := p.hasReceivedACK(trans)
+	received, recErr := p.hasReceivedACK()
 	if recErr != nil {
 		return recErr
 	} else if received {
@@ -602,7 +606,7 @@ func (p *Pipeline) waitACK() *Error {
 	}
 
 	// Retrieve the ACK wait timeout
-	waitDuration, durErr := p.getACKWaitDuration(trans)
+	waitDuration, durErr := p.getACKWaitDuration()
 	if durErr != nil {
 		return durErr
 	}
@@ -613,15 +617,16 @@ func (p *Pipeline) waitACK() *Error {
 			return p.storedErr
 		}
 
-		// Retrieve transfer from database
-		var check model.Transfer
-		if err := p.DB.Get(&check, "id=?", trans.ID).Run(); err != nil {
+		// Retrieve infos from database
+		var infos model.TransferInfos
+		if err := p.DB.Select(&infos).Where("transfer_id=?", trans.ID).Run(); err != nil {
 			return p.internalErrorWithMsg(types.TeInternal,
 				"failed to retrieve transfer from database",
 				"database error", err)
 		}
 
-		received, recErr = p.hasReceivedACK(&check)
+		trans.TransferInfo = infos.AsMap()
+		received, recErr = p.hasReceivedACK()
 		if recErr != nil {
 			return recErr
 		} else if received {
@@ -637,8 +642,8 @@ func (p *Pipeline) waitACK() *Error {
 	return nil
 }
 
-func (p *Pipeline) isWaitingACK(trans *model.Transfer) (bool, *Error) {
-	waiting, err := utils.GetAs[bool](trans.TransferInfo, tasks.SendMessageAckExpectedKey)
+func (p *Pipeline) isWaitingACK() (bool, *Error) {
+	waiting, err := utils.GetAs[bool](p.TransCtx.Transfer.TransferInfo, tasks.SendMessageAckExpectedKey)
 	if errors.Is(err, utils.ErrKeyNotFound) {
 		return false, nil
 	} else if err != nil {
@@ -649,8 +654,8 @@ func (p *Pipeline) isWaitingACK(trans *model.Transfer) (bool, *Error) {
 	return waiting, nil
 }
 
-func (p *Pipeline) hasReceivedACK(trans *model.Transfer) (bool, *Error) {
-	received, err := utils.GetAs[bool](trans.TransferInfo, AckReceived)
+func (p *Pipeline) hasReceivedACK() (bool, *Error) {
+	received, err := utils.GetAs[bool](p.TransCtx.Transfer.TransferInfo, AckReceived)
 	if errors.Is(err, utils.ErrKeyNotFound) {
 		return false, nil
 	} else if err != nil {
@@ -661,8 +666,8 @@ func (p *Pipeline) hasReceivedACK(trans *model.Transfer) (bool, *Error) {
 	return received, nil
 }
 
-func (p *Pipeline) getACKWaitDuration(trans *model.Transfer) (time.Duration, *Error) {
-	waitDurationStr, jsErr := utils.GetAs[string](trans.TransferInfo, AckWaitTimeout)
+func (p *Pipeline) getACKWaitDuration() (time.Duration, *Error) {
+	waitDurationStr, jsErr := utils.GetAs[string](p.TransCtx.Transfer.TransferInfo, AckWaitTimeout)
 	if errors.Is(jsErr, utils.ErrKeyNotFound) {
 		return ackDefaultTimeout, nil
 	} else if jsErr != nil {
