@@ -349,7 +349,6 @@ func makeSNMPHandlers(mkHandler HandlerFactory) {
 	mkHandler(snmpMonitorPath, getSnmpMonitor, model.PermAdminRead, http.MethodGet)
 	mkHandler(snmpMonitorPath, updateSnmpMonitor, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(snmpMonitorPath, deleteSnmpMonitor, model.PermAdminDelete, http.MethodDelete)
-	mkHandler(snmpMonitorPath, deleteSnmpMonitor, model.PermAdminDelete, http.MethodDelete)
 
 	// SNMP server
 	mkHandler(snmpServerPath, getSnmpService, model.PermAdminRead, http.MethodGet)
