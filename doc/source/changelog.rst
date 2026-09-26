@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`667` Dans l'interface web, les pages consacrées aux éléments d'un
+  partenaire, d'un serveur ou d'une règle (authentification, comptes, droits
+  d'usage) ne tombent plus en erreur lorsque l'objet demandé est absent de
+  l'adresse ou n'existe pas : l'utilisateur est renvoyé vers la liste
+  correspondante.
 * :bug:`661` Le serveur PeSIT accepte désormais les F.MESSAGE ne contenant pas
   de login (PI 3). Le login fourni à la connexion est utilisée en son absence.
 * :bug:`623` Le serveur PeSIT de Gateway n'attend désormais plus la fin des

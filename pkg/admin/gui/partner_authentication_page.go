@@ -319,6 +319,12 @@ func partnerAuthenticationPage(logger *log.Logger, db *database.DB) http.Handler
 			}
 		}
 
+		if partner == nil || partner.ID == 0 {
+			redirectToParentList(w, r, logger, "partner", partnerID, "partner_management")
+
+			return
+		}
+
 		partnersCredentials, filter, credentialPartnerFound := listCredentialPartner(partner.Name, db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {

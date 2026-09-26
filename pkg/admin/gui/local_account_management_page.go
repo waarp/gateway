@@ -293,6 +293,12 @@ func localAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
+		if server == nil || server.ID == 0 {
+			redirectToParentList(w, r, logger, "server", serverID, "server_management")
+
+			return
+		}
+
 		localAccounts, filter, localAccountFound := listLocalAccount(server.Name, db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {

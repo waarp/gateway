@@ -350,6 +350,12 @@ func localAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.Ha
 		accountID := r.URL.Query().Get("accountID")
 		server, account := getServerAndAccount(db, serverID, accountID, logger)
 
+		if server == nil || server.ID == 0 || account == nil || account.ID == 0 {
+			redirectToParentList(w, r, logger, "server account", serverID+"/"+accountID, "server_management")
+
+			return
+		}
+
 		credentials, filter, credentialAccountFound := listCredentialLocalAccount(server.Name, account.Login, db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {

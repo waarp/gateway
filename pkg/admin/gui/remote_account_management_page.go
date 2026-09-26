@@ -293,6 +293,12 @@ func remoteAccountPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
+		if partner == nil || partner.ID == 0 {
+			redirectToParentList(w, r, logger, "partner", partnerID, "partner_management")
+
+			return
+		}
+
 		remoteAccounts, filter, remoteAccountFound := listRemoteAccount(partner.Name, db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
