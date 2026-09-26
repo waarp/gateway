@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`665` Les serveurs SFTP, FTP et WebDAV refusent désormais les opérations
+  sur le système de fichiers (liste, consultation, création de répertoire)
+  portant sur un chemin situé hors du répertoire de la règle, que ce soit par
+  un élément ``..`` ou en désignant un autre système de fichiers
+  (``file:/…``, ``s3:…``). Les sous-répertoires de la règle restent
+  accessibles.
 * :bug:`664` Le serveur R66 refuse désormais les demandes de liste de fichiers
   dont le motif désigne des fichiers situés hors du répertoire de la règle (par
   un élément ``..``). Les motifs portant sur des sous-répertoires restent

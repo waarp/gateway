@@ -45,6 +45,10 @@ func (w *webdavFS) Mkdir(_ context.Context, name string, _ os.FileMode) error {
 		return err
 	}
 
+	if realPath == "" {
+		return fs.ErrNotExist
+	}
+
 	//nolint:wrapcheck //no need to wrap here
 	return fs.MkdirAll(realPath)
 }
@@ -107,6 +111,10 @@ func (w *webdavFS) Stat(_ context.Context, name string) (os.FileInfo, error) {
 	realPath, err := w.getRealPath(name)
 	if err != nil {
 		return nil, err
+	}
+
+	if realPath == "" {
+		return nil, fs.ErrNotExist
 	}
 
 	//nolint:wrapcheck //no need to wrap here
