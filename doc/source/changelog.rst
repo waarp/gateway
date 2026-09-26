@@ -4,7 +4,7 @@ Historique des versions
 =======================
 
 * :bug:`661` Le serveur PeSIT accepte désormais les F.MESSAGE ne contenant pas
-  de login (PI 3). Le login fourni à la connexion est utilisée en son absence.
+  de login (PI 3). Le login fourni à la connexion est utilisé en son absence.
 * :bug:`623` Le serveur PeSIT de Gateway n'attend désormais plus la fin des
   post-tâches pour répondre aux requêtes de désélection de fichier. Ces tâches
   sont désormais exécutées séparément après la fin du transfert.
@@ -14,7 +14,7 @@ Historique des versions
 * :bug:`645` Le charset de connexion à une base de données MySQL (et variantes)
   est désormais fixé à "utf8mb4". Précédemment, ce charset dépendait du charset
   en usage sur la base de données ou la table concernée, ce qui produisait des
-  erreurs si leur charset n'était pas UFT8.
+  erreurs si leur charset n'était pas UTF8.
 
 * :release:`0.16.5 <2026-09-15>`
 * :bug:`653` En émission PeSIT, un fichier texte en format variable était
@@ -78,7 +78,7 @@ Historique des versions
   le format ``WAARP_<nom_de_variable>`` au lieu de ``#nom_de_variable#``, car cet
   ancien format ne fonctionnait pas sur Linux. Les anciens noms de variables
   restent disponibles sous Windows, mais sont désormais dépréciés.
-* :bug:`616` Les *transfer info* sont désormais correctement passées au programmes
+* :bug:`616` Les *transfer info* sont désormais correctement passées aux programmes
   externes appelés via tâches EXEC en variables d'environnement. Les variables
   de remplacement personnalisables (ex: ``#TIMESTAMP#``) sont également désormais
   correctement passées aux programmes externes sous un format fixe.
