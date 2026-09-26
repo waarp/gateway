@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`662` Dans l'interface web, une requête refusée faute de permission
+  suffisante s'arrête désormais au refus : l'action demandée n'est plus
+  exécutée, et la réponse porte le code 403 au lieu de 401.
 * :bug:`698` Correction d'un bug exposant les identifiants clouds dans la
   colonne "options" de la table. La migration vers la version 0.17.0 supprime
   ces identifiants s'ils sont présents.
