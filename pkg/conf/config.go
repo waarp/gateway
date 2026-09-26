@@ -137,6 +137,13 @@ func normalizePaths(configFile *ServerConfig, logger *log.Logger) error {
 
 var ErrNoConfigFile = errors.New("no config file found")
 
+// defaultConfFiles returns the default locations of the configuration file. It
+// is a variable so that the tests do not depend on a configuration installed
+// on the machine.
+//
+//nolint:gochecknoglobals //overridden by the tests
+var defaultConfFiles = getDefaultConfFiles
+
 // ParseServerConfig parses and returns the ServerConfig contained in the given
 // user config file. If no user file is given, the file will be taken from the
 // OS's default config file locations.
@@ -153,7 +160,7 @@ func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 			return nil, fmt.Errorf("failed to parse the config file: %w", err)
 		}
 	} else {
-		for _, file := range getDefaultConfFiles() {
+		for _, file := range defaultConfFiles() {
 			if err := p.ParseFile(file); err != nil {
 				if errors.Is(err, os.ErrNotExist) {
 					continue
