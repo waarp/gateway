@@ -271,7 +271,7 @@ func makeClientHandlers(mkHandler HandlerFactory) {
 	mkHandler(clientPath, getClient, model.PermServersRead, http.MethodGet)
 	mkHandler(clientPath, updateClient, model.PermServersWrite, http.MethodPatch)
 	mkHandler(clientPath, replaceClient, model.PermServersWrite, http.MethodPut)
-	mkHandler(clientPath, deleteClient, model.PermServersWrite, http.MethodDelete)
+	mkHandler(clientPath, deleteClient, model.PermServersDelete, http.MethodDelete)
 	mkHandler(clientStartPath, startClient, model.PermServersWrite, http.MethodPut)
 	mkHandler(clientStopPath, stopClient, model.PermServersWrite, http.MethodPut)
 	mkHandler(clientRestartPath, restartClient, model.PermServersWrite, http.MethodPut)
@@ -333,7 +333,7 @@ func makeAuthoritiesHandlers(mkHandler HandlerFactory) {
 	mkHandler(authAuthorityPath, getAuthAuthority, model.PermAdminRead, http.MethodGet)
 	mkHandler(authAuthorityPath, updateAuthAuthority, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(authAuthorityPath, replaceAuthAuthority, model.PermAdminWrite, http.MethodPut)
-	mkHandler(authAuthorityPath, deleteAuthAuthority, model.PermAdminWrite, http.MethodDelete)
+	mkHandler(authAuthorityPath, deleteAuthAuthority, model.PermAdminDelete, http.MethodDelete)
 }
 
 func makeSNMPHandlers(mkHandler HandlerFactory) {

@@ -52,7 +52,7 @@ var webuiPermissions = map[string]pagePermissions{
 	"/local_account_authentication": permsFor(model.PermServersRead, model.PermServersWrite,
 		model.PermServersWrite),
 	"/local_client_management": permsFor(model.PermServersRead, model.PermServersWrite,
-		model.PermServersWrite),
+		model.PermServersDelete, "deleteLocalClient"),
 
 	"/transfer_rules_management": permsFor(model.PermRulesRead, model.PermRulesWrite,
 		model.PermRulesDelete, "deleteRule"),
@@ -73,7 +73,7 @@ var webuiPermissions = map[string]pagePermissions{
 	"/snmp_management": permsFor(model.PermAdminRead, model.PermAdminWrite,
 		model.PermAdminDelete),
 	"/managing_authentication_authorities": permsFor(model.PermAdminRead, model.PermAdminWrite,
-		model.PermAdminWrite),
+		model.PermAdminDelete),
 	"/managing_configuration_overrides": permsFor(model.PermAdminRead, model.PermAdminWrite,
 		model.PermAdminDelete),
 

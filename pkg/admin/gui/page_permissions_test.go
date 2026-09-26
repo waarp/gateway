@@ -112,6 +112,29 @@ func TestWebUIPagesRequirePermissions(t *testing.T) {
 	})
 }
 
+func TestLocalClientDeletionPermission(t *testing.T) {
+	t.Parallel()
+
+	form := url.Values{"deleteLocalClient": {"1"}}
+
+	t.Run("Given a user with the servers write permission only", func(t *testing.T) {
+		t.Parallel()
+
+		router := makeTestPagesRouter(t, dbtest.TestDatabase(t), model.PermServersRead|model.PermServersWrite)
+
+		assert.Equal(t, http.StatusForbidden, postForm(router, "/local_client_management", form).Code)
+	})
+
+	t.Run("Given a user with the servers delete permission", func(t *testing.T) {
+		t.Parallel()
+
+		router := makeTestPagesRouter(t, dbtest.TestDatabase(t),
+			model.PermServersRead|model.PermServersWrite|model.PermServersDelete)
+
+		assert.NotEqual(t, http.StatusForbidden, postForm(router, "/local_client_management", form).Code)
+	})
+}
+
 func TestUserManagementPagePermissions(t *testing.T) {
 	t.Parallel()
 
