@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`679` Serveur PeSIT : une erreur survenant pendant l'échange de données
+  après la fin du transfert (par exemple lorsque le partenaire interrompt la
+  connexion) pouvait arrêter la Gateway. L'échange travaille désormais sur son
+  propre état, et une erreur tardive est seulement journalisée.
 * :bug:`675` Le serveur WebDAV n'accepte de nouveau une requête qu'avec un
   certificat client valide ou le mot de passe d'un compte existant. Depuis la
   version 0.16.4, une requête sans certificat client était acceptée quel que
