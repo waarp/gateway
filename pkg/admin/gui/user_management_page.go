@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
@@ -62,7 +63,7 @@ func addUser(db *database.DB, r *http.Request) error {
 
 	newUserPassword := r.FormValue("newUserPassword")
 	if newUserPassword != "" {
-		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
+		newUser.PasswordHash, err = utils.HashPassword(newUserPassword)
 		if err != nil {
 			return fmt.Errorf("failed to hash user password: %w", err)
 		}
@@ -112,7 +113,7 @@ func editUser(db *database.DB, r *http.Request) error {
 
 	newUserPassword := r.FormValue("editUserPassword")
 	if newUserPassword != "" {
-		newUser.PasswordHash, err = internal.HashPassword(newUserPassword)
+		newUser.PasswordHash, err = utils.HashPassword(newUserPassword)
 		if err != nil {
 			return fmt.Errorf("failed to hash user password: %w", err)
 		}

@@ -3,7 +3,6 @@ package r66
 import (
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -53,7 +52,7 @@ func (c *PartnerConfig) ValidConf() error {
 
 	pwd := utils.R66Hash(c.ServerPassword)
 
-	hashed, err := utils.HashPassword(database.BcryptRounds, pwd)
+	hashed, err := utils.HashPassword(pwd)
 	if err != nil {
 		return fmt.Errorf("failed to hash server password: %w", err)
 	}

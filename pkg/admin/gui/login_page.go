@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/puzpuzpuz/xsync/v4"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type session struct {
@@ -107,7 +107,7 @@ func validateSession(db database.ReadAccess, token string) (*model.User, error) 
 	}
 
 	var user model.User
-	if err := db.Get(&user, "id=?", ses.userID).Owner().Run(); err != nil {
+	if err := db.Get(&user, "id=?", ses.userID).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve user: %w", err)
 	}
 
@@ -117,12 +117,12 @@ func validateSession(db database.ReadAccess, token string) (*model.User, error) 
 func checkUser(db database.ReadAccess, username, password string) (*model.User, error) {
 	var user model.User
 
-	err := db.Get(&user, "username=?", username).Owner().Run()
+	err := db.Get(&user, "username=?", username).Run()
 	if err != nil && !database.IsNotFound(err) {
 		return nil, fmt.Errorf("failed to retrieve user: %w", err)
 	}
 
-	if ok := internal.CheckHash(password, user.PasswordHash); err != nil || !ok {
+	if ok := utils.IsHashOf(user.PasswordHash, password); err != nil || !ok {
 		return nil, ErrAuthentication
 	}
 

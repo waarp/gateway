@@ -28,7 +28,7 @@ type BcryptAuthHandler struct{}
 func (BcryptAuthHandler) CanOnlyHaveOne() bool { return true }
 
 func (BcryptAuthHandler) ToDB(_ database.Access, plain, _ string) (hashed, _ string, err error) {
-	if hashed, err = utils.HashPassword(database.BcryptRounds, plain); err != nil {
+	if hashed, err = utils.HashPassword(plain); err != nil {
 		return "", "", fmt.Errorf("failed to hash the password: %w", err)
 	}
 
@@ -55,15 +55,13 @@ func (BcryptAuthHandler) AuthenticateType(db database.ReadAccess,
 	owner authentication.Owner, val any, authType string,
 ) (*authentication.Result, error) {
 	doVerify := func(value []byte) (*authentication.Result, error) {
-		var pswd model.Credential
-		if err := db.Get(&pswd, "type=?", authType).And(owner.GetCredCond()).
+		var hash model.Credential
+		if err := db.Get(&hash, "type=?", authType).And(owner.GetCredCond()).
 			Run(); err != nil && !database.IsNotFound(err) {
 			return nil, fmt.Errorf("failed to retrieve the reference password hash: %w", err)
 		}
 
-		reference := []byte(pswd.Value)
-
-		if bcrypt.CompareHashAndPassword(reference, value) != nil {
+		if !utils.IsHashOf(hash.Value, string(value)) {
 			return authentication.Failure("incorrect password"), nil
 		}
 

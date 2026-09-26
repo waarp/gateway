@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"uuid"
 
 	"github.com/bwmarrin/snowflake"
-	"github.com/google/uuid"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
@@ -82,10 +82,7 @@ type defaultIDGenerator struct{}
 
 func (defaultIDGenerator) Init(database.ReadAccess) error { return nil }
 func (defaultIDGenerator) GetNextID() (string, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate UUID: %w", err)
-	}
+	id := uuid.NewV7()
 
 	return id.String(), nil
 }

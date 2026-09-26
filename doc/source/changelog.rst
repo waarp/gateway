@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`672` Le temps de réponse d'une authentification refusée (interface
+  web, API REST, protocoles de transfert) ne dépend plus de l'existence du
+  compte : un compte inconnu est désormais vérifié avec le même coût qu'un
+  compte existant.
 * :bug:`674` Pour un compte restreint à certaines adresses IP, une connexion
   depuis une adresse non autorisée reçoit désormais la même réponse qu'une
   connexion avec des identifiants invalides (R66, SFTP, FTP, HTTP, WebDAV).

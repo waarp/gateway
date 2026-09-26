@@ -5,10 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
@@ -19,6 +15,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/authtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateConf(t *testing.T) {
@@ -369,8 +367,6 @@ func getConfJson(tb testing.TB) string {
 	modeltest.AddDummyProtoConfig("pesit-tls")
 
 	authtest.AddDummyAuthHandler("ssh_private_key", "sftp")
-
-	database.BcryptRounds = bcrypt.MinCost
 
 	return confJson
 }
