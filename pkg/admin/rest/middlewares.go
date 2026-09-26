@@ -13,9 +13,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
+
+// throttleScope identifies the REST API in the authentication limiter.
+const throttleScope = "rest"
 
 type requestUserKey struct{}
 
@@ -34,6 +38,22 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
+			security := &db.Config.Security
+			limiter := throttle.Default()
+
+			invalid := func() {
+				w.Header().Set("WWW-Authenticate", "Basic")
+				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
+			}
+
+			if limiter.Locked(security, throttleScope, login, r.RemoteAddr) {
+				logger.Warningf("Request of user %q from %q refused: too many failed attempts",
+					login, r.RemoteAddr)
+				invalid()
+
+				return
+			}
+
 			var user model.User
 			if err := db.Get(&user, "username=?", login).Run(); err != nil &&
 				!database.IsNotFound(err) {
@@ -45,12 +65,18 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 
 			if !utils.IsHashOf(user.PasswordHash, password) {
 				logger.Warningf("Invalid credentials for user %q", login)
-				w.Header().Set("WWW-Authenticate", "Basic")
-				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
+
+				if limiter.Failure(security, throttleScope, login, r.RemoteAddr) {
+					logger.Warningf("Too many failed requests for user %q from %q, new attempts are temporarily refused",
+						login, r.RemoteAddr)
+				}
+
+				invalid()
 
 				return
 			}
 
+			limiter.Success(throttleScope, login, r.RemoteAddr)
 			setRequestUser(r, &user)
 			next.ServeHTTP(w, r)
 		})

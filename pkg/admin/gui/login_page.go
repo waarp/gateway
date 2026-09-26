@@ -13,8 +13,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+// throttleScope identifies the WebUI login in the authentication limiter.
+const throttleScope = "webui"
 
 type session struct {
 	userID         int64
@@ -182,9 +186,24 @@ func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Reques
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
+	security := &db.GetConfig().Security
+	limiter := throttle.Default()
+
+	if limiter.Locked(security, throttleScope, username, r.RemoteAddr) {
+		logger.Warningf("Login of user %q from %q refused: too many failed attempts",
+			username, r.RemoteAddr)
+
+		return nil, translation["errorUser"]
+	}
+
 	user, checkErr := checkUser(db, username, password)
 	if errors.Is(checkErr, ErrAuthentication) {
 		logger.Warning("Incorrect username or password")
+
+		if limiter.Failure(security, throttleScope, username, r.RemoteAddr) {
+			logger.Warningf("Too many failed logins for user %q from %q, new attempts are temporarily refused",
+				username, r.RemoteAddr)
+		}
 
 		return nil, translation["errorUser"]
 	} else if checkErr != nil {
@@ -192,6 +211,8 @@ func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Reques
 
 		return nil, checkErr.Error()
 	}
+
+	limiter.Success(throttleScope, username, r.RemoteAddr)
 
 	return user, ""
 }

@@ -250,3 +250,46 @@ La section ``[controller]`` regroupe toutes les options de configuration du
 .. confval:: MaxTransfersOut
 
    Le nombre maximum autorisé de transferts sortants simultanés. Illimité par défaut.
+
+Section ``[security]``
+======================
+
+La section ``[security]`` regroupe les options qui protègent l'authentification
+contre les tentatives répétées (interface web, API REST, serveurs de transfert).
+
+Les échecs d'authentification sont comptés par point d'entrée, par compte et par
+adresse IP du client. Lorsque le nombre maximum d'échecs est atteint, les
+nouvelles tentatives de ce compte depuis cette adresse sont refusées pendant une
+durée donnée, même avec des identifiants valides ; le même compte reste
+utilisable depuis les autres adresses. La réponse est alors identique à celle
+d'identifiants invalides, et le blocage est consigné dans les journaux. Une
+authentification réussie remet le compteur à zéro.
+
+.. confval:: MaxAuthFailures
+
+   Le nombre d'échecs, pour un même compte depuis une même adresse, au-delà
+   duquel les nouvelles tentatives sont temporairement refusées. La valeur
+   ``0`` désactive le mécanisme.
+
+   Valeur par défaut : ``5``
+
+.. confval:: AuthFailureWindow
+
+   La durée au terme de laquelle les échecs sont oubliés si aucun nouvel échec
+   ne survient. Les unités de temps acceptées sont : "ns", "us" (ou "µs"),
+   "ms", "s", "m", "h".
+
+   Valeur par défaut : ``5m``
+
+.. confval:: AuthLockDuration
+
+   La durée pendant laquelle les nouvelles tentatives sont refusées une fois le
+   nombre maximum d'échecs atteint. Cette durée double à chaque nouveau blocage.
+
+   Valeur par défaut : ``1m``
+
+.. confval:: AuthMaxLockDuration
+
+   La durée maximale d'un blocage.
+
+   Valeur par défaut : ``30m``

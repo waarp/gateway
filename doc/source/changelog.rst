@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`677` Les tentatives d'authentification répétées sont désormais
+  limitées sur l'interface web, l'API REST et le serveur R66 : après 5 échecs
+  pour un même compte depuis une même adresse, les nouvelles tentatives sont
+  refusées pendant 1 minute, durée doublée à chaque nouveau blocage (30
+  minutes au plus). Ces valeurs se règlent dans la nouvelle section
+  ``[security]`` du fichier de configuration (voir :ref:`configuration-file`) ;
+  ``MaxAuthFailures = 0`` désactive le mécanisme.
 * :bug:`673` La suppression d'un client (API REST, interface web) requiert
   désormais le droit de suppression sur les serveurs, et celle d'une autorité
   d'authentification le droit de suppression sur l'administration, comme pour
