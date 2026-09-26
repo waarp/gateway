@@ -1,6 +1,7 @@
 package r66
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -92,6 +93,43 @@ func TestGetFileInfo(t *testing.T) {
 					So(infos[0].Name, ShouldEqual, "subDir/fooDir")
 					So(infos[1].Name, ShouldEqual, "subDir/foobar")
 				})
+			})
+
+			Convey("When calling the GetFileInfo function with a pattern going back into the rule directory", func() {
+				infos, err := handle.GetFileInfo(rule.Name, "subDir/../subDir/foo*")
+				So(err, ShouldBeNil)
+
+				Convey("Then it should have returned the matching files", func() {
+					So(infos, ShouldHaveLength, 2)
+					So(infos[0].Name, ShouldEqual, "subDir/fooDir")
+					So(infos[1].Name, ShouldEqual, "subDir/foobar")
+				})
+			})
+
+			Convey("Given a file outside of the rule directory", func() {
+				So(fs.WriteFullFile(fs.JoinPath(rootPath, "secret"), []byte("secret")), ShouldBeNil)
+
+				cases := []string{
+					"../../secret", "../../*", "../*", "subDir/../../../*", "..",
+				}
+
+				if runtime.GOOS == "windows" {
+					cases = append(cases, `..\..\secret`)
+				}
+
+				for _, pattern := range cases {
+					Convey("When calling the GetFileInfo function with the pattern "+pattern, func() {
+						infos, err := handle.GetFileInfo(rule.Name, pattern)
+
+						Convey("Then it should refuse the pattern", func() {
+							So(infos, ShouldBeEmpty)
+							So(err, ShouldBeError, &r66.Error{
+								Code:   r66.FileNotAllowed,
+								Detail: "invalid file pattern",
+							})
+						})
+					})
+				}
 			})
 
 			Convey("When calling the GetFileInfo function with an incorrect pattern", func() {

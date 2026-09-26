@@ -277,7 +277,18 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 		return nil, err
 	}
 
-	pattern := path.Clean(pat)
+	pat = strings.TrimPrefix(pat, "/")
+
+	pattern, err := fs.Localize(pat)
+	if err != nil {
+		s.logger.Warningf("File listing pattern %q requested by %q refused: %v",
+			pat, s.account.Login, err)
+
+		return nil, &r66.Error{
+			Code:   r66.FileNotAllowed,
+			Detail: "invalid file pattern",
+		}
+	}
 
 	dir, err := s.makeDir(rule)
 	if err != nil {

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`664` Le serveur R66 refuse désormais les demandes de liste de fichiers
+  dont le motif désigne des fichiers situés hors du répertoire de la règle (par
+  un élément ``..``). Les motifs portant sur des sous-répertoires restent
+  acceptés.
 * :bug:`663` Lors de la création d'un transfert serveur, tout chemin de fichier
   permettant de quelque façon que ce soit de sortir de l'arborescence prévue pour
   l'envoi ou la réception du fichier sera refusé. Plus précisément, tout chemin
