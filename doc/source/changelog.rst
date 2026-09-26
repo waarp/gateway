@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`671` La tâche d'extraction d'archive (ZIP, TAR) n'écrit désormais que
+  dans son répertoire de sortie : une entrée de l'archive dont le nom en
+  sortirait (par un élément ``..``) fait échouer la tâche. Les entrées situées
+  dans des sous-répertoires restent extraites normalement.
 * :bug:`665` Les serveurs SFTP, FTP et WebDAV refusent désormais les opérations
   sur le système de fichiers (liste, consultation, création de répertoire)
   portant sur un chemin situé hors du répertoire de la règle, que ce soit par

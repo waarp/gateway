@@ -36,7 +36,10 @@ func (e *extractTask) extractZip() error {
 }
 
 func unzipFile(outputDir string, file *zip.File) error {
-	outputPath := fs.JoinPath(outputDir, file.Name)
+	outputPath, pathErr := entryPath(outputDir, file.Name)
+	if pathErr != nil {
+		return pathErr
+	}
 
 	if file.Mode().IsDir() {
 		if err := fs.MkdirAll(outputPath); err != nil {
