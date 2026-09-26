@@ -50,14 +50,11 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 		authenticated = true
 	}
 
-	if !authenticated {
+	// A disallowed address is refused like invalid credentials, so that the
+	// answer does not tell whether the credentials were valid. The actual
+	// reason is logged by CheckIP.
+	if !authenticated || !acc.CheckIP(s.logger, r.RemoteAddr) {
 		unauthorized(w, "missing credentials")
-
-		return nil, false
-	}
-
-	if !acc.CheckIP(s.logger, r.RemoteAddr) {
-		unauthorized(w, "invalid IP address")
 
 		return nil, false
 	}

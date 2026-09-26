@@ -122,14 +122,11 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 		authenticated = true
 	}
 
-	if !authenticated {
+	// A disallowed address is refused like invalid credentials, so that the
+	// answer does not tell whether the credentials were valid. The actual
+	// reason is logged by CheckIP.
+	if !authenticated || !acc.CheckIP(h.logger, r.RemoteAddr) {
 		unauthorized(w, "auth: invalid authentication")
-
-		return nil, false
-	}
-
-	if !acc.CheckIP(h.logger, r.RemoteAddr) {
-		unauthorized(w, "auth: unauthorized IP address")
 
 		return nil, false
 	}

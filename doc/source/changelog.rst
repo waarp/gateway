@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`674` Pour un compte restreint à certaines adresses IP, une connexion
+  depuis une adresse non autorisée reçoit désormais la même réponse qu'une
+  connexion avec des identifiants invalides (R66, SFTP, FTP, HTTP, WebDAV).
+  Auparavant, un message distinct indiquait que les identifiants étaient
+  corrects. Le motif réel du refus reste consigné dans les journaux du
+  serveur ; un partenaire refusé doit donc s'adresser à l'exploitant pour le
+  connaître.
 * :bug:`671` La tâche d'extraction d'archive (ZIP, TAR) n'écrit désormais que
   dans son répertoire de sortie : une entrée de l'archive dont le nom en
   sortirait (par un élément ``..``) fait échouer la tâche. Les entrées situées

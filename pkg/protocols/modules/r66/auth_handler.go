@@ -44,14 +44,13 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 		authenticated = true
 	}
 
-	if !authenticated {
+	// A disallowed address is refused like invalid credentials, so that the
+	// answer does not tell whether the credentials were valid. The actual
+	// reason is logged by CheckIP.
+	if !authenticated || !acc.CheckIP(a.logger, authent.Address) {
 		a.logger.Warningf("Authentication failed for account %q", authent.Login)
 
 		return nil, internal.NewR66Error(r66.BadAuthent, "authentication failed")
-	}
-
-	if !acc.CheckIP(a.logger, authent.Address) {
-		return nil, internal.NewR66Error(r66.BadAuthent, "unauthorized IP address")
 	}
 
 	authent.Filesize = true

@@ -127,7 +127,7 @@ func TestValidAuth(t *testing.T) {
 
 					Convey("Then it should fail", func() {
 						_, err := handler.ValidAuth(packet)
-						So(err, ShouldBeError, "A: unauthorized IP address")
+						So(err, ShouldBeError, "A: authentication failed")
 					})
 				})
 			})
