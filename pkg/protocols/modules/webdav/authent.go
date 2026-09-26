@@ -37,7 +37,7 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 		http.Error(w, "internal authentication error", http.StatusInternalServerError)
 
 		return nil, false
-	} else if !success {
+	} else if success {
 		authenticated = true
 	}
 
