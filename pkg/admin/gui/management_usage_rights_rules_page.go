@@ -754,6 +754,12 @@ func managementUsageRightsRulesPage(logger *log.Logger, db *database.DB) http.Ha
 			}
 		}
 
+		if rule == nil || rule.ID == 0 {
+			redirectToParentList(w, r, logger, "rule", ruleID, "transfer_rules_management")
+
+			return
+		}
+
 		listServers, err := internal.ListServers(db, "name", true, 0, 0)
 		if err != nil {
 			return

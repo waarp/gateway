@@ -337,6 +337,12 @@ func serverAuthenticationPage(logger *log.Logger, db *database.DB) http.HandlerF
 			}
 		}
 
+		if server == nil || server.ID == 0 {
+			redirectToParentList(w, r, logger, "server", serverID, "server_management")
+
+			return
+		}
+
 		serversCredentials, filter, credentialServerFound := listCredentialServer(server.Name, db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {

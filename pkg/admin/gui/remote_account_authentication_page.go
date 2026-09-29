@@ -365,6 +365,12 @@ func remoteAccountAuthenticationPage(logger *log.Logger, db *database.DB) http.H
 		accountID := r.URL.Query().Get("accountID")
 		partner, account := getPartnerAndAccount(db, partnerID, accountID, logger)
 
+		if partner == nil || partner.ID == 0 || account == nil || account.ID == 0 {
+			redirectToParentList(w, r, logger, "partner account", partnerID+"/"+accountID, "partner_management")
+
+			return
+		}
+
 		credentials, filter, credentialAccountFound := listCredentialRemoteAccount(partner.Name, account.Login, db, r)
 
 		if pageName := r.URL.Query().Get("clearFiltersPage"); pageName != "" {
