@@ -32,6 +32,22 @@ func TestParseFileMode(t *testing.T) {
 func TestLoadServerConfig(t *testing.T) {
 	t.Chdir(t.TempDir())
 
+	// Only look in the test directory, not in a configuration installed on
+	// the machine (e.g. /etc/waarp-gateway/gatewayd.ini).
+	defaultConfFiles = func() []string {
+		var files []string
+
+		for _, file := range getDefaultConfFiles() {
+			if !filepath.IsAbs(file) {
+				files = append(files, file)
+			}
+		}
+
+		return files
+	}
+
+	t.Cleanup(func() { defaultConfFiles = getDefaultConfFiles })
+
 	directContent := []byte(`[Log]
 LogTo = stdout
 Level = INFO
