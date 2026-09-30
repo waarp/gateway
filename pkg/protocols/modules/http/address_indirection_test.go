@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf/conftest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/controller"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
@@ -14,6 +15,8 @@ func TestAddressIndirection(t *testing.T) {
 	const fakeAddr = "9.9.9.9:9999"
 
 	Convey("Given a HTTP service with an indirect address", t, func(c C) {
+		transferDone := make(chan struct{})
+
 		Convey("Given a new POST HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPushTransfer(c, HTTP, nil, nil, nil)
 			realAddr := ctx.Server.Address.String()
@@ -24,6 +27,11 @@ func TestAddressIndirection(t *testing.T) {
 			So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
 			ctx.StartService(c)
+			ctx.ServerService.SetTracer(func() pipeline.Trace {
+				return pipeline.Trace{
+					OnTransferEnd: func() { close(transferDone) },
+				}
+			})
 
 			Convey("When connecting to the server", func(c C) {
 				pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
@@ -36,7 +44,10 @@ func TestAddressIndirection(t *testing.T) {
 				transferClient := transClient.(*postClient)
 				So(transferClient.Request(), ShouldBeNil)
 
-				defer func() { So(transferClient.Cancel(), ShouldBeNil) }()
+				defer func() {
+					So(transferClient.Cancel(), ShouldBeNil)
+					<-transferDone
+				}()
 
 				Convey("Then it should have connected to the server", func() {
 					So(transferClient.req.URL.Host, ShouldEqual, realAddr)
@@ -54,6 +65,11 @@ func TestAddressIndirection(t *testing.T) {
 			So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
 			ctx.StartService(c)
+			ctx.ServerService.SetTracer(func() pipeline.Trace {
+				return pipeline.Trace{
+					OnTransferEnd: func() { close(transferDone) },
+				}
+			})
 
 			Convey("When connecting to the server", func(c C) {
 				pip, err := controller.NewClientPipeline(ctx.DB, ctx.ClientTrans)
@@ -66,7 +82,10 @@ func TestAddressIndirection(t *testing.T) {
 				transferClient := transClient.(*getClient)
 				So(transferClient.Request(), ShouldBeNil)
 
-				defer func() { transferClient.SendError(0, "") }()
+				defer func() {
+					transferClient.SendError(0, "")
+					<-transferDone
+				}()
 
 				Convey("Then it should have connected to the server", func() {
 					So(transferClient.resp.Request.URL.Host, ShouldEqual, realAddr)
