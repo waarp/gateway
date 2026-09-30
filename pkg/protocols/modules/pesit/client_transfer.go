@@ -201,8 +201,8 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 		if separator, sepErr := getArticlesSeparator(c.pip); sepErr != nil {
 			return sepErr
 		} else if separator != nil && c.pip.TransCtx.Rule.IsSend {
-			return pipeline.NewError(types.TeForbidden,
-				"cannot resume the transfer of a delimited text file, cancel it and submit it again")
+			c.pip.TransCtx.Transfer.Progress = 0
+			prog = 0
 		}
 
 		c.pTrans.SetRecovered(true)
