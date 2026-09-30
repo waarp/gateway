@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`656` Il est désormais possible de reprendre un transfert PeSIT avec
+  séparateurs. À noter que le transfert sera repris depuis le début.
 * :bug:`667` Dans l'interface web, les pages consacrées aux éléments d'un
   partenaire, d'un serveur ou d'une règle (authentification, comptes, droits
   d'usage) ne tombent plus en erreur lorsque l'objet demandé est absent de

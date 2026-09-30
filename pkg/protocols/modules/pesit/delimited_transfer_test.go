@@ -108,3 +108,30 @@ func TestDelimitedArticlesTooLong(t *testing.T) {
 	assert.Equal(t, types.StatusError, clientTrans.Status)
 	assert.Contains(t, clientTrans.ErrDetails, "record longer than the article size")
 }
+
+func TestDelimitedArticlesResume(t *testing.T) {
+	db := gwtesting.Database(t)
+	ctx := gwtesting.TestTransferCtx(t, db, Pesit, nil, nil, nil)
+	total, lengths := delimitedFile(t, ctx, filepath.Join("push_src_dir", "push.file"))
+
+	ctx.TransferPush.Progress = 10
+	ctx.TransferPush.Step = types.StepData
+	ctx.TransferPush.TransferInfo[articlesSeparatorKey] = "LF"
+	pip := ctx.PushPipeline(t)
+
+	require.NoError(t, pip.Run(), "the transfer should execute without error")
+
+	var serverTrans model.HistoryEntry
+	require.NoError(t, db.Get(&serverTrans,
+		"is_server=true AND is_send=? AND agent=? AND account=?",
+		ctx.ServerRulePush.IsSend, ctx.Server.Name, ctx.LocalAccount.Login).Eager().Run())
+
+	assert.Equal(t, types.StatusDone, serverTrans.Status)
+	assert.Equal(t, total, serverTrans.Progress, "the separators are not sent")
+	gwtesting.JSONEqual(t, lengths, serverTrans.TransferInfo[articlesLengthsKey])
+
+	expectedContent := strings.Join(delimitedRecords, "")
+	content, err := os.ReadFile(serverTrans.LocalPath)
+	require.NoError(t, err)
+	assert.Equal(t, expectedContent, string(content))
+}
