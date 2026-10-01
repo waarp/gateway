@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`675` Le serveur WebDAV n'accepte de nouveau une requête qu'avec un
+  certificat client valide ou le mot de passe d'un compte existant. Depuis la
+  version 0.16.4, une requête sans certificat client était acceptée quel que
+  soit le mot de passe fourni.
 * :bug:`656` Il est désormais possible de reprendre un transfert PeSIT avec
   séparateurs. À noter que le transfert sera repris depuis le début.
 * :bug:`667` Dans l'interface web, les pages consacrées aux éléments d'un
