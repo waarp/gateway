@@ -462,12 +462,17 @@ func (t *transferHandler) multiSend(trans *pesit.ServerTransfer, lengths []uint1
 func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
 	t.pip.Logger.Debug("Data transfer started")
 
+	// The exchange runs on a copy of the handler state: RunWithCtx may return
+	// before it ends (when the context is done), and DeselectFile then resets
+	// the handler for the next transfer on the connection.
+	data := *t
+
 	if err := utils.RunWithCtx(t.ctx, func() error {
-		if t.pip.TransCtx.Rule.IsSend {
-			return t.sendTransfer(trans)
+		if data.pip.TransCtx.Rule.IsSend {
+			return data.sendTransfer(trans)
 		}
 
-		return t.receiveTransfer(trans)
+		return data.receiveTransfer(trans)
 	}); err != nil {
 		t.pip.Logger.Debugf("Data transfer failed: %v", err)
 
@@ -592,6 +597,15 @@ func (t *transferHandler) Cancel(context.Context) error {
 }
 
 func (t *transferHandler) handleError(err error) {
+	// The transfer may already have been reset by DeselectFile (for instance
+	// when a late error comes from the data exchange): there is nothing left
+	// to update, and the error must not stop the server.
+	if t.pip == nil {
+		t.logger.Warningf("Error after the end of the transfer: %v", err)
+
+		return
+	}
+
 	var pesitErr pesit.Diagnostic
 	errors.As(err, &pesitErr)
 
