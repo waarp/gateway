@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.16.6 <2026-10-02>`
 * :bug:`679` Serveur PeSIT : une erreur survenant pendant l'échange de données
   après la fin du transfert (par exemple lorsque le partenaire interrompt la
   connexion) pouvait arrêter la Gateway. L'échange travaille désormais sur son
