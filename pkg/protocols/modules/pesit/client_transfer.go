@@ -191,6 +191,8 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 	}
 
 	c.pTrans = pesit.NewTransfer(method, c.pip.TransCtx.Transfer.RemotePath)
+	c.pTrans.UseClientLogin(true)
+	c.pTrans.UseServerLogin(true)
 
 	// configure recovery if transfer is resumed
 	if prog := c.pip.TransCtx.Transfer.Progress; prog != 0 ||
