@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`685` Correction d'un bug qui faisait que les transferts n'étaient pas
+  mis à jour en base de données durant l'exécution de tâches. La mise à jour ne
+  se faisait qu'après que les tâches aient terminées. Les transferts sont
+  désormais mis à jour entre chaque tâche si suffisamment de temps s'est écoulé
+  depuis la dernière mise à jour.
 * :bug:`682` Ajout d'un mécanisme pour retenter automatiquement les transactions
   SQL bloquées. Cela devrait réduire les chances de *deadlock* avec MySQL et
   PostgreSQL.
