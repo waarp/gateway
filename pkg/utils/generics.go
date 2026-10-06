@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 )
 
 // If simulates a ternary operator.
@@ -84,4 +85,20 @@ func Join[T any](elems ...*T) []*T {
 	}
 
 	return joined
+}
+
+func JoinString[E fmt.Stringer, T ~[]E](list T, sep string) string {
+	if len(list) == 0 {
+		return ""
+	}
+
+	builder := strings.Builder{}
+	builder.WriteString(list[0].String())
+
+	for _, elem := range list[1:] {
+		builder.WriteString(sep)
+		builder.WriteString(elem.String())
+	}
+
+	return builder.String()
 }

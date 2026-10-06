@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`681` Les information de connexion TLS et SSH (ciphers, certificats,
+  etc...) sont désormais loggés en niveau DEBUG lors de l'ouverture de la connexion.
 * :bug:`685` Correction d'un bug qui faisait que les transferts n'étaient pas
   mis à jour en base de données durant l'exécution de tâches. La mise à jour ne
   se faisait qu'après que les tâches aient terminées. Les transferts sont

@@ -214,20 +214,13 @@ func createCrypto(w http.ResponseWriter, r *http.Request, db database.Access,
 	w.Header().Set("Location", location(r.URL, dbCrypto.Name))
 	w.WriteHeader(http.StatusCreated)
 
-	if dbCrypto.Type == auth.TLSCertificate ||
-		dbCrypto.Type == auth.TLSTrustedCertificate {
-		warn := compatibility.CheckSHA1(dbCrypto.Value)
-		if warn != "" {
-			fmt.Fprint(w, warn)
-		}
-	}
-
 	return nil
 }
 
 func listCryptos(w http.ResponseWriter, r *http.Request, db database.ReadAccess,
 	owner model.CredOwnerTable,
 ) error {
+	//nolint:goconst //too specific, keep separate
 	validSorting := orders{
 		"default": order{col: "name", asc: true},
 		"name+":   order{col: "name", asc: true},
@@ -297,14 +290,6 @@ func replaceCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 	w.Header().Set("Location", locationUpdate(r.URL, dbCrypto.Name))
 	w.WriteHeader(http.StatusCreated)
 
-	if dbCrypto.Type == auth.TLSCertificate ||
-		dbCrypto.Type == auth.TLSTrustedCertificate {
-		warn := compatibility.CheckSHA1(dbCrypto.Value)
-		if warn != "" {
-			fmt.Fprint(w, warn)
-		}
-	}
-
 	return nil
 }
 
@@ -333,14 +318,6 @@ func updateCrypto(w http.ResponseWriter, r *http.Request, db *database.DB,
 
 	w.Header().Set("Location", locationUpdate(r.URL, dbCrypto.Name))
 	w.WriteHeader(http.StatusCreated)
-
-	if dbCrypto.Type == auth.TLSCertificate ||
-		dbCrypto.Type == auth.TLSTrustedCertificate {
-		warn := compatibility.CheckSHA1(dbCrypto.Value)
-		if warn != "" {
-			fmt.Fprint(w, warn)
-		}
-	}
 
 	return nil
 }
