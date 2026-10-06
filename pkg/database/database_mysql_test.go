@@ -1,5 +1,4 @@
 //go:build test_db_mysql
-// +build test_db_mysql
 
 package database
 
@@ -42,6 +41,7 @@ func TestMySQL(t *testing.T) {
 	}()
 
 	checkCharset(t, db)
+	testDeadlock(t, db)
 
 	Convey("Given a MySQL service", t, func() {
 		testDatabase(db)

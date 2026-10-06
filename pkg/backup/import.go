@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
 	"github.com/goccy/go-yaml"
 
@@ -60,7 +61,9 @@ func ParseData(r importFile) (*file.Data, error) {
 func Import(db database.Access, logger *log.Logger, data *file.Data, targets []string,
 	dry, reset bool,
 ) error {
-	if err := db.Transaction(func(ses *database.Session) error {
+	const timeout = 10 * time.Minute
+
+	if err := db.TransactionWithTimeout(timeout, func(ses *database.Session) error {
 		if utils.ContainsOneOf(targets, "authorities", "all") {
 			if err := importAuthorities(logger, ses, data.Authorities, reset); err != nil {
 				return err

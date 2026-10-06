@@ -1,5 +1,4 @@
 //go:build test_db_postgresql
-// +build test_db_postgresql
 
 package database
 
@@ -40,6 +39,8 @@ func TestPostgreSQL(t *testing.T) {
 			t.Logf("Failed to close database: %v", err)
 		}
 	}()
+
+	testDeadlock(t, db)
 
 	Convey("Given a PostgreSQL service", t, func() {
 		testDatabase(db)

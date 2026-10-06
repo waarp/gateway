@@ -114,6 +114,7 @@ func MysqlDSN(config *conf.DatabaseConfig) string {
 	dsn.User = config.User
 	dsn.Passwd = config.Password
 	dsn.ParseTime = true
+	dsn.ConnectionAttributes = "transaction_isolation='READ COMMITTED'"
 
 	if config.TLSCert != "" && config.TLSKey != "" {
 		cert, _ := tls.LoadX509KeyPair(config.TLSCert, config.TLSKey) //nolint:errcheck // nothing to handle the errors
