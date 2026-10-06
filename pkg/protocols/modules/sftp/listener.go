@@ -97,6 +97,15 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 
 	go ssh.DiscardRequests(reqs)
 
+	l.Logger.Debug("SSH connection established")
+	if algConn, ok := servConn.Conn.(ssh.AlgorithmsConnMetadata); ok {
+		algos := algConn.Algorithms()
+		l.Logger.Debugf("SSH negotiated: kex=%s hostkey=%s cipher(in)=%s mac(in)=%s cipher(out)=%s mac(out)=%s",
+			algos.KeyExchange, algos.HostKey,
+			algos.Read.Cipher, algos.Read.MAC,
+			algos.Write.Cipher, algos.Write.MAC)
+	}
+
 	acc, accErr := server.GetAccount(l.DB, servConn.User())
 	if accErr != nil {
 		l.Logger.Errorf("Failed to retrieve SFTP account: %v", accErr)

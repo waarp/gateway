@@ -88,6 +88,15 @@ func openConn(logger *log.Logger, ctx *model.TransferContext,
 		return nil, err
 	}
 
+	logger.Debug("SSH connection established")
+	if algConn, ok := sshConn.Conn.(ssh.AlgorithmsConnMetadata); ok {
+		algos := algConn.Algorithms()
+		logger.Debugf("SSH negotiated: kex=%s hostkey=%s cipher(in)=%s mac(in)=%s cipher(out)=%s mac(out)=%s",
+			algos.KeyExchange, algos.HostKey,
+			algos.Read.Cipher, algos.Read.MAC,
+			algos.Write.Cipher, algos.Write.MAC)
+	}
+
 	sftpSes, err := startSFTPSession(logger, sshConn, &partnerConf)
 	if err != nil {
 		_ = sshConn.Close() //nolint:errcheck //close error is irrelevant here

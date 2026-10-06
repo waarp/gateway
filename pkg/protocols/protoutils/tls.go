@@ -3,6 +3,7 @@ package protoutils
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 type TLSVersion int
@@ -131,7 +131,7 @@ func MakeServerTLSConfig(db database.ReadAccess, logger *log.Logger, agentID int
 		MinVersion:       GetMinTLSVersion(agent.ProtoConfig),
 		Certificates:     tlsCerts,
 		ClientAuth:       tls.RequestClientCert,
-		VerifyConnection: compatibility.LogSha1(logger),
+		VerifyConnection: LogTLSConn(logger),
 	}, nil
 }
 
@@ -201,7 +201,7 @@ func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
 	config := &tls.Config{
 		ServerName:       partner.Address.Host,
 		RootCAs:          utils.TLSCertPool(),
-		VerifyConnection: compatibility.LogSha1(logger),
+		VerifyConnection: LogTLSConn(logger),
 		MinVersion:       minVersion,
 		GetClientCertificate: func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
 			// Prefer the standards-compliant choice when one exists.
@@ -236,4 +236,31 @@ func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
 	}
 
 	return config, nil
+}
+
+func LogTLSConn(logger *log.Logger) func(tls.ConnectionState) error {
+	return func(conn tls.ConnectionState) error {
+		logger.Debugf("%s connection established using cipher suite %q",
+			tls.VersionName(conn.Version),
+			tls.CipherSuiteName(conn.CipherSuite))
+
+		if len(conn.PeerCertificates) > 0 {
+			logger.Debugf("Remote certificate: %s", displayCertInfo(conn.PeerCertificates[0]))
+		}
+
+		return nil
+	}
+}
+
+func displayCertInfo(cert *x509.Certificate) string {
+	return fmt.Sprintf("Subject=%s Issuer=%s NotBefore=%s NotAfter=%s DNS=[%s] IPs=[%s] PubKeyAlgo=%s SignAlgo=%s ",
+		cert.Subject.CommonName,
+		cert.Issuer.CommonName,
+		cert.NotBefore.String(),
+		cert.NotAfter.String(),
+		strings.Join(cert.DNSNames, ", "),
+		utils.JoinString(cert.IPAddresses, ", "),
+		cert.PublicKeyAlgorithm.String(),
+		cert.SignatureAlgorithm.String(),
+	)
 }
