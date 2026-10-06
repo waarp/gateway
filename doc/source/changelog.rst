@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`682` Ajout d'un mécanisme pour retenter automatiquement les transactions
+  SQL bloquées. Cela devrait réduire les chances de *deadlock* avec MySQL et
+  PostgreSQL.
+
 * :release:`0.16.6 <2026-10-02>`
 * :bug:`679` Serveur PeSIT : une erreur survenant pendant l'échange de données
   après la fin du transfert (par exemple lorsque le partenaire interrompt la

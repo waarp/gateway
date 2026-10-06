@@ -11,7 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
 
-const warnDuration = 1000 * time.Second
+const warnDuration = 30 * time.Second
 
 // TransactionFunc is the type representing a function meant to be executed inside
 // a transaction using the Standalone.Transaction method.
@@ -29,21 +29,38 @@ func (db *DB) TransactionWithTimeout(dur time.Duration, fun TransactionFunc) err
 	defer cancel()
 	engine := db.engine.WithContext(ctx)
 
-	err := engine.Transaction(func(tx *gorm.DB) error {
-		ses := &Session{db: db, session: tx}
-		return fun(ses)
-	})
+	const maxAttempts = 3
+	var err error
 
-	switch {
-	case err == nil:
-		return nil
-	case isError[*NotFoundError](err),
-		isError[*ValidationError](err),
-		isError[*InternalError](err):
-		return err
-	default:
+	for attempt := range maxAttempts {
+		err = engine.Transaction(func(tx *gorm.DB) error {
+			ses := &Session{db: db, session: tx}
+			return fun(ses)
+		})
+
+		// if no error, return
+		if err == nil {
+			return nil
+		}
+
+		// if retryable, retry after small delay
+		if isRetryable(err) {
+			<-time.After(50 * time.Millisecond * time.Duration(attempt+1))
+
+			continue
+		}
+
+		// if internal error, return as-is
+		if isError[*NotFoundError](err) || isError[*ValidationError](err) ||
+			isError[*InternalError](err) {
+			return err
+		}
+
+		// if database error, wrap
 		return NewInternalError(err)
 	}
+
+	return NewInternalError(err)
 }
 
 func (db *DB) getOwner() string        { return db.Config.GatewayName }

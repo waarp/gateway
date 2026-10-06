@@ -3,6 +3,9 @@ package database
 import (
 	"errors"
 	"fmt"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // ValidationError is the error returned when the entry given for insertion is
@@ -84,4 +87,31 @@ func isError[T error](err error) bool {
 	_, ok := errors.AsType[T](err)
 
 	return ok
+}
+
+const (
+	// MySQL/MariaDB error numbers.
+	mysqlErrLockWaitTimeout = 1205
+	mysqlErrDeadlock        = 1213
+
+	// PostgreSQL SQLSTATE codes.
+	pgErrSerializationFailure = "40001"
+	pgErrDeadlockDetected     = "40P01"
+	pgErrLockNotAvailable     = "55P03"
+)
+
+func isRetryable(err error) bool {
+	msErr, isMsErr := errors.AsType[*mysql.MySQLError](err)
+	pgErr, isPgErr := errors.AsType[*pgconn.PgError](err)
+
+	switch {
+	case isMsErr:
+		return msErr.Number == mysqlErrDeadlock || msErr.Number == mysqlErrLockWaitTimeout
+	case isPgErr:
+		return pgErr.Code == pgErrDeadlockDetected ||
+			pgErr.Code == pgErrSerializationFailure ||
+			pgErr.Code == pgErrLockNotAvailable
+	default:
+		return false
+	}
 }
