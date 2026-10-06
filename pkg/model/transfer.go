@@ -240,23 +240,65 @@ func (t *Transfer) AfterInsert(db database.Access) error {
 }
 
 func (t *Transfer) AfterUpdate(db database.Access) error {
-	if reflect.DeepEqual(t.TransferInfo, t.Infos.asMap()) {
+	if len(t.Infos) == 0 {
+		if err := db.Select(&t.Infos).Where("transfer_id=?", t.ID).Run(); err != nil {
+			return fmt.Errorf("failed to retrieve transfer info: %w", err)
+		}
+	}
+
+	oldInfo := t.Infos.asMap()
+
+	var deleted []any
+	for oldKey := range oldInfo {
+		if _, ok := t.TransferInfo[oldKey]; !ok {
+			deleted = append(deleted, oldKey)
+		}
+	}
+
+	var added TransferInfos
+	for key, newVal := range t.TransferInfo {
+		oldVal, existed := oldInfo[key]
+		if existed {
+			if reflect.DeepEqual(oldVal, newVal) {
+				continue // value has not changed, skip it
+			}
+
+			// if value has changed, delete the old one
+			deleted = append(deleted, key)
+		}
+
+		// if value has changed or did not exist before, add it
+		added = append(added, TransferInfo{
+			TransferID: t.NullableID(),
+			Name:       key,
+			Value:      newVal,
+		})
+	}
+
+	// nothing to add or delete, return early
+	if len(deleted) == 0 && len(added) == 0 {
 		return nil
 	}
 
-	t.Infos = make(TransferInfos, 0, len(t.TransferInfo))
-	for k, v := range t.TransferInfo {
-		t.Infos = append(t.Infos, TransferInfo{TransferID: t.NullableID(), Name: k, Value: v})
-	}
-
 	return db.Transaction(func(db *database.Session) error {
-		if err := db.DeleteAll(TransferInfo{}).Where("transfer_id=?", t.GetID()).Run(); err != nil {
-			return fmt.Errorf("failed to delete transfer info: %w", err)
+		// delete all changed or removed values
+		if len(deleted) > 0 {
+			if err := db.DeleteAll(TransferInfo{}).
+				Where("transfer_id=?", t.GetID()).
+				In("name", deleted...).
+				Run(); err != nil {
+				return fmt.Errorf("failed to delete transfer info: %w", err)
+			}
 		}
 
-		if err := database.InsertBatch[TransferInfo](db, t.Infos...); err != nil {
-			return fmt.Errorf("failed to insert transfer info: %w", err)
+		// add new and changed values
+		if len(added) > 0 {
+			if err := database.InsertBatch[TransferInfo](db, added...); err != nil {
+				return fmt.Errorf("failed to insert transfer info: %w", err)
+			}
 		}
+
+		t.Infos = infoFromMap(t.TransferInfo)
 
 		return nil
 	})

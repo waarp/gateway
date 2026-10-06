@@ -14,7 +14,8 @@ type ResumeSyncError struct {
 func (e *ResumeSyncError) Error() string {
 	return fmt.Sprintf(
 		"cannot resume transfer %d: it is a child of transfer %v, resume the parent instead",
-		e.ID, e.ParentID)
+		e.ID, e.ParentID,
+	)
 }
 
 const (
@@ -59,6 +60,18 @@ func (t TransferInfos) ToHist() TransferInfos {
 	for i := range newInfos {
 		newInfos[i].HistoryID = newInfos[i].TransferID
 		newInfos[i].TransferID = sql.NullInt64{}
+	}
+
+	return newInfos
+}
+
+func infoFromMap(m map[string]any) TransferInfos {
+	newInfos := make(TransferInfos, 0, len(m))
+	for name, value := range m {
+		newInfos = append(newInfos, TransferInfo{
+			Name:  name,
+			Value: value,
+		})
 	}
 
 	return newInfos

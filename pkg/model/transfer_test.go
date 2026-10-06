@@ -386,7 +386,7 @@ func TestTransferInfo(t *testing.T) {
 
 	followID := trans.TransferInfo[FollowID]
 
-	t.Run("After write", func(t *testing.T) {
+	t.Run("After insert", func(t *testing.T) {
 		var infos TransferInfos
 		require.NoError(t, db.Select(&infos).OrderBy("name", true).Run())
 		require.Len(t, infos, len(transferInfo))
@@ -401,12 +401,24 @@ func TestTransferInfo(t *testing.T) {
 		assert.Equal(t, transferInfo["key3"], infos[3].Value)
 	})
 
+	trans.TransferInfo["key1"] = "new value1"
+	delete(trans.TransferInfo, "key3")
+
 	expected := map[string]any{
 		FollowID: followID,
-		"key1":   "value1",
+		"key1":   "new value1",
 		"key2":   json.Number("2"),
-		"key3":   true,
 	}
+
+	t.Run("After update", func(t *testing.T) {
+		require.NoError(t, db.Update(trans).Run())
+		assert.Equal(t, expected, trans.Infos.asMap())
+	})
+
+	t.Run("After noop", func(t *testing.T) {
+		require.NoError(t, db.Update(trans).Run())
+		assert.Equal(t, expected, trans.Infos.asMap())
+	})
 
 	t.Run("After read", func(t *testing.T) {
 		var check Transfer
