@@ -129,7 +129,7 @@ func (n *NormalizedTransferView) Resume(db database.Access, when time.Time) erro
 	}
 
 	var dbTrans Transfer
-	if err := db.Get(&dbTrans, "id=?", n.ID).Run(); err != nil {
+	if err := db.Get(&dbTrans, "id=?", n.ID).Eager().Run(); err != nil {
 		return fmt.Errorf("failed to retrieve transfer: %w", err)
 	}
 
@@ -157,6 +157,7 @@ func (n *NormalizedTransferView) UpdateInfo(db database.Access) error {
 	trans := &Transfer{
 		Identifier:   n.Identifier,
 		TransferInfo: n.TransferInfo,
+		Infos:        n.Infos.AsInfos(true),
 	}
 
 	return trans.AfterUpdate(db)
@@ -177,6 +178,25 @@ func (n NormalizedTransferInfos) AsMap() map[string]any {
 	m := make(map[string]any, len(n))
 	for _, info := range n {
 		m[info.Name] = info.Value
+	}
+
+	return m
+}
+
+func (n NormalizedTransferInfos) AsInfos(isHist bool) TransferInfos {
+	m := make(TransferInfos, len(n))
+	for i, info := range n {
+		id := sql.NullInt64{Int64: info.OwnerID, Valid: true}
+		m[i] = TransferInfo{
+			Name:  info.Name,
+			Value: info.Value,
+		}
+
+		if isHist {
+			m[i].HistoryID = id
+		} else {
+			m[i].TransferID = id
+		}
 	}
 
 	return m

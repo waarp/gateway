@@ -31,7 +31,7 @@ func (q *InsertQuery) run(s *Session) error {
 
 	query := engine.Table(q.bean.TableName())
 	if err := query.Create(q.bean).Error; err != nil {
-		logger.Errorf("Failed to insert the new %s entries: %v", q.bean.Appellation(), err)
+		logger.Errorf("Failed to insert the new %s entry: %v", q.bean.Appellation(), err)
 
 		return NewInternalError(err)
 	}

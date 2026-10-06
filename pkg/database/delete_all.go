@@ -39,7 +39,10 @@ func (d *DeleteAllQuery) Owner() *DeleteAllQuery { return d }
 // package cannot handle variadic placeholders in the Where function, a separate
 // method is required.
 func (d *DeleteAllQuery) In(col string, vals ...any) *DeleteAllQuery {
-	d.conds = append(d.conds, makeInClause(col, vals...))
+	if len(vals) > 0 {
+		d.conds = append(d.conds, makeInClause(col, vals...))
+	}
+
 	return d
 }
 
