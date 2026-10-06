@@ -94,8 +94,8 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 	}
 
 	if runErr != nil {
-		var warningError *WarningError
-		if !errors.As(runErr, &warningError) {
+		warnErr, isWarn := errors.AsType[*WarningError](runErr)
+		if !isWarn {
 			r.Logger.Errorf("%s: %v", taskInfo, runErr)
 			r.transCtx.Transfer.ErrCode = types.TeExternalOperation
 			r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
@@ -103,9 +103,9 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 			return newErrorWith(types.TeExternalOperation, taskInfo, runErr)
 		}
 
-		r.Logger.Warningf("%s: %v", taskInfo, runErr)
+		r.Logger.Warningf("%s: %v", taskInfo, warnErr)
 		r.transCtx.Transfer.ErrCode = types.TeWarning
-		r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, runErr)
+		r.transCtx.Transfer.ErrDetails = fmt.Sprintf("%s: %v", taskInfo, warnErr)
 	} else {
 		r.Logger.Debug(taskInfo)
 	}
@@ -146,6 +146,8 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 	r.lock.Add(1)
 	defer r.lock.Done()
 
+	updTicker := time.NewTicker(time.Second)
+
 	for i := int(r.transCtx.Transfer.TaskNumber); i < len(tasks); i++ {
 		task := tasks[i]
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, r.transCtx.Rule.Name,
@@ -159,7 +161,6 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 			}
 		}
 
-		updTicker := time.NewTicker(time.Second)
 		if err := r.runTask(updTicker, task, taskInfo, isErrTasks); err != nil {
 			return err
 		}
