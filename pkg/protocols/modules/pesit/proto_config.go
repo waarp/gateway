@@ -161,6 +161,8 @@ type PartnerConfig struct {
 	// the timeout has elapsed, the transfer will fall in error. The duration
 	// must be specified in a valid Go duration format (e.g., "10s", "1m", "1h", ...).
 	AckTimeout string `json:"ackTimeout,omitempty"`
+	// NoPI37 disables sending the PI37 in push transfers with the partner.
+	NoPI37 bool `json:"noPI37,omitempty"` //nolint:tagliatelle //PI is an acronym
 }
 
 func (p *PartnerConfig) ValidConf() error {
