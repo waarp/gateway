@@ -69,10 +69,6 @@ func (c *clientTransfer) configureClient(config *PartnerConfig) *pipeline.Error 
 		c.client.SetNSDUUsage(true)
 	}
 
-	if config.CompatibilityMode == CompatibilityModeNonStandard {
-		c.client.SetCFTCompatibilityUsage(true)
-	}
-
 	if config.DisablePreConnection {
 		c.client.SetPreConnectionUsage(false)
 	} else {
@@ -145,6 +141,8 @@ func (c *clientTransfer) request() *pipeline.Error {
 func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
 	conn net.Conn,
 ) *pipeline.Error {
+	isStandardMode := partConf.CompatibilityMode == CompatibilityModeStandard
+
 	serverLogin := c.pip.TransCtx.RemoteAgent.Name
 	if partConf.Login != "" {
 		serverLogin = partConf.Login
@@ -247,8 +245,15 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 		return err
 	}
 
+	if !isStandardMode {
+		c.pTrans.SetFilenamePI12(c.pip.TransCtx.Rule.Name)
+
+		if !partConf.NoPI37 {
+			c.pTrans.SetFileLabelPI37(c.pip.TransCtx.Transfer.RemotePath)
+		}
+	}
+
 	if c.pip.TransCtx.Rule.IsSend {
-		c.pTrans.SetFilename(c.pip.TransCtx.Transfer.RemotePath)
 		c.pTrans.SetCreationDate(fileInfo.ModTime())
 		c.pTrans.SetReservationSpace(makeReservationSpaceKB(fileInfo), pesit.UnitKB)
 
@@ -263,10 +268,6 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 		if err := setFileEncoding(c.pip, c.pTrans); err != nil {
 			return err
 		}
-	}
-
-	if c.client.UseCFTCompatibility() {
-		c.pTrans.SetFilenamePI12(c.pip.TransCtx.Rule.Name)
 	}
 
 	// request transfer

@@ -130,5 +130,7 @@
     "tooltipPartnerAuthentication": { "fr": "Authentification du partenaire", "en": "Partner authentication" },
     "tooltipRemoteAccountManagement": { "fr": "Gestion des comptes distants", "en": "Remote account management" },
     "expectsAck": { "fr": "Attend un acquittement", "en": "Expects acknowledgement" },
-    "tooltipExpectsAck": { "fr": "Spécifie que le partenaire attend un acquittement pour les transferts en réception. Si cette option est activée, les transferts en réception ne seront pas finalisés tant qu'un acquittement n'a pas été reçu.", "en": "Specifies that the partner expects an acknowledgement for pull transfers. If this is set, then pull transfers will not be finalized until an acknowledgement is received." }
+    "tooltipExpectsAck": { "fr": "Spécifie que le partenaire attend un acquittement pour les transferts en réception. Si cette option est activée, les transferts en réception ne seront pas finalisés tant qu'un acquittement n'a pas été reçu.", "en": "Specifies that the partner expects an acknowledgement for pull transfers. If this is set, then pull transfers will not be finalized until an acknowledgement is received." },
+    "noPI37": { "fr": "Désactiver le PI 37", "en": "Disable PI 37" },
+    "tooltipNoPI37": { "fr": "Désactive l'envoi du PI 37 lors des transferts en émission avec ce partenaire. Par défaut, le PI 37 est envoyé.", "en": "Disables sending the PI 37 in push transfers with this partner. By default, the PI 37 is sent." }
 }

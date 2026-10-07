@@ -81,7 +81,12 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		operation string
 	)
 
-	t.logger.Debugf("Request received for file %q by %q", req.Filename(), req.ClientLogin())
+	filename := req.FilenamePI12()
+	if t.conf.CompatibilityMode == CompatibilityModeNonStandard {
+		filename = req.FileLabelPI37()
+	}
+
+	t.logger.Debugf("Request received for file %q by %q", filename, req.ClientLogin())
 
 	if t.conf.MaxMessageSize < req.MessageSize() {
 		req.SetMessageSize(t.conf.MaxMessageSize)
@@ -117,7 +122,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 	if t.conf.CompatibilityMode == CompatibilityModeNonStandard {
 		rule, ruleErr = t.getRuleByName(req.FilenamePI12(), isSend)
 	} else {
-		rule, ruleErr = t.getRuleByPrefix(req.Filename(), isSend)
+		rule, ruleErr = t.getRuleByPrefix(filename, isSend)
 	}
 
 	if ruleErr != nil {
@@ -125,7 +130,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		return ruleErr
 	}
 
-	filepath := trimRequestPath(req.Filename(), rule)
+	filepath := trimRequestPath(filename, rule)
 
 	if req.TransferID() != 0 {
 		remoteTransferID = utils.FormatUint(req.TransferID())
@@ -133,12 +138,12 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 
 	// initialize the pipeline
 	t.logger.Infof("%s of file %q requested by %q using rule %q",
-		operation, req.Filename(), req.ClientLogin(), rule.Name)
+		operation, filename, req.ClientLogin(), rule.Name)
 
 	t.ctx, t.cancel = context.WithCancelCause(context.Background())
 
 	if err := t.initPipeline(req, remoteTransferID, filepath, rule); err != nil {
-		t.logger.Warningf("Transfer request for file %q refused: %v", req.Filename(), err)
+		t.logger.Warningf("Transfer request for file %q refused: %v", filename, err)
 
 		return err
 	}
@@ -174,7 +179,7 @@ func (t *transferHandler) SelectFile(req *pesit.ServerTransfer) error {
 		addArticleFormat(t.pip, req)
 	}
 
-	t.logger.Infof("Transfer request for file %q accepted", req.Filename())
+	t.logger.Infof("Transfer request for file %q accepted", filename)
 
 	return nil
 }
