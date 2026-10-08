@@ -94,3 +94,7 @@ func countAdmins(db database.ReadAccess) (uint64, error) {
 
 	return n, nil
 }
+
+func (u *User) HasPermission(perms ...PermsMask) bool {
+	return u.Permissions.HasPermission(perms...)
+}

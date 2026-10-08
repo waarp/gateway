@@ -5,6 +5,10 @@ Consulter un utilisateur
 
    Renvoie l'utilisateur demandé.
 
+   .. note::
+      Un utilisateur peut toujours consulter ses propres informations même s'il
+      n'a pas le droit de lecture sur les autres utilisateurs.
+
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :statuscode 200: L'utilisateur a été renvoyé avec succès
