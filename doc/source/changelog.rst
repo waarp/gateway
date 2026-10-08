@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`67` Une tâche ``CHMOD`` permettant de modifier les permissions d'un
+  fichier a été ajoutée. Voir la :doc:`documentation<reference/tasks/chmod>` de
+  la tâche pour plus de détails.
 * :feature:`681` Les information de connexion TLS et SSH (ciphers, certificats,
   etc...) sont désormais loggés en niveau DEBUG lors de l'ouverture de la connexion.
 * :bug:`685` Correction d'un bug qui faisait que les transferts n'étaient pas

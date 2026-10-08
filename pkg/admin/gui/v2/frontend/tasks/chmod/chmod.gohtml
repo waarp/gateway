@@ -1,0 +1,25 @@
+<!-- Task description -->
+<p class="task-description">{{ .Text.description }}</p>
+
+{{ template "numberInputRow" dict
+    "id" "chmodPermsField"
+    "label" .Text.perms
+    "tooltip" .Text.permsTooltip
+    "fieldName" "perms"
+    "fieldType" "text"
+    "value" .Task.Args.perms
+    "placeholder" "777"
+}}
+<script>
+    document.getElementById('chmodPermsField').addEventListener('input', (e) => {
+        if (e.target.value.length > 3) {
+            e.target.value = e.target.value.slice(0, 3)
+        }
+
+        if (/^[0-7]{3}$/.test(e.target.value)) {
+            e.target.setCustomValidity('')
+        } else {
+            e.target.setCustomValidity({{ .Text.permsError }})
+        }
+    })
+</script>

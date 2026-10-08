@@ -1,0 +1,15 @@
+description:
+  en: Change permissions on the transfer file.
+  fr: Change les permissions sur le fichier de transfert.
+
+perms:
+  en: Permissions
+  fr: Permissions
+
+permsTooltip:
+  en: The permissions (in octal format) to apply to the transfer file.
+  fr: Les permissions (en format octal) à appliquer au fichier de transfert.
+
+permsError:
+  en: Invalid permissions format. Please provide permissions in octal format.
+  fr: Format de permissions invalide. Veuillez fournir les permissions au format octal.
