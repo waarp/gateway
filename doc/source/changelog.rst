@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`599` Ajout d'une variable de substitution ``#STARTTIMESTAMP#`` pour
+  les tâches permettant d'obtenir un timestamp au format libre de la date de
+  début du transfert en cours. Voir la :ref:`page <reference-tasks-substitutions>`
+  sur les variables de substitution pour plus de détails.
 * :bug:`393` Un utilisateur REST peut désormais consulter ses propres informations
   et changer son nom et son mot de passe, même s'il n'a pas les droits pour
   lire/écrire des utilisateurs. Cette exception ne concerne que l'utilisateur
