@@ -111,7 +111,7 @@ func getEmailTemplate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updateEmailTemplate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDBTemplate, getErr := retrieveEmailTemplate(r, db)
+		dbTemplate, getErr := retrieveEmailTemplate(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
@@ -121,14 +121,13 @@ func updateEmailTemplate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbTemplate := model.EmailTemplate{Identifier: oldDBTemplate.Identifier}
 		setIfValid(&dbTemplate.Name, restTemplate.Name)
 		setIfValid(&dbTemplate.Subject, restTemplate.Subject)
 		setIfValid(&dbTemplate.MIMEType, restTemplate.MIMEType)
 		setIfValid(&dbTemplate.Body, restTemplate.Body)
 		setIfValidList(&dbTemplate.Attachments, restTemplate.Attachments)
 
-		if err := db.Update(&dbTemplate).Run(); handleError(w, logger, err) {
+		if err := db.Update(dbTemplate).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -251,7 +250,7 @@ func getSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updateSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		oldDBCredential, getErr := retrieveSMTPCredential(r, db)
+		dbCredential, getErr := retrieveSMTPCredential(r, db)
 		if handleError(w, logger, getErr) {
 			return
 		}
@@ -261,7 +260,6 @@ func updateSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		dbCredential := model.SMTPCredential{Identifier: oldDBCredential.Identifier}
 		setIfValid(&dbCredential.EmailAddress, restCredential.EmailAddress)
 		setIfValid(&dbCredential.Login, restCredential.Login)
 		setIfValid(&dbCredential.Password, restCredential.Password)
@@ -273,7 +271,7 @@ func updateSMTPCredential(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			}
 		}
 
-		if err := db.Update(&dbCredential).Run(); handleError(w, logger, err) {
+		if err := db.Update(dbCredential).Run(); handleError(w, logger, err) {
 			return
 		}
 

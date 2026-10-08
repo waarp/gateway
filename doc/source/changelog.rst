@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :bug:`-` Correction d'un bug des handlers REST de mise à jours pour les
+  template d'email et les identifiants SMTP. Ce bug faisait que tous les champs
+  omis étaient réinitialisés à leur valeur par défaut. Les champs omis sont
+  maintenant laissés inchangés comme ils devraient.
+* :feature:`502` Ajout de handlers REST pour importer et exporter la configuration
+  de Gateway. La documentation de ces handlers est disponible :doc:`ici
+  <reference/rest/updateconf/index>`. Deux commandes terminal ont également été
+  ajoutées au client ``waarp-gateway``. La documentation de ces commandes est
+  disponible :doc:`ici <reference/cli/client/updateconf/index>`
 * :feature:`67` Une tâche ``CHMOD`` permettant de modifier les permissions d'un
   fichier a été ajoutée. Voir la :doc:`documentation<reference/tasks/chmod>` de
   la tâche pour plus de détails.

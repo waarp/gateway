@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -35,7 +34,7 @@ func TestImportAuth(t *testing.T) {
 
 			cert2 := &model.Credential{
 				Name:         "foo",
-				LocalAgentID: utils.NewNullInt64(agent2.ID),
+				LocalAgentID: agent2.NullableID(),
 				Type:         auth.TLSCertificate,
 				Value2:       testhelpers.OtherLocalhostKey,
 				Value:        testhelpers.OtherLocalhostCert,
@@ -110,6 +109,45 @@ func TestImportAuth(t *testing.T) {
 							So(dbCerts[0].Value2, ShouldResemble, cert.Value2)
 						})
 					})
+				})
+			})
+		})
+
+		Convey("Given an agent with a named password", func() {
+			agent := &model.LocalAgent{
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 6666),
+			}
+			So(db.Insert(agent).Run(), ShouldBeNil)
+
+			oldPswd := &model.Credential{
+				LocalAgentID: agent.NullableID(),
+				Name:         "server_pswd",
+				Type:         auth.Password,
+				Value:        "sesame",
+			}
+			So(db.Insert(oldPswd).Run(), ShouldBeNil)
+
+			Convey("Given a new password to import", func() {
+				newPswd := file.Credential{
+					Name:  "new_server_psd",
+					Type:  auth.Password,
+					Value: "foobar",
+				}
+
+				err := credentialsImport(discard(), db, []file.Credential{newPswd}, agent)
+
+				Convey("Then it should return no error", func() {
+					So(err, ShouldBeNil)
+				})
+
+				Convey("Then the agent should have 1 password", func() {
+					var creds model.Credentials
+					So(db.Select(&creds).Where("local_agent_id=?", agent.ID).Run(), ShouldBeNil)
+					So(creds, ShouldHaveLength, 1)
+
+					So(creds[0].Name, ShouldResemble, newPswd.Name)
+					So(creds[0].Value, ShouldResemble, newPswd.Value)
 				})
 			})
 		})

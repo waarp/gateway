@@ -61,6 +61,10 @@ func (s ServiceMap[O, S]) Exists(obj O) bool {
 	return ok
 }
 
+func (s *ServiceMap[O, S]) Reset() {
+	s.m = xsync.NewMap[int64, S]()
+}
+
 func (s ServiceMap[O, S]) Remove(ctx context.Context, obj O) (retErr error) {
 	s.m.Compute(obj.GetID(), func(service S, loaded bool) (S, xsync.ComputeOp) {
 		if !loaded {
@@ -178,3 +182,14 @@ func (s *ServiceMap[O, S]) StopAll(ctx context.Context) error {
 }
 
 func (s *ServiceMap[O, S]) Range(f func(int64, S) bool) { s.m.Range(f) }
+
+func (s *ServiceMap[O, S]) State(obj O) (utils.StateCode, bool) {
+	service, ok := s.Get(obj)
+	if !ok {
+		return 0, false
+	}
+
+	state, _ := service.State()
+
+	return state, true
+}

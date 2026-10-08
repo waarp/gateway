@@ -45,7 +45,7 @@ func TestNewSNMPConfImport(t *testing.T) {
 	require.NoError(t, dbtest.InsertAsOwner(db, "other-gw", dbMonitor2))
 
 	t.Run("Nil config", func(t *testing.T) {
-		require.NoError(t, importSNMPConfig(logger, db, nil, false))
+		require.NoError(t, importSNMPConfig(logger, db, nil, false, false))
 
 		t.Run("Existing servers are untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.ServerConfig]
@@ -64,7 +64,7 @@ func TestNewSNMPConfImport(t *testing.T) {
 	})
 
 	t.Run("Empty config", func(t *testing.T) {
-		require.NoError(t, importSNMPConfig(logger, db, &file.SNMPConfig{}, false))
+		require.NoError(t, importSNMPConfig(logger, db, &file.SNMPConfig{}, false, false))
 
 		t.Run("Existing servers are untouched", func(t *testing.T) {
 			var check model.Slice[*snmp.ServerConfig]
@@ -114,7 +114,7 @@ func TestNewSNMPConfImport(t *testing.T) {
 			}},
 		}
 
-		require.NoError(t, importSNMPConfig(logger, db, config, false))
+		require.NoError(t, importSNMPConfig(logger, db, config, false, false))
 
 		t.Run("New server is imported", func(t *testing.T) {
 			var check snmp.ServerConfig
@@ -197,7 +197,7 @@ func TestNewSNMPConfImport(t *testing.T) {
 			}},
 		}
 
-		require.NoError(t, importSNMPConfig(logger, db, config, true))
+		require.NoError(t, importSNMPConfig(logger, db, config, true, false))
 
 		t.Run("New server is imported", func(t *testing.T) {
 			var check snmp.ServerConfig
@@ -310,7 +310,7 @@ func TestExistingSNMPConfImport(t *testing.T) {
 			}},
 		}
 
-		require.NoError(t, importSNMPConfig(logger, db, config, false))
+		require.NoError(t, importSNMPConfig(logger, db, config, false, false))
 
 		t.Run("Server is updated", func(t *testing.T) {
 			var check snmp.ServerConfig

@@ -55,7 +55,7 @@ func TestImportClients(t *testing.T) {
 				newClients := []file.Client{newClient, updatedClient}
 
 				Convey("When calling the importClients method", func() {
-					So(importClients(discard(), db, newClients, false), ShouldBeNil)
+					So(importClients(discard(), db, newClients, false, false), ShouldBeNil)
 
 					var dbClients model.Clients
 					So(db.Select(&dbClients).OrderBy("id", true).Run(), ShouldBeNil)
@@ -96,7 +96,7 @@ func TestImportClients(t *testing.T) {
 				})
 
 				Convey("When calling the importLocals method with reset ON", func() {
-					So(importClients(discard(), db, newClients, true), ShouldBeNil)
+					So(importClients(discard(), db, newClients, true, false), ShouldBeNil)
 
 					var dbClients model.Clients
 					So(db.Select(&dbClients).OrderBy("id", true).Run(), ShouldBeNil)

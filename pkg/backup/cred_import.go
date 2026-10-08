@@ -7,13 +7,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 )
 
 func credentialsImport(logger *log.Logger, db database.Access, list []file.Credential,
 	owner model.CredOwnerTable,
 ) error {
-	if err := db.DeleteAll(&model.Credential{}).Where(owner.GetCredCond()).Run(); err != nil {
-		return fmt.Errorf("failed to delete credentials: %w", err)
+	protocol, protErr := owner.GetProtocol(db)
+	if protErr != nil {
+		return fmt.Errorf("failed to retrieve %s protocol: %w", owner.Appellation(), protErr)
 	}
 
 	for _, src := range list {
@@ -36,6 +38,23 @@ func credentialsImport(logger *log.Logger, db database.Access, list []file.Crede
 		credential.Value = src.Value
 		credential.Value2 = src.Value2
 		owner.SetCredOwner(&credential)
+
+		// Check for unique credentials
+		var handler authentication.Handler
+		if credential.IsInternal() {
+			handler = authentication.GetInternalAuthHandler(credential.Type, protocol)
+		} else {
+			handler = authentication.GetExternalAuthMethod(credential.Type, protocol)
+		}
+
+		if handler.CanOnlyHaveOne() {
+			if err := db.DeleteAll(&model.Credential{}).Where(owner.GetCredCond()).
+				Where("type=?", credential.Type).Run(); err != nil {
+				return fmt.Errorf("failed to delete old %s credential: %w", credential.Type, err)
+			}
+
+			exist = false
+		}
 
 		// Create/Update
 		if exist {
