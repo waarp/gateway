@@ -1,19 +1,55 @@
 description:
-  en: "Set or modify a TransferInfo key. Use this to inject metadata before a transfer (encoding, business ID, reply address, etc.). If the value is empty, the key is deleted. Supports variable substitution (#TRUEFILENAME#, #TI_...#, etc.)."
-  fr: "Positionne ou modifie une cle TransferInfo. Permet d'injecter des metadonnees avant un transfert (encodage, identifiant metier, adresse de retour, etc.). Si la valeur est vide, la cle est supprimee. Supporte la substitution de variables (#TRUEFILENAME#, #TI_...#, etc.)."
+  en: >
+    Set or modify TransferInfo keys. Use this to inject metadata before a transfer
+    (encoding, business ID, reply address, etc.). If a value is empty, the key 
+    will be deleted if present. Supports variable substitution (#TRUEFILENAME#,
+    #TI_...#, etc.).
+  fr: >
+    Positionne ou modifie des clés TransferInfo. Permet d'injecter des métadonnées
+    avant un transfert (encodage, identifiant métier, adresse de retour, etc.).
+    Si la valeur est vide, la clé sera supprimée si elle est présente. Supporte
+    la substitution de variables (#TRUEFILENAME#, #TI_...#, etc.).
+
+pairs:
+  en: TransferInfo
+  fr: TransferInfo
+
+pairsTooltip:
+  en: >
+    The list of TransferInfo key/value pairs to set. Use the button below to 
+    add a new pair, and the trash button to remove one.
+  fr: >
+    La liste des paires clé/valeur TransferInfo à positionner. Utilisez le bouton
+    ci-dessous pour ajouter une paire, et le bouton corbeille pour en supprimer une.
+
+addPair:
+  en: Add a key
+  fr: Ajouter une clé
+
+removePair:
+  en: Remove this key
+  fr: Supprimer cette clé
 
 key:
   en: Key
-  fr: Cle
+  fr: Clé
 
 keyTooltip:
-  en: "The TransferInfo key to set (e.g. __fileEncoding__, __replyPartner__, or any custom key)."
-  fr: "La cle TransferInfo a positionner (ex: __fileEncoding__, __replyPartner__, ou toute cle personnalisee)."
+  en: >
+    The TransferInfo key to set (e.g. __fileEncoding__, __replyPartner__, or 
+    any custom key).
+  fr: >
+    La clé TransferInfo a positionner (ex: __fileEncoding__, __replyPartner__, 
+    ou toute clé personnalisée).
 
 value:
   en: Value (optional)
-  fr: Valeur (optionnel)
+  fr: Valeur (optionnelle)
 
 valueTooltip:
-  en: "The value to set. If empty, the key is deleted from TransferInfo. Supports variable substitution."
-  fr: "La valeur a positionner. Si vide, la cle est supprimee du TransferInfo. Supporte la substitution de variables."
+  en: >
+    The value to set. If empty, the key is deleted from TransferInfo. 
+    Supports variable substitution.
+  fr: >
+    La valeur à positionner. Si vide, la clé est supprimée du TransferInfo. 
+    Supporte la substitution de variables.
