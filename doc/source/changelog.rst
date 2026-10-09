@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`686` La page de monitoring des transferts de la WebUI affiche désormais
+  toujours le nom de base du fichier sur disque (quand disponible). Le chemin
+  complet est, lui, visible en survolant la colonne.
 * :feature:`632` La tâche SETINFO permet désormais d'assigner plusieurs valeurs
   en une fois au lieu d'une seule. Voir la :doc:`documentation de la tâche
   <reference/tasks/setinfo>` pour plus de détails.
