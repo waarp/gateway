@@ -103,6 +103,7 @@ func sendMessage(db database.ReadAccess, logger *log.Logger,
 
 	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}
 	addr := protoutils.GetRealAddress(db.GetConfig().Overrides, partner.Address)
+	client := &model.Client{ProtoConfig: map[string]any{}}
 
 	var (
 		conn    net.Conn
@@ -113,7 +114,7 @@ func sendMessage(db database.ReadAccess, logger *log.Logger,
 		conn, connErr = dialer.Dial("tcp", addr)
 	} else {
 		tlsConfig, tlsErr := protoutils.GetClientTLSConf(logger, partner,
-			protoutils.DefaultTLSVersion, partnerCreds, accountCreds, authorities)
+			client, partnerCreds, accountCreds, authorities)
 		if tlsErr != nil {
 			return fmt.Errorf("failed to create TLS config: %w", tlsErr)
 		}

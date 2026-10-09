@@ -306,7 +306,7 @@
                             {{ template "displayFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                         {{ end }}
                         {{ if or (eq .Protocol "pesit") (eq .Protocol "pesit-tls") }}
-                            {{ template "displayPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions) }}
+                            {{ template "displayPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "Protocol" .Protocol) }}
                         {{ end }}
                         {{ if eq .Protocol "sftp" }}
                             {{ template "displaySftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs) }}
@@ -489,13 +489,13 @@
                               <label class="col-form-label">{{ index $.tab "retryIncrementFactor" }} :</label>
                               <input type="text" name="editRetryIncrementFactor" class="form-control" value="{{ if $me }}{{ index $me "editRetryIncrementFactor" }}{{ else }}{{ .RetryIncrementFactor }}{{ end }}">
                             </div>
-                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
-                            {{ template "editFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
-                            {{ template "editPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "modalElement" $me) }}
+                            {{ template "editR66Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "tlsCiphers" $.tlsCiphers "modalElement" $me) }}
+                            {{ template "editFtpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "tlsCiphers" $.tlsCiphers "modalElement" $me) }}
+                            {{ template "editPesitClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "CompatibilityModePeSIT" $.CompatibilityModePeSIT "tlsCiphers" $.tlsCiphers "modalElement" $me) }}
                             {{ template "editSftpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "KeyExchanges" $.KeyExchanges "Ciphers" $.Ciphers "MACs" $.MACs "modalElement" $me) }}
-                            {{ template "editHttpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
-                            {{ template "editWebdavClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
-                            {{ template "editAs2Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "modalElement" $me) }}
+                            {{ template "editHttpClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "tlsCiphers" $.tlsCiphers "modalElement" $me) }}
+                            {{ template "editWebdavClient" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "tlsCiphers" $.tlsCiphers "modalElement" $me) }}
+                            {{ template "editAs2Client" (dict "tab" $.tab "ProtoConfig" .ProtoConfig "TLSVersions" $.TLSVersions "tlsCiphers" $.tlsCiphers "modalElement" $me) }}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ index $.tab "close" }}</button>

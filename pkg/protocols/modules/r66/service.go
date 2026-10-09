@@ -69,6 +69,7 @@ func (s *service) makeTLSConf() *tls.Config {
 				Certificates:     []tls.Certificate{compatibility.LegacyR66Cert},
 				ClientAuth:       tls.RequestClientCert,
 				VerifyConnection: protoutils.LogTLSConn(s.logger),
+				CipherSuites:     protoutils.GetTLSCiphers(s.dbAgent.ProtoConfig),
 			}
 
 			if !r66auth.UsesLegacyCert(s.db, s.dbAgent) {
