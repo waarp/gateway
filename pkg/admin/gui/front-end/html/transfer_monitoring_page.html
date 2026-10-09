@@ -61,21 +61,17 @@
               <span class="fw-bold">{{ .Status }}</span>
           {{ end }}
       </td>
-        <td {{ if gt (len .SrcFilename) 15 }} title="{{ .SrcFilename }}" data-bs-toggle="tooltip" {{ end }}>
-        {{ if gt (len .SrcFilename) 15 }}
-            {{ slice .SrcFilename 0 15 }}...
-        {{ else if .SrcFilename }}
-            {{ .SrcFilename }}
-        {{ else }}
-          {{ .DestFilename }}
-        {{ end }}
+        <td title="{{ transferFile . }}" data-bs-toggle="tooltip">
+          <span class="d-inline-block text-truncate align-bottom" style="max-width: 30ch;">
+            {{ baseName (transferFile .) }}
+          </span>
         </td>
         <td>{{ .Rule }}</td>
         <td>{{ formatDateTime .Start $.Request $.language }}</td>
         <td>
           {{ $stopTime := print (formatDateTime .Stop $.Request $.language) }}
           {{ if contains $stopTime "01/01/0001" }}
-            n/a
+            <span class="text-muted">n/a</span>
           {{ else }}
             {{ $stopTime }}
           {{ end }}

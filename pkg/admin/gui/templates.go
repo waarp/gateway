@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"maps"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -149,6 +150,20 @@ var funcs = template.FuncMap{
 	"protocolDisplayName": protocolDisplayName,
 	"toUpper":             strings.ToUpper,
 	"toLower":             strings.ToLower,
+	"baseName":            filepath.Base,
+	"transferFile": func(t *model.NormalizedTransferView) string {
+		if t.LocalPath != "" {
+			return t.LocalPath
+		}
+		if t.SrcFilename != "" {
+			return t.SrcFilename
+		}
+		if t.DestFilename != "" {
+			return t.DestFilename
+		}
+
+		return ""
+	},
 }
 
 func CombinedFuncMap(db *database.DB) template.FuncMap {
