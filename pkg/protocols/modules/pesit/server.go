@@ -111,7 +111,7 @@ func (s *service) Connect(conn *pesit.ServerConnection) (pesit.TransferHandler, 
 		account:      user,
 		conf:         &s.conf.ServerConfig,
 		tracer:       s.tracer,
-		connFreetext: conn.FreeText(),
+		connFreetext: conn.ClientFreeText(),
 	}, nil
 }
 

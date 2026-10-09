@@ -155,9 +155,9 @@ func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
 
 func LogTLSConn(logger *log.Logger) func(tls.ConnectionState) error {
 	return func(conn tls.ConnectionState) error {
-		logger.Debugf("%s connection established using cipher suite %q",
+		logger.Debugf("%s connection established using cipher suite %q (%d, 0x%04X)",
 			tls.VersionName(conn.Version),
-			tls.CipherSuiteName(conn.CipherSuite))
+			tls.CipherSuiteName(conn.CipherSuite), conn.CipherSuite, conn.CipherSuite)
 
 		if len(conn.PeerCertificates) > 0 {
 			logger.Debugf("Remote certificate: %s", displayCertInfo(conn.PeerCertificates[0]))

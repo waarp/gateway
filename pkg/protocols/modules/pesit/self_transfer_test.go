@@ -1,7 +1,6 @@
 package pesit
 
 import (
-	"maps"
 	"testing"
 	"time"
 
@@ -314,7 +313,7 @@ func TestCFT(t *testing.T) {
 			SrcFilename:    ctx.TransferPull.SrcFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,
-			TransferInfo:   map[string]any{serverTransFreetextKey: "pesit freetext sample"},
+			TransferInfo:   map[string]any{serverTransFreetextKey: "pesit server freetext sample"},
 		}
 		require.NoError(t, db.Insert(serverPullTrans).Run())
 
@@ -329,8 +328,7 @@ func TestCFT(t *testing.T) {
 				var hist model.HistoryEntry
 				require.NoError(t, db.Get(&hist, "id=?", ctx.TransferPull.ID).Eager().Run())
 
-				expectedInfo := maps.Clone(serverPullTrans.TransferInfo)
-				delete(expectedInfo, model.FollowID)
+				expectedInfo := map[string]any{serverTransFreetextKey: "pesit server freetext sample"}
 				assert.Subset(t, hist.TransferInfo, expectedInfo)
 			})
 		})
@@ -340,13 +338,14 @@ func TestCFT(t *testing.T) {
 		serverPushTrans := &model.Transfer{
 			RuleID:         ctx.ServerRulePush.ID,
 			LocalAccountID: ctx.LocalAccount.NullableID(),
-			DestFilename:   ctx.TransferPull.DestFilename,
+			DestFilename:   ctx.TransferPush.DestFilename,
 			Start:          time.Date(9999, 1, 1, 1, 0, 0, 0, time.UTC),
 			Status:         types.StatusAvailable,
 			Filesize:       model.UnknownSize,
 		}
 		require.NoError(t, db.Insert(serverPushTrans).Run())
 
+		ctx.TransferPush.TransferInfo[clientTransFreetextKey] = "pesit client freetext sample"
 		pip := ctx.PushPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {
@@ -354,6 +353,12 @@ func TestCFT(t *testing.T) {
 
 			t.Run("Then it should have finished both the client & the server transfers", func(t *testing.T) {
 				ctx.CheckPushTransferOK(t)
+
+				var hist model.HistoryEntry
+				require.NoError(t, db.Get(&hist, "id=?", serverPushTrans.ID).Eager().Run())
+
+				expectedInfo := map[string]any{clientTransFreetextKey: "pesit client freetext sample"}
+				assert.Subset(t, hist.TransferInfo, expectedInfo)
 			})
 		})
 	})
