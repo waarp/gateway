@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`635` Ajout d'une variable #REMOTETRANSFERID# aux tâches permettant
+  d'obtenir l'identifiant protocolaire du transfert en cours.
 * :feature:`578` Cipher suites TLS configurables via ``cipherSuites`` dans la
   configuration protocolaire des clients, partenaires et serveurs utilisant TLS.
   Permet l'interopérabilité avec les partenaires legacy nécessitant des suites
