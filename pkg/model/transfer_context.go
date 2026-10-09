@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -35,6 +36,27 @@ type TransferContext struct {
 	Authorities Authorities
 }
 
+func GetHistoryContext(db *database.DB, logger *log.Logger, trans *NormalizedTransferView,
+) (*TransferContext, error) {
+	if trans.IsTransfer {
+		var realTrans Transfer
+		if err := db.Get(&realTrans, "id=?", trans.ID).Run(); err != nil {
+			logger.Errorf("Failed to retrieve transfer: %v", err)
+
+			return nil, fmt.Errorf("failed to retrieve transfer: %w", err)
+		}
+
+		return GetTransferContext(db, logger, &realTrans)
+	}
+
+	realTrans, err := trans.Restart(db, time.Time{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to restart transfer: %w", err)
+	}
+
+	return GetTransferContext(db, logger, realTrans)
+}
+
 // GetTransferContext retrieves all the information regarding the given transfer
 // from the database, and returns it wrapped in a transferInfo instance.
 // An error is returned a problem occurs while accessing the database.
@@ -60,7 +82,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 		}
 
 		trans.Infos = infos
-		trans.TransferInfo = infos.asMap()
+		trans.TransferInfo = infos.AsMap()
 	}
 
 	if err := db.Select(&transCtx.Authorities).Run(); err != nil {

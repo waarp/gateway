@@ -26,7 +26,7 @@ func init() {
 	})
 }
 
-func requireNoError(tb testing.TB, err *pipeline.Error, msgAndArgs ...interface{}) {
+func requireNoError(tb testing.TB, err *pipeline.Error, msgAndArgs ...any) {
 	tb.Helper()
 
 	if err != nil {

@@ -23,10 +23,12 @@ const (
 	bankIDKey       = "__bankID__"
 
 	ackExpectedKey   = tasks.SendMessageAckExpectedKey
+	ackTimeout       = pipeline.AckWaitTimeout
+	ackWaitSinceKey  = pipeline.AckWaitSince
 	ackSentKey       = tasks.SendMessageAckSentKey
 	ackSentOnKey     = tasks.SendMessageAckSentOnKey
-	ackReceivedKey   = "__ackReceived__"
-	ackReceivedOnKey = "__ackReceivedOn__"
+	ackReceivedKey   = pipeline.AckReceived
+	ackReceivedOnKey = pipeline.AckReceivedOnKey
 
 	clientConnFreetextKey  = "__clientConnFreetext__"
 	clientTransFreetextKey = "__clientTransFreetext__"

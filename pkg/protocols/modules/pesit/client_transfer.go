@@ -113,6 +113,10 @@ func (c *clientTransfer) request() *pipeline.Error {
 
 	if partConf.ExpectsAck {
 		c.pip.TransCtx.Transfer.TransferInfo[ackExpectedKey] = true
+
+		if partConf.AckTimeout != "" {
+			c.pip.TransCtx.Transfer.TransferInfo[ackTimeout] = partConf.AckTimeout
+		}
 	}
 
 	// connect to partner
@@ -467,20 +471,24 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 		return toPipErr(types.TeInternal, "failed to close transfer file", err)
 	}
 
-	return nil
-}
-
-func (c *clientTransfer) EndTransfer() *pipeline.Error {
 	if err := c.pTrans.DeselectFile(nil); err != nil {
 		c.pip.Logger.Errorf("Failed to end transfer: %v", err)
 
 		return toPipErr(types.TeFinalization, "failed to end transfer", err)
 	}
 
+	c.pTrans = nil
+
 	if err := c.client.Close(nil); err != nil {
 		c.pip.Logger.Warningf("failed to close client: %v", err)
 	}
 
+	c.client = nil
+
+	return nil
+}
+
+func (c *clientTransfer) EndTransfer() *pipeline.Error {
 	return nil
 }
 
