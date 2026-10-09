@@ -30,32 +30,6 @@ func FromRuleTasks(ts []*model.Task) []*api.Task {
 	return tasks
 }
 
-func doListTasks(db database.ReadAccess, rule *api.OutRule, ruleID int64) error {
-	var preTasks model.Tasks
-	if err := db.Select(&preTasks).Where("rule_id=? AND chain=?", ruleID,
-		model.ChainPre).Run(); err != nil {
-		return fmt.Errorf("failed to retrieve pre-tasks: %w", err)
-	}
-
-	var postTasks model.Tasks
-	if err := db.Select(&postTasks).Where("rule_id=? AND chain=?", ruleID,
-		model.ChainPost).Run(); err != nil {
-		return fmt.Errorf("failed to retrieve post-tasks: %w", err)
-	}
-
-	var errorTasks model.Tasks
-	if err := db.Select(&errorTasks).Where("rule_id=? AND chain=?", ruleID,
-		model.ChainError).Run(); err != nil {
-		return fmt.Errorf("failed to retrieve error-tasks: %w", err)
-	}
-
-	rule.PreTasks = FromRuleTasks(preTasks)
-	rule.PostTasks = FromRuleTasks(postTasks)
-	rule.ErrorTasks = FromRuleTasks(errorTasks)
-
-	return nil
-}
-
 func taskUpdateDelete(ses *database.Session, rule *api.InRule, ruleID int64,
 	isReplace bool,
 ) error {

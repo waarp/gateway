@@ -5,8 +5,11 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
@@ -193,4 +196,70 @@ func TestRuleBeforeDelete(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestRulePreload(t *testing.T) {
+	t.Parallel()
+	db := dbtest.TestDatabase(t)
+
+	// Insert rule
+	rule := &Rule{Name: "test_rule", IsSend: false}
+	require.NoError(t, db.Insert(rule).Run())
+
+	// Insert local servers
+	server1 := &LocalAgent{Name: "server1", Protocol: testProtocol, Address: types.Addr("", 1)}
+	server2 := &LocalAgent{Name: "server2", Protocol: testProtocol, Address: types.Addr("", 2)}
+	require.NoError(t, database.InsertBatch(db, server1, server2))
+
+	// Insert local accounts
+	locAcc1 := &LocalAccount{LocalAgent: *server1, Login: "locAcc1"}
+	locAcc2 := &LocalAccount{LocalAgent: *server2, Login: "locAcc2"}
+	require.NoError(t, database.InsertBatch(db, locAcc1, locAcc2))
+
+	// Insert partners
+	partner1 := &RemoteAgent{Name: "partner1", Protocol: testProtocol, Address: types.Addr("", 10)}
+	partner2 := &RemoteAgent{Name: "partner2", Protocol: testProtocol, Address: types.Addr("", 20)}
+	require.NoError(t, database.InsertBatch(db, partner1, partner2))
+
+	// Insert remote accounts
+	remAcc1 := &RemoteAccount{RemoteAgent: *partner1, Login: "remAcc1"}
+	remAcc2 := &RemoteAccount{RemoteAgent: *partner2, Login: "remAcc2"}
+	require.NoError(t, database.InsertBatch(db, remAcc1, remAcc2))
+
+	// Insert tasks
+	preTask1 := &Task{RuleID: rule.ID, Chain: ChainPre, Rank: 1, Type: taskSuccess}
+	preTask2 := &Task{RuleID: rule.ID, Chain: ChainPre, Rank: 2, Type: taskSuccess}
+	postTask1 := &Task{RuleID: rule.ID, Chain: ChainPost, Rank: 1, Type: taskSuccess}
+	postTask2 := &Task{RuleID: rule.ID, Chain: ChainPost, Rank: 2, Type: taskSuccess}
+	errTask1 := &Task{RuleID: rule.ID, Chain: ChainError, Rank: 1, Type: taskSuccess}
+	errTask2 := &Task{RuleID: rule.ID, Chain: ChainError, Rank: 2, Type: taskSuccess}
+	require.NoError(t, database.InsertBatch(db,
+		preTask2, postTask1, postTask2, errTask1, errTask2, preTask1))
+
+	// Insert rule permissions
+	require.NoError(t, database.InsertBatch(db,
+		&RuleAccess{RuleID: rule.ID, LocalAgentID: server1.NullableID()},
+		&RuleAccess{RuleID: rule.ID, LocalAgentID: server2.NullableID()},
+		&RuleAccess{RuleID: rule.ID, RemoteAgentID: partner1.NullableID()},
+		&RuleAccess{RuleID: rule.ID, RemoteAgentID: partner2.NullableID()},
+		&RuleAccess{RuleID: rule.ID, LocalAccountID: locAcc1.NullableID()},
+		&RuleAccess{RuleID: rule.ID, LocalAccountID: locAcc2.NullableID()},
+		&RuleAccess{RuleID: rule.ID, RemoteAccountID: remAcc1.NullableID()},
+		&RuleAccess{RuleID: rule.ID, RemoteAccountID: remAcc2.NullableID()},
+	))
+
+	// Retrieve rule
+	var check Rule
+	require.NoError(t, db.Get(&check, "id=?", rule.ID).Eager().Run())
+
+	// Check tasks preload
+	assert.Equal(t, []*Task{preTask1, preTask2}, check.PreTasks)
+	assert.Equal(t, []*Task{postTask1, postTask2}, check.PostTasks)
+	assert.Equal(t, []*Task{errTask1, errTask2}, check.ErrorTasks)
+
+	// Check permissions preloads
+	assert.Equal(t, []*LocalAgent{server1, server2}, check.AuthorizedServers)
+	assert.Equal(t, []*RemoteAgent{partner1, partner2}, check.AuthorizedPartners)
+	assert.Equal(t, []*LocalAccount{locAcc1, locAcc2}, check.AuthorizedLocalAccounts)
+	assert.Equal(t, []*RemoteAccount{remAcc1, remAcc2}, check.AuthorizedRemoteAccounts)
 }
