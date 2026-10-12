@@ -411,12 +411,12 @@ func TestTransferInfo(t *testing.T) {
 	}
 
 	t.Run("After update", func(t *testing.T) {
-		require.NoError(t, db.Update(trans).Run())
+		require.NoError(t, trans.UpdateInfo(db))
 		assert.Equal(t, expected, trans.Infos.AsMap())
 	})
 
 	t.Run("After noop", func(t *testing.T) {
-		require.NoError(t, db.Update(trans).Run())
+		require.NoError(t, trans.UpdateInfo(db))
 		assert.Equal(t, expected, trans.Infos.AsMap())
 	})
 

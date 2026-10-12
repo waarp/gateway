@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"reflect"
-	"slices"
 
 	"code.waarp.fr/lib/pesit"
 
@@ -135,13 +134,21 @@ func setTransInfo[T cmp.Ordered](pip *pipeline.Pipeline, key string, val T) {
 	}
 }
 
-func isMultiArticles(pip *pipeline.Pipeline) ([]uint16, bool) {
-	vals, err := utils.GetAs[[]uint16](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
-	if err != nil {
-		return nil, false
+// getArticlesLengths returns the lengths of the articles declared in the
+// transfer info, nil when there are none.
+func getArticlesLengths(pip *pipeline.Pipeline) *articleLengths {
+	lengths, err := utils.GetAs[*articleLengths](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
+	if err != nil || lengths.Len() == 0 {
+		return nil
 	}
 
-	return vals, len(vals) > 0
+	return lengths
+}
+
+func isMultiArticles(pip *pipeline.Pipeline) (*articleLengths, bool) {
+	lengths := getArticlesLengths(pip)
+
+	return lengths, lengths != nil
 }
 
 func getArticlesFormat(pip *pipeline.Pipeline) pesit.ArticleFormat {
@@ -161,12 +168,12 @@ func getArticlesFormat(pip *pipeline.Pipeline) pesit.ArticleFormat {
 }
 
 func getArticlesSize(pip *pipeline.Pipeline) uint16 {
-	vals, err := utils.GetAs[[]uint16](pip.TransCtx.Transfer.TransferInfo, articlesLengthsKey)
-	if err != nil {
+	lengths := getArticlesLengths(pip)
+	if lengths == nil {
 		return defaultArticleSize
 	}
 
-	return slices.Max(vals)
+	return lengths.Max()
 }
 
 func addArticleFormat(pip *pipeline.Pipeline, f interface {

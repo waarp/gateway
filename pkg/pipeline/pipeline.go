@@ -149,6 +149,10 @@ func (p *Pipeline) forceUpdateTrans() *Error {
 		return NewErrorWith(dbErr, types.TeInternal, "Failed to update transfer")
 	}
 
+	if dbErr := p.TransCtx.Transfer.UpdateInfo(p.DB); dbErr != nil {
+		return NewErrorWith(dbErr, types.TeInternal, "Failed to update transfer info")
+	}
+
 	return nil
 }
 
@@ -569,6 +573,7 @@ func incrementRetryDelay(trans *model.Transfer) {
 }
 
 const (
+	AckExpected      = tasks.SendMessageAckExpectedKey
 	AckWaitSince     = "__ackWaitSince__"
 	AckWaitTimeout   = "__ackWaitTimeout__"
 	AckReceived      = "__ackReceived__"
@@ -600,7 +605,7 @@ func (p *Pipeline) waitACK() *Error {
 	waitStart := time.Now()
 	trans.TransferInfo[AckWaitSince] = waitStart
 
-	if err := trans.AfterUpdate(p.DB); err != nil {
+	if err := trans.UpdateInfo(p.DB); err != nil {
 		return p.internalErrorWithMsg(types.TeInternal,
 			"failed to update transfer info", "database error", err)
 	}
@@ -630,6 +635,9 @@ func (p *Pipeline) waitACK() *Error {
 		if recErr != nil {
 			return recErr
 		} else if received {
+			delete(trans.TransferInfo, AckExpected)
+			delete(trans.TransferInfo, AckWaitSince)
+
 			return nil
 		}
 

@@ -3,9 +3,11 @@ package pesit
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"math"
 	"strings"
 
@@ -19,7 +21,134 @@ var (
 	errUnknownSeparator = errors.New("unknown articles separator")
 	errRecordTooLong    = errors.New("record longer than the article size")
 	errRecordTooLongPI  = errors.New("record longer than what PeSIT can announce")
+	errBadLengths       = errors.New("invalid articles lengths")
 )
+
+// lengthsRun is a run of consecutive articles of the same L.
+type lengthsRun struct {
+	L uint16 `json:"l"`
+	C uint64 `json:"c"`
+}
+
+//nolint:wrapcheck //wrapping adds nothing here
+func (l *lengthsRun) MarshalJSON() ([]byte, error) {
+	if l.C == 1 {
+		return json.Marshal(l.L)
+	}
+
+	type lengths lengthsRun
+	ls := lengths(*l)
+
+	return json.Marshal(&ls)
+}
+
+//nolint:wrapcheck //wrapping adds nothing here
+func (l *lengthsRun) UnmarshalJSON(b []byte) error {
+	type lengths lengthsRun
+	var ls lengths
+
+	if err := json.Unmarshal(b, &ls); err != nil {
+		var i uint16
+		if json.Unmarshal(b, &i) != nil {
+			return err
+		}
+
+		ls.L = i
+		ls.C = 1
+	}
+
+	if ls.C == 0 {
+		return fmt.Errorf("%w: count cannot be zero", errBadLengths)
+	}
+
+	l.L = ls.L
+	l.C = ls.C
+
+	return nil
+}
+
+// articleLengths is the length of each article of a file, stored
+// run-length encoded: a file made of many articles of the same size takes a
+// few bytes in the transfer info rather than one number per article.
+type articleLengths []lengthsRun
+
+// newArticleLengths returns the given lengths in their compact form.
+func newArticleLengths(lengths ...uint16) *articleLengths {
+	l := &articleLengths{}
+	for _, length := range lengths {
+		l.Add(length)
+	}
+
+	return l
+}
+
+// Add appends the length of one more article.
+func (l *articleLengths) Add(length uint16) {
+	l.addRun(length, 1)
+}
+
+func (l *articleLengths) addRun(length uint16, count uint64) {
+	if last := len(*l) - 1; last >= 0 && (*l)[last].L == length {
+		(*l)[last].C += count
+
+		return
+	}
+
+	*l = append(*l, lengthsRun{L: length, C: count})
+}
+
+// Len returns the number of articles.
+func (l *articleLengths) Len() int {
+	if l == nil {
+		return 0
+	}
+
+	var n uint64
+	for _, run := range *l {
+		n += run.C
+	}
+
+	return int(n)
+}
+
+// Max returns the length of the longest article, 0 when there is none.
+func (l *articleLengths) Max() uint16 {
+	var longest uint16
+
+	if l != nil {
+		for _, run := range *l {
+			longest = max(longest, run.L)
+		}
+	}
+
+	return longest
+}
+
+// All iterates over the length of each article, in order.
+func (l *articleLengths) All() iter.Seq[uint16] {
+	return func(yield func(uint16) bool) {
+		if l == nil {
+			return
+		}
+
+		for _, run := range *l {
+			for range run.C {
+				if !yield(run.L) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (l *articleLengths) String() string {
+	b, err := json.Marshal(l)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(b)
+}
 
 // articleSender is what a PeSIT transfer offers to send a file article by
 // article. Both the client and the server transfers implement it.

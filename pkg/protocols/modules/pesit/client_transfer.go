@@ -354,7 +354,7 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 
 	return c.dataTransfer(func() *pipeline.Error {
 		format := getArticlesFormat(c.pip)
-		articleLengths, isMArt := isMultiArticles(c.pip)
+		artLengths, isMArt := isMultiArticles(c.pip)
 
 		separator, sepErr := getArticlesSeparator(c.pip)
 		if sepErr != nil {
@@ -378,7 +378,7 @@ func (c *clientTransfer) Send(fullFile protocol.SendFile) *pipeline.Error {
 
 		c.pTrans.SetManualArticleHandling(true)
 
-		for _, length := range articleLengths {
+		for length := range artLengths.All() {
 			article, aErr := c.pTrans.StartNextSendArticle()
 			if aErr != nil {
 				c.pip.Logger.Errorf("Failed to start next article: %v", aErr)
@@ -403,7 +403,8 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 	}
 
 	return c.dataTransfer(func() *pipeline.Error {
-		var articleLengths []uint16
+		lengths := newArticleLengths()
+		c.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = lengths
 
 		for {
 			article, aErr := c.pTrans.GetNextRecvArticle()
@@ -429,8 +430,7 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 			}
 
 			end := c.pip.TransCtx.Transfer.Progress
-			articleLengths = append(articleLengths, uint16(end-start))
-			c.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articleLengths
+			lengths.Add(uint16(end - start))
 		}
 	}, file)
 }

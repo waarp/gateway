@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`688` Les longueurs d'articles PeSIT sont stockées de manière plus compacte
+  en base de données. Les *transfer info* sont également mises à jour en base moins
+  fréquemment pour améliorer les performances. Enfin, une erreur à l'écriture des
+  *transfer info* ne fait plus échouer la mise à jour du transfert lui-même.
 * :bug:`689` Correction d'un bug faisant que less connexions client PeSIT
   n'étaient pas toujours fermées en temps raisonnable.
 * :bug:`686` La page de monitoring des transferts de la WebUI affiche désormais

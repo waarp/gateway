@@ -149,8 +149,10 @@ Voici donc comment Gateway gère ce découpage en articles :
 En réception, tous les articles envoyés par l'émetteur seront stockés dans un
 même fichier sur le disque. Le découpage en article sera lui stocké dans les
 :term:`infos de transfert` sous le nom de clé ``__articlesLengths__``.
-Cet attribut prendra la forme d'une liste JSON d'entiers spécifiant la taille
-(en octets) de chaque article du transfert.
+Cet attribut prendra la forme d'une liste d'objets JSON spécifiant, dans
+l'ordre, la longueur des articles, ainsi que leur nombre d'occurrences à la suite.
+Par exemple, si un fichier contient 3 articles de 40 octets suivis de 2 articles
+de 20 octets, la chaîne de caractères sera ``[{"l":40,"c":3},{"l":20,"c":2}]``.
 
 Gateway stocke également le type de découpage (Fixe ou Variable, PI 31) sous forme
 de transfert info sous le nom de clé ``__articlesFormat__``.

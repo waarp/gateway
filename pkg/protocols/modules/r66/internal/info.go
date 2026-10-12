@@ -73,12 +73,6 @@ func UpdateTransferInfo(userContent string, pip *pipeline.Pipeline) *pipeline.Er
 		pip.TransCtx.Transfer.TransferInfo[UserContent] = userContent
 	}
 
-	if err := pip.TransCtx.Transfer.AfterUpdate(pip.DB); err != nil {
-		pip.Logger.Errorf("Failed to update transfer info: %v", err)
-
-		return pipeline.NewError(types.TeInternal, "database error")
-	}
-
 	return nil
 }
 

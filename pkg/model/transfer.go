@@ -240,7 +240,7 @@ func (t *Transfer) AfterInsert(db database.Access) error {
 }
 
 //nolint:dupl //too complicated to factorize
-func (t *Transfer) AfterUpdate(db database.Access) error {
+func (t *Transfer) UpdateInfo(db database.Access) error {
 	if len(t.Infos) == 0 {
 		if err := db.Select(&t.Infos).Where("transfer_id=?", t.ID).Run(); err != nil {
 			return fmt.Errorf("failed to retrieve transfer info: %w", err)

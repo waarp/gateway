@@ -60,7 +60,7 @@ func TestDelimitedArticlesPush(t *testing.T) {
 
 	assert.Equal(t, types.StatusDone, serverTrans.Status)
 	assert.Equal(t, total, serverTrans.Progress, "the separators are not sent")
-	gwtesting.JSONEqual(t, lengths, serverTrans.TransferInfo[articlesLengthsKey])
+	gwtesting.JSONEqual(t, newArticleLengths(lengths...), serverTrans.TransferInfo[articlesLengthsKey])
 }
 
 func TestDelimitedArticlesPull(t *testing.T) {
@@ -87,7 +87,7 @@ func TestDelimitedArticlesPull(t *testing.T) {
 
 	assert.Equal(t, types.StatusDone, clientTrans.Status)
 	assert.Equal(t, total, clientTrans.Progress, "the separators are not sent")
-	gwtesting.JSONEqual(t, lengths, clientTrans.TransferInfo[articlesLengthsKey])
+	gwtesting.JSONEqual(t, newArticleLengths(lengths...), clientTrans.TransferInfo[articlesLengthsKey])
 }
 
 func TestDelimitedArticlesTooLong(t *testing.T) {
@@ -128,7 +128,7 @@ func TestDelimitedArticlesResume(t *testing.T) {
 
 	assert.Equal(t, types.StatusDone, serverTrans.Status)
 	assert.Equal(t, total, serverTrans.Progress, "the separators are not sent")
-	gwtesting.JSONEqual(t, lengths, serverTrans.TransferInfo[articlesLengthsKey])
+	gwtesting.JSONEqual(t, newArticleLengths(lengths...), serverTrans.TransferInfo[articlesLengthsKey])
 
 	expectedContent := strings.Join(delimitedRecords, "")
 	content, err := os.ReadFile(serverTrans.LocalPath)
