@@ -127,7 +127,7 @@ func (c *clientTransfer) request() *pipeline.Error {
 	}
 
 	if err := c.sendRequest(fileInfo, &partConf, conn); err != nil {
-		if closeErr := conn.Close(); closeErr != nil {
+		if closeErr := conn.Close(); closeErr != nil && !errors.Is(err, net.ErrClosed) {
 			c.pip.Logger.Warningf("Failed to close connection: %v", closeErr)
 		}
 
@@ -140,7 +140,7 @@ func (c *clientTransfer) request() *pipeline.Error {
 //nolint:funlen,gocognit,gocyclo,cyclop //no easy way to split the function for now
 func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConfigTLS,
 	conn net.Conn,
-) *pipeline.Error {
+) (pipErr *pipeline.Error) {
 	isStandardMode := partConf.CompatibilityMode == CompatibilityModeStandard
 
 	serverLogin := c.pip.TransCtx.RemoteAgent.Name
@@ -171,6 +171,12 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 
 		return pipeline.NewErrorWith(err, types.TeConnection, "failed to connect to partner")
 	}
+
+	defer func() {
+		if pipErr != nil {
+			c.client.Abort(pipErr)
+		}
+	}()
 
 	if err := c.authenticateServer(); err != nil {
 		return err
@@ -431,7 +437,14 @@ func (c *clientTransfer) Receive(file protocol.ReceiveFile) *pipeline.Error {
 
 func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 	file io.Seeker,
-) *pipeline.Error {
+) (pipErr *pipeline.Error) {
+	defer func() {
+		if pipErr != nil {
+			c.pip.Logger.Warningf("failed to close connection: %v", pipErr)
+			c.client.Abort(transErrToPesitErr(pipErr))
+		}
+	}()
+
 	if err := c.pTrans.OpenFile(); err != nil {
 		c.pip.Logger.Errorf("Failed to open transfer file: %v", err)
 
@@ -481,7 +494,10 @@ func (c *clientTransfer) dataTransfer(doTransfer func() *pipeline.Error,
 	c.pTrans = nil
 
 	if err := c.client.Close(nil); err != nil {
-		c.pip.Logger.Warningf("failed to close client: %v", err)
+		c.pip.Logger.Warningf("failed to close connection: %v", err)
+		c.client.Abort(err)
+
+		return toPipErr(types.TeConnection, "failed to close connection", err)
 	}
 
 	c.client = nil
@@ -529,8 +545,9 @@ func (c *clientTransfer) Cancel() *pipeline.Error {
 func (c *clientTransfer) halt(cause pesit.StopCause, pErr pesit.Diagnostic) *pipeline.Error {
 	defer func() {
 		if c.client != nil {
-			if err := c.client.Close(pErr); err != nil {
-				c.pip.Logger.Warningf("failed to close connection: %v", err)
+			if cErr := c.client.Close(pErr); cErr != nil {
+				c.pip.Logger.Warningf("failed to close connection: %v", cErr)
+				c.client.Abort(cErr)
 			}
 		}
 	}()

@@ -132,7 +132,11 @@ func sendMessage(db database.ReadAccess, logger *log.Logger,
 		return fmt.Errorf("failed to establish PeSIT connection: %w", err)
 	}
 
-	defer pesitClient.Close(nil)
+	defer func() {
+		if err := pesitClient.Close(nil); err != nil {
+			pesitClient.Abort(err)
+		}
+	}()
 
 	var customerID, bankID string
 
