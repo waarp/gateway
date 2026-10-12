@@ -27,8 +27,8 @@ const (
 type ServerConfig struct {
 	GatewayName string `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the database is shared between multiple gateways, this name MUST be unique across these gateways."`
 
-	NodeID    string
-	Overrides *ConfigOverride
+	NodeID    string          `no-ini:"yes" no-flag:"yes" hidden:"yes"`
+	Overrides *ConfigOverride `no-ini:"yes" no-flag:"yes" hidden:"yes"`
 
 	Paths      PathsConfig      `group:"paths"`
 	Log        LogConfig        `group:"log"`
@@ -42,16 +42,16 @@ type ServerConfig struct {
 //nolint:lll // cannot split struct tags
 type PathsConfig struct {
 	GatewayHome   string   `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
-	DefaultInDir  string   `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
-	DefaultOutDir string   `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
-	DefaultTmpDir string   `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
-	FilePerms     FileMode `ini-name:"FilePermissions" default:"0640" description:"The permissions of the files created by the gateway." `
-	DirPerms      FileMode `ini-name:"DirectoryPermissions" default:"0750" description:"The permissions of the directories created by the gateway." `
+	DefaultInDir  string   `ini-name:"DefaultInDir" default:"in" description:"The default directory for incoming files."`
+	DefaultOutDir string   `ini-name:"DefaultOutDir" default:"out" description:"The default directory for outgoing files."`
+	DefaultTmpDir string   `ini-name:"DefaultTmpDir" default:"tmp" description:"The default directory for running transfer files."`
+	FilePerms     FileMode `ini-name:"FilePermissions" default:"0640" description:"The UNIX permissions of the files created by the gateway." `
+	DirPerms      FileMode `ini-name:"DirectoryPermissions" default:"0750" description:"The UNIX permissions of the directories created by the gateway." `
 
 	// Deprecated fields.
-	InDirectory   string `ini-name:"InDirectory" default:"" description:"DEPRECATED, use DefaultInDir instead"`    // Deprecated: replaced by DefaultInDir
-	OutDirectory  string `ini-name:"OutDirectory" default:"" description:"DEPRECATED, use DefaultOutDir instead"`  // Deprecated: replaced by DefaultOutDir
-	WorkDirectory string `ini-name:"WorkDirectory" default:"" description:"DEPRECATED, use DefaultTmpDir instead"` // Deprecated: replaced by DefaultTmpDir
+	InDirectory   string `ini-name:"InDirectory" hidden:"yes"`   // Deprecated: replaced by DefaultInDir
+	OutDirectory  string `ini-name:"OutDirectory" hidden:"yes"`  // Deprecated: replaced by DefaultOutDir
+	WorkDirectory string `ini-name:"WorkDirectory" hidden:"yes"` // Deprecated: replaced by DefaultTmpDir
 }
 
 // LogConfig holds the server logging options.
@@ -72,21 +72,24 @@ type AdminConfig struct {
 	DisableWebUI  bool   `ini-name:"DisableWebUI" description:"If set to true, the web admin interface will be disabled."`
 	TLSCert       string `ini-name:"TLSCert" description:"Path of the TLS certificate for the admin interface."`
 	TLSKey        string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate."`
-	TLSPassphrase string `ini-name:"TLSPassphrase" description:""`
+	TLSPassphrase string `ini-name:"TLSPassphrase" description:"RFC 1423 style passphrase for the TLS key (if the key is encrypted)."`
 }
 
 // DatabaseConfig holds the server database options.
 //
 //nolint:lll // cannot split struct tags
 type DatabaseConfig struct {
-	Type          string `ini-name:"Type" default:"sqlite" description:"String of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
+	Type          string `ini-name:"Type" default:"sqlite" description:"Type of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
 	Address       string `ini-name:"Address" default:"waarp-gateway.db" description:"Address of the database"`
-	Name          string `ini-name:"String" description:"The name of the database"`
+	Name          string `ini-name:"Name" description:"The name of the database"`
 	User          string `ini-name:"User" description:"The name of the gateway database user"`
 	Password      string `ini-name:"Password" description:"The password of the gateway database user"`
 	TLSCert       string `ini-name:"TLSCert" description:"Path of the database TLS certificate file."`
 	TLSKey        string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate file."`
 	AESPassphrase string `ini-name:"AESPassphrase" default:"passphrase.aes" description:"The path to the file containing the passphrase used to encrypt account passwords using AES"`
+
+	// Deprecated fields
+	String string `ini-name:"String" hidden:"true"` // Deprecated: misspell of "Name"
 }
 
 // ControllerConfig holds the transfer controller options.
@@ -94,11 +97,15 @@ type DatabaseConfig struct {
 //nolint:lll // cannot split struct tags
 type ControllerConfig struct {
 	Delay           time.Duration `ini-name:"Delay" default:"5s" description:"The frequency at which the database will be probed for new transfers"`
-	MaxTransfersIn  uint64        `ini-name:"MaxTransferIn" description:"The maximum number of concurrent incoming transfers allowed on the gateway (0 = unlimited)."`
-	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
+	MaxTransfersIn  uint64        `ini-name:"MaxTransfersIn" description:"The maximum number of concurrent incoming transfers allowed on the gateway (0 = unlimited)."`
+	MaxTransfersOut uint64        `ini-name:"MaxTransfersOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
+
+	// Deprecated fields
+	MaxTransferIn  uint64 `ini-name:"MaxTransferIn" hidden:"yes"`  // Deprecated: misspell of "MaxTransfersIn"
+	MaxTransferOut uint64 `ini-name:"MaxTransferOut" hidden:"yes"` // Deprecated: misspell of "MaxTransfersOut"
 }
 
-func normalizePaths(configFile *ServerConfig, logger *log.Logger) error {
+func normalizePaths(configFile *ServerConfig) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve current working directory: %w", err)
@@ -114,25 +121,63 @@ func normalizePaths(configFile *ServerConfig, logger *log.Logger) error {
 		configFile.Paths.GatewayHome = wd
 	}
 
-	if configFile.Paths.DefaultInDir == "" && configFile.Paths.InDirectory != "" {
-		logger.Warning("Option 'InDirectory' is deprecated, use 'DefaultInDir' instead")
-
-		configFile.Paths.DefaultInDir = configFile.Paths.InDirectory
-	}
-
-	if configFile.Paths.DefaultOutDir == "" && configFile.Paths.OutDirectory != "" {
-		logger.Warning("Option 'OutDirectory' is deprecated, use 'DefaultOutDir' instead")
-
-		configFile.Paths.DefaultOutDir = configFile.Paths.OutDirectory
-	}
-
-	if configFile.Paths.DefaultTmpDir == "" && configFile.Paths.WorkDirectory != "" {
-		logger.Warning("Option 'WorkDirectory' is deprecated, use 'DefaultTmpDir' instead")
-
-		configFile.Paths.DefaultTmpDir = configFile.Paths.WorkDirectory
-	}
-
 	return nil
+}
+
+func handleDeprecatedOpts(configFile *ServerConfig, logger *log.Logger) {
+	const (
+		defaultInDir  = "in"
+		defaultOutDir = "out"
+		defaultTmpDir = "tmp"
+	)
+
+	if configFile.Paths.InDirectory != "" {
+		logger.Warning("Option 'paths.InDirectory' is deprecated, use 'paths.DefaultInDir' instead")
+
+		if configFile.Paths.DefaultInDir == "" || configFile.Paths.DefaultInDir == defaultInDir {
+			configFile.Paths.DefaultInDir = configFile.Paths.InDirectory
+		}
+	}
+
+	if configFile.Paths.OutDirectory != "" {
+		logger.Warning("Option 'paths.OutDirectory' is deprecated, use 'paths.DefaultOutDir' instead")
+
+		if configFile.Paths.DefaultOutDir == "" || configFile.Paths.DefaultOutDir == defaultOutDir {
+			configFile.Paths.DefaultOutDir = configFile.Paths.OutDirectory
+		}
+	}
+
+	if configFile.Paths.WorkDirectory != "" {
+		logger.Warning("Option 'paths.WorkDirectory' is deprecated, use 'paths.DefaultTmpDir' instead")
+
+		if configFile.Paths.DefaultTmpDir == "" || configFile.Paths.DefaultTmpDir == defaultTmpDir {
+			configFile.Paths.DefaultTmpDir = configFile.Paths.WorkDirectory
+		}
+	}
+
+	if configFile.Database.String != "" {
+		logger.Warning("Option 'database.String' is deprecated, use 'Database.Name' instead")
+
+		if configFile.Database.Name == "" {
+			configFile.Database.Name = configFile.Database.String
+		}
+	}
+
+	if configFile.Controller.MaxTransferIn != 0 {
+		logger.Warning("Option 'controller.MaxTransferIn' is deprecated, use 'controller.MaxTransfersIn' instead")
+
+		if configFile.Controller.MaxTransfersIn == 0 {
+			configFile.Controller.MaxTransfersIn = configFile.Controller.MaxTransferIn
+		}
+	}
+
+	if configFile.Controller.MaxTransferOut != 0 {
+		logger.Warning("Option 'controller.MaxTransferOut' is deprecated, use 'controller.MaxTransfersOut' instead")
+
+		if configFile.Controller.MaxTransfersOut == 0 {
+			configFile.Controller.MaxTransfersOut = configFile.Controller.MaxTransferOut
+		}
+	}
 }
 
 var ErrNoConfigFile = errors.New("no config file found")
@@ -212,8 +257,9 @@ func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
 		return nil, "", fmt.Errorf("failed to initialize log backend: %w", err)
 	}
 
-	logger := logging.NewLogger("Config file")
-	if err := normalizePaths(c, logger); err != nil {
+	handleDeprecatedOpts(c, logging.NewLogger("Config file"))
+
+	if err := normalizePaths(c); err != nil {
 		return nil, "", err
 	}
 

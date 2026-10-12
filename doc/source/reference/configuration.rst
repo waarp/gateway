@@ -10,6 +10,9 @@ Fichier de configuration ``waarp-gatewayd.ini``
 Le fichier de configuration ``waarp-gatewayd.ini`` permet de contrôler et modifier
 le comportement du démon ``waarp-gatewayd``.
 
+Section ``[global]``
+====================
+
 .. confval:: GatewayName
 
    Définit le nom de Gateway. Par défaut, le nom ``waarp-gateway`` est utilisé.
@@ -28,10 +31,10 @@ le comportement du démon ``waarp-gatewayd``.
       exécutés par la même instance au lieu d'être répartis sur les différentes
       instances.
 
-Section ``[path]``
+Section ``[paths]``
 ==================
 
-La section ``[path]`` contient les différents chemins de Gateway.
+La section ``[paths]`` contient les différents chemins de Gateway.
 
 .. confval:: GatewayHome
 
@@ -45,8 +48,8 @@ La section ``[path]`` contient les différents chemins de Gateway.
 
       Remplacé par ``DefaultInDir``
 
-   Le dossier dans lequel sont déposés les fichiers reçus. Par défaut, la racine
-   de Waarp Gateway est utilisée à la place.
+   Le dossier dans lequel sont déposés les fichiers reçus. Par défaut, la valeur
+   de ``DefaultInDir`` est utilisée.
 
 .. confval:: OutDirectory
 
@@ -55,7 +58,7 @@ La section ``[path]`` contient les différents chemins de Gateway.
       Remplacé par ``DefaultOutDir``
 
    Le dossier dans lequel les fichiers à envoyer sont cherchés. Par défaut,
-   la racine de Waarp Gateway est utilisée à la place.
+   la valeur de ``DefaultOutDir`` utilisée.
 
 .. confval:: WorkDirectory
 
@@ -64,22 +67,22 @@ La section ``[path]`` contient les différents chemins de Gateway.
       Remplacé par ``DefaultTmpDir``
 
    Le dossier dans lequel les fichiers en cours de réception sont déposés avant
-   d'être déplacés dans le ``InDirectory``. Par défaut, la racine de Waarp Gateway
-   est utilisée à la place.
+   d'être déplacés dans le ``InDirectory``. Par défaut, la valeur de ``DefaultTmpDir``
+   est utilisée.
 
-.. confval:: DefaultInDirectory
+.. confval:: DefaultInDir
 
    Le dossier par défaut dans lequel sont déposés les fichiers reçus si le serveur
    et la règle concernés ne spécifient pas ce dossier de réception. Par défaut,
    un dossier 'in' est créé à cet effet sous la racine de Waarp Gateway.
 
-.. confval:: DefaultOutDirectory
+.. confval:: DefaultOutDir
 
    Le dossier par défaut depuis lequel sont récupérés les fichiers à envoyer si
    le serveur et la règle concernés ne spécifient pas ce dossier d'envoi. Par
    défaut, un dossier 'out' est créé à cet effet sous la racine de Waarp Gateway.
 
-.. confval:: DefaultTmpDirectory
+.. confval:: DefaultTmpDir
 
    Le dossier par défaut dans lequel sont déposés les fichiers en cours de réception
    (avant dépôt dans le dossier de réception *in*) si le serveur et la règle
@@ -116,8 +119,9 @@ génération des traces du démon.
 .. confval:: LogTo
 
    Le chemin du fichier d'écriture des logs.
-   Les valeurs spéciales ``stdout`` et ``syslog`` permettent de rediriger les
-   logs respectivement vers la sortie standard et vers un démon syslog.
+   Les valeurs spéciales ``stdout``, ``stderr`` et ``syslog`` permettent de
+   rediriger les logs respectivement vers la sortie standard, la sortie d'erreur,
+   et vers un démon syslog.
 
    Valeur par défaut : ``stdout``
 
@@ -141,12 +145,12 @@ d'administration et l'API REST.
    L'adresse de l'interface sur laquelle le serveur HTTP va écouter les
    requêtes faites à l'interface d'administration.
 
-   Valeur par défaut : ``localhost``
+   Valeur par défaut : ``0.0.0.0``
 
 .. confval:: Port
 
-   Le port sur lequel le serveur HTTP doit écouter. La valeur ``0`` est entrée,
-   un port libre sera arbitrairement choisit.
+   Le port sur lequel le serveur HTTP doit écouter. Si la valeur ``0`` est entrée,
+   un port libre sera arbitrairement choisi.
 
    Valeur par défaut : ``8080``
 
@@ -183,13 +187,15 @@ base de données de Gateway.
    Le nom (en minuscules) du type de système de gestion de base de données utilisé.
    Les valeurs autorisées sont: ``postgresql``, ``mysql``, ``sqlite``.
 
+   Valeur par défaut : ``sqlite``
+
 .. confval:: Address
 
    L'adresse complète (URL + Port) de la base de données. Le port par défaut
    dépend du type de base de données utilisé (``5432`` pour PostgreSQL, ``3306``
    pour MySQL, aucun pour SQLite).
 
-   Valeur par défaut : ``localhost``
+   Valeur par défaut : ``waarp-gateway.db``
 
 .. confval:: Name
 

@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`690` Les options ``database.String``, ``controller.MaxTransferIn`` et
+  ``controller.MaxTransferOut`` du fichier de configuration .ini étaient
+  incorrectement nommées. Elles ont été remplacées par ``database.Name``,
+  ``controller.MaxTransfersIn`` et ``controller.MaxTransfersOut`` respectivement
+  comme spécifié dans la documentation. Les incorrects anciens noms restent
+  fonctionnels mais sont désormais dépréciés. Par ailleurs, les champs .ini
+  dépréciés ne sont désormais plus écrits dans le fichier .ini généré par Gateway.
 * :support:`-` Le service systemd de Gateway est désormais configuré avec pour
   attendre que le réseau soit actif avant de démarrer. Précédemment, sous
   certains systèmes, le service pouvait démarrer alors que la couche réseau

@@ -244,6 +244,127 @@ LogTo stdout
 	})
 }
 
+func TestDeprecatedOptions(t *testing.T) {
+	t.Run("deprecated options are used when the new ones are absent", func(t *testing.T) {
+		content := []byte(`[Paths]
+InDirectory = old-in
+OutDirectory = old-out
+WorkDirectory = old-work
+
+[Database]
+String = old-db-name
+
+[Controller]
+MaxTransferIn = 11
+MaxTransferOut = 22
+`)
+
+		filePath := filepath.Join(t.TempDir(), "test.ini")
+		require.NoError(t, os.WriteFile(filePath, content, 0o600))
+
+		c, err := LoadServerConfig(filePath)
+		require.NoError(t, err)
+
+		assert.Equal(t, "old-in", c.Paths.DefaultInDir)
+		assert.Equal(t, "old-out", c.Paths.DefaultOutDir)
+		assert.Equal(t, "old-work", c.Paths.DefaultTmpDir)
+		assert.Equal(t, "old-db-name", c.Database.Name)
+		assert.EqualValues(t, 11, c.Controller.MaxTransfersIn)
+		assert.EqualValues(t, 22, c.Controller.MaxTransfersOut)
+	})
+
+	t.Run("new options take precedence over the deprecated ones", func(t *testing.T) {
+		content := []byte(`[Paths]
+InDirectory = old-in
+DefaultInDir = new-in
+OutDirectory = old-out
+DefaultOutDir = new-out
+WorkDirectory = old-work
+DefaultTmpDir = new-tmp
+
+[Database]
+String = old-db-name
+Name = new-db-name
+
+[Controller]
+MaxTransferIn = 11
+MaxTransfersIn = 111
+MaxTransferOut = 22
+MaxTransfersOut = 222
+`)
+
+		filePath := filepath.Join(t.TempDir(), "test.ini")
+		require.NoError(t, os.WriteFile(filePath, content, 0o600))
+
+		c, err := LoadServerConfig(filePath)
+		require.NoError(t, err)
+
+		assert.Equal(t, "new-in", c.Paths.DefaultInDir)
+		assert.Equal(t, "new-out", c.Paths.DefaultOutDir)
+		assert.Equal(t, "new-tmp", c.Paths.DefaultTmpDir)
+		assert.Equal(t, "new-db-name", c.Database.Name)
+		assert.EqualValues(t, 111, c.Controller.MaxTransfersIn)
+		assert.EqualValues(t, 222, c.Controller.MaxTransfersOut)
+	})
+}
+
+func TestDeprecatedOptionsNotWritten(t *testing.T) {
+	deprecatedOpts := []string{
+		"InDirectory", "OutDirectory", "WorkDirectory",
+		"String", "MaxTransferIn", "MaxTransferOut",
+	}
+	newOpts := []string{
+		"DefaultInDir", "DefaultOutDir", "DefaultTmpDir",
+		"Name", "MaxTransfersIn", "MaxTransfersOut",
+	}
+
+	t.Run("when creating a new configuration file", func(t *testing.T) {
+		filePath := filepath.Join(t.TempDir(), "test.ini")
+		require.NoError(t, CreateServerConfig(filePath))
+
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+
+		for _, opt := range deprecatedOpts {
+			assert.NotContains(t, string(content), opt+" =")
+		}
+
+		for _, opt := range newOpts {
+			assert.Contains(t, string(content), opt+" =")
+		}
+	})
+
+	t.Run("when updating an existing configuration file", func(t *testing.T) {
+		oldContent := []byte(`[Paths]
+InDirectory = old-in
+OutDirectory = old-out
+WorkDirectory = old-work
+
+[Database]
+String = old-db-name
+
+[Controller]
+MaxTransferIn = 11
+MaxTransferOut = 22
+`)
+
+		filePath := filepath.Join(t.TempDir(), "test.ini")
+		require.NoError(t, os.WriteFile(filePath, oldContent, 0o600))
+		require.NoError(t, UpdateServerConfig(filePath))
+
+		content, err := os.ReadFile(filePath)
+		require.NoError(t, err)
+
+		for _, opt := range deprecatedOpts {
+			assert.NotContains(t, string(content), opt+" =")
+		}
+
+		for _, opt := range newOpts {
+			assert.Contains(t, string(content), opt+" =")
+		}
+	})
+}
+
 func TestUpdateServerConfig(t *testing.T) {
 	t.Chdir(t.TempDir())
 
