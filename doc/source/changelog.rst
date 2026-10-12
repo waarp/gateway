@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :support:`-` Le service systemd de Gateway est désormais configuré avec pour
+  attendre que le réseau soit actif avant de démarrer. Précédemment, sous
+  certains systèmes, le service pouvait démarrer alors que la couche réseau
+  n'était pas encore initialisée, et échouait donc à démarrer.
+* :bug:`687` L'envoi de F.MESSAGE en PeSIT respecte désormais le paramètre
+  ``disablePreConnection`` du partenaire concerné.
+* :bug:`687` Lorsqu'un partenaire PeSIT utilise le mode de compatibilité
+  non-standard, les F.MESSAGES envoyés à ce partenaire contiendront le nom de
+  règle au lieu du nom de fichier en PI12 (similairement aux transferts de fichier).
 * :bug:`688` Les longueurs d'articles PeSIT sont stockées de manière plus compacte
   en base de données. Les *transfer info* sont également mises à jour en base moins
   fréquemment pour améliorer les performances. Enfin, une erreur à l'écriture des

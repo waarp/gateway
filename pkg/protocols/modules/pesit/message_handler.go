@@ -194,8 +194,9 @@ func (s *service) relayClientMessage(transCtx *model.TransferContext,
 	}
 
 	if err := sendMessage(s.db, s.logger, transCtx.RemoteAgent, transCtx.RemoteAccount,
-		transCtx.RemoteAgentCreds, transCtx.RemoteAccountCreds, transCtx.Authorities,
-		transCtx.Transfer.TransferInfo, transferID, filename, message); err != nil {
+		transCtx.Rule, transCtx.RemoteAgentCreds, transCtx.RemoteAccountCreds,
+		transCtx.Authorities, transCtx.Transfer.TransferInfo, transferID,
+		filename, message); err != nil {
 		s.logger.Errorf("Failed to send message: %v", err)
 
 		if diag, isDiag := errors.AsType[pesit.Diagnostic](err); isDiag {
@@ -210,8 +211,8 @@ func (s *service) relayClientMessage(transCtx *model.TransferContext,
 	return nil
 }
 
-func (s *service) relayServerMessage(inTrans *model.NormalizedTransferView, transferID uint32,
-	message io.Reader,
+func (s *service) relayServerMessage(inTrans *model.NormalizedTransferView,
+	transferID uint32, message io.Reader,
 ) error {
 	partner, partErr := s.findPartnerByLogin(inTrans.Account)
 	if partErr != nil {
@@ -227,12 +228,20 @@ func (s *service) relayServerMessage(inTrans *model.NormalizedTransferView, tran
 		return ErrDatabase
 	}
 
+	var rule model.Rule
+	if err := s.db.Get(&rule, "name=?", inTrans.Rule).
+		And("is_send=?", inTrans.IsSend).Run(); err != nil {
+		s.logger.Errorf("Failed to retrieve rule %q: %v", inTrans.Rule, err)
+
+		return ErrDatabase
+	}
+
 	filename := inTrans.SrcFilename
 	if filename == "" {
 		filename = inTrans.DestFilename
 	}
 
-	if err := sendInitialMessage(s.db, s.logger, partner, account,
+	if err := sendInitialMessage(s.db, s.logger, partner, account, &rule,
 		inTrans.TransferInfo, transferID, filename, message); err != nil {
 		s.logger.Errorf("Failed to send message: %v", err)
 

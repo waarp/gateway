@@ -62,7 +62,7 @@ vers le dossier d'extraction de l'archive :
    Restart=on-failure
 
    [Install]
-   WantedBy=multi-user.target
+   WantedBy=network-online.target
 
 Pour activer le démarrage automatique de Waarp Gateway au démarrage du
 serveur, utilisez la commande :

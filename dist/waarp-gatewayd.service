@@ -11,5 +11,5 @@ ExecStart=/bin/sh -c 'PATH=/usr/libexec/waarp-gateway:/usr/lib/waarp-gateway:$PA
 Restart=on-failure
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=network-online.target
 
