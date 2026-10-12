@@ -20,8 +20,8 @@ import (
 
 var _ tasks.MessageSender = &transferHandler{}
 
-func (t *transferHandler) SendMessage(db *database.DB, logger *log.Logger,
-	_ *model.Client, partner *model.RemoteAgent, account *model.RemoteAccount,
+func (t *transferHandler) SendMessage(db *database.DB, logger *log.Logger, _ *model.Client,
+	partner *model.RemoteAgent, account *model.RemoteAccount, rule *model.Rule,
 	infos map[string]any, transferID, filename, message string,
 ) error {
 	tID, idErr := utils.ParseUint[uint32](transferID)
@@ -29,12 +29,12 @@ func (t *transferHandler) SendMessage(db *database.DB, logger *log.Logger,
 		return fmt.Errorf("failed to parse transfer ID: %w", idErr)
 	}
 
-	return sendInitialMessage(db, logger, partner, account, infos, tID, filename,
-		strings.NewReader(message))
+	return sendInitialMessage(db, logger, partner, account, rule, infos, tID,
+		filename, strings.NewReader(message))
 }
 
-func (c *clientTransfer) SendMessage(db *database.DB, logger *log.Logger,
-	_ *model.Client, partner *model.RemoteAgent, account *model.RemoteAccount,
+func (c *clientTransfer) SendMessage(db *database.DB, logger *log.Logger, _ *model.Client,
+	partner *model.RemoteAgent, account *model.RemoteAccount, rule *model.Rule,
 	infos map[string]any, transferID, filename, message string,
 ) error {
 	tID, idErr := utils.ParseUint[uint32](transferID)
@@ -42,12 +42,12 @@ func (c *clientTransfer) SendMessage(db *database.DB, logger *log.Logger,
 		return fmt.Errorf("failed to parse transfer ID: %w", idErr)
 	}
 
-	return sendInitialMessage(db, logger, partner, account, infos, tID, filename,
+	return sendInitialMessage(db, logger, partner, account, rule, infos, tID, filename,
 		strings.NewReader(message))
 }
 
 func sendInitialMessage(db database.ReadAccess, logger *log.Logger,
-	partner *model.RemoteAgent, account *model.RemoteAccount,
+	partner *model.RemoteAgent, account *model.RemoteAccount, rule *model.Rule,
 	infos map[string]any, transferID uint32, filename string, message io.Reader,
 ) error {
 	partnerCreds, dbErr := partner.GetCredentials(db)
@@ -65,12 +65,12 @@ func sendInitialMessage(db database.ReadAccess, logger *log.Logger,
 		return fmt.Errorf("failed to retrieve authorities: %w", err)
 	}
 
-	return sendMessage(db, logger, partner, account, partnerCreds, accountCreds,
+	return sendMessage(db, logger, partner, account, rule, partnerCreds, accountCreds,
 		authorities, infos, transferID, filename, message)
 }
 
 func sendMessage(db database.ReadAccess, logger *log.Logger,
-	partner *model.RemoteAgent, account *model.RemoteAccount,
+	partner *model.RemoteAgent, account *model.RemoteAccount, rule *model.Rule,
 	partnerCreds, accountCreds []*model.Credential, authorities []*model.Authority,
 	infos map[string]any, transferID uint32, filename string, message io.Reader,
 ) error {
@@ -84,21 +84,28 @@ func sendMessage(db database.ReadAccess, logger *log.Logger,
 		serverLogin = partConf.Login
 	}
 
+	if partConf.CompatibilityMode == CompatibilityModeNonStandard {
+		filename = rule.Name
+	}
+
 	pesitClient := pesit.NewClient(account.Login, getPassword(accountCreds), serverLogin)
 	pesitClient.Logger = logger.AsStdLogger(log.LevelDebug)
 	pesitClient.NetworkTrace = logger.AsStdLogger(log.LevelTrace)
 	pesitClient.SetNSDUUsage(partConf.UseNSDU.Value)
 
-	for _, cred := range accountCreds {
-		if cred.Type != PreConnectionAuth {
-			continue
-		}
-
+	if partConf.DisablePreConnection {
+		pesitClient.SetPreConnectionUsage(false)
+	} else {
 		pesitClient.SetPreConnectionUsage(true)
-		pesitClient.SetPreConnectLogin(cred.Value)
-		pesitClient.SetPreConnectPassword(cred.Value2)
 
-		break
+		for _, cred := range accountCreds {
+			if cred.Type == PreConnectionAuth {
+				pesitClient.SetPreConnectLogin(cred.Value)
+				pesitClient.SetPreConnectPassword(cred.Value2)
+
+				break
+			}
+		}
 	}
 
 	dialer := &protoutils.TraceDialer{Dialer: &net.Dialer{}}

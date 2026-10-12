@@ -45,9 +45,14 @@ func TestSendMessage(t *testing.T) {
 	infos := map[string]any{bankIDKey: bank, customerIDKey: customer}
 
 	// Send message
-	msgErr := sendInitialMessage(ctx.DB, logger, ctx.Partner, ctx.Account,
+	msgErr := sendInitialMessage(ctx.DB, logger, ctx.Partner, ctx.Account, ctx.RulePush,
 		infos, transferID, filename, strings.NewReader(message))
 	require.NoError(t, msgErr)
+
+	// Check pre-connection
+	assert.True(t, handler.receivedPreConn)
+	assert.Equal(t, "        ", handler.preConnLogin)
+	assert.Equal(t, "        ", handler.preConnPswd)
 
 	// Check credentials
 	assert.Equal(t, ctx.Account.Login, handler.login)
@@ -62,11 +67,63 @@ func TestSendMessage(t *testing.T) {
 	assert.Equal(t, message, handler.msgContent)
 }
 
+func TestSendMessageNonStandard(t *testing.T) {
+	// Setup
+	const (
+		transferID = uint32(12345)
+		filename   = "test.pesit"
+		message    = "Hello World!"
+		password   = "sesame"
+		customer   = "mr. customer"
+		bank       = "bank institution"
+	)
+
+	handler := makeTestMessageServer(t)
+	ctx := gwtesting.NewTestClientCtx(t, Pesit, handler.addr, nil, map[string]any{
+		"compatibilityMode": CompatibilityModeNonStandard,
+	})
+	ctx.AddPassword(t, password)
+	logger := logtest.GetTestLogger(t,
+		logtest.WithName("test_message_client"),
+		logtest.WithLevel("TRACE"),
+	)
+
+	clientService := newClient(ctx.DB, ctx.Client)
+	require.NoError(t, clientService.Start())
+
+	infos := map[string]any{bankIDKey: bank, customerIDKey: customer}
+
+	// Send message
+	msgErr := sendInitialMessage(ctx.DB, logger, ctx.Partner, ctx.Account, ctx.RulePush,
+		infos, transferID, filename, strings.NewReader(message))
+	require.NoError(t, msgErr)
+
+	// Check pre-connection
+	assert.True(t, handler.receivedPreConn)
+	assert.Equal(t, "        ", handler.preConnLogin)
+	assert.Equal(t, "        ", handler.preConnPswd)
+
+	// Check credentials
+	assert.Equal(t, ctx.Account.Login, handler.login)
+	assert.Equal(t, password, handler.pswd)
+
+	// Check message
+	assert.Equal(t, pesit.FileACK, handler.msgType)
+	assert.Equal(t, transferID, handler.msgTransID)
+	assert.Equal(t, ctx.RulePush.Name, handler.msgFilename)
+	assert.Equal(t, customer, handler.msgCustomer)
+	assert.Equal(t, bank, handler.msgBank)
+	assert.Equal(t, message, handler.msgContent)
+}
+
 var _ pesit.MessageHandler = &testMessageServer{}
 
 type testMessageServer struct {
 	addr        string
 	login, pswd string
+
+	receivedPreConn           bool
+	preConnLogin, preConnPswd string
 
 	msgType     pesit.MessageType
 	msgTransID  uint32
@@ -74,6 +131,12 @@ type testMessageServer struct {
 	msgBank     string
 	msgFilename string
 	msgContent  string
+}
+
+func (t *testMessageServer) ValidatePreConnection(login string, password string) error {
+	t.receivedPreConn, t.preConnLogin, t.preConnPswd = true, login, password
+
+	return nil
 }
 
 func (t *testMessageServer) Connect(c *pesit.ServerConnection) (pesit.TransferHandler, error) {
@@ -115,6 +178,7 @@ func makeTestMessageServer(tb testing.TB) *testMessageServer {
 	)
 	handler := &testMessageServer{}
 	serv := pesit.NewServer(handler)
+	serv.ValidatePreConnection = handler.ValidatePreConnection
 	serv.Logger = logger.AsStdLogger(log.LevelDebug)
 	serv.NetworkTrace = logger.AsStdLogger(log.LevelTrace)
 
