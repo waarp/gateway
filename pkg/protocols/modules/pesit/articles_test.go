@@ -1,173 +1,91 @@
 package pesit
 
 import (
-	"bytes"
-	"errors"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
+	"encoding/json"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// recordsOf collects the records handed by forEachRecord, as strings.
-func recordsOf(t *testing.T, content string, separator []byte) []string {
-	t.Helper()
-
-	var records []string
-
-	require.NoError(t, forEachRecord(strings.NewReader(content), separator,
-		func(record []byte) error {
-			records = append(records, string(record))
-
-			return nil
-		}))
-
-	return records
-}
-
-func TestForEachRecord(t *testing.T) {
+func TestArticleLengthsJSON(t *testing.T) {
 	t.Parallel()
 
-	lf, crlf := []byte("\n"), []byte("\r\n")
-
-	assert.Equal(t, []string{"one", "", "three"}, recordsOf(t, "one\n\nthree\n", lf),
-		"an empty record is a record, and the separator ending the file adds none")
-	assert.Equal(t, []string{"one", "last"}, recordsOf(t, "one\nlast", lf),
-		"a last record without separator is handed as well")
-	assert.Empty(t, recordsOf(t, "", lf), "an empty file has no record")
-	assert.Equal(t, []string{"one", "two"}, recordsOf(t, "one\r\ntwo\r\n", crlf))
-	assert.Equal(t, []string{"one\r", "two"}, recordsOf(t, "one\r\ntwo", lf),
-		"with LF declared, a carriage return is data")
-	assert.Equal(t, []string{"one\n", "two"}, recordsOf(t, "one\ntwo\r\n", crlf),
-		"with CRLF declared, a bare line feed is data")
-
-	long := strings.Repeat("x", 3*recordReadSize)
-	assert.Equal(t, []string{long, "y"}, recordsOf(t, long+"\ny", lf),
-		"a record longer than the read buffer is handed whole")
-
-	boom := errors.New("boom") //nolint:err113 // test
-	assert.ErrorIs(t, forEachRecord(strings.NewReader("a\nb\n"), lf,
-		func([]byte) error { return boom }), boom)
-}
-
-func TestParseArticlesSeparator(t *testing.T) {
-	t.Parallel()
-
-	for name, expected := range map[string][]byte{"LF": {'\n'}, "lf ": {'\n'}, "CRLF": {'\r', '\n'}} {
-		sep, err := parseArticlesSeparator(name)
-		require.NoError(t, err)
-		assert.Equal(t, expected, sep)
+	tests := []struct {
+		name     string
+		lengths  []uint16
+		expected string
+	}{
+		{"empty", nil, `[]`},
+		{"single", []uint16{12}, `[12]`},
+		{"distinct", []uint16{12, 0, 47, 4}, `[12,0,47,4]`},
+		{"repeated", []uint16{12, 12, 12, 0, 47, 47}, `[{"l":12,"c":3},0,{"l":47,"c":2}]`},
+		{"uniform", slices.Repeat([]uint16{80}, 10000), `[{"l":80,"c":10000}]`},
 	}
 
-	_, err := parseArticlesSeparator("TAB")
-	assert.ErrorIs(t, err, errUnknownSeparator)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			lengths := newArticleLengths(test.lengths...)
+
+			marshalled, err := json.Marshal(lengths)
+			require.NoError(t, err)
+			assert.JSONEq(t, test.expected, string(marshalled))
+
+			var unmarshalled articleLengths
+			require.NoError(t, json.Unmarshal(marshalled, &unmarshalled))
+			assert.Equal(t, test.lengths, slices.Collect(unmarshalled.All()))
+			assert.Equal(t, len(test.lengths), unmarshalled.Len())
+		})
+	}
 }
 
-func TestLongestRecord(t *testing.T) {
+func TestArticleLengthsLegacyJSON(t *testing.T) {
 	t.Parallel()
 
-	dir := t.TempDir()
-	path := filepath.Join(dir, "records.txt")
-	require.NoError(t, os.WriteFile(path, []byte("ab\nabcdef\n\nabc"), 0o600))
-
-	size, err := longestRecordOf(path, []byte("\n"))
-	require.NoError(t, err)
-	assert.Equal(t, uint16(6), size)
-
-	empty := filepath.Join(dir, "empty.txt")
-	require.NoError(t, os.WriteFile(empty, nil, 0o600))
-
-	size, err = longestRecordOf(empty, []byte("\n"))
-	require.NoError(t, err)
-	assert.Equal(t, uint16(1), size, "an empty file is announced with a valid size")
-
-	_, err = longestRecordOf(filepath.Join(dir, "missing.txt"), []byte("\n"))
-	require.Error(t, err)
-
-	huge := filepath.Join(dir, "huge.txt")
-	require.NoError(t, os.WriteFile(huge, bytes.Repeat([]byte{'x'}, 70000), 0o600))
-
-	_, err = longestRecordOf(huge, []byte("\n"))
-	assert.ErrorIs(t, err, errRecordTooLongPI)
-
-	// An open stream is read from its beginning and left where it was.
-	stream := bytes.NewReader([]byte("ab\nabcdef\n"))
-	_, err = stream.Seek(3, io.SeekStart)
-	require.NoError(t, err)
-
-	size, err = longestRecord(stream, []byte("\n"))
-	require.NoError(t, err)
-	assert.Equal(t, uint16(6), size)
-
-	position, err := stream.Seek(0, io.SeekCurrent)
-	require.NoError(t, err)
-	assert.Equal(t, int64(3), position, "the stream is back at its position")
-}
-
-// fakeArticleSender records the articles it is asked to send.
-type fakeArticleSender struct {
-	manual   bool
-	articles []*bytes.Buffer
-	startErr error
-}
-
-func (f *fakeArticleSender) SetManualArticleHandling(manual bool) bool {
-	f.manual = manual
-
-	return true
-}
-
-func (f *fakeArticleSender) StartNextSendArticle() (io.Writer, error) {
-	if f.startErr != nil {
-		return nil, f.startErr
+	tests := []struct {
+		name     string
+		json     string
+		expected []uint16
+	}{
+		{"null", `null`, nil},
+		{"empty array", `[]`, nil},
+		{"array", `[12, 12, 12, 0, 47]`, []uint16{12, 12, 12, 0, 47}},
 	}
 
-	article := &bytes.Buffer{}
-	f.articles = append(f.articles, article)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-	return article, nil
-}
-
-func (f *fakeArticleSender) sent() []string {
-	sent := make([]string, 0, len(f.articles))
-	for _, article := range f.articles {
-		sent = append(sent, article.String())
+			var lengths articleLengths
+			require.NoError(t, json.Unmarshal([]byte(test.json), &lengths))
+			assert.Equal(t, test.expected, slices.Collect(lengths.All()))
+		})
 	}
-
-	return sent
 }
 
-func TestSendDelimitedArticles(t *testing.T) {
+func TestArticleLengthsMethods(t *testing.T) {
 	t.Parallel()
 
-	t.Run("one article per record, the separator excluded", func(t *testing.T) {
-		t.Parallel()
+	var nilLengths *articleLengths
+	assert.Equal(t, 0, nilLengths.Len())
+	assert.Equal(t, uint16(0), nilLengths.Max())
+	assert.Empty(t, slices.Collect(nilLengths.All()))
 
-		sender := &fakeArticleSender{}
-		require.NoError(t, sendDelimitedArticles(sender,
-			strings.NewReader("first\n\nthird record\nlast"), []byte("\n"), 12))
-		assert.True(t, sender.manual, "articles are handled one by one")
-		assert.Equal(t, []string{"first", "", "third record", "last"}, sender.sent())
-	})
+	lengths := newArticleLengths(5, 5, 300, 7)
+	assert.Equal(t, 4, lengths.Len())
+	assert.Equal(t, uint16(300), lengths.Max())
+	assert.Equal(t, `[{"l":5,"c":2},300,7]`, lengths.String())
 
-	t.Run("a record longer than the article size is refused before being sent", func(t *testing.T) {
-		t.Parallel()
+	lengths.Add(7)
+	assert.Equal(t, `[{"l":5,"c":2},300,{"l":7,"c":2}]`, lengths.String())
 
-		sender := &fakeArticleSender{}
-		err := sendDelimitedArticles(sender, strings.NewReader("ok\ntoo long\n"), []byte("\n"), 5)
-		require.ErrorIs(t, err, errRecordTooLong)
-		assert.Equal(t, []string{"ok"}, sender.sent(), "the records before it were sent")
-	})
+	// The iterator can be stopped early.
+	for length := range lengths.All() {
+		assert.Equal(t, uint16(5), length)
 
-	t.Run("a failure to start an article is reported", func(t *testing.T) {
-		t.Parallel()
-
-		boom := errors.New("boom") //nolint:err113 // test
-		sender := &fakeArticleSender{startErr: boom}
-		assert.ErrorIs(t, sendDelimitedArticles(sender, strings.NewReader("a\n"), []byte("\n"), 5), boom)
-	})
+		break
+	}
 }

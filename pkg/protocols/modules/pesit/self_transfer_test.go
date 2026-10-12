@@ -26,7 +26,8 @@ func TestOk(t *testing.T) {
 			Start:          time.Now().Add(time.Hour),
 			Status:         types.StatusAvailable,
 			TransferInfo: map[string]any{
-				articlesFormatKey:  pesit.FormatFixed.String(),
+				articlesFormatKey: pesit.FormatFixed.String(),
+				// The former format of the lengths, still accepted.
 				articlesLengthsKey: []uint16{dataLen / 2, dataLen / 2},
 			},
 		}
@@ -46,7 +47,7 @@ func TestOk(t *testing.T) {
 				require.NoError(t, db.Get(&clientTrans, "id=?", ctx.TransferPull.ID).Eager().Run())
 				assert.Equal(t, serverTransfer.TransferInfo[articlesFormatKey],
 					clientTrans.TransferInfo[articlesFormatKey])
-				gwtesting.JSONEqual(t, serverTransfer.TransferInfo[articlesLengthsKey],
+				gwtesting.JSONEqual(t, newArticleLengths(dataLen/2, dataLen/2),
 					clientTrans.TransferInfo[articlesLengthsKey])
 			})
 		})
@@ -54,7 +55,7 @@ func TestOk(t *testing.T) {
 
 	t.Run("Given a PESIT push client", func(t *testing.T) {
 		ctx.TransferPush.TransferInfo[articlesFormatKey] = pesit.FormatFixed.String()
-		ctx.TransferPush.TransferInfo[articlesLengthsKey] = []uint16{dataLen / 2, dataLen / 2}
+		ctx.TransferPush.TransferInfo[articlesLengthsKey] = newArticleLengths(dataLen/2, dataLen/2)
 		pip := ctx.PushPipeline(t)
 
 		t.Run("When executing the transfer", func(t *testing.T) {

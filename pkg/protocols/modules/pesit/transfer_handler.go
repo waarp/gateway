@@ -383,7 +383,8 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 }
 
 func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
-	var articlesLen []uint16
+	articlesLen := newArticleLengths()
+	t.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articlesLen
 
 	for {
 		article, aErr := trans.GetNextRecvArticle()
@@ -403,8 +404,7 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 		}
 
 		end := t.pip.TransCtx.Transfer.Progress
-		articlesLen = append(articlesLen, uint16(end-start))
-		t.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articlesLen
+		articlesLen.Add(uint16(end - start))
 	}
 }
 
@@ -443,10 +443,10 @@ func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 	return nil
 }
 
-func (t *transferHandler) multiSend(trans *pesit.ServerTransfer, lengths []uint16) error {
+func (t *transferHandler) multiSend(trans *pesit.ServerTransfer, lengths *articleLengths) error {
 	trans.SetManualArticleHandling(true)
 
-	for _, length := range lengths {
+	for length := range lengths.All() {
 		article, aErr := trans.StartNextSendArticle()
 		if aErr != nil {
 			t.handleError(aErr)

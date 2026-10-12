@@ -194,7 +194,7 @@ func (f *FileStream) Sync() error {
 	f.updTicker.Reset(TransferUpdateInterval)
 
 	// Force an immediate database update.
-	if dbErr := f.DB.Update(f.TransCtx.Transfer).Run(); dbErr != nil {
+	if dbErr := f.forceUpdateTrans(); dbErr != nil {
 		return f.internalErrorWithMsg(types.TeInternal, "failed to update transfer",
 			"database error", dbErr)
 	}

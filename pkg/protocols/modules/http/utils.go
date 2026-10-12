@@ -247,13 +247,6 @@ func setInfo(pip *pipeline.Pipeline, headers http.Header, key string) *pipeline.
 		pip.TransCtx.Transfer.TransferInfo[name] = value
 	}
 
-	if err := pip.TransCtx.Transfer.AfterUpdate(pip.DB); err != nil {
-		pip.Logger.Errorf("Failed to set transfer info: %v", err)
-		pip.SetError(types.TeInternal, "failed to set transfer info")
-
-		return pipeline.NewError(types.TeInternal, "database error")
-	}
-
 	return nil
 }
 

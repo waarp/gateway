@@ -160,7 +160,7 @@ func (n *NormalizedTransferView) UpdateInfo(db database.Access) error {
 		Infos:        n.Infos.AsInfos(true),
 	}
 
-	return trans.AfterUpdate(db)
+	return trans.UpdateInfo(db)
 }
 
 type NormalizedTransferInfo struct {

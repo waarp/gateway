@@ -60,8 +60,8 @@ func initSelfTransfer(c convey.C, proto string, clientConf, partConf, servConf a
 		defer cancel()
 
 		if err := client.Stop(ctx); err != nil {
-			testhelpers.TestLogger(c, cli.Name).Warningf(
-				"Error while stopping client: %v", err)
+			testhelpers.TestLogger(c, cli.Name).
+				Warningf("Error while stopping client: %v", err)
 		}
 	})
 
@@ -452,10 +452,10 @@ func (s *SelfContext) GetServerTransfer(c convey.C) *model.NormalizedTransferVie
 	var serverTrans model.NormalizedTransfers
 	c.SoMsg(
 		"Failed retrieve the server transfer entry",
-		s.DB.Select(&serverTrans).Where(
-			"is_server=true AND account=? AND agent=? AND rule=? AND is_send=?",
-			s.LocAccount.Login, s.Server.Name, s.ServerRule.Name,
-			s.ServerRule.IsSend).Run(),
+		s.DB.Select(&serverTrans).
+			Where("is_server=true AND account=? AND agent=? AND rule=? AND is_send=?",
+				s.LocAccount.Login, s.Server.Name, s.ServerRule.Name,
+				s.ServerRule.IsSend).Run(),
 		convey.ShouldBeNil,
 	)
 
@@ -556,7 +556,7 @@ func (s *SelfContext) waitForListDeletion() {
 
 func (s *SelfContext) AddTransferInfo(c convey.C, name string, val any) {
 	s.ClientTrans.TransferInfo[name] = val
-	c.So(s.ClientTrans.AfterUpdate(s.DB), convey.ShouldBeNil)
+	c.So(s.ClientTrans.UpdateInfo(s.DB), convey.ShouldBeNil)
 }
 
 /*

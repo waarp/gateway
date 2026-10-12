@@ -1095,7 +1095,7 @@ func TestPipelineAwaitACK(t *testing.T) {
 	require.Nil(t, pipErr)
 
 	trans.TransferInfo[AckReceived] = true
-	require.NoError(t, trans.AfterUpdate(ctx.db))
+	require.NoError(t, trans.UpdateInfo(ctx.db))
 
 	// ########## RUN TRANSFER ##########
 	require.Nil(t, pip.PreTasks())

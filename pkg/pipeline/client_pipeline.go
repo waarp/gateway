@@ -25,6 +25,10 @@ func NewClientPipeline(db *database.DB, logger *log.Logger, transCtx *model.Tran
 			logger.Errorf("Failed to update the transfer error: %v", dbErr)
 		}
 
+		if dbErr := transCtx.Transfer.UpdateInfo(db); dbErr != nil {
+			logger.Errorf("Failed to update the transfer info: %v", dbErr)
+		}
+
 		return nil, pipErr
 	}
 
