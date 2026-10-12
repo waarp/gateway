@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`689` Correction d'un bug faisant que less connexions client PeSIT
+  n'étaient pas toujours fermées en temps raisonnable.
 * :bug:`686` La page de monitoring des transferts de la WebUI affiche désormais
   toujours le nom de base du fichier sur disque (quand disponible). Le chemin
   complet est, lui, visible en survolant la colonne.
