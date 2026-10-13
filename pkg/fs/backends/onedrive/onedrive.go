@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
@@ -95,29 +96,33 @@ func (t *tokenRefresher) Set(key, value string) {
 
 func parseOpts(clientID, clientSecret string, opts map[string]string) (configmap.Mapper, error) {
 	const (
-		regionKey    = "region"
-		driveIDKey   = "drive_id"
-		driveTypeKey = "drive_type"
+		regionKey       = "region"
+		driveIDKey      = "drive_id"
+		driveTypeKey    = "drive_type"
+		chunkSizeKey    = "chunk_size"
+		clientIDKey     = "client_id"
+		clientSecretKey = "client_secret"
 	)
 
-	internal.SetDefaultValue(opts, "chunk_size", "10Mi")
-	internal.SetDefaultValue(opts, driveTypeKey, "business")
-	internal.SetDefaultValue(opts, regionKey, "global")
+	config := maps.Clone(opts)
+	internal.SetDefaultValue(config, chunkSizeKey, "10Mi")
+	internal.SetDefaultValue(config, driveTypeKey, "business")
+	internal.SetDefaultValue(config, regionKey, "global")
 
-	if opts[driveIDKey] == "" {
+	if config[driveIDKey] == "" {
 		return nil, ErrMissingDriveID
 	}
 
 	if clientID != "" {
-		opts["client_id"] = clientID
+		config[clientIDKey] = clientID
 	}
 
 	if clientSecret != "" {
-		opts["client_secret"] = clientSecret
+		config[clientSecretKey] = clientSecret
 	}
 
 	return &tokenRefresher{
-		m:            opts,
+		m:            config,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 	}, nil

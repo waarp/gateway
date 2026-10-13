@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`698` Correction d'un bug exposant les identifiants clouds dans la
+  colonne "options" de la table. La migration vers la version 0.17.0 supprime
+  ces identifiants s'ils sont présents.
 * :bug:`690` Les options ``database.String``, ``controller.MaxTransferIn`` et
   ``controller.MaxTransferOut`` du fichier de configuration .ini étaient
   incorrectement nommées. Elles ont été remplacées par ``database.Name``,

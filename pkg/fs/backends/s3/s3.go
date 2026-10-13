@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 
 	"github.com/rclone/rclone/backend/s3"
 	"github.com/rclone/rclone/fs/config/configmap"
@@ -28,11 +29,15 @@ func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, er
 		dirMarkers  = "true"
 		listVersion = "2"
 		listChunk   = "1000"
+
+		accessIDKey     = "access_key_id"
+		accessSecretKey = "secret_access_key"
 	)
 
-	opts[dirMarkersKey] = dirMarkers
-	opts[listVersionKey] = listChunk
-	opts[listChunkKey] = listVersion
+	config := maps.Clone(opts)
+	config[dirMarkersKey] = dirMarkers
+	config[listVersionKey] = listVersion
+	config[listChunkKey] = listChunk
 
 	// required options
 	const (
@@ -43,33 +48,33 @@ func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, er
 		defaultCopyCutoff = "5MiB"
 	)
 
-	if bucket := opts[bucketKey]; bucket == "" {
+	if bucket := config[bucketKey]; bucket == "" {
 		return nil, ErrMissingBucket
 	}
 
-	internal.SetDefaultValue(opts, copyCutoffKey, defaultCopyCutoff)
-	internal.SetDefaultValue(opts, chunkSizeKey, defaultChunkSize)
+	internal.SetDefaultValue(config, copyCutoffKey, defaultCopyCutoff)
+	internal.SetDefaultValue(config, chunkSizeKey, defaultChunkSize)
 
 	if key != "" {
-		opts["access_key_id"] = key
+		config[accessIDKey] = key
 	}
 
 	if secret != "" {
-		opts["secret_access_key"] = secret
+		config[accessSecretKey] = secret
 	}
 
-	return opts, nil
+	return config, nil
 }
 
-func newVFS(name, key, secret string, confMap map[string]string) (*vfs.VFS, error) {
-	opts, err := parseOpts(key, secret, confMap)
+func newVFS(name, key, secret string, opts map[string]string) (*vfs.VFS, error) {
+	config, err := parseOpts(key, secret, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	root := opts[bucketKey]
+	root := config[bucketKey]
 
-	s3fs, err := s3.NewFs(context.Background(), name, root, opts)
+	s3fs, err := s3.NewFs(context.Background(), name, root, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate s3 filesystem: %w", err)
 	}

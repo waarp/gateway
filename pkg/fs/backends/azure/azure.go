@@ -1,6 +1,8 @@
 package azure
 
 import (
+	"maps"
+
 	"github.com/rclone/rclone/fs/config/configmap"
 )
 
@@ -10,13 +12,15 @@ func parseAzureOpts(account, key string, opts map[string]string) configmap.Simpl
 		optsKeyKey     = "key"
 	)
 
+	config := maps.Clone(opts)
+
 	if account != "" {
-		opts[optsAccountKey] = account
+		config[optsAccountKey] = account
 	}
 
 	if key != "" {
-		opts[optsKeyKey] = key
+		config[optsKeyKey] = key
 	}
 
-	return opts
+	return config
 }

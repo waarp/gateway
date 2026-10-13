@@ -72,8 +72,8 @@ func MySQLDatabase(tb testing.TB) *sql.DB {
 	tb.Helper()
 
 	conf := mysql.NewConfig()
-	conf.User = "mysql"
-	conf.Passwd = "mysql"
+	conf.User = "root"
+	conf.Passwd = "root"
 	conf.DBName = "waarp_gateway_test"
 	conf.Addr = "localhost:3306"
 	conf.ParseTime = true

@@ -3,6 +3,7 @@ package s3
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal/backtest"
@@ -24,4 +25,15 @@ func TestS3(t *testing.T) {
 	require.NoError(t, fsErr)
 
 	backtest.TestVFS(t, s3VFS)
+}
+
+func TestParseOpts(t *testing.T) {
+	t.Parallel()
+
+	opts := map[string]string{"bucket": "name"}
+	_, err := parseOpts("account", "password", opts)
+	require.NoError(t, err)
+
+	assert.NotContains(t, opts, "access_key_id")
+	assert.NotContains(t, opts, "secret_access_key")
 }

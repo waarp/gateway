@@ -1,6 +1,8 @@
 package migrations
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 )
 
@@ -16,7 +18,7 @@ func quoteDial(dialect, identifier string) string {
 		return fmt.Sprintf("`%s`", identifier)
 	}
 
-	return fmt.Sprintf(`"%s"`, identifier)
+	return fmt.Sprintf(`%q`, identifier)
 }
 
 func ltrim(db Actions, pref, from string) (sql string) {
@@ -44,4 +46,31 @@ func concat(db Actions, str1, str2 string) (sql string) {
 	}
 
 	return sql
+}
+
+type jsonObj map[string]any
+
+func (j *jsonObj) Value() (driver.Value, error) {
+	b, err := json.Marshal(j)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	return string(b), nil
+}
+
+func (j *jsonObj) Scan(src any) error {
+	var jErr error
+
+	switch val := src.(type) {
+	case string:
+		jErr = json.Unmarshal([]byte(val), j)
+	case []byte:
+		jErr = json.Unmarshal(val, j)
+	default:
+		//nolint:err113 //too specific
+		jErr = fmt.Errorf("unknown JSON type %T", src)
+	}
+
+	return jErr
 }
