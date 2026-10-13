@@ -341,9 +341,14 @@ var Migrations = []Change{
 		Up:          ver0_16_0AddRemoteFilewatcherTableUp,
 		Down:        ver0_16_0AddRemoteFilewatcherTableDown,
 	},
-	{ // #65,
+	{ // #65
 		Description: `Add the "normalized_transfer_info" view`,
 		Up:          ver0_16_0AddNormalizedTransferInfoViewUp,
 		Down:        ver0_16_0AddNormalizedTransferInfoViewDown,
+	},
+	{ // #66
+		Description: `Change the MySQL type of transfer info value to LONGTEXT`,
+		Up:          ver0_17_0ChangeTransferInfoValueTypeUp,
+		Down:        ver0_17_0ChangeTransferInfoValueTypeDown,
 	},
 }

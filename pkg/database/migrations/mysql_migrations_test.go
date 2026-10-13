@@ -16,7 +16,7 @@ func getMySQLEngine(tb testing.TB) *testEngine {
 	logger := testhelpers.GetTestLogger(tb)
 	db := migtest.MySQLDatabase(tb)
 
-	eng, err := migration.NewEngine(db, MySQL, logger, nil)
+	eng, err := migration.NewEngine(db, MySQL, logger.Slogger(), nil)
 	require.NoError(tb, err)
 
 	return &testEngine{Engine: eng, DB: db, Dialect: MySQL}

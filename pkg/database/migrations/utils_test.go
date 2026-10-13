@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/go-sql-driver/mysql"
@@ -85,7 +86,7 @@ func doesViewExist(tb testing.TB, db *sql.DB, dbType, view string) bool {
 	case SQLite:
 		row = db.QueryRow(`SELECT name FROM sqlite_master WHERE type='view' AND name=?`, view)
 	case PostgreSQL:
-		row = db.QueryRow(`SELECT tablename FROM pg_views WHERE viewname=$1`, view)
+		row = db.QueryRow(`SELECT viewname FROM pg_views WHERE viewname=$1`, view)
 	case MySQL:
 		row = db.QueryRow(`SELECT TABLE_NAME FROM information_schema.TABLES 
 			WHERE TABLE_TYPE='VIEW' AND TABLE_NAME=?`, view)
@@ -128,6 +129,37 @@ func tableShouldHaveColumns(tb testing.TB, db *sql.DB, table string, cols ...str
 		assert.Containsf(tb, names, col,
 			"Table %q should have column %q (but it didn't)", table, col)
 	}
+}
+
+// getColumnType returns the SQL type of the given column, as reported by the
+// database. The returned type name is upper-cased for easier comparison.
+func getColumnType(tb testing.TB, db *sql.DB, dbType, table, column string) string {
+	tb.Helper()
+
+	var row *sql.Row
+
+	switch dbType {
+	case SQLite:
+		row = db.QueryRow(`SELECT type FROM pragma_table_info(?) WHERE name=?`,
+			table, column)
+	case PostgreSQL:
+		row = db.QueryRow(`SELECT data_type FROM information_schema.columns
+			WHERE table_schema=current_schema() AND table_name=$1 AND column_name=$2`,
+			table, column)
+	case MySQL:
+		row = db.QueryRow(`SELECT DATA_TYPE FROM information_schema.COLUMNS
+			WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?`,
+			table, column)
+	default:
+		panic(fmt.Sprintf("unknown database type: %s", dbType))
+	}
+
+	var colType string
+
+	require.NoErrorf(tb, row.Scan(&colType),
+		"Failed to retrieve the type of column %q of table %q", column, table)
+
+	return strings.ToUpper(colType)
 }
 
 func tableShouldNotHaveColumns(tb testing.TB, db *sql.DB, table string, cols ...string) {

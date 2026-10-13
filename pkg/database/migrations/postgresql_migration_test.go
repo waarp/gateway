@@ -16,7 +16,7 @@ func getPostgreEngine(tb testing.TB) *testEngine {
 	logger := testhelpers.GetTestLogger(tb)
 	db := migtest.PostgreSQLDatabase(tb)
 
-	eng, err := migration.NewEngine(db, PostgreSQL, logger, nil)
+	eng, err := migration.NewEngine(db, PostgreSQL, logger.Slogger(), nil)
 	require.NoError(tb, err)
 
 	return &testEngine{Engine: eng, DB: db, Dialect: PostgreSQL}
