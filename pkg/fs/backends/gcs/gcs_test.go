@@ -3,6 +3,7 @@ package gcs
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal/backtest"
@@ -10,6 +11,8 @@ import (
 
 // A quick test to check that the most common operations are working properly.
 func TestGCS(t *testing.T) {
+	t.Parallel()
+
 	const (
 		bucket    = "waarp_gateway_test"
 		projectNb = "1048684374782"
@@ -28,4 +31,15 @@ func TestGCS(t *testing.T) {
 	require.NoError(t, fsErr)
 
 	backtest.TestVFS(t, gcsVFS)
+}
+
+func TestParseOpts(t *testing.T) {
+	t.Parallel()
+
+	opts := map[string]string{"bucket": "name"}
+	_, err := parseOpts("account", "password", opts)
+	require.NoError(t, err)
+
+	assert.NotContains(t, opts, "service_account_credentials")
+	assert.NotContains(t, opts, "service_account_file")
 }

@@ -227,6 +227,17 @@ func ParseServerConfig(userConfig string) (*ServerConfig, error) {
 	fs.FilePerms = fs.FileMode(c.Paths.FilePerms)
 	fs.DirPerms = fs.FileMode(c.Paths.DirPerms)
 
+	if err := logging.SetLogBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
+		"waarp-gateway"); err != nil {
+		return nil, fmt.Errorf("failed to initialize log backend: %w", err)
+	}
+
+	handleDeprecatedOpts(c, logging.NewLogger("Config file"))
+
+	if err := normalizePaths(c); err != nil {
+		return nil, err
+	}
+
 	return c, SetConfEnvVars(userConfig)
 }
 
@@ -250,17 +261,6 @@ func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
 	c, pErr := ParseServerConfig(userConfig)
 	if pErr != nil {
 		return nil, "", pErr
-	}
-
-	if err := logging.SetLogBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility,
-		"waarp-gateway"); err != nil {
-		return nil, "", fmt.Errorf("failed to initialize log backend: %w", err)
-	}
-
-	handleDeprecatedOpts(c, logging.NewLogger("Config file"))
-
-	if err := normalizePaths(c); err != nil {
-		return nil, "", err
 	}
 
 	return c, userConfig, nil

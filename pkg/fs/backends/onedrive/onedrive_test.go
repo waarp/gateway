@@ -3,8 +3,10 @@ package onedrive
 import (
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal/backtest"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal/backtest"
 )
 
 // A quick test to check that the most common operations are working properly.
@@ -31,4 +33,15 @@ func TestOneDrive(t *testing.T) {
 	require.NoError(t, fsErr)
 
 	backtest.TestVFS(t, blobVFS)
+}
+
+func TestParseOpts(t *testing.T) {
+	t.Parallel()
+
+	opts := map[string]string{"drive_id": "drive"}
+	_, err := parseOpts("account", "password", opts)
+	require.NoError(t, err)
+
+	assert.NotContains(t, opts, "client_id")
+	assert.NotContains(t, opts, "client_secret")
 }

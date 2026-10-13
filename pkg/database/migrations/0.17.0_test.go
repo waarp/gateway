@@ -39,3 +39,35 @@ func testVer0_17_0TransferInfoValueType(t *testing.T, eng *testEngine) Change {
 
 	return mig
 }
+
+func testVer0_17_0RemoveCloudCredsInOpts(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[67]
+
+	t.Run("When applying the 0.17.0 secret removal", func(t *testing.T) {
+		eng.NoError(t, `INSERT INTO cloud_instances (owner, name, type, options) VALUES
+        	('gw', 's3', 's3', '{"other":"value","access_key_id":"key","secret_access_key":"secret"}'),
+        	('gw', 'gcs', 'gcs', '{"other":"value","service_account_credentials":"account","service_account_file":"file"}'),
+        	('gw', 'onedrive', 'onedrive', '{"other":"value","client_id":"client","client_secret":"secret"}'),
+        	('gw', 'azblob', 'azblob', '{"other":"value","account":"account","key":"secret"}')
+		`)
+		t.Cleanup(func() { eng.NoError(t, "DELETE FROM cloud_instances") })
+
+		require.NoError(t, eng.Upgrade(mig), "The migration should not fail")
+
+		t.Run("Then it should have removed the secret values", func(t *testing.T) {
+			rows, err := eng.DB.Query("SELECT options FROM cloud_instances")
+			require.NoError(t, err)
+			defer rows.Close()
+
+			for rows.Next() {
+				var opts jsonObj
+				require.NoError(t, rows.Scan(&opts))
+				assert.Equal(t, jsonObj{"other": "value"}, opts)
+			}
+
+			require.NoError(t, rows.Err())
+		})
+	})
+
+	return mig
+}

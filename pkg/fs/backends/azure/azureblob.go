@@ -12,7 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal"
 )
 
-func parseBlobOpts(account, key string, confMap map[string]string) configmap.Simple {
+func parseBlobOpts(account, key string, opts map[string]string) configmap.Simple {
 	const (
 		chunkSizeKey = "chunk_size"
 		listChunkKey = "list_chunk"
@@ -21,24 +21,24 @@ func parseBlobOpts(account, key string, confMap map[string]string) configmap.Sim
 		defaultListChunk = "1000"
 	)
 
-	opts := parseAzureOpts(account, key, confMap)
+	config := parseAzureOpts(account, key, opts)
 
-	if opts[chunkSizeKey] == "" {
-		opts[chunkSizeKey] = defaultChunkSize
+	if config[chunkSizeKey] == "" {
+		config[chunkSizeKey] = defaultChunkSize
 	}
 
-	if opts[listChunkKey] == "" {
-		opts[listChunkKey] = defaultListChunk
+	if config[listChunkKey] == "" {
+		config[listChunkKey] = defaultListChunk
 	}
 
-	return opts
+	return config
 }
 
-func newBlobVFS(name, account, key, root string, confMap map[string]string) (*vfs.VFS, error) {
-	opts := parseBlobOpts(account, key, confMap)
+func newBlobVFS(name, account, key, root string, opts map[string]string) (*vfs.VFS, error) {
+	config := parseBlobOpts(account, key, opts)
 	vfsOpts := internal.VFSOpts()
 
-	abfs, err := azureblob.NewFs(context.Background(), name, root, opts)
+	abfs, err := azureblob.NewFs(context.Background(), name, root, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate azure blob filesystem: %w", err)
 	}

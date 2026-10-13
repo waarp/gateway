@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 
 	gcs "github.com/rclone/rclone/backend/googlecloudstorage"
 	"github.com/rclone/rclone/fs/config/configmap"
@@ -18,7 +19,8 @@ const bucketKey = "bucket"
 var ErrMissingBucket = errors.New("no GCS bucket specified")
 
 func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, error) {
-	opts["directory_markers"] = "true"
+	config := maps.Clone(opts)
+	config["directory_markers"] = "true"
 
 	const (
 		credKey     = "service_account_credentials"
@@ -26,29 +28,29 @@ func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, er
 	)
 
 	if key != "" {
-		opts[credFileKey] = key
+		config[credFileKey] = key
 	}
 
 	if secret != "" {
-		opts[credKey] = secret
+		config[credKey] = secret
 	}
 
-	if bucket := opts[bucketKey]; bucket == "" {
+	if bucket := config[bucketKey]; bucket == "" {
 		return nil, ErrMissingBucket
 	}
 
-	return opts, nil
+	return config, nil
 }
 
-func newVFS(name, key, secret string, confMap map[string]string) (*vfs.VFS, error) {
-	opts, err := parseOpts(key, secret, confMap)
+func newVFS(name, key, secret string, opts map[string]string) (*vfs.VFS, error) {
+	config, err := parseOpts(key, secret, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	root := opts[bucketKey]
+	root := config[bucketKey]
 
-	gcfs, err := gcs.NewFs(context.Background(), name, root, opts)
+	gcfs, err := gcs.NewFs(context.Background(), name, root, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate GCS filesystem: %w", err)
 	}
