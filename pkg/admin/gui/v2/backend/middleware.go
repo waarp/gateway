@@ -21,8 +21,10 @@ func withPermissions(perm model.PermsMask, next http.Handler) http.HandlerFunc {
 		if !user.Permissions.HasPermission(perm) {
 			text := locale.MakeLocalText(language, errorsLocalization)
 
-			w.WriteHeader(http.StatusUnauthorized)
+			w.WriteHeader(http.StatusForbidden)
 			fmt.Fprintln(w, text["unauthorized"])
+
+			return
 		}
 
 		next.ServeHTTP(w, r)
