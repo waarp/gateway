@@ -174,4 +174,7 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	// 0.16.0
 	apply(testVer0_16_0AddFilewatchers(t, eng))
 	apply(testVer0_16_0AddNormalizedInfo(t, eng))
+
+	// 0.17.0
+	apply(testVer0_17_0TransferInfoValueType(t, eng))
 }
