@@ -1,7 +1,9 @@
 package fs
 
 import (
+	"errors"
 	"fmt"
+	gopath "path"
 	"path/filepath"
 	"strings"
 
@@ -33,12 +35,12 @@ func (p *parsedPath) unrooted() string {
 	return strings.TrimPrefix(p.Path, volume+"/")
 }
 
-func parsePath(path string) (*parsedPath, error) {
-	if path == "" {
+func parsePath(raw string) (*parsedPath, error) {
+	if raw == "" {
 		return &parsedPath{}, nil
 	}
 
-	parsed, err := fspath.Parse(path)
+	parsed, err := fspath.Parse(raw)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse path: %w", err)
 	}
@@ -88,4 +90,20 @@ func Dir(path string) string {
 	}
 
 	return parsed.dir().String()
+}
+
+var ErrNotLocal = errors.New("not a local path")
+
+func Localize(path string) (string, error) {
+	parsed, err := parsePath(path)
+	if err != nil {
+		return "", err
+	}
+
+	if parsed.Name != "" {
+		return "", ErrNotLocal
+	}
+
+	//nolint:wrapcheck //wrapping adds nothing here
+	return filepath.Localize(gopath.Clean(parsed.Path))
 }

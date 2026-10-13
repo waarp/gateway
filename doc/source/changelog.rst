@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`663` Lors de la création d'un transfert serveur, tout chemin de fichier
+  permettant de quelque façon que ce soit de sortir de l'arborescence prévue pour
+  l'envoi ou la réception du fichier sera refusé. Plus précisément, tout chemin
+  ne pouvant pas être représenté sous forme d'un chemin local relatif sera refusé.
 * :bug:`662` Dans l'interface web, une requête refusée faute de permission
   suffisante s'arrête désormais au refus : l'action demandée n'est plus
   exécutée, et la réponse porte le code 403 au lieu de 401.

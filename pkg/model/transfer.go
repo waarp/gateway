@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"maps"
-	"path"
 	"path/filepath"
 	"reflect"
 	"time"
@@ -58,27 +57,43 @@ func (*Transfer) Preloads() []string { return []string{"Infos"} }
 
 func (t *Transfer) IsServer() bool { return t.LocalAccountID.Valid }
 
-//nolint:funlen,gocyclo,cyclop //function is fine for now
+// For server transfers, we force the filepath to be relative for security reasons.
+func (t *Transfer) confineServerFilename(rule *Rule) error {
+	if rule.IsSend {
+		localPath, pathErr := fs.Localize(t.SrcFilename)
+		if pathErr != nil {
+			return database.NewValidationError("the source file path is invalid")
+		}
+
+		if localPath == "." {
+			return database.NewValidationError("the source file is missing")
+		}
+
+		t.SrcFilename = filepath.ToSlash(localPath)
+		t.RemotePath, t.DestFilename = "", ""
+
+		return nil
+	}
+
+	localPath, pathErr := fs.Localize(t.DestFilename)
+	if pathErr != nil {
+		return database.NewValidationError("the destination file path is invalid")
+	}
+
+	if localPath == "." {
+		return database.NewValidationError("the destination file is missing")
+	}
+
+	t.DestFilename = filepath.ToSlash(localPath)
+	t.RemotePath, t.SrcFilename = "", ""
+
+	return nil
+}
+
 func (t *Transfer) checkMandatoryValues(rule *Rule, protocol string) error {
 	if t.IsServer() {
-		if rule.IsSend {
-			if t.SrcFilename == "" {
-				return database.NewValidationError("the source file is missing")
-			}
-
-			// For server transfers, we force the filepath to be relative for
-			// security reasons.
-			t.SrcFilename = path.Clean("./" + t.SrcFilename)
-			t.RemotePath, t.DestFilename = "", ""
-		} else {
-			if t.DestFilename == "" {
-				return database.NewValidationError("the destination file is missing")
-			}
-
-			// For server transfers, we force the filepath to be relative for
-			// security reasons.
-			t.DestFilename = path.Clean("./" + t.DestFilename)
-			t.RemotePath, t.SrcFilename = "", ""
+		if err := t.confineServerFilename(rule); err != nil {
+			return err
 		}
 	} else if t.SrcFilename == "" {
 		return database.NewValidationError("the source file is missing")

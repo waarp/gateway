@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -216,6 +219,141 @@ func TestTransferBeforeWrite(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestTransferServerFilenameIsLocal(t *testing.T) {
+	t.Parallel()
+
+	db := dbtest.TestDatabase(t)
+
+	sendRule := Rule{Name: "send_rule", IsSend: true}
+	require.NoError(t, db.Insert(&sendRule).Run())
+
+	recvRule := Rule{Name: "recv_rule", IsSend: false}
+	require.NoError(t, db.Insert(&recvRule).Run())
+
+	server := LocalAgent{Name: "server", Protocol: testProtocol, Address: types.Addr("localhost", 0)}
+	require.NoError(t, db.Insert(&server).Run())
+
+	account := LocalAccount{LocalAgentID: server.ID, Login: "toto"}
+	require.NoError(t, db.Insert(&account).Run())
+
+	validPaths := []struct{ input, expected string }{
+		{"file.txt", "file.txt"},
+		{"dir/file.txt", "dir/file.txt"},
+		{"dir/sub/file.txt", "dir/sub/file.txt"},
+		{"..file", "..file"},
+		{"dir/file..", "dir/file.."},
+		{"dir/../file.txt", "file.txt"},
+		{"./file.txt", "file.txt"},
+		{"dir/./file.txt", "dir/file.txt"},
+		{"dir//file.txt", "dir/file.txt"},
+		{"dir/", "dir"},
+		{"file:file.txt", "file.txt"},
+		{"file:dir/file.txt", "dir/file.txt"},
+	}
+
+	invalidPaths := []string{
+		"..",
+		"../file.txt",
+		"../../etc/passwd",
+		"dir/../../file.txt",
+		"/file.txt",
+		"/etc/passwd",
+		"/../file.txt",
+		"cloud:dir/file.txt",
+		"cloud:file.txt",
+		"cloud:/file.txt",
+		"file:/file.txt",
+		"file:/C:/file.txt",
+		`C:\file.txt`,
+		`C:/file.txt`,
+		`C:file.txt`,
+		`d:file.txt`,
+	}
+
+	if runtime.GOOS == "windows" {
+		invalidPaths = append(invalidPaths,
+			`..\file.txt`,
+			`dir\..\..\file.txt`,
+			`\file.txt`,
+			`\\server\share\file.txt`,
+			`//server/share/file.txt`,
+			`\\?\C:\file.txt`,
+			"file:C:/file.txt",
+			`NUL`,
+			`dir/COM1`,
+		)
+	}
+
+	type direction struct {
+		name   string
+		rule   *Rule
+		errMsg string
+		set    func(trans *Transfer, filename string)
+		get    func(trans *Transfer) string
+	}
+
+	directions := []direction{
+		{
+			name:   "Send",
+			rule:   &sendRule,
+			errMsg: "the source file path is invalid",
+			set:    func(trans *Transfer, filename string) { trans.SrcFilename = filename },
+			get:    func(trans *Transfer) string { return trans.SrcFilename },
+		},
+		{
+			name:   "Receive",
+			rule:   &recvRule,
+			errMsg: "the destination file path is invalid",
+			set:    func(trans *Transfer, filename string) { trans.DestFilename = filename },
+			get:    func(trans *Transfer) string { return trans.DestFilename },
+		},
+	}
+
+	for _, dir := range directions {
+		t.Run(dir.name, func(t *testing.T) {
+			t.Parallel()
+
+			newTransfer := func(filename string) *Transfer {
+				trans := &Transfer{
+					RuleID:         dir.rule.ID,
+					LocalAccountID: account.NullableID(),
+				}
+				dir.set(trans, filename)
+
+				return trans
+			}
+
+			for _, tc := range validPaths {
+				t.Run(fmt.Sprintf("Valid path %q", tc.input), func(t *testing.T) {
+					t.Parallel()
+
+					trans := newTransfer(tc.input)
+					require.NoError(t, trans.BeforeWrite(db))
+
+					filename := dir.get(trans)
+					assert.Equal(t, tc.expected, filename)
+					assert.True(t, filepath.IsLocal(filepath.FromSlash(filename)),
+						"the filename %q should be local", filename)
+					assert.False(t, filepath.IsAbs(filepath.FromSlash(filename)),
+						"the filename %q should not be absolute", filename)
+					assert.False(t, strings.HasPrefix(filename, "/"),
+						"the filename %q should not start with a slash", filename)
+				})
+			}
+
+			for _, input := range invalidPaths {
+				t.Run(fmt.Sprintf("Invalid path %q", input), func(t *testing.T) {
+					t.Parallel()
+
+					trans := newTransfer(input)
+					require.EqualError(t, trans.BeforeWrite(db),
+						database.NewValidationError(dir.errMsg).Error())
+				})
+			}
+		})
+	}
 }
 
 func TestTransferToHistory(t *testing.T) {
