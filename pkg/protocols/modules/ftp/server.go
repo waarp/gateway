@@ -118,14 +118,13 @@ func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.C
 		return nil, errors.New("internal authentication error")
 	}
 
+	// A disallowed address is refused like invalid credentials, so that the
+	// answer does not tell whether the password was valid. The actual reason
+	// is logged by CheckIP.
 	if success, err := protoutils.PasswordAuthentication(h.db, h.logger, acc, pass); err != nil {
 		return nil, errors.New("internal authentication error")
-	} else if !success {
+	} else if !success || !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
 		return nil, errors.New("invalid credentials")
-	}
-
-	if !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
-		return nil, errors.New("unauthorized IP address")
 	}
 
 	h.logger.Debugf("Account %q authenticated successfully", user)
@@ -160,16 +159,15 @@ func (h *handler) VerifyConnection(cc ftplib.ClientContext, user string,
 
 	state := tlsConn.ConnectionState()
 
+	// A disallowed address is handled like a refused certificate (the client
+	// falls back to password authentication, refused as well), so that the
+	// answer does not tell whether the certificate was valid.
 	success, err := protoutils.CertificateAuthentication(h.db, h.logger, acc, &state)
 	if err != nil {
 		return nil, errors.New("internal authentication error")
-	} else if !success {
+	} else if !success || !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
 		//nolint:nilnil //returning "nil, nil" here is required by the interface's definition
 		return nil, nil
-	}
-
-	if !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
-		return nil, errors.New("unauthorized IP address")
 	}
 
 	h.logger.Debugf("Account %q authenticated successfully", user)

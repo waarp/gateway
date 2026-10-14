@@ -25,7 +25,7 @@ func makeServerConf(db *database.DB, logger *log.Logger,
 		KeyExchanges:      protoConfig.KeyExchanges,
 		Ciphers:           protoConfig.Ciphers,
 		MACs:              protoConfig.MACs,
-		PublicKeyCallback: certChecker.Authenticate,
+		PublicKeyCallback: withIPCheck(db, logger, agent, certChecker.Authenticate),
 		PasswordCallback:  passwordCallback(db, logger, agent),
 	}
 
@@ -59,7 +59,43 @@ func userKeyCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgen
 			return nil, ErrAuthFailed
 		}
 
+		if !acc.CheckIP(logger, conn.RemoteAddr().String()) {
+			return nil, ErrAuthFailed
+		}
+
 		return &ssh.Permissions{}, nil
+	}
+}
+
+// withIPCheck makes the public key authentication refuse a disallowed address
+// like invalid credentials, including for SSH certificates, which do not go
+// through userKeyCallback.
+func withIPCheck(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
+	callback func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.Permissions, error),
+) func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.Permissions, error) {
+	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		perms, err := callback(conn, key)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, isCert := key.(*ssh.Certificate); !isCert {
+			// User key callback already checks IP, no need to do it again.
+			return perms, nil
+		}
+
+		acc, accErr := agent.GetAccount(db, conn.User())
+		if accErr != nil && !database.IsNotFound(accErr) {
+			logger.Errorf("Failed to retrieve user credentials: %v", accErr)
+
+			return nil, ErrDatabase
+		}
+
+		if !acc.CheckIP(logger, conn.RemoteAddr().String()) {
+			return nil, ErrAuthFailed
+		}
+
+		return perms, nil
 	}
 }
 
@@ -81,6 +117,13 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 			logger.Warningf("Authentication failed for account %q: %v",
 				conn.User(), res.Reason)
 
+			return nil, ErrAuthFailed
+		}
+
+		// A disallowed address fails the SSH handshake like invalid
+		// credentials, so that the handshake does not tell whether the
+		// password was valid. The actual reason is logged by CheckIP.
+		if !acc.CheckIP(logger, conn.RemoteAddr().String()) {
 			return nil, ErrAuthFailed
 		}
 

@@ -94,7 +94,7 @@ func TestAuth(t *testing.T) {
 				Convey("Then it should fail", func() {
 					So(server.handler.PreAuthUser(cc, login), ShouldBeNil)
 					_, err := server.handler.AuthUser(cc, login, password)
-					So(err, ShouldBeError, "unauthorized IP address")
+					So(err, ShouldBeError, "invalid credentials")
 				})
 			})
 		})

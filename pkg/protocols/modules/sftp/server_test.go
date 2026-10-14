@@ -24,6 +24,8 @@ func TestAuth(t *testing.T) {
 	userKey, keyErr := ParseAuthorizedKey(SSHPbk)
 	require.NoError(t, keyErr)
 
+	userCert := testhelpers.MakeSSHUserCert(t, login)
+
 	Convey("Given a test SFTP server", t, func(c C) {
 		db := database.TestDatabase(c)
 		logger := testhelpers.TestLogger(c, "test_sftp_auth")
@@ -52,6 +54,11 @@ func TestAuth(t *testing.T) {
 			Type:           AuthSSHPublicKey,
 			Value:          SSHPbk,
 		}).Run(), ShouldBeNil)
+		So(db.Insert(&model.Authority{
+			Name:           "test_ssh_ca",
+			Type:           AuthoritySSHCert,
+			PublicIdentity: userCert.CAPublicKey,
+		}).Run(), ShouldBeNil)
 
 		type authCallback func(ssh.ConnMetadata) (*ssh.Permissions, error)
 
@@ -61,6 +68,14 @@ func TestAuth(t *testing.T) {
 			},
 			"publickey": func(metadata ssh.ConnMetadata) (*ssh.Permissions, error) {
 				return userKeyCallback(db, logger, locAgent)(metadata, userKey)
+			},
+			"certificate": func(metadata ssh.ConnMetadata) (*ssh.Permissions, error) {
+				certChecker := ssh.CertChecker{
+					IsUserAuthority: isUserAuthority(db, logger),
+				}
+				callback := withIPCheck(db, logger, locAgent, certChecker.Authenticate)
+
+				return callback(metadata, userCert.Cert)
 			},
 		} {
 			Convey("When logging in via "+authType, func() {
@@ -97,6 +112,21 @@ func TestAuth(t *testing.T) {
 						Convey("Then it should succeed", func() {
 							_, err := callback(connMetadata)
 							So(err, ShouldBeNil)
+						})
+					})
+
+					Convey("When logging in from an unauthorized IP", func() {
+						clientAddr, addrErr := net.ResolveTCPAddr("tcp", "9.8.7.6:22")
+						require.NoError(t, addrErr)
+
+						connMetadata := testConnMetadata{
+							user:       login,
+							remoteAddr: clientAddr,
+						}
+
+						Convey("Then it should fail like invalid credentials", func() {
+							_, err := callback(connMetadata)
+							So(err, ShouldEqual, ErrAuthFailed)
 						})
 					})
 				})

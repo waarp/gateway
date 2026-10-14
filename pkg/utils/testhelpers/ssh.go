@@ -1,5 +1,68 @@
 package testhelpers
 
+import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
+)
+
+// SSHUserCert is a test SSH user certificate, along with the private key it
+// was issued for and the authority which signed it.
+type SSHUserCert struct {
+	// Cert is the signed user certificate.
+	Cert *ssh.Certificate
+	// Signer can be used by a client to authenticate with the certificate.
+	Signer ssh.Signer
+	// CAPublicKey is the certificate authority's public key in the
+	// "authorized_keys" format (suitable for an authority's PublicIdentity).
+	CAPublicKey string
+}
+
+// MakeSSHUserCert generates a new SSH certificate authority and a new user key
+// pair, and returns a certificate for the user key signed by the authority.
+// The certificate is valid for the given principals (all of them if none are
+// given) and expires one hour after its creation.
+func MakeSSHUserCert(tb testing.TB, principals ...string) *SSHUserCert {
+	tb.Helper()
+
+	_, caPrivKey, caErr := ed25519.GenerateKey(rand.Reader)
+	require.NoError(tb, caErr)
+
+	caSigner, caSignErr := ssh.NewSignerFromKey(caPrivKey)
+	require.NoError(tb, caSignErr)
+
+	_, userPrivKey, userErr := ed25519.GenerateKey(rand.Reader)
+	require.NoError(tb, userErr)
+
+	userSigner, userSignErr := ssh.NewSignerFromKey(userPrivKey)
+	require.NoError(tb, userSignErr)
+
+	//nolint:gosec //no need for a secure serial number in tests
+	cert := &ssh.Certificate{
+		Key:             userSigner.PublicKey(),
+		Serial:          1,
+		CertType:        ssh.UserCert,
+		KeyId:           "test-user-cert",
+		ValidPrincipals: principals,
+		ValidAfter:      uint64(time.Now().Add(-time.Minute).Unix()),
+		ValidBefore:     uint64(time.Now().Add(time.Hour).Unix()),
+	}
+	require.NoError(tb, cert.SignCert(rand.Reader, caSigner))
+
+	certSigner, certSignErr := ssh.NewCertSigner(cert, userSigner)
+	require.NoError(tb, certSignErr)
+
+	return &SSHUserCert{
+		Cert:        cert,
+		Signer:      certSigner,
+		CAPublicKey: string(ssh.MarshalAuthorizedKey(caSigner.PublicKey())),
+	}
+}
+
 const RSAPk = `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAIEAwg0KXLz4S0UF4QRgDp+WTWzCewS+sLUtZ0aLQSAN2HWdCssm/Lu0
