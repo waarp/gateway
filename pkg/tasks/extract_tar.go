@@ -41,7 +41,10 @@ func (e *extractTask) extractTar(mkDecompressor decompressorFunc) error {
 }
 
 func untarFile(outputDir string, header *tar.Header, tarFile *tar.Reader) error {
-	outputPath := fs.JoinPath(outputDir, header.Name)
+	outputPath, pathErr := entryPath(outputDir, header.Name)
+	if pathErr != nil {
+		return pathErr
+	}
 
 	if header.Typeflag == tar.TypeDir {
 		if err := fs.MkdirAll(outputPath); err != nil {

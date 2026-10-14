@@ -16,6 +16,8 @@ import (
 var (
 	ErrExtractNoOutput  = errors.New("no output directory specified")
 	ErrExtractOutputDir = errors.New("output path is not a directory")
+
+	ErrExtractInvalidPath = errors.New("invalid archive entry path")
 )
 
 type extractTask struct {
@@ -60,6 +62,18 @@ func (e *extractTask) Run(_ context.Context, params map[string]string, _ *databa
 	}
 
 	return nil
+}
+
+// entryPath returns the path where the given archive entry must be written,
+// under the output directory. Entries which would be written outside of that
+// directory (through a ".." element for example) are refused.
+func entryPath(outputDir, entryName string) (string, error) {
+	outputFile, pathErr := fs.Localize(entryName)
+	if pathErr != nil {
+		return "", fmt.Errorf("%q: %w", entryName, ErrExtractInvalidPath)
+	}
+
+	return fs.JoinPath(outputDir, outputFile), nil
 }
 
 //nolint:dupl //simpler to keep archive & extract separate
