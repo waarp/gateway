@@ -3,12 +3,14 @@ Supprimer une autorité
 
 .. http:delete:: /api/authorities/(string:authority_name)
 
-   Supprime l'autorité demandée.
+   Supprime l'autorité demandée. Nécessite le droit de suppression sur
+   l'administration.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :statuscode 204: L'autorité a été supprimée avec succès
    :statuscode 401: Authentification d'utilisateur invalide
+   :statuscode 403: L'utilisateur REST n'a pas le droit d'effectuer cette action
    :statuscode 404: L'autorité demandée n'existe pas
 
    |

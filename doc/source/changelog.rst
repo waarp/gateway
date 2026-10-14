@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`673` La suppression d'un client (API REST, interface web) requiert
+  désormais le droit de suppression sur les serveurs, et celle d'une autorité
+  d'authentification le droit de suppression sur l'administration, comme pour
+  les autres objets. Auparavant, le droit d'écriture suffisait : un
+  utilisateur qui dispose de l'écriture sans la suppression ne peut plus
+  supprimer ces objets. Le compte administrateur par défaut, qui dispose de
+  tous les droits, n'est pas concerné.
 * :bug:`666` L'interface web contrôle désormais les droits de l'utilisateur
   côté serveur, sur chaque page et chaque action, selon les mêmes règles que
   l'API REST : la consultation d'une page requiert le droit de lecture de sa
