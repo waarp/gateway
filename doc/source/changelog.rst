@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`666` L'interface web contrôle désormais les droits de l'utilisateur
+  côté serveur, sur chaque page et chaque action, selon les mêmes règles que
+  l'API REST : la consultation d'une page requiert le droit de lecture de sa
+  catégorie, un ajout ou une modification le droit d'écriture, une
+  suppression le droit de suppression. Une requête non autorisée reçoit le
+  code 403. Un utilisateur qui accédait jusqu'ici à une page sans en avoir le
+  droit reçoit désormais ce refus.
 * :bug:`672` Le temps de réponse d'une authentification refusée (interface
   web, API REST, protocoles de transfert) ne dépend plus de l'existence du
   compte : un compte inconnu est désormais vérifié avec le même coût qu'un

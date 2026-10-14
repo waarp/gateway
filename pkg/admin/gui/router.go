@@ -32,52 +32,52 @@ func LanguageMiddleware(next http.Handler) http.Handler {
 }
 
 func RouterAutocompletions(secureRouter *mux.Router, db *database.DB) {
-	secureRouter.HandleFunc("/autocompletion/users", autocompletionFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/partners", autocompletionPartnersFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/credentialPartner", autocompletionCredentialsPartnersFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/remoteAccount", autocompletionRemoteAccountFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/credentialRemoteAccount",
+	handlePage(secureRouter, "/autocompletion/users", autocompletionFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/partners", autocompletionPartnersFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/credentialPartner", autocompletionCredentialsPartnersFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/remoteAccount", autocompletionRemoteAccountFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/credentialRemoteAccount",
 		autocompletionCredentialsRemoteAccountsFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/servers", autocompletionServersFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/credentialServer", autocompletionCredentialsServersFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/localAccount", autocompletionLocalAccountFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/credentialLocalAccount",
+	handlePage(secureRouter, "/autocompletion/servers", autocompletionServersFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/credentialServer", autocompletionCredentialsServersFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/localAccount", autocompletionLocalAccountFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/credentialLocalAccount",
 		autocompletionCredentialsLocalAccountsFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/localClients", autocompletionLocalClientsFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/rules", autocompletionRulesFunc(db)).Methods("GET")
-	secureRouter.HandleFunc("/autocompletion/instanceCloud", autocompletionCloudFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/localClients", autocompletionLocalClientsFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/rules", autocompletionRulesFunc(db)).Methods("GET")
+	handlePage(secureRouter, "/autocompletion/instanceCloud", autocompletionCloudFunc(db)).Methods("GET")
 }
 
 func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) {
-	secureRouter.HandleFunc("/home", homePage(logger)).Methods("GET")
-	secureRouter.HandleFunc("/user_management", userManagementPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/remote_account_management", remoteAccountPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/remote_account_authentication",
+	handlePage(secureRouter, "/home", homePage(logger)).Methods("GET")
+	handlePage(secureRouter, "/user_management", userManagementPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/remote_account_management", remoteAccountPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/remote_account_authentication",
 		remoteAccountAuthenticationPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/server_management", serverManagementPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/server_authentication", serverAuthenticationPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/local_account_management", localAccountPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/local_account_authentication",
+	handlePage(secureRouter, "/server_management", serverManagementPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/server_authentication", serverAuthenticationPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/local_account_management", localAccountPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/local_account_authentication",
 		localAccountAuthenticationPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/local_client_management", localClientManagementPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/transfer_rules_management", ruleManagementPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/local_client_management", localClientManagementPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/transfer_rules_management", ruleManagementPage(logger, db)).Methods("GET", "POST")
 	// secureRouter.HandleFunc("/tasks_transfer_rules", tasksTransferRulesPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/management_usage_rights_rules",
+	handlePage(secureRouter, "/management_usage_rights_rules",
 		managementUsageRightsRulesPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/status_services", statusServicesPage(logger)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/cloud_instance_management", cloudInstanceManagementPage(logger, db)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/cryptographic_key_management",
+	handlePage(secureRouter, "/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/status_services", statusServicesPage(logger)).Methods("GET", "POST")
+	handlePage(secureRouter, "/cloud_instance_management", cloudInstanceManagementPage(logger, db)).Methods("GET", "POST")
+	handlePage(secureRouter, "/cryptographic_key_management",
 		cryptographicKeyManagementPage(logger)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/snmp_management", snmpManagementPage(logger)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/managing_authentication_authorities",
+	handlePage(secureRouter, "/snmp_management", snmpManagementPage(logger)).Methods("GET", "POST")
+	handlePage(secureRouter, "/managing_authentication_authorities",
 		managingAuthenticationAuthoritiesPage(logger)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/managing_configuration_overrides",
+	handlePage(secureRouter, "/managing_configuration_overrides",
 		managingConfigurationOverridesPage(logger)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/email_templates_management", EmailTemplateManagementPage(logger)).Methods("GET", "POST")
-	secureRouter.HandleFunc("/smtp_credentials_management",
+	handlePage(secureRouter, "/email_templates_management", EmailTemplateManagementPage(logger)).Methods("GET", "POST")
+	handlePage(secureRouter, "/smtp_credentials_management",
 		SMTPCredentialManagementPage(logger)).Methods("GET", "POST")
 
 	backend.MakeRouter(secureRouter, db, logger)
