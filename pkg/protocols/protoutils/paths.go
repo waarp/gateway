@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -79,6 +80,14 @@ func GetRealPath(isTemp bool, db database.ReadAccess, logger *log.Logger,
 	confPaths := &db.GetConfig().Paths
 	rest := strings.TrimPrefix(filepath, rule.Path)
 	rest = strings.TrimPrefix(rest, "/")
+
+	var pathErr error
+	if rest, pathErr = fs.Localize(rest); pathErr != nil {
+		logger.Warningf("Account %q requested invalid path %q with %s rule %q",
+			acc.Login, filepath, rule.Direction(), rule.Name)
+
+		return "", fmt.Errorf("invalid path %q: %w", filepath, ErrPermissionDenied)
+	}
 
 	var (
 		realDir string

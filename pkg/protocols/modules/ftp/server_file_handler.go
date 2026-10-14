@@ -52,6 +52,10 @@ func (s *serverFS) mkdirAll(path string) error {
 		return errors.New("failed to build the dir path")
 	}
 
+	if realDir == "" {
+		return fs.ErrNotExist
+	}
+
 	if err := fs.MkdirAll(realDir); err != nil {
 		s.logger.Errorf("Failed to create directory: %v", err)
 

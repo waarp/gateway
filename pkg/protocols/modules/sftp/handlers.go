@@ -34,6 +34,10 @@ func (l *sshListener) mkdir(r *sftp.Request, acc *model.LocalAccount) error {
 		return dirErr
 	}
 
+	if realDir == "" {
+		return sftp.ErrSSHFxNoSuchFile
+	}
+
 	if err := fs.MkdirAll(realDir); err != nil {
 		//nolint:err113 //too specific
 		return errors.New("failed to create directory")
