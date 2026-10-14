@@ -13,7 +13,7 @@ func TestPasswordHash(t *testing.T) {
 
 	const password = "testpassword"
 
-	hash, err := HashPassword(bcrypt.MinCost, password)
+	hash, err := HashPasswordWithCost(bcrypt.MinCost, password)
 	require.NoError(t, err)
 
 	assert.True(t, IsHash(hash))

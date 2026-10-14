@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -26,8 +25,7 @@ func preprocessUsers(users []file.User) error {
 		user := &users[i]
 
 		if user.PasswordHash == "" && user.Password != "" {
-			if user.PasswordHash, err = utils.HashPassword(database.BcryptRounds,
-				user.Password); err != nil {
+			if user.PasswordHash, err = utils.HashPassword(user.Password); err != nil {
 				return fmt.Errorf("failed to hash password for user %q: %w", user.Username, err)
 			}
 		}

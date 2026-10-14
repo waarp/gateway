@@ -13,13 +13,7 @@ type Initializer struct {
 }
 
 //nolint:gochecknoglobals // global var is used by design
-var (
-	inits []Initializer
-
-	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
-	// in the database.
-	BcryptRounds = 12
-)
+var inits []Initializer
 
 // AddInit adds the database init function to the list of initializers.
 func AddInit(init Initializer) { inits = append(inits, init) }

@@ -68,7 +68,7 @@ func userInit(db database.Access) error {
 		return nil // there is already an admin
 	}
 
-	hash, hashErr := utils.HashPassword(database.BcryptRounds, "admin_password")
+	hash, hashErr := utils.HashPassword("admin_password")
 	if hashErr != nil {
 		return database.NewInternalError(hashErr)
 	}

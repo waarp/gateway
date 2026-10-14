@@ -20,7 +20,7 @@ func restUserToDB(user *api.InUser, old *model.User) (*model.User, error) {
 		return nil, err
 	}
 
-	hash, err := utils.HashPassword(database.BcryptRounds, user.Password.Value)
+	hash, err := utils.HashPassword(user.Password.Value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
 	}

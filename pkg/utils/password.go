@@ -3,9 +3,22 @@ package utils
 import (
 	"crypto/subtle"
 	"fmt"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+const BcryptMinCost = bcrypt.MinCost
+
+//nolint:gochecknoglobals //needed here to change cost for tests
+var BcryptRounds = 12
+
+func ChangeBcryptRounds(cost int) (reset func()) {
+	oldCost := BcryptRounds
+	BcryptRounds = cost
+
+	return func() { BcryptRounds = oldCost }
+}
 
 // IsHash returns whether the given string is a bcrypt hash or not.
 func IsHash(password string) bool {
@@ -19,7 +32,11 @@ func IsHash(password string) bool {
 //
 // If the password is already hashed, the hash is returned unchanged.
 // If the password cannot be hashed, an error is returned.
-func HashPassword(bcryptRounds int, password string) (string, error) {
+func HashPassword(password string) (string, error) {
+	return HashPasswordWithCost(BcryptRounds, password)
+}
+
+func HashPasswordWithCost(bcryptRounds int, password string) (string, error) {
 	if password == "" {
 		return "", nil
 	}
@@ -39,9 +56,28 @@ func HashPassword(bcryptRounds int, password string) (string, error) {
 
 // IsHashOf returns whether the given hash is a hash of the given password.
 func IsHashOf(hash, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return CheckPassword(BcryptRounds, hash, password)
+}
 
-	return err == nil
+// dummyHash returns a bcrypt hash of the given cost, which matches no password
+// a user can send. It is built once per cost.
+func dummyHash(bcryptRounds int) string {
+	const bcryptHashLength = 53
+
+	return fmt.Sprintf("$2a$%d$%s", bcryptRounds, strings.Repeat("0", bcryptHashLength))
+}
+
+// CheckPassword returns whether the given password matches the given bcrypt
+// hash. When there is no reference hash (unknown account, or account without
+// password), the password is still compared with a dummy hash of the given
+// cost before returning false, so that the time taken does not reveal whether
+// the account exists.
+func CheckPassword(bcryptRounds int, hash, password string) bool {
+	if hash == "" {
+		hash = dummyHash(bcryptRounds)
+	}
+
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
 // ConstantEqual takes a pair of strings and returns whether they are equal or

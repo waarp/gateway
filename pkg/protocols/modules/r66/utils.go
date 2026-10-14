@@ -8,7 +8,6 @@ import (
 	"code.waarp.fr/lib/r66"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -35,7 +34,7 @@ func hashServerPassword(field *string) error {
 
 	pwd = r66.CryptPass(pwd)
 
-	hashed, err := utils.HashPassword(database.BcryptRounds, string(pwd))
+	hashed, err := utils.HashPassword(string(pwd))
 	if err != nil {
 		return fmt.Errorf("failed to hash server password: %w", err)
 	}

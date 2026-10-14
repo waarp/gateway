@@ -11,15 +11,15 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -94,7 +94,7 @@ func tempFilename() string {
 
 func initTestDBConf(c convey.C) *conf.ServerConfig {
 	config := &conf.ServerConfig{}
-	config.GatewayName = uuid.NewString()
+	config.GatewayName = uuid.New().String()
 	config.NodeID = "test_node"
 
 	config.Paths.FilePerms = 0o600
@@ -180,7 +180,7 @@ func TestDatabase(c convey.C) *DB {
 }
 
 func initTestDatabase(c convey.C) *DB {
-	BcryptRounds = bcrypt.MinCost
+	c.Reset(utils.ChangeBcryptRounds(utils.BcryptMinCost))
 
 	config := initTestDBConf(c)
 	dbtype := config.Database.Type

@@ -20,6 +20,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const memDBType = "memory"
@@ -86,6 +87,7 @@ func makeTestGCM() cipher.AEAD {
 
 func TestDatabase(tb testing.TB) *database.DB {
 	tb.Helper()
+	tb.Cleanup(utils.ChangeBcryptRounds(utils.BcryptMinCost))
 
 	const shutdownTimeout = 5 * time.Second
 
