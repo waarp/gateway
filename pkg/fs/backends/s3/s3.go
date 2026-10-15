@@ -74,7 +74,12 @@ func newVFS(name, key, secret string, opts map[string]string) (*vfs.VFS, error) 
 
 	root := config[bucketKey]
 
-	s3fs, err := s3.NewFs(context.Background(), name, root, config)
+	fullConfig, err := internal.WithDefaults("s3", config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate s3 filesystem: %w", err)
+	}
+
+	s3fs, err := s3.NewFs(context.Background(), name, root, fullConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate s3 filesystem: %w", err)
 	}

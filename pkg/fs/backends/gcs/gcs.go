@@ -50,7 +50,12 @@ func newVFS(name, key, secret string, opts map[string]string) (*vfs.VFS, error) 
 
 	root := config[bucketKey]
 
-	gcfs, err := gcs.NewFs(context.Background(), name, root, config)
+	fullConfig, err := internal.WithDefaults("gcs", config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate GCS filesystem: %w", err)
+	}
+
+	gcfs, err := gcs.NewFs(context.Background(), name, root, fullConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate GCS filesystem: %w", err)
 	}

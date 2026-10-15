@@ -33,9 +33,14 @@ func newFilesVFS(name, account, key string, opts map[string]string) (*vfs.VFS, e
 		return nil, err
 	}
 
+	fullConfig, err := internal.WithDefaults("azurefiles", config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate azure files filesystem: %w", err)
+	}
+
 	vfsOpts := internal.VFSOpts()
 
-	affs, err := azurefiles.NewFs(context.Background(), name, "", config)
+	affs, err := azurefiles.NewFs(context.Background(), name, "", fullConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate azure files filesystem: %w", err)
 	}

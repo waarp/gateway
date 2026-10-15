@@ -42,7 +42,12 @@ func newVFS(name, clientID, clientSecret string, optsMap map[string]string) (*vf
 		return nil, err
 	}
 
-	odfs, err := onedrive.NewFs(context.Background(), name, "", odOpts)
+	config, err := internal.WithDefaults("onedrive", odOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate onedrive filesystem: %w", err)
+	}
+
+	odfs, err := onedrive.NewFs(context.Background(), name, "", config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate onedrive filesystem: %w", err)
 	}

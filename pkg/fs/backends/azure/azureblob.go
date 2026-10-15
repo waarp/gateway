@@ -35,7 +35,11 @@ func parseBlobOpts(account, key string, opts map[string]string) configmap.Simple
 }
 
 func newBlobVFS(name, account, key, root string, opts map[string]string) (*vfs.VFS, error) {
-	config := parseBlobOpts(account, key, opts)
+	config, err := internal.WithDefaults("azureblob", parseBlobOpts(account, key, opts))
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate azure blob filesystem: %w", err)
+	}
+
 	vfsOpts := internal.VFSOpts()
 
 	abfs, err := azureblob.NewFs(context.Background(), name, root, config)
