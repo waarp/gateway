@@ -1,7 +1,9 @@
 package tasks
 
 import (
+	"errors"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -67,12 +69,29 @@ func TestDeleteTaskRun(t *testing.T) {
 			Convey("When calling the run method", func() {
 				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
 
-				Convey("Then it should return an error", func() {
+				Convey("Then it should return a warning error", func() {
 					So(err, ShouldNotBeNil)
+					warn, ok := errors.AsType[*WarningError](err)
+					So(ok, ShouldBeTrue)
 
 					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldWrap, fs.ErrNotExist)
+						So(warn.Error(), ShouldContainSubstring, "file does not exist")
 					})
+				})
+			})
+		})
+
+		Convey("Given that the file cannot be deleted", func() {
+			transCtx.Transfer.LocalPath = "/dev/null"
+			if runtime.GOOS == "windows" {
+				transCtx.Transfer.LocalPath = `C:\`
+			}
+
+			Convey("When calling the run method", func() {
+				err := task.Run(t.Context(), args, nil, logger, transCtx, nil)
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldNotBeNil)
 				})
 			})
 		})
