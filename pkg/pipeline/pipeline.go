@@ -630,7 +630,9 @@ func (p *Pipeline) waitACK() *Error {
 				"database error", err)
 		}
 
+		trans.Infos = infos
 		trans.TransferInfo = infos.AsMap()
+
 		received, recErr = p.hasReceivedACK()
 		if recErr != nil {
 			return recErr
