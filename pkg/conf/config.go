@@ -35,6 +35,7 @@ type ServerConfig struct {
 	Admin      AdminConfig      `group:"admin"`
 	Database   DatabaseConfig   `group:"database"`
 	Controller ControllerConfig `group:"controller"`
+	Security   SecurityConfig   `group:"security"`
 }
 
 // PathsConfig holds the server paths.
@@ -103,6 +104,18 @@ type ControllerConfig struct {
 	// Deprecated fields
 	MaxTransferIn  uint64 `ini-name:"MaxTransferIn" hidden:"yes"`  // Deprecated: misspell of "MaxTransfersIn"
 	MaxTransferOut uint64 `ini-name:"MaxTransferOut" hidden:"yes"` // Deprecated: misspell of "MaxTransfersOut"
+}
+
+// SecurityConfig holds the options protecting the authentication against
+// repeated attempts.
+//
+//nolint:lll // cannot split struct tags
+type SecurityConfig struct {
+	MaxAuthFailures        uint32        `ini-name:"MaxAuthFailures" default:"5" description:"The number of failed authentications, for the same account from the same address, after which new attempts are temporarily refused (0 = no limit)."`
+	MaxAuthFailuresPerHost uint32        `ini-name:"MaxAuthFailuresPerHost" default:"25" description:"The number of failed authentications from the same address, whatever the account, after which new attempts from this address are temporarily refused (0 = no limit)."`
+	AuthFailureWindow      time.Duration `ini-name:"AuthFailureWindow" default:"5m" description:"The period after which failed authentications are forgotten if no new failure occurs."`
+	AuthLockDuration       time.Duration `ini-name:"AuthLockDuration" default:"1m" description:"How long new attempts are refused once the maximum number of failures is reached. The duration doubles at each new lock."`
+	AuthMaxLockDuration    time.Duration `ini-name:"AuthMaxLockDuration" default:"30m" description:"The maximum duration of a lock."`
 }
 
 func normalizePaths(configFile *ServerConfig) error {

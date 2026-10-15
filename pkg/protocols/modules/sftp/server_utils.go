@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 )
 
 func makeServerConf(db *database.DB, logger *log.Logger,
@@ -21,17 +22,46 @@ func makeServerConf(db *database.DB, logger *log.Logger,
 		UserKeyFallback: userKeyCallback(db, logger, agent),
 	}
 
+	pubKeyCallback := withIPCheck(db, logger, agent, certChecker.Authenticate)
+
 	conf := &ssh.ServerConfig{
 		KeyExchanges:      protoConfig.KeyExchanges,
 		Ciphers:           protoConfig.Ciphers,
 		MACs:              protoConfig.MACs,
-		PublicKeyCallback: withIPCheck(db, logger, agent, certChecker.Authenticate),
+		PublicKeyCallback: withThrottle(db, logger, agent, pubKeyCallback),
 		PasswordCallback:  passwordCallback(db, logger, agent),
 	}
 
 	setServerDefaultAlgos(conf)
 
 	return conf
+}
+
+// throttleAttempt returns the authentication attempt of the connection in the
+// limiter. Its success is recorded once the SSH handshake is complete, since
+// the public key callback is also called for keys offered without a signature.
+func throttleAttempt(db *database.DB, agent *model.LocalAgent, conn ssh.ConnMetadata,
+) throttle.Attempt {
+	return throttle.Default().Attempt(&db.Config.Security, SFTP+":"+agent.Name,
+		conn.User(), conn.RemoteAddr().String())
+}
+
+// withThrottle makes the public key authentication refuse a locked attempt.
+// A refused key is not counted as a failure, since clients usually offer
+// several keys before the right one, and a key cannot be guessed.
+func withThrottle(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
+	callback func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.Permissions, error),
+) func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.Permissions, error) {
+	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		if throttleAttempt(db, agent, conn).Locked() {
+			logger.Warningf("Authentication of account %q from %q refused: too many failed attempts",
+				conn.User(), conn.RemoteAddr())
+
+			return nil, ErrAuthFailed
+		}
+
+		return callback(conn, key)
+	}
 }
 
 func userKeyCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
@@ -102,6 +132,21 @@ func withIPCheck(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
 func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAgent,
 ) func(ssh.ConnMetadata, []byte) (*ssh.Permissions, error) {
 	return func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+		attempt := throttleAttempt(db, agent, conn)
+		if attempt.Locked() {
+			logger.Warningf("Authentication of account %q from %q refused: too many failed attempts",
+				conn.User(), conn.RemoteAddr())
+
+			return nil, ErrAuthFailed
+		}
+
+		fail := func() {
+			if attempt.Fail() {
+				logger.Warningf("Too many failed authentications for account %q from %q, "+
+					"new attempts are temporarily refused", conn.User(), conn.RemoteAddr())
+			}
+		}
+
 		acc, accErr := agent.GetAccount(db, conn.User())
 		if accErr != nil && !database.IsNotFound(accErr) {
 			logger.Errorf("Failed to retrieve user credentials: %v", accErr)
@@ -116,6 +161,7 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 		} else if !res.Success {
 			logger.Warningf("Authentication failed for account %q: %v",
 				conn.User(), res.Reason)
+			fail()
 
 			return nil, ErrAuthFailed
 		}
@@ -124,6 +170,8 @@ func passwordCallback(db *database.DB, logger *log.Logger, agent *model.LocalAge
 		// credentials, so that the handshake does not tell whether the
 		// password was valid. The actual reason is logged by CheckIP.
 		if !acc.CheckIP(logger, conn.RemoteAddr().String()) {
+			fail()
+
 			return nil, ErrAuthFailed
 		}
 

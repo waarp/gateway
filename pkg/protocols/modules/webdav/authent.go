@@ -5,6 +5,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
@@ -18,6 +19,17 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 	login, pswd, ok := r.BasicAuth()
 	if !ok || login == "" {
 		unauthorized(w, "auth: missing login")
+
+		return nil, false
+	}
+
+	attempt := throttle.Default().Attempt(&s.db.Config.Security, Webdav+":"+s.agent.Name,
+		login, r.RemoteAddr)
+
+	if attempt.Locked() {
+		s.logger.Warningf("Authentication of account %q from %q refused: too many failed attempts",
+			login, r.RemoteAddr)
+		unauthorized(w, "missing credentials")
 
 		return nil, false
 	}
@@ -54,10 +66,17 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request) (*model.LocalAccou
 	// answer does not tell whether the credentials were valid. The actual
 	// reason is logged by CheckIP.
 	if !authenticated || !acc.CheckIP(s.logger, r.RemoteAddr) {
+		if attempt.Fail() {
+			s.logger.Warningf("Too many failed authentications for account %q from %q, "+
+				"new attempts are temporarily refused", login, r.RemoteAddr)
+		}
+
 		unauthorized(w, "missing credentials")
 
 		return nil, false
 	}
+
+	attempt.Succeed()
 
 	return acc, true
 }

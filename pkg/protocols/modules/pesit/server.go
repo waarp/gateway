@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -141,7 +142,22 @@ func (s *service) authenticate(conn *pesit.ServerConnection) (*model.LocalAccoun
 	login := conn.ClientLogin()
 	password := conn.ClientPassword()
 
-	user, usErr := s.localAgent.GetAccount(s.db, conn.ClientLogin())
+	var addr string
+	if rawConn, _ := conn.ClientAddr(); rawConn != nil {
+		addr = rawConn.RemoteAddr().String()
+	}
+
+	attempt := throttle.Default().Attempt(&s.db.Config.Security, Pesit+":"+s.localAgent.Name,
+		login, addr)
+
+	if attempt.Locked() {
+		s.logger.Warningf("Authentication of account %q from %q refused: too many failed attempts",
+			login, addr)
+
+		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "invalid credentials")
+	}
+
+	user, usErr := s.localAgent.GetAccount(s.db, login)
 	if usErr != nil && !database.IsNotFound(usErr) {
 		s.logger.Errorf("Failed to retrieve account from database: %v", usErr)
 
@@ -162,16 +178,27 @@ func (s *service) authenticate(conn *pesit.ServerConnection) (*model.LocalAccoun
 		authenticated = true
 	}
 
+	fail := func() {
+		if attempt.Fail() {
+			s.logger.Warningf("Too many failed authentications for account %q from %q, "+
+				"new attempts are temporarily refused", login, addr)
+		}
+	}
+
 	if !authenticated {
 		s.logger.Warningf("authentication of account %q failed", login)
+	}
+
+	// A disallowed address is refused like invalid credentials, so that the
+	// answer does not tell whether the credentials were valid. The actual
+	// reason is logged by CheckIP.
+	if !authenticated || (addr != "" && !user.CheckIP(s.logger, addr)) {
+		fail()
 
 		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "invalid credentials")
 	}
 
-	rawConn, _ := conn.ClientAddr()
-	if rawConn != nil && !user.CheckIP(s.logger, rawConn.RemoteAddr().String()) {
-		return nil, pesit.NewDiagnostic(pesit.CodeUnauthorizedCaller, "unauthorized IP address")
-	}
+	attempt.Succeed()
 
 	s.logger.Debugf("Connection from %q successful", conn.ClientLogin())
 

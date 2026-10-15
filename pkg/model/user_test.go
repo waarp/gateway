@@ -3,10 +3,9 @@ package model
 import (
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestUsersTableName(t *testing.T) {
@@ -50,8 +49,7 @@ func TestUsersBeforeWrite(t *testing.T) {
 						So(user.BeforeWrite(db), ShouldBeNil)
 
 						Convey("Then the user's password should be hashed", func() {
-							So(bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
-								[]byte("password_user")), ShouldBeNil)
+							So(utils.IsHashOf(user.PasswordHash, "password_user"), ShouldBeTrue)
 						})
 					})
 				})
@@ -193,8 +191,7 @@ func TestUserInit(t *testing.T) {
 				So(users, ShouldHaveLength, 1)
 
 				So(users[0].Username, ShouldEqual, "admin")
-				So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
-					[]byte("admin_password")), ShouldBeNil)
+				So(utils.IsHashOf(users[0].PasswordHash, "admin_password"), ShouldBeTrue)
 				So(users[0].Permissions, ShouldEqual, PermAll)
 			})
 		})

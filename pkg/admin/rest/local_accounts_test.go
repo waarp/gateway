@@ -8,16 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
-
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func localAccountsURI(agent, login string) string {
@@ -361,8 +360,7 @@ func TestCreateLocalAccount(t *testing.T) {
 							var pswd model.Credential
 							So(db.Get(&pswd, "local_account_id=? AND type=?",
 								accs[0].ID, auth.Password).Run(), ShouldBeNil)
-							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-								[]byte("new_password")), ShouldBeNil)
+							So(utils.IsHashOf(pswd.Value, "new_password"), ShouldBeTrue)
 						})
 					})
 				})
@@ -576,8 +574,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 						var pswd model.Credential
 						So(db.Get(&pswd, "local_account_id=? AND type=?",
 							accounts[0].ID, auth.Password).Run(), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-							[]byte("upd_password")), ShouldBeNil)
+						So(utils.IsHashOf(pswd.Value, "upd_password"), ShouldBeTrue)
 					})
 				})
 
@@ -719,8 +716,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 						var pswd model.Credential
 						So(db.Get(&pswd, "local_account_id=? AND type=?",
 							accounts[0].ID, auth.Password).Run(), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
-							[]byte("upd_password")), ShouldBeNil)
+						So(utils.IsHashOf(pswd.Value, "upd_password"), ShouldBeTrue)
 					})
 				})
 

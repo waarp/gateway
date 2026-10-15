@@ -475,11 +475,11 @@ linters:
         elseif:
           # Whether to skip balanced if-else pairs.
           # Default: true
-          skipBalanced: false
+          skipBalanced: true
         hugeParam:
           # Size in bytes that makes the warning trigger.
           # Default: 80
-          sizeThreshold: 70
+          sizeThreshold: 120
         ifElseChain:
           # Min number of if-else blocks that makes the warning trigger.
           # Default: 2

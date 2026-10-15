@@ -7,18 +7,17 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -272,8 +271,7 @@ func TestCreateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(users, ShouldHaveLength, 2)
 
-							So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
-								[]byte("sesame")), ShouldBeNil)
+							So(utils.IsHashOf(users[1].PasswordHash, "sesame"), ShouldBeTrue)
 							So(users[1], ShouldResemble, &model.User{
 								Identifier:   model.ID(3),
 								Owner:        db.Config.GatewayName,
@@ -476,8 +474,7 @@ func TestUpdateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(users, ShouldHaveLength, 2)
 
-							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
-								[]byte("sesame")), ShouldBeNil)
+							So(utils.IsHashOf(users[0].PasswordHash, "sesame"), ShouldBeTrue)
 							So(users[0], ShouldResemble, &model.User{
 								Identifier:   model.ID(2),
 								Owner:        db.Config.GatewayName,
@@ -556,8 +553,7 @@ func TestUpdateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
-								[]byte("old_password")), ShouldBeNil)
+							So(utils.IsHashOf(users[0].PasswordHash, "old_password"), ShouldBeTrue)
 							So(model.MaskToPerms(users[0].Permissions), ShouldResemble,
 								model.MaskToPerms(old.Permissions))
 							So(users[0], ShouldResemble, &model.User{
@@ -610,8 +606,7 @@ func TestUpdateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
-								[]byte("upd_password")), ShouldBeNil)
+							So(utils.IsHashOf(users[0].PasswordHash, "upd_password"), ShouldBeTrue)
 							So(users[0], ShouldResemble, &model.User{
 								Identifier:   model.ID(2),
 								Owner:        db.Config.GatewayName,
@@ -683,8 +678,7 @@ func TestReplaceUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
-								[]byte("upd_password")), ShouldBeNil)
+							So(utils.IsHashOf(users[0].PasswordHash, "upd_password"), ShouldBeTrue)
 							So(users[0], ShouldResemble, &model.User{
 								Identifier:   model.ID(2),
 								Owner:        db.Config.GatewayName,
