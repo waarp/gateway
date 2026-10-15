@@ -136,7 +136,7 @@ func host(addr string) string {
 
 // ipv6Network is the mask of the /64 prefix of an IPv6 address.
 //
-//nolint:gochecknoglobals //constant mask
+//nolint:gochecknoglobals,mnd //constant mask
 var ipv6Network = net.CIDRMask(64, 8*net.IPv6len)
 
 // network returns the host of the address, or its /64 prefix for an IPv6
@@ -268,12 +268,12 @@ func (a Attempt) Fail() bool {
 
 // fail records a failure on the given counter, and returns whether it caused
 // a new lock. The caller must hold the lock.
-func (l *Limiter) fail(cfg *conf.SecurityConfig, k key, maxFailures uint32, now time.Time) bool {
+func (l *Limiter) fail(cfg *conf.SecurityConfig, key key, maxFailures uint32, now time.Time) bool {
 	if maxFailures == 0 {
 		return false
 	}
 
-	counter, ok := l.entries[k]
+	counter, ok := l.entries[key]
 
 	switch {
 	case !ok:
@@ -309,7 +309,7 @@ func (l *Limiter) fail(cfg *conf.SecurityConfig, k key, maxFailures uint32, now 
 		counter.lockedUntil = now.Add(lock)
 	}
 
-	l.entries[k] = counter
+	l.entries[key] = counter
 
 	return locked
 }

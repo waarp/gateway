@@ -6,6 +6,8 @@ import (
 	"io"
 	"net"
 
+	"code.waarp.fr/lib/pesit"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -17,7 +19,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/lib/pesit"
 )
 
 // Ensures Client implements the optional clientService interfaces.

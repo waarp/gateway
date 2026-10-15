@@ -168,12 +168,12 @@ func (h *handler) GetTLSConfig() (*tls.Config, error) {
 }
 
 //nolint:err113 //dynamic errors are used to mask the internal errors (for security reasons)
-func (h *handler) VerifyConnection(cc ftplib.ClientContext, user string,
+func (h *handler) VerifyConnection(cctx ftplib.ClientContext, user string,
 	tlsConn *tls.Conn,
 ) (ftplib.ClientDriver, error) {
 	h.logger.Debugf("Received authentication request from account %q", user)
 
-	acc, ok := cc.Extra().(*model.LocalAccount)
+	acc, ok := cctx.Extra().(*model.LocalAccount)
 	if !ok {
 		return nil, errors.New("internal authentication error")
 	}
@@ -181,7 +181,7 @@ func (h *handler) VerifyConnection(cc ftplib.ClientContext, user string,
 	// A locked attempt is handled like a refused certificate. A refused
 	// certificate is not counted as a failure: the client then falls back to
 	// its password, which is counted if invalid.
-	attempt := h.attempt(cc, user)
+	attempt := h.attempt(cctx, user)
 	if attempt.Locked() {
 		//nolint:nilnil //returning "nil, nil" here is required by the interface's definition
 		return nil, nil
@@ -195,7 +195,7 @@ func (h *handler) VerifyConnection(cc ftplib.ClientContext, user string,
 	success, err := protoutils.CertificateAuthentication(h.db, h.logger, acc, &state)
 	if err != nil {
 		return nil, errors.New("internal authentication error")
-	} else if !success || !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
+	} else if !success || !acc.CheckIP(h.logger, cctx.RemoteAddr().String()) {
 		//nolint:nilnil //returning "nil, nil" here is required by the interface's definition
 		return nil, nil
 	}

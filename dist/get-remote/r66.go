@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"net"
 
+	"code.waarp.fr/lib/r66"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	gwr66 "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/lib/r66"
 )
 
 var (

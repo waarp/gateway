@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"net/http/pprof"
 
+	"github.com/gorilla/mux"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"github.com/gorilla/mux"
 )
 
 const Prefix = "/debug"
