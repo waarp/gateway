@@ -95,6 +95,8 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 
 	defer closeSSHConn(servConn, l.Logger)
 
+	throttleAttempt(l.DB, &server, servConn).Succeed()
+
 	go ssh.DiscardRequests(reqs)
 
 	l.Logger.Debug("SSH connection established")

@@ -59,6 +59,11 @@ func IsHashOf(hash, password string) bool {
 	return CheckPassword(BcryptRounds, hash, password)
 }
 
+// IsBHashOf returns whether the given hash is a hash of the given password.
+func IsBHashOf(hash, password []byte) bool {
+	return CheckPassword(BcryptRounds, string(hash), string(password))
+}
+
 // dummyHash returns a bcrypt hash of the given cost, which matches no password
 // a user can send. It is built once per cost.
 func dummyHash(bcryptRounds int) string {

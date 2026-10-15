@@ -3,17 +3,17 @@ package backup
 import (
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func shouldBeHashOf(hash, pswd string) {
-	So(bcrypt.CompareHashAndPassword([]byte(hash), []byte(pswd)), ShouldBeNil)
+	So(utils.IsHashOf(hash, pswd), ShouldBeTrue)
 }
 
 func TestImportUsers(t *testing.T) {

@@ -2,6 +2,7 @@ package as2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
@@ -43,14 +45,35 @@ func (s *server) auth(r *http.Request) bool {
 		return false
 	}
 
+	attempt := throttle.Default().Attempt(&s.db.Config.Security, AS2+":"+s.agent.Name,
+		as2from, r.RemoteAddr)
+
+	if attempt.Locked() {
+		s.logger.Warningf("Authentication of partner %q from %q refused: too many failed attempts",
+			as2from, r.RemoteAddr)
+
+		return false
+	}
+
+	fail := func() bool {
+		if attempt.Fail() {
+			s.logger.Warningf("Too many failed authentications for partner %q from %q, "+
+				"new attempts are temporarily refused", as2from, r.RemoteAddr)
+		}
+
+		return false
+	}
+
 	// Retrieve account
 	acc, err := s.newPartnerStore().getAccount(as2from)
-	if err != nil {
+	if errors.Is(err, ErrPartnerNotFound) {
+		return fail()
+	} else if err != nil {
 		return false
 	}
 
 	if !acc.CheckIP(s.logger, r.RemoteAddr) {
-		return false
+		return fail()
 	}
 
 	setUserCtxVal(r, acc)
@@ -87,12 +110,14 @@ func (s *server) auth(r *http.Request) bool {
 	// Check password
 	for _, cred := range creds {
 		if utils.IsHashOf(cred.Value, pswd) {
+			attempt.Succeed()
+
 			return true
 		}
 	}
 
 	// No match found, fail authent
-	return false
+	return fail()
 }
 
 func (s *server) handle(ctx context.Context, filename string, payload []byte) error {

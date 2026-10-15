@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -96,6 +97,17 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 		return nil, false
 	}
 
+	attempt := throttle.Default().Attempt(&h.db.Config.Security, HTTP+":"+h.agent.Name,
+		login, r.RemoteAddr)
+
+	if attempt.Locked() {
+		h.logger.Warningf("Authentication of account %q from %q refused: too many failed attempts",
+			login, r.RemoteAddr)
+		unauthorized(w, "auth: invalid authentication")
+
+		return nil, false
+	}
+
 	// We purposefully ignore NotFound errors to avoid leaking information
 	// about the existence of an account.
 	acc, accErr := h.agent.GetAccount(h.db, login)
@@ -126,10 +138,17 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 	// answer does not tell whether the credentials were valid. The actual
 	// reason is logged by CheckIP.
 	if !authenticated || !acc.CheckIP(h.logger, r.RemoteAddr) {
+		if attempt.Fail() {
+			h.logger.Warningf("Too many failed authentications for account %q from %q, "+
+				"new attempts are temporarily refused", login, r.RemoteAddr)
+		}
+
 		unauthorized(w, "auth: invalid authentication")
 
 		return nil, false
 	}
+
+	attempt.Succeed()
 
 	return acc, true
 }

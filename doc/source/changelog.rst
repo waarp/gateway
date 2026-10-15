@@ -4,12 +4,15 @@ Historique des versions
 =======================
 
 * :feature:`677` Les tentatives d'authentification répétées sont désormais
-  limitées sur l'interface web, l'API REST et le serveur R66 : après 5 échecs
-  pour un même compte depuis une même adresse, les nouvelles tentatives sont
-  refusées pendant 1 minute, durée doublée à chaque nouveau blocage (30
+  limitées sur l'interface web, l'API REST, le point d'accès de débogage et les
+  serveurs de transfert (R66, SFTP, FTP, HTTP, WebDAV, PeSIT, AS2) : après 5
+  échecs pour un même compte depuis une même adresse, les nouvelles tentatives
+  sont refusées pendant 1 minute, durée doublée à chaque nouveau blocage (30
   minutes au plus). Une adresse est de même bloquée après 25 échecs, tous
-  comptes confondus. Ces valeurs se règlent dans la nouvelle section
-  ``[security]`` du fichier de configuration (voir :ref:`configuration-file`) ;
+  comptes confondus. En SFTP et FTPS, seuls les échecs par mot de passe sont
+  comptés, mais un blocage refuse aussi les clés et les certificats. Ces
+  valeurs se règlent dans la nouvelle section ``[security]`` du fichier de
+  configuration (voir :ref:`configuration-file`) ;
   ``MaxAuthFailures = 0`` et ``MaxAuthFailuresPerHost = 0`` désactivent
   respectivement le compteur par compte et celui par adresse.
 * :bug:`673` La suppression d'un client (API REST, interface web) requiert
@@ -32,9 +35,9 @@ Historique des versions
   compte existant.
 * :bug:`674` Pour un compte restreint à certaines adresses IP, une connexion
   depuis une adresse non autorisée reçoit désormais la même réponse qu'une
-  connexion avec des identifiants invalides (R66, SFTP, FTP, HTTP, WebDAV).
-  Auparavant, un message distinct indiquait que les identifiants étaient
-  corrects. Le motif réel du refus reste consigné dans les journaux du
+  connexion avec des identifiants invalides (R66, SFTP, FTP, HTTP, WebDAV,
+  PeSIT). Auparavant, un message distinct indiquait que les identifiants
+  étaient corrects. Le motif réel du refus reste consigné dans les journaux du
   serveur ; un partenaire refusé doit donc s'adresser à l'exploitant pour le
   connaître.
 * :bug:`671` La tâche d'extraction d'archive (ZIP, TAR) n'écrit désormais que

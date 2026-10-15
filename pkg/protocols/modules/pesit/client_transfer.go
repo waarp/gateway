@@ -6,9 +6,6 @@ import (
 	"io"
 	"net"
 
-	"code.waarp.fr/lib/pesit"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -20,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/lib/pesit"
 )
 
 // Ensures Client implements the optional clientService interfaces.
@@ -310,7 +308,7 @@ func (c *clientTransfer) authenticateServer() *pipeline.Error {
 	var servPwd model.Credential
 	if err := c.pip.DB.Get(&servPwd, "remote_agent_id=? AND type=?",
 		c.pip.TransCtx.RemoteAgent.ID, auth.Password).Run(); err == nil {
-		if bcrypt.CompareHashAndPassword([]byte(servPwd.Value), []byte(c.client.ServerPassword())) != nil {
+		if !utils.IsHashOf(servPwd.Value, c.client.ServerPassword()) {
 			c.pip.Logger.Error("Server authentication failed: bad password")
 			c.SendError(types.TeBadAuthentication, "server authentication failed")
 

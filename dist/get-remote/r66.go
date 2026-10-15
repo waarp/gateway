@@ -6,16 +6,17 @@ import (
 	"fmt"
 	"net"
 
-	"code.waarp.fr/lib/r66"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	gwr66 "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/lib/r66"
 )
 
-var errWrongLogin = errors.New("wrong login")
+var (
+	errWrongLogin = errors.New("wrong login")
+	errWrongPassw = errors.New("wrong password")
+)
 
 type r66Client struct {
 	r66Client  *r66.Client
@@ -89,14 +90,14 @@ func (rc *r66Client) Connect(partner *api.OutPartner, account *api.OutRemoteAcco
 
 func validateServerAuthent(partnerLogin, networkLogin string, partnerPassword, networkPassword []byte) error {
 	loginOK := utils.ConstantEqual(partnerLogin, networkLogin)
-	pwdErr := bcrypt.CompareHashAndPassword(partnerPassword, networkPassword)
+	pwdOK := utils.IsBHashOf(partnerPassword, networkPassword)
 
 	if !loginOK {
 		return fmt.Errorf("server %s authentication failed: %w", partnerLogin, errWrongLogin)
 	}
 
-	if pwdErr != nil {
-		return fmt.Errorf("server %s authentication failed: wrong password: %w", partnerLogin, pwdErr)
+	if !pwdOK {
+		return fmt.Errorf("server %s authentication failed: %w", partnerLogin, errWrongPassw)
 	}
 
 	return nil

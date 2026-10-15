@@ -255,7 +255,8 @@ Section ``[security]``
 ======================
 
 La section ``[security]`` regroupe les options qui protègent l'authentification
-contre les tentatives répétées (interface web, API REST, serveurs de transfert).
+contre les tentatives répétées (interface web, API REST, point d'accès de
+débogage, serveurs de transfert de tous les protocoles).
 
 Les échecs d'authentification sont comptés par point d'entrée, par compte et par
 adresse IP du client. Lorsque le nombre maximum d'échecs est atteint, les

@@ -5,15 +5,18 @@ import (
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/gorilla/mux"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"github.com/gorilla/mux"
 )
 
 const Prefix = "/debug"
+
+// throttleScope identifies the debug handler in the authentication limiter.
+const throttleScope = "debug"
 
 func AddDebugHandler(router *mux.Router, logger *log.Logger, db *database.DB) {
 	router.StrictSlash(true)
@@ -48,6 +51,22 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
+			attempt := throttle.Default().Attempt(&db.Config.Security, throttleScope,
+				login, r.RemoteAddr)
+
+			invalid := func() {
+				w.Header().Set("WWW-Authenticate", "Basic")
+				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
+			}
+
+			if attempt.Locked() {
+				logger.Warningf("Request of user %q from %q refused: too many failed attempts",
+					login, r.RemoteAddr)
+				invalid()
+
+				return
+			}
+
 			var user model.User
 			if err := db.Get(&user, "username=?", login).Run(); err != nil &&
 				!database.IsNotFound(err) {
@@ -57,14 +76,20 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
-			if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
-				[]byte(password)); err != nil {
+			if !utils.IsHashOf(user.PasswordHash, password) {
 				logger.Warningf("Invalid credentials for user %q", login)
-				w.Header().Set("WWW-Authenticate", "Basic")
-				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
+
+				if attempt.Fail() {
+					logger.Warningf("Too many failed requests for user %q from %q, new attempts are temporarily refused",
+						login, r.RemoteAddr)
+				}
+
+				invalid()
 
 				return
 			}
+
+			attempt.Succeed()
 
 			if !user.Permissions.HasPermission(model.PermAdminRead) {
 				logger.Warningf("Unauthorized access for user %q", login)

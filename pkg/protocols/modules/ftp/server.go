@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/throttle"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -79,6 +80,11 @@ func (h *handler) WrapPassiveListener(listener net.Listener) (net.Listener, erro
 	return listener, nil
 }
 
+func (h *handler) attempt(cc ftplib.ClientContext, user string) throttle.Attempt {
+	return throttle.Default().Attempt(&h.db.Config.Security, FTP+":"+h.dbServer.Name,
+		user, cc.RemoteAddr().String())
+}
+
 func (h *handler) ClientConnected(ftplib.ClientContext) (string, error) {
 	h.logger.Debug("Server control connection opened")
 	analytics.AddIncomingConnection()
@@ -118,14 +124,29 @@ func (h *handler) AuthUser(cc ftplib.ClientContext, user, pass string) (ftplib.C
 		return nil, errors.New("internal authentication error")
 	}
 
+	attempt := h.attempt(cc, user)
+	if attempt.Locked() {
+		h.logger.Warningf("Authentication of account %q from %q refused: too many failed attempts",
+			user, cc.RemoteAddr())
+
+		return nil, errors.New("invalid credentials")
+	}
+
 	// A disallowed address is refused like invalid credentials, so that the
 	// answer does not tell whether the password was valid. The actual reason
 	// is logged by CheckIP.
 	if success, err := protoutils.PasswordAuthentication(h.db, h.logger, acc, pass); err != nil {
 		return nil, errors.New("internal authentication error")
 	} else if !success || !acc.CheckIP(h.logger, cc.RemoteAddr().String()) {
+		if attempt.Fail() {
+			h.logger.Warningf("Too many failed authentications for account %q from %q, "+
+				"new attempts are temporarily refused", user, cc.RemoteAddr())
+		}
+
 		return nil, errors.New("invalid credentials")
 	}
+
+	attempt.Succeed()
 
 	h.logger.Debugf("Account %q authenticated successfully", user)
 
@@ -157,6 +178,15 @@ func (h *handler) VerifyConnection(cc ftplib.ClientContext, user string,
 		return nil, errors.New("internal authentication error")
 	}
 
+	// A locked attempt is handled like a refused certificate. A refused
+	// certificate is not counted as a failure: the client then falls back to
+	// its password, which is counted if invalid.
+	attempt := h.attempt(cc, user)
+	if attempt.Locked() {
+		//nolint:nilnil //returning "nil, nil" here is required by the interface's definition
+		return nil, nil
+	}
+
 	state := tlsConn.ConnectionState()
 
 	// A disallowed address is handled like a refused certificate (the client
@@ -169,6 +199,8 @@ func (h *handler) VerifyConnection(cc ftplib.ClientContext, user string,
 		//nolint:nilnil //returning "nil, nil" here is required by the interface's definition
 		return nil, nil
 	}
+
+	attempt.Succeed()
 
 	h.logger.Debugf("Account %q authenticated successfully", user)
 
