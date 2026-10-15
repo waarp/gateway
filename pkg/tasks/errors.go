@@ -39,6 +39,10 @@ type WarningError struct {
 	msg string
 }
 
+func newWarningf(msg string, args ...any) *WarningError {
+	return &WarningError{msg: fmt.Sprintf(msg, args...)}
+}
+
 func (e *WarningError) Error() string {
 	return e.msg
 }

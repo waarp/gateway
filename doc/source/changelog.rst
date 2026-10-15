@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`700` La tâche DELETE n'échoue désormais plus si le fichier n'existe pas.
+  Un avertissement sera tout de même écrit dans les logs dans ce cas.
 * :feature:`677` Les tentatives d'authentification répétées sont désormais
   limitées sur l'interface web, l'API REST, le point d'accès de débogage et les
   serveurs de transfert (R66, SFTP, FTP, HTTP, WebDAV, PeSIT, AS2) : après 5

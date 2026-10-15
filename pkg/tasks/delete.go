@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -24,7 +25,11 @@ func (*deleteTask) Run(_ context.Context, _ map[string]string, _ *database.DB,
 ) error {
 	filepath := transCtx.Transfer.LocalPath
 
-	if err := fs.Remove(filepath); err != nil {
+	if err := fs.Remove(filepath); errors.Is(err, fs.ErrNotExist) {
+		logger.Warningf("Failed to delete file %q: file does not exist", filepath)
+
+		return newWarningf("failed to delete file %q: file does not exist", filepath)
+	} else if err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
 
