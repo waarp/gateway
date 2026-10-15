@@ -24,11 +24,10 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 
 	a.logger.Debugf("Connection received from %s", authent.Login)
 
-	security := &a.db.Config.Security
-	limiter := throttle.Default()
-	scope := R66 + ":" + a.dbAgent.Name
+	attempt := throttle.Default().Attempt(&a.db.Config.Security, R66+":"+a.dbAgent.Name,
+		authent.Login, authent.Address)
 
-	if limiter.Locked(security, scope, authent.Login, authent.Address) {
+	if attempt.Locked() {
 		a.logger.Warningf("Authentication of account %q from %q refused: too many failed attempts",
 			authent.Login, authent.Address)
 
@@ -62,7 +61,7 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 	if !authenticated || !acc.CheckIP(a.logger, authent.Address) {
 		a.logger.Warningf("Authentication failed for account %q", authent.Login)
 
-		if limiter.Failure(security, scope, authent.Login, authent.Address) {
+		if attempt.Fail() {
 			a.logger.Warningf("Too many failed authentications for account %q from %q, "+
 				"new attempts are temporarily refused", authent.Login, authent.Address)
 		}
@@ -84,7 +83,7 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 		authent.Digest = ""
 	}
 
-	limiter.Success(scope, authent.Login, authent.Address)
+	attempt.Succeed()
 
 	return &sessionHandler{
 		authHandler: a,

@@ -38,15 +38,15 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
-			security := &db.Config.Security
-			limiter := throttle.Default()
+			attempt := throttle.Default().Attempt(&db.Config.Security, throttleScope,
+				login, r.RemoteAddr)
 
 			invalid := func() {
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
 			}
 
-			if limiter.Locked(security, throttleScope, login, r.RemoteAddr) {
+			if attempt.Locked() {
 				logger.Warningf("Request of user %q from %q refused: too many failed attempts",
 					login, r.RemoteAddr)
 				invalid()
@@ -66,7 +66,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			if !utils.IsHashOf(user.PasswordHash, password) {
 				logger.Warningf("Invalid credentials for user %q", login)
 
-				if limiter.Failure(security, throttleScope, login, r.RemoteAddr) {
+				if attempt.Fail() {
 					logger.Warningf("Too many failed requests for user %q from %q, new attempts are temporarily refused",
 						login, r.RemoteAddr)
 				}
@@ -76,7 +76,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
-			limiter.Success(throttleScope, login, r.RemoteAddr)
+			attempt.Succeed()
 			setRequestUser(r, &user)
 			next.ServeHTTP(w, r)
 		})

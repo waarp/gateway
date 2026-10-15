@@ -21,9 +21,10 @@ func TestSecurityConfigDefaults(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, SecurityConfig{
-		MaxAuthFailures:     5,
-		AuthFailureWindow:   5 * time.Minute,
-		AuthLockDuration:    time.Minute,
-		AuthMaxLockDuration: 30 * time.Minute,
+		MaxAuthFailures:        5,
+		MaxAuthFailuresPerHost: 25,
+		AuthFailureWindow:      5 * time.Minute,
+		AuthLockDuration:       time.Minute,
+		AuthMaxLockDuration:    30 * time.Minute,
 	}, config.Security)
 }

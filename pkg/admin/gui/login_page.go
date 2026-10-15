@@ -186,10 +186,10 @@ func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Reques
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	security := &db.GetConfig().Security
-	limiter := throttle.Default()
+	attempt := throttle.Default().Attempt(&db.GetConfig().Security, throttleScope,
+		username, r.RemoteAddr)
 
-	if limiter.Locked(security, throttleScope, username, r.RemoteAddr) {
+	if attempt.Locked() {
 		logger.Warningf("Login of user %q from %q refused: too many failed attempts",
 			username, r.RemoteAddr)
 
@@ -200,7 +200,7 @@ func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Reques
 	if errors.Is(checkErr, ErrAuthentication) {
 		logger.Warning("Incorrect username or password")
 
-		if limiter.Failure(security, throttleScope, username, r.RemoteAddr) {
+		if attempt.Fail() {
 			logger.Warningf("Too many failed logins for user %q from %q, new attempts are temporarily refused",
 				username, r.RemoteAddr)
 		}
@@ -212,7 +212,7 @@ func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Reques
 		return nil, checkErr.Error()
 	}
 
-	limiter.Success(throttleScope, username, r.RemoteAddr)
+	attempt.Succeed()
 
 	return user, ""
 }

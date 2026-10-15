@@ -265,13 +265,30 @@ utilisable depuis les autres adresses. La réponse est alors identique à celle
 d'identifiants invalides, et le blocage est consigné dans les journaux. Une
 authentification réussie remet le compteur à zéro.
 
+Pour se protéger d'une adresse qui essaie quelques mots de passe sur de nombreux
+comptes, les échecs sont aussi comptés par point d'entrée et par adresse, quel
+que soit le compte, avec un seuil plus élevé. Une fois ce seuil atteint, toutes
+les tentatives depuis cette adresse sont refusées. Ce compteur n'est pas remis à
+zéro par une authentification réussie. Les adresses IPv6 sont regroupées par
+préfixe /64. Les blocages suivent les mêmes durées que ceux par compte.
+
 .. confval:: MaxAuthFailures
 
    Le nombre d'échecs, pour un même compte depuis une même adresse, au-delà
    duquel les nouvelles tentatives sont temporairement refusées. La valeur
-   ``0`` désactive le mécanisme.
+   ``0`` désactive ce compteur.
 
    Valeur par défaut : ``5``
+
+.. confval:: MaxAuthFailuresPerHost
+
+   Le nombre d'échecs depuis une même adresse, tous comptes confondus, au-delà
+   duquel les nouvelles tentatives depuis cette adresse sont temporairement
+   refusées. Lorsque de nombreux utilisateurs partagent une même adresse (NAT,
+   proxy), ce seuil doit être augmenté en conséquence. La valeur ``0``
+   désactive ce compteur.
+
+   Valeur par défaut : ``25``
 
 .. confval:: AuthFailureWindow
 
