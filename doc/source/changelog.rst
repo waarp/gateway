@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.17.0 <2026-10-16>`
 * :bug:`699` Correction d'une erreur ``failed to insert transfer info: Duplicate entry``
   pouvant survenir lorsqu'un transfert attend un acquittement.
 * :bug:`700` La tâche DELETE n'échoue désormais plus si le fichier n'existe pas.

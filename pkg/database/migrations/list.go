@@ -351,7 +351,7 @@ var Migrations = []Change{
 		Up:          ver0_17_0ChangeTransferInfoValueTypeUp,
 		Down:        ver0_17_0ChangeTransferInfoValueTypeDown,
 	},
-	{ // #66
+	{ // #67
 		Description: `Remove cloud instance credentials from options column`,
 		Up:          ver0_17_0RemoveCloudCredsInOptsUp,
 		Down:        noop,
