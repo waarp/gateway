@@ -1,6 +1,8 @@
 [Unit]
 Description=Waarp Gateway server
 Documentation=https://doc.waarp.org/waarp-gateway/latest/fr/
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
@@ -11,5 +13,5 @@ ExecStart=/bin/sh -c 'PATH=/usr/libexec/waarp-gateway:/usr/lib/waarp-gateway:$PA
 Restart=on-failure
 
 [Install]
-WantedBy=network-online.target
+WantedBy=multi-user.target
 
