@@ -108,6 +108,38 @@ tests:
         coverage_format: cobertura
         path: coverage.xml
 
+# Browser smoke test of the web interface: a real backend on a fresh
+# database, every screen visited, any failed request fails the job.
+e2e:
+  stage: test
+  variables:
+    # Read by helpers/playwright-bootstrap.sh: the Playwright driver needs a
+    # recent Node.js.
+    NODE_MAJOR: "22"
+  before_script:
+    # Two entries, never one `eval "$(…)"`: that would discard the script's
+    # exit status and turn a failed install into a green job.
+    - ./helpers/playwright-bootstrap.sh
+    - . .playwright/env.sh
+  script:
+    - gotestsum --junitfile tests-e2e.junit.xml --format-icons hivis --packages ./pkg/admin/ -- -tags e2e -count=1 -run TestE2E
+  cache:
+    - *cache_gomod
+    - *cache_gobuild
+    # The driver, the browser and axe-core follow the versions pinned in
+    # go.sum and in the bootstrap script. Per ref: their binaries run
+    # unchecked on a cache hit, so one branch must not be able to plant them
+    # in another's jobs.
+    - key:
+        files: [ go.sum ]
+        prefix: playwright-$CI_COMMIT_REF_SLUG
+      paths: [ .playwright ]
+      when: always
+  artifacts:
+    when: always
+    reports:
+      junit: tests-e2e.junit.xml
+
 compile:
   stage: build
   except: [ tags ]

@@ -5,6 +5,7 @@ go 1.27.1
 require (
 	code.waarp.fr/lib/as2 v0.0.0-20260416131903-c311ae8ece42
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
+	code.waarp.fr/lib/gui v0.1.0
 	code.waarp.fr/lib/icap v1.0.0
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/log/v2 v2.4.0
@@ -32,6 +33,7 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/klauspost/compress v1.20.3
 	github.com/mattn/go-colorable v0.1.16
+	github.com/mxschmitt/playwright-go v0.6201.1
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pkg/sftp v1.13.11
 	github.com/puzpuzpuz/xsync/v4 v4.5.0
@@ -166,6 +168,7 @@ require (
 	github.com/curioswitch/go-reassign v0.3.0 // indirect
 	github.com/daixiang0/gci v0.13.7 // indirect
 	github.com/dave/dst v0.27.3 // indirect
+	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/denis-tingaikin/go-header v0.5.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
 	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.6.2 // indirect
@@ -192,6 +195,7 @@ require (
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.5 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-toolsmith/astcast v1.1.0 // indirect
 	github.com/go-toolsmith/astcopy v1.1.0 // indirect
 	github.com/go-toolsmith/astequal v1.2.0 // indirect
