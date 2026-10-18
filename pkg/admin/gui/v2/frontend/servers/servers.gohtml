@@ -1,0 +1,70 @@
+{{/* Local servers list (Connections). Presentation only: the handler searches, filters, sorts and pages the rows,
+     builds the row actions from the rights and translates the texts. One coloured action ("Add a server"); search
+     and filters neutral, the filters applied as soon as they change (data-autosubmit, "Apply" only without
+     JavaScript); four sortable headers (gui/th); a "⋯" menu per row (gui/actions); rows per page in the list foot
+     (gui/pager). Rows carry the state and its raw reason, never a colour alone. */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ t "servers.title" }}</h1>
+  </div>
+  {{ with $d.AddURL }}<div class="w-page-header__actions"><a class="w-btn w-btn--primary" href="{{ . }}">{{ icon "plus" }} {{ t "servers.add" }}</a></div>{{ end }}
+</div>
+{{ if $d.Error -}}
+{{ template "gui/banner" (dict "Kind" "ko" "Title" (t "servers.error.title") "Text" (t "servers.error.text") "Action" (dict "Label" (t "action.retry") "URL" $d.RetryURL)) }}
+{{- else if $d.Empty -}}
+{{ template "gui/empty" (dict "Icon" "server" "Title" (t "servers.empty.title") "Text" (t "servers.empty.text") "Action" (and $d.AddURL (dict "Label" (t "servers.add") "URL" $d.AddURL "Icon" "plus"))) }}
+{{- else -}}
+<form class="w-toolbar" role="search" method="get" action="{{ $d.Action }}" data-autosubmit>
+  {{ range $k, $v := $d.Hidden }}<input type="hidden" name="{{ $k }}" value="{{ $v }}">{{ end }}
+  <label class="w-search"><span class="visually-hidden">{{ t "servers.search" }}</span>{{ icon "search" }}<input type="search" name="q" value="{{ $d.Q }}" placeholder="{{ t "servers.search_placeholder" }}" list="servers-names" autocomplete="off"></label>
+  <datalist id="servers-names">{{ range $d.Names }}<option value="{{ . }}"></option>{{ end }}</datalist>
+  <details class="w-disclose"{{ if $d.FiltersOpen }} open{{ end }}>
+    <summary class="w-btn w-btn--outline-dark w-btn--sm">{{ icon "filter" }} {{ t "filters.title" }}{{ with $d.FiltersCount }} · {{ . }}{{ end }}</summary>
+    <div class="w-disclose__panel">
+      <fieldset class="w-fieldset w-field w-field--wide">
+        <legend class="w-fieldset__legend">{{ t "servers.filters" }}</legend>
+        <div class="w-checks">
+          {{ range $d.Filters }}<label class="w-check"><input type="checkbox" name="protocol" value="{{ .Key }}"{{ if .Checked }} checked{{ end }}> <span>{{ .Label }}</span></label>
+          {{ end }}
+        </div>
+      </fieldset>
+      {{ template "gui/filters-foot" (dict "ResetURL" $d.ResetURL) }}
+    </div>
+  </details>
+  <span class="w-toolbar__spacer"></span>
+  <span class="w-toolbar__count" aria-live="polite">{{ $d.Count }}</span>
+</form>
+{{ if $d.NoMatch -}}
+{{ template "gui/empty" (dict "Icon" "search" "Title" $d.NoMatchText "Action" (dict "Label" $d.NoMatchLink "URL" $d.NoMatchURL)) }}
+{{- else -}}
+<div class="w-table-wrap">
+  <table class="w-table">
+    <caption class="visually-hidden">{{ $d.Caption }}</caption>
+    <colgroup><col class="servers-col-name"><col class="servers-col-state"><col class="servers-col-protocol"><col><col class="servers-col-actions"></colgroup>
+    <thead><tr>
+      {{ template "gui/th" (dict "Label" (t "servers.col.name") "Key" "name" "Sort" $d.Sort "Dir" $d.Dir "Base" $d.Base) }}
+      {{ template "gui/th" (dict "Label" (t "servers.col.state") "Key" "state" "Sort" $d.Sort "Dir" $d.Dir "Base" $d.Base) }}
+      {{ template "gui/th" (dict "Label" (t "servers.col.protocol") "Key" "protocol" "Sort" $d.Sort "Dir" $d.Dir "Base" $d.Base) }}
+      {{ template "gui/th" (dict "Label" (t "servers.col.address") "Key" "address" "Sort" $d.Sort "Dir" $d.Dir "Base" $d.Base) }}
+      <th scope="col"><span class="visually-hidden">{{ t "servers.col.actions" }}</span></th>
+    </tr></thead>
+    <tbody>
+      {{ range $d.Rows }}<tr>
+        <td><span class="w-cell-title w-nowrap">{{ .Name }}</span></td>
+        <td>{{ if .Reason }}<div class="w-cell-stack">{{ template "gui/status" .Status }}<span class="w-cell-sub w-mono">{{ .Reason }}</span></div>{{ else }}{{ template "gui/status" .Status }}{{ end }}</td>
+        <td>{{ .Protocol }}</td>
+        <td class="w-mono w-nowrap">{{ .Address }}</td>
+        <td>{{ template "gui/actions" (dict "ID" (printf "act-%d" .ID) "Name" .Name "Items" .Actions) }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>
+{{ with $d.Pager }}<div class="servers-pager">{{ template "gui/pager" (dict "Info" .Info "Page" .Page "Pages" .Pages "PrevURL" .PrevURL "NextURL" .NextURL "Hidden" $d.PagerHidden "Sizes" $d.Sizes "Size" $d.Size) }}</div>{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}
