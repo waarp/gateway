@@ -57,6 +57,14 @@ const (
 	pageParam     = "page"
 	sizeParam     = "size"
 	retParam      = "ret"
+	// resetParam makes a request explicit without any criterion: it clears the
+	// state kept for the session ("Reset", "Clear the search").
+	resetParam = "reset"
+
+	// stateCookie keeps the state of the list for the browser session, so that
+	// coming back through the sidebar finds the list as it was left (Driss,
+	// 2026-10-19). An explicit address always wins over it.
+	stateCookie = "webui_servers_list"
 
 	// The result of the previous action, carried by the redirection.
 	doneParam   = "done"
@@ -94,9 +102,10 @@ const (
 
 //nolint:gochecknoglobals // reference data of the screen
 var (
-	sortKeys  = []string{sortName, sortState, sortProtocol, sortAddress}
-	pageSizes = []int{10, 25, 50, 100} // rows per page, the first one by default
-	doneKinds = []string{doneCreated, doneUpdated, doneDeleted, doneStarted, doneStopped}
+	listParams = []string{queryParam, protocolParam, sortParam, dirParam, pageParam, sizeParam, resetParam}
+	sortKeys   = []string{sortName, sortState, sortProtocol, sortAddress}
+	pageSizes  = []int{10, 25, 50, 100} // rows per page, the first one by default
+	doneKinds  = []string{doneCreated, doneUpdated, doneDeleted, doneStarted, doneStopped}
 )
 
 // Control drives the service of a server. On the gateway it is backed by the
@@ -178,8 +187,17 @@ func (h *Handlers) entryOf(agent *model.LocalAgent) entry {
 	return entry{agent: agent, proto: protocolOf(agent.Protocol), state: state, reason: reason}
 }
 
-func (e entry) running() bool   { return e.state == utils.StateRunning }
-func (e entry) address() string { return e.agent.Address.String() }
+func (e entry) running() bool { return e.state == utils.StateRunning }
+
+// address shows the listening address; a server without a host listens on
+// every interface, shown as "*:port".
+func (e entry) address() string {
+	if e.agent.Address.Host == "" {
+		return "*:" + strconv.FormatUint(uint64(e.agent.Address.Port), 10)
+	}
+
+	return e.agent.Address.String()
+}
 
 // status turns the state code of a server into a shape, a colour and a label;
 // a code outside the three known ones reads "unknown".
@@ -357,6 +375,62 @@ func listURL(ret string) string {
 	return listURLOf(q.withPage(q.Page))
 }
 
+// resetURL is the list without any criterion, said explicitly so that the
+// state kept for the session is cleared instead of restored.
+func resetURL() string { return listURLOf(url.Values{resetParam: {"1"}}) }
+
+// explicitListURL is the list with the given criteria, or the explicit reset
+// when there is none left.
+func explicitListURL(v url.Values) string {
+	if len(v) == 0 {
+		return resetURL()
+	}
+
+	return listURLOf(v)
+}
+
+// hasListParams tells whether the request says anything about the state of
+// the list, be it a criterion or the explicit reset.
+func hasListParams(params url.Values) bool {
+	return slices.ContainsFunc(listParams, params.Has)
+}
+
+// keptState reads the state kept for the session; a default or unreadable
+// state is no state.
+func keptState(r *http.Request) (listQuery, bool) {
+	cookie, err := r.Cookie(stateCookie)
+	if err != nil {
+		return listQuery{}, false
+	}
+
+	state, err := url.QueryUnescape(cookie.Value)
+	if err != nil {
+		return listQuery{}, false
+	}
+
+	kept := retOf(state)
+
+	return kept, kept.encode(kept.Page) != ""
+}
+
+// keepState stores the state of the list for the browser session, or forgets
+// it when the state is the default one.
+func keepState(w http.ResponseWriter, query listQuery) {
+	cookie := &http.Cookie{
+		Name:     stateCookie,
+		Value:    url.QueryEscape(query.encode(query.Page)),
+		Path:     common.WebuiURL(pagePath),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	if cookie.Value == "" {
+		cookie.MaxAge = -1
+	}
+
+	http.SetCookie(w, cookie)
+}
+
 func serverURL(id int64, suffix string) string {
 	return common.WebuiURL(pagePath + "/" + strconv.FormatInt(id, 10) + suffix)
 }
@@ -422,7 +496,7 @@ type listData struct {
 	Caption      string
 	Pager        *pager
 	PagerHidden  map[string]string
-	Sizes        []int // rows-per-page choices; nil when everything fits in the smallest page
+	Sizes        []int // rows-per-page choices, offered as soon as there are rows
 	Size         int
 	Empty        bool // no server at all
 	NoMatch      bool // servers exist, none matches
@@ -435,8 +509,28 @@ type listData struct {
 
 // List serves GET /webui/servers.
 func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	if !hasListParams(params) {
+		if kept, ok := keptState(r); ok {
+			target := kept.withPage(kept.Page)
+			for _, name := range []string{doneParam, failedParam, nameParam, reasonParam} {
+				if params.Has(name) {
+					target.Set(name, params.Get(name))
+				}
+			}
+
+			http.Redirect(w, r, listURLOf(target), http.StatusSeeOther)
+
+			return
+		}
+	}
+
 	translate := h.list.Translator(r)
-	query := parseListQuery(r.URL.Query())
+	query := parseListQuery(params)
+
+	if hasListParams(params) {
+		keepState(w, query)
+	}
 	screen := common.Screen{
 		Title:   translate("servers.title"),
 		Section: constants.SidebarSectionConnection,
@@ -478,7 +572,7 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 		Sort:     query.Sort,
 		Dir:      query.Dir,
 		Size:     query.Size,
-		ResetURL: listURLOf(nil),
+		ResetURL: resetURL(),
 		Hidden:   query.toolbarHidden(),
 	}
 
@@ -530,10 +624,10 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 			withoutQ := query
 			withoutQ.Q = ""
 			data.NoMatchText = translate("servers.none.title", "query", query.Q)
-			data.NoMatchURL, data.NoMatchLink = listURLOf(withoutQ.values()), translate("search.clear")
+			data.NoMatchURL, data.NoMatchLink = explicitListURL(withoutQ.values()), translate("search.clear")
 		} else {
 			data.NoMatchText = translate("servers.none.filters")
-			data.NoMatchURL, data.NoMatchLink = listURLOf(nil), translate("filters.reset")
+			data.NoMatchURL, data.NoMatchLink = resetURL(), translate("filters.reset")
 		}
 
 		return data
@@ -557,9 +651,8 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 		})
 	}
 
-	if len(kept) > pageSizes[0] {
-		data.Sizes = pageSizes
-	}
+	// The rows per page are offered as soon as there are rows (Driss, 2026-10-19).
+	data.Sizes = pageSizes
 
 	if pages > 1 || data.Sizes != nil {
 		data.PagerHidden = query.pagerHidden()

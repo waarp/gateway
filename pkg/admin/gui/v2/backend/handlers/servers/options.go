@@ -178,7 +178,12 @@ func optionRows(translate gui.Translator, proto protocol, cfg map[string]any) []
 
 		suites := kv{Label: translate("servers.opt.tls_ciphers_short"), Value: translate("servers.opt.default_ciphers")}
 		if chosen := cfgList(cfg, cfgCipherSuites); len(chosen) > 0 {
-			suites.Value, suites.Mono = strings.Join(chosen, ", "), true
+			labels := make([]string, 0, len(chosen))
+			for _, name := range chosen {
+				labels = append(labels, cipherLabel(name))
+			}
+
+			suites.Value, suites.Mono = strings.Join(labels, ", "), true
 		}
 
 		rows = append(rows, suites)

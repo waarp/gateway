@@ -145,7 +145,7 @@ servers:
     no_autostart: Do not start automatically when the gateway starts
     address: Listening address
     host: Host
-    host_hint: Host name or IP address the server listens on
+    host_hint: "Host name or IP address the server listens on; empty, it listens on every interface (shown as “*”)"
     port: Port
     port_hint: "TCP port, 1 to 65535"
     dirs: Directories

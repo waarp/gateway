@@ -1,9 +1,11 @@
 package servers
 
 import (
+	"cmp"
 	"crypto/tls"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 
 	"code.waarp.fr/lib/gui"
@@ -132,35 +134,44 @@ func tlsVersionChoices(current string) []choice {
 }
 
 // tlsCipherChoices lists the cipher suites one can enable, from the product's
-// table (crypto/tls): those negotiable in TLS 1.2 or earlier, the secure ones
-// first, then the insecure ones flagged as such. The TLS 1.3 suites are
-// always on and not configurable, so they are not offered.
+// table (crypto/tls): those negotiable in TLS 1.2 or earlier, by decreasing
+// decimal code, the insecure ones flagged as such. Operators name a suite by
+// its code (Driss, 2026-10-19): the label reads "code - name", the value
+// stays the name the product stores. The TLS 1.3 suites are always on and
+// not configurable, so they are not offered.
 func tlsCipherChoices(translate gui.Translator, chosen []string) []choice {
-	var secure, insecure []string
+	var names []string
 
 	for name, suite := range protoutils.TLSCiphers {
-		if !slices.Contains(suite.SupportedVersions, uint16(tls.VersionTLS12)) {
-			continue
-		}
-
-		if suite.Insecure {
-			insecure = append(insecure, name)
-		} else {
-			secure = append(secure, name)
+		if slices.Contains(suite.SupportedVersions, uint16(tls.VersionTLS12)) {
+			names = append(names, name)
 		}
 	}
 
-	slices.Sort(secure)
-	slices.Sort(insecure)
+	slices.SortFunc(names, func(a, b string) int {
+		return cmp.Compare(protoutils.TLSCiphers[b].ID, protoutils.TLSCiphers[a].ID)
+	})
 
-	out := multi(append(secure, insecure...), chosen)
+	out := multi(names, chosen)
 	for i := range out {
+		out[i].Label = cipherLabel(out[i].Value)
+
 		if protoutils.TLSCiphers[out[i].Value].Insecure {
 			out[i].Label += " " + translate("servers.opt.tls_insecure")
 		}
 	}
 
 	return out
+}
+
+// cipherLabel names a cipher suite as the operators do: its decimal code,
+// then its name; a name unknown to the product is shown as it is.
+func cipherLabel(name string) string {
+	if suite, ok := protoutils.TLSCiphers[name]; ok {
+		return strconv.FormatUint(uint64(suite.ID), 10) + " - " + name
+	}
+
+	return name
 }
 
 // The SSH algorithms a server may use, from the SFTP module.

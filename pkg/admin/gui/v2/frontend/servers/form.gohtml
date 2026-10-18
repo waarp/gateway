@@ -41,7 +41,7 @@
     <fieldset class="w-fieldset w-fieldset--wide">
       <legend class="w-card__title">{{ t "servers.form.address" }}</legend>
       <div class="w-grid w-grid--2">
-        {{ template "servers/field" (dict "ID" "host" "Label" (t "servers.form.host") "Req" true "F" (index $f "host") "Hint" (t "servers.form.host_hint")) }}
+        {{ template "servers/field" (dict "ID" "host" "Label" (t "servers.form.host") "F" (index $f "host") "Hint" (t "servers.form.host_hint")) }}
         {{ template "servers/field" (dict "ID" "port" "Label" (t "servers.form.port") "Req" true "F" (index $f "port") "Hint" (t "servers.form.port_hint") "Short" true "Num" true "Min" 1 "Max" 65535) }}
       </div>
     </fieldset>

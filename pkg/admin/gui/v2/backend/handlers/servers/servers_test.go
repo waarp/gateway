@@ -274,7 +274,8 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `href="`+s.path(s.sftp, "/edit")+`">`)
 		assert.Contains(t, body, `<hr>`)
 		assert.Contains(t, body, `class="is-danger" href="`+s.path(s.sftp, "/delete")+`">`)
-		assert.NotContains(t, body, "w-pager", "three rows fit on one page")
+		assert.Contains(t, body, `name="size"`, "the rows per page are offered as soon as there are rows")
+		assert.Contains(t, body, "Serveurs 1 à 3 sur 3")
 	})
 
 	t.Run("Given a user with the read right only", func(t *testing.T) {
@@ -376,12 +377,12 @@ func TestList(t *testing.T) {
 		body = s.get(t, permAll, "/webui/servers?q=zzz").Body.String()
 		assert.NotContains(t, body, "<table")
 		assert.Contains(t, body, `<p class="w-empty__title">Aucun serveur ne correspond à « zzz »</p>`)
-		assert.Contains(t, body, `href="/webui/servers">Effacer la recherche</a>`)
+		assert.Contains(t, body, `href="/webui/servers?reset=1">Effacer la recherche</a>`, "explicit, so that the kept state is cleared")
 		assert.Contains(t, body, `3 serveurs · 0 affichés`)
 
 		body = s.get(t, permAll, "/webui/servers?protocol=ftp").Body.String()
 		assert.Contains(t, body, `<p class="w-empty__title">Aucun serveur ne correspond aux filtres</p>`)
-		assert.Contains(t, body, `href="/webui/servers">Réinitialiser</a>`)
+		assert.Contains(t, body, `href="/webui/servers?reset=1">Réinitialiser</a>`)
 	})
 
 	t.Run("Given no server at all", func(t *testing.T) {
@@ -435,6 +436,71 @@ func TestList(t *testing.T) {
 
 		body = s.get(t, permAll, "/webui/servers?page=0&size=7").Body.String()
 		assert.Contains(t, body, "Serveurs 1 à 10 sur 30", "an invalid page and size fall back to the default")
+	})
+
+	t.Run("Given a list state kept for the session", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		serveWith := func(target, cookie string) *httptest.ResponseRecorder {
+			user := &model.User{Username: "tester", Owner: "gw-test", Permissions: permAll}
+			ctx := context.WithValue(context.Background(), constants.ContextUserKey, user)
+			ctx = context.WithValue(ctx, constants.ContextLanguageKey, "fr")
+			req := httptest.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+
+			if cookie != "" {
+				req.Header.Set("Cookie", cookie)
+			}
+
+			rec := httptest.NewRecorder()
+			s.router.ServeHTTP(rec, req)
+
+			return rec
+		}
+
+		rec := serveWith("/webui/servers", "")
+		require.Equal(t, http.StatusOK, rec.Code, "nothing kept yet: the bare list")
+		assert.Empty(t, rec.Header().Values("Set-Cookie"))
+
+		rec = serveWith("/webui/servers?q=srv&sort=state", "")
+		require.Equal(t, http.StatusOK, rec.Code)
+		cookies := rec.Result().Cookies()
+		require.Len(t, cookies, 1)
+		assert.Equal(t, "webui_servers_list", cookies[0].Name)
+		assert.Equal(t, "dir%3Dasc%26q%3Dsrv%26sort%3Dstate", cookies[0].Value)
+		assert.Equal(t, "/webui/servers", cookies[0].Path)
+		assert.True(t, cookies[0].HttpOnly)
+		assert.Zero(t, cookies[0].MaxAge, "a session cookie")
+		kept := cookies[0].Name + "=" + cookies[0].Value
+
+		rec = serveWith("/webui/servers", kept)
+		require.Equal(t, http.StatusSeeOther, rec.Code, "the bare list comes back as it was left")
+		assert.Equal(t, "/webui/servers?dir=asc&q=srv&sort=state", rec.Header().Get("Location"))
+
+		rec = serveWith("/webui/servers?done=created&name=srv-x", kept)
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Equal(t, "/webui/servers?dir=asc&done=created&name=srv-x&q=srv&sort=state", rec.Header().Get("Location"),
+			"the result of an action travels with the restored state")
+
+		rec = serveWith("/webui/servers?protocol=sftp", kept)
+		require.Equal(t, http.StatusOK, rec.Code, "an explicit address wins")
+		assert.Equal(t, "protocol%3Dsftp", rec.Result().Cookies()[0].Value)
+
+		body := serveWith("/webui/servers?q=zzz", kept).Body.String()
+		assert.Contains(t, body, `href="/webui/servers?reset=1">Effacer la recherche</a>`, "clearing is explicit")
+		assert.Contains(t, body, `href="/webui/servers?reset=1">Réinitialiser</a>`)
+
+		rec = serveWith("/webui/servers?reset=1", kept)
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, 3, rows(rec.Body.String()), "the default list")
+		cookies = rec.Result().Cookies()
+		require.Len(t, cookies, 1)
+		assert.Equal(t, -1, cookies[0].MaxAge, "the kept state is forgotten")
+
+		rec = serveWith("/webui/servers", "webui_servers_list=%ZZ")
+		assert.Equal(t, http.StatusOK, rec.Code, "an unreadable cookie is ignored")
 	})
 
 	t.Run("Given the result of an action in the request", func(t *testing.T) {
@@ -557,7 +623,9 @@ func TestNewServer(t *testing.T) {
 		assert.Contains(t, body, `<option value="Optional" selected>TLS explicite facultatif</option>`)
 		assert.Contains(t, body, `<option value="" selected>Aucune signature</option>`)
 		assert.Contains(t, body, `name="sftp_kex" multiple size="5" data-dual="Disponibles|Retenus|Ajouter|Retirer"`)
-		assert.Contains(t, body, `<option value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256">TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256</option>`)
+		assert.Contains(t, body, `<option value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256">49195 - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256</option>`,
+			"a suite is named by its decimal code then its name")
+		assert.Less(t, strings.Index(body, `>52393 - `), strings.Index(body, `>49195 - `), "the suites are sorted by decreasing code")
 		assert.Contains(t, body, `(non sécurisée)</option>`, "the insecure suites are flagged")
 		assert.NotContains(t, body, `TLS_AES_128_GCM_SHA256`, "the TLS 1.3 suites are not configurable")
 		assert.Contains(t, body, `>Valider</button>`)
@@ -632,7 +700,7 @@ func TestNewServer(t *testing.T) {
 		body := rec.Body.String()
 		assert.Contains(t, body, `<div class="w-banner w-banner--ko" role="alert">`)
 		assert.Contains(t, body, "<strong>Le serveur n&#39;a pas été enregistré.</strong>Corrigez les champs signalés ci-dessous.")
-		assert.Equal(t, 2, strings.Count(body, "Ce champ est obligatoire."), "the name and the host")
+		assert.Equal(t, 1, strings.Count(body, "Ce champ est obligatoire."), "the name; the host is optional")
 		assert.Contains(t, body, `id="name" name="name" value="" required aria-invalid="true" aria-describedby="name-e"`)
 		assert.Contains(t, body, "Indiquez un port entre 1 et 65535.")
 		assert.Contains(t, body, `value="70000"`, "the values are kept")
@@ -744,6 +812,38 @@ func TestEditServer(t *testing.T) {
 		assert.True(t, cfgBool(agent.ProtoConfig, "noFinalHash"))
 		assert.NotContains(t, agent.ProtoConfig, "serverLogin", "the options are those of the form")
 		assert.NotContains(t, agent.ProtoConfig, "minTLSVersion", "no TLS option for a plain R66 server")
+	})
+
+	t.Run("Given a server listening on every interface", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		agent := &model.LocalAgent{Name: "srv-any", Protocol: "pesit-tls", Address: types.Addr("", 1765)}
+		require.NoError(t, s.db.Insert(agent).Run())
+
+		body := s.get(t, permWrite, s.path(agent, "/edit")).Body.String()
+		assert.Contains(t, body, `id="host" name="host" value=""`)
+		assert.Contains(t, body, `id="port" name="port" value="1765"`)
+
+		rec := s.post(t, permWrite, s.path(agent, "/edit"), url.Values{
+			"name": {"srv-any"}, "protocol": {"pesit-tls"}, "host": {"10.0.0.5"}, "port": {"1765"},
+		})
+		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
+
+		saved, err := internal.GetServerByID(s.db, agent.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "10.0.0.5:1765", saved.Address.String())
+
+		rec = s.post(t, permWrite, s.path(agent, "/edit"), url.Values{"name": {"srv-any"}, "protocol": {"pesit-tls"}, "host": {""}, "port": {"1765"}})
+		require.Equal(t, http.StatusSeeOther, rec.Code, "an empty host is accepted: every interface")
+		assert.Contains(t, s.get(t, permWrite, "/webui/servers").Body.String(), `<td class="w-mono w-nowrap">*:1765</td>`)
+		assert.Contains(t, s.get(t, permWrite, s.path(agent, "")).Body.String(), `<code class="w-code">*:1765</code>`)
+
+		rec = s.post(t, permWrite, s.path(agent, "/edit"), url.Values{"name": {"srv-any"}, "protocol": {"pesit-tls"}, "host": {"10.0.0.5"}, "port": {"1765"}})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+
+		body = s.get(t, permWrite, s.path(agent, "/edit")).Body.String()
+		assert.Contains(t, body, `id="host" name="host" value="10.0.0.5"`, "the host comes back in the form")
 	})
 
 	t.Run("Given a refused change", func(t *testing.T) {

@@ -144,7 +144,7 @@ servers:
     no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
     address: Adresse d'écoute
     host: Hôte
-    host_hint: Nom d'hôte ou adresse IP sur lequel le serveur écoute
+    host_hint: "Nom d'hôte ou adresse IP sur lequel le serveur écoute ; vide, il écoute sur toutes les interfaces (affiché « * »)"
     port: Port
     port_hint: "Port TCP, de 1 à 65535"
     dirs: Dossiers

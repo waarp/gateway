@@ -34,7 +34,8 @@ La liste
    * - Protocole
      - Le protocole du serveur.
    * - Adresse
-     - L'adresse d'écoute, sous la forme ``hôte:port``.
+     - L'adresse d'écoute, sous la forme ``hôte:port`` ; ``*:port`` quand le
+       serveur écoute sur toutes les interfaces (hôte vide).
    * - Actions
      - Le menu « ⋯ » de la ligne (voir ci-dessous).
 
@@ -46,11 +47,14 @@ qu'une case change, et *Réinitialiser* revient à la liste complète. Le
 compteur, à droite, indique le nombre de serveurs et, quand une recherche ou
 un filtre est actif, le nombre affiché.
 
-Au-delà de 10 lignes, la liste est paginée ; le pied de liste permet de changer
-de page et de choisir le nombre de lignes par page (10, 25, 50 ou 100). La
-recherche, les filtres, le tri et la page sont portés par l'adresse de la
-page : un lien vers la liste telle qu'on la voit peut être partagé, et les
-pages d'action y ramènent telle qu'on l'a quittée.
+Le pied de liste permet de changer de page et de choisir le nombre de lignes
+par page (10 par défaut, 25, 50 ou 100). La recherche, les filtres, le tri et
+la page sont portés par l'adresse de la page : un lien vers la liste telle
+qu'on la voit peut être partagé, et les pages d'action y ramènent telle qu'on
+l'a quittée. Ils sont aussi conservés pour la durée de la session du
+navigateur : revenir à la liste par la barre latérale la rouvre telle qu'on
+l'a laissée ; *Réinitialiser* revient à la liste complète et oublie ces
+critères.
 
 Le menu « ⋯ » de chaque ligne donne accès aux actions sur le serveur, selon
 les droits de l'utilisateur :
@@ -106,7 +110,8 @@ serveur* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
      - Le nom (unique sur la Gateway), le protocole, et la case *Ne pas
        démarrer automatiquement au lancement de la passerelle*.
    * - Adresse d'écoute
-     - L'hôte (nom ou adresse IP) et le port (de 1 à 65535). Deux serveurs ne
+     - L'hôte (nom ou adresse IP, facultatif : vide, le serveur écoute sur
+       toutes les interfaces) et le port (de 1 à 65535). Deux serveurs ne
        peuvent pas écouter sur la même adresse.
    * - Dossiers
      - Le dossier racine, le dossier de réception, le dossier de réception
@@ -119,8 +124,10 @@ serveur* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
        listes d'algorithmes SSH et de suites de chiffrement TLS se composent
        en deux colonnes, les algorithmes disponibles à gauche et les
        algorithmes retenus à droite, dans l'ordre de préférence ; une liste
-       vide accepte tous les algorithmes de la Gateway. Les suites TLS se
-       choisissent jusqu'à TLS 1.2 ; en TLS 1.3, la bibliothèque les fixe.
+       vide accepte tous les algorithmes de la Gateway. Les suites TLS,
+       nommées par leur code décimal puis leur nom (``49195 - TLS_ECDHE_…``,
+       du code le plus élevé au plus bas), se choisissent jusqu'à TLS 1.2 ;
+       en TLS 1.3, la bibliothèque les fixe.
        Le détail de chaque option se trouve dans la référence des
        :ref:`options de protocole <reference-proto-config>`.
 

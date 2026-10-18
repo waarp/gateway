@@ -296,10 +296,9 @@ func (f *formData) validate(translate gui.Translator) bool {
 		f.Fields[name] = fld
 	}
 
-	for _, name := range []string{fieldName, fieldHost} {
-		if f.Fields[name].Value == "" {
-			fail(name, "servers.form.error.required")
-		}
+	// The host is optional: empty, the server listens on every interface.
+	if f.Fields[fieldName].Value == "" {
+		fail(fieldName, "servers.form.error.required")
 	}
 
 	port, err := parsePort(f.Fields[fieldPort].Value)
