@@ -3,7 +3,7 @@
 Historique des versions
 =======================
 
-* :feature:`NNN` L'écran « État des services » de l'interface web est
+* :feature:`706` L'écran « État des services » de l'interface web est
   refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
   sélectionne le tableau affiché), états lisibles sans la couleur, message
   persistant en cas d'échec de l'actualisation automatique. Il remplace l'ancien écran dans
