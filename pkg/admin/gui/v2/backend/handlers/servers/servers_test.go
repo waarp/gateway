@@ -78,9 +78,11 @@ func (c *fakeControl) control() Control {
 		},
 		Start: func(_ context.Context, s *model.LocalAgent) error {
 			if s.Name == c.failing {
-				c.set(s.ID, utils.StateError, bindReason)
+				// As the gateway does when a listener cannot open: the service
+				// stays offline without a reason, the error carries the cause.
+				c.set(s.ID, utils.StateOffline, "")
 
-				return fmt.Errorf("%s", bindReason) //nolint:err113 // the service's own message
+				return fmt.Errorf("failed to start service: %s", bindReason) //nolint:err113 // the service's own message
 			}
 
 			c.set(s.ID, utils.StateRunning, "")
@@ -982,11 +984,12 @@ func TestStartStop(t *testing.T) {
 		assert.Equal(t, "/webui/servers", location.Path)
 		assert.Equal(t, "start", location.Query().Get("failed"))
 		assert.Equal(t, "srv-r66-01", location.Query().Get("name"))
-		assert.Equal(t, bindReason, location.Query().Get("reason"))
+		assert.Equal(t, "failed to start service: "+bindReason, location.Query().Get("reason"),
+			"the cause of the failed start, as the service gives none")
 
 		body := s.get(t, permWrite, rec.Header().Get("Location")).Body.String()
 		assert.Contains(t, body, `<div class="w-toast w-toast--ko" role="alert">`)
-		assert.Contains(t, body, "<strong>Le serveur « srv-r66-01 » n&#39;a pas démarré</strong><span>"+bindReason+"</span>")
+		assert.Contains(t, body, "<strong>Le serveur « srv-r66-01 » n&#39;a pas démarré</strong><span>failed to start service: "+bindReason+"</span>")
 	})
 
 	t.Run("Given an unknown server", func(t *testing.T) {

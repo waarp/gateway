@@ -57,13 +57,13 @@ const (
 	pageParam     = "page"
 	sizeParam     = "size"
 	retParam      = "ret"
-	// resetParam makes a request explicit without any criterion: it clears the
+	// The explicit reset: a request without any criterion that clears the
 	// state kept for the session ("Reset", "Clear the search").
 	resetParam = "reset"
 
-	// stateCookie keeps the state of the list for the browser session, so that
-	// coming back through the sidebar finds the list as it was left (Driss,
-	// 2026-10-19). An explicit address always wins over it.
+	// The cookie that keeps the state of the list for the browser session, so
+	// that coming back through the sidebar finds the list as it was left
+	// (Driss, 2026-10-19). An explicit address always wins over it.
 	stateCookie = "webui_servers_list"
 
 	// The result of the previous action, carried by the redirection.
@@ -1038,9 +1038,10 @@ func (h *Handlers) Start(w http.ResponseWriter, r *http.Request) {
 
 	result := url.Values{nameParam: {e.agent.Name}}
 
+	var startErr error
 	if !e.running() {
-		if err := h.ctl.Start(r.Context(), e.agent); err != nil {
-			h.logger.Warningf("failed to start the server %q: %v", e.agent.Name, err)
+		if startErr = h.ctl.Start(r.Context(), e.agent); startErr != nil {
+			h.logger.Warningf("failed to start the server %q: %v", e.agent.Name, startErr)
 		}
 	}
 
@@ -1048,10 +1049,22 @@ func (h *Handlers) Start(w http.ResponseWriter, r *http.Request) {
 		result.Set(doneParam, doneStarted)
 	} else {
 		result.Set(failedParam, failedStart)
-		result.Set(reasonParam, reason)
+		result.Set(reasonParam, failureReason(reason, startErr))
 	}
 
 	redirectList(w, r, ret(r), result)
+}
+
+// failureReason is what the notification of a failed action says: the
+// reason the service reports, or, when it reports none (a service left
+// offline by a listener that could not open), the cause the start or stop
+// returned; the port already in use or the address not local are such causes.
+func failureReason(reason string, err error) string {
+	if reason == "" && err != nil {
+		return err.Error()
+	}
+
+	return reason
 }
 
 // Stop serves POST /webui/servers/{id}/stop.
@@ -1068,7 +1081,7 @@ func (h *Handlers) Stop(w http.ResponseWriter, r *http.Request) {
 
 		_, reason := h.ctl.Status(e.agent)
 		result.Set(failedParam, failedStop)
-		result.Set(reasonParam, reason)
+		result.Set(reasonParam, failureReason(reason, err))
 	} else {
 		result.Set(doneParam, doneStopped)
 	}
