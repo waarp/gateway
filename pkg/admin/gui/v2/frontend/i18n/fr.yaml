@@ -1,0 +1,76 @@
+# Catalogue de l'interface web, français. Un fichier par langue (décision de Driss du 18/10/2026) : fr.yaml et
+# en.yaml portent la même arborescence de clés, dans le même ordre ; le test du catalogue vérifie la parité.
+# Les chaînes communes du kit GUI (nav.home, nav.skip, action.*, state.*, header.*…) sont fusionnées au
+# chargement : elles ne sont pas répétées ici. Paramètres : {nom}.
+
+# Barre latérale : les sections et les écrans, dans l'ordre de la carte des écrans.
+nav:
+  connections: Connexions
+  servers: Serveurs locaux
+  clients: Clients locaux
+  partners: Partenaires distants
+  treatments: Traitements
+  rules: Règles de transfert
+  keys: Clés cryptographiques
+  smtp: Identifiants SMTP
+  email_templates: Modèles d'e-mail
+  supervision: Supervision
+  services: État des services
+  transfers: Suivi des transferts
+  administration: Administration
+  users: Utilisateurs
+  authorities: Autorités d'authentification
+  clouds: Instances cloud
+  snmp: SNMP
+  overrides: Surcharges de configuration
+  footer: "{product} {version} · révision {revision}"
+
+# Écran « État des services » (Supervision).
+services:
+  title: État des services
+  live: "Actualisé à {time}"
+  refreshing: Actualisation…
+  groups: Groupes de services
+  group:
+    core: Services système
+    servers: Serveurs locaux
+    clients: Clients locaux
+  caption:
+    core: État de chaque service système de la passerelle
+    servers: État de chaque serveur local
+    clients: État de chaque client local
+    page: "{caption}, page {page} sur {pages}"
+  col:
+    core: Service système
+    server: Serveur local
+    client: Client local
+    state: État
+    reason: Raison
+  reason:
+    none: Aucune raison
+  summary:
+    running: "{running} / {total} en ligne"
+    errors: "{n} en erreur"
+    offline: "{n} hors ligne"
+    unknown: "{n} inconnu"
+  pager:
+    info: "{group} {from} à {to} sur {total}"
+  # Noms fonctionnels des services système, par nom technique ; un service sans entrée garde son nom technique.
+  core:
+    Admin: Administration (API REST et interface web)
+    Analytics: Statistiques internes
+    Controller: Contrôleur des transferts
+    Database: Base de données
+    SNMP: Agent SNMP
+  empty:
+    servers:
+      title: Aucun serveur local pour l'instant
+      text: "Un serveur local est un point d'écoute de la passerelle pour un protocole. Il apparaît ici dès sa création."
+      link: Voir les serveurs locaux
+    clients:
+      title: Aucun client local pour l'instant
+      text: "Un client local est l'identité sortante de la passerelle pour un protocole. Il apparaît ici dès sa création."
+      link: Voir les clients locaux
+  error:
+    title: Les états n'ont pas pu être actualisés.
+    text: "Dernière lecture réussie à {time}. Les états affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."

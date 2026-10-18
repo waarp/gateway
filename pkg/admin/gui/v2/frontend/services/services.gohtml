@@ -1,18 +1,18 @@
 {{/* Service status screen (Supervision). Presentation only: the handler sorts the rows, counts the states, pages
      the tables and translates the texts. The three tiles are tabs that show one table at a time (kit.js); without
-     JavaScript they are links the server answers with ?group=. The "services/state" block is also served alone
-     (?fragment=state) and refreshed in place by services.js; without JavaScript, "Refresh" reloads the page. */ -}}
+     JavaScript they are links the server answers with ?group=. The column headers sort through ?sort=&dir=. The
+     "services/state" block is also served alone (?fragment=state) and refreshed in place by services.js; without
+     JavaScript, "Refresh" reloads the page. */ -}}
 {{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/services/services.css" }}">{{ end }}
 {{ define "scripts" }}<script src="{{ url "/static_v2/services/services.js" }}" defer></script>{{ end }}
 
 {{ define "page" -}}
 <div class="w-page-header">
   <div class="w-page-header__text">
-    <p class="w-page-header__eyebrow">{{ t "nav.supervision" }}</p>
     <h1 class="w-page-header__title">{{ t "services.title" }}</h1>
   </div>
   <div class="w-page-header__actions">
-    <span class="w-live" id="services-live" role="status" aria-live="polite" data-live="{{ t "services.live" "seconds" .Data.RefreshSeconds }}" data-refreshing="{{ t "services.refreshing" }}">{{ t "services.live" "seconds" .Data.RefreshSeconds "time" .Data.RefreshedAt }}</span>
+    <span class="w-live" id="services-live" role="status" aria-live="polite" data-live="{{ t "services.live" }}" data-refreshing="{{ t "services.refreshing" }}">{{ t "services.live" "time" .Data.RefreshedAt }}</span>
     <a class="w-btn w-btn--outline-dark" id="services-refresh" href="{{ url "/services" }}">{{ t "action.refresh" }}</a>
   </div>
 </div>
@@ -32,7 +32,7 @@
       <table class="w-table">
         <caption class="visually-hidden">{{ .Caption }}</caption>
         <colgroup><col class="services-col-name"><col class="services-col-state"><col></colgroup>
-        <thead><tr><th scope="col">{{ .Kind }}</th><th scope="col">{{ t "services.col.state" }}</th><th scope="col">{{ t "services.col.reason" }}</th></tr></thead>
+        <thead><tr>{{ template "gui/th" (dict "Label" .Kind "Key" "name" "Sort" .Sort "Dir" .Dir "Base" .Base) }}{{ template "gui/th" (dict "Label" (t "services.col.state") "Key" "state" "Sort" .Sort "Dir" .Dir "Base" .Base) }}<th scope="col">{{ t "services.col.reason" }}</th></tr></thead>
         <tbody>
           {{ range .Rows }}<tr>
             <td>{{ if .Tech }}<div class="w-cell-stack"><span class="w-cell-title">{{ .Name }}</span><span class="w-cell-sub"><code class="w-code">{{ .Tech }}</code></span></div>{{ else }}<span class="w-cell-title w-nowrap">{{ .Name }}</span>{{ end }}</td>

@@ -17,7 +17,7 @@ import (
 )
 
 // Every key of the catalogue, the kit's common strings included, has a text
-// in every language.
+// in every language: the language files carry the same keys.
 func TestCatalogIsComplete(t *testing.T) {
 	t.Parallel()
 
@@ -40,10 +40,10 @@ func TestCatalogMatchesTemplates(t *testing.T) {
 	catalog, err := locale.LoadCatalog()
 	require.NoError(t, err)
 
-	raw, err := fs.ReadFile(webfs.WebFS, locale.CatalogFile)
+	raw, err := fs.ReadFile(webfs.WebFS, locale.CatalogDir+"/fr.yaml")
 	require.NoError(t, err)
 
-	product, err := locale.ParseCatalog(raw)
+	product, err := locale.ParseLanguage(raw)
 	require.NoError(t, err)
 
 	templates := readAll(t, webfs.WebFS, "*.gohtml", "*/*.gohtml", "*/*/*.gohtml")
@@ -71,7 +71,7 @@ func TestCatalogMatchesTemplates(t *testing.T) {
 		}
 	}
 
-	for _, key := range product.Keys() {
+	for key := range product {
 		assert.Truef(t, used[key] || hasPrefix(key, prefixes),
 			"key %q is used by no template nor handler", key)
 	}
@@ -135,8 +135,15 @@ func readGoSources(t *testing.T, root string) []string {
 func TestTranslator(t *testing.T) {
 	t.Parallel()
 
-	catalog, err := locale.ParseCatalog([]byte("services:\n  live: { fr: \"Actualisé à {time} · toutes les {seconds} s\", en: \"Updated at {time}\" }\n"))
+	french, err := locale.ParseLanguage([]byte("services:\n  live: \"Actualisé à {time} · toutes les {seconds} s\"\n"))
 	require.NoError(t, err)
+
+	english, err := locale.ParseLanguage([]byte("services:\n  live: \"Updated at {time}\"\n"))
+	require.NoError(t, err)
+
+	catalog := locale.Catalog{}
+	require.NoError(t, catalog.Add("fr", french))
+	require.NoError(t, catalog.Add("en", english))
 
 	assert.Equal(t, "Actualisé à 10:41:03 · toutes les 10 s",
 		catalog.Translator("fr")("services.live", "time", "10:41:03", "seconds", 10))
@@ -147,19 +154,21 @@ func TestTranslator(t *testing.T) {
 	assert.False(t, catalog.Has("services"), "a section is not an entry")
 }
 
-func TestParseCatalogErrors(t *testing.T) {
+func TestParseLanguageErrors(t *testing.T) {
 	t.Parallel()
 
-	_, err := locale.ParseCatalog([]byte("services:\n  title: État des services\n"))
-	require.ErrorIs(t, err, locale.ErrCatalogEntry, "a text without languages")
-
-	_, err = locale.ParseCatalog([]byte("services:\n  title: { fr: 10, en: Service status }\n"))
+	_, err := locale.ParseLanguage([]byte("services:\n  title: 10\n"))
 	require.ErrorIs(t, err, locale.ErrCatalogEntry, "a number is not a text")
 
-	_, err = locale.ParseCatalog([]byte("services:\n  title: { fr: État, en: Status, de: Zustand }\n"))
-	require.ErrorIs(t, err, locale.ErrCatalogEntry, "an unknown language")
+	_, err = locale.ParseLanguage([]byte("services:\n  title: [a, b]\n"))
+	require.ErrorIs(t, err, locale.ErrCatalogEntry, "a list is not a text")
 
-	catalog, err := locale.ParseCatalog([]byte("nav:\n  home: { fr: Accueil, en: Home }\n"))
+	texts, err := locale.ParseLanguage([]byte("nav:\n  home: Accueil\n"))
 	require.NoError(t, err)
-	require.ErrorIs(t, catalog.Merge(locale.Catalog{"nav.home": {"fr": "x", "en": "y"}}), locale.ErrCatalogDuplicate)
+
+	catalog := locale.Catalog{}
+	require.NoError(t, catalog.Add("fr", texts))
+	require.ErrorIs(t, catalog.Add("fr", texts), locale.ErrCatalogDuplicate)
+	require.NoError(t, catalog.Add("en", map[string]string{"nav.home": "Home"}))
+	assert.True(t, catalog.Has("nav.home"))
 }

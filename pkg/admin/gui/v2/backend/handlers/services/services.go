@@ -4,6 +4,7 @@
 package services
 
 import (
+	"cmp"
 	"net/http"
 	"net/url"
 	"slices"
@@ -27,11 +28,18 @@ const (
 	docPage          = "user/webui/etat-des-services"
 	pagePath         = "/services"
 
-	// The group whose table is shown (the tiles are its tabs), and the page
-	// of that table beyond pageSize rows.
+	// The group whose table is shown (the tiles are its tabs), the sort of
+	// that table and its page beyond pageSize rows.
 	groupParam = "group"
+	sortParam  = "sort"
+	dirParam   = "dir"
 	pageParam  = "page"
-	pageSize   = 25
+	pageSize   = 10
+
+	sortName  = "name"
+	sortState = "state"
+	dirAsc    = "asc"
+	dirDesc   = "desc"
 
 	// Period of the automatic refresh of the states, the same as on the page
 	// this screen replaces.
@@ -69,12 +77,15 @@ type pageData struct {
 }
 
 // group is a tab of the screen: its tile sums up the whole group, its panel
-// shows one page of its table.
+// shows one page of its table, sorted as asked.
 type group struct {
 	ID       string
 	Kind     string
 	Caption  string
 	Selected bool
+	Sort     string // sorted column: sortName or sortState
+	Dir      string // dirAsc or dirDesc
+	Base     string // address of the group, which the column headers extend with the sort
 	Rows     []row
 	Tile     tile
 	Pager    *pager // nil when every row fits on one page
@@ -122,10 +133,12 @@ type emptyState struct {
 	Action *gui.Link
 }
 
-// selection is what the request asks for: the group shown and the page of
-// its table.
+// selection is what the request asks for: the group shown, the sort of its
+// table and the page of it.
 type selection struct {
 	group string
+	sort  string
+	dir   string
 	page  int
 }
 
@@ -135,6 +148,11 @@ func groupSpecs() []groupSpec {
 		{id: "servers", kindKey: "services.col.server", path: "/server_management"},
 		{id: "clients", kindKey: "services.col.client", path: "/local_client_management"},
 	}
+}
+
+// defaultSelection shows the first group, sorted by name, from its first page.
+func defaultSelection(groupID string) selection {
+	return selection{group: groupID, sort: sortName, dir: dirAsc, page: 1}
 }
 
 // Page serves GET /webui/services. With ?fragment=state, it renders the
@@ -167,14 +185,22 @@ func Page(logger *log.Logger, list Lister) http.HandlerFunc {
 	}
 }
 
-// parseSelection reads the group and the page asked for; anything unknown
-// or out of range falls back to the first group and the first page.
+// parseSelection reads the group, the sort and the page asked for; anything
+// unknown or out of range falls back to the default.
 func parseSelection(query url.Values) selection {
 	specs := groupSpecs()
-	sel := selection{group: specs[0].id, page: 1}
+	sel := defaultSelection(specs[0].id)
 
 	if slices.ContainsFunc(specs, func(spec groupSpec) bool { return spec.id == query.Get(groupParam) }) {
 		sel.group = query.Get(groupParam)
+	}
+
+	if query.Get(sortParam) == sortState {
+		sel.sort = sortState
+	}
+
+	if query.Get(dirParam) == dirDesc {
+		sel.dir = dirDesc
 	}
 
 	if page, err := strconv.Atoi(query.Get(pageParam)); err == nil && page > 1 {
@@ -191,12 +217,16 @@ func makePageData(translate gui.Translator, has func(key string) bool, list List
 	groups := make([]group, 0, len(specs))
 
 	for i, spec := range specs {
-		page := 1
-		if spec.id == sel.group {
-			page = sel.page
+		// The sort and the page apply to the group shown; the others keep
+		// their default.
+		selected := spec.id == sel.group
+		groupSel := defaultSelection(spec.id)
+
+		if selected {
+			groupSel = sel
 		}
 
-		groups = append(groups, makeGroup(translate, has, spec, lists[i], spec.id == sel.group, page))
+		groups = append(groups, makeGroup(translate, has, spec, lists[i], groupSel, selected))
 	}
 
 	return pageData{
@@ -207,11 +237,12 @@ func makePageData(translate gui.Translator, has func(key string) bool, list List
 }
 
 func makeGroup(translate gui.Translator, has func(key string) bool, spec groupSpec,
-	services []internal.Service, selected bool, page int,
+	services []internal.Service, sel selection, selected bool,
 ) group {
 	title := translate("services.group." + spec.id)
 	caption := translate("services.caption." + spec.id)
 	rows := makeRows(translate, has, spec.core, services)
+	sortRows(rows, sel.sort, sel.dir)
 
 	tab := makeTile(translate, title, spec.id, rows)
 	tab.Selected = selected
@@ -231,13 +262,16 @@ func makeGroup(translate gui.Translator, has func(key string) bool, spec groupSp
 		Kind:     translate(spec.kindKey),
 		Caption:  caption,
 		Selected: selected,
+		Sort:     sel.sort,
+		Dir:      sel.dir,
+		Base:     groupURL(defaultSelection(spec.id)),
 		Rows:     rows,
 		Tile:     tab,
 		Empty:    empty,
 	}
 
 	if pages := (len(rows) + pageSize - 1) / pageSize; pages > 1 {
-		page = min(max(page, 1), pages)
+		page := min(max(sel.page, 1), pages)
 		first, last := (page-1)*pageSize, min(page*pageSize, len(rows))
 
 		result.Rows = rows[first:last]
@@ -246,41 +280,57 @@ func makeGroup(translate gui.Translator, has func(key string) bool, spec groupSp
 			Info:   translate("services.pager.info", "group", title, "from", first+1, "to", last, "total", len(rows)),
 			Page:   page,
 			Pages:  pages,
-			Hidden: map[string]string{groupParam: spec.id},
+			Hidden: groupQuery(sel),
 		}
 
 		if page > 1 {
-			result.Pager.PrevURL = pageURL(spec.id, page-1)
+			prev := sel
+			prev.page = page - 1
+			result.Pager.PrevURL = groupURL(prev)
 		}
 
 		if page < pages {
-			result.Pager.NextURL = pageURL(spec.id, page+1)
+			next := sel
+			next.page = page + 1
+			result.Pager.NextURL = groupURL(next)
 		}
 	}
 
 	return result
 }
 
-// pageURL is the address of one page of the table of a group, which is also
-// the server fallback of its tile.
-func pageURL(groupID string, page int) string {
-	query := url.Values{groupParam: {groupID}}
-	if page > 1 {
-		query.Set(pageParam, strconv.Itoa(page))
+// groupQuery is the query of a selection without its page: the group, and
+// the sort when it is not the default one.
+func groupQuery(sel selection) map[string]string {
+	query := map[string]string{groupParam: sel.group}
+
+	if sel.sort != sortName || sel.dir != dirAsc {
+		query[sortParam] = sel.sort
+		query[dirParam] = sel.dir
+	}
+
+	return query
+}
+
+// groupURL is the address of a selection: one page of the table of a group,
+// sorted as asked; it is also the server fallback of the tile of the group.
+func groupURL(sel selection) string {
+	query := url.Values{}
+	for name, value := range groupQuery(sel) {
+		query.Set(name, value)
+	}
+
+	if sel.page > 1 {
+		query.Set(pageParam, strconv.Itoa(sel.page))
 	}
 
 	return common.WebuiURL(pagePath) + "?" + query.Encode()
 }
 
-// makeRows sorts the services by name, as the page this screen replaces
-// did, and gives the system services their functional name.
+// makeRows gives the system services their functional name.
 func makeRows(translate gui.Translator, has func(key string) bool, core bool,
 	services []internal.Service,
 ) []row {
-	slices.SortFunc(services, func(a, b internal.Service) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-
 	rows := make([]row, 0, len(services))
 
 	for _, service := range services {
@@ -294,6 +344,50 @@ func makeRows(translate gui.Translator, has func(key string) bool, core bool,
 	}
 
 	return rows
+}
+
+// sortRows sorts the rows by name (the technical one, as the page this
+// screen replaces did) or by state, from the healthiest to the worst; ties
+// keep the name order.
+func sortRows(rows []row, key, dir string) {
+	slices.SortStableFunc(rows, func(a, b row) int {
+		var order int
+		if key == sortState {
+			order = cmp.Compare(stateRank(a.Status.State), stateRank(b.Status.State))
+		} else {
+			order = strings.Compare(nameKey(a), nameKey(b))
+		}
+
+		if dir == dirDesc {
+			order = -order
+		}
+
+		if order == 0 {
+			return strings.Compare(nameKey(a), nameKey(b))
+		}
+
+		return order
+	})
+}
+
+// nameKey is the name a row sorts by: the technical name of a system
+// service, the name of the others.
+func nameKey(line row) string {
+	if line.Tech != "" {
+		return line.Tech
+	}
+
+	return line.Name
+}
+
+// stateRank orders the states from the healthiest to the worst.
+func stateRank(state string) int {
+	order := []string{stateOK, stateOffline, stateUnknown, stateKO}
+	if rank := slices.Index(order, state); rank >= 0 {
+		return rank
+	}
+
+	return len(order)
 }
 
 // status turns the state code of a service into a shape, a colour and a
@@ -321,7 +415,7 @@ func makeTile(translate gui.Translator, label, groupID string, rows []row) tile 
 
 	summary := tile{
 		Label:    label,
-		Href:     pageURL(groupID, 1),
+		Href:     groupURL(defaultSelection(groupID)),
 		Controls: groupID,
 		Value:    counts[stateOK],
 		Total:    len(rows),

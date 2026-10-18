@@ -90,6 +90,11 @@ func panel(t *testing.T, body, groupID string) string {
 	return match
 }
 
+// rows returns the number of data rows of a panel.
+func rows(markup string) int {
+	return strings.Count(markup, "<tr>") - 1
+}
+
 func TestPage(t *testing.T) {
 	t.Parallel()
 
@@ -106,8 +111,9 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `class="w-skip"`)
 		assert.Contains(t, body, `<main class="w-main" id="contenu"`)
 		assert.Regexp(t, `data-refreshed-at="\d{2}:\d{2}:\d{2}"`, body)
-		assert.Regexp(t, `Actualisé à \d{2}:\d{2}:\d{2} · toutes les 10 s</span>`, body)
+		assert.Regexp(t, `>Actualisé à \d{2}:\d{2}:\d{2}</span>`, body)
 		assert.NotContains(t, body, "w-page-header__desc", "no sentence under the title")
+		assert.NotContains(t, body, "w-page-header__eyebrow", "no section name above the title")
 
 		// Three tiles as tabs, the first selected; three panels, the first shown.
 		assert.Equal(t, 3, strings.Count(body, `role="tab"`))
@@ -115,15 +121,17 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `id="tab-core" aria-controls="core" aria-selected="true"`)
 		assert.Contains(t, body, `href="/webui/services?group=servers" role="tab"`)
 		assert.Equal(t, 3, strings.Count(body, `role="tabpanel"`))
-		assert.Equal(t, 2, strings.Count(body, `aria-labelledby="tab-`+""+`servers" hidden`)+strings.Count(body, `aria-labelledby="tab-clients" hidden`))
 		assert.Contains(t, body, `id="core" aria-labelledby="tab-core">`)
+		assert.Contains(t, body, `id="servers" aria-labelledby="tab-servers" hidden>`)
+		assert.Contains(t, body, `id="clients" aria-labelledby="tab-clients" hidden>`)
 
-		// Each panel sorted by name, the first column named after the object.
-		indexes(t, panel(t, body, "core"), `<th scope="col">Service système</th>`,
+		// Each panel sorted by name, the first column named after the object and sorted ascending.
+		core := panel(t, body, "core")
+		indexes(t, core, `<th scope="col" aria-sort="ascending"><a href="/webui/services?group=core&amp;sort=name&amp;dir=desc">Service système</a></th>`,
+			`<th scope="col"><a href="/webui/services?group=core&amp;sort=state&amp;dir=asc">État</a></th>`, `<th scope="col">Raison</th>`,
 			`<code class="w-code">Database</code>`, "Mystery", `<code class="w-code">SNMP</code>`)
-		indexes(t, panel(t, body, "servers"), `<th scope="col">Serveur local</th>`,
-			"srv-ftp-01", "srv-https-01", "srv-r66-01", "srv-sftp-01")
-		indexes(t, panel(t, body, "clients"), `<th scope="col">Client local</th>`, "cli-sftp")
+		indexes(t, panel(t, body, "servers"), `>Serveur local</a></th>`, "srv-ftp-01", "srv-https-01", "srv-r66-01", "srv-sftp-01")
+		indexes(t, panel(t, body, "clients"), `>Client local</a></th>`, "cli-sftp")
 
 		// States: shape, colour and label; the raw reason, escaped; a dash with a hidden text otherwise.
 		assert.Contains(t, body, `w-status w-status--ok">En ligne<`)
@@ -163,10 +171,11 @@ func TestPage(t *testing.T) {
 		body := rec.Body.String()
 		assert.Contains(t, body, `<html lang="en">`)
 		assert.Contains(t, body, "<title>Service status · gw-test · Waarp Gateway</title>")
+		assert.Regexp(t, `>Updated at \d{2}:\d{2}:\d{2}</span>`, body)
 		assert.Contains(t, body, `w-status w-status--ok">Running<`)
 		assert.Contains(t, body, `w-status w-status--warn">Unknown<`)
-		assert.Contains(t, body, `<th scope="col">Local server</th>`)
-		assert.Contains(t, body, `<th scope="col">Status</th>`)
+		assert.Contains(t, body, `>Local server</a></th>`)
+		assert.Contains(t, body, `>Status</a></th>`)
 		assert.Contains(t, body, "1 / 4 running")
 		assert.NotContains(t, body, "¿")
 	})
@@ -188,6 +197,31 @@ func TestPage(t *testing.T) {
 			"an unknown group falls back to the first one")
 	})
 
+	t.Run("Given a sort in the request", func(t *testing.T) {
+		t.Parallel()
+
+		rec := serve(t, sampleServices, http.MethodGet, "fr", "/webui/services?group=servers&sort=state&dir=desc")
+		require.Equal(t, http.StatusOK, rec.Code)
+
+		servers := panel(t, rec.Body.String(), "servers")
+		indexes(t, servers, "srv-r66-01", "srv-ftp-01", "srv-https-01", "srv-sftp-01")
+		assert.Contains(t, servers, `<th scope="col"><a href="/webui/services?group=servers&amp;sort=name&amp;dir=asc">Serveur local</a></th>`)
+		assert.Contains(t, servers, `<th scope="col" aria-sort="descending"><a href="/webui/services?group=servers&amp;sort=state&amp;dir=asc">État</a></th>`)
+		assert.Contains(t, panel(t, rec.Body.String(), "core"), `aria-sort="ascending"`, "the other groups keep the default sort")
+
+		rec = serve(t, sampleServices, http.MethodGet, "fr", "/webui/services?group=servers&sort=state")
+		require.Equal(t, http.StatusOK, rec.Code)
+		indexes(t, panel(t, rec.Body.String(), "servers"), "srv-sftp-01", "srv-https-01", "srv-ftp-01", "srv-r66-01")
+
+		rec = serve(t, sampleServices, http.MethodGet, "fr", "/webui/services?group=servers&sort=name&dir=desc")
+		require.Equal(t, http.StatusOK, rec.Code)
+		indexes(t, panel(t, rec.Body.String(), "servers"), "srv-sftp-01", "srv-r66-01", "srv-https-01", "srv-ftp-01")
+
+		rec = serve(t, sampleServices, http.MethodGet, "fr", "/webui/services?group=servers&sort=bogus&dir=sideways")
+		require.Equal(t, http.StatusOK, rec.Code)
+		indexes(t, panel(t, rec.Body.String(), "servers"), "srv-ftp-01", "srv-https-01", "srv-r66-01", "srv-sftp-01")
+	})
+
 	t.Run("Given more servers than a page holds", func(t *testing.T) {
 		t.Parallel()
 
@@ -195,9 +229,9 @@ func TestPage(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 
 		servers := panel(t, rec.Body.String(), "servers")
-		assert.Equal(t, 25, strings.Count(servers, "<tr>")-1, "the first page holds 25 rows")
-		assert.Contains(t, servers, "État de chaque serveur local, page 1 sur 2")
-		assert.Contains(t, servers, "Serveurs locaux 1 à 25 sur 30")
+		assert.Equal(t, 10, rows(servers), "the first page holds 10 rows")
+		assert.Contains(t, servers, "État de chaque serveur local, page 1 sur 3")
+		assert.Contains(t, servers, "Serveurs locaux 1 à 10 sur 30")
 		assert.Contains(t, servers, `href="/webui/services?group=servers&amp;page=2" rel="next"`)
 		assert.Contains(t, servers, `<input type="hidden" name="group" value="servers">`)
 		assert.Contains(t, rec.Body.String(), "30 / 30 en ligne", "the tile counts the whole group")
@@ -206,21 +240,31 @@ func TestPage(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 
 		servers = panel(t, rec.Body.String(), "servers")
-		assert.Equal(t, 5, strings.Count(servers, "<tr>")-1)
-		assert.Contains(t, servers, "srv-26")
-		assert.NotContains(t, servers, "srv-25")
-		assert.Contains(t, servers, "Serveurs locaux 26 à 30 sur 30")
+		assert.Equal(t, 10, rows(servers))
+		indexes(t, servers, "srv-11", "srv-20")
+		assert.NotContains(t, servers, "srv-10")
+		assert.Contains(t, servers, "Serveurs locaux 11 à 20 sur 30")
 		assert.Contains(t, servers, `href="/webui/services?group=servers" rel="prev"`)
+		assert.Contains(t, servers, `href="/webui/services?group=servers&amp;page=3" rel="next"`)
 
 		rec = serve(t, manyServers, http.MethodGet, "fr", "/webui/services?group=servers&page=99")
 		require.Equal(t, http.StatusOK, rec.Code)
-		assert.Contains(t, panel(t, rec.Body.String(), "servers"), "Serveurs locaux 26 à 30 sur 30",
+		assert.Contains(t, panel(t, rec.Body.String(), "servers"), "Serveurs locaux 21 à 30 sur 30",
 			"a page out of range is brought back to the last one")
 
 		rec = serve(t, manyServers, http.MethodGet, "fr", "/webui/services?group=core&page=2")
 		require.Equal(t, http.StatusOK, rec.Code)
-		assert.Contains(t, panel(t, rec.Body.String(), "servers"), "Serveurs locaux 1 à 25 sur 30",
+		assert.Contains(t, panel(t, rec.Body.String(), "servers"), "Serveurs locaux 1 à 10 sur 30",
 			"the page applies to the group shown only")
+
+		rec = serve(t, manyServers, http.MethodGet, "fr", "/webui/services?group=servers&sort=name&dir=desc&page=2")
+		require.Equal(t, http.StatusOK, rec.Code)
+
+		servers = panel(t, rec.Body.String(), "servers")
+		indexes(t, servers, "srv-20", "srv-11")
+		assert.Contains(t, servers, `href="/webui/services?dir=desc&amp;group=servers&amp;page=3&amp;sort=name" rel="next"`,
+			"the page links keep the sort")
+		assert.Contains(t, servers, `<input type="hidden" name="sort" value="name">`)
 	})
 
 	t.Run("Given no server and no client", func(t *testing.T) {

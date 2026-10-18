@@ -389,6 +389,14 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		}
 	}
 
+	// A sortable column header, sorted ascending by default, sorts descending
+	// once clicked (through the fragment, served without error).
+	if headers := s.count(t, `[role="tabpanel"]:visible th[aria-sort="ascending"] a`); headers > 0 {
+		require.NoError(t, s.page.Locator(`[role="tabpanel"]:visible th[aria-sort="ascending"] a`).First().Click())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible th[aria-sort="descending"]`), "sorted descending")
+	}
+
 	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests")
 
 	t.Run("axe-core", func(t *testing.T) { s.checkAccessibility(t) })

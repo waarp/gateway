@@ -14,41 +14,37 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
 )
 
-// CatalogFile is the translation catalogue of the web interface: a single
-// YAML file, French and English side by side, keys nested by screen.
-const CatalogFile = "i18n.yaml"
+// CatalogDir holds the translation catalogue of the web interface: one YAML
+// file per language (fr.yaml, en.yaml), the same key tree in every file,
+// keys nested by screen, texts as leaves.
+const CatalogDir = "i18n"
 
 var (
-	ErrCatalogEntry     = errors.New("a catalogue entry must map each language to a text")
+	ErrCatalogEntry     = errors.New("a catalogue entry must be a text")
 	ErrCatalogDuplicate = errors.New("duplicate catalogue key")
 )
 
 // Catalog maps a dotted key ("services.title") to its texts by language.
 type Catalog map[string]map[string]string
 
-// Languages lists the languages every catalogue entry must provide.
-func Languages() []string { return []string{"fr", "en"} }
+// Languages lists the languages of the interface, those the kit ships.
+func Languages() []string { return slices.Clone(gui.Languages) }
 
-// LoadCatalog reads CatalogFile from the web file system and merges the
-// common strings of the GUI kit into it.
+// LoadCatalog reads the file of every language from CatalogDir and merges the
+// common strings of the kit into it.
 func LoadCatalog() (Catalog, error) {
-	raw, err := fs.ReadFile(webfs.WebFS, CatalogFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read the catalogue %q: %w", CatalogFile, err)
-	}
+	catalog := Catalog{}
 
-	catalog, err := ParseCatalog(raw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse the catalogue %q: %w", CatalogFile, err)
-	}
+	for _, lang := range Languages() {
+		name := lang + ".yaml"
 
-	common, err := ParseCatalog(gui.CommonCatalog)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse the common catalogue of the kit: %w", err)
-	}
+		if err := catalog.load(lang, webfs.WebFS, CatalogDir+"/"+name); err != nil {
+			return nil, err
+		}
 
-	if mergeErr := catalog.Merge(common); mergeErr != nil {
-		return nil, mergeErr
+		if err := catalog.load(lang, gui.I18n, name); err != nil {
+			return nil, fmt.Errorf("kit: %w", err)
+		}
 	}
 
 	return catalog, nil
@@ -65,45 +61,53 @@ func MustLoadCatalog() Catalog {
 	return catalog
 }
 
-// ParseCatalog reads a YAML catalogue. Sections nest freely; an entry maps
-// each language code to a text: `title: { fr: État des services, en: Service status }`.
-func ParseCatalog(src []byte) (Catalog, error) {
+// load adds the texts of one language file to the catalogue. A key already
+// holding a text in that language is an error, so that every text has a
+// single source.
+func (c Catalog) load(lang string, fsys fs.FS, name string) error {
+	raw, err := fs.ReadFile(fsys, name)
+	if err != nil {
+		return fmt.Errorf("failed to read the catalogue %q: %w", name, err)
+	}
+
+	texts, err := ParseLanguage(raw)
+	if err != nil {
+		return fmt.Errorf("failed to parse the catalogue %q: %w", name, err)
+	}
+
+	return c.Add(lang, texts)
+}
+
+// ParseLanguage reads the YAML catalogue of one language. Sections nest
+// freely; a leaf is a text: `services:\n  title: État des services`.
+func ParseLanguage(src []byte) (map[string]string, error) {
 	var tree map[string]any
 	if err := yaml.Unmarshal(src, &tree); err != nil {
 		return nil, fmt.Errorf("invalid YAML: %w", err)
 	}
 
-	catalog := Catalog{}
-	if err := flatten(catalog, "", tree); err != nil {
+	texts := map[string]string{}
+	if err := flatten(texts, "", tree); err != nil {
 		return nil, err
 	}
 
-	return catalog, nil
+	return texts, nil
 }
 
-func flatten(catalog Catalog, prefix string, node map[string]any) error {
+func flatten(texts map[string]string, prefix string, node map[string]any) error {
 	for key, value := range node {
 		path := dotted(prefix, key)
 
-		child, isMap := value.(map[string]any)
-		if !isMap {
-			return fmt.Errorf("%w: %q", ErrCatalogEntry, path)
-		}
-
-		if !hasLanguageKey(child) {
-			if err := flatten(catalog, path, child); err != nil {
+		switch child := value.(type) {
+		case string:
+			texts[path] = child
+		case map[string]any:
+			if err := flatten(texts, path, child); err != nil {
 				return err
 			}
-
-			continue
-		}
-
-		texts, isEntry := entryTexts(child)
-		if !isEntry {
+		default:
 			return fmt.Errorf("%w: %q", ErrCatalogEntry, path)
 		}
-
-		catalog[path] = texts
 	}
 
 	return nil
@@ -119,44 +123,19 @@ func dotted(prefix, key string) string {
 	return prefix + "." + key
 }
 
-// hasLanguageKey tells a {language: text} entry from a section: one of its
-// keys is a language code.
-func hasLanguageKey(node map[string]any) bool {
-	for key := range node {
-		if slices.Contains(Languages(), key) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// entryTexts returns the texts of an entry; an entry maps language codes,
-// and nothing else, to texts.
-func entryTexts(node map[string]any) (map[string]string, bool) {
-	texts := make(map[string]string, len(node))
-
-	for lang, value := range node {
-		text, isText := value.(string)
-		if !isText || !slices.Contains(Languages(), lang) {
-			return nil, false
+// Add puts the texts of one language into the catalogue; a key that already
+// has a text in that language is an error.
+func (c Catalog) Add(lang string, texts map[string]string) error {
+	for key, text := range texts {
+		if c[key][lang] != "" {
+			return fmt.Errorf("%w: %q (%s)", ErrCatalogDuplicate, key, lang)
 		}
 
-		texts[lang] = text
-	}
-
-	return texts, true
-}
-
-// Merge adds the entries of other to the catalogue. A key present on both
-// sides is an error, so that every text has a single source.
-func (c Catalog) Merge(other Catalog) error {
-	for key, texts := range other {
-		if _, duplicate := c[key]; duplicate {
-			return fmt.Errorf("%w: %q", ErrCatalogDuplicate, key)
+		if c[key] == nil {
+			c[key] = map[string]string{}
 		}
 
-		c[key] = texts
+		c[key][lang] = text
 	}
 
 	return nil

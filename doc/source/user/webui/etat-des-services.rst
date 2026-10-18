@@ -31,7 +31,9 @@ Trois tuiles, en tête de page, résument chaque groupe : nombre de services en
 ligne sur le total, et ce qui ne va pas le cas échéant. Un seul tableau est
 affiché à la fois, celui de la tuile sélectionnée (la première à l'ouverture) ;
 cliquer une autre tuile remplace le tableau, et l'adresse de la page garde le
-groupe choisi. Au-delà de 25 lignes, le tableau est paginé : le pied de liste
+groupe choisi. Les colonnes du nom et de l'état se trient d'un clic sur leur
+en-tête (par défaut, le nom croissant ; l'état se trie du plus sain au plus
+dégradé). Au-delà de 10 lignes, le tableau est paginé : le pied de liste
 indique les lignes affichées et permet de changer de page.
 
 
@@ -76,8 +78,9 @@ Actualisation
 =============
 
 Les états sont actualisés automatiquement toutes les 10 secondes, sans
-recharger la page ; l'heure de la dernière actualisation est affichée sous le
-titre. Le bouton *Actualiser* force une actualisation immédiate.
+recharger la page ; l'heure de la dernière actualisation est affichée à côté
+du bouton *Actualiser*, qui force une actualisation immédiate. Le groupe, le
+tri et la page choisis sont conservés d'une actualisation à l'autre.
 
 Quand une actualisation échoue (Gateway injoignable, session expirée), un
 message persistant l'indique en tête des tableaux, avec l'heure de la

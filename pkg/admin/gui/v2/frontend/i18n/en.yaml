@@ -1,0 +1,77 @@
+# Catalogue of the web interface, English. One file per language (decision of 2026-10-18): fr.yaml and en.yaml
+# carry the same key tree in the same order; the catalogue test checks the parity. The common strings of the
+# GUI kit (nav.home, nav.skip, action.*, state.*, header.*...) are merged in when the catalogue is loaded: they
+# are not repeated here. Parameters: {name}.
+
+# Sidebar: the sections and the screens, in the order of the screen map.
+nav:
+  connections: Connections
+  servers: Local servers
+  clients: Local clients
+  partners: Remote partners
+  treatments: Processing
+  rules: Transfer rules
+  keys: Cryptographic keys
+  smtp: SMTP credentials
+  email_templates: Email templates
+  supervision: Monitoring
+  services: Service status
+  transfers: Transfer monitoring
+  administration: Administration
+  users: Users
+  authorities: Authentication authorities
+  clouds: Cloud instances
+  snmp: SNMP
+  overrides: Configuration overrides
+  footer: "{product} {version} · revision {revision}"
+
+# Screen "Service status" (Monitoring).
+services:
+  title: Service status
+  live: "Updated at {time}"
+  refreshing: Refreshing…
+  groups: Service groups
+  group:
+    core: System services
+    servers: Local servers
+    clients: Local clients
+  caption:
+    core: State of each system service of the gateway
+    servers: State of each local server
+    clients: State of each local client
+    page: "{caption}, page {page} of {pages}"
+  col:
+    core: System service
+    server: Local server
+    client: Local client
+    state: Status
+    reason: Reason
+  reason:
+    none: No reason
+  summary:
+    running: "{running} / {total} running"
+    errors: "{n} in error"
+    offline: "{n} offline"
+    unknown: "{n} unknown"
+  pager:
+    info: "{group} {from} to {to} of {total}"
+  # Functional names of the system services, keyed by their technical name; a service without an entry keeps
+  # its technical name.
+  core:
+    Admin: Administration (REST API and web interface)
+    Analytics: Internal metrics
+    Controller: Transfer controller
+    Database: Database
+    SNMP: SNMP agent
+  empty:
+    servers:
+      title: No local server yet
+      text: "A local server is a listening endpoint of the gateway for one protocol. It appears here as soon as it is created."
+      link: See local servers
+    clients:
+      title: No local client yet
+      text: "A local client is the outgoing identity of the gateway for one protocol. It appears here as soon as it is created."
+      link: See local clients
+  error:
+    title: The states could not be refreshed.
+    text: "Last successful read at {time}. The states shown date from that read; a new attempt is made every {seconds} s."
