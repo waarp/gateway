@@ -3,6 +3,18 @@
 Historique des versions
 =======================
 
+* :feature:`-` L'écran des clients locaux de l'interface web est refondu sur
+  le kit : liste triée par colonne et filtrée (recherche, familles de
+  protocole, avec ou sans TLS), fiche en lecture (état, adresse locale,
+  reprise des transferts, options du protocole, partenaires joignables par le
+  client), pages de création, de modification et de suppression, démarrage
+  et arrêt. L'algorithme du hachage final d'un client R66, que l'ancien écran
+  ne montrait pas, est exposé. Sur cet écran et sur celui des serveurs
+  locaux, le protocole se choisit par sa famille (R66, HTTP, SFTP, FTP,
+  PeSIT, WebDAV, AS2) et TLS par une case à cocher ; les listes montrent la
+  famille et un badge *TLS* ; les clés enregistrées, l'API et la ligne de
+  commande ne changent pas. L'ancien écran reste accessible à son adresse
+  jusqu'à la version suivante (:ref:`user-webui-clients`).
 * :feature:`710` La page d'accueil de l'interface web est refondue sur le kit :
   une carte par section et une tuile par écran, avec une phrase qui dit ce que
   l'écran contient ; seuls les écrans que l'utilisateur a le droit de lire sont

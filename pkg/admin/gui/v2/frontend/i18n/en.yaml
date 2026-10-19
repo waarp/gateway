@@ -552,3 +552,121 @@ me:
     mismatch: The two entries of the new password differ.
   toast:
     password: Password changed
+# Local clients: the list, the details (with the partners the client can reach), the action pages.
+clients:
+  title: Local clients
+  add: Add a client
+  search: Search a client by name
+  search_placeholder: Search by name
+  filters: Protocols
+  count: "{total} clients"
+  count_one: 1 client
+  count_shown: "{total} clients · {shown} shown"
+  count_shown_one: "{total} clients · 1 shown"
+  caption: "Local clients, page {page} of {pages}, sorted by {sort}"
+  pager: "Clients {from} to {to} of {total}"
+  back: Back to the list
+  back_client: Back to the client
+  address_auto: Automatic
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    state: status
+    protocol: protocol
+    address: address
+  col:
+    name: Local client
+    state: Status
+    protocol: Protocol
+    address: Local address
+    actions: Actions
+  action:
+    detail: View details
+    start: Start the client
+    stop: Stop the client
+    edit: Edit the client
+    delete: Delete the client
+  detail:
+    title: "Client “{name}”"
+    card: Client
+    state: Status
+    protocol: Protocol
+    address: Local address
+    autostart: Automatic start
+    autostart_yes: "Yes"
+    autostart_no: "No"
+    retries: Transfer retries
+    retries_none: No automatic retry
+    partners: Partners this client can reach
+    partners_hint: "The remote partners of its protocol; a transfer to one of them goes through this client, unless another one is named."
+    partners_none: No partner of this protocol yet.
+    col_partner: Remote partner
+    col_address: Address
+  retries:
+    attempts: Automatic retries after a failure
+    attempts_hint: "0: no retry; 127 at most"
+    delay: Delay before the first retry
+    delay_hint: "Empty: immediate retry"
+    delay_none: No delay
+    delay_hours: "{n} h"
+    delay_minutes: "{n} min"
+    delay_seconds: "{n} s"
+    hours: hours
+    minutes: minutes
+    seconds: seconds
+    factor: Delay growth factor
+    factor_hint: "1: constant delay; 2: the delay doubles at each retry"
+  new:
+    title: New client
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique on this gateway; letters, digits, dashes and dots"
+    no_autostart: Do not start automatically when the gateway starts
+    address: Local address
+    address_hint: "Optional: left empty, the system chooses the outgoing interface and port."
+    host: Host
+    host_hint: "Host name or IP address of the outgoing interface"
+    port: Port
+    port_hint: "Outgoing TCP port, 1 to 65535"
+    retries: Transfer retries
+    retries_hint: "When a transfer through this client fails, the gateway retries it on its own, as set here."
+    refused: The client was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: This field is required.
+      name_taken: Another client already has this name. Choose another one.
+      address: Enter a valid host name or IP address.
+      port: Enter a port between 1 and 65535.
+      number: Enter a positive whole number.
+      attempts: Enter a number of retries between 0 and 127.
+      factor: Enter a factor above 0.
+  delete:
+    title: "Delete the client “{name}”?"
+    text: "Transfers to come or interrupted that name it will no longer run; the transfer history keeps its name."
+    running: "It is running: it will be stopped and its running transfers interrupted."
+    blocked_title: This client cannot be deleted.
+    blocked_text: "Folder watchers use it. Delete them first, through the API or the command line."
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Client “{name}” created"
+    updated: "Client “{name}” saved"
+    deleted: "Client “{name}” deleted"
+    started: "Client “{name}” started"
+    stopped: "Client “{name}” stopped"
+    start_failed: "Client “{name}” did not start"
+    stop_failed: "Client “{name}” could not be stopped"
+  empty:
+    title: No local client yet
+    text: "A local client is the outgoing identity of the gateway for one protocol: it connects to the partners to drop or fetch files."
+  none:
+    title: "No client matches “{query}”"
+    filters: No client matches the filters
+  not_found:
+    title: Client not found
+    text: This client does not exist or has been deleted.
+  error:
+    title: The client list could not be loaded.
+    text: "An internal error occurred; the details are in the gateway log."

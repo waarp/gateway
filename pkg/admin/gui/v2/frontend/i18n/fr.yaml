@@ -551,3 +551,121 @@ me:
     mismatch: Les deux saisies du nouveau mot de passe diffèrent.
   toast:
     password: Mot de passe modifié
+# Clients locaux : la liste, le détail (avec les partenaires joignables), les pages d'action.
+clients:
+  title: Clients locaux
+  add: Ajouter un client
+  search: Rechercher un client par son nom
+  search_placeholder: Rechercher par nom
+  filters: Protocoles
+  count: "{total} clients"
+  count_one: 1 client
+  count_shown: "{total} clients · {shown} affichés"
+  count_shown_one: "{total} clients · 1 affiché"
+  caption: "Clients locaux, page {page} sur {pages}, triés par {sort}"
+  pager: "Clients {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_client: Retour au client
+  address_auto: Automatique
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    state: état
+    protocol: protocole
+    address: adresse
+  col:
+    name: Client local
+    state: État
+    protocol: Protocole
+    address: Adresse locale
+    actions: Actions
+  action:
+    detail: Voir le détail
+    start: Démarrer le client
+    stop: Arrêter le client
+    edit: Modifier le client
+    delete: Supprimer le client
+  detail:
+    title: "Client « {name} »"
+    card: Client
+    state: État
+    protocol: Protocole
+    address: Adresse locale
+    autostart: Démarrage automatique
+    autostart_yes: Oui
+    autostart_no: Non
+    retries: Reprise des transferts
+    retries_none: Aucune reprise automatique
+    partners: Partenaires joignables par ce client
+    partners_hint: "Les partenaires distants de son protocole ; un transfert vers l'un d'eux passe par ce client, sauf à en nommer un autre."
+    partners_none: Aucun partenaire de ce protocole pour l'instant.
+    col_partner: Partenaire distant
+    col_address: Adresse
+  retries:
+    attempts: Tentatives automatiques après un échec
+    attempts_hint: "0 : aucune reprise ; 127 au plus"
+    delay: Délai avant la première reprise
+    delay_hint: "Vide : reprise immédiate"
+    delay_none: Aucun délai
+    delay_hours: "{n} h"
+    delay_minutes: "{n} min"
+    delay_seconds: "{n} s"
+    hours: heures
+    minutes: minutes
+    seconds: secondes
+    factor: Facteur de progression du délai
+    factor_hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
+  new:
+    title: Nouveau client
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
+    no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
+    address: Adresse locale
+    address_hint: "Facultative : vide, l'interface et le port de sortie sont choisis par le système."
+    host: Hôte
+    host_hint: "Nom d'hôte ou adresse IP de l'interface de sortie"
+    port: Port
+    port_hint: "Port TCP de sortie, de 1 à 65535"
+    retries: Reprise des transferts
+    retries_hint: "Quand un transfert passé par ce client échoue, la passerelle le retente d'elle-même, selon ces réglages."
+    refused: Le client n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Un autre client porte déjà ce nom. Choisissez-en un autre.
+      address: "Indiquez un nom d'hôte ou une adresse IP valide."
+      port: Indiquez un port entre 1 et 65535.
+      number: Indiquez un nombre entier positif.
+      attempts: Indiquez un nombre de tentatives entre 0 et 127.
+      factor: Indiquez un facteur supérieur à 0.
+  delete:
+    title: "Supprimer le client « {name} » ?"
+    text: "Les transferts à venir ou interrompus qui le désignent ne pourront plus s'exécuter ; l'historique des transferts garde son nom."
+    running: "Il est en ligne : il sera arrêté et ses transferts en cours interrompus."
+    blocked_title: Ce client ne peut pas être supprimé.
+    blocked_text: "Des surveillances de dossiers l'utilisent. Supprimez-les d'abord, par l'API ou la ligne de commande."
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Client « {name} » créé"
+    updated: "Client « {name} » enregistré"
+    deleted: "Client « {name} » supprimé"
+    started: "Client « {name} » démarré"
+    stopped: "Client « {name} » arrêté"
+    start_failed: "Le client « {name} » n'a pas démarré"
+    stop_failed: "Le client « {name} » n'a pas pu être arrêté"
+  empty:
+    title: Aucun client local pour l'instant
+    text: "Un client local est l'identité sortante de la passerelle pour un protocole : il se connecte aux partenaires pour déposer ou retirer des fichiers."
+  none:
+    title: "Aucun client ne correspond à « {query} »"
+    filters: Aucun client ne correspond aux filtres
+  not_found:
+    title: Client introuvable
+    text: Ce client n'existe pas ou a été supprimé.
+  error:
+    title: La liste des clients n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
