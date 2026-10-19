@@ -10,7 +10,7 @@
 {{ define "proto/field" -}}
 <div class="w-field{{ if .Short }} w-field--short{{ end }}{{ if .F.Error }} is-invalid{{ end }}">
   <label class="w-field__label" for="{{ .ID }}">{{ .Label }}{{ if .Req }} <span class="w-field__req" aria-hidden="true">*</span>{{ else if .Code }} <span class="w-field__opt"><code class="w-code">{{ .Code }}</code></span>{{ else }} <span class="w-field__opt">{{ t "form.optional" }}</span>{{ end }}</label>
-  <input class="w-input" id="{{ .ID }}" name="{{ .ID }}" value="{{ .F.Value }}"{{ if .Req }} required{{ end }}{{ if .Num }} type="number" inputmode="numeric" step="1"{{ with .Min }} min="{{ . }}"{{ end }}{{ with .Max }} max="{{ . }}"{{ end }}{{ end }}{{ if .F.Error }} aria-invalid="true" aria-describedby="{{ .ID }}-e"{{ else if .Hint }} aria-describedby="{{ .ID }}-h"{{ end }}>
+  <input class="w-input" id="{{ .ID }}" name="{{ .ID }}" value="{{ .F.Value }}"{{ if .Req }} required{{ end }}{{ if .Num }} type="number" inputmode="numeric" step="1" min="{{ or .Min 0 }}"{{ with .Max }} max="{{ . }}"{{ end }}{{ end }}{{ if .F.Error }} aria-invalid="true" aria-describedby="{{ .ID }}-e"{{ else if .Hint }} aria-describedby="{{ .ID }}-h"{{ end }}>
   {{ if .F.Error }}<span class="w-field__error" id="{{ .ID }}-e">{{ icon "triangle" }} {{ .F.Error }}</span>{{ else if .Hint }}<span class="w-field__hint" id="{{ .ID }}-h">{{ .Hint }}</span>{{ end }}
 </div>
 {{- end }}
@@ -40,7 +40,7 @@
     <legend class="w-card__title">{{ t "proto.options" "protocol" .Label }}</legend>
     {{ with .Note }}<p class="w-form__note proto-note">{{ . }}</p>{{ end }}
     {{ template "proto/block" .Plain }}
-    {{ if or .TLS.Fields .TLS.Checks .TLS.Lists }}<fieldset class="w-fieldset w-fieldset--wide" data-case="on" data-of="tls">
+    {{ if .TLS.Groups }}<fieldset class="w-fieldset w-fieldset--wide" data-case="on" data-of="tls">
       <legend class="w-fieldset__legend">{{ t "proto.tls_title" }}</legend>
       {{ template "proto/block" .TLS }}
     </fieldset>{{ end }}
@@ -55,17 +55,16 @@
 </div>
 {{- end }}
 
-{{/* proto/block: the options of a block by kind: the fields in a grid, then the checkboxes, then the lists;
-     protoform.BlockView. */ -}}
+{{/* proto/block: the options of a block in the order of the table: consecutive fields in a grid, a checkbox or a
+     list on its own; protoform.BlockView. */ -}}
 {{ define "proto/block" -}}
-{{ if .Fields }}<div class="w-grid w-grid--2">
+{{ range .Groups }}{{ if .Fields }}<div class="w-grid w-grid--2">
   {{ range .Fields }}{{ template "proto/option" . }}
   {{ end }}
-</div>{{ end }}
-{{ range .Checks }}<label class="w-check"><input type="checkbox" name="{{ .Name }}" value="1"{{ if .Checked }} checked{{ end }}> <span>{{ .Label }} (<code class="w-code">{{ .Code }}</code>)</span></label>
-{{ end }}
-{{ range .Lists }}{{ template "proto/dual" . }}
-{{ end }}
+</div>
+{{ else if .Check }}{{ with .Check }}<label class="w-check"><input type="checkbox" name="{{ .Name }}" value="1"{{ if .Checked }} checked{{ end }}> <span>{{ .Label }} (<code class="w-code">{{ .Code }}</code>)</span></label>
+{{ end }}{{ else if .List }}{{ template "proto/dual" .List }}
+{{ end }}{{ end }}
 {{- end }}
 
 {{/* proto/option: a text, number or select field, protoform.OptionView. */ -}}
@@ -95,7 +94,7 @@
      follows the version: a switch of its own, scoped by data-of. */ -}}
 {{ define "proto/tls-block" -}}
 <div class="w-grid w-grid--2">
-  {{ range .Fields }}<div class="w-field w-field--short">
+  {{ range .FieldList }}<div class="w-field w-field--short">
     <label class="w-field__label" for="{{ .Name }}">{{ .Label }} <span class="w-field__opt"><code class="w-code">{{ .Code }}</code></span></label>
     <select class="w-select" id="{{ .Name }}" name="{{ .Name }}" data-switch="tlsver" aria-describedby="{{ .Name }}-h">{{ range .Choices }}<option value="{{ .Value }}"{{ if .Selected }} selected{{ end }}>{{ .Label }}</option>{{ end }}</select>
     <span class="w-field__hint" id="{{ .Name }}-h">{{ .Hint }}</span>
@@ -103,6 +102,6 @@
   {{ end }}
 </div>
 <fieldset class="w-fieldset w-fieldset--wide" data-case="v1.0 v1.1 v1.2" data-of="tlsver">
-  {{ range .Lists }}{{ template "proto/dual" . }}{{ end }}
+  {{ range .ListList }}{{ template "proto/dual" . }}{{ end }}
 </fieldset>
 {{- end }}

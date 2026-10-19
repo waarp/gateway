@@ -202,7 +202,7 @@ func TestFormRoundTrip(t *testing.T) {
 				continue
 			}
 
-			for _, opt := range family.Plain.Fields {
+			for _, opt := range family.Plain.FieldList() {
 				if opt.Name == "pesit_checkpoint_window" {
 					found = true
 					assert.Equal(t, "300", opt.Value)

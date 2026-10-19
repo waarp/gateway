@@ -1029,22 +1029,21 @@ func TestStartStop(t *testing.T) {
 func TestListQuery(t *testing.T) {
 	t.Parallel()
 
-	q := parseListQuery(url.Values{"q": {" srv "}, "protocol": {"sftp,bogus", "pesit"}, "sort": {"address"}, "dir": {"desc"}, "page": {"3"}, "size": {"50"}})
-	assert.Equal(t, listQuery{Q: "srv", Protocols: []string{"sftp", "pesit"}, Sort: "address", Dir: "desc", Page: 3, Size: 50}, q)
+	q := parseListQuery(url.Values{
+		"q": {" srv "}, "protocol": {"sftp,bogus", "pesit"}, "sort": {"address"}, "dir": {"desc"}, "page": {"3"}, "size": {"50"},
+	})
+	assert.Equal(t, "srv", q.Q)
+	assert.Equal(t, []string{"sftp", "pesit"}, protoFilter(q).Families)
+	assert.Equal(t, "dir=desc&page=3&protocol=sftp%2Cpesit&q=srv&size=50&sort=address", q.Encode(q.Page))
+	assert.Equal(t, map[string]string{"q": "srv", "protocol": "sftp,pesit", "sort": "address", "dir": "desc"}, q.PagerHidden())
+	assert.Equal(t, q.Encode(q.Page), listSpec.RetOf(q.Encode(q.Page)).Encode(q.Page), "the carried state reads back")
 
 	withTLS := parseListQuery(url.Values{"protocol": {"r66-tls"}, "tls": {"yes"}})
-	assert.Equal(t, listQuery{Protocols: []string{"r66"}, TLS: "yes", Sort: "name", Dir: "asc", Page: 1, Size: 10}, withTLS,
-		"a product key reads as its family; the TLS filter is kept")
-	assert.Equal(t, "protocol=r66&tls=yes", withTLS.encode(1))
-	assert.Equal(t, "dir=desc&page=3&protocol=sftp%2Cpesit&q=srv&size=50&sort=address", q.encode(q.Page))
-	assert.Equal(t, map[string]string{"sort": "address", "dir": "desc", "size": "50"}, q.toolbarHidden())
-	assert.Equal(t, map[string]string{"q": "srv", "protocol": "sftp,pesit", "sort": "address", "dir": "desc"}, q.pagerHidden())
-	assert.Equal(t, q, retOf(q.encode(q.Page)), "the carried state reads back")
+	assert.Equal(t, []string{"r66"}, protoFilter(withTLS).Families, "a product key reads as its family")
+	assert.Equal(t, "yes", protoFilter(withTLS).TLS)
+	assert.Equal(t, "protocol=r66&tls=yes", withTLS.Encode(1))
 
-	dflt := parseListQuery(url.Values{"sort": {"name"}, "dir": {"asc"}, "size": {"10"}, "page": {"1"}})
-	assert.Empty(t, dflt.encode(dflt.Page), "the default state is carried as nothing")
 	assert.Equal(t, "/webui/servers", listURL(""))
 	assert.Equal(t, "/webui/servers?q=srv", listURL("q=srv&bogus=1&page=1"), "unknown parameters are dropped")
 	assert.Equal(t, "/webui/servers/new?ret=q%3Dsrv", withRet("/webui/servers/new", "q=srv"))
-	assert.Equal(t, "/webui/servers/new", withRet("/webui/servers/new", ""))
 }

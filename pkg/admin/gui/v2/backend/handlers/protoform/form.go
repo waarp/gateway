@@ -74,25 +74,60 @@ type FamilyView struct {
 // HasOptions tells whether the card has anything to show.
 func (v *FamilyView) HasOptions() bool { return v.Plain.any() || v.TLS.any() }
 
-// BlockView groups options by kind: the text, number and select fields in a
-// grid, then the checkboxes, then the lists.
+// BlockView is the options of a block in the order of the table: the
+// consecutive text, number and select fields share a grid, a checkbox and a
+// list stand on their own.
 type BlockView struct {
-	Fields []OptionView
-	Checks []OptionView
-	Lists  []OptionView
+	Groups []GroupView
 }
 
-func (b *BlockView) any() bool { return len(b.Fields)+len(b.Checks)+len(b.Lists) > 0 }
+// GroupView is one row of a block: a grid of fields, or a checkbox, or a list.
+type GroupView struct {
+	Fields []OptionView
+	Check  *OptionView
+	List   *OptionView
+}
+
+func (b *BlockView) any() bool { return len(b.Groups) > 0 }
 
 func (b *BlockView) add(v *OptionView) {
 	switch v.Kind {
 	case "check":
-		b.Checks = append(b.Checks, *v)
+		b.Groups = append(b.Groups, GroupView{Check: v})
 	case "list":
-		b.Lists = append(b.Lists, *v)
+		b.Groups = append(b.Groups, GroupView{List: v})
 	default:
-		b.Fields = append(b.Fields, *v)
+		if n := len(b.Groups); n > 0 && len(b.Groups[n-1].Fields) > 0 {
+			b.Groups[n-1].Fields = append(b.Groups[n-1].Fields, *v)
+
+			return
+		}
+
+		b.Groups = append(b.Groups, GroupView{Fields: []OptionView{*v}})
 	}
+}
+
+// FieldList lists the fields of a block, whatever their group: the TLS block
+// template renders its select and its list apart.
+func (b *BlockView) FieldList() []OptionView {
+	var out []OptionView
+	for _, g := range b.Groups {
+		out = append(out, g.Fields...)
+	}
+
+	return out
+}
+
+// ListList lists the lists of a block, whatever their group.
+func (b *BlockView) ListList() []OptionView {
+	var out []OptionView
+	for _, g := range b.Groups {
+		if g.List != nil {
+			out = append(out, *g.List)
+		}
+	}
+
+	return out
 }
 
 // OptionView is one option as the template renders it.
