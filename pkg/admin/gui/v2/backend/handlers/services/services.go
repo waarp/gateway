@@ -145,8 +145,8 @@ type selection struct {
 func groupSpecs() []groupSpec {
 	return []groupSpec{
 		{id: "core", kindKey: "services.col.core", core: true},
-		{id: "servers", kindKey: "services.col.server", path: "/server_management"},
-		{id: "clients", kindKey: "services.col.client", path: "/local_client_management"},
+		{id: "servers", kindKey: "services.col.server", path: "/servers"},
+		{id: "clients", kindKey: "services.col.client", path: "/clients"},
 	}
 }
 
