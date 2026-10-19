@@ -3,6 +3,16 @@
 Historique des versions
 =======================
 
+* :feature:`710` La page d'accueil de l'interface web est refondue sur le kit :
+  une carte par section et une tuile par écran, avec une phrase qui dit ce que
+  l'écran contient ; seuls les écrans que l'utilisateur a le droit de lire sont
+  proposés (l'ancienne page montrait des écrans refusés ensuite). Le menu du
+  compte gagne « Mon compte » (identifiant, droits en lecture, changement de
+  son propre mot de passe, page ``/webui/account``) et retrouve « À propos »
+  (version, révision, support, licence, liens utiles), en fenêtre ou en page
+  ``/webui/about`` ; le bouton « Documentation » mène à la dernière
+  documentation publiée. L'ancienne page d'accueil est retirée, à la même
+  adresse (:ref:`user-webui-home`).
 * :feature:`709` La fiche d'un serveur local, dans l'interface web, regroupe
   en onglets ses détails, son authentification (l'identité qu'il présente aux
   partenaires) et ses comptes locaux ; chaque compte a sa propre fiche

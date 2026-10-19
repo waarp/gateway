@@ -467,3 +467,69 @@ accounts:
     created: "Account “{login}” created"
     updated: "Account “{login}” saved"
     deleted: "Account “{login}” deleted"
+# Home page: one card per section, one card per screen the user may read, one sentence per screen (definitions
+# of the glossary of the objects, on trial: Driss, 2026-10-19).
+home:
+  title: Home
+  desc:
+    servers: Listening endpoints, one per protocol
+    clients: Outgoing identities towards the partners
+    partners: Remote servers and their accounts
+    rules: Direction, paths and processing
+    keys: Encryption and signature for the tasks
+    smtp: Sending accounts of the EMAIL task
+    email_templates: Message templates of the EMAIL task
+    services: State of the services, servers and clients
+    transfers: Running and past transfers
+    users: Access accounts and their rights
+    authorities: Trusted certificate authorities
+    clouds: Remote storages, origin or destination
+    snmp: SNMP agent and alerts
+    overrides: Values specific to one node of a cluster
+# "About" (dialog of the account menu and its fallback page): the sentences of the product; the frame and its
+# labels come from the kit (about.title, about.version…).
+about:
+  support: "provides professional support and services for {product}."
+  license: "{product} is licensed under the terms of the GPLv3 License."
+  link_download: "Download {product}"
+  link_doc: Documentation
+  link_forums: Forums
+  link_contact: "Contact: {email}"
+# "My account" page (account menu): the signed-in user, their rights in reading, the change of their password
+# (Driss, 2026-10-19).
+me:
+  title: My account
+  identity: Identity
+  username: Login
+  instance: Instance
+  rights: Rights
+  rights_caption: "Your rights, by domain: read, write, delete"
+  rights_hint: "Your rights are set by an administrator, in “Users”."
+  col:
+    area: Domain
+    read: Read
+    write: Write
+    delete: Delete
+  "yes": "Yes"
+  "no": "No"
+  right:
+    transfers: Transfers
+    servers: Local servers and clients
+    partners: Remote partners
+    rules: Transfer rules
+    users: Users
+    admin: Administration
+  password:
+    title: Change my password
+    current: Current password
+    new: New password
+    new_hint: "Stored hashed; nobody can read it back."
+    confirm: New password, once more
+    refused: The password was not changed.
+    refused_text: Correct the fields flagged below.
+  error:
+    current: The current password is not the right one.
+    required: Enter the new password.
+    mismatch: The two entries of the new password differ.
+  toast:
+    password: Password changed

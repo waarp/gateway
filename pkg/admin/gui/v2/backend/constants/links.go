@@ -47,3 +47,10 @@ func DocLink(language string) string {
 func DocPage(language, page string) string {
 	return DocLink(language) + strings.Trim(page, "/") + "/"
 }
+
+// DocLatest is the home of the latest published documentation, whatever the
+// version of the gateway: where the header of the web interface leads
+// (Driss, 2026-10-19), in the only language the documentation exists in.
+func DocLatest() string {
+	return DocLinkHome + "latest/fr/"
+}
