@@ -1,5 +1,6 @@
-{{/* Details of a local server, in reading (the "Details" tab of the future server sheet). Breadcrumb and a "Back
-     to the list" button (decision D10); the other actions in a "⋯" menu; key/value lists, nothing else. */ -}}
+{{/* Details of a local server, in reading: the "Details" tab of the server sheet, next to "Authentication" and
+     "Local accounts" (links, one page per tab). Breadcrumb and a "Back to the list" button (decision D10); the
+     other actions in a "⋯" menu; key/value lists, nothing else. */ -}}
 {{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
 
 {{ define "page" -}}
@@ -14,6 +15,7 @@
     {{ template "gui/actions" (dict "ID" "act-detail" "Name" $d.Name "Items" $d.Actions) }}
   </div>
 </div>
+{{ template "servers/tabs" $d.Tabs }}
 <div class="w-stack">
   <div class="w-card">
     <h2 class="w-card__title">{{ t "servers.detail.card" }}</h2>

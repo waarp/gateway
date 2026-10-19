@@ -257,3 +257,212 @@ servers:
   error:
     title: La liste des serveurs n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+  # Fiche d'un serveur (#709) : onglets de la fiche.
+  tabs: Onglets de la fiche
+  tab:
+    details: Détails
+    auth: Authentification
+    accounts: Comptes locaux
+# Fiche d'un compte local.
+account:
+  title: "Compte « {login} »"
+  card: Compte
+  tab:
+    details: Détails
+    auth: Authentification
+  detail:
+    server: Serveur
+    login: Identifiant
+    ips: Adresses IP autorisées
+    ips_all: Toutes
+    ips_note: "Les adresses IP autorisées limitent d'où ce compte peut se connecter ; « Toutes » n'applique aucune limite."
+    auth: Moyens d'authentification
+    auth_none: Aucun
+# Moyens d'authentification, partagés par le serveur et ses comptes.
+auth:
+  title:
+    server: Identité présentée par le serveur aux partenaires
+    account: Moyens que le partenaire présente pour ce compte
+  owner:
+    server: "le serveur « {name} »"
+    account: "le compte « {login} » du serveur « {name} »"
+  add: Ajouter un moyen d'authentification
+  search: Rechercher un moyen d'authentification par son nom
+  search_placeholder: Rechercher par nom
+  count: "{total} moyens"
+  count_one: 1 moyen
+  count_shown: "{total} moyens · {shown} affichés"
+  count_shown_one: "{total} moyens · 1 affiché"
+  caption: "Moyens d'authentification, page {page} sur {pages}, triés par {sort}"
+  pager: "Moyens {from} à {to} sur {total}"
+  sort:
+    name: nom
+    type: type
+  col:
+    name: Moyen d'authentification
+    type: Type
+    content: Contenu
+  action:
+    detail: Voir le moyen
+    edit: Modifier le moyen
+    delete: Supprimer le moyen
+  type:
+    password: Mot de passe
+    tls_certificate: Certificat TLS et sa clé
+    trusted_tls_certificate: Certificat TLS de confiance
+    ssh_private_key: Clé privée SSH
+    ssh_public_key: Clé publique SSH
+    r66_legacy_certificate: Certificat R66 historique
+  # Format des dates de validité (disposition Go).
+  date: 02/01/2006
+  # Contenu non secret d'un moyen, dans la liste et sur sa page.
+  content:
+    set: Défini
+    secret: Défini, non affiché
+    cert_key: "{subject} · clé privée définie, non affichée"
+    key_set: Clé privée définie, non affichée
+    private_key: "Clé privée {type}, non affichée"
+    key: "{type} · {fingerprint}"
+    valid: "Valide jusqu'au {date}"
+    expires: "Expire le {date}"
+    expired: "Expiré le {date}"
+  new:
+    title: Nouveau moyen d'authentification
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    card: "Moyen d'authentification pour {owner}"
+    content: Contenu
+    name: Nom
+    name_hint: "Pour vous y retrouver : « cert-2026 », « cle-hote-rsa »… ; vide, le nom du type est repris"
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Seuls les types admis par le protocole sont proposés ; un type unique déjà présent n'y figure plus."
+    type_fixed: "Le type d'un moyen ne change pas : pour en changer, supprimez-le et ajoutez-en un autre."
+    password: Mot de passe
+    password_hint: "Le partenaire le présente à la connexion ; il est conservé haché, personne ne pourra le relire"
+    password_keep: Laissez vide pour conserver le mot de passe actuel
+    file: Fichier
+    file_hint: Certificat, clé publique ou clé privée au format PEM
+    keep_file: "Déposer un nouveau fichier le remplace ; sinon le contenu en place est conservé"
+    paste: ou coller le contenu PEM
+    cert: Certificat
+    cert_hint: Le certificat que le serveur présente, au format PEM
+    paste_cert: ou coller le certificat
+    key: Clé privée
+    key_hint: "La clé privée du certificat ; elle n'est jamais réaffichée"
+    paste_key: ou coller la clé
+    legacy_hint: "Aucune valeur à saisir : ce moyen indique que l'authentification suit la convention historique du marché pour les certificats R66."
+    refused: Le moyen d'authentification n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Indiquez le contenu du moyen d'authentification.
+      type: Choisissez un type admis par le protocole.
+      unique: "Un moyen de ce type existe déjà ; modifiez-le ou supprimez-le d'abord."
+      name_taken: Un autre moyen porte déjà ce nom. Choisissez-en un autre.
+      invalid: "Le contenu n'a pas été accepté : {reason}"
+  detail:
+    title: "Moyen « {name} »"
+    card: "{type} pour {owner}"
+    state: État
+    subject: Sujet
+    issuer: Émetteur
+    self_signed: Auto-signé
+    validity: Validité
+    validity_text: "du {from} au {to}"
+    fingerprint: Empreinte SHA-256
+    key_type: Type de clé
+    private_key: Clé privée
+    content: Contenu
+    never_shown: Définie, jamais affichée
+    legacy: "Aucune valeur : le type suffit"
+    pem: Certificat (PEM)
+    public_key: Clé publique
+    public_note: "Partie publique seulement : elle peut se transmettre au partenaire."
+  delete:
+    title: "Supprimer le moyen « {name} » ?"
+    server: Les partenaires qui vérifient cette identité du serveur ne pourront plus se connecter.
+    account: Ce partenaire ne pourra plus s'authentifier par ce moyen.
+    means: Moyen
+    type: Type
+    owner: Pour
+    content: Contenu
+  empty:
+    title: Aucun moyen d'authentification pour l'instant
+    server: "Ajoutez l'identité que ce serveur présente aux partenaires : certificat, clé d'hôte ou mot de passe selon le protocole."
+    account: "Ce compte ne peut pas se connecter tant qu'il n'a aucun moyen : ajoutez un mot de passe, un certificat ou une clé publique."
+  none_for_protocol:
+    title: Ce protocole ne demande aucun moyen d'authentification au serveur
+    text: "Les connexions à ce serveur ne sont pas authentifiées par lui : rien à déposer ici."
+  none:
+    title: "Aucun moyen ne correspond à « {query} »"
+  not_found:
+    title: Moyen d'authentification introuvable
+    text: Ce moyen d'authentification n'existe pas ou a été supprimé.
+  toast:
+    created: "Moyen « {name} » ajouté"
+    updated: "Moyen « {name} » enregistré"
+    deleted: "Moyen « {name} » supprimé"
+# Comptes locaux d'un serveur.
+accounts:
+  add: Ajouter un compte
+  search: Rechercher un compte par son identifiant
+  search_placeholder: Rechercher par identifiant
+  count: "{total} comptes"
+  count_one: 1 compte
+  count_shown: "{total} comptes · {shown} affichés"
+  count_shown_one: "{total} comptes · 1 affiché"
+  caption: "Comptes locaux, page {page} sur {pages}, triés par {sort}"
+  pager: "Comptes {from} à {to} sur {total}"
+  sort:
+    name: identifiant
+    auth: authentification
+  col:
+    login: Compte local
+    auth: Authentification
+  auth_none: "Aucun moyen : ne peut pas se connecter"
+  action:
+    detail: Voir le compte
+    edit: Modifier le compte
+    delete: Supprimer le compte
+  new:
+    title: Nouveau compte
+  edit:
+    title: "Modifier « {login} »"
+  form:
+    card: "Compte sur le serveur « {name} »"
+    login: Identifiant
+    login_hint: "Unique sur ce serveur ; c'est l'identifiant que le partenaire présente"
+    ips: Adresses IP autorisées
+    ips_hint: "Une adresse par ligne, IPv4 ou IPv6, sans plage ; vide : toutes les adresses sont acceptées"
+    first_means: Premier moyen d'authentification
+    first_means_hint: "Le partenaire s'authentifiera par ce moyen ; vous pourrez en ajouter d'autres dans la fiche du compte."
+    first_means_none: Aucun pour l'instant
+    means_name: Nom du moyen
+    means_name_hint: "Vide : le nom du type est repris"
+    means_type: Type
+    means_type_hint: Types admis pour un compte de ce protocole
+    refused: Le compte n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      login: Indiquez l'identifiant du compte.
+      taken: Un autre compte de ce serveur porte déjà cet identifiant.
+      ip: "« {value} » n'est pas une adresse IP."
+  delete:
+    title: "Supprimer le compte « {login} » ?"
+    text: "Ses moyens d'authentification seront supprimés avec lui ; ce partenaire ne pourra plus se connecter au serveur « {name} »."
+    blocked_title: Ce compte ne peut pas être supprimé.
+    blocked_text: "Des transferts en cours l'utilisent. Annulez-les ou attendez leur fin, puis revenez ici."
+    blocked_link: Voir les transferts en cours
+  empty:
+    title: Aucun compte local pour l'instant
+    text: "Un compte local est l'identifiant avec lequel un partenaire se connecte à ce serveur ; il porte ses propres moyens d'authentification."
+  none:
+    title: "Aucun compte ne correspond à « {query} »"
+  not_found:
+    title: Compte introuvable
+    text: Ce compte n'existe pas ou a été supprimé.
+  toast:
+    created: "Compte « {login} » créé"
+    updated: "Compte « {login} » enregistré"
+    deleted: "Compte « {login} » supprimé"

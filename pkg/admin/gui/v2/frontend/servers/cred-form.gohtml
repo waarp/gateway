@@ -1,0 +1,50 @@
+{{/* Creation and edition of an authentication means (of a server or of an account), under the tab strip of its
+     owner. Two cards: the identity (name; kind among the ones the protocol allows and not already present when
+     unique; the kind of an existing means does not change) and the content of the kind (servers/cred-fields).
+     Files arrive by a multipart form or pasted; a secret is never pre-filled and an empty field keeps it. Refused
+     form: a banner, the non-secret values kept, a message under each faulty field (422). Data: credFormData. */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ $d.CancelURL }}">{{ icon "arrow-left" }} {{ t "action.back" }}</a>
+  </div>
+</div>
+{{ template "servers/tabs" $d.Tabs }}
+{{ if $d.HasErrors }}<div class="servers-banner">{{ template "gui/banner" (dict "Kind" "ko" "Title" (t "auth.form.refused") "Text" (or $d.Refused (t "auth.form.refused_text"))) }}</div>{{ end }}
+<form class="w-form" method="post" action="{{ $d.Action }}" enctype="multipart/form-data" novalidate>
+  <div class="w-card">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "auth.form.card" "owner" $d.Owner }}</legend>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "name" "Label" (t "auth.form.name") "F" $d.Name "Hint" (t "auth.form.name_hint")) }}
+        {{ if $d.Edit -}}
+        <div class="w-field">
+          <label class="w-field__label" for="type">{{ t "auth.form.type" }}</label>
+          <input class="w-input" id="type" value="{{ $d.TypeLabel }}" readonly aria-describedby="type-h">
+          <span class="w-field__hint" id="type-h">{{ t "auth.form.type_fixed" }}</span>
+        </div>
+        {{- else -}}
+        <div class="w-field{{ if $d.TypeError }} is-invalid{{ end }}">
+          <label class="w-field__label" for="type">{{ t "auth.form.type" }} <span class="w-field__req" aria-hidden="true">*</span></label>
+          <select class="w-select" id="type" name="type" required data-switch="type" aria-describedby="type-h"{{ if $d.TypeError }} aria-invalid="true"{{ end }}>{{ range $d.Types }}<option value="{{ .Value }}"{{ if .Selected }} selected{{ end }}>{{ .Label }}</option>{{ end }}</select>
+          {{ if $d.TypeError }}<span class="w-field__error" id="type-h">{{ icon "triangle" }} {{ $d.TypeError }}</span>{{ else }}<span class="w-field__hint" id="type-h">{{ t "auth.form.type_hint" }}</span>{{ end }}
+        </div>
+        {{- end }}
+      </div>
+    </fieldset>
+  </div>
+  <div class="w-card">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "auth.form.content" }}</legend>
+      {{ template "servers/cred-fields" $d }}
+    </fieldset>
+  </div>
+  {{ template "gui/form-actions" (dict "CancelURL" $d.CancelURL "Required" true "Title" $d.Title) }}
+</form>
+{{- end }}

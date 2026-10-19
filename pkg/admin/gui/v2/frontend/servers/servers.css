@@ -10,3 +10,10 @@
 .servers-note { margin: 0; }
 .servers-deflist { margin-top: var(--sp-4); }
 .servers-form-actions { margin-top: var(--sp-5); }
+/* Server sheet (#709): column widths of the tabs, intro of a tab, pasted content under a file, public PEM block. */
+.servers-col-cred { width: 26%; }
+.servers-col-type { width: 24%; }
+.servers-col-login { width: 34%; }
+.servers-intro { margin: 0 0 var(--sp-4); }
+.servers-paste { margin-top: var(--sp-2); }
+.servers-pem { margin: 0; padding: var(--sp-3); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }

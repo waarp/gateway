@@ -56,44 +56,56 @@ func MakeServicesRouter(router *mux.Router, logger *log.Logger) {
 	)
 }
 
-// MakeServersRouter registers the "Local servers" screen: the list and the
-// details behind the read right, the creation, the edition, the start and
-// the stop behind the write right, the deletion behind the delete right.
-// Every action is a POST (Post/Redirect/Get).
+// MakeServersRouter registers the "Local servers" screen and the sheet of a
+// server: the list, the details, the tabs and the pages in reading behind
+// the read right, the creation, the edition, the start and the stop behind
+// the write right, the deletions behind the delete right. Every action is a
+// POST (Post/Redirect/Get).
 func MakeServersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	handlers := servers.New(db, logger, servers.GatewayControl())
-	const serverPath = "/servers/{id:[0-9]+}"
+	const (
+		serverPath  = "/servers/{id:[0-9]+}"
+		accountPath = serverPath + "/accounts/{aid:[0-9]+}"
+	)
 
-	router.Path("/servers").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersRead, http.HandlerFunc(handlers.List)),
-	)
-	router.Path("/servers/new").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.NewForm)),
-	)
-	router.Path("/servers/new").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Create)),
-	)
-	router.Path(serverPath).Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersRead, http.HandlerFunc(handlers.Detail)),
-	)
-	router.Path(serverPath + "/edit").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.EditForm)),
-	)
-	router.Path(serverPath + "/edit").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Update)),
-	)
-	router.Path(serverPath + "/delete").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersDelete, http.HandlerFunc(handlers.DeleteForm)),
-	)
-	router.Path(serverPath + "/delete").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersDelete, http.HandlerFunc(handlers.Delete)),
-	)
+	read := func(path string, handler http.HandlerFunc) {
+		router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersRead, handler))
+	}
+	write := func(path string, form, action http.HandlerFunc) {
+		router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersWrite, form))
+		router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersWrite, action))
+	}
+	del := func(path string, form, action http.HandlerFunc) {
+		router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersDelete, form))
+		router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersDelete, action))
+	}
+
+	read("/servers", handlers.List)
+	write("/servers/new", handlers.NewForm, handlers.Create)
+	read(serverPath, handlers.Detail)
+	write(serverPath+"/edit", handlers.EditForm, handlers.Update)
+	del(serverPath+"/delete", handlers.DeleteForm, handlers.Delete)
 	router.Path(serverPath + "/start").Methods(http.MethodPost).Handler(
 		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Start)),
 	)
 	router.Path(serverPath + "/stop").Methods(http.MethodPost).Handler(
 		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Stop)),
 	)
+
+	// The means of the server, then of one of its accounts: the same pages.
+	for _, base := range []string{serverPath + "/auth", accountPath + "/auth"} {
+		read(base, handlers.Auth)
+		write(base+"/new", handlers.NewCredForm, handlers.CreateCred)
+		read(base+"/{cid:[0-9]+}", handlers.CredDetail)
+		write(base+"/{cid:[0-9]+}/edit", handlers.EditCredForm, handlers.UpdateCred)
+		del(base+"/{cid:[0-9]+}/delete", handlers.DeleteCredForm, handlers.DeleteCred)
+	}
+
+	read(serverPath+"/accounts", handlers.Accounts)
+	write(serverPath+"/accounts/new", handlers.NewAccountForm, handlers.CreateAccount)
+	read(accountPath, handlers.AccountDetail)
+	write(accountPath+"/edit", handlers.EditAccountForm, handlers.UpdateAccount)
+	del(accountPath+"/delete", handlers.DeleteAccountForm, handlers.DeleteAccount)
 }
 
 func MakeListingRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
