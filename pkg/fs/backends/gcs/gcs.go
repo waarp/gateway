@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 
 	gcs "github.com/rclone/rclone/backend/googlecloudstorage"
 	"github.com/rclone/rclone/fs/config/configmap"
@@ -14,41 +13,34 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal"
 )
 
-const bucketKey = "bucket"
-
 var ErrMissingBucket = errors.New("no GCS bucket specified")
 
-func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, error) {
-	config := maps.Clone(opts)
-	config["directory_markers"] = "true"
-
-	const (
-		credKey     = "service_account_credentials"
-		credFileKey = "service_account_file"
-	)
-
-	if key != "" {
-		config[credFileKey] = key
+func parseOpts(key, secret string, userOpts map[string]string,
+) (config configmap.Mapper, root string, err error) {
+	// Credential options
+	credOpts := configmap.Simple{
+		"service_account_credentials": key,
+		"service_account_file":        secret,
 	}
 
-	if secret != "" {
-		config[credKey] = secret
+	// Make config map
+	config = internal.MakeOptions("gcs", userOpts, credOpts)
+
+	// Check mandatory options
+	if bucket, ok := config.Get("bucket"); !ok || bucket == "" {
+		return nil, "", ErrMissingBucket
+	} else {
+		root = bucket
 	}
 
-	if bucket := config[bucketKey]; bucket == "" {
-		return nil, ErrMissingBucket
-	}
-
-	return config, nil
+	return config, root, nil
 }
 
 func newVFS(name, key, secret string, opts map[string]string) (*vfs.VFS, error) {
-	config, err := parseOpts(key, secret, opts)
+	config, root, err := parseOpts(key, secret, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	root := config[bucketKey]
 
 	gcfs, err := gcs.NewFs(context.Background(), name, root, config)
 	if err != nil {

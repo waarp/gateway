@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 
 	"github.com/rclone/rclone/backend/s3"
 	"github.com/rclone/rclone/fs/config/configmap"
@@ -17,62 +16,34 @@ import (
 
 var ErrMissingBucket = errors.New("no S3 bucket specified")
 
-const bucketKey = "bucket"
-
-func parseOpts(key, secret string, opts map[string]string) (configmap.Simple, error) {
-	// constant options
-	const (
-		dirMarkersKey  = "directory_markers"
-		listVersionKey = "list_version"
-		listChunkKey   = "list_chunk"
-
-		dirMarkers  = "true"
-		listVersion = "2"
-		listChunk   = "1000"
-
-		accessIDKey     = "access_key_id"
-		accessSecretKey = "secret_access_key"
-	)
-
-	config := maps.Clone(opts)
-	config[dirMarkersKey] = dirMarkers
-	config[listVersionKey] = listVersion
-	config[listChunkKey] = listChunk
-
-	// required options
-	const (
-		chunkSizeKey  = "chunk_size"
-		copyCutoffKey = "copy_cutoff"
-
-		defaultChunkSize  = "5MiB"
-		defaultCopyCutoff = "5MiB"
-	)
-
-	if bucket := config[bucketKey]; bucket == "" {
-		return nil, ErrMissingBucket
+func parseOpts(key, secret string, userOpts map[string]string,
+) (config configmap.Mapper, root string, err error) {
+	// Credential options
+	credOpts := configmap.Simple{
+		"access_key_id":     key,
+		"secret_access_key": secret,
 	}
 
-	internal.SetDefaultValue(config, copyCutoffKey, defaultCopyCutoff)
-	internal.SetDefaultValue(config, chunkSizeKey, defaultChunkSize)
+	// Make config map
+	config = internal.MakeOptions("s3", userOpts, credOpts)
 
-	if key != "" {
-		config[accessIDKey] = key
+	// Check mandatory options
+	if bucket, _ := config.Get("bucket"); bucket == "" {
+		return nil, "", ErrMissingBucket
 	}
 
-	if secret != "" {
-		config[accessSecretKey] = secret
+	if isPathStyle, _ := config.Get("force_path_style"); isPathStyle == "true" {
+		root, _ = config.Get("bucket")
 	}
 
-	return config, nil
+	return config, root, nil
 }
 
 func newVFS(name, key, secret string, opts map[string]string) (*vfs.VFS, error) {
-	config, err := parseOpts(key, secret, opts)
+	config, root, err := parseOpts(key, secret, opts)
 	if err != nil {
 		return nil, err
 	}
-
-	root := config[bucketKey]
 
 	s3fs, err := s3.NewFs(context.Background(), name, root, config)
 	if err != nil {

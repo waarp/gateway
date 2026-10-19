@@ -21,7 +21,7 @@ func TestAzureBlob(t *testing.T) {
 		"env_auth": "true",
 	}
 
-	blobVFS, fsErr := newBlobVFS("azblob", "", "", "", opts)
+	blobVFS, fsErr := newBlobVFS("azblob", "", "", opts)
 	require.NoError(t, fsErr)
 
 	backtest.TestVFS(t, blobVFS)

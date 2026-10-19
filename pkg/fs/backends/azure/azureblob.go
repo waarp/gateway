@@ -12,33 +12,22 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal"
 )
 
-func parseBlobOpts(account, key string, opts map[string]string) configmap.Simple {
-	const (
-		chunkSizeKey = "chunk_size"
-		listChunkKey = "list_chunk"
+func parseBlobOpts(account, key string, userOpts map[string]string) configmap.Mapper {
+	// Credential options
+	credOpts := azureCredOpts(account, key)
 
-		defaultChunkSize = "4MiB"
-		defaultListChunk = "1000"
-	)
-
-	config := parseAzureOpts(account, key, opts)
-
-	if config[chunkSizeKey] == "" {
-		config[chunkSizeKey] = defaultChunkSize
-	}
-
-	if config[listChunkKey] == "" {
-		config[listChunkKey] = defaultListChunk
-	}
+	// Make config map
+	config := internal.MakeOptions("azureblob", userOpts, credOpts)
 
 	return config
 }
 
-func newBlobVFS(name, account, key, root string, opts map[string]string) (*vfs.VFS, error) {
+func newBlobVFS(name, account, key string, opts map[string]string) (*vfs.VFS, error) {
 	config := parseBlobOpts(account, key, opts)
+
 	vfsOpts := internal.VFSOpts()
 
-	abfs, err := azureblob.NewFs(context.Background(), name, root, config)
+	abfs, err := azureblob.NewFs(context.Background(), name, "", config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate azure blob filesystem: %w", err)
 	}
@@ -47,7 +36,7 @@ func newBlobVFS(name, account, key, root string, opts map[string]string) (*vfs.V
 }
 
 func NewBlobFS(name, account, key string, opts map[string]string) (fs.FS, error) {
-	abvfs, err := newBlobVFS(name, account, key, "", opts)
+	abvfs, err := newBlobVFS(name, account, key, opts)
 	if err != nil {
 		return nil, err
 	}

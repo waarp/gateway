@@ -29,7 +29,7 @@ func TestOneDrive(t *testing.T) {
 		"client_credentials": "true",
 	}
 
-	blobVFS, fsErr := newVFS("onedrive", clientID, clientSecret, opts)
+	blobVFS, fsErr := newVFS("onedrive", clientID, clientSecret, "", opts)
 	require.NoError(t, fsErr)
 
 	backtest.TestVFS(t, blobVFS)
@@ -39,7 +39,7 @@ func TestParseOpts(t *testing.T) {
 	t.Parallel()
 
 	opts := map[string]string{"drive_id": "drive"}
-	_, err := parseOpts("account", "password", opts)
+	_, err := parseOpts("account", "password", "", opts)
 	require.NoError(t, err)
 
 	assert.NotContains(t, opts, "client_id")

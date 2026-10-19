@@ -25,6 +25,7 @@ func TestGCS(t *testing.T) {
 		"env_auth":           "true",
 		"project_number":     projectNb,
 		"bucket_policy_only": "true",
+		"directory_markers":  "true",
 	}
 
 	gcsVFS, fsErr := newVFS("gcs", "", "", opts)
@@ -37,7 +38,7 @@ func TestParseOpts(t *testing.T) {
 	t.Parallel()
 
 	opts := map[string]string{"bucket": "name"}
-	_, err := parseOpts("account", "password", opts)
+	_, _, err := parseOpts("account", "password", opts)
 	require.NoError(t, err)
 
 	assert.NotContains(t, opts, "service_account_credentials")
