@@ -158,7 +158,7 @@ func TestPage(t *testing.T) {
 		// Chrome: the active entry, the breadcrumb, the documentation page.
 		assert.Contains(t, body, `href="/webui/services" aria-current="page"`)
 		assert.Contains(t, body, `<li><span aria-current="page">État des services</span></li>`)
-		assert.Contains(t, body, "https://doc.waarp.org/waarp-gateway/latest/fr/user/webui/etat-des-services/")
+		assert.Contains(t, body, `href="https://doc.waarp.org/waarp-gateway/latest/fr/"`, "the header leads to the latest documentation (#710)")
 		assert.NotContains(t, body, "¿", "every key must be in the catalogue")
 	})
 
