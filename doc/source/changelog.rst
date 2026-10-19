@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`709` La fiche d'un serveur local, dans l'interface web, regroupe
+  en onglets ses détails, son authentification (l'identité qu'il présente aux
+  partenaires) et ses comptes locaux ; chaque compte a sa propre fiche
+  (détails, adresses IP autorisées, moyens d'authentification). Les secrets ne
+  sont plus affichés : un certificat montre son sujet, sa validité et son
+  empreinte, une clé son type et son empreinte. Un certificat ou une clé se
+  dépose depuis le poste ou se colle au format PEM ; un compte se crée avec son
+  premier moyen d'authentification. Les anciennes pages (``/webui/server_authentication``,
+  ``/webui/local_account_management``, ``/webui/local_account_authentication``)
+  restent accessibles jusqu'à la version suivante. Le guide de l'interface web
+  décrit la fiche (:ref:`user-webui-server-sheet`).
 * :feature:`708` L'écran « Serveurs locaux » de l'interface web est refondu :
   liste triable par colonne, recherche et filtres par protocole appliqués
   immédiatement, nombre de lignes par page, actions regroupées dans un menu par

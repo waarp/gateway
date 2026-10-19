@@ -64,6 +64,24 @@ func e2eScreens() []e2eScreen {
 		{"/webui/servers/new", 0, 0, ""},
 		{"/webui/servers/1/edit", 0, 0, ""},
 		{"/webui/servers/1/delete", 0, 0, ""},
+		// The sheet of the SFTP server: its host key, its accounts, the
+		// sheet of the partner account and its means, the pages that add
+		// a means and an account; the certificate of the HTTPS server.
+		{"/webui/servers/1/auth", 1, 0, ""},
+		{"/webui/servers/1/auth/1", 0, 0, ""},
+		{"/webui/servers/1/auth/new", 0, 0, ""},
+		{"/webui/servers/1/accounts", 1, 0, ""},
+		{"/webui/servers/1/accounts/new", 0, 0, ""},
+		{"/webui/servers/1/accounts/1", 0, 0, ""},
+		{"/webui/servers/1/accounts/1/edit", 0, 0, ""},
+		{"/webui/servers/1/accounts/1/delete", 0, 0, ""},
+		{"/webui/servers/1/accounts/1/auth", 1, 0, ""},
+		{"/webui/servers/1/accounts/1/auth/2", 0, 0, ""},
+		{"/webui/servers/1/accounts/1/auth/3/edit", 0, 0, ""},
+		{"/webui/servers/1/accounts/1/auth/2/delete", 0, 0, ""},
+		{"/webui/servers/1/accounts/1/auth/new", 0, 0, ""},
+		{"/webui/servers/3/auth", 1, 0, ""},
+		{"/webui/servers/3/auth/4", 0, 0, ""},
 	}
 }
 
@@ -259,13 +277,34 @@ func startE2EServer(t *testing.T) string {
 		Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete,
 	}).Run())
 
-	for i, server := range []*model.LocalAgent{
+	servers := []*model.LocalAgent{
 		{Name: "srv-sftp-01", Protocol: "sftp", Address: types.Addr("127.0.0.1", 10022)},
 		{Name: "srv-r66-01", Protocol: "r66", Address: types.Addr("127.0.0.1", 6666)},
 		{Name: "srv-https-01", Protocol: "https", Address: types.Addr("127.0.0.1", 8443)},
-	} {
+	}
+
+	for i, server := range servers {
 		require.NoError(t, db.Insert(server).Run())
 		require.EqualValues(t, i+1, server.ID, "the stub services are registered by identifier")
+	}
+
+	// The sheet of the SFTP server: its host key (means 1), an account with
+	// a public key and a password (means 2 and 3) and an account without
+	// any means; the certificate of the HTTPS server (means 4). The screens
+	// are visited by identifier.
+	partner := &model.LocalAccount{LocalAgentID: servers[0].ID, Login: "partner", IPAddresses: types.IPList{"10.20.30.4"}}
+	require.NoError(t, db.Insert(partner).Run())
+	require.NoError(t, db.Insert(&model.LocalAccount{LocalAgentID: servers[0].ID, Login: "nobody"}).Run())
+
+	for i, cred := range []*model.Credential{
+		{LocalAgentID: servers[0].NullableID(), Name: "cle-hote", Type: "ssh_private_key", Value: testhelpers.RSAPk},
+		{LocalAccountID: partner.NullableID(), Name: "cle-partner", Type: "ssh_public_key", Value: testhelpers.SSHPbk},
+		{LocalAccountID: partner.NullableID(), Name: "mot-de-passe", Type: "password", Value: e2ePassword},
+		{LocalAgentID: servers[2].NullableID(), Name: "cert-localhost", Type: "tls_certificate",
+			Value: testhelpers.LocalhostCert, Value2: testhelpers.LocalhostKey},
+	} {
+		require.NoError(t, db.Insert(cred).Run())
+		require.EqualValues(t, i+1, cred.ID, "the screens are visited by identifier")
 	}
 
 	registerE2EServices(t)
@@ -373,8 +412,13 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	assert.Equal(t, 1, s.count(t, "a.w-skip"), "skip link")
 	assert.Equal(t, 1, s.count(t, "main#contenu"), "main landmark")
 	assert.Equal(t, 1, s.count(t, "h1.w-page-header__title"), "page title")
-	assert.Equal(t, 1, s.count(t, `nav a[aria-current="page"]`), "active sidebar entry")
+	assert.Equal(t, 1, s.count(t, `nav:not(.w-tabs) a[aria-current="page"]`), "active sidebar entry")
 	assert.Equal(t, screen.tables, s.count(t, "table.w-table"), "tables")
+
+	// A sheet shows its tab strip, one tab being the page.
+	if s.count(t, "nav.w-tabs") > 0 {
+		assert.Equal(t, 1, s.count(t, `nav.w-tabs a[aria-current="page"]`), "current tab")
+	}
 
 	// The first Tab reaches the skip link.
 	require.NoError(t, s.page.Keyboard().Press("Tab"))

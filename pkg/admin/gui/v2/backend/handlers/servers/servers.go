@@ -41,12 +41,9 @@ const (
 	docPage              = "user/webui/serveurs-locaux"
 	pagePath             = "/servers"
 
-	// Historic pages the "⋯" menu leads to until the server sheet exists
-	// (next screen), and the page of the running transfers.
-	authPath      = "/server_authentication"
-	accountsPath  = "/local_account_management"
+	// The historic page of the running transfers, the way out of a refused
+	// deletion.
 	transfersPath = "/transfer_monitoring"
-	serverIDParam = "serverID"
 
 	// The state of the list: search, protocols, sort, page and rows per page.
 	// The action pages carry it (retParam) so that coming back keeps it.
@@ -106,6 +103,8 @@ var (
 	sortKeys   = []string{sortName, sortState, sortProtocol, sortAddress}
 	pageSizes  = []int{10, 25, 50, 100} // rows per page, the first one by default
 	doneKinds  = []string{doneCreated, doneUpdated, doneDeleted, doneStarted, doneStopped}
+
+	serversCounter = counter{"servers.count_one", "servers.count", "servers.count_shown_one", "servers.count_shown"}
 )
 
 // Control drives the service of a server. On the gateway it is backed by the
@@ -130,27 +129,44 @@ func GatewayControl() Control {
 }
 
 // Handlers serves the pages and the actions of the screen. Each page has its
-// own shell, as each one defines its own "page" template.
+// own shell, as each one defines its own "page" template; the pages of the
+// sheet share their partials (tab strip, fields).
 type Handlers struct {
 	db     *database.DB
 	logger *log.Logger
 	ctl    Control
 
 	list, detail, form, del, notFound *common.Shell
+	auth, accounts                    *common.Shell
+	credForm, credDetail, credDel     *common.Shell
+	accountForm, accountDetail        *common.Shell
+	accountDel                        *common.Shell
 }
 
 func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
+	shell := func(file string) *common.Shell { return common.NewShell(partialsTemplateFile, file) }
+
 	return &Handlers{
-		db:       db,
-		logger:   logger,
-		ctl:      ctl,
-		list:     common.NewShell(listTemplateFile),
-		detail:   common.NewShell(detailTemplateFile),
-		form:     common.NewShell(formTemplateFile),
-		del:      common.NewShell(deleteTemplateFile),
-		notFound: common.NewShell(notFoundTemplateFile),
+		db:            db,
+		logger:        logger,
+		ctl:           ctl,
+		list:          common.NewShell(listTemplateFile),
+		detail:        shell(detailTemplateFile),
+		form:          shell(formTemplateFile),
+		del:           common.NewShell(deleteTemplateFile),
+		notFound:      common.NewShell(notFoundTemplateFile),
+		auth:          shell(authTemplateFile),
+		accounts:      shell(accountsTemplateFile),
+		credForm:      shell(credFormTemplateFile),
+		credDetail:    shell(credDetailTemplateFile),
+		credDel:       shell(credDeleteTemplateFile),
+		accountForm:   shell(accountFormTemplateFile),
+		accountDetail: shell(accountDetailTemplateFile),
+		accountDel:    shell(accountDeleteTemplateFile),
 	}
 }
+
+func transfersURL() string { return common.WebuiURL(transfersPath) }
 
 // rights of the current user on the servers: reading is implied by reaching
 // the screen; writing and deleting are checked again by the router on each
@@ -237,11 +253,11 @@ type listQuery struct {
 	Size      int
 }
 
-// parseListQuery reads ?q=, ?protocol= (repeated or comma separated),
-// ?sort=, ?dir=, ?page= and ?size=. Anything unknown falls back to the
-// default; the page is bounded later, once the count is known.
+// parseListQuery reads the state of the servers list: the search, the sort,
+// the page and the rows per page, plus ?protocol= (repeated or comma
+// separated).
 func parseListQuery(v url.Values) listQuery {
-	query := listQuery{Q: strings.TrimSpace(v.Get(queryParam)), Sort: sortName, Dir: dirAsc, Page: 1, Size: pageSizes[0]}
+	query := parseQuery(v, sortKeys)
 
 	for _, raw := range v[protocolParam] {
 		for key := range strings.SplitSeq(raw, ",") {
@@ -251,7 +267,16 @@ func parseListQuery(v url.Values) listQuery {
 		}
 	}
 
-	if slices.Contains(sortKeys, v.Get(sortParam)) {
+	return query
+}
+
+// parseQuery reads ?q=, ?sort= (among the given keys, the first one by
+// default), ?dir=, ?page= and ?size=. Anything unknown falls back to the
+// default; the page is bounded later, once the count is known.
+func parseQuery(v url.Values, sorts []string) listQuery {
+	query := listQuery{Q: strings.TrimSpace(v.Get(queryParam)), Sort: sorts[0], Dir: dirAsc, Page: 1, Size: pageSizes[0]}
+
+	if slices.Contains(sorts, v.Get(sortParam)) {
 		query.Sort = v.Get(sortParam)
 	}
 
@@ -449,10 +474,6 @@ func withRet(u, ret string) string {
 	return u + sep + retParam + "=" + url.QueryEscape(ret)
 }
 
-func historicURL(path string, id int64) string {
-	return common.WebuiURL(path) + "?" + serverIDParam + "=" + strconv.FormatInt(id, 10)
-}
-
 type filterBox struct {
 	Key     string
 	Label   string
@@ -610,7 +631,7 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 	data.Names = names
 	sortEntries(kept, query.Sort, query.Dir)
 
-	data.Count = countText(translate, len(all), len(kept))
+	data.Count = serversCounter.text(translate, len(all), len(kept))
 
 	switch {
 	case len(all) == 0:
@@ -674,19 +695,6 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 	return data
 }
 
-func countText(translate gui.Translator, total, shown int) string {
-	switch {
-	case shown == total && total == 1:
-		return translate("servers.count_one")
-	case shown == total:
-		return translate("servers.count", "total", total)
-	case shown == 1:
-		return translate("servers.count_shown_one", "total", total)
-	default:
-		return translate("servers.count_shown", "total", total, "shown", shown)
-	}
-}
-
 // sortEntries sorts by the asked column; ties keep the name order.
 func sortEntries(entries []entry, key, dir string) {
 	byName := func(a, b entry) int {
@@ -716,9 +724,10 @@ func sortEntries(entries []entry, key, dir string) {
 	})
 }
 
-// actions is the "⋯" menu of a server, in the list (with "View details")
-// and on the details page (without). Entries follow the rights; the
-// destructive one comes last. Every URL carries the list state.
+// actions is the "⋯" menu of a server, in the list (with "View details", the
+// tabs of the sheet and "Edit") and on the details page (without: the tabs
+// and the buttons are there). Entries follow the rights; the destructive one
+// comes last. Every URL carries the list state.
 func actions(translate gui.Translator, e entry, user rights, onDetail bool, carried string) []gui.Action {
 	agentID := e.agent.ID
 
@@ -741,14 +750,22 @@ func actions(translate gui.Translator, e entry, user rights, onDetail bool, carr
 		}
 	}
 
-	acts = append(acts,
-		gui.Action{Icon: "key", Label: translate("servers.action.auth"), URL: historicURL(authPath, agentID)},
-		gui.Action{Icon: "users", Label: translate("servers.action.accounts"), URL: historicURL(accountsPath, agentID)})
+	if !onDetail {
+		acts = append(acts,
+			gui.Action{
+				Icon: "key", Label: translate("servers.action.auth"), URL: withRet(serverURL(agentID, authSuffix), carried),
+			},
+			gui.Action{
+				Icon:  "users",
+				Label: translate("servers.action.accounts"),
+				URL:   withRet(serverURL(agentID, accountsSuffix), carried),
+			})
 
-	if user.Write && !onDetail {
-		acts = append(acts, gui.Action{
-			Icon: "pen", Label: translate("servers.action.edit"), URL: withRet(serverURL(agentID, "/edit"), carried),
-		})
+		if user.Write {
+			acts = append(acts, gui.Action{
+				Icon: "pen", Label: translate("servers.action.edit"), URL: withRet(serverURL(agentID, "/edit"), carried),
+			})
+		}
 	}
 
 	if user.Delete {
@@ -781,22 +798,39 @@ func crumbs(translate gui.Translator, last, carried string) []gui.Crumb {
 }
 
 // notices turns the result of the previous action, carried by the
-// redirection, into notifications.
-func notices(translate gui.Translator, v url.Values) []gui.Notice {
-	name := v.Get(nameParam)
+// redirection, into notifications: on a server, on one of its means or on
+// one of its accounts.
+func notices(translate gui.Translator, values url.Values) []gui.Notice {
+	name := values.Get(nameParam)
+	done := values.Get(doneParam)
 
-	if done := v.Get(doneParam); slices.Contains(doneKinds, done) {
+	switch values.Get(kindParam) {
+	case kindCred:
+		if slices.Contains(sheetDone, done) {
+			return []gui.Notice{{Kind: stateOK, Title: translate("auth.toast."+done, "name", name)}}
+		}
+
+		return nil
+	case kindAccount:
+		if slices.Contains(sheetDone, done) {
+			return []gui.Notice{{Kind: stateOK, Title: translate("accounts.toast."+done, "login", name)}}
+		}
+
+		return nil
+	}
+
+	if slices.Contains(doneKinds, done) {
 		return []gui.Notice{{Kind: stateOK, Title: translate(toastKeyPrefix+done, "name", name)}}
 	}
 
-	switch v.Get(failedParam) {
+	switch values.Get(failedParam) {
 	case failedStart:
 		return []gui.Notice{{
-			Kind: stateKO, Title: translate("servers.toast.start_failed", "name", name), Text: v.Get(reasonParam),
+			Kind: stateKO, Title: translate("servers.toast.start_failed", "name", name), Text: values.Get(reasonParam),
 		}}
 	case failedStop:
 		return []gui.Notice{{
-			Kind: stateKO, Title: translate("servers.toast.stop_failed", "name", name), Text: v.Get(reasonParam),
+			Kind: stateKO, Title: translate("servers.toast.stop_failed", "name", name), Text: values.Get(reasonParam),
 		}}
 	default:
 		return nil
@@ -835,15 +869,14 @@ func (h *Handlers) server(w http.ResponseWriter, r *http.Request) (entry, bool) 
 
 	translate := h.notFound.Translator(r)
 	carried := ret(r)
+	title := translate("servers.not_found.title")
 
-	h.notFound.Render(w, h.logger, r, common.Screen{
-		Title:   translate("servers.not_found.title"),
-		Section: constants.SidebarSectionConnection,
-		Menu:    constants.SidebarMenuServers,
-		Doc:     docPage,
-		Crumbs:  crumbs(translate, translate("servers.not_found.title"), carried),
-		Status:  http.StatusNotFound,
-		Data:    map[string]string{"BackURL": listURL(carried)},
+	h.notFoundPage(w, r, crumbs(translate, title, carried), notFoundData{
+		Title:     title,
+		Text:      translate("servers.not_found.text"),
+		Icon:      "server",
+		BackLabel: translate("servers.back"),
+		BackURL:   listURL(carried),
 	})
 
 	return entry{}, false
@@ -867,6 +900,7 @@ type detailData struct {
 	Status   gui.Status
 	Reason   string
 	Protocol string
+	Tabs     []tab
 	BackURL  string
 	EditURL  string
 	Actions  []gui.Action
@@ -875,7 +909,8 @@ type detailData struct {
 	Options  []kv
 }
 
-// Detail serves GET /webui/servers/{id}: the server in reading.
+// Detail serves GET /webui/servers/{id}: the "Details" tab of the sheet,
+// the server in reading.
 func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	srv, ok := h.server(w, r)
 	if !ok {
@@ -886,9 +921,9 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	carried := ret(r)
 	user := rightsOf(r)
 
-	accounts, err := h.db.Count(&model.LocalAccount{}).Where("local_agent_id=?", srv.agent.ID).Run()
+	tabs, err := h.serverTabs(translate, srv, tabDetails, carried)
 	if err != nil {
-		h.logger.Errorf("failed to count the accounts of the server %d: %v", srv.agent.ID, err)
+		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
 		return
@@ -904,13 +939,15 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Status:   srv.status(translate),
 		Reason:   srv.reason,
 		Protocol: srv.proto.Label,
+		Tabs:     tabs,
 		BackURL:  listURL(carried),
 		Actions:  actions(translate, srv, user, true, carried),
 		Identity: []kv{
 			{Label: translate("servers.detail.protocol"), Value: srv.proto.Label},
 			{Label: translate("servers.detail.address"), Value: srv.address(), Mono: true},
 			{Label: translate("servers.detail.autostart"), Value: autostart},
-			{Label: translate("servers.detail.accounts"), Value: strconv.FormatUint(accounts, 10)},
+			// The last tab counts the accounts.
+			{Label: translate("servers.detail.accounts"), Value: strconv.FormatUint(tabs[len(tabs)-1].Count, 10)},
 		},
 		Dirs: []kv{
 			{Label: translate("servers.dirs.root"), Value: srv.agent.RootDir, Mono: true},
@@ -925,8 +962,9 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		data.EditURL = withRet(serverURL(srv.agent.ID, "/edit"), carried)
 	}
 
-	title := translate("servers.detail.title", "name", srv.agent.Name)
-	h.detail.Render(w, h.logger, r, h.screen(translate, title, carried, 0, data))
+	own := owner{srv: srv}
+	screen := h.sheetScreen(translate, own.title(translate), own, "", carried, 0, data, notices(translate, r.URL.Query()))
+	h.detail.Render(w, h.logger, r, screen)
 }
 
 type deleteData struct {
@@ -978,7 +1016,7 @@ func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e entry, i
 		Accounts:     strconv.FormatUint(accounts, 10),
 		CancelURL:    withRet(serverURL(e.agent.ID, ""), carried),
 		Action:       withRet(serverURL(e.agent.ID, "/delete"), carried),
-		TransfersURL: common.WebuiURL(transfersPath),
+		TransfersURL: transfersURL(),
 		Blocked:      isBlocked,
 	}
 

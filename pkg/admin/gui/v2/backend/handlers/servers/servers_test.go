@@ -125,6 +125,27 @@ func newSuite(t *testing.T) *suite {
 	r.Path("/servers/{id:[0-9]+}/start").Methods(http.MethodPost).HandlerFunc(h.Start)
 	r.Path("/servers/{id:[0-9]+}/stop").Methods(http.MethodPost).HandlerFunc(h.Stop)
 
+	// The sheet: the means of the server and of its accounts, the accounts.
+	for _, base := range []string{"/servers/{id:[0-9]+}/auth", "/servers/{id:[0-9]+}/accounts/{aid:[0-9]+}/auth"} {
+		r.Path(base).Methods(http.MethodGet).HandlerFunc(h.Auth)
+		r.Path(base + "/new").Methods(http.MethodGet).HandlerFunc(h.NewCredForm)
+		r.Path(base + "/new").Methods(http.MethodPost).HandlerFunc(h.CreateCred)
+		r.Path(base + "/{cid:[0-9]+}").Methods(http.MethodGet).HandlerFunc(h.CredDetail)
+		r.Path(base + "/{cid:[0-9]+}/edit").Methods(http.MethodGet).HandlerFunc(h.EditCredForm)
+		r.Path(base + "/{cid:[0-9]+}/edit").Methods(http.MethodPost).HandlerFunc(h.UpdateCred)
+		r.Path(base + "/{cid:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.DeleteCredForm)
+		r.Path(base + "/{cid:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.DeleteCred)
+	}
+
+	r.Path("/servers/{id:[0-9]+}/accounts").Methods(http.MethodGet).HandlerFunc(h.Accounts)
+	r.Path("/servers/{id:[0-9]+}/accounts/new").Methods(http.MethodGet).HandlerFunc(h.NewAccountForm)
+	r.Path("/servers/{id:[0-9]+}/accounts/new").Methods(http.MethodPost).HandlerFunc(h.CreateAccount)
+	r.Path("/servers/{id:[0-9]+}/accounts/{aid:[0-9]+}").Methods(http.MethodGet).HandlerFunc(h.AccountDetail)
+	r.Path("/servers/{id:[0-9]+}/accounts/{aid:[0-9]+}/edit").Methods(http.MethodGet).HandlerFunc(h.EditAccountForm)
+	r.Path("/servers/{id:[0-9]+}/accounts/{aid:[0-9]+}/edit").Methods(http.MethodPost).HandlerFunc(h.UpdateAccount)
+	r.Path("/servers/{id:[0-9]+}/accounts/{aid:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.DeleteAccountForm)
+	r.Path("/servers/{id:[0-9]+}/accounts/{aid:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.DeleteAccount)
+
 	return s
 }
 
@@ -264,15 +285,15 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">10.20.30.40:5000</td>`)
 		assert.Contains(t, body, `Serveurs locaux, page 1 sur 1, triés par nom`)
 
-		// The "⋯" menu: stop the running one, start the others, the historic
-		// pages, edit, delete last.
+		// The "⋯" menu: stop the running one, start the others, the tabs of
+		// the sheet, edit, delete last.
 		assert.Equal(t, 3, strings.Count(body, `class="w-icon-btn w-icon-btn--round"`))
 		assert.Contains(t, body, `href="`+s.path(s.sftp, "")+`">`)
 		assert.Contains(t, body, `<form method="post" action="`+s.path(s.sftp, "/stop")+`">`)
 		assert.Contains(t, body, `<form method="post" action="`+s.path(s.r66, "/start")+`">`)
 		assert.Contains(t, body, `<form method="post" action="`+s.path(s.pesit, "/start")+`">`)
-		assert.Contains(t, body, fmt.Sprintf(`href="/webui/server_authentication?serverID=%d"`, s.sftp.ID))
-		assert.Contains(t, body, fmt.Sprintf(`href="/webui/local_account_management?serverID=%d"`, s.sftp.ID))
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/auth")+`">`)
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/accounts")+`">`)
 		assert.Contains(t, body, `href="`+s.path(s.sftp, "/edit")+`">`)
 		assert.Contains(t, body, `<hr>`)
 		assert.Contains(t, body, `class="is-danger" href="`+s.path(s.sftp, "/delete")+`">`)

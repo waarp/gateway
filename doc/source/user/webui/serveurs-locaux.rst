@@ -68,8 +68,9 @@ les droits de l'utilisateur :
      - Effet
    * - Voir le détail
      - lecture
-     - La page du serveur : état, adresse, démarrage automatique, nombre de
-       comptes locaux, dossiers et options du protocole, en lecture.
+     - La fiche du serveur, onglet *Détails* : état, adresse, démarrage
+       automatique, nombre de comptes locaux, dossiers et options du
+       protocole, en lecture (voir :ref:`user-webui-server-sheet`).
    * - Démarrer le serveur / Arrêter le serveur
      - écriture
      - Démarre un serveur hors ligne ou en erreur, arrête un serveur en ligne.
@@ -77,10 +78,12 @@ les droits de l'utilisateur :
        la notification donne la raison et reste affichée.
    * - Authentification
      - lecture
-     - Les moyens d'authentification du serveur (certificats, clés).
+     - L'onglet *Authentification* de la fiche : l'identité que le serveur
+       présente aux partenaires (certificat, clé d'hôte ou mot de passe).
    * - Comptes locaux
      - lecture
-     - Les comptes avec lesquels les partenaires se connectent au serveur.
+     - L'onglet *Comptes locaux* de la fiche : les comptes avec lesquels les
+       partenaires se connectent au serveur.
    * - Modifier le serveur
      - écriture
      - Le formulaire du serveur, pré-rempli.
@@ -152,12 +155,129 @@ page l'indique et renvoie vers le suivi des transferts. Il faut annuler ces
 transferts ou attendre leur fin.
 
 
+.. _user-webui-server-sheet:
+
+Fiche d'un serveur
+==================
+
+La fiche d'un serveur, adresse ``/webui/servers/<id>``, regroupe en trois
+onglets ce qui le concerne. Chaque onglet est une page à part entière, avec
+sa propre adresse, sa recherche, son tri et sa pagination ; le fil d'Ariane
+et le bouton *Retour à la liste* ramènent à la liste telle qu'on l'a quittée.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Onglet
+     - Contenu
+   * - Détails
+     - Le serveur en lecture : état, adresse d'écoute, démarrage automatique,
+       nombre de comptes locaux, dossiers et options du protocole. Le bouton
+       *Modifier le serveur* et le menu « ⋯ » (démarrer, arrêter, supprimer)
+       sont ici.
+   * - Authentification
+     - L'identité que le serveur présente aux partenaires : un certificat TLS
+       et sa clé pour les protocoles sécurisés par TLS, une clé d'hôte SSH
+       pour SFTP, un mot de passe pour R66. Le compteur de l'onglet donne le
+       nombre de moyens.
+   * - Comptes locaux
+     - Les comptes avec lesquels les partenaires se connectent, et ce que
+       chacun présente pour s'authentifier.
+
+Les deux onglets de liste s'ouvrent aussi depuis le menu « ⋯ » de la liste
+des serveurs.
+
+
+Moyens d'authentification
+-------------------------
+
+Un *moyen d'authentification* est ce qu'une partie présente à l'autre pour
+prouver son identité. Sur la fiche du serveur, ce sont les moyens que le
+serveur présente ; sur la fiche d'un compte local, ceux que le partenaire
+présente avec ce compte. Les types proposés dépendent du protocole du
+serveur :
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 39 39
+
+   * - Protocole
+     - Identité du serveur
+     - Moyens d'un compte local
+   * - R66
+     - Mot de passe
+     - Mot de passe
+   * - R66-TLS
+     - Mot de passe, certificat TLS et sa clé
+     - Mot de passe, certificat TLS de confiance
+   * - SFTP
+     - Clé privée SSH (clé d'hôte)
+     - Mot de passe, clé publique SSH
+   * - HTTPS, FTPS, PeSIT-TLS, WebDAV et AS2 sur HTTPS
+     - Certificat TLS et sa clé
+     - Mot de passe, certificat TLS de confiance
+   * - HTTP, FTP, PeSIT, WebDAV, AS2
+     - Aucun (le serveur n'authentifie pas les connexions)
+     - Mot de passe
+
+Un type qui ne peut exister qu'une fois (le mot de passe) n'est plus proposé
+quand il est déjà présent. Le certificat R66 historique s'ajoute à ces listes
+quand l'instance l'autorise (voir :ref:`reference-auth-methods`).
+
+Le tableau d'un onglet *Authentification* donne le nom du moyen, son type et
+un *contenu* lisible qui ne révèle jamais le secret : pour un certificat, le
+sujet et la date d'expiration (*Valide jusqu'au…*, *Expire le…* quand elle
+tombe sous trente jours, *Expiré le…* en rouge) ; pour une clé, son type et
+son empreinte ; pour un mot de passe ou une clé privée, « défini, non
+affiché ». La page d'un moyen détaille le sujet, l'émetteur, la validité et
+l'empreinte SHA-256 d'un certificat, ou le type et l'empreinte d'une clé, et
+montre la partie publique (certificat au format PEM, ligne de clé publique)
+qui peut être transmise au partenaire. Un mot de passe ou une clé privée ne
+sont jamais réaffichés, pas même à leur auteur.
+
+*Ajouter un moyen d'authentification* ouvre un formulaire en deux blocs : le
+nom et le type, puis le contenu du type choisi. Un fichier PEM (certificat,
+clé) se dépose depuis le poste ou se colle dans le champ prévu à côté ; le
+certificat TLS d'un serveur demande aussi sa clé privée. Un formulaire refusé
+(contenu absent, PEM illisible, certificat qui ne correspond pas à la clé,
+type déjà présent) est réaffiché avec le message sous le champ fautif. À la
+modification, le type ne change pas et un champ laissé vide conserve la
+valeur en place. La suppression d'un moyen requiert le droit de suppression
+et se confirme sur une page.
+
+
+Comptes locaux
+--------------
+
+Le tableau de l'onglet *Comptes locaux* donne l'identifiant de chaque compte
+et les types de ses moyens d'authentification ; un compte sans aucun moyen
+est signalé, car il ne peut pas se connecter. L'identifiant ouvre la fiche
+du compte, elle-même en deux onglets : *Détails* (serveur, identifiant,
+adresses IP autorisées, moyens) et *Authentification* (ses moyens, gérés
+comme ceux du serveur).
+
+*Ajouter un compte* demande l'identifiant, unique sur le serveur, et, à
+volonté, les adresses IP depuis lesquelles le compte peut se connecter (une
+par ligne, IPv4 ou IPv6, sans plage ; vide, toutes les adresses sont
+acceptées). Le même formulaire permet de donner au compte son premier moyen
+d'authentification, le plus souvent un mot de passe : le compte et le moyen
+sont enregistrés ensemble, ou pas du tout. Les moyens suivants s'ajoutent
+depuis la fiche du compte.
+
+La suppression d'un compte supprime ses moyens avec lui ; elle est refusée
+tant que des transferts en cours l'utilisent, et la page renvoie alors vers
+le suivi des transferts.
+
+
 Et par l'API
 ============
 
 Les mêmes opérations sont disponibles par l'API REST, sur les points
 :http:get:`/api/servers`, :http:post:`/api/servers`,
 :http:put:`/api/servers/(string:server_name)/start` et
-:http:put:`/api/servers/(string:server_name)/stop` (voir
+:http:put:`/api/servers/(string:server_name)/stop`, et, pour la fiche,
+:http:get:`/api/servers/(string:server_name)/credentials` et
+:http:get:`/api/servers/(string:server_name)/accounts` (voir
 :ref:`reference-rest-api`), et en ligne de commande avec ``waarp-gateway
 server``.

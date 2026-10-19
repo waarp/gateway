@@ -1,0 +1,35 @@
+{{/* Confirmation of the deletion of a local account (delete right): the consequence, what is deleted, "Cancel"
+     then "Delete" bottom right. Refused (running transfers use the account): the cause and the way out, no
+     "Delete" button. Data: accountDeleteData. */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ $d.CancelURL }}">{{ icon "arrow-left" }} {{ t "action.back" }}</a>
+  </div>
+</div>
+{{ template "servers/tabs" $d.Tabs }}
+<div class="w-card">
+  {{ if $d.Blocked -}}
+  {{ template "gui/banner" (dict "Kind" "ko" "Title" (t "accounts.delete.blocked_title") "Text" (t "accounts.delete.blocked_text") "Action" (dict "Label" (t "accounts.delete.blocked_link") "URL" $d.TransfersURL "Icon" "clock")) }}
+  {{- else -}}
+  <p class="servers-lead">{{ t "accounts.delete.text" "name" $d.Server }}</p>
+  {{- end }}
+  <dl class="w-deflist{{ if $d.Blocked }} servers-deflist{{ end }}">
+    <dt>{{ t "account.card" }}</dt><dd><code class="w-code">{{ $d.Login }}</code></dd>
+    <dt>{{ t "account.detail.server" }}</dt><dd>{{ $d.Server }}</dd>
+    <dt>{{ t "account.detail.ips" }}</dt><dd>{{ $d.IPs }}</dd>
+    <dt>{{ t "account.detail.auth" }}</dt><dd>{{ $d.Auth }}</dd>
+  </dl>
+  {{ if $d.Blocked -}}
+  <div class="w-form__actions servers-form-actions"><a class="w-btn w-btn--outline-dark" href="{{ $d.CancelURL }}">{{ t "action.back" }}</a></div>
+  {{- else -}}
+  <form class="servers-form-actions" method="post" action="{{ $d.Action }}">{{ template "gui/form-actions" (dict "CancelURL" $d.CancelURL "Danger" true "Title" $d.Title) }}</form>
+  {{- end }}
+</div>
+{{- end }}

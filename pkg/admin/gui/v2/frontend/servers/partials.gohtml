@@ -1,0 +1,127 @@
+{{/* Partials shared by the pages of the local servers screen and of the server sheet: a form field, the tab strip
+     of a sheet, the table of authentication means (of the server or of an account) and the content fields of a
+     means by kind (the means form and the first means of a new account). No "page" here: each page defines its own. */ -}}
+
+{{/* servers/field: an input with its label, hint or error. ID, Label, Req, F ({Value, Error}), Hint, Short, Code; Num
+     makes it a number field (browser arrows to go up and down, typing still possible) with Min and Max. */ -}}
+{{ define "servers/field" -}}
+<div class="w-field{{ if .Short }} w-field--short{{ end }}{{ if .F.Error }} is-invalid{{ end }}">
+  <label class="w-field__label" for="{{ .ID }}">{{ .Label }}{{ if .Req }} <span class="w-field__req" aria-hidden="true">*</span>{{ else if .Code }} <span class="w-field__opt"><code class="w-code">{{ .Code }}</code></span>{{ else }} <span class="w-field__opt">{{ t "form.optional" }}</span>{{ end }}</label>
+  <input class="w-input" id="{{ .ID }}" name="{{ .ID }}" value="{{ .F.Value }}"{{ if .Req }} required{{ end }}{{ if .Num }} type="number" inputmode="numeric" step="1"{{ with .Min }} min="{{ . }}"{{ end }}{{ with .Max }} max="{{ . }}"{{ end }}{{ end }}{{ if .F.Error }} aria-invalid="true" aria-describedby="{{ .ID }}-e"{{ else if .Hint }} aria-describedby="{{ .ID }}-h"{{ end }}>
+  {{ if .F.Error }}<span class="w-field__error" id="{{ .ID }}-e">{{ icon "triangle" }} {{ .F.Error }}</span>{{ else if .Hint }}<span class="w-field__hint" id="{{ .ID }}-h">{{ .Hint }}</span>{{ end }}
+</div>
+{{- end }}
+
+{{/* servers/tabs: the tab strip of a sheet, []tab{Label, URL, Count, HasCount, Current}. Links, not script tabs:
+     each tab is a page with its own list and its own address. */ -}}
+{{ define "servers/tabs" -}}
+<nav class="w-tabs" aria-label="{{ t "servers.tabs" }}">{{ range . }}<a href="{{ .URL }}"{{ if .Current }} aria-current="page"{{ end }}>{{ .Label }}{{ if .HasCount }} <span class="w-tabs__count">{{ .Count }}</span>{{ end }}</a>{{ end }}</nav>
+{{- end }}
+
+{{/* servers/cred-table: credListData. The states of the tab (no means possible for the protocol, none yet, no match),
+     the toolbar (search by name), the table (name, kind, non-secret content with the validity of a certificate,
+     "⋯") and the list foot. */ -}}
+{{ define "servers/cred-table" -}}
+{{ $d := . }}{{ $l := .List -}}
+{{ if $d.NonePossible -}}
+{{ template "gui/empty" (dict "Icon" "key" "Title" (t "auth.none_for_protocol.title") "Text" (t "auth.none_for_protocol.text")) }}
+{{- else if $l.Empty -}}
+{{ template "gui/empty" (dict "Icon" "key" "Title" (t "auth.empty.title") "Text" $d.EmptyText "Action" (and $d.AddURL (dict "Label" (t "auth.add") "URL" $d.AddURL "Icon" "plus"))) }}
+{{- else -}}
+<form class="w-toolbar" role="search" method="get" action="{{ $l.Action }}" data-autosubmit>
+  {{ range $k, $v := $l.Hidden }}<input type="hidden" name="{{ $k }}" value="{{ $v }}">{{ end }}
+  <label class="w-search"><span class="visually-hidden">{{ t "auth.search" }}</span>{{ icon "search" }}<input type="search" name="q" value="{{ $l.Q }}" placeholder="{{ t "auth.search_placeholder" }}" list="auth-names" autocomplete="off"></label>
+  <datalist id="auth-names">{{ range $l.Names }}<option value="{{ . }}"></option>{{ end }}</datalist>
+  <span class="w-toolbar__spacer"></span>
+  <span class="w-toolbar__count" aria-live="polite">{{ $l.Count }}</span>
+</form>
+{{ if $l.NoMatch -}}
+{{ template "gui/empty" (dict "Icon" "search" "Title" $l.NoMatchText "Action" (dict "Label" $l.NoMatchLink "URL" $l.NoMatchURL)) }}
+{{- else -}}
+<div class="w-table-wrap">
+  <table class="w-table">
+    <caption class="visually-hidden">{{ $l.Caption }}</caption>
+    <colgroup><col class="servers-col-cred"><col class="servers-col-type"><col><col class="servers-col-actions"></colgroup>
+    <thead><tr>
+      {{ template "gui/th" (dict "Label" (t "auth.col.name") "Key" "name" "Sort" $l.Sort "Dir" $l.Dir "Base" $l.Base) }}
+      {{ template "gui/th" (dict "Label" (t "auth.col.type") "Key" "type" "Sort" $l.Sort "Dir" $l.Dir "Base" $l.Base) }}
+      <th scope="col">{{ t "auth.col.content" }}</th>
+      <th scope="col"><span class="visually-hidden">{{ t "actions.title" }}</span></th>
+    </tr></thead>
+    <tbody>
+      {{ range $d.Rows }}<tr>
+        <td><a class="w-cell-title w-nowrap" href="{{ .URL }}">{{ .Name }}</a></td>
+        <td>{{ .Type }}</td>
+        <td>{{ if .Expiry.State }}<div class="w-cell-stack">{{ template "gui/status" .Expiry }}<span class="w-cell-sub">{{ .Summary }}</span></div>{{ else }}{{ .Summary }}{{ end }}</td>
+        <td>{{ template "gui/actions" (dict "ID" (printf "act-c%d" .ID) "Name" .Name "Items" .Actions) }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>
+{{ with $l.Pager }}<div class="servers-pager">{{ template "gui/pager" (dict "Info" .Info "Page" .Page "Pages" .Pages "PrevURL" .PrevURL "NextURL" .NextURL "Hidden" $l.PagerHidden "Sizes" $l.Sizes "Size" $l.Size) }}</div>{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* servers/cred-fields: the content of a means, one block per family, credFormData. At creation every block is
+     rendered and the kind select shows the right one (data-switch named "<Prefix>type"; without JavaScript every
+     block is visible and the server reads the block of the chosen kind). On edition only the block of the kind
+     is rendered, with what is in place next to each field: an empty field keeps it. Secrets are never
+     pre-filled. */ -}}
+{{ define "servers/cred-fields" -}}
+{{ $f := . }}{{ $p := .Prefix }}{{ $sw := printf "%stype" .Prefix -}}
+{{ if or (not $f.Edit) (eq $f.Family "password") -}}
+<fieldset class="w-fieldset w-fieldset--wide"{{ if not $f.Edit }} data-case="password" data-of="{{ $sw }}"{{ end }}>
+  <legend class="w-fieldset__legend">{{ t "auth.form.password" }}</legend>
+  <div class="w-grid w-grid--2">
+    <div class="w-field{{ if $f.Password.Error }} is-invalid{{ end }}">
+      <label class="w-field__label" for="{{ $p }}password">{{ t "auth.form.password" }}{{ if not $f.Edit }} <span class="w-field__req" aria-hidden="true">*</span>{{ end }}</label>
+      <input class="w-input" type="password" id="{{ $p }}password" name="{{ $p }}password" autocomplete="new-password" aria-describedby="{{ $p }}password-h"{{ if $f.Password.Error }} aria-invalid="true"{{ end }}>
+      {{ if $f.Password.Error }}<span class="w-field__error" id="{{ $p }}password-h">{{ icon "triangle" }} {{ $f.Password.Error }}</span>{{ else if $f.Edit }}<span class="w-field__hint" id="{{ $p }}password-h">{{ $f.CurrentPassword }} · {{ t "auth.form.password_keep" }}</span>{{ else }}<span class="w-field__hint" id="{{ $p }}password-h">{{ t "auth.form.password_hint" }}</span>{{ end }}
+    </div>
+  </div>
+</fieldset>
+{{- end }}
+{{ if or (not $f.Edit) (eq $f.Family "file") -}}
+<fieldset class="w-fieldset w-fieldset--wide"{{ if not $f.Edit }} data-case="trusted_tls_certificate ssh_private_key ssh_public_key" data-of="{{ $sw }}"{{ end }}>
+  <legend class="w-fieldset__legend">{{ t "auth.form.file" }}</legend>
+  <div class="w-field{{ if $f.Pem.Error }} is-invalid{{ end }}">
+    <label class="w-field__label" for="{{ $p }}file">{{ t "auth.form.file" }}{{ if not $f.Edit }} <span class="w-field__req" aria-hidden="true">*</span>{{ end }}</label>
+    {{ template "gui/file" (dict "ID" (printf "%sfile" $p) "Name" (printf "%sfile" $p) "Current" $f.CurrentFile "Accept" ".pem,.crt,.cer,.key,.pub" "Describe" (printf "%sfile-h" $p)) }}
+    {{ if $f.Pem.Error }}<span class="w-field__error" id="{{ $p }}file-h">{{ icon "triangle" }} {{ $f.Pem.Error }}</span>{{ else }}<span class="w-field__hint" id="{{ $p }}file-h">{{ if $f.Edit }}{{ t "auth.form.keep_file" }}{{ else }}{{ t "auth.form.file_hint" }}{{ end }}</span>{{ end }}
+  </div>
+  <div class="w-field">
+    <label class="w-field__label" for="{{ $p }}pem">{{ t "auth.form.paste" }} <span class="w-field__opt">{{ t "form.optional" }}</span></label>
+    <textarea class="w-textarea w-mono" id="{{ $p }}pem" name="{{ $p }}pem" rows="4" spellcheck="false" placeholder="-----BEGIN …-----">{{ $f.Pem.Value }}</textarea>
+  </div>
+</fieldset>
+{{- end }}
+{{ if or (not $f.Edit) (eq $f.Family "twofile") -}}
+<fieldset class="w-fieldset w-fieldset--wide"{{ if not $f.Edit }} data-case="tls_certificate" data-of="{{ $sw }}"{{ end }}>
+  <legend class="w-fieldset__legend">{{ t "auth.type.tls_certificate" }}</legend>
+  <div class="w-grid w-grid--2">
+    <div class="w-field{{ if $f.PemCert.Error }} is-invalid{{ end }}">
+      <label class="w-field__label" for="{{ $p }}cert_file">{{ t "auth.form.cert" }}{{ if not $f.Edit }} <span class="w-field__req" aria-hidden="true">*</span>{{ end }}</label>
+      {{ template "gui/file" (dict "ID" (printf "%scert_file" $p) "Name" (printf "%scert_file" $p) "Current" $f.CurrentCert "Accept" ".pem,.crt,.cer" "Describe" (printf "%scert-h" $p)) }}
+      {{ if $f.PemCert.Error }}<span class="w-field__error" id="{{ $p }}cert-h">{{ icon "triangle" }} {{ $f.PemCert.Error }}</span>{{ else }}<span class="w-field__hint" id="{{ $p }}cert-h">{{ if $f.Edit }}{{ t "auth.form.keep_file" }}{{ else }}{{ t "auth.form.cert_hint" }}{{ end }}</span>{{ end }}
+      <label class="w-field__label servers-paste" for="{{ $p }}cert_pem">{{ t "auth.form.paste_cert" }} <span class="w-field__opt">{{ t "form.optional" }}</span></label>
+      <textarea class="w-textarea w-mono" id="{{ $p }}cert_pem" name="{{ $p }}cert_pem" rows="4" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----">{{ $f.PemCert.Value }}</textarea>
+    </div>
+    <div class="w-field{{ if $f.PemKey.Error }} is-invalid{{ end }}">
+      <label class="w-field__label" for="{{ $p }}key_file">{{ t "auth.form.key" }}{{ if not $f.Edit }} <span class="w-field__req" aria-hidden="true">*</span>{{ end }}</label>
+      {{ template "gui/file" (dict "ID" (printf "%skey_file" $p) "Name" (printf "%skey_file" $p) "Current" $f.CurrentKey "Accept" ".pem,.key" "Describe" (printf "%skey-h" $p)) }}
+      {{ if $f.PemKey.Error }}<span class="w-field__error" id="{{ $p }}key-h">{{ icon "triangle" }} {{ $f.PemKey.Error }}</span>{{ else }}<span class="w-field__hint" id="{{ $p }}key-h">{{ if $f.Edit }}{{ t "auth.form.keep_file" }}{{ else }}{{ t "auth.form.key_hint" }}{{ end }}</span>{{ end }}
+      <label class="w-field__label servers-paste" for="{{ $p }}key_pem">{{ t "auth.form.paste_key" }} <span class="w-field__opt">{{ t "form.optional" }}</span></label>
+      <textarea class="w-textarea w-mono" id="{{ $p }}key_pem" name="{{ $p }}key_pem" rows="4" spellcheck="false" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+    </div>
+  </div>
+</fieldset>
+{{- end }}
+{{ if or (not $f.Edit) (eq $f.Family "none") -}}
+<fieldset class="w-fieldset w-fieldset--wide"{{ if not $f.Edit }} data-case="r66_legacy_certificate" data-of="{{ $sw }}"{{ end }}>
+  <legend class="w-fieldset__legend">{{ t "auth.type.r66_legacy_certificate" }}</legend>
+  <p class="w-form__note servers-note">{{ t "auth.form.legacy_hint" }}</p>
+</fieldset>
+{{- end }}
+{{- end }}

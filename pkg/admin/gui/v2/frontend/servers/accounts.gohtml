@@ -1,0 +1,53 @@
+{{/* "Local accounts" tab of a local server: the login as a link to the sheet of the account, the kinds of its
+     authentication means (a warning when it has none: it cannot connect), a "⋯" menu; one coloured action,
+     "Add an account". Data: accountsListData. */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data }}{{ $l := $d.List -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ $d.BackURL }}">{{ icon "arrow-left" }} {{ t "servers.back" }}</a>
+    {{ with $d.AddURL }}<a class="w-btn w-btn--primary" href="{{ . }}">{{ icon "plus" }} {{ t "accounts.add" }}</a>{{ end }}
+  </div>
+</div>
+{{ template "servers/tabs" $d.Tabs }}
+{{ if $l.Empty -}}
+{{ template "gui/empty" (dict "Icon" "users" "Title" (t "accounts.empty.title") "Text" (t "accounts.empty.text") "Action" (and $d.AddURL (dict "Label" (t "accounts.add") "URL" $d.AddURL "Icon" "plus"))) }}
+{{- else -}}
+<form class="w-toolbar" role="search" method="get" action="{{ $l.Action }}" data-autosubmit>
+  {{ range $k, $v := $l.Hidden }}<input type="hidden" name="{{ $k }}" value="{{ $v }}">{{ end }}
+  <label class="w-search"><span class="visually-hidden">{{ t "accounts.search" }}</span>{{ icon "search" }}<input type="search" name="q" value="{{ $l.Q }}" placeholder="{{ t "accounts.search_placeholder" }}" list="accounts-names" autocomplete="off"></label>
+  <datalist id="accounts-names">{{ range $l.Names }}<option value="{{ . }}"></option>{{ end }}</datalist>
+  <span class="w-toolbar__spacer"></span>
+  <span class="w-toolbar__count" aria-live="polite">{{ $l.Count }}</span>
+</form>
+{{ if $l.NoMatch -}}
+{{ template "gui/empty" (dict "Icon" "search" "Title" $l.NoMatchText "Action" (dict "Label" $l.NoMatchLink "URL" $l.NoMatchURL)) }}
+{{- else -}}
+<div class="w-table-wrap">
+  <table class="w-table">
+    <caption class="visually-hidden">{{ $l.Caption }}</caption>
+    <colgroup><col class="servers-col-login"><col><col class="servers-col-actions"></colgroup>
+    <thead><tr>
+      {{ template "gui/th" (dict "Label" (t "accounts.col.login") "Key" "name" "Sort" $l.Sort "Dir" $l.Dir "Base" $l.Base) }}
+      {{ template "gui/th" (dict "Label" (t "accounts.col.auth") "Key" "auth" "Sort" $l.Sort "Dir" $l.Dir "Base" $l.Base) }}
+      <th scope="col"><span class="visually-hidden">{{ t "actions.title" }}</span></th>
+    </tr></thead>
+    <tbody>
+      {{ range $d.Rows }}<tr>
+        <td><a class="w-cell-title w-nowrap" href="{{ .URL }}">{{ .Login }}</a></td>
+        <td>{{ if .NoAuth.State }}{{ template "gui/status" .NoAuth }}{{ else }}{{ .Auth }}{{ end }}</td>
+        <td>{{ template "gui/actions" (dict "ID" (printf "act-a%d" .ID) "Name" .Login "Items" .Actions) }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>
+{{ with $l.Pager }}<div class="servers-pager">{{ template "gui/pager" (dict "Info" .Info "Page" .Page "Pages" .Pages "PrevURL" .PrevURL "NextURL" .NextURL "Hidden" $l.PagerHidden "Sizes" $l.Sizes "Size" $l.Size) }}</div>{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}

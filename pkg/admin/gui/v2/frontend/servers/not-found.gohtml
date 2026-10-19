@@ -1,9 +1,12 @@
-{{/* A server that does not exist: localised 404 in the chrome, with the way back to the list as the user left it. */ -}}
+{{/* A server, an account or an authentication means that does not exist: localised 404 in the chrome, with the way
+     back (the list as the user left it, the tab of the server). Data: notFoundData{Title, Text, Icon, BackLabel,
+     BackURL}. */ -}}
 {{ define "page" -}}
+{{ $d := .Data -}}
 <div class="w-page-header">
   <div class="w-page-header__text">
-    <h1 class="w-page-header__title">{{ t "servers.not_found.title" }}</h1>
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
   </div>
 </div>
-{{ template "gui/empty" (dict "Icon" "server" "Title" (t "servers.not_found.text") "Action" (dict "Label" (t "servers.back") "URL" .Data.BackURL "Icon" "arrow-left")) }}
+{{ template "gui/empty" (dict "Icon" $d.Icon "Title" $d.Text "Action" (dict "Label" $d.BackLabel "URL" $d.BackURL "Icon" "arrow-left")) }}
 {{- end }}
