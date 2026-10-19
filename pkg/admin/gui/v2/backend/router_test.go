@@ -83,7 +83,14 @@ func TestServersRouter(t *testing.T) {
 		return rec.Code
 	}
 
+	account := &model.LocalAccount{LocalAgentID: server.ID, Login: "partner"}
+	require.NoError(t, db.Insert(account).Run())
+	cred := &model.Credential{LocalAccountID: account.NullableID(), Name: "mdp", Type: "password", Value: "pa55"}
+	require.NoError(t, db.Insert(cred).Run())
+
 	id := fmt.Sprintf("/servers/%d", server.ID)
+	accountID := fmt.Sprintf("%s/accounts/%d", id, account.ID)
+	credID := fmt.Sprintf("%s/auth/%d", accountID, cred.ID)
 	read := model.PermServersRead
 	write := read | model.PermServersWrite
 	del := read | model.PermServersDelete
@@ -111,6 +118,28 @@ func TestServersRouter(t *testing.T) {
 		{http.MethodPost, id + "/stop", write, del},
 		{http.MethodGet, id + "/delete", del, write},
 		{http.MethodPost, id + "/delete", del, write},
+
+		// The sheet: its tabs and the pages in reading behind the read
+		// right, the forms behind the write right, the deletions behind
+		// the delete right (hardening decided on 2026-10-18).
+		{http.MethodGet, id + "/auth", read, 0},
+		{http.MethodGet, id + "/auth/new", write, del},
+		{http.MethodPost, id + "/auth/new", write, del},
+		{http.MethodGet, id + "/accounts", read, 0},
+		{http.MethodGet, id + "/accounts/new", write, del},
+		{http.MethodPost, id + "/accounts/new", write, del},
+		{http.MethodGet, accountID, read, 0},
+		{http.MethodGet, accountID + "/edit", write, del},
+		{http.MethodPost, accountID + "/edit", write, del},
+		{http.MethodGet, accountID + "/delete", del, write},
+		{http.MethodGet, accountID + "/auth", read, 0},
+		{http.MethodGet, accountID + "/auth/new", write, del},
+		{http.MethodGet, credID, read, 0},
+		{http.MethodGet, credID + "/edit", write, del},
+		{http.MethodPost, credID + "/edit", write, del},
+		{http.MethodGet, credID + "/delete", del, write},
+		{http.MethodPost, credID + "/delete", del, write},
+		{http.MethodPost, accountID + "/delete", del, write},
 	} {
 		assert.Equalf(t, http.StatusForbidden, serve(route.lacking, route.method, route.target),
 			"%s %s must be refused without the right", route.method, route.target)

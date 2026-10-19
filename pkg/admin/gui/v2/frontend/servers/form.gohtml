@@ -157,16 +157,6 @@
 </form>
 {{- end }}
 
-{{/* servers/field: an input with its label, hint or error. ID, Label, Req, F ({Value, Error}), Hint, Short, Code; Num
-     makes it a number field (browser arrows to go up and down, typing still possible) with Min and Max. */ -}}
-{{ define "servers/field" -}}
-<div class="w-field{{ if .Short }} w-field--short{{ end }}{{ if .F.Error }} is-invalid{{ end }}">
-  <label class="w-field__label" for="{{ .ID }}">{{ .Label }}{{ if .Req }} <span class="w-field__req" aria-hidden="true">*</span>{{ else if .Code }} <span class="w-field__opt"><code class="w-code">{{ .Code }}</code></span>{{ else }} <span class="w-field__opt">{{ t "form.optional" }}</span>{{ end }}</label>
-  <input class="w-input" id="{{ .ID }}" name="{{ .ID }}" value="{{ .F.Value }}"{{ if .Req }} required{{ end }}{{ if .Num }} type="number" inputmode="numeric" step="1"{{ with .Min }} min="{{ . }}"{{ end }}{{ with .Max }} max="{{ . }}"{{ end }}{{ end }}{{ if .F.Error }} aria-invalid="true" aria-describedby="{{ .ID }}-e"{{ else if .Hint }} aria-describedby="{{ .ID }}-h"{{ end }}>
-  {{ if .F.Error }}<span class="w-field__error" id="{{ .ID }}-e">{{ icon "triangle" }} {{ .F.Error }}</span>{{ else if .Hint }}<span class="w-field__hint" id="{{ .ID }}-h">{{ .Hint }}</span>{{ end }}
-</div>
-{{- end }}
-
 {{/* servers/dual: a dual list (gui/dual) with its label and hint. ID, Label, Code, Choices, Hint. */ -}}
 {{ define "servers/dual" -}}
 <div class="w-field">

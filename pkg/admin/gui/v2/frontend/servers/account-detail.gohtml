@@ -1,0 +1,27 @@
+{{/* The sheet of a local account, "Details" tab: the server, the login, the allowed IP addresses (exposed,
+     Driss 2026-10-18) and the kinds of its means. "Edit" as a button (write right), "Delete" in the "⋯" menu
+     (delete right). Data: accountDetailData. */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ $d.BackURL }}">{{ icon "arrow-left" }} {{ t "servers.back_server" }}</a>
+    {{ with $d.EditURL }}<a class="w-btn w-btn--outline-dark" href="{{ . }}">{{ icon "pen" }} {{ t "accounts.action.edit" }}</a>{{ end }}
+    {{ with $d.Actions }}{{ template "gui/actions" (dict "ID" "act-account" "Name" $d.Login "Items" .) }}{{ end }}
+  </div>
+</div>
+{{ template "servers/tabs" $d.Tabs }}
+<div class="w-card">
+  <h2 class="w-card__title">{{ t "account.card" }}</h2>
+  <dl class="w-deflist">
+    {{ range $d.Identity }}<dt>{{ .Label }}</dt><dd>{{ if .Mono }}<code class="w-code">{{ .Value }}</code>{{ else }}{{ .Value }}{{ end }}</dd>
+    {{ end }}
+  </dl>
+  <p class="w-form__note servers-note">{{ t "account.detail.ips_note" }}</p>
+</div>
+{{- end }}

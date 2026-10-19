@@ -1,0 +1,37 @@
+{{/* An authentication means in reading, under the tab strip of its owner. A certificate shows its subject, its
+     issuer, its validity, its fingerprint and its PEM (public part); a public key its kind, its fingerprint and
+     its line; a password or a private key is "set, never shown". "Edit" as a button (write right), "Delete" in
+     the "⋯" menu (delete right). Data: credDetailData. */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ $d.BackURL }}">{{ icon "arrow-left" }} {{ t "action.back" }}</a>
+    {{ with $d.EditURL }}<a class="w-btn w-btn--outline-dark" href="{{ . }}">{{ icon "pen" }} {{ t "auth.action.edit" }}</a>{{ end }}
+    {{ with $d.DeleteURL }}{{ template "gui/actions" (dict "ID" "act-cred" "Name" $d.Name "Items" (list (dict "Icon" "trash" "Label" (t "auth.action.delete") "URL" . "Danger" true))) }}{{ end }}
+  </div>
+</div>
+{{ template "servers/tabs" $d.Tabs }}
+<div class="w-stack">
+  <div class="w-card">
+    <h2 class="w-card__title">{{ t "auth.detail.card" "type" $d.Type "owner" $d.Owner }}</h2>
+    <dl class="w-deflist">
+      {{ if $d.Expiry.State }}<dt>{{ t "auth.detail.state" }}</dt><dd>{{ template "gui/status" $d.Expiry }}</dd>{{ end }}
+      {{ range $d.Rows }}<dt>{{ .Label }}</dt><dd>{{ if .Mono }}<code class="w-code">{{ .Value }}</code>{{ else }}{{ .Value }}{{ end }}</dd>
+      {{ end }}
+    </dl>
+  </div>
+  {{ if $d.Public -}}
+  <div class="w-card">
+    <h2 class="w-card__title">{{ $d.PublicTitle }}</h2>
+    <pre class="w-code servers-pem">{{ $d.Public }}</pre>
+    <p class="w-form__note servers-note">{{ t "auth.detail.public_note" }}</p>
+  </div>
+  {{- end }}
+</div>
+{{- end }}

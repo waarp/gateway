@@ -1,0 +1,20 @@
+{{/* "Authentication" tab of a local server (the identity it presents to the partners) or of a local account
+     (what the partner presents). One coloured action, "Add an authentication means", when something can still be
+     added; the tabs are links; the table never shows a secret. Data: credListData. */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ $d.BackURL }}">{{ icon "arrow-left" }} {{ $d.BackLabel }}</a>
+    {{ with $d.AddURL }}<a class="w-btn w-btn--primary" href="{{ . }}">{{ icon "plus" }} {{ t "auth.add" }}</a>{{ end }}
+  </div>
+</div>
+{{ template "servers/tabs" $d.Tabs }}
+<p class="w-form__note servers-intro">{{ $d.Intro }}</p>
+{{ template "servers/cred-table" $d }}
+{{- end }}

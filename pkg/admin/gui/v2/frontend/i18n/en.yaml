@@ -258,3 +258,212 @@ servers:
   error:
     title: The server list could not be loaded.
     text: "An internal error occurred; the details are in the gateway log."
+  # Server sheet (#709): the tabs of the sheet.
+  tabs: Tabs of the sheet
+  tab:
+    details: Details
+    auth: Authentication
+    accounts: Local accounts
+# Sheet of a local account.
+account:
+  title: "Account “{login}”"
+  card: Account
+  tab:
+    details: Details
+    auth: Authentication
+  detail:
+    server: Server
+    login: Login
+    ips: Allowed IP addresses
+    ips_all: All
+    ips_note: "The allowed IP addresses limit where this account may connect from; “All” sets no limit."
+    auth: Authentication means
+    auth_none: None
+# Authentication means, shared by the server and its accounts.
+auth:
+  title:
+    server: Identity the server presents to the partners
+    account: Means the partner presents for this account
+  owner:
+    server: "the server “{name}”"
+    account: "the account “{login}” of the server “{name}”"
+  add: Add an authentication means
+  search: Search an authentication means by name
+  search_placeholder: Search by name
+  count: "{total} means"
+  count_one: 1 means
+  count_shown: "{total} means · {shown} shown"
+  count_shown_one: "{total} means · 1 shown"
+  caption: "Authentication means, page {page} of {pages}, sorted by {sort}"
+  pager: "Means {from} to {to} of {total}"
+  sort:
+    name: name
+    type: kind
+  col:
+    name: Authentication means
+    type: Kind
+    content: Content
+  action:
+    detail: View the means
+    edit: Edit the means
+    delete: Delete the means
+  type:
+    password: Password
+    tls_certificate: TLS certificate and its key
+    trusted_tls_certificate: Trusted TLS certificate
+    ssh_private_key: SSH private key
+    ssh_public_key: SSH public key
+    r66_legacy_certificate: Legacy R66 certificate
+  # Layout of the validity dates (Go layout).
+  date: 2006-01-02
+  # Non-secret content of a means, in the list and on its page.
+  content:
+    set: Set
+    secret: Set, not shown
+    cert_key: "{subject} · private key set, not shown"
+    key_set: Private key set, not shown
+    private_key: "{type} private key, not shown"
+    key: "{type} · {fingerprint}"
+    valid: "Valid until {date}"
+    expires: "Expires on {date}"
+    expired: "Expired on {date}"
+  new:
+    title: New authentication means
+  edit:
+    title: "Edit “{name}”"
+  form:
+    card: "Authentication means for {owner}"
+    content: Content
+    name: Name
+    name_hint: "To tell them apart: “cert-2026”, “host-key-rsa”…; empty, the name of the kind is used"
+    type: Kind
+    type_choose: Choose a kind
+    type_hint: "Only the kinds the protocol allows are offered; a unique kind already present is left out."
+    type_fixed: "The kind of a means does not change: to change it, delete the means and add another one."
+    password: Password
+    password_hint: "The partner presents it when connecting; it is stored hashed, nobody can read it back"
+    password_keep: Leave empty to keep the current password
+    file: File
+    file_hint: Certificate, public key or private key in PEM format
+    keep_file: "Uploading a new file replaces it; otherwise the content in place is kept"
+    paste: or paste the PEM content
+    cert: Certificate
+    cert_hint: The certificate the server presents, in PEM format
+    paste_cert: or paste the certificate
+    key: Private key
+    key_hint: "The private key of the certificate; it is never shown again"
+    paste_key: or paste the key
+    legacy_hint: "Nothing to enter: this means states that the authentication follows the historic market convention for R66 certificates."
+    refused: The authentication means was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: Give the content of the authentication means.
+      type: Choose a kind the protocol allows.
+      unique: "A means of this kind already exists; edit or delete it first."
+      name_taken: Another means already has this name. Choose another one.
+      invalid: "The content was not accepted: {reason}"
+  detail:
+    title: "Means “{name}”"
+    card: "{type} for {owner}"
+    state: Status
+    subject: Subject
+    issuer: Issuer
+    self_signed: Self-signed
+    validity: Validity
+    validity_text: "from {from} to {to}"
+    fingerprint: SHA-256 fingerprint
+    key_type: Key type
+    private_key: Private key
+    content: Content
+    never_shown: Set, never shown
+    legacy: "No value: the kind is enough"
+    pem: Certificate (PEM)
+    public_key: Public key
+    public_note: "Public part only: it can be given to the partner."
+  delete:
+    title: "Delete the means “{name}”?"
+    server: Partners that check this identity of the server will no longer be able to connect.
+    account: This partner will no longer be able to authenticate this way.
+    means: Means
+    type: Kind
+    owner: For
+    content: Content
+  empty:
+    title: No authentication means yet
+    server: "Add the identity this server presents to the partners: certificate, host key or password depending on the protocol."
+    account: "This account cannot connect as long as it has no means: add a password, a certificate or a public key."
+  none_for_protocol:
+    title: This protocol asks no authentication means from the server
+    text: "Connections to this server are not authenticated by it: nothing to add here."
+  none:
+    title: "No means matches “{query}”"
+  not_found:
+    title: Authentication means not found
+    text: This authentication means does not exist or has been deleted.
+  toast:
+    created: "Means “{name}” added"
+    updated: "Means “{name}” saved"
+    deleted: "Means “{name}” deleted"
+# Local accounts of a server.
+accounts:
+  add: Add an account
+  search: Search an account by login
+  search_placeholder: Search by login
+  count: "{total} accounts"
+  count_one: 1 account
+  count_shown: "{total} accounts · {shown} shown"
+  count_shown_one: "{total} accounts · 1 shown"
+  caption: "Local accounts, page {page} of {pages}, sorted by {sort}"
+  pager: "Accounts {from} to {to} of {total}"
+  sort:
+    name: login
+    auth: authentication
+  col:
+    login: Local account
+    auth: Authentication
+  auth_none: "No means: cannot connect"
+  action:
+    detail: View the account
+    edit: Edit the account
+    delete: Delete the account
+  new:
+    title: New account
+  edit:
+    title: "Edit “{login}”"
+  form:
+    card: "Account on the server “{name}”"
+    login: Login
+    login_hint: "Unique on this server; the login the partner presents"
+    ips: Allowed IP addresses
+    ips_hint: "One address per line, IPv4 or IPv6, no range; empty: every address is accepted"
+    first_means: First authentication means
+    first_means_hint: "The partner will authenticate this way; you can add others in the sheet of the account."
+    first_means_none: None for now
+    means_name: Name of the means
+    means_name_hint: "Empty: the name of the kind is used"
+    means_type: Kind
+    means_type_hint: Kinds allowed for an account of this protocol
+    refused: The account was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      login: Enter the login of the account.
+      taken: Another account of this server already has this login.
+      ip: "“{value}” is not an IP address."
+  delete:
+    title: "Delete the account “{login}”?"
+    text: "Its authentication means will be deleted with it; this partner will no longer be able to connect to the server “{name}”."
+    blocked_title: This account cannot be deleted.
+    blocked_text: "Running transfers use it. Cancel them or wait for them to finish, then come back here."
+    blocked_link: See the running transfers
+  empty:
+    title: No local account yet
+    text: "A local account is the login a partner uses to connect to this server; it holds its own authentication means."
+  none:
+    title: "No account matches “{query}”"
+  not_found:
+    title: Account not found
+    text: This account does not exist or has been deleted.
+  toast:
+    created: "Account “{login}” created"
+    updated: "Account “{login}” saved"
+    deleted: "Account “{login}” deleted"
