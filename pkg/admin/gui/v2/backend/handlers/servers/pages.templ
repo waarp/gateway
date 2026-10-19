@@ -1,0 +1,328 @@
+package servers
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the local servers list (Connections). Presentation only: the
+// handler searches, filters, sorts and pages the rows, builds the row actions
+// from the rights and translates the texts. One coloured action ("Add a
+// server"); search and filters neutral, the filters applied as soon as they
+// change (data-autosubmit, "Apply" only without JavaScript); four sortable
+// headers; a "⋯" menu per row; rows per page in the list foot. Rows carry the
+// state and its raw reason, never a colour alone.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "servers.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "servers.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.error.title"), Text: gui.T(ctx, "servers.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "server", Title: gui.T(ctx, "servers.empty.title"), Text: gui.T(ctx, "servers.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "servers.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "servers.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "servers.search_placeholder") } list="servers-names" autocomplete="off"/></label>
+			<datalist id="servers-names">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<details class="w-disclose" open?={ d.FiltersOpen }>
+				<summary class="w-btn w-btn--outline-dark w-btn--sm">
+					@gui.Icon("filter")
+					{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+				</summary>
+				<div class="w-disclose__panel">
+					<fieldset class="w-fieldset w-field w-field--wide">
+						<legend class="w-fieldset__legend">{ gui.T(ctx, "servers.filters") }</legend>
+						<div class="w-checks">
+							for _, f := range d.Filters {
+								<label class="w-check"><input type="checkbox" name="protocol" value={ f.Key } checked?={ f.Checked }/> <span>{ f.Label }</span></label>
+							}
+						</div>
+					</fieldset>
+					<div class="w-field w-field--short">
+						<label class="w-field__label" for="tls">{ gui.T(ctx, "proto.filter_tls") }</label>
+						<select class="w-select" id="tls" name="tls">
+							for _, c := range d.TLSFilter {
+								<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+							}
+						</select>
+					</div>
+					@gui.FiltersFoot(d.ResetURL)
+				</div>
+			</details>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="servers-col-name"/><col class="servers-col-state"/><col class="servers-col-protocol"/><col/><col class="servers-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "servers.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "servers.col.state"), Key: "state", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "servers.col.protocol"), Key: "protocol", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "servers.col.address"), Key: "address", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "servers.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><span class="w-cell-title w-nowrap">{ r.Name }</span></td>
+								<td>@stateCell(r.Status, r.Reason)</td>
+								<td>{ r.Protocol }@protoform.TLSBadge(r.TLS)</td>
+								<td class="w-mono w-nowrap">{ r.Address }</td>
+								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="servers-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// stateCell: the status of a server, with its raw reason under it when any.
+templ stateCell(status gui.Status, reason string) {
+	if reason != "" {
+		<div class="w-cell-stack">@gui.StatusOf(status)<span class="w-cell-sub w-mono">{ reason }</span></div>
+	} else {
+		@gui.StatusOf(status)
+	}
+}
+
+// reasonCode: the raw reason of a state, after the status of a details page.
+templ reasonCode(reason string) {
+	if reason != "" {
+		{ " " }<code class="w-code">{ reason }</code>
+	}
+}
+
+// dirValue: a directory of the server, or "undefined".
+templ dirValue(k kv) {
+	if k.Value != "" {
+		<code class="w-code">{ k.Value }</code>
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "servers.detail.undefined") }</span>
+	}
+}
+
+// detailView: details of a local server, in reading: the "Details" tab of
+// the server sheet, next to "Authentication" and "Local accounts" (links, one
+// page per tab). Breadcrumb and a "Back to the list" button (decision D10);
+// the other actions in a "⋯" menu; key/value lists, nothing else.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "servers.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "servers.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "servers.action.edit") }
+				</a>
+			}
+			@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
+		</div>
+	</div>
+	@tabsNav(d.Tabs)
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "servers.detail.card") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "servers.detail.state") }</dt>
+				<dd>@gui.StatusOf(d.Status)@reasonCode(d.Reason)</dd>
+				for _, k := range d.Identity {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "servers.detail.dirs") }</h2>
+			<dl class="w-deflist">
+				for _, k := range d.Dirs {
+					<dt>{ k.Label }</dt>
+					<dd>@dirValue(k)</dd>
+				}
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
+			<dl class="w-deflist">
+				for _, k := range d.Options {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		</div>
+	</div>
+}
+
+// runningNote: what happens to a running server on deletion.
+templ runningNote(running bool) {
+	if running {
+		{ " " + gui.T(ctx, "servers.delete.running") }
+	}
+}
+
+// deleteView: confirmation page of the deletion of a local server (decision
+// D10: a page, not a dialog). The title names the server, the text says the
+// consequences, "Cancel" then "Delete" bottom right (D12). Refused (running
+// transfers use one of its accounts): the cause and the way out, no "Delete"
+// button.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "servers.delete.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "servers.back_server") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Blocked {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.delete.blocked_title"), Text: gui.T(ctx, "servers.delete.blocked_text"), Action: &gui.Link{Label: gui.T(ctx, "servers.delete.blocked_link"), URL: d.TransfersURL, Icon: "clock"}})
+		} else {
+			<p class="servers-lead">{ gui.T(ctx, "servers.delete.text") }@runningNote(d.Running)</p>
+		}
+		<dl class={ "w-deflist", templ.KV("servers-deflist", d.Blocked) }>
+			<dt>{ gui.T(ctx, "servers.detail.card") }</dt>
+			<dd>{ d.Name }</dd>
+			<dt>{ gui.T(ctx, "servers.detail.state") }</dt>
+			<dd>@gui.StatusOf(d.Status)</dd>
+			<dt>{ gui.T(ctx, "servers.detail.protocol") }</dt>
+			<dd>{ d.Protocol }</dd>
+			<dt>{ gui.T(ctx, "servers.detail.address") }</dt>
+			<dd><code class="w-code">{ d.Address }</code></dd>
+			<dt>{ gui.T(ctx, "servers.detail.accounts") }</dt>
+			<dd>{ d.Accounts }</dd>
+		</dl>
+		if d.Blocked {
+			<div class="w-form__actions servers-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "servers.back_server") }</a></div>
+		} else {
+			<form class="servers-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "servers.delete.title", "name", d.Name)})</form>
+		}
+	</div>
+}
+
+// notFoundView: a server, an account or an authentication means that does
+// not exist: localised 404 in the chrome, with the way back (the list as the
+// user left it, the tab of the server).
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: d.Icon, Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}
+
+// backLabel: the label of the back button of the form: to the server on
+// edition, to the list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "servers.back_server") }
+	} else {
+		{ " " + gui.T(ctx, "servers.back") }
+	}
+}
+
+// formView: creation and edition of a local server, one page (decision D10),
+// one card per block: identity (name, protocol as a family with TLS as an
+// attribute, automatic start), listening address, directories, then the
+// options of the chosen protocol and the TLS block, rendered by the shared
+// protocol components: the cards of every family are rendered, the family
+// select shows the one of its value and the TLS checkbox the TLS card;
+// without JavaScript every block is visible and the server reads the right
+// one. Refused form: a banner, the values kept, a message under each faulty
+// field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="servers-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "servers.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "servers.form.identity") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: "name", Label: gui.T(ctx, "servers.form.name"), Req: true, F: d.Fields["name"], Hint: gui.T(ctx, "servers.form.name_hint")})
+					@protoform.ChoiceOf(d.Proto.Choice)
+				</div>
+				<label class="w-check"><input type="checkbox" name="no_autostart" value="1" checked?={ d.Checks["no_autostart"] }/> <span>{ gui.T(ctx, "servers.form.no_autostart") }</span></label>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "servers.form.address") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "servers.form.host"), F: d.Fields["host"], Hint: gui.T(ctx, "servers.form.host_hint")})
+					@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "servers.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "servers.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+				</div>
+			</fieldset>
+		</div>
+		<details class="w-card w-card--fold" open?={ d.DirsOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "servers.form.dirs") }</span><span class="w-fold__meta">{ d.DirsSummary }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "servers.form.dirs") }</legend>
+					<p class="w-form__note servers-note">{ gui.T(ctx, "servers.form.dirs_hint") }</p>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: "root_dir", Label: gui.T(ctx, "servers.dirs.root"), F: d.Fields["root_dir"]})
+						@protoform.FieldOf(protoform.FieldProps{ID: "receive_dir", Label: gui.T(ctx, "servers.dirs.receive"), F: d.Fields["receive_dir"]})
+						@protoform.FieldOf(protoform.FieldProps{ID: "tmp_receive_dir", Label: gui.T(ctx, "servers.dirs.tmp"), F: d.Fields["tmp_receive_dir"], Hint: gui.T(ctx, "servers.form.tmp_hint")})
+						@protoform.FieldOf(protoform.FieldProps{ID: "send_dir", Label: gui.T(ctx, "servers.dirs.send"), F: d.Fields["send_dir"]})
+					</div>
+				</fieldset>
+			</div>
+		</details>
+		@protoform.Options(d.Proto)
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}

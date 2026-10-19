@@ -1,0 +1,50 @@
+package home
+
+import "code.waarp.fr/lib/gui"
+
+// page: the home page (screen sheet validated by Driss on 2026-10-19, revised
+// the same day): one card per section of the sidebar, side by side, each
+// listing as link cards the screens the user may read (the handler filters by
+// the real right of each page): the icon and the name side by side, the
+// sentence of the glossary under the name (on trial). The page fits the
+// height of the sidebar: no breadcrumb (the title says it), no data, no
+// action, no sidebar entry.
+templ page(d pageData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "home.title") }</h1>
+		</div>
+	</div>
+	<div class="w-grid w-grid--4">
+		for _, s := range d.Sections {
+			<section class="w-card" aria-labelledby={ "home-" + s.Key }>
+				<h2 class="w-card__title" id={ "home-" + s.Key }>{ s.Title }</h2>
+				<div class="w-stack w-stack--tight">
+					for _, c := range s.Cards {
+						@gui.LinkCard(c)
+					}
+				</div>
+			</section>
+		}
+	</div>
+}
+
+// aboutPage: the "About" page, the content of the dialog of the account menu
+// (gui.AboutBody) as a page for a browser without JavaScript or a link to
+// keep.
+templ aboutPage(product, homeURL string, about *gui.About) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "about.title", "product", product) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(homeURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "action.back") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		@gui.AboutBody(gui.Page{Product: product, About: about})
+	</div>
+}

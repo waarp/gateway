@@ -1,0 +1,270 @@
+package protoform
+
+import (
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+)
+
+// Components shared by the screens that configure a protocol (local servers,
+// local clients, remote partners): a form field, the choice of the protocol
+// (the family and the TLS checkbox: TLS is an attribute at the screen, Driss,
+// 2026-10-19), the cards of options by family and the TLS card, fed by the
+// Form prepared by the handler. The cards of every family are rendered; the
+// family select (data-switch) shows the one of its value and the TLS
+// checkbox (data-switch="tls") the TLS card; without JavaScript every block
+// is visible and the server reads the block of the chosen protocol only.
+
+// FieldProps feeds FieldOf: an input with its label, hint or error. Num
+// makes it a number field (browser arrows to go up and down, typing still
+// possible) with Min and Max; Req marks it required; Code is the technical
+// name shown after the label of an optional option.
+type FieldProps struct {
+	ID    string
+	Label string
+	Req   bool
+	F     Field
+	Hint  string
+	Short bool
+	Code  string
+	Num   bool
+	Min   int
+	Max   int
+}
+
+// fieldMark: what follows the label of a field: the required star, the
+// technical name of an optional option, or "(optional)".
+templ fieldMark(p FieldProps) {
+	if p.Req {
+		{ " " }<span class="w-field__req" aria-hidden="true">*</span>
+	} else if p.Code != "" {
+		{ " " }<span class="w-field__opt"><code class="w-code">{ p.Code }</code></span>
+	} else {
+		{ " " }<span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span>
+	}
+}
+
+// FieldOf: an input with its label, hint or error (see FieldProps).
+templ FieldOf(p FieldProps) {
+	<div class={ "w-field", templ.KV("w-field--short", p.Short), templ.KV("is-invalid", p.F.Error != "") }>
+		<label class="w-field__label" for={ p.ID }>{ p.Label }@fieldMark(p)</label>
+		<input
+			class="w-input"
+			id={ p.ID }
+			name={ p.ID }
+			value={ p.F.Value }
+			required?={ p.Req }
+			if p.Num {
+				type="number"
+				inputmode="numeric"
+				step="1"
+				min={ strconv.Itoa(p.Min) }
+			}
+			if p.Num && p.Max != 0 {
+				max={ strconv.Itoa(p.Max) }
+			}
+			if p.F.Error != "" {
+				aria-invalid="true"
+				aria-describedby={ p.ID + "-e" }
+			}
+			if p.F.Error == "" && p.Hint != "" {
+				aria-describedby={ p.ID + "-h" }
+			}
+		/>
+		if p.F.Error != "" {
+			<span class="w-field__error" id={ p.ID + "-e" }>
+				@gui.Icon("triangle")
+				{ p.F.Error }
+			</span>
+		} else if p.Hint != "" {
+			<span class="w-field__hint" id={ p.ID + "-h" }>{ p.Hint }</span>
+		}
+	</div>
+}
+
+// ChoiceOf: the family select and the TLS checkbox. The checkbox sits in a
+// fieldset shown for the families that have a TLS variant: hidden (and
+// disabled) for the others, it reads "off".
+templ ChoiceOf(v ChoiceView) {
+	<div class={ "w-field", templ.KV("is-invalid", v.Error != "") }>
+		<label class="w-field__label" for="protocol">{ gui.T(ctx, "proto.label") } <span class="w-field__req" aria-hidden="true">*</span></label>
+		<select
+			class="w-select"
+			id="protocol"
+			name="protocol"
+			required
+			data-switch
+			aria-describedby="protocol-h"
+			if v.Error != "" {
+				aria-invalid="true"
+			}
+		>
+			<option value="" selected?={ v.None }>{ gui.T(ctx, "proto.choose") }</option>
+			for _, c := range v.Families {
+				<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+			}
+		</select>
+		if v.Error != "" {
+			<span class="w-field__error" id="protocol-h">
+				@gui.Icon("triangle")
+				{ v.Error }
+			</span>
+		} else {
+			<span class="w-field__hint" id="protocol-h">{ gui.T(ctx, "proto.choose_hint") }</span>
+		}
+	</div>
+	<fieldset class="w-fieldset proto-tls" data-case={ v.TLSCases }>
+		<label class="w-check"><input type="checkbox" id="tls" name="tls" value="1" data-switch="tls" aria-describedby="tls-h" checked?={ v.TLS }/> <span>{ gui.T(ctx, "proto.tls") }</span></label>
+		<span class="w-field__hint" id="tls-h">{ gui.T(ctx, "proto.tls_hint") }</span>
+	</fieldset>
+}
+
+// Options: one foldable card per family that has options, then the TLS card.
+templ Options(f *Form) {
+	for _, fam := range f.Families {
+		if fam.HasOptions() {
+			<details class="w-card w-card--fold" data-case={ fam.Key } open?={ fam.Open }>
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", fam.Label) }</span><span class="w-fold__meta">{ fam.Summary }</span></summary>
+				<div class="w-card__body">
+					<fieldset class="w-fieldset w-fieldset--wide">
+						<legend class="visually-hidden">{ gui.T(ctx, "proto.options", "protocol", fam.Label) }</legend>
+						if fam.Note != "" {
+							<p class="w-form__note proto-note">{ fam.Note }</p>
+						}
+						@block(fam.Plain)
+						if len(fam.TLS.Groups) > 0 {
+							<fieldset class="w-fieldset w-fieldset--wide" data-case="on" data-of="tls">
+								<legend class="w-fieldset__legend">{ gui.T(ctx, "proto.tls_title") }</legend>
+								@block(fam.TLS)
+							</fieldset>
+						}
+					</fieldset>
+				</div>
+			</details>
+		}
+	}
+	<details class="w-card w-card--fold" data-case="on" data-of="tls" open?={ f.TLSOpen }>
+		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "proto.tls_title") }</span><span class="w-fold__meta">{ f.TLSSummary }</span></summary>
+		<div class="w-card__body">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="visually-hidden">{ gui.T(ctx, "proto.tls_title") }</legend>
+				@tlsBlock(f.TLSBlock)
+			</fieldset>
+		</div>
+	</details>
+}
+
+// block: the options of a block in the order of the table: consecutive
+// fields in a grid, a checkbox or a list on its own.
+templ block(b BlockView) {
+	for _, g := range b.Groups {
+		if len(g.Fields) > 0 {
+			<div class="w-grid w-grid--2">
+				for _, v := range g.Fields {
+					@option(v)
+				}
+			</div>
+		} else if g.Check != nil {
+			<label class="w-check"><input type="checkbox" name={ g.Check.Name } value="1" checked?={ g.Check.Checked }/> <span>{ g.Check.Label } (<code class="w-code">{ g.Check.Code }</code>)</span></label>
+		} else if g.List != nil {
+			@dualOf(*g.List)
+		}
+	}
+}
+
+// option: a text, number or select field.
+templ option(v OptionView) {
+	if v.Kind == "select" {
+		<div class={ "w-field", templ.KV("w-field--short", v.Short) }>
+			<label class="w-field__label" for={ v.Name }>{ v.Label } <span class="w-field__opt"><code class="w-code">{ v.Code }</code></span></label>
+			<select
+				class="w-select"
+				id={ v.Name }
+				name={ v.Name }
+				if v.Hint != "" {
+					aria-describedby={ v.Name + "-h" }
+				}
+			>
+				for _, c := range v.Choices {
+					<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+				}
+			</select>
+			if v.Hint != "" {
+				<span class="w-field__hint" id={ v.Name + "-h" }>{ v.Hint }</span>
+			}
+		</div>
+	} else {
+		@FieldOf(FieldProps{ID: v.Name, Label: v.Label, F: Field{Value: v.Value, Error: v.Error}, Hint: v.Hint, Short: v.Short, Code: v.Code, Num: v.Kind == "number", Min: v.Min, Max: v.Max})
+	}
+}
+
+// dualOf: a dual list (gui.Dual) with its label and hint.
+templ dualOf(v OptionView) {
+	<div class="w-field">
+		<label class="w-field__label" for={ v.Name }>{ v.Label } <span class="w-field__opt"><code class="w-code">{ v.Code }</code></span></label>
+		@gui.Dual(gui.DualProps{ID: v.Name, Name: v.Name, Choices: GUIChoices(v.Choices), Describe: v.Name + "-h"})
+		<span class="w-field__hint" id={ v.Name + "-h" }>{ v.Hint }</span>
+	</div>
+}
+
+// tlsBlock: the TLS options of a TLS variant: the minimum version, then the
+// cipher suites, which only apply up to TLS 1.2 (crypto/tls does not let one
+// configure the TLS 1.3 suites), so the list follows the version: a switch
+// of its own, scoped by data-of.
+templ tlsBlock(b BlockView) {
+	<div class="w-grid w-grid--2">
+		for _, v := range b.FieldList() {
+			<div class="w-field w-field--short">
+				<label class="w-field__label" for={ v.Name }>{ v.Label } <span class="w-field__opt"><code class="w-code">{ v.Code }</code></span></label>
+				<select class="w-select" id={ v.Name } name={ v.Name } data-switch="tlsver" aria-describedby={ v.Name + "-h" }>
+					for _, c := range v.Choices {
+						<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+					}
+				</select>
+				<span class="w-field__hint" id={ v.Name + "-h" }>{ v.Hint }</span>
+			</div>
+		}
+	</div>
+	<fieldset class="w-fieldset w-fieldset--wide" data-case="v1.0 v1.1 v1.2" data-of="tlsver">
+		for _, v := range b.ListList() {
+			@dualOf(v)
+		}
+	</fieldset>
+}
+
+// TLSBadge: the "TLS" badge next to the family of a protocol, when the
+// protocol is the TLS variant.
+templ TLSBadge(on bool) {
+	if on {
+		{ " " }<span class="w-badge w-badge--neutral">{ gui.T(ctx, "proto.tls_badge") }</span>
+	}
+}
+
+// ValueOf: the value of a key/value row of a details page, in monospace
+// when technical.
+templ ValueOf(k KV) {
+	if k.Mono {
+		<code class="w-code">{ k.Value }</code>
+	} else {
+		{ k.Value }
+	}
+}
+
+// ReqMark: the required star after a label, when the field is required.
+templ ReqMark(show bool) {
+	if show {
+		{ " " }<span class="w-field__req" aria-hidden="true">*</span>
+	}
+}
+
+// Message: the error of a field when any, else its hint.
+templ Message(id, err, hint string) {
+	if err != "" {
+		<span class="w-field__error" id={ id }>
+			@gui.Icon("triangle")
+			{ err }
+		</span>
+	} else {
+		<span class="w-field__hint" id={ id }>{ hint }</span>
+	}
+}

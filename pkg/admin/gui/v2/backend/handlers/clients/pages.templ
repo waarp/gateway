@@ -1,0 +1,400 @@
+package clients
+
+import (
+	"fmt"
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the local clients list (Connections). Presentation only: the
+// handler searches, filters, sorts and pages the rows, builds the row actions
+// from the rights and translates the texts. One coloured action ("Add a
+// client"); search and filters neutral, the filters applied as soon as they
+// change (data-autosubmit, "Apply" only without JavaScript); four sortable
+// headers; the protocol as a family with a TLS badge; an automatic local
+// address said as such; a "⋯" menu per row; rows per page in the list foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "clients.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "clients.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "clients.error.title"), Text: gui.T(ctx, "clients.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "arrows", Title: gui.T(ctx, "clients.empty.title"), Text: gui.T(ctx, "clients.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "clients.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "clients.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "clients.search_placeholder") } list="clients-names" autocomplete="off"/></label>
+			<datalist id="clients-names">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<details class="w-disclose" open?={ d.FiltersOpen }>
+				<summary class="w-btn w-btn--outline-dark w-btn--sm">
+					@gui.Icon("filter")
+					{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+				</summary>
+				<div class="w-disclose__panel">
+					<fieldset class="w-fieldset w-field w-field--wide">
+						<legend class="w-fieldset__legend">{ gui.T(ctx, "clients.filters") }</legend>
+						<div class="w-checks">
+							for _, f := range d.Filters {
+								<label class="w-check"><input type="checkbox" name="protocol" value={ f.Key } checked?={ f.Checked }/> <span>{ f.Label }</span></label>
+							}
+						</div>
+					</fieldset>
+					<div class="w-field w-field--short">
+						<label class="w-field__label" for="tls">{ gui.T(ctx, "proto.filter_tls") }</label>
+						<select class="w-select" id="tls" name="tls">
+							for _, c := range d.TLSFilter {
+								<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+							}
+						</select>
+					</div>
+					@gui.FiltersFoot(d.ResetURL)
+				</div>
+			</details>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="clients-col-name"/><col class="clients-col-state"/><col class="clients-col-protocol"/><col/><col class="clients-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clients.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clients.col.state"), Key: "state", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clients.col.protocol"), Key: "protocol", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clients.col.address"), Key: "address", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "clients.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+								<td>@stateCell(r.Status, r.Reason)</td>
+								<td>{ r.Protocol }@protoform.TLSBadge(r.TLS)</td>
+								<td>@addressCell(r.Address)</td>
+								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="clients-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// stateCell: the status of a client, with its raw reason under it when any.
+templ stateCell(status gui.Status, reason string) {
+	if reason != "" {
+		<div class="w-cell-stack">@gui.StatusOf(status)<span class="w-cell-sub w-mono">{ reason }</span></div>
+	} else {
+		@gui.StatusOf(status)
+	}
+}
+
+// addressCell: the local address of a client, or "automatic" when the
+// system chooses it.
+templ addressCell(address string) {
+	if address != "" {
+		<span class="w-mono w-nowrap">{ address }</span>
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "clients.address_auto") }</span>
+	}
+}
+
+// reasonCode: the raw reason of a state, after the status of a details page.
+templ reasonCode(reason string) {
+	if reason != "" {
+		{ " " }<code class="w-code">{ reason }</code>
+	}
+}
+
+// detailView: details of a local client, in reading: the client (state,
+// protocol, local address, automatic start), the automatic retries of its
+// transfers, the options of its protocol, and the remote partners it can
+// reach (the partners of its protocol: the two screens stay apart and are
+// linked here, decision of 2026-10-19). Breadcrumb and a "Back to the list"
+// button (decision D10); the other actions in a "⋯" menu.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "clients.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "clients.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "clients.action.edit") }
+				</a>
+			}
+			@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "clients.detail.card") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "clients.detail.state") }</dt>
+				<dd>@gui.StatusOf(d.Status)@reasonCode(d.Reason)</dd>
+				for _, k := range d.Identity {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "clients.detail.retries") }</h2>
+			if d.NoRetries {
+				<p class="clients-lead w-muted">{ gui.T(ctx, "clients.detail.retries_none") }</p>
+			} else {
+				<dl class="w-deflist">
+					for _, k := range d.Retries {
+						<dt>{ k.Label }</dt>
+						<dd>{ k.Value }</dd>
+					}
+				</dl>
+			}
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
+			<dl class="w-deflist">
+				for _, k := range d.Options {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "clients.detail.partners") }</h2>
+			<p class="clients-lead">{ gui.T(ctx, "clients.detail.partners_hint") }</p>
+			if len(d.Partners) > 0 {
+				<div class="w-table-wrap">
+					<table class="w-table">
+						<caption class="visually-hidden">{ gui.T(ctx, "clients.detail.partners") }</caption>
+						<thead><tr><th scope="col">{ gui.T(ctx, "clients.detail.col_partner") }</th><th scope="col">{ gui.T(ctx, "clients.detail.col_address") }</th></tr></thead>
+						<tbody>
+							for _, p := range d.Partners {
+								<tr><td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(p.URL) }>{ p.Name }</a></td><td class="w-mono w-nowrap">{ p.Address }</td></tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			} else {
+				<p class="clients-note w-muted">{ gui.T(ctx, "clients.detail.partners_none") }</p>
+			}
+		</div>
+	</div>
+}
+
+// backLabel: the label of the back button of the form: to the client on
+// edition, to the list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "clients.back_client") }
+	} else {
+		{ " " + gui.T(ctx, "clients.back") }
+	}
+}
+
+// delayPart: one part of the delay (hours, minutes or seconds), a short
+// number with its unit as label.
+templ delayPart(id, label string, f field, maxValue int) {
+	<div class={ "w-field w-field--short", templ.KV("is-invalid", f.Error != "") }>
+		<label class="w-field__label" for={ id }>{ label }</label>
+		<input
+			class="w-input"
+			id={ id }
+			name={ id }
+			value={ f.Value }
+			type="number"
+			inputmode="numeric"
+			step="1"
+			min="0"
+			if maxValue != 0 {
+				max={ strconv.Itoa(maxValue) }
+			}
+			if f.Error != "" {
+				aria-invalid="true"
+				aria-describedby={ id + "-e" }
+			}
+		/>
+		if f.Error != "" {
+			<span class="w-field__error" id={ id + "-e" }>
+				@gui.Icon("triangle")
+				{ f.Error }
+			</span>
+		}
+	</div>
+}
+
+// formView: creation and edition of a local client, one page (decision
+// D10), one card per block: identity (name, protocol as a family with TLS as
+// an attribute, automatic start), local address (optional), automatic retries
+// of the transfers (attempts, delay in hours / minutes / seconds, growth
+// factor), then the options of the chosen protocol and the TLS block,
+// rendered by the shared protocol components. Refused form: a banner, the
+// values kept, a message under each faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="clients-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "clients.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "clients.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "clients.form.identity") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: "name", Label: gui.T(ctx, "clients.form.name"), Req: true, F: d.Fields["name"], Hint: gui.T(ctx, "clients.form.name_hint")})
+					@protoform.ChoiceOf(d.Proto.Choice)
+				</div>
+				<label class="w-check"><input type="checkbox" name="no_autostart" value="1" checked?={ d.Checks["no_autostart"] }/> <span>{ gui.T(ctx, "clients.form.no_autostart") }</span></label>
+			</fieldset>
+		</div>
+		<details class="w-card w-card--fold" open?={ d.AddressOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clients.form.address") }</span><span class="w-fold__meta">{ d.AddressSummary }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "clients.form.address") }</legend>
+					<p class="w-form__note clients-note">{ gui.T(ctx, "clients.form.address_hint") }</p>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "clients.form.host"), F: d.Fields["host"], Hint: gui.T(ctx, "clients.form.host_hint")})
+						@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "clients.form.port"), F: d.Fields["port"], Hint: gui.T(ctx, "clients.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+					</div>
+				</fieldset>
+			</div>
+		</details>
+		<details class="w-card w-card--fold" open?={ d.RetriesOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clients.form.retries") }</span><span class="w-fold__meta">{ d.RetriesSummary }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "clients.form.retries") }</legend>
+					<p class="w-form__note clients-note">{ gui.T(ctx, "clients.form.retries_hint") }</p>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: "attempts", Label: gui.T(ctx, "clients.retries.attempts"), F: d.Fields["attempts"], Hint: gui.T(ctx, "clients.retries.attempts_hint"), Short: true, Num: true, Min: 0, Max: 127, Code: "nbOfAttempts"})
+						@protoform.FieldOf(protoform.FieldProps{ID: "factor", Label: gui.T(ctx, "clients.retries.factor"), F: d.Fields["factor"], Hint: gui.T(ctx, "clients.retries.factor_hint"), Short: true, Code: "retryIncrementFactor"})
+					</div>
+					<fieldset class="w-fieldset clients-delay" aria-describedby="delay-h">
+						<legend class="w-field__label">{ gui.T(ctx, "clients.retries.delay") } <span class="w-field__opt"><code class="w-code">firstRetryDelay</code></span></legend>
+						<div class="clients-delay__parts">
+							@delayPart("delay_h", gui.T(ctx, "clients.retries.hours"), d.Fields["delay_h"], 0)
+							@delayPart("delay_m", gui.T(ctx, "clients.retries.minutes"), d.Fields["delay_m"], 59)
+							@delayPart("delay_s", gui.T(ctx, "clients.retries.seconds"), d.Fields["delay_s"], 59)
+						</div>
+						<span class="w-field__hint" id="delay-h">{ gui.T(ctx, "clients.retries.delay_hint") }</span>
+					</fieldset>
+				</fieldset>
+			</div>
+		</details>
+		@protoform.Options(d.Proto)
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// runningNote: what happens to a running client on deletion.
+templ runningNote(running bool) {
+	if running {
+		{ " " + gui.T(ctx, "clients.delete.running") }
+	}
+}
+
+// addressValue: the local address of a client in a details list, or
+// "automatic".
+templ addressValue(address string) {
+	if address != "" {
+		<code class="w-code">{ address }</code>
+	} else {
+		{ gui.T(ctx, "clients.address_auto") }
+	}
+}
+
+// deleteView: confirmation page of the deletion of a local client (decision
+// D10: a page, not a dialog). The title names the client, the text says the
+// consequences, "Cancel" then "Delete" bottom right (D12). Refused (folder
+// watchers use the client): the cause and the way out, no "Delete" button.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "clients.delete.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "clients.back_client") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Blocked {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "clients.delete.blocked_title"), Text: gui.T(ctx, "clients.delete.blocked_text")})
+		} else {
+			<p class="clients-lead">{ gui.T(ctx, "clients.delete.text") }@runningNote(d.Running)</p>
+		}
+		<dl class={ "w-deflist", templ.KV("clients-deflist", d.Blocked) }>
+			<dt>{ gui.T(ctx, "clients.detail.card") }</dt>
+			<dd>{ d.Name }</dd>
+			<dt>{ gui.T(ctx, "clients.detail.state") }</dt>
+			<dd>@gui.StatusOf(d.Status)</dd>
+			<dt>{ gui.T(ctx, "clients.detail.protocol") }</dt>
+			<dd>{ d.Protocol }</dd>
+			<dt>{ gui.T(ctx, "clients.detail.address") }</dt>
+			<dd>@addressValue(d.Address)</dd>
+		</dl>
+		if d.Blocked {
+			<div class="w-form__actions clients-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "clients.back_client") }</a></div>
+		} else {
+			<form class="clients-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "clients.delete.title", "name", d.Name)})</form>
+		}
+	</div>
+}
+
+// notFoundView: a client that does not exist: localised 404 in the chrome,
+// with the way back to the list as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "arrows", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}

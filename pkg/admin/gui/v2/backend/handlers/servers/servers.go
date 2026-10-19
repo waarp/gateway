@@ -34,13 +34,12 @@ import (
 )
 
 const (
-	listTemplateFile     = "servers/servers.gohtml"
-	detailTemplateFile   = "servers/detail.gohtml"
-	formTemplateFile     = "servers/form.gohtml"
-	deleteTemplateFile   = "servers/delete.gohtml"
-	notFoundTemplateFile = "servers/not-found.gohtml"
-	docPage              = "user/webui/serveurs-locaux"
-	pagePath             = "/servers"
+	// The stylesheets of the screen and of the shared protocol options,
+	// under the web interface.
+	stylesheet      = "/static_v2/servers/servers.css"
+	protoStylesheet = "/static_v2/proto/proto.css"
+	docPage         = "user/webui/serveurs-locaux"
+	pagePath        = "/servers"
 
 	// The historic page of the running transfers, the way out of a refused
 	// deletion.
@@ -136,36 +135,11 @@ type Handlers struct {
 	logger *log.Logger
 	ctl    Control
 
-	list, detail, form, del, notFound *common.Shell
-	auth, accounts                    *common.Shell
-	credForm, credDetail, credDel     *common.Shell
-	accountForm, accountDetail        *common.Shell
-	accountDel                        *common.Shell
+	shell *common.Shell
 }
 
 func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
-	shell := func(file string) *common.Shell {
-		return common.NewShell(protoform.TemplateFile, partialsTemplateFile, file)
-	}
-
-	return &Handlers{
-		db:            db,
-		logger:        logger,
-		ctl:           ctl,
-		list:          common.NewShell(listTemplateFile),
-		detail:        shell(detailTemplateFile),
-		form:          shell(formTemplateFile),
-		del:           common.NewShell(deleteTemplateFile),
-		notFound:      common.NewShell(notFoundTemplateFile),
-		auth:          shell(authTemplateFile),
-		accounts:      shell(accountsTemplateFile),
-		credForm:      shell(credFormTemplateFile),
-		credDetail:    shell(credDetailTemplateFile),
-		credDel:       shell(credDeleteTemplateFile),
-		accountForm:   shell(accountFormTemplateFile),
-		accountDetail: shell(accountDetailTemplateFile),
-		accountDel:    shell(accountDeleteTemplateFile),
-	}
+	return &Handlers{db: db, logger: logger, ctl: ctl, shell: common.NewShell()}
 }
 
 func transfersURL() string { return common.WebuiURL(transfersPath) }
@@ -333,7 +307,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.list.Translator(r)
+	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := common.Screen{
 		Title:   translate("servers.title"),
@@ -342,6 +316,8 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, "", ""),
 		Notices: notices(translate, r.URL.Query()),
+
+		Stylesheets: []string{stylesheet},
 	}
 
 	agents, err := internal.ListServers(h.db, "name", true, 0, 0)
@@ -349,8 +325,8 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		h.logger.Errorf("failed to list the servers: %v", err)
 
 		screen.Status = http.StatusInternalServerError
-		screen.Data = listData{Error: true, RetryURL: listSpec.ListURLOf(query.WithPage(query.Page))}
-		h.list.Render(w, h.logger, r, screen)
+		h.shell.Render(w, h.logger, r, screen,
+			listView(listData{Error: true, RetryURL: listSpec.ListURLOf(query.WithPage(query.Page))}))
 
 		return
 	}
@@ -360,8 +336,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		entries = append(entries, h.entryOf(agent))
 	}
 
-	screen.Data = buildList(translate, entries, query, rightsOf(r))
-	h.list.Render(w, h.logger, r, screen)
+	h.shell.Render(w, h.logger, r, screen, listView(buildList(translate, entries, query, rightsOf(r))))
 }
 
 // buildList computes the list page: filter (name prefix, protocols), sort,
@@ -621,7 +596,7 @@ func (h *Handlers) server(w http.ResponseWriter, r *http.Request) (entry, bool) 
 		return entry{}, false
 	}
 
-	translate := h.notFound.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	title := translate("servers.not_found.title")
 
@@ -637,7 +612,7 @@ func (h *Handlers) server(w http.ResponseWriter, r *http.Request) (entry, bool) 
 }
 
 // screen is a page of a server: the chrome of the screen around the data.
-func (h *Handlers) screen(translate gui.Translator, title, carried string, status int, data any) common.Screen {
+func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
 		Title:   title,
 		Section: constants.SidebarSectionConnection,
@@ -645,9 +620,14 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  status,
-		Data:    data,
+
+		Stylesheets: []string{stylesheet},
 	}
 }
+
+// formStylesheets are the stylesheets of the form: the shared protocol
+// options, then the screen.
+func formStylesheets() []string { return []string{protoStylesheet, stylesheet} }
 
 type detailData struct {
 	Name     string
@@ -671,7 +651,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.detail.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	user := rightsOf(r)
 
@@ -717,8 +697,8 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	own := owner{srv: srv}
-	screen := h.sheetScreen(translate, own.title(translate), own, "", carried, 0, data, notices(translate, r.URL.Query()))
-	h.detail.Render(w, h.logger, r, screen)
+	screen := h.sheetScreen(translate, own.title(translate), own, "", carried, 0, notices(translate, r.URL.Query()))
+	h.shell.Render(w, h.logger, r, screen, detailView(data))
 }
 
 type deleteData struct {
@@ -750,7 +730,7 @@ func (h *Handlers) blocked(e entry) (bool, error) {
 }
 
 func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e entry, isBlocked bool, status int) {
-	translate := h.del.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	accounts, err := h.db.Count(&model.LocalAccount{}).Where("local_agent_id=?", e.agent.ID).Run()
@@ -775,7 +755,7 @@ func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e entry, i
 	}
 
 	title := translate("servers.delete.title", "name", e.agent.Name)
-	h.del.Render(w, h.logger, r, h.screen(translate, title, carried, status, data))
+	h.shell.Render(w, h.logger, r, h.screen(translate, title, carried, status), deleteView(data))
 }
 
 // DeleteForm serves GET /webui/servers/{id}/delete: the confirmation page,

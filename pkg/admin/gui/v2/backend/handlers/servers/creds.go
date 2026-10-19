@@ -455,7 +455,7 @@ func (h *Handlers) Auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.auth.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	creds, err := own.table().GetCredentials(h.db)
@@ -475,8 +475,8 @@ func (h *Handlers) Auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	screen := h.sheetScreen(translate, data.Title, own, "", carried, 0, data, notices(translate, r.URL.Query()))
-	h.auth.Render(w, h.logger, r, screen)
+	screen := h.sheetScreen(translate, data.Title, own, "", carried, 0, notices(translate, r.URL.Query()))
+	h.shell.Render(w, h.logger, r, screen, authView(data))
 }
 
 // ---------------------------------------------------------------- form ----
@@ -746,7 +746,7 @@ func (h *Handlers) NewCredForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.credForm.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	h.credFormPage(w, r, own, h.newCredForm(translate, own, nil, creds, carried, time.Now()), 0)
 }
@@ -773,7 +773,7 @@ func (h *Handlers) EditCredForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.credForm.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	h.credFormPage(w, r, own, h.newCredForm(translate, own, cred, nil, carried, time.Now()), 0)
 }
@@ -795,7 +795,7 @@ func (h *Handlers) UpdateCred(w http.ResponseWriter, r *http.Request) {
 
 // credFormPage renders the form of a means with the tab strip of its owner.
 func (h *Handlers) credFormPage(w http.ResponseWriter, r *http.Request, own owner, f *credFormData, status int) {
-	translate := h.credForm.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	tabs, err := h.tabsOf(translate, own, tabAuth, carried)
@@ -807,7 +807,7 @@ func (h *Handlers) credFormPage(w http.ResponseWriter, r *http.Request, own owne
 	}
 
 	f.Tabs = tabs
-	h.credForm.Render(w, h.logger, r, h.sheetScreen(translate, f.Title, own, f.Title, carried, status, f, nil))
+	h.shell.Render(w, h.logger, r, h.sheetScreen(translate, f.Title, own, f.Title, carried, status, nil), credFormView(f))
 }
 
 // saveCred reads, validates and stores the posted means: a new one when cred
@@ -815,7 +815,7 @@ func (h *Handlers) credFormPage(w http.ResponseWriter, r *http.Request, own owne
 // errors (422); a saved one redirects to the "Authentication" tab of the
 // owner with a notification.
 func (h *Handlers) saveCred(w http.ResponseWriter, r *http.Request, own owner, cred *model.Credential) {
-	translate := h.credForm.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	if err := parseForm(r); err != nil {
@@ -975,7 +975,7 @@ func (h *Handlers) CredDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.credDetail.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	view := viewOf(cred)
 	data := buildCredDetail(translate, own, &view, rightsOf(r), carried, time.Now())
@@ -989,7 +989,8 @@ func (h *Handlers) CredDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.Tabs = tabs
-	h.credDetail.Render(w, h.logger, r, h.sheetScreen(translate, data.Title, own, cred.Name, carried, 0, data, nil))
+	screen := h.sheetScreen(translate, data.Title, own, cred.Name, carried, 0, nil)
+	h.shell.Render(w, h.logger, r, screen, credDetailView(data))
 }
 
 // -------------------------------------------------------------- delete ----
@@ -1007,7 +1008,7 @@ type credDeleteData struct {
 }
 
 func (h *Handlers) credDeletePage(w http.ResponseWriter, r *http.Request, own owner, cred *model.Credential) {
-	translate := h.credDel.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	view := viewOf(cred)
 
@@ -1035,7 +1036,8 @@ func (h *Handlers) credDeletePage(w http.ResponseWriter, r *http.Request, own ow
 	}
 
 	data.Tabs = tabs
-	h.credDel.Render(w, h.logger, r, h.sheetScreen(translate, data.Title, own, data.Title, carried, 0, data, nil))
+	screen := h.sheetScreen(translate, data.Title, own, data.Title, carried, 0, nil)
+	h.shell.Render(w, h.logger, r, screen, credDeleteView(data))
 }
 
 // DeleteCredForm serves GET …/auth/{cid}/delete: the confirmation page.

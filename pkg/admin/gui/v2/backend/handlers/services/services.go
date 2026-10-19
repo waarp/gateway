@@ -22,11 +22,11 @@ import (
 )
 
 const (
-	pageTemplateFile = "services/services.gohtml"
-	stateTemplate    = "services/state"
-	stateFragment    = "state"
-	docPage          = "user/webui/etat-des-services"
-	pagePath         = "/services"
+	stylesheet    = "/static_v2/services/services.css"
+	script        = "/static_v2/services/services.js"
+	stateFragment = "state"
+	docPage       = "user/webui/etat-des-services"
+	pagePath      = "/services"
 
 	// The group whose table is shown (the tiles are its tabs), the sort of
 	// that table and its page beyond pageSize rows.
@@ -87,9 +87,9 @@ type group struct {
 	Dir      string // dirAsc or dirDesc
 	Base     string // address of the group, which the column headers extend with the sort
 	Rows     []row
-	Tile     tile
-	Pager    *pager // nil when every row fits on one page
-	Empty    emptyState
+	Tile     gui.TileProps   // the tile of the group: a tab that shows its panel, a link without JavaScript
+	Pager    *gui.PagerProps // nil when every row fits on one page
+	Empty    gui.EmptyProps  // the empty state of a group without any service
 }
 
 type row struct {
@@ -97,40 +97,6 @@ type row struct {
 	Tech   string // technical name, shown under a functional one
 	Status gui.Status
 	Reason string // raw reason given by the service, never translated
-}
-
-// tile is the tile of a group, with the fields of "gui/tile": a tab that
-// shows the panel named by Controls, or a link to Href without JavaScript.
-type tile struct {
-	Variant  string
-	Label    string
-	Href     string
-	Controls string
-	Selected bool
-	SR       string
-	Foot     string
-	Value    int
-	Total    int
-	Statuses []gui.Status
-}
-
-// pager is the list foot of a group, with the fields of "gui/pager".
-type pager struct {
-	Info    string
-	Page    int
-	Pages   int
-	PrevURL string
-	NextURL string
-	Hidden  map[string]string
-}
-
-// emptyState is the "gui/empty" of a group without any service (Icon empty:
-// the kit's default).
-type emptyState struct {
-	Icon   string
-	Title  string
-	Text   string
-	Action *gui.Link
 }
 
 // selection is what the request asks for: the group shown, the sort of its
@@ -158,14 +124,14 @@ func defaultSelection(groupID string) selection {
 // Page serves GET /webui/services. With ?fragment=state, it renders the
 // states block alone, for the refresh without reload.
 func Page(logger *log.Logger, list Lister) http.HandlerFunc {
-	shell := common.NewShell(pageTemplateFile)
+	shell := common.NewShell()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		translate := shell.Translator(r)
 		data := makePageData(translate, shell.Catalog().Has, list, parseSelection(r.URL.Query()))
 
 		if r.URL.Query().Get(constants.FragmentParam) == stateFragment {
-			shell.RenderFragment(w, logger, r, stateTemplate, data)
+			shell.RenderFragment(w, logger, r, state(data))
 
 			return
 		}
@@ -180,8 +146,9 @@ func Page(logger *log.Logger, list Lister) http.HandlerFunc {
 				{Label: translate("nav.supervision")},
 				{Label: translate("services.title")},
 			},
-			Data: data,
-		})
+			Stylesheets: []string{stylesheet},
+			Scripts:     []string{script},
+		}, page(data))
 	}
 }
 
@@ -247,7 +214,7 @@ func makeGroup(translate gui.Translator, has func(key string) bool, spec groupSp
 	tab := makeTile(translate, title, spec.id, rows)
 	tab.Selected = selected
 
-	empty := emptyState{Title: translate("state.none_yet")}
+	empty := gui.EmptyProps{Title: translate("state.none_yet")}
 	if spec.path != "" {
 		empty.Title = translate("services.empty." + spec.id + ".title")
 		empty.Text = translate("services.empty." + spec.id + ".text")
@@ -276,7 +243,7 @@ func makeGroup(translate gui.Translator, has func(key string) bool, spec groupSp
 
 		result.Rows = rows[first:last]
 		result.Caption = translate("services.caption.page", "caption", caption, "page", page, "pages", pages)
-		result.Pager = &pager{
+		result.Pager = &gui.PagerProps{
 			Info:   translate("services.pager.info", "group", title, "from", first+1, "to", last, "total", len(rows)),
 			Page:   page,
 			Pages:  pages,
@@ -407,18 +374,18 @@ func status(translate gui.Translator, code string) gui.Status {
 
 // makeTile counts the rows of a group by state: the tile shows how many
 // services run, its border and its labels say what is wrong, if anything.
-func makeTile(translate gui.Translator, label, groupID string, rows []row) tile {
+func makeTile(translate gui.Translator, label, groupID string, rows []row) gui.TileProps {
 	counts := map[string]int{}
 	for _, line := range rows {
 		counts[line.Status.State]++
 	}
 
-	summary := tile{
+	summary := gui.TileProps{
 		Label:    label,
 		Href:     groupURL(defaultSelection(groupID)),
 		Controls: groupID,
-		Value:    counts[stateOK],
-		Total:    len(rows),
+		Value:    strconv.Itoa(counts[stateOK]),
+		Total:    totalText(len(rows)),
 		SR:       translate("services.summary.running", "running", counts[stateOK], "total", len(rows)),
 	}
 
@@ -446,4 +413,13 @@ func makeTile(translate gui.Translator, label, groupID string, rows []row) tile 
 	}
 
 	return summary
+}
+
+// totalText is the total of a tile, hidden when there is nothing to count.
+func totalText(n int) string {
+	if n == 0 {
+		return ""
+	}
+
+	return strconv.Itoa(n)
 }

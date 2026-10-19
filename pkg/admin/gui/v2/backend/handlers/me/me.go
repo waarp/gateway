@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	templateFile = "me/account.gohtml"
 	pagePath     = "/account"
 	passwordPath = "/account/password"
 
@@ -70,7 +69,7 @@ type Handlers struct {
 }
 
 func New(db *database.DB, logger *log.Logger) *Handlers {
-	return &Handlers{db: db, logger: logger, shell: common.NewShell(templateFile)}
+	return &Handlers{db: db, logger: logger, shell: common.NewShell()}
 }
 
 // rights reads the rights of the user, domain by domain, in the order of the
@@ -115,9 +114,8 @@ func (h *Handlers) render(w http.ResponseWriter, r *http.Request, data *pageData
 			{Label: translate("me.title")},
 		},
 		Status:  status,
-		Data:    data,
 		Notices: notices,
-	})
+	}, page(data))
 }
 
 // notices turns the result of the previous action into a notification.

@@ -424,3 +424,48 @@ func FailureReason(reason string, err error) string {
 
 	return reason
 }
+
+// Props is the list foot for the kit: the pager with the hidden fields of
+// the toolbar form and the rows-per-page choices.
+func (p *Pager) Props(hidden map[string]string, sizes []int, size int) gui.PagerProps {
+	return gui.PagerProps{
+		Info: p.Info, Page: p.Page, Pages: p.Pages, PrevURL: p.PrevURL, NextURL: p.NextURL,
+		Hidden: hidden, Sizes: sizes, Size: size,
+	}
+}
+
+// Hidden is a hidden field of a toolbar form.
+type Hidden struct {
+	Name  string
+	Value string
+}
+
+// SortedHidden gives the hidden fields of a form in the order of their
+// names, as html/template ranged over the map.
+func SortedHidden(fields map[string]string) []Hidden {
+	out := make([]Hidden, 0, len(fields))
+	for _, name := range slices.Sorted(maps.Keys(fields)) {
+		out = append(out, Hidden{Name: name, Value: fields[name]})
+	}
+
+	return out
+}
+
+// AddLink is the action of an empty state that leads to the creation, nil
+// without the write right (no URL).
+func AddLink(href, label string) *gui.Link {
+	if href == "" {
+		return nil
+	}
+
+	return &gui.Link{Label: label, URL: href, Icon: "plus"}
+}
+
+// CountSuffix is the " · n" shown on the "Filters" button when filters apply.
+func CountSuffix(n int) string {
+	if n == 0 {
+		return ""
+	}
+
+	return " · " + strconv.Itoa(n)
+}

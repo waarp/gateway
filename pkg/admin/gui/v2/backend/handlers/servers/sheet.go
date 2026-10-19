@@ -29,15 +29,6 @@ import (
 )
 
 const (
-	partialsTemplateFile      = "servers/partials.gohtml"
-	authTemplateFile          = "servers/auth.gohtml"
-	accountsTemplateFile      = "servers/accounts.gohtml"
-	credFormTemplateFile      = "servers/cred-form.gohtml"
-	credDetailTemplateFile    = "servers/cred-detail.gohtml"
-	credDeleteTemplateFile    = "servers/cred-delete.gohtml"
-	accountFormTemplateFile   = "servers/account-form.gohtml"
-	accountDetailTemplateFile = "servers/account-detail.gohtml"
-	accountDeleteTemplateFile = "servers/account-delete.gohtml"
 
 	// Suffixes of the routes of the sheet, under /servers/{id} and under
 	// /servers/{id}/accounts/{aid}.
@@ -167,7 +158,7 @@ func (h *Handlers) owner(w http.ResponseWriter, r *http.Request) (owner, bool) {
 		return owner{}, false
 	}
 
-	translate := h.notFound.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	title := translate("accounts.not_found.title")
 
@@ -201,7 +192,7 @@ func (h *Handlers) credential(w http.ResponseWriter, r *http.Request, own owner)
 		return nil, false
 	}
 
-	translate := h.notFound.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	title := translate("auth.not_found.title")
 
@@ -227,15 +218,14 @@ type notFoundData struct {
 }
 
 func (h *Handlers) notFoundPage(w http.ResponseWriter, r *http.Request, crumbs []gui.Crumb, data notFoundData) {
-	h.notFound.Render(w, h.logger, r, common.Screen{
+	h.shell.Render(w, h.logger, r, common.Screen{
 		Title:   data.Title,
 		Section: constants.SidebarSectionConnection,
 		Menu:    constants.SidebarMenuServers,
 		Doc:     docPage,
 		Crumbs:  crumbs,
 		Status:  http.StatusNotFound,
-		Data:    data,
-	})
+	}, notFoundView(data))
 }
 
 // ---------------------------------------------------------------- tabs ----
@@ -350,7 +340,7 @@ func sheetCrumbs(translate gui.Translator, own owner, last, carried string) []gu
 // sheetScreen is a page of the sheet: the chrome of the screen around the
 // data, with the result of the previous action when the page is a tab.
 func (h *Handlers) sheetScreen(translate gui.Translator, title string, own owner, last, carried string,
-	status int, data any, notices []gui.Notice,
+	status int, notices []gui.Notice,
 ) common.Screen {
 	return common.Screen{
 		Title:   title,
@@ -359,8 +349,9 @@ func (h *Handlers) sheetScreen(translate gui.Translator, title string, own owner
 		Doc:     docPage,
 		Crumbs:  sheetCrumbs(translate, own, last, carried),
 		Status:  status,
-		Data:    data,
 		Notices: notices,
+
+		Stylesheets: []string{stylesheet},
 	}
 }
 

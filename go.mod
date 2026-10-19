@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	code.waarp.fr/lib/as2 v0.0.0-20260416131903-c311ae8ece42
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
-	code.waarp.fr/lib/gui v0.5.0
+	code.waarp.fr/lib/gui v0.6.0
 	code.waarp.fr/lib/icap v1.0.0
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/log/v2 v2.4.0
@@ -102,6 +102,7 @@ require (
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.1 // indirect
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
 	github.com/PuerkitoBio/goquery v1.13.0 // indirect
+	github.com/a-h/templ v0.3.1070
 	github.com/abbot/go-http-auth v0.4.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
@@ -416,4 +417,7 @@ require (
 	xorm.io/builder v0.3.13 // indirect
 )
 
-tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+tool (
+	github.com/a-h/templ/cmd/templ
+	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+)
