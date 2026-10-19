@@ -76,6 +76,102 @@ services:
     title: The states could not be refreshed.
     text: "Last successful read at {time}. The states shown date from that read; a new attempt is made every {seconds} s."
 
+# Protocols, shared by the local servers, the local clients and the remote partners: the family (R66, HTTP,
+# SFTP, FTP, PeSIT, WebDAV, AS2), TLS as an attribute at the screen (Driss, 2026-10-19; the product keeps one
+# key per variant), the options of each family.
+proto:
+  label: Protocol
+  choose: Choose a protocol
+  choose_hint: The options of the protocol appear after the choice.
+  choose_error: Choose a protocol.
+  tls: Secure the connection with TLS
+  tls_hint: "Offered for the protocols that exist with and without TLS; SFTP is secured by SSH"
+  tls_title: TLS encryption
+  tls_badge: TLS
+  described_tls: "{family}, secured by TLS ({name})"
+  filter_tls: TLS encryption
+  filter_tls_all: With or without TLS
+  filter_tls_yes: With TLS
+  filter_tls_no: Without TLS
+  options: "{protocol} options"
+  options_label: Options
+  error_number: Enter a whole number.
+  # Options by family: the effect for the operator first, the technical term as a monospace hint.
+  opt:
+    r66_login: Login expected from the partner
+    r66_login_hint: "By default, the name of the server"
+    r66_block: Size of a data block
+    r66_block_hint: "In bytes; 65,536 by default"
+    r66_no_final_hash: Do not check the hash at the end of the transfer
+    r66_check_block_hash: Check the hash of every block
+    r66_final_hash: Hash at the end of the transfer
+    r66_block_hash: Hash of every block
+    min_tls: Minimum TLS version
+    min_tls_hint: "Cipher suites are chosen up to TLS 1.2; in TLS 1.3 the library sets them."
+    tls_ciphers: "TLS cipher suites, up to TLS 1.2"
+    tls_ciphers_short: TLS cipher suites
+    tls_ciphers_hint: "Empty: every secure suite of the gateway is accepted when negotiating with the partner. A suite flagged insecure is only added knowingly."
+    tls_insecure: (insecure)
+    ftp_disable_passive: Disable the passive mode
+    ftp_disable_active: Disable the active mode
+    ftp_passive: Passive mode
+    ftp_active: Active mode
+    ftp_passive_min: First port of the passive mode
+    any_port_hint: "Empty: any free port"
+    ftp_passive_max: Last port of the passive mode
+    tls_requirement: TLS requirement
+    tls_requirements:
+      optional: Optional explicit TLS
+      mandatory: Mandatory explicit TLS
+      implicit: Implicit TLS
+    pesit_disable_restart: Disable the restart of interrupted transfers
+    pesit_disable_checkpoints: Disable the checkpoints
+    pesit_restart: Restart of interrupted transfers
+    pesit_checkpoints: Checkpoints
+    pesit_checkpoint_size: Interval between two checkpoints
+    pesit_checkpoint_window: Checkpoints without acknowledgement
+    pesit_checkpoint_window_hint: "Window, in number of checkpoints"
+    pesit_max_message: Maximum size of a message
+    pesit_mode: PeSIT mode
+    pesit_mode_hint: "“Standard” follows the published specification; “Non standard” follows the market convention some partners expect."
+    pesit_modes:
+      standard: Standard
+      non_standard: Non standard
+    pesit_disable_preconnection: Disable the pre-connection
+    pesit_preconnection: Pre-connection
+    sftp_note: "An empty list accepts every algorithm of the gateway; the order of the chosen ones is the preference order."
+    sftp_kex: Key exchange algorithms
+    sftp_kex_hint: "Empty: every key exchange algorithm is accepted"
+    sftp_ciphers: Cipher algorithms
+    sftp_ciphers_hint: "Empty: every cipher algorithm is accepted"
+    sftp_macs: Integrity algorithms
+    sftp_macs_hint: "Empty: every integrity algorithm is accepted"
+    as2_max_file_size: Maximum size of a file
+    as2_max_file_size_hint: "In bytes; cannot exceed the memory of the system"
+    as2_mdn_algo: Signature of the MDN acknowledgements
+    mdn:
+      none: No signature
+    bytes: In bytes
+    enabled: Enabled
+    disabled: Disabled
+    checked: Checked
+    unchecked: Not checked
+    default_login: The name of the server
+    default_block: "65,536 bytes"
+    default_value: Default value of the gateway
+    default_ciphers: Every secure suite of the gateway
+    default_algos: Every algorithm of the gateway
+    any_port: Any free port
+    none: No option for this protocol
+    r66_final_hash_algo: Hash algorithm at the end of the transfer
+    r66_final_hash_algo_hint: "SHA-256 by default"
+    ftp_enable_active: Enable the active mode
+    ftp_active_address: Active mode address
+    ftp_active_address_hint: "Local IP address announced to the server; empty: 0.0.0.0"
+    ftp_active_min: First port of the active mode
+    ftp_active_max: Last port of the active mode
+    default_active_address: "0.0.0.0"
+
 # "Local servers" screen (Connections): list, details, form, deletion, start and stop.
 servers:
   title: Local servers
@@ -123,8 +219,6 @@ servers:
     accounts: Local accounts
     dirs: Directories
     undefined: Not set
-    options: "{protocol} options"
-    options_label: Options
   dirs:
     root: Root directory
     receive: Receive directory
@@ -138,10 +232,6 @@ servers:
     identity: Identity
     name: Name
     name_hint: "Unique on this gateway; letters, digits, dashes and dots"
-    protocol: Protocol
-    protocol_choose: Choose a protocol
-    protocol_hint: The options of the protocol appear after the choice.
-    protocol_error: Choose the protocol of the server.
     no_autostart: Do not start automatically when the gateway starts
     address: Listening address
     host: Host
@@ -151,7 +241,6 @@ servers:
     dirs: Directories
     dirs_hint: "Optional; a relative path is resolved from the gateway root directory."
     tmp_hint: "Files are written there during the reception, then moved to the receive directory"
-    options: "{protocol} options"
     refused: The server was not saved.
     refused_text: Correct the fields flagged below.
     error:
@@ -160,76 +249,6 @@ servers:
       address_taken: Another server already listens on this address and port.
       address: Enter a valid host name or IP address.
       port: Enter a port between 1 and 65535.
-      number: Enter a whole number.
-  # Options by protocol: the effect for the operator first, the technical term as a monospace hint.
-  opt:
-    r66_login: Login expected from the partner
-    r66_login_hint: "By default, the name of the server"
-    r66_block: Size of a data block
-    r66_block_hint: "In bytes; 65,536 by default"
-    r66_no_final_hash: Do not check the hash at the end of the transfer
-    r66_check_block_hash: Check the hash of every block
-    r66_final_hash: Hash at the end of the transfer
-    r66_block_hash: Hash of every block
-    tls: TLS
-    min_tls: Minimum TLS version
-    min_tls_hint: "Cipher suites are chosen up to TLS 1.2; in TLS 1.3 the library sets them."
-    tls_ciphers: "TLS cipher suites, up to TLS 1.2"
-    tls_ciphers_short: TLS cipher suites
-    tls_ciphers_hint: "Empty: every secure suite of the gateway is accepted when negotiating with the partner. A suite flagged insecure is only added knowingly."
-    tls_insecure: (insecure)
-    ftp_disable_passive: Disable the passive mode
-    ftp_disable_active: Disable the active mode
-    ftp_passive: Passive mode
-    ftp_active: Active mode
-    ftp_passive_min: First port of the passive mode
-    ftp_passive_min_hint: "Empty: any free port"
-    ftp_passive_max: Last port of the passive mode
-    tls_requirement: TLS requirement
-    tls_requirements:
-      optional: Optional explicit TLS
-      mandatory: Mandatory explicit TLS
-      implicit: Implicit TLS
-    pesit_disable_restart: Disable the restart of interrupted transfers
-    pesit_disable_checkpoints: Disable the checkpoints
-    pesit_restart: Restart of interrupted transfers
-    pesit_checkpoints: Checkpoints
-    pesit_checkpoint_size: Interval between two checkpoints
-    pesit_checkpoint_window: Checkpoints without acknowledgement
-    pesit_checkpoint_window_hint: "Window, in number of checkpoints"
-    pesit_max_message: Maximum size of a message
-    pesit_mode: PeSIT mode
-    pesit_mode_hint: "“Standard” follows the published specification; “Non standard” follows the market convention some partners expect."
-    pesit_modes:
-      standard: Standard
-      non_standard: Non standard
-    pesit_disable_preconnection: Disable the pre-connection
-    pesit_preconnection: Pre-connection
-    sftp_note: "An empty list accepts every algorithm of the gateway; the order of the chosen ones is the preference order."
-    sftp_kex: Key exchange algorithms
-    sftp_kex_hint: "Empty: every key exchange algorithm is accepted"
-    sftp_ciphers: Cipher algorithms
-    sftp_ciphers_hint: "Empty: every cipher algorithm is accepted"
-    sftp_macs: Integrity algorithms
-    sftp_macs_hint: "Empty: every integrity algorithm is accepted"
-    as2_max_file_size: Maximum size of a file
-    as2_max_file_size_hint: "In bytes; cannot exceed the memory of the system"
-    as2_mdn_algo: Signature of the MDN acknowledgements
-    mdn:
-      none: No signature
-    bytes: In bytes
-    enabled: Enabled
-    disabled: Disabled
-    checked: Checked
-    unchecked: Not checked
-    default_login: The name of the server
-    default_block: "65,536 bytes"
-    default_value: Default value of the gateway
-    default_ciphers: Every secure suite of the gateway
-    default_algos: Every algorithm of the gateway
-    ports: "Ports {min} to {max}"
-    any_port: Any free port
-    none: No option for this protocol
   delete:
     title: "Delete the server “{name}”?"
     text: "Its local accounts and their authentication means will be deleted with it. The rules that name it in their access lists will no longer apply to it."

@@ -26,6 +26,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -48,7 +49,8 @@ const (
 	// The state of the list: search, protocols, sort, page and rows per page.
 	// The action pages carry it (retParam) so that coming back keeps it.
 	queryParam    = "q"
-	protocolParam = "protocol"
+	protocolParam = "protocol" // families (a key of the product is read as its family)
+	tlsParam      = "tls"      // tlsYes or tlsNo, "" for both
 	sortParam     = "sort"
 	dirParam      = "dir"
 	pageParam     = "page"
@@ -84,6 +86,9 @@ const (
 	failedStart = "start"
 	failedStop  = "stop"
 
+	tlsYes = "yes"
+	tlsNo  = "no"
+
 	// States of a gui.Status: the shape and colour of a status.
 	stateOK      = "ok"
 	stateKO      = "ko"
@@ -99,7 +104,7 @@ const (
 
 //nolint:gochecknoglobals // reference data of the screen
 var (
-	listParams = []string{queryParam, protocolParam, sortParam, dirParam, pageParam, sizeParam, resetParam}
+	listParams = []string{queryParam, protocolParam, tlsParam, sortParam, dirParam, pageParam, sizeParam, resetParam}
 	sortKeys   = []string{sortName, sortState, sortProtocol, sortAddress}
 	pageSizes  = []int{10, 25, 50, 100} // rows per page, the first one by default
 	doneKinds  = []string{doneCreated, doneUpdated, doneDeleted, doneStarted, doneStopped}
@@ -144,7 +149,9 @@ type Handlers struct {
 }
 
 func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
-	shell := func(file string) *common.Shell { return common.NewShell(partialsTemplateFile, file) }
+	shell := func(file string) *common.Shell {
+		return common.NewShell(protoform.TemplateFile, partialsTemplateFile, file)
+	}
 
 	return &Handlers{
 		db:            db,
@@ -183,16 +190,15 @@ func rightsOf(r *http.Request) rights {
 }
 
 // kv is a row of a key/value list.
-type kv struct {
-	Label string
-	Value string
-	Mono  bool
-}
+type kv = protoform.KV
+
+// choice is an option of a select, selected or not.
+type choice = protoform.Choice
 
 // entry is a local server with its protocol and its running state.
 type entry struct {
 	agent  *model.LocalAgent
-	proto  protocol
+	proto  *protoform.Protocol
 	state  utils.StateCode
 	reason string
 }
@@ -200,7 +206,7 @@ type entry struct {
 func (h *Handlers) entryOf(agent *model.LocalAgent) entry {
 	state, reason := h.ctl.Status(agent)
 
-	return entry{agent: agent, proto: protocolOf(agent.Protocol), state: state, reason: reason}
+	return entry{agent: agent, proto: protoform.ProtocolOf(agent.Protocol), state: state, reason: reason}
 }
 
 func (e entry) running() bool { return e.state == utils.StateRunning }
@@ -246,7 +252,8 @@ func (e entry) stateRank() int {
 // listQuery is the state of the list asked by the URL.
 type listQuery struct {
 	Q         string
-	Protocols []string
+	Protocols []string // families
+	TLS       string   // tlsYes, tlsNo or ""
 	Sort      string
 	Dir       string
 	Page      int
@@ -254,20 +261,45 @@ type listQuery struct {
 }
 
 // parseListQuery reads the state of the servers list: the search, the sort,
-// the page and the rows per page, plus ?protocol= (repeated or comma
-// separated).
+// the page and the rows per page, plus ?protocol= (families, repeated or
+// comma separated; a protocol key of the product, as the historic addresses
+// carry, counts as its family) and ?tls= (with or without TLS).
 func parseListQuery(v url.Values) listQuery {
 	query := parseQuery(v, sortKeys)
 
 	for _, raw := range v[protocolParam] {
 		for key := range strings.SplitSeq(raw, ",") {
-			if key = strings.TrimSpace(key); key != "" && isProtocol(key) && !slices.Contains(query.Protocols, key) {
-				query.Protocols = append(query.Protocols, key)
+			family := protoform.FamilyKeyOf(strings.TrimSpace(key))
+			if family != "" && !slices.Contains(query.Protocols, family) {
+				query.Protocols = append(query.Protocols, family)
 			}
 		}
 	}
 
+	if tls := v.Get(tlsParam); tls == tlsYes || tls == tlsNo {
+		query.TLS = tls
+	}
+
 	return query
+}
+
+// filtersCount is the number of active filters, shown next to the "Filters" button.
+func (q listQuery) filtersCount() int {
+	count := len(q.Protocols)
+	if q.TLS != "" {
+		count++
+	}
+
+	return count
+}
+
+// matches tells whether a protocol passes the filters of the list.
+func (q listQuery) matches(p *protoform.Protocol) bool {
+	if len(q.Protocols) > 0 && !slices.Contains(q.Protocols, p.Family.Key) {
+		return false
+	}
+
+	return q.TLS == "" || (q.TLS == tlsYes) == p.TLS
 }
 
 // parseQuery reads ?q=, ?sort= (among the given keys, the first one by
@@ -305,6 +337,10 @@ func (q listQuery) filterValues() url.Values {
 
 	if len(q.Protocols) > 0 {
 		v.Set(protocolParam, strings.Join(q.Protocols, ","))
+	}
+
+	if q.TLS != "" {
+		v.Set(tlsParam, q.TLS)
 	}
 
 	return v
@@ -485,7 +521,8 @@ type row struct {
 	Name     string
 	Status   gui.Status
 	Reason   string // raw reason given by the service, never translated
-	Protocol string
+	Protocol string // the family
+	TLS      bool   // shown as a badge next to the family
 	Address  string
 	Actions  []gui.Action
 }
@@ -506,6 +543,7 @@ type listData struct {
 	Q            string
 	Names        []string
 	Filters      []filterBox
+	TLSFilter    []protoform.Choice // with or without TLS, or both
 	FiltersOpen  bool
 	FiltersCount int
 	ResetURL     string
@@ -601,13 +639,14 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 		data.AddURL = withRet(common.WebuiURL(pagePath+"/new"), query.encode(query.Page))
 	}
 
-	for _, proto := range protocolList() {
+	for _, family := range protoform.Families() {
 		data.Filters = append(data.Filters,
-			filterBox{Key: proto.Key, Label: proto.Label, Checked: slices.Contains(query.Protocols, proto.Key)})
+			filterBox{Key: family.Key, Label: family.Label, Checked: slices.Contains(query.Protocols, family.Key)})
 	}
 
-	data.FiltersOpen = len(query.Protocols) > 0
-	data.FiltersCount = len(query.Protocols)
+	data.TLSFilter = tlsFilterChoices(translate, query.TLS)
+	data.FiltersCount = query.filtersCount()
+	data.FiltersOpen = data.FiltersCount > 0
 
 	names := make([]string, 0, len(all))
 	kept := make([]entry, 0, len(all))
@@ -620,7 +659,7 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 			continue
 		}
 
-		if len(query.Protocols) > 0 && !slices.Contains(query.Protocols, e.agent.Protocol) {
+		if !query.matches(e.proto) {
 			continue
 		}
 
@@ -666,7 +705,8 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 			Name:     e.agent.Name,
 			Status:   e.status(translate),
 			Reason:   e.reason,
-			Protocol: e.proto.Label,
+			Protocol: e.proto.Family.Label,
+			TLS:      e.proto.TLS,
 			Address:  e.address(),
 			Actions:  actions(translate, e, user, false, carried),
 		})
@@ -708,7 +748,7 @@ func sortEntries(entries []entry, key, dir string) {
 		case sortState:
 			order = cmp.Compare(a.stateRank(), b.stateRank())
 		case sortProtocol:
-			order = strings.Compare(a.proto.Label, b.proto.Label)
+			order = cmp.Or(strings.Compare(a.proto.Family.Label, b.proto.Family.Label), boolCmp(a.proto.TLS, b.proto.TLS))
 		case sortAddress:
 			order = cmp.Or(strings.Compare(a.agent.Address.Host, b.agent.Address.Host),
 				cmp.Compare(a.agent.Address.Port, b.agent.Address.Port))
@@ -938,12 +978,12 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Name:     srv.agent.Name,
 		Status:   srv.status(translate),
 		Reason:   srv.reason,
-		Protocol: srv.proto.Label,
+		Protocol: srv.proto.Family.Label,
 		Tabs:     tabs,
 		BackURL:  listURL(carried),
 		Actions:  actions(translate, srv, user, true, carried),
 		Identity: []kv{
-			{Label: translate("servers.detail.protocol"), Value: srv.proto.Label},
+			{Label: translate("servers.detail.protocol"), Value: protoform.Describe(translate, srv.proto)},
 			{Label: translate("servers.detail.address"), Value: srv.address(), Mono: true},
 			{Label: translate("servers.detail.autostart"), Value: autostart},
 			// The last tab counts the accounts.
@@ -955,7 +995,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 			{Label: translate("servers.dirs.tmp"), Value: srv.agent.TmpReceiveDir, Mono: true},
 			{Label: translate("servers.dirs.send"), Value: srv.agent.SendDir, Mono: true},
 		},
-		Options: optionRows(translate, srv.proto, srv.agent.ProtoConfig),
+		Options: protoform.Rows(translate, protoform.RoleServer, srv.proto, srv.agent.ProtoConfig),
 	}
 
 	if user.Write {
@@ -1011,7 +1051,7 @@ func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e entry, i
 		Name:         e.agent.Name,
 		Status:       e.status(translate),
 		Running:      e.running(),
-		Protocol:     e.proto.Label,
+		Protocol:     protoform.Describe(translate, e.proto),
 		Address:      e.address(),
 		Accounts:     strconv.FormatUint(accounts, 10),
 		CancelURL:    withRet(serverURL(e.agent.ID, ""), carried),
@@ -1125,4 +1165,31 @@ func (h *Handlers) Stop(w http.ResponseWriter, r *http.Request) {
 	}
 
 	redirectList(w, r, ret(r), result)
+}
+
+// boolCmp orders false before true.
+func boolCmp(a, b bool) int {
+	switch {
+	case a == b:
+		return 0
+	case b:
+		return -1
+	default:
+		return 1
+	}
+}
+
+// tlsFilterChoices is the "with or without TLS" filter of the list.
+func tlsFilterChoices(translate gui.Translator, current string) []protoform.Choice {
+	choices := []protoform.Choice{
+		{Value: "", Label: translate("proto.filter_tls_all")},
+		{Value: tlsYes, Label: translate("proto.filter_tls_yes")},
+		{Value: tlsNo, Label: translate("proto.filter_tls_no")},
+	}
+
+	for i := range choices {
+		choices[i].Selected = choices[i].Value == current
+	}
+
+	return choices
 }

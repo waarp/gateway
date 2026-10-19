@@ -33,7 +33,7 @@
     </dl>
   </div>
   <div class="w-card">
-    <h2 class="w-card__title">{{ t "servers.detail.options" "protocol" $d.Protocol }}</h2>
+    <h2 class="w-card__title">{{ t "proto.options" "protocol" $d.Protocol }}</h2>
     <dl class="w-deflist">
       {{ range $d.Options }}<dt>{{ .Label }}</dt><dd>{{ if .Mono }}<code class="w-code">{{ .Value }}</code>{{ else }}{{ .Value }}{{ end }}</dd>
       {{ end }}
