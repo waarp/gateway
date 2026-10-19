@@ -40,18 +40,21 @@
     </fieldset>
   </div>
 
-  <div class="w-card">
-    <fieldset class="w-fieldset w-fieldset--wide">
-      <legend class="w-card__title">{{ t "servers.form.dirs" }}</legend>
-      <p class="w-form__note servers-note">{{ t "servers.form.dirs_hint" }}</p>
-      <div class="w-grid w-grid--2">
-        {{ template "proto/field" (dict "ID" "root_dir" "Label" (t "servers.dirs.root") "F" (index $f "root_dir")) }}
-        {{ template "proto/field" (dict "ID" "receive_dir" "Label" (t "servers.dirs.receive") "F" (index $f "receive_dir")) }}
-        {{ template "proto/field" (dict "ID" "tmp_receive_dir" "Label" (t "servers.dirs.tmp") "F" (index $f "tmp_receive_dir") "Hint" (t "servers.form.tmp_hint")) }}
-        {{ template "proto/field" (dict "ID" "send_dir" "Label" (t "servers.dirs.send") "F" (index $f "send_dir")) }}
-      </div>
-    </fieldset>
-  </div>
+  <details class="w-card w-card--fold"{{ if $d.DirsOpen }} open{{ end }}>
+    <summary>{{ icon "chevron-right" }}<span class="w-card__title">{{ t "servers.form.dirs" }}</span><span class="w-fold__meta">{{ $d.DirsSummary }}</span></summary>
+    <div class="w-card__body">
+      <fieldset class="w-fieldset w-fieldset--wide">
+        <legend class="visually-hidden">{{ t "servers.form.dirs" }}</legend>
+        <p class="w-form__note servers-note">{{ t "servers.form.dirs_hint" }}</p>
+        <div class="w-grid w-grid--2">
+          {{ template "proto/field" (dict "ID" "root_dir" "Label" (t "servers.dirs.root") "F" (index $f "root_dir")) }}
+          {{ template "proto/field" (dict "ID" "receive_dir" "Label" (t "servers.dirs.receive") "F" (index $f "receive_dir")) }}
+          {{ template "proto/field" (dict "ID" "tmp_receive_dir" "Label" (t "servers.dirs.tmp") "F" (index $f "tmp_receive_dir") "Hint" (t "servers.form.tmp_hint")) }}
+          {{ template "proto/field" (dict "ID" "send_dir" "Label" (t "servers.dirs.send") "F" (index $f "send_dir")) }}
+        </div>
+      </fieldset>
+    </div>
+  </details>
 
   {{ template "proto/options" $d.Proto }}
 

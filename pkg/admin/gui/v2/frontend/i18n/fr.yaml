@@ -95,6 +95,12 @@ proto:
   options: "Options du protocole {protocol}"
   options_label: Options
   error_number: Indiquez un nombre entier.
+  options_default: Options par défaut de la passerelle
+  options_set_one: 1 option renseignée
+  options_set: "{n} options renseignées"
+  tls_summary: "{version} · {suites}"
+  tls_suite_one: 1 suite retenue
+  tls_suites: "{n} suites retenues"
   # Options par famille : l'effet pour l'exploitant d'abord, le terme technique en aide monospace.
   opt:
     r66_login: Identifiant attendu du partenaire
@@ -240,6 +246,9 @@ servers:
     dirs: Dossiers
     dirs_hint: "Facultatifs ; un chemin relatif s'entend depuis le dossier racine de la passerelle."
     tmp_hint: "Les fichiers y sont écrits pendant la réception, puis déplacés dans le dossier de réception"
+    dirs_root_summary: "Racine « {root} »"
+    dirs_count_summary: "{n} dossiers définis"
+    dirs_default_summary: Dossiers par défaut de la passerelle
     refused: Le serveur n'a pas été enregistré.
     refused_text: Corrigez les champs signalés ci-dessous.
     error:
@@ -632,6 +641,8 @@ clients:
     port_hint: "Port TCP de sortie, de 1 à 65535"
     retries: Reprise des transferts
     retries_hint: "Quand un transfert passé par ce client échoue, la passerelle le retente d'elle-même, selon ces réglages."
+    retries_summary: "{attempts} tentatives · {delay} · ×{factor}"
+    retries_summary_one: "1 tentative · {delay} · ×{factor}"
     refused: Le client n'a pas été enregistré.
     refused_text: Corrigez les champs signalés ci-dessous.
     error:

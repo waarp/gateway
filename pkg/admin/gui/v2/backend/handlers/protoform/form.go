@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 // Names of the fields that choose the protocol: the family and the TLS
@@ -49,6 +50,10 @@ type Form struct {
 	Choice   ChoiceView
 	Families []*FamilyView
 	TLSBlock BlockView
+	// The TLS card is foldable: open when its values differ from the
+	// product defaults, its summary says the version and the suites.
+	TLSOpen    bool
+	TLSSummary string
 }
 
 // ChoiceView is the choice of the protocol: the select of the families and
@@ -62,13 +67,17 @@ type ChoiceView struct {
 }
 
 // FamilyView is the card of a family: its options by kind, in the order of
-// the form, and the ones of its TLS variant.
+// the form, and the ones of its TLS variant. The card folds: open when an
+// option differs from the product default or carries an error, its summary
+// says how many options are set.
 type FamilyView struct {
-	Key   string
-	Label string
-	Note  string
-	Plain BlockView
-	TLS   BlockView
+	Key     string
+	Label   string
+	Note    string
+	Plain   BlockView
+	TLS     BlockView
+	Open    bool
+	Summary string
 }
 
 // HasOptions tells whether the card has anything to show.
@@ -362,14 +371,26 @@ func (f *Form) Prepare(translate gui.Translator) {
 			view.Note = translate(note)
 		}
 
+		set := 0
+
 		for _, opt := range optionsOf(family.Key, f.Role) {
 			if opt.TLSOnly {
 				view.TLS.add(f.view(translate, opt))
 			} else {
 				view.Plain.add(f.view(translate, opt))
 			}
+
+			if f.isSet(opt) {
+				set++
+			}
+
+			if f.fields[opt.Name].Error != "" {
+				view.Open = true
+			}
 		}
 
+		view.Open = view.Open || set > 0
+		view.Summary = optionsSummary(translate, set)
 		f.Families = append(f.Families, view)
 	}
 
@@ -379,6 +400,58 @@ func (f *Form) Prepare(translate gui.Translator) {
 	for _, opt := range tlsOptionList() {
 		f.TLSBlock.add(f.view(translate, opt))
 	}
+
+	f.TLSOpen, f.TLSSummary = f.tlsSummary(translate)
+}
+
+// isSet tells whether an option differs from the product default: a checked
+// box, a filled text or number, a select away from its default, a list with
+// something chosen.
+func (f *Form) isSet(opt *Option) bool {
+	switch opt.Kind {
+	case KindCheck:
+		return f.checks[opt.Name]
+	case KindSelect:
+		return f.selects[opt.Name] != "" && f.selects[opt.Name] != opt.Default
+	case KindList:
+		return len(f.lists[opt.Name]) > 0
+	default:
+		return f.fields[opt.Name].Value != ""
+	}
+}
+
+// optionsSummary says how many options of a card are set, or that the
+// product defaults apply.
+func optionsSummary(translate gui.Translator, set int) string {
+	switch set {
+	case 0:
+		return translate("proto.options_default")
+	case 1:
+		return translate("proto.options_set_one")
+	default:
+		return translate("proto.options_set", "n", set)
+	}
+}
+
+// tlsSummary says whether the TLS card holds something else than the
+// product defaults, and sums it up: the minimum version and the suites.
+func (f *Form) tlsSummary(translate gui.Translator) (bool, string) {
+	version := f.selects[FieldMinTLS]
+	suites := f.lists[FieldTLSCiphers]
+	open := (version != "" && version != protoutils.TLSv12) || len(suites) > 0
+
+	label := TLSVersionLabel(version)
+	chosen := translate("proto.opt.default_ciphers")
+
+	switch len(suites) {
+	case 0:
+	case 1:
+		chosen = translate("proto.tls_suite_one")
+	default:
+		chosen = translate("proto.tls_suites", "n", len(suites))
+	}
+
+	return open, translate("proto.tls_summary", "version", label, "suites", chosen)
 }
 
 // view renders one option with its current value.

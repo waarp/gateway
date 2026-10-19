@@ -96,6 +96,12 @@ proto:
   options: "{protocol} options"
   options_label: Options
   error_number: Enter a whole number.
+  options_default: Default options of the gateway
+  options_set_one: 1 option set
+  options_set: "{n} options set"
+  tls_summary: "{version} · {suites}"
+  tls_suite_one: 1 suite chosen
+  tls_suites: "{n} suites chosen"
   # Options by family: the effect for the operator first, the technical term as a monospace hint.
   opt:
     r66_login: Login expected from the partner
@@ -241,6 +247,9 @@ servers:
     dirs: Directories
     dirs_hint: "Optional; a relative path is resolved from the gateway root directory."
     tmp_hint: "Files are written there during the reception, then moved to the receive directory"
+    dirs_root_summary: "Root “{root}”"
+    dirs_count_summary: "{n} directories set"
+    dirs_default_summary: Default directories of the gateway
     refused: The server was not saved.
     refused_text: Correct the fields flagged below.
     error:
@@ -633,6 +642,8 @@ clients:
     port_hint: "Outgoing TCP port, 1 to 65535"
     retries: Transfer retries
     retries_hint: "When a transfer through this client fails, the gateway retries it on its own, as set here."
+    retries_summary: "{attempts} retries · {delay} · ×{factor}"
+    retries_summary_one: "1 retry · {delay} · ×{factor}"
     refused: The client was not saved.
     refused_text: Correct the fields flagged below.
     error:

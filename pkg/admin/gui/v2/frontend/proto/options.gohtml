@@ -35,24 +35,30 @@
 {{/* proto/options: one card per family that has options, then the TLS card; protoform.Form. */ -}}
 {{ define "proto/options" -}}
 {{ range .Families }}{{ if .HasOptions }}
-<div class="w-card" data-case="{{ .Key }}">
-  <fieldset class="w-fieldset w-fieldset--wide">
-    <legend class="w-card__title">{{ t "proto.options" "protocol" .Label }}</legend>
-    {{ with .Note }}<p class="w-form__note proto-note">{{ . }}</p>{{ end }}
-    {{ template "proto/block" .Plain }}
-    {{ if .TLS.Groups }}<fieldset class="w-fieldset w-fieldset--wide" data-case="on" data-of="tls">
-      <legend class="w-fieldset__legend">{{ t "proto.tls_title" }}</legend>
-      {{ template "proto/block" .TLS }}
-    </fieldset>{{ end }}
-  </fieldset>
-</div>
+<details class="w-card w-card--fold" data-case="{{ .Key }}"{{ if .Open }} open{{ end }}>
+  <summary>{{ icon "chevron-right" }}<span class="w-card__title">{{ t "proto.options" "protocol" .Label }}</span><span class="w-fold__meta">{{ .Summary }}</span></summary>
+  <div class="w-card__body">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="visually-hidden">{{ t "proto.options" "protocol" .Label }}</legend>
+      {{ with .Note }}<p class="w-form__note proto-note">{{ . }}</p>{{ end }}
+      {{ template "proto/block" .Plain }}
+      {{ if .TLS.Groups }}<fieldset class="w-fieldset w-fieldset--wide" data-case="on" data-of="tls">
+        <legend class="w-fieldset__legend">{{ t "proto.tls_title" }}</legend>
+        {{ template "proto/block" .TLS }}
+      </fieldset>{{ end }}
+    </fieldset>
+  </div>
+</details>
 {{ end }}{{ end }}
-<div class="w-card" data-case="on" data-of="tls">
-  <fieldset class="w-fieldset w-fieldset--wide">
-    <legend class="w-card__title">{{ t "proto.tls_title" }}</legend>
-    {{ template "proto/tls-block" .TLSBlock }}
-  </fieldset>
-</div>
+<details class="w-card w-card--fold" data-case="on" data-of="tls"{{ if .TLSOpen }} open{{ end }}>
+  <summary>{{ icon "chevron-right" }}<span class="w-card__title">{{ t "proto.tls_title" }}</span><span class="w-fold__meta">{{ .TLSSummary }}</span></summary>
+  <div class="w-card__body">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="visually-hidden">{{ t "proto.tls_title" }}</legend>
+      {{ template "proto/tls-block" .TLSBlock }}
+    </fieldset>
+  </div>
+</details>
 {{- end }}
 
 {{/* proto/block: the options of a block in the order of the table: consecutive fields in a grid, a checkbox or a

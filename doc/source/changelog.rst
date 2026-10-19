@@ -3,7 +3,7 @@
 Historique des versions
 =======================
 
-* :feature:`-` L'écran des clients locaux de l'interface web est refondu sur
+* :feature:`711` L'écran des clients locaux de l'interface web est refondu sur
   le kit : liste triée par colonne et filtrée (recherche, familles de
   protocole, avec ou sans TLS), fiche en lecture (état, adresse locale,
   reprise des transferts, options du protocole, partenaires joignables par le

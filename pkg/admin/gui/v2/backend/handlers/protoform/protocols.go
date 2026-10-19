@@ -256,6 +256,22 @@ func TLSVersionChoices(current string) []Choice {
 	}, current)
 }
 
+// TLSVersionLabel names a minimum TLS version, the product's default (TLS
+// 1.2) when none is stored, the raw value when the interface does not know it.
+func TLSVersionLabel(value string) string {
+	if value == "" {
+		value = protoutils.TLSv12
+	}
+
+	for _, c := range TLSVersionChoices(value) {
+		if c.Selected {
+			return c.Label
+		}
+	}
+
+	return value
+}
+
 // TLSCipherChoices lists the cipher suites one can enable, from the product's
 // table (crypto/tls): those negotiable in TLS 1.2 or earlier, by decreasing
 // decimal code, the insecure ones flagged as such. Operators name a suite by

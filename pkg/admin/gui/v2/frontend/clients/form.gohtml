@@ -28,36 +28,42 @@
     </fieldset>
   </div>
 
-  <div class="w-card">
-    <fieldset class="w-fieldset w-fieldset--wide">
-      <legend class="w-card__title">{{ t "clients.form.address" }}</legend>
-      <p class="w-form__note clients-note">{{ t "clients.form.address_hint" }}</p>
-      <div class="w-grid w-grid--2">
-        {{ template "proto/field" (dict "ID" "host" "Label" (t "clients.form.host") "F" (index $f "host") "Hint" (t "clients.form.host_hint")) }}
-        {{ template "proto/field" (dict "ID" "port" "Label" (t "clients.form.port") "F" (index $f "port") "Hint" (t "clients.form.port_hint") "Short" true "Num" true "Min" 1 "Max" 65535) }}
-      </div>
-    </fieldset>
-  </div>
-
-  <div class="w-card">
-    <fieldset class="w-fieldset w-fieldset--wide">
-      <legend class="w-card__title">{{ t "clients.form.retries" }}</legend>
-      <p class="w-form__note clients-note">{{ t "clients.form.retries_hint" }}</p>
-      <div class="w-grid w-grid--2">
-        {{ template "proto/field" (dict "ID" "attempts" "Label" (t "clients.retries.attempts") "F" (index $f "attempts") "Hint" (t "clients.retries.attempts_hint") "Short" true "Num" true "Min" 0 "Max" 127 "Code" "nbOfAttempts") }}
-        {{ template "proto/field" (dict "ID" "factor" "Label" (t "clients.retries.factor") "F" (index $f "factor") "Hint" (t "clients.retries.factor_hint") "Short" true "Code" "retryIncrementFactor") }}
-      </div>
-      <fieldset class="w-fieldset clients-delay" aria-describedby="delay-h">
-        <legend class="w-field__label">{{ t "clients.retries.delay" }} <span class="w-field__opt"><code class="w-code">firstRetryDelay</code></span></legend>
-        <div class="clients-delay__parts">
-          {{ template "clients/delay" (dict "ID" "delay_h" "Label" (t "clients.retries.hours") "F" (index $f "delay_h")) }}
-          {{ template "clients/delay" (dict "ID" "delay_m" "Label" (t "clients.retries.minutes") "F" (index $f "delay_m") "Max" 59) }}
-          {{ template "clients/delay" (dict "ID" "delay_s" "Label" (t "clients.retries.seconds") "F" (index $f "delay_s") "Max" 59) }}
+  <details class="w-card w-card--fold"{{ if $d.AddressOpen }} open{{ end }}>
+    <summary>{{ icon "chevron-right" }}<span class="w-card__title">{{ t "clients.form.address" }}</span><span class="w-fold__meta">{{ $d.AddressSummary }}</span></summary>
+    <div class="w-card__body">
+      <fieldset class="w-fieldset w-fieldset--wide">
+        <legend class="visually-hidden">{{ t "clients.form.address" }}</legend>
+        <p class="w-form__note clients-note">{{ t "clients.form.address_hint" }}</p>
+        <div class="w-grid w-grid--2">
+          {{ template "proto/field" (dict "ID" "host" "Label" (t "clients.form.host") "F" (index $f "host") "Hint" (t "clients.form.host_hint")) }}
+          {{ template "proto/field" (dict "ID" "port" "Label" (t "clients.form.port") "F" (index $f "port") "Hint" (t "clients.form.port_hint") "Short" true "Num" true "Min" 1 "Max" 65535) }}
         </div>
-        <span class="w-field__hint" id="delay-h">{{ t "clients.retries.delay_hint" }}</span>
       </fieldset>
-    </fieldset>
-  </div>
+    </div>
+  </details>
+
+  <details class="w-card w-card--fold"{{ if $d.RetriesOpen }} open{{ end }}>
+    <summary>{{ icon "chevron-right" }}<span class="w-card__title">{{ t "clients.form.retries" }}</span><span class="w-fold__meta">{{ $d.RetriesSummary }}</span></summary>
+    <div class="w-card__body">
+      <fieldset class="w-fieldset w-fieldset--wide">
+        <legend class="visually-hidden">{{ t "clients.form.retries" }}</legend>
+        <p class="w-form__note clients-note">{{ t "clients.form.retries_hint" }}</p>
+        <div class="w-grid w-grid--2">
+          {{ template "proto/field" (dict "ID" "attempts" "Label" (t "clients.retries.attempts") "F" (index $f "attempts") "Hint" (t "clients.retries.attempts_hint") "Short" true "Num" true "Min" 0 "Max" 127 "Code" "nbOfAttempts") }}
+          {{ template "proto/field" (dict "ID" "factor" "Label" (t "clients.retries.factor") "F" (index $f "factor") "Hint" (t "clients.retries.factor_hint") "Short" true "Code" "retryIncrementFactor") }}
+        </div>
+        <fieldset class="w-fieldset clients-delay" aria-describedby="delay-h">
+          <legend class="w-field__label">{{ t "clients.retries.delay" }} <span class="w-field__opt"><code class="w-code">firstRetryDelay</code></span></legend>
+          <div class="clients-delay__parts">
+            {{ template "clients/delay" (dict "ID" "delay_h" "Label" (t "clients.retries.hours") "F" (index $f "delay_h")) }}
+            {{ template "clients/delay" (dict "ID" "delay_m" "Label" (t "clients.retries.minutes") "F" (index $f "delay_m") "Max" 59) }}
+            {{ template "clients/delay" (dict "ID" "delay_s" "Label" (t "clients.retries.seconds") "F" (index $f "delay_s") "Max" 59) }}
+          </div>
+          <span class="w-field__hint" id="delay-h">{{ t "clients.retries.delay_hint" }}</span>
+        </fieldset>
+      </fieldset>
+    </div>
+  </details>
 
   {{ template "proto/options" $d.Proto }}
 

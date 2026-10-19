@@ -51,11 +51,96 @@ type formData struct {
 	Checks map[string]bool  // checkboxes, by name
 	Proto  *protoform.Form  // the protocol: its family, TLS and options
 
+	// The secondary cards fold (Driss, 2026-10-19): open when they hold a
+	// value or an error, their summary says what they hold.
+	AddressOpen    bool
+	AddressSummary string
+	RetriesOpen    bool
+	RetriesSummary string
+
 	// The values once validated.
 	port     uint16
 	attempts int8
 	delay    int32
 	factor   float32
+}
+
+// summarize decides which secondary cards open and what their summary says,
+// from the values of the form (filled or posted) and their errors.
+func (f *formData) summarize(translate gui.Translator) {
+	value := func(name string) string { return f.Fields[name].Value }
+	failed := func(names ...string) bool {
+		for _, name := range names {
+			if f.Fields[name].Error != "" {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	host, port := value(fieldHost), value(fieldPort)
+	f.AddressOpen = host != "" || port != "" || failed(fieldHost, fieldPort)
+	f.AddressSummary = translate("clients.address_auto")
+
+	switch {
+	case host != "" && port != "":
+		f.AddressSummary = host + ":" + port
+	case host != "":
+		f.AddressSummary = host
+	case port != "":
+		f.AddressSummary = "*:" + port
+	}
+
+	attempts := value(fieldAttempts)
+	retryFields := []string{fieldAttempts, fieldDelayHours, fieldDelayMins, fieldDelaySecs, fieldFactor}
+	f.RetriesOpen = failed(retryFields...)
+
+	for _, name := range retryFields {
+		if v := value(name); v != "" && v != "0" {
+			f.RetriesOpen = true
+		}
+	}
+
+	f.RetriesSummary = translate("clients.detail.retries_none")
+
+	if attempts != "" && attempts != "0" {
+		factor := value(fieldFactor)
+		if factor == "" {
+			factor = "1"
+		}
+
+		key := "clients.form.retries_summary"
+		if attempts == "1" {
+			key = "clients.form.retries_summary_one"
+		}
+
+		f.RetriesSummary = translate(key,
+			"attempts", attempts, "delay", formatDelay(translate, f.postedDelay()), "factor", factor)
+	}
+}
+
+// postedDelay reads the delay fields as they are, in seconds, for the
+// summary; an unreadable part counts for nothing (validate flags it).
+func (f *formData) postedDelay() int32 {
+	var total int64
+
+	for _, part := range []struct {
+		name  string
+		scale int64
+	}{
+		{fieldDelayHours, secondsPerHour}, {fieldDelayMins, secondsPerMinute}, {fieldDelaySecs, 1},
+	} {
+		if n, err := internal.ParseInt[int32](f.Fields[part.name].Value); err == nil && n > 0 {
+			total += int64(n) * part.scale
+		}
+	}
+
+	if total > math.MaxInt32 {
+		return math.MaxInt32
+	}
+
+	return int32(total)
 }
 
 // newForm builds the form of a new client, or the form of an existing one
@@ -78,6 +163,7 @@ func (h *Handlers) newForm(translate gui.Translator, client *model.Client, carri
 		form.fill(client)
 	}
 
+	form.summarize(translate)
 	form.Proto.Prepare(translate)
 
 	return form
@@ -333,6 +419,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, client *model.Cl
 		}
 	}
 
+	form.summarize(translate)
 	form.Proto.Prepare(translate)
 	h.form.Render(w, h.logger, r, h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity, form))
 }

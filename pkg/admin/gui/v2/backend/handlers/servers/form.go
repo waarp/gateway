@@ -50,7 +50,41 @@ type formData struct {
 	Checks map[string]bool  // checkboxes, by name
 	Proto  *protoform.Form  // the protocol: its family, TLS and options
 
+	// The directories card folds (Driss, 2026-10-19): open when it holds a
+	// value or an error, its summary says what it holds.
+	DirsOpen    bool
+	DirsSummary string
+
 	port uint16 // the port once validated
+}
+
+// summarize decides whether the directories card opens and what its summary
+// says, from the values of the form (filled or posted) and their errors.
+func (f *formData) summarize(translate gui.Translator) {
+	dirs := []string{fieldRootDir, fieldReceiveDir, fieldTmpReceiveDir, fieldSendDir}
+	set := 0
+
+	for _, name := range dirs {
+		fld := f.Fields[name]
+		if fld.Value != "" {
+			set++
+		}
+
+		if fld.Error != "" {
+			f.DirsOpen = true
+		}
+	}
+
+	f.DirsOpen = f.DirsOpen || set > 0
+
+	switch {
+	case f.Fields[fieldRootDir].Value != "":
+		f.DirsSummary = translate("servers.form.dirs_root_summary", "root", f.Fields[fieldRootDir].Value)
+	case set > 0:
+		f.DirsSummary = translate("servers.form.dirs_count_summary", "n", set)
+	default:
+		f.DirsSummary = translate("servers.form.dirs_default_summary")
+	}
 }
 
 // newForm builds the form of a new server, or the form of an existing one
@@ -73,6 +107,7 @@ func (h *Handlers) newForm(translate gui.Translator, agent *model.LocalAgent, ca
 		form.fill(agent)
 	}
 
+	form.summarize(translate)
 	form.Proto.Prepare(translate)
 
 	return form
@@ -275,6 +310,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, agent *model.Loc
 		}
 	}
 
+	form.summarize(translate)
 	form.Proto.Prepare(translate)
 	h.form.Render(w, h.logger, r, h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity, form))
 }

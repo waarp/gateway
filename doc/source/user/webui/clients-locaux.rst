@@ -164,6 +164,11 @@ client* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
        Le détail de chaque option se trouve dans la référence des
        :ref:`options de protocole <reference-proto-config>`.
 
+Les blocs *Adresse locale*, *Reprise des transferts*, *Options du protocole*
+et *Chiffrement TLS* sont repliés tant qu'ils sont à leur valeur par défaut ;
+leur en-tête résume ce qu'ils contiennent, et un clic les ouvre. Un bloc qui
+porte une valeur ou une erreur s'affiche toujours ouvert.
+
 *Valider* enregistre le client et ramène à la liste avec une notification ;
 un client créé est hors ligne jusqu'à son démarrage (ou au prochain lancement
 de la Gateway s'il démarre automatiquement). Un formulaire refusé est
