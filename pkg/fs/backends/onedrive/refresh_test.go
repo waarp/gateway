@@ -16,7 +16,7 @@ func TestTokenRefresher_Get(t *testing.T) {
 	tenantID := "onedrive-tenant-id"
 
 	t.Run("Refreshes when token is missing", func(t *testing.T) {
-		opts := map[string]string{"tenant": tenantID}
+		opts := configmap.Simple{"tenant": tenantID}
 		refresher := &tokenRefresher{
 			m:            opts,
 			clientID:     clientID,
@@ -57,7 +57,7 @@ func TestTokenRefresher_Get(t *testing.T) {
 		}
 		validJSON, _ := json.Marshal(validToken)
 
-		opts := map[string]string{
+		opts := configmap.Simple{
 			"tenant": "test-tenant",
 			"token":  string(validJSON),
 		}
@@ -87,7 +87,7 @@ func TestTokenRefresher_Get(t *testing.T) {
 		}
 		expiredJSON, _ := json.Marshal(expiredToken)
 
-		opts := map[string]string{
+		opts := configmap.Simple{
 			"tenant": "test-tenant",
 			"token":  string(expiredJSON),
 		}

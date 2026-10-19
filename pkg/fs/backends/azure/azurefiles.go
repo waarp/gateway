@@ -15,12 +15,14 @@ import (
 
 var ErrMissingFilesShare = errors.New("no Azure Files share specified")
 
-const shareNameKey = "share_name"
+func parseFilesOpts(account, key string, userOpts map[string]string) (configmap.Mapper, error) {
+	// Credential options
+	credOpts := azureCredOpts(account, key)
 
-func parseFilesOpts(account, key string, opts map[string]string) (configmap.Simple, error) {
-	config := parseAzureOpts(account, key, opts)
+	// Make config map
+	config := internal.MakeOptions("azurefiles", userOpts, credOpts)
 
-	if share := config[shareNameKey]; share == "" {
+	if share, _ := config.Get("share_name"); share == "" {
 		return nil, ErrMissingFilesShare
 	}
 
@@ -33,14 +35,9 @@ func newFilesVFS(name, account, key string, opts map[string]string) (*vfs.VFS, e
 		return nil, err
 	}
 
-	fullConfig, err := internal.WithDefaults("azurefiles", config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate azure files filesystem: %w", err)
-	}
-
 	vfsOpts := internal.VFSOpts()
 
-	affs, err := azurefiles.NewFs(context.Background(), name, "", fullConfig)
+	affs, err := azurefiles.NewFs(context.Background(), name, "", config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate azure files filesystem: %w", err)
 	}

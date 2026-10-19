@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"sync"
 
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
@@ -20,15 +19,13 @@ import (
 
 var ErrMissingDriveID = errors.New(`missing onedrive "drive_id" parameter`)
 
-func NewFS(name, clientID, clientSecret string, opts map[string]string) (fs.FS, error) {
-	token, err := makeTokenFunc(clientID, clientSecret, configmap.Simple(opts))
+func NewFS(name, clientID, clientSecret string, userOpts map[string]string) (fs.FS, error) {
+	token, err := makeTokenFunc(clientID, clientSecret, configmap.Simple(userOpts))
 	if err != nil {
 		return nil, err
 	}
 
-	opts["token"] = token
-
-	odVFS, err := newVFS(name, clientID, clientSecret, opts)
+	odVFS, err := newVFS(name, clientID, token, clientSecret, userOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -36,15 +33,10 @@ func NewFS(name, clientID, clientSecret string, opts map[string]string) (fs.FS, 
 	return &fs.VFS{VFS: odVFS}, nil
 }
 
-func newVFS(name, clientID, clientSecret string, optsMap map[string]string) (*vfs.VFS, error) {
-	odOpts, err := parseOpts(clientID, clientSecret, optsMap)
+func newVFS(name, clientID, clientSecret, token string, userOpts map[string]string) (*vfs.VFS, error) {
+	config, err := parseOpts(clientID, clientSecret, token, userOpts)
 	if err != nil {
 		return nil, err
-	}
-
-	config, err := internal.WithDefaults("onedrive", odOpts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate onedrive filesystem: %w", err)
 	}
 
 	odfs, err := onedrive.NewFs(context.Background(), name, "", config)
@@ -58,7 +50,7 @@ func newVFS(name, clientID, clientSecret string, optsMap map[string]string) (*vf
 }
 
 type tokenRefresher struct {
-	m            configmap.Simple
+	m            configmap.Mapper
 	clientID     string
 	clientSecret string
 	mu           sync.Mutex
@@ -68,28 +60,30 @@ type tokenRefresher struct {
 var makeTokenFunc = makeToken
 
 func (t *tokenRefresher) Get(key string) (string, bool) {
+	if key != "token" {
+		return t.m.Get(key)
+	}
+
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if key == "token" {
-		if val, ok := t.m.Get(key); ok && val != "" {
-			var token oauth2.Token
-			if err := json.Unmarshal([]byte(val), &token); err == nil {
-				if token.Valid() || token.RefreshToken != "" {
-					return val, true
-				}
+	if val, ok := t.m.Get(key); ok && val != "" {
+		var token oauth2.Token
+		if err := json.Unmarshal([]byte(val), &token); err == nil {
+			if token.Valid() || token.RefreshToken != "" {
+				return val, true
 			}
-		}
-
-		newToken, err := makeTokenFunc(t.clientID, t.clientSecret, t.m)
-		if err == nil {
-			t.m.Set(key, newToken)
-
-			return newToken, true
 		}
 	}
 
-	return t.m.Get(key)
+	newToken, err := makeTokenFunc(t.clientID, t.clientSecret, t.m)
+	if err != nil {
+		return "", false
+	}
+
+	t.m.Set(key, newToken)
+
+	return newToken, true
 }
 
 func (t *tokenRefresher) Set(key, value string) {
@@ -99,31 +93,21 @@ func (t *tokenRefresher) Set(key, value string) {
 	t.m.Set(key, value)
 }
 
-func parseOpts(clientID, clientSecret string, opts map[string]string) (configmap.Mapper, error) {
-	const (
-		regionKey       = "region"
-		driveIDKey      = "drive_id"
-		driveTypeKey    = "drive_type"
-		chunkSizeKey    = "chunk_size"
-		clientIDKey     = "client_id"
-		clientSecretKey = "client_secret"
-	)
+func parseOpts(clientID, clientSecret, token string, userOpts map[string]string,
+) (configmap.Mapper, error) {
+	// Credential options
+	credOpts := configmap.Simple{
+		"client_id":     clientID,
+		"client_secret": clientSecret,
+		"token":         token,
+	}
 
-	config := maps.Clone(opts)
-	internal.SetDefaultValue(config, chunkSizeKey, "10Mi")
-	internal.SetDefaultValue(config, driveTypeKey, "business")
-	internal.SetDefaultValue(config, regionKey, "global")
+	// Make config map
+	config := internal.MakeOptions("onedrive", userOpts, credOpts)
 
-	if config[driveIDKey] == "" {
+	// Check mandatory values
+	if drive, _ := config.Get("drive_id"); drive == "" {
 		return nil, ErrMissingDriveID
-	}
-
-	if clientID != "" {
-		config[clientIDKey] = clientID
-	}
-
-	if clientSecret != "" {
-		config[clientSecretKey] = clientSecret
 	}
 
 	return &tokenRefresher{

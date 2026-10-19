@@ -20,8 +20,11 @@ func TestS3(t *testing.T) {
 	backtest.EnvOrSkip(t, "AWS_SECRET_ACCESS_KEY")
 
 	opts := map[string]string{
-		"env_auth": "true",
-		"bucket":   bucket,
+		"env_auth":          "true",
+		"bucket":            bucket,
+		"provider":          "AWS",
+		"region":            "eu-west-3",
+		"directory_markers": "true",
 	}
 
 	s3VFS, fsErr := newVFS("s3", "", "", opts)
@@ -34,7 +37,7 @@ func TestParseOpts(t *testing.T) {
 	t.Parallel()
 
 	opts := map[string]string{"bucket": "name"}
-	_, err := parseOpts("account", "password", opts)
+	_, _, err := parseOpts("account", "password", opts)
 	require.NoError(t, err)
 
 	assert.NotContains(t, opts, "access_key_id")
