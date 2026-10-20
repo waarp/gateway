@@ -20,6 +20,7 @@ restent décrits par l'interface elle-même.
    serveurs-locaux
    clients-locaux
    partenaires-distants
+   utilisateurs
    etat-des-services
 
 
@@ -27,7 +28,7 @@ Connexion
 =========
 
 L'interface demande un identifiant et un mot de passe : ceux d'un
-:ref:`utilisateur <user-management>` de la Gateway, les mêmes que pour l'API
+:ref:`utilisateur <user-webui-users>` de la Gateway, les mêmes que pour l'API
 REST et la ligne de commande. Après 5 échecs pour un même compte depuis une
 même adresse, les tentatives sont refusées pendant 1 minute (section
 ``[security]`` de la configuration).
@@ -75,7 +76,7 @@ Droits
 ======
 
 La barre latérale ne montre que les écrans que l'utilisateur a le droit de
-consulter, selon ses :ref:`droits <user-management>` : la consultation d'un
+consulter, selon ses :ref:`droits <user-webui-users>` : la consultation d'un
 écran requiert le droit de lecture de sa catégorie, un ajout ou une
 modification le droit d'écriture, une suppression le droit de suppression. Le
 serveur contrôle ces droits sur chaque page et chaque action, indépendamment
@@ -88,7 +89,8 @@ L'écran :doc:`serveurs-locaux`
 requiert les droits sur les serveurs : lecture pour la liste et le détail,
 écriture pour créer, modifier, démarrer et arrêter, suppression pour
 supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
-sur les partenaires.
+sur les partenaires, et l'écran :doc:`utilisateurs` les droits sur les
+utilisateurs.
 
 
 Ancienne et nouvelle interface

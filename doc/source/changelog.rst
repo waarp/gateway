@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`718` L'écran des utilisateurs de l'interface web est refondu sur
+  le kit (voir :ref:`le guide de l'interface web <user-webui-users>`) : liste
+  triée par colonne et filtrée par domaine et par droit, avec les droits de
+  chaque utilisateur dans la notation de l'API (``rwd``) ; fiche en lecture
+  avec les droits en toutes lettres, le même tableau que « Mon compte » ;
+  pages de création, de modification et de suppression, le mot de passe saisi
+  deux fois et vérifié par le serveur, jamais réaffiché. La suppression du
+  dernier administrateur et celle de son propre compte sont refusées dans la
+  page, comme par l'API. L'écran remplace l'ancienne page dans la navigation ;
+  elle reste accessible à son adresse jusqu'à la version suivante.
+
 * :feature:`717` Le formulaire d'un client local de l'interface web refondue
   dit combien de temps prennent les reprises automatiques : sous les trois
   réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
