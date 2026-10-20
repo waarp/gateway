@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -53,4 +54,28 @@ func TestDecodeEBCDIC(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, expectedString, dstBuf.String())
+}
+
+func TestEBCDICEuroPatch(t *testing.T) {
+	t.Parallel()
+
+	const text = "Price: 10€"
+
+	for _, codePage := range []int{
+		ebcdic.EBCDIC1140,
+		ebcdic.EBCDIC1141,
+		ebcdic.EBCDIC1148,
+	} {
+		t.Run(fmt.Sprintf("EBCDIC%d", codePage), func(t *testing.T) {
+			t.Parallel()
+
+			encoded, err := ebcdic.Encode(text, codePage)
+			require.NoError(t, err)
+			assert.Equal(t, byte(ebcdicEuroChar), encoded[len(encoded)-1])
+
+			decoded, err := ebcdic.Decode(encoded, codePage)
+			require.NoError(t, err)
+			assert.Equal(t, text, decoded)
+		})
+	}
 }

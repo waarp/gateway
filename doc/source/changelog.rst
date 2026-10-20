@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`693` Correction d'un bug faisant que l'encodage "IBM Code Page 1148"
+  de la tâche TRANSCODE n'encodait pas correctement le caractère "€".
 * :bug:`701` Les options non renseignées d'une instance cloud (S3, Azure Blob,
   Azure Files, Google Cloud Storage, OneDrive) prennent désormais la valeur
   par défaut documentée par rclone, au lieu de la valeur zéro de leur type.
