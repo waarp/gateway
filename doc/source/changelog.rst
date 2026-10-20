@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`692` Correction d'un crash application (*panic*) pouvant survenir lors
+  de l'arrêt d'une Gateway comportant un serveur PeSIT.
 * :bug:`693` Correction d'un bug faisant que l'encodage "IBM Code Page 1148"
   de la tâche TRANSCODE n'encodait pas correctement le caractère "€".
 * :bug:`701` Les options non renseignées d'une instance cloud (S3, Azure Blob,
