@@ -19,21 +19,24 @@ var ErrMissingBucket = errors.New("no S3 bucket specified")
 func parseOpts(key, secret string, userOpts map[string]string,
 ) (config configmap.Mapper, root string, err error) {
 	// Credential options
-	credOpts := configmap.Simple{
+	overrides := configmap.Simple{
 		"access_key_id":     key,
 		"secret_access_key": secret,
 	}
 
 	// Make config map
-	config = internal.MakeOptions("s3", userOpts, credOpts)
+	config = internal.MakeOptions("s3", userOpts, overrides)
 
 	// Check mandatory options
 	if bucket, _ := config.Get("bucket"); bucket == "" {
 		return nil, "", ErrMissingBucket
+	} else {
+		root = bucket
 	}
 
-	if isPathStyle, _ := config.Get("force_path_style"); isPathStyle == "true" {
-		root, _ = config.Get("bucket")
+	// Restore old defaults
+	if _, ok := userOpts["directory_markers"]; !ok {
+		config.Set("directory_markers", "true")
 	}
 
 	return config, root, nil

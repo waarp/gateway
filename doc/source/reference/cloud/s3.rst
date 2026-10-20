@@ -39,6 +39,15 @@ Les options de configuration suivantes sont disponibles pour S3 :
 * **endpoint**: L'adresse du serveur S3 (si celle-ci est différente de l'adresse
   par défaut ``amazonaws.com``). Peut également être renseigné via la
   variable d'environnement :envvar:`AWS_ENDPOINT_URL`.
+* **directory_markers**: Booléen, si ``true``, alors un marqueur de dossier sera
+  créé pour chaque dossier afin de mieux reproduire le comportement d'un système
+  de fichier classique. Le marqueur est un objet vide nommé avec le nom du
+  dossier suivi d'un *slash* (ex: ``dossier/``). Ce marqueur sert à marquer
+  l'existence d'un dossier même lorsque celui-ci est vide. Si le paramètre est
+  ``false``, un dossier n'existe que s'il contient au moins un fichier. Il est
+  donc déconseillé de mettre ce paramètre à ``false`` si les dossiers sont
+  susceptibles d'être vides, en particulier si le dossier est exposé à un serveur
+  de fichier (SFTP, FTP...). Par défaut, ce paramètre est ``true``.
 
 Exemple
 -------

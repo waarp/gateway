@@ -38,6 +38,15 @@ Les options de configuration suivantes sont disponibles pour GCS sont :
 * **bucket_policy_only**: Booléen, mettre à ``true`` si le bucket utilise une
   politique d'accès uniforme. Mettre à ``false`` si le bucket utilise des listes
   de contrôle d'accès.
+* **directory_markers**: Booléen, si ``true``, alors un marqueur de dossier sera
+  créé pour chaque dossier afin de mieux reproduire le comportement d'un système
+  de fichier classique. Le marqueur est un objet vide nommé avec le nom du
+  dossier suivi d'un *slash* (ex: ``dossier/``). Ce marqueur sert à marquer
+  l'existence d'un dossier même lorsque celui-ci est vide. Si le paramètre est
+  ``false``, un dossier n'existe que s'il contient au moins un fichier. Il est
+  donc déconseillé de mettre ce paramètre à ``false`` si les dossiers sont
+  susceptibles d'être vides, en particulier si le dossier est exposé à un serveur
+  de fichier (SFTP, FTP...). Par défaut, ce paramètre est ``true``.
 
 
 Exemple

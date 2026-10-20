@@ -18,19 +18,24 @@ var ErrMissingBucket = errors.New("no GCS bucket specified")
 func parseOpts(key, secret string, userOpts map[string]string,
 ) (config configmap.Mapper, root string, err error) {
 	// Credential options
-	credOpts := configmap.Simple{
+	overrides := configmap.Simple{
 		"service_account_credentials": key,
 		"service_account_file":        secret,
 	}
 
 	// Make config map
-	config = internal.MakeOptions("gcs", userOpts, credOpts)
+	config = internal.MakeOptions("gcs", userOpts, overrides)
 
 	// Check mandatory options
 	if bucket, ok := config.Get("bucket"); !ok || bucket == "" {
 		return nil, "", ErrMissingBucket
 	} else {
 		root = bucket
+	}
+
+	// Restore old defaults
+	if _, ok := userOpts["directory_markers"]; !ok {
+		overrides.Set("directory_markers", "true")
 	}
 
 	return config, root, nil
