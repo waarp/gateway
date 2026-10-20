@@ -39,7 +39,9 @@ Cette commande accepte les options suivantes :
    que cette durée seront supprimés.
 
    La date doit être au format ``aaaa/MM/dd hh:mm:ss`` (exemple: ``2022/10/25
-   08:00:00``).
+   08:00:00``). Un fuseau horaire peut optionnellement être ajouté à la date,
+   soit avec son abréviation (ex: ``CET``), soit avec son offset (ex: ``+01:00``).
+   Si aucun fuseau horaire n'est spécifié, le fuseau local du système sera utilisé.
 
    La durée est une succession arbitraire de valeurs de temps (exemple: ``1y3mo2d``
    pour 1 an, 3 mois et 2 jours). Les unités de temps suivantes sont acceptées:

@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`694` Pour palier à d'éventuels problèmes et comportements inattendus dans
+  certains cas de figures, l'option ``--older-than`` de la commande
+  ``waarp-gatewayd purge`` accepte désormais un fuseau horaire dans la date limite.
+  Par défaut, sans fuseau spécifié, la commande continue d'utiliser le fuseau
+  local du système pour parser la date.
 * :bug:`692` Correction d'un crash application (*panic*) pouvant survenir lors
   de l'arrêt d'une Gateway comportant un serveur PeSIT.
 * :bug:`693` Correction d'un bug faisant que l'encodage "IBM Code Page 1148"

@@ -21,13 +21,32 @@ var (
 	ErrInvalidOlderThan       = errors.New(`failed to parse the "--older-than" options, must be either a date or a duration`)
 )
 
-const untilFormat = "2006/01/02 15:04:05"
+const (
+	untilFormatTZ     = "2006/01/02 15:04:05 MST"    // with a time zone abbreviation
+	untilFormatOffset = "2006/01/02 15:04:05 Z07:00" // with a numeric time zone offset
+	untilFormat       = "2006/01/02 15:04:05"        // without time zone (local time assumed)
+)
+
+func parseUntil(str string) (time.Time, error) {
+	var lastErr error
+
+	for _, layout := range []string{untilFormatOffset, untilFormatTZ, untilFormat} {
+		date, err := time.ParseInLocation(layout, str, time.Local)
+		if err == nil {
+			return date, nil
+		}
+
+		lastErr = err
+	}
+
+	return time.Time{}, lastErr
+}
 
 //nolint:lll // tags can be long for flags
 type PurgeCommand struct {
 	ConfigFile string `short:"c" long:"config" required:"yes" description:"The configuration file to use"`
 	Reset      bool   `short:"r" long:"reset" description:"Reset the transfer ID auto-increment after the purge (NOTE: cannot be used in combination with -o)."`
-	OlderThan  string `short:"o" long:"older-than" description:"Limit the purge to transfers older than the given time (can be either a date or a duration)."`
+	OlderThan  string `short:"o" long:"older-than" description:"Limit the purge to transfers older than the given time (can be either a duration, or a date formatted as 'YYYY/MM/DD hh:mm:ss' with optional time zone or offset)"`
 	ExportTo   string `short:"e" long:"export-to" description:"Export the purged entries to a json file."`
 	Verbose    []bool `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 
@@ -118,7 +137,7 @@ func (p *PurgeCommand) checkArguments(db database.ReadAccess, now time.Time) err
 	}
 
 	if p.OlderThan != "" {
-		date, timeErr := time.ParseInLocation(untilFormat, p.OlderThan, time.Local)
+		date, timeErr := parseUntil(p.OlderThan)
 		if timeErr != nil {
 			date, timeErr = tparse.AddDuration(now, "-"+p.OlderThan)
 			if timeErr != nil {
