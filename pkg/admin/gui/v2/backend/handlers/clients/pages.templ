@@ -178,6 +178,7 @@ templ detailView(d detailData) {
 			if d.NoRetries {
 				<p class="clients-lead w-muted">{ gui.T(ctx, "clients.detail.retries_none") }</p>
 			} else {
+				<p class="clients-lead">{ d.RetrySentence }</p>
 				<dl class="w-deflist">
 					for _, k := range d.Retries {
 						<dt>{ k.Label }</dt>
@@ -328,6 +329,27 @@ templ formView(d *formData) {
 						</div>
 						<span class="w-field__hint" id="delay-h">{ gui.T(ctx, "clients.retries.delay_hint") }</span>
 					</fieldset>
+					<div class="w-retry" data-retry={ d.RetryTexts }>
+						<p class="w-retry__text" id="retry-text" aria-live="polite">{ d.RetrySentence }</p>
+						<svg class="w-retry__svg" role="img" aria-labelledby="retry-text" focusable="false" hidden></svg>
+						<details class="w-retry__detail" hidden?={ len(d.RetryRows) == 0 }>
+							<summary>{ gui.T(ctx, "clients.retries.details") }</summary>
+							<div class="w-table-wrap">
+								<table class="w-table">
+									<caption class="visually-hidden">{ gui.T(ctx, "clients.retries.details_caption") }</caption>
+									<thead>
+										<tr><th scope="col">{ gui.T(ctx, "clients.retries.col_attempt") }</th><th scope="col">{ gui.T(ctx, "clients.retries.col_wait") }</th><th scope="col">{ gui.T(ctx, "clients.retries.col_moment") }</th></tr>
+									</thead>
+									<tbody class="w-retry__rows">
+										for _, row := range d.RetryRows {
+											<tr><td class="w-num">{ row.N }</td><td>{ row.Wait }</td><td>{ row.At }</td></tr>
+										}
+									</tbody>
+								</table>
+							</div>
+						</details>
+						<p class="w-form__note clients-note">{ gui.T(ctx, "clients.retries.note") }</p>
+					</div>
 				</fieldset>
 			</div>
 		</details>

@@ -876,7 +876,7 @@ clients:
     attempts: Tentatives automatiques après un échec
     attempts_hint: "0 : aucune reprise ; 127 au plus"
     delay: Délai avant la première reprise
-    delay_hint: "Vide : reprise immédiate"
+    delay_hint: "Vide : la passerelle attend 1 s"
     delay_none: Aucun délai
     delay_hours: "{n} h"
     delay_minutes: "{n} min"
@@ -886,6 +886,20 @@ clients:
     seconds: secondes
     factor: Facteur de progression du délai
     factor_hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
+    sentence_none: Aucune reprise automatique.
+    sentence_one: "1 tentative, {delay} après l'échec."
+    sentence_constant: "{n} tentatives, toutes les {delay} : la dernière {total} après le premier échec."
+    sentence_growing: "{n} tentatives : la dernière {total} après le premier échec, avec des attentes de {first} à {last}."
+    sentence_empty_delay: "Délai vide : la passerelle attend 1 s."
+    delay_days: "{n} j"
+    more_than_years: "plus de {n} ans"
+    failure: Échec
+    details: Détail des tentatives
+    details_caption: Tentatives, attente avant chacune et moment depuis le premier échec
+    col_attempt: Tentative
+    col_wait: Attente
+    col_moment: Moment
+    note: "La frise compte l'attente entre deux tentatives à partir du premier échec ; la durée des tentatives elles-mêmes s'y ajoute."
   new:
     title: Nouveau client
   edit:

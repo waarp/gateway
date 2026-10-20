@@ -58,6 +58,11 @@ type formData struct {
 	AddressSummary string
 	RetriesOpen    bool
 	RetriesSummary string
+	// How long the retries take: the sentence and the table rendered by the
+	// server, the texts clients.js needs to recompute them at each keystroke.
+	RetrySentence string
+	RetryRows     []retryRow
+	RetryTexts    string
 
 	// The values once validated.
 	port     uint16
@@ -119,6 +124,22 @@ func (f *formData) summarize(translate gui.Translator) {
 		f.RetriesSummary = translate(key,
 			"attempts", attempts, "delay", formatDelay(translate, f.postedDelay()), "factor", factor)
 	}
+
+	// The schedule, from the values as posted: an unreadable attempts count
+	// or factor counts as none (validate flags it).
+	retryAttempts, err := internal.ParseInt[int8](attempts)
+	if err != nil || retryAttempts < 0 {
+		retryAttempts = 0
+	}
+
+	retryFactor, err := strconv.ParseFloat(strings.ReplaceAll(value(fieldFactor), ",", "."), 32)
+	if err != nil || retryFactor <= 0 {
+		retryFactor = 1
+	}
+
+	f.RetrySentence = retrySentence(translate, retryAttempts, f.postedDelay(), float32(retryFactor))
+	f.RetryRows = retryTable(translate, retryAttempts, f.postedDelay(), float32(retryFactor))
+	f.RetryTexts = retryTexts(translate)
 }
 
 // postedDelay reads the delay fields as they are, in seconds, for the
@@ -342,6 +363,7 @@ func (h *Handlers) NewForm(w http.ResponseWriter, r *http.Request) {
 
 	screen := h.screen(translate, f.Title, carried, 0)
 	screen.Stylesheets = formStylesheets()
+	screen.Scripts = formScripts()
 	h.shell.Render(w, h.logger, r, screen, formView(f))
 }
 
@@ -363,6 +385,7 @@ func (h *Handlers) EditForm(w http.ResponseWriter, r *http.Request) {
 
 	screen := h.screen(translate, f.Title, carried, 0)
 	screen.Stylesheets = formStylesheets()
+	screen.Scripts = formScripts()
 	h.shell.Render(w, h.logger, r, screen, formView(f))
 }
 
@@ -435,5 +458,6 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, client *model.Cl
 	form.Proto.Prepare(translate)
 	screen := h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity)
 	screen.Stylesheets = formStylesheets()
+	screen.Scripts = formScripts()
 	h.shell.Render(w, h.logger, r, screen, formView(form))
 }
