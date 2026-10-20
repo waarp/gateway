@@ -9,7 +9,7 @@
             <div class="collapse show" id="sec-connection" data-force-open="{{ if eq $.sidebarSection "connection" }}true{{ else }}false{{ end }}">
             <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
                 {{ if contains .myPermission.Servers "r" }}
-                    <li><i class="bi bi-hdd-stack-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0 {{ if eq $.sidebarLink "server_management" }}active{{ end }}" href="server_management">{{ index .tab "managing_local_servers" }}</a></li>
+                    <li><i class="bi bi-hdd-stack-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0 {{ if eq $.sidebarLink "server_management" }}active{{ end }}" href="servers">{{ index .tab "managing_local_servers" }}</a></li>
                 {{ end }}
                 {{ if contains .myPermission.Servers "r" }}
                     <li><i class="bi bi-people-fill fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="local_client_management">{{ index .tab "local_client_management" }}</a></li>

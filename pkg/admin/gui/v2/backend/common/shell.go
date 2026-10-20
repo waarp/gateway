@@ -56,12 +56,21 @@ type Screen struct {
 	Doc     string      // documentation page of the screen, relative to the guide
 	Crumbs  []gui.Crumb // breadcrumb, the last item being the screen
 	Data    any         // screen data, .Data in the "page" template
+
+	// Status is the HTTP status of the page: 0 (200 OK) for a page, 422 for a
+	// form rendered again with its errors, 404 for a localised "not found".
+	Status int
+	// Notices are the results of the previous action, rendered as
+	// notifications when the page loads (Post/Redirect/Get).
+	Notices []gui.Notice
 }
 
 // Render writes the complete page: the kit chrome, filled from the request
 // (user, language, rights), around the "page" template of the screen.
+//
+//nolint:gocritic // hugeParam: one screen per request, built and consumed at once
 func (s *Shell) Render(w http.ResponseWriter, logger *log.Logger, r *http.Request, screen Screen) {
-	s.execute(w, logger, r, shellTemplate, s.makePage(r, screen))
+	s.execute(w, logger, r, shellTemplate, s.makePage(r, screen), screen.Status)
 }
 
 // RenderFragment writes one named template of the screen alone, for the
@@ -69,10 +78,12 @@ func (s *Shell) Render(w http.ResponseWriter, logger *log.Logger, r *http.Reques
 func (s *Shell) RenderFragment(w http.ResponseWriter, logger *log.Logger, r *http.Request,
 	name string, data any,
 ) {
-	s.execute(w, logger, r, name, data)
+	s.execute(w, logger, r, name, data, 0)
 }
 
-func (s *Shell) execute(w http.ResponseWriter, logger *log.Logger, r *http.Request, name string, data any) {
+// execute renders a template in memory, then writes it with the given HTTP
+// status (0 means 200 OK).
+func (s *Shell) execute(w http.ResponseWriter, logger *log.Logger, r *http.Request, name string, data any, status int) {
 	localized, err := gui.Localize(s.tpl, s.Translator(r))
 	if err != nil {
 		logger.Errorf("failed to localize the templates: %v", err)
@@ -93,11 +104,16 @@ func (s *Shell) execute(w http.ResponseWriter, logger *log.Logger, r *http.Reque
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
+	if status != 0 {
+		w.WriteHeader(status)
+	}
+
 	if _, writeErr := page.WriteTo(w); writeErr != nil {
 		logger.Warningf("failed to write the page: %v", writeErr)
 	}
 }
 
+//nolint:gocritic // hugeParam: see Render
 func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 	user := GetUser(r)
 	lang := locale.GetLanguage(r)
@@ -118,6 +134,7 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		Languages: languages(r, lang),
 		Nav:       makeNav(translate, user.Permissions, screen.Section, screen.Menu),
 		Crumbs:    screen.Crumbs,
+		Notices:   screen.Notices,
 		Data:      screen.Data,
 	}
 }

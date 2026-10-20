@@ -16,6 +16,7 @@ restent décrits par l'interface elle-même.
 .. toctree::
    :maxdepth: 1
 
+   serveurs-locaux
    etat-des-services
 
 
@@ -78,7 +79,10 @@ serveur contrôle ces droits sur chaque page et chaque action, indépendamment
 de ce que l'interface affiche ; une requête non autorisée reçoit le code 403.
 
 L'écran :doc:`etat-des-services` ne requiert aucun droit particulier : tout
-utilisateur authentifié peut le consulter.
+utilisateur authentifié peut le consulter. L'écran :doc:`serveurs-locaux`
+requiert les droits sur les serveurs : lecture pour la liste et le détail,
+écriture pour créer, modifier, démarrer et arrêter, suppression pour
+supprimer.
 
 
 Ancienne et nouvelle interface

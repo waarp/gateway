@@ -1,0 +1,202 @@
+{{/* Creation and edition of a local server, one page (decision D10), one card per block: identity, listening address,
+     directories, options of the chosen protocol. The options appear after the choice (select data-switch, cards
+     data-case; without JavaScript every block is visible and the server reads the right one). Lists of algorithms
+     and cipher suites are dual lists (gui/dual): available on the left, chosen on the right, empty = everything
+     accepted. Labels say the effect for the operator first, the technical term in monospace. Refused form: a banner,
+     the values kept, a message under each faulty field (422). Data: formData (Fields and Checks by field name,
+     Choices by list, Protocol, Protocols). */ -}}
+{{ define "head" }}<link rel="stylesheet" href="{{ url "/static_v2/servers/servers.css" }}">{{ end }}
+
+{{ define "page" -}}
+{{ $d := .Data }}{{ $f := $d.Fields }}{{ $k := $d.Checks }}{{ $c := $d.Choices -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ $d.CancelURL }}">{{ icon "arrow-left" }} {{ if $d.Edit }}{{ t "servers.back_server" }}{{ else }}{{ t "servers.back" }}{{ end }}</a>
+  </div>
+</div>
+{{ if $d.HasErrors }}<div class="servers-banner">{{ template "gui/banner" (dict "Kind" "ko" "Title" (t "servers.form.refused") "Text" (or $d.Refused (t "servers.form.refused_text"))) }}</div>{{ end }}
+<form class="w-form" method="post" action="{{ $d.Action }}" novalidate>
+  <div class="w-card">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.identity" }}</legend>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "name" "Label" (t "servers.form.name") "Req" true "F" (index $f "name") "Hint" (t "servers.form.name_hint")) }}
+        <div class="w-field{{ if $d.ProtocolError }} is-invalid{{ end }}">
+          <label class="w-field__label" for="protocol">{{ t "servers.form.protocol" }} <span class="w-field__req" aria-hidden="true">*</span></label>
+          <select class="w-select" id="protocol" name="protocol" required data-switch aria-describedby="protocol-h"{{ if $d.ProtocolError }} aria-invalid="true"{{ end }}>
+            <option value=""{{ if not $d.Protocol }} selected{{ end }}>{{ t "servers.form.protocol_choose" }}</option>
+            {{ range $d.Protocols }}<option value="{{ .Key }}"{{ if eq .Key $d.Protocol }} selected{{ end }}>{{ .Label }}</option>{{ end }}
+          </select>
+          {{ if $d.ProtocolError }}<span class="w-field__error" id="protocol-h">{{ icon "triangle" }} {{ $d.ProtocolError }}</span>{{ else }}<span class="w-field__hint" id="protocol-h">{{ t "servers.form.protocol_hint" }}</span>{{ end }}
+        </div>
+      </div>
+      <label class="w-check"><input type="checkbox" name="no_autostart" value="1"{{ if index $k "no_autostart" }} checked{{ end }}> <span>{{ t "servers.form.no_autostart" }}</span></label>
+    </fieldset>
+  </div>
+
+  <div class="w-card">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.address" }}</legend>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "host" "Label" (t "servers.form.host") "F" (index $f "host") "Hint" (t "servers.form.host_hint")) }}
+        {{ template "servers/field" (dict "ID" "port" "Label" (t "servers.form.port") "Req" true "F" (index $f "port") "Hint" (t "servers.form.port_hint") "Short" true "Num" true "Min" 1 "Max" 65535) }}
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="w-card">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.dirs" }}</legend>
+      <p class="w-form__note servers-note">{{ t "servers.form.dirs_hint" }}</p>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "root_dir" "Label" (t "servers.dirs.root") "F" (index $f "root_dir")) }}
+        {{ template "servers/field" (dict "ID" "receive_dir" "Label" (t "servers.dirs.receive") "F" (index $f "receive_dir")) }}
+        {{ template "servers/field" (dict "ID" "tmp_receive_dir" "Label" (t "servers.dirs.tmp") "F" (index $f "tmp_receive_dir") "Hint" (t "servers.form.tmp_hint")) }}
+        {{ template "servers/field" (dict "ID" "send_dir" "Label" (t "servers.dirs.send") "F" (index $f "send_dir")) }}
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="w-card" data-case="r66 r66-tls">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.options" "protocol" "R66" }}</legend>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "r66_login" "Label" (t "servers.opt.r66_login") "F" (index $f "r66_login") "Hint" (t "servers.opt.r66_login_hint") "Code" "serverLogin") }}
+        {{ template "servers/field" (dict "ID" "r66_block" "Label" (t "servers.opt.r66_block") "F" (index $f "r66_block") "Hint" (t "servers.opt.r66_block_hint") "Short" true "Num" true "Min" 1 "Code" "blockSize") }}
+      </div>
+      <label class="w-check"><input type="checkbox" name="r66_no_final_hash" value="1"{{ if index $k "r66_no_final_hash" }} checked{{ end }}> <span>{{ t "servers.opt.r66_no_final_hash" }} (<code class="w-code">noFinalHash</code>)</span></label>
+      <label class="w-check"><input type="checkbox" name="r66_check_block_hash" value="1"{{ if index $k "r66_check_block_hash" }} checked{{ end }}> <span>{{ t "servers.opt.r66_check_block_hash" }} (<code class="w-code">checkBlockHash</code>)</span></label>
+      {{ template "servers/tls" (dict "ID" "r66" "Case" "r66-tls" "C" $c) }}
+    </fieldset>
+  </div>
+
+  <div class="w-card" data-case="ftp ftps">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.options" "protocol" "FTP" }}</legend>
+      <label class="w-check"><input type="checkbox" name="ftp_disable_passive" value="1"{{ if index $k "ftp_disable_passive" }} checked{{ end }}> <span>{{ t "servers.opt.ftp_disable_passive" }} (<code class="w-code">disablePassiveMode</code>)</span></label>
+      <label class="w-check"><input type="checkbox" name="ftp_disable_active" value="1"{{ if index $k "ftp_disable_active" }} checked{{ end }}> <span>{{ t "servers.opt.ftp_disable_active" }} (<code class="w-code">disableActiveMode</code>)</span></label>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "ftp_passive_min" "Label" (t "servers.opt.ftp_passive_min") "F" (index $f "ftp_passive_min") "Hint" (t "servers.opt.ftp_passive_min_hint") "Short" true "Num" true "Min" 1 "Max" 65535 "Code" "passiveModeMinPort") }}
+        {{ template "servers/field" (dict "ID" "ftp_passive_max" "Label" (t "servers.opt.ftp_passive_max") "F" (index $f "ftp_passive_max") "Short" true "Num" true "Min" 1 "Max" 65535 "Code" "passiveModeMaxPort") }}
+      </div>
+      <fieldset class="w-fieldset w-fieldset--wide" data-case="ftps">
+        <legend class="w-fieldset__legend">{{ t "servers.opt.tls" }}</legend>
+        <div class="w-grid w-grid--2">
+          <div class="w-field">
+            <label class="w-field__label" for="ftps_tls_requirement">{{ t "servers.opt.tls_requirement" }} <span class="w-field__opt"><code class="w-code">tlsRequirement</code></span></label>
+            <select class="w-select" id="ftps_tls_requirement" name="ftps_tls_requirement">{{ range $c.TLSRequirements }}<option value="{{ .Value }}"{{ if .Selected }} selected{{ end }}>{{ .Label }}</option>{{ end }}</select>
+          </div>
+        </div>
+        {{ template "servers/tls-fields" (dict "ID" "ftps" "C" $c) }}
+      </fieldset>
+    </fieldset>
+  </div>
+
+  <div class="w-card" data-case="pesit pesit-tls">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.options" "protocol" "PeSIT" }}</legend>
+      <label class="w-check"><input type="checkbox" name="pesit_disable_restart" value="1"{{ if index $k "pesit_disable_restart" }} checked{{ end }}> <span>{{ t "servers.opt.pesit_disable_restart" }} (<code class="w-code">disableRestart</code>)</span></label>
+      <label class="w-check"><input type="checkbox" name="pesit_disable_checkpoints" value="1"{{ if index $k "pesit_disable_checkpoints" }} checked{{ end }}> <span>{{ t "servers.opt.pesit_disable_checkpoints" }} (<code class="w-code">disableCheckpoints</code>)</span></label>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "pesit_checkpoint_size" "Label" (t "servers.opt.pesit_checkpoint_size") "F" (index $f "pesit_checkpoint_size") "Hint" (t "servers.opt.bytes") "Short" true "Num" true "Min" 1 "Code" "checkpointSize") }}
+        {{ template "servers/field" (dict "ID" "pesit_checkpoint_window" "Label" (t "servers.opt.pesit_checkpoint_window") "F" (index $f "pesit_checkpoint_window") "Hint" (t "servers.opt.pesit_checkpoint_window_hint") "Short" true "Num" true "Min" 1 "Max" 255 "Code" "checkpointWindow") }}
+        {{ template "servers/field" (dict "ID" "pesit_max_message" "Label" (t "servers.opt.pesit_max_message") "F" (index $f "pesit_max_message") "Hint" (t "servers.opt.bytes") "Short" true "Num" true "Min" 1 "Max" 65535 "Code" "maxMessageSize") }}
+        <div class="w-field">
+          <label class="w-field__label" for="pesit_mode">{{ t "servers.opt.pesit_mode" }} <span class="w-field__opt"><code class="w-code">compatibilityMode</code></span></label>
+          <select class="w-select" id="pesit_mode" name="pesit_mode" aria-describedby="pesit_mode-h">{{ range $c.PesitModes }}<option value="{{ .Value }}"{{ if .Selected }} selected{{ end }}>{{ .Label }}</option>{{ end }}</select>
+          <span class="w-field__hint" id="pesit_mode-h">{{ t "servers.opt.pesit_mode_hint" }}</span>
+        </div>
+      </div>
+      <label class="w-check"><input type="checkbox" name="pesit_disable_preconnection" value="1"{{ if index $k "pesit_disable_preconnection" }} checked{{ end }}> <span>{{ t "servers.opt.pesit_disable_preconnection" }} (<code class="w-code">disablePreConnection</code>)</span></label>
+      {{ template "servers/tls" (dict "ID" "pesit" "Case" "pesit-tls" "C" $c) }}
+    </fieldset>
+  </div>
+
+  <div class="w-card" data-case="sftp">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.options" "protocol" "SFTP" }}</legend>
+      <p class="w-form__note servers-note">{{ t "servers.opt.sftp_note" }}</p>
+      {{ template "servers/dual" (dict "ID" "sftp_kex" "Label" (t "servers.opt.sftp_kex") "Code" "keyExchanges" "Choices" $c.KeyExchanges "Hint" (t "servers.opt.sftp_kex_hint")) }}
+      {{ template "servers/dual" (dict "ID" "sftp_ciphers" "Label" (t "servers.opt.sftp_ciphers") "Code" "ciphers" "Choices" $c.Ciphers "Hint" (t "servers.opt.sftp_ciphers_hint")) }}
+      {{ template "servers/dual" (dict "ID" "sftp_macs" "Label" (t "servers.opt.sftp_macs") "Code" "macs" "Choices" $c.MACs "Hint" (t "servers.opt.sftp_macs_hint")) }}
+    </fieldset>
+  </div>
+
+  <div class="w-card" data-case="https">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.options" "protocol" "HTTPS" }}</legend>
+      {{ template "servers/tls-fields" (dict "ID" "https" "C" $c) }}
+    </fieldset>
+  </div>
+
+  <div class="w-card" data-case="webdav-tls">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.options" "protocol" "WebDAV over HTTPS" }}</legend>
+      {{ template "servers/tls-fields" (dict "ID" "webdav" "C" $c) }}
+    </fieldset>
+  </div>
+
+  <div class="w-card" data-case="as2 as2-tls">
+    <fieldset class="w-fieldset w-fieldset--wide">
+      <legend class="w-card__title">{{ t "servers.form.options" "protocol" "AS2" }}</legend>
+      <div class="w-grid w-grid--2">
+        {{ template "servers/field" (dict "ID" "as2_max_file_size" "Label" (t "servers.opt.as2_max_file_size") "F" (index $f "as2_max_file_size") "Hint" (t "servers.opt.as2_max_file_size_hint") "Short" true "Num" true "Min" 1 "Code" "maxFileSize") }}
+        <div class="w-field">
+          <label class="w-field__label" for="as2_mdn_algo">{{ t "servers.opt.as2_mdn_algo" }} <span class="w-field__opt"><code class="w-code">mdnSignatureAlgorithm</code></span></label>
+          <select class="w-select" id="as2_mdn_algo" name="as2_mdn_algo">{{ range $c.MDNAlgos }}<option value="{{ .Value }}"{{ if .Selected }} selected{{ end }}>{{ .Label }}</option>{{ end }}</select>
+        </div>
+      </div>
+      {{ template "servers/tls" (dict "ID" "as2" "Case" "as2-tls" "C" $c) }}
+    </fieldset>
+  </div>
+
+  {{ template "gui/form-actions" (dict "CancelURL" $d.CancelURL "Required" true "Title" $d.Title) }}
+</form>
+{{- end }}
+
+{{/* servers/field: an input with its label, hint or error. ID, Label, Req, F ({Value, Error}), Hint, Short, Code; Num
+     makes it a number field (browser arrows to go up and down, typing still possible) with Min and Max. */ -}}
+{{ define "servers/field" -}}
+<div class="w-field{{ if .Short }} w-field--short{{ end }}{{ if .F.Error }} is-invalid{{ end }}">
+  <label class="w-field__label" for="{{ .ID }}">{{ .Label }}{{ if .Req }} <span class="w-field__req" aria-hidden="true">*</span>{{ else if .Code }} <span class="w-field__opt"><code class="w-code">{{ .Code }}</code></span>{{ else }} <span class="w-field__opt">{{ t "form.optional" }}</span>{{ end }}</label>
+  <input class="w-input" id="{{ .ID }}" name="{{ .ID }}" value="{{ .F.Value }}"{{ if .Req }} required{{ end }}{{ if .Num }} type="number" inputmode="numeric" step="1"{{ with .Min }} min="{{ . }}"{{ end }}{{ with .Max }} max="{{ . }}"{{ end }}{{ end }}{{ if .F.Error }} aria-invalid="true" aria-describedby="{{ .ID }}-e"{{ else if .Hint }} aria-describedby="{{ .ID }}-h"{{ end }}>
+  {{ if .F.Error }}<span class="w-field__error" id="{{ .ID }}-e">{{ icon "triangle" }} {{ .F.Error }}</span>{{ else if .Hint }}<span class="w-field__hint" id="{{ .ID }}-h">{{ .Hint }}</span>{{ end }}
+</div>
+{{- end }}
+
+{{/* servers/dual: a dual list (gui/dual) with its label and hint. ID, Label, Code, Choices, Hint. */ -}}
+{{ define "servers/dual" -}}
+<div class="w-field">
+  <label class="w-field__label" for="{{ .ID }}">{{ .Label }} <span class="w-field__opt"><code class="w-code">{{ .Code }}</code></span></label>
+  {{ template "gui/dual" (dict "ID" .ID "Name" .ID "Choices" .Choices "Describe" (printf "%s-h" .ID)) }}
+  <span class="w-field__hint" id="{{ .ID }}-h">{{ .Hint }}</span>
+</div>
+{{- end }}
+
+{{/* servers/tls-fields: the TLS options shared by the secured protocols. ID (prefix of the field names), C (choices).
+     The cipher suites only apply up to TLS 1.2 (crypto/tls does not let one configure the TLS 1.3 suites), so the
+     list follows the minimum version: a second switch, scoped by data-of. */ -}}
+{{ define "servers/tls-fields" -}}
+<div class="w-grid w-grid--2">
+  <div class="w-field w-field--short">
+    <label class="w-field__label" for="{{ .ID }}_min_tls">{{ t "servers.opt.min_tls" }} <span class="w-field__opt"><code class="w-code">minTLSVersion</code></span></label>
+    <select class="w-select" id="{{ .ID }}_min_tls" name="{{ .ID }}_min_tls" data-switch="tls-{{ .ID }}" aria-describedby="{{ .ID }}_min_tls-h">{{ range index .C.TLSVersions .ID }}<option value="{{ .Value }}"{{ if .Selected }} selected{{ end }}>{{ .Label }}</option>{{ end }}</select>
+    <span class="w-field__hint" id="{{ .ID }}_min_tls-h">{{ t "servers.opt.min_tls_hint" }}</span>
+  </div>
+</div>
+<fieldset class="w-fieldset w-fieldset--wide" data-case="v1.0 v1.1 v1.2" data-of="tls-{{ .ID }}">
+  {{ template "servers/dual" (dict "ID" (printf "%s_tls_ciphers" .ID) "Label" (t "servers.opt.tls_ciphers") "Code" "cipherSuites" "Choices" (index .C.TLSCiphers .ID) "Hint" (t "servers.opt.tls_ciphers_hint")) }}
+</fieldset>
+{{- end }}
+
+{{/* servers/tls: the TLS block of a protocol that exists with and without TLS, shown for the TLS variant only.
+     ID, Case, C. */ -}}
+{{ define "servers/tls" -}}
+<fieldset class="w-fieldset w-fieldset--wide" data-case="{{ .Case }}">
+  <legend class="w-fieldset__legend">{{ t "servers.opt.tls" }}</legend>
+  {{ template "servers/tls-fields" . }}
+</fieldset>
+{{- end }}
