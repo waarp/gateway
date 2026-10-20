@@ -1,0 +1,331 @@
+package partners
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// accountsCell: the number of remote accounts of a partner, or the warning
+// that it has none: no transfer can reach it.
+templ accountsCell(r row) {
+	if r.NoAccounts {
+		@gui.StatusOf(gui.Status{State: "warn", Label: r.Accounts})
+	} else {
+		{ r.Accounts }
+	}
+}
+
+// listView: the remote partners list (Connections). Presentation only: the
+// handler searches, filters, sorts and pages the rows, builds the row actions
+// from the rights and translates the texts. One coloured action ("Add a
+// partner"); search and filters neutral, the filters applied as soon as they
+// change (data-autosubmit, "Apply" only without JavaScript); four sortable
+// headers; a "⋯" menu per row; rows per page in the list foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "partners.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "partners.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "partners.error.title"), Text: gui.T(ctx, "partners.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "globe", Title: gui.T(ctx, "partners.empty.title"), Text: gui.T(ctx, "partners.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "partners.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "partners.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "partners.search_placeholder") } list="partners-names" autocomplete="off"/></label>
+			<datalist id="partners-names">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<details class="w-disclose" open?={ d.FiltersOpen }>
+				<summary class="w-btn w-btn--outline-dark w-btn--sm">
+					@gui.Icon("filter")
+					{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+				</summary>
+				<div class="w-disclose__panel">
+					<fieldset class="w-fieldset w-field w-field--wide">
+						<legend class="w-fieldset__legend">{ gui.T(ctx, "partners.filters") }</legend>
+						<div class="w-checks">
+							for _, f := range d.Filters {
+								<label class="w-check"><input type="checkbox" name="protocol" value={ f.Key } checked?={ f.Checked }/> <span>{ f.Label }</span></label>
+							}
+						</div>
+					</fieldset>
+					<div class="w-field w-field--short">
+						<label class="w-field__label" for="tls">{ gui.T(ctx, "proto.filter_tls") }</label>
+						<select class="w-select" id="tls" name="tls">
+							for _, c := range d.TLSFilter {
+								<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+							}
+						</select>
+					</div>
+					@gui.FiltersFoot(d.ResetURL)
+				</div>
+			</details>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="partners-col-name"/><col class="partners-col-protocol"/><col/><col class="partners-col-accounts"/><col class="sheet-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "partners.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "partners.col.protocol"), Key: "protocol", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "partners.col.address"), Key: "address", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "partners.col.accounts"), Key: "accounts", Sort: d.Sort, Dir: d.Dir, Base: d.Base, Num: true})
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "partners.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+								<td>{ r.Protocol }@protoform.TLSBadge(r.TLS)</td>
+								<td class="w-mono w-nowrap">{ r.Address }</td>
+								<td class="w-num">@accountsCell(r)</td>
+								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="sheet-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// clientCardView: which local client the transfers to the partner go
+// through: the one of the protocol (linked), one of several (listed), none
+// yet (the gateway creates one on the first transfer; "Add a client" for
+// those who may).
+templ clientCardView(c clientCard) {
+	<div class="w-card">
+		<h2 class="w-card__title">
+			@gui.Icon("arrows")
+			{ gui.T(ctx, "partners.client.title") }
+		</h2>
+		<p class="partners-text">{ c.Text }</p>
+		if len(c.Links) > 0 {
+			<ul class="partners-links">
+				for _, l := range c.Links {
+					<li><a class="w-link" href={ templ.SafeURL(l.URL) }>{ l.Label }</a></li>
+				}
+			</ul>
+		}
+		if c.AddURL != "" {
+			<div class="w-card__foot">
+				<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "partners.client.add") }
+				</a>
+			</div>
+		}
+	</div>
+}
+
+// rulesCardView: the transfer rules the partner may use, in reading: every
+// rule, or the ones that name it; the accesses are managed on the rules
+// screen.
+templ rulesCardView(c rulesCard) {
+	<div class="w-card">
+		<h2 class="w-card__title">
+			@gui.Icon("list")
+			{ gui.T(ctx, "partners.detail.rules_title") }
+		</h2>
+		if c.All {
+			<p class="partners-text">{ gui.T(ctx, "partners.detail.rules_all") }</p>
+		} else if len(c.Rules) == 0 {
+			<p class="partners-text">{ gui.T(ctx, "partners.detail.rules_none") }</p>
+		} else {
+			<ul class="partners-links">
+				for _, r := range c.Rules {
+					<li>{ r }</li>
+				}
+			</ul>
+		}
+		<p class="w-form__note sheet-note">{ gui.T(ctx, "partners.detail.rules_hint") }</p>
+		<div class="w-card__foot">
+			<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.URL) }>
+				@gui.Icon("list")
+				{ gui.T(ctx, "partners.detail.rules_link") }
+			</a>
+		</div>
+	</div>
+}
+
+// detailView: the "Details" tab of the sheet of a partner, in reading: the
+// partner (protocol, address, accounts), the client used (D15), the rules
+// it may use, the options of its protocol. Breadcrumb and a "Back to the
+// list" button; "Edit" as a button (write right); "Delete" in the "⋯" menu
+// (delete right).
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "partners.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "partners.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "partners.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
+			}
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "partners.detail.card") }</h2>
+			<dl class="w-deflist">
+				for _, k := range d.Identity {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		</div>
+		@clientCardView(d.Client)
+		@rulesCardView(d.Rules)
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
+			<dl class="w-deflist">
+				for _, k := range d.Options {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		</div>
+	</div>
+}
+
+// deleteView: confirmation page of the deletion of a partner (D10: a page,
+// not a dialog). The title names the partner, the text says the
+// consequences, "Cancel" then "Delete" bottom right. Refused (running
+// transfers or a folder watcher use one of its accounts): the cause and the
+// way out, no "Delete" button.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "partners.delete.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "partners.back_partner") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Transfers {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "partners.delete.blocked_title"), Text: gui.T(ctx, "partners.delete.blocked_transfers"), Action: &gui.Link{Label: gui.T(ctx, "partners.delete.blocked_link"), URL: d.TransfersURL, Icon: "clock"}})
+		} else if d.Watchers {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "partners.delete.blocked_title"), Text: gui.T(ctx, "partners.delete.blocked_watchers")})
+		} else {
+			<p class="sheet-lead">{ gui.T(ctx, "partners.delete.text", "n", d.Accounts) }</p>
+		}
+		<dl class={ "w-deflist", templ.KV("sheet-deflist", d.blocked()) }>
+			<dt>{ gui.T(ctx, "partners.detail.card") }</dt>
+			<dd>{ d.Name }</dd>
+			<dt>{ gui.T(ctx, "partners.detail.protocol") }</dt>
+			<dd>{ d.Protocol }</dd>
+			<dt>{ gui.T(ctx, "partners.detail.address") }</dt>
+			<dd><code class="w-code">{ d.Address }</code></dd>
+			<dt>{ gui.T(ctx, "partners.detail.accounts") }</dt>
+			<dd>{ fmt.Sprint(d.Accounts) }</dd>
+		</dl>
+		if d.blocked() {
+			<div class="w-form__actions sheet-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "partners.back_partner") }</a></div>
+		} else {
+			<form class="sheet-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "partners.delete.title", "name", d.Name)})</form>
+		}
+	</div>
+}
+
+// backLabel: the label of the back button of the form: to the partner on
+// edition, to the list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "partners.back_partner") }
+	} else {
+		{ " " + gui.T(ctx, "partners.back") }
+	}
+}
+
+// formView: creation and edition of a partner, one page (D10), one card per
+// block: identity (name, protocol as a family with TLS as an attribute), the
+// address the gateway connects to, then the options of the chosen protocol
+// and the TLS block, rendered by the shared protocol components. Refused
+// form: a banner, the values kept, a message under each faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="sheet-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "partners.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "partners.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "partners.form.identity") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: "name", Label: gui.T(ctx, "partners.form.name"), Req: true, F: d.Fields["name"], Hint: gui.T(ctx, "partners.form.name_hint")})
+					@protoform.ChoiceOf(d.Proto.Choice)
+				</div>
+				if d.Edit {
+					<p class="w-form__note sheet-note">{ gui.T(ctx, "partners.form.protocol_hint") }</p>
+				}
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "partners.form.address") }</legend>
+				<p class="w-form__note sheet-note">{ gui.T(ctx, "partners.form.address_hint") }</p>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "partners.form.host"), Req: true, F: d.Fields["host"], Hint: gui.T(ctx, "partners.form.host_hint")})
+					@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "partners.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "partners.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+				</div>
+			</fieldset>
+		</div>
+		@protoform.Options(d.Proto)
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}

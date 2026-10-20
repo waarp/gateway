@@ -31,6 +31,17 @@ func TestTypesKnownToModel(t *testing.T) {
 		assert.Contains(t, LocalAccountTypes(proto), auth.Password, "a password is always possible on an account")
 	}
 
+	for proto := range protocols.List() {
+		for _, typ := range PartnerTypes(proto) {
+			assert.NotNilf(t, authentication.GetInternalAuthHandler(typ, proto), "%s on a %s partner", typ, proto)
+		}
+	}
+
+	assert.Equal(t, []string{auth.Password}, PartnerTypes("pesit"), "the client checks the password of a PeSIT partner")
+	assert.Equal(t, []string{auth.Password, auth.TLSTrustedCertificate}, PartnerTypes("pesit-tls"))
+	assert.Equal(t, []string{sftp.AuthSSHPublicKey}, PartnerTypes("sftp"), "the host key of the SFTP server")
+	assert.Empty(t, PartnerTypes("http"))
+
 	assert.Equal(t, []string{sftp.AuthSSHPrivateKey}, ServerTypes("sftp"))
 	assert.Empty(t, ServerTypes("http"), "a plain HTTP server presents nothing")
 	assert.Equal(t, []string{auth.Password, sftp.AuthSSHPublicKey}, LocalAccountTypes("sftp"))

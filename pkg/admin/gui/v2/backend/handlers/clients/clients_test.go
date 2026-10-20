@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -108,6 +109,8 @@ type suite struct {
 	router *mux.Router
 
 	sftp, r66, pesit *model.Client
+	// The SFTP partner the sheet of the SFTP client links to (#714).
+	partner *model.RemoteAgent
 }
 
 func newSuite(t *testing.T) *suite {
@@ -155,8 +158,10 @@ func (s *suite) fixtures(t *testing.T) {
 		require.NoError(t, s.db.Insert(client).Run())
 	}
 
+	s.partner = &model.RemoteAgent{Name: "part-sftp", Protocol: "sftp", Address: types.Addr("127.0.0.1", 22)}
+
 	for _, partner := range []*model.RemoteAgent{
-		{Name: "part-sftp", Protocol: "sftp", Address: types.Addr("127.0.0.1", 22)},
+		s.partner,
 		{Name: "part-r66", Protocol: "r66-tls", Address: types.Addr("127.0.0.2", 6667)},
 	} {
 		require.NoError(t, s.db.Insert(partner).Run())
@@ -353,7 +358,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "Options du protocole SFTP")
 		assert.Contains(t, body, `<dt>Algorithmes d&#39;échange de clés</dt><dd><code class="w-code">diffie-hellman-group-exchange-sha256</code></dd>`, "a client-only algorithm")
 		assert.Contains(t, body, "Partenaires joignables par ce client")
-		assert.Contains(t, body, `href="/webui/partner_management?search=part-sftp">part-sftp</a>`)
+		assert.Contains(t, body, `href="/webui/partners/`+strconv.FormatInt(s.partner.ID, 10)+`">part-sftp</a>`)
 		assert.NotContains(t, body, "part-r66", "only the partners of its protocol")
 		assert.Contains(t, body, `href="`+s.path(s.sftp, "/edit")+`?ret=q%3Dcli">`)
 		assert.Contains(t, body, `action="`+s.path(s.sftp, "/stop")+`?ret=q%3Dcli"`)

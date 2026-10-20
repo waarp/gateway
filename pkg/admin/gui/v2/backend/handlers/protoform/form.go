@@ -162,8 +162,11 @@ func NewForm(role Role) *Form {
 	}
 
 	for _, opt := range f.options() {
-		if opt.Kind == KindSelect {
+		switch {
+		case opt.Kind == KindSelect:
 			f.selects[opt.Name] = opt.Default
+		case opt.Kind == KindCheck && opt.DefaultOn:
+			f.checks[opt.Name] = true
 		}
 	}
 
@@ -211,7 +214,9 @@ func (f *Form) Fill(protocol string, cfg map[string]any) {
 	for _, opt := range f.chosen() {
 		switch opt.Kind {
 		case KindCheck:
-			f.checks[opt.Name] = CfgBool(cfg, opt.Cfg)
+			f.checks[opt.Name] = CfgBool(cfg, opt.Cfg) || (opt.DefaultOn && !CfgHas(cfg, opt.Cfg))
+		case KindTri:
+			f.selects[opt.Name] = triOf(cfg, opt)
 		case KindSelect:
 			if v := CfgString(cfg, opt.Cfg); v != "" {
 				f.selects[opt.Name] = v
@@ -235,7 +240,7 @@ func (f *Form) Read(values url.Values) {
 		switch opt.Kind {
 		case KindCheck:
 			f.checks[opt.Name] = values.Get(opt.Name) != ""
-		case KindSelect:
+		case KindSelect, KindTri:
 			if values.Has(opt.Name) {
 				f.selects[opt.Name] = values.Get(opt.Name)
 			}
@@ -270,7 +275,7 @@ func (f *Form) Validate(translate gui.Translator) bool {
 	}
 
 	for _, opt := range f.chosen() {
-		if opt.Kind != KindNumber {
+		if opt.Parse == nil || (opt.Kind != KindNumber && opt.Kind != KindText) {
 			continue
 		}
 
@@ -280,7 +285,7 @@ func (f *Form) Validate(translate gui.Translator) bool {
 		}
 
 		if _, err := opt.Parse(fld.Value); err != nil {
-			fld.Error = translate("proto.error_number")
+			fld.Error = translate(Or(opt.ErrorKey, "proto.error_number"))
 			f.fields[opt.Name] = fld
 			valid = false
 		}
@@ -306,6 +311,15 @@ func (f *Form) Apply() model.Map[any] {
 		switch opt.Kind {
 		case KindCheck:
 			cfg[opt.Cfg] = f.checks[opt.Name]
+		case KindTri:
+			// The client's value applies when nothing is chosen: the flag
+			// stays absent, never written as false.
+			switch f.selects[opt.Name] {
+			case TriOn:
+				cfg[opt.Cfg] = !opt.Inverted
+			case TriOff:
+				cfg[opt.Cfg] = opt.Inverted
+			}
 		case KindSelect:
 			if v := f.selects[opt.Name]; v != "" {
 				cfg[opt.Cfg] = v
@@ -328,6 +342,14 @@ func (f *Form) Apply() model.Map[any] {
 	}
 
 	return cfg
+}
+
+// Fail marks an option with the refusal of the model, when the cause names
+// one (an AS2 partner that handles asynchronous MDNs without an address).
+func (f *Form) Fail(name, msg string) {
+	fld := f.fields[name]
+	fld.Error = msg
+	f.fields[name] = fld
 }
 
 // HasErrors tells whether Validate marked anything.
@@ -400,19 +422,36 @@ func (f *Form) Prepare(translate gui.Translator) {
 }
 
 // isSet tells whether an option differs from the product default: a checked
-// box, a filled text or number, a select away from its default, a list with
-// something chosen.
+// box (an unchecked one when the product takes the flag as on), a filled
+// text or number, a select away from its default, a list with something
+// chosen.
 func (f *Form) isSet(opt *Option) bool {
 	switch opt.Kind {
 	case KindCheck:
-		return f.checks[opt.Name]
+		return f.checks[opt.Name] != opt.DefaultOn
 	case KindSelect:
 		return f.selects[opt.Name] != "" && f.selects[opt.Name] != opt.Default
+	case KindTri:
+		return f.selects[opt.Name] != TriClient
 	case KindList:
 		return len(f.lists[opt.Name]) > 0
 	default:
 		return f.fields[opt.Name].Value != ""
 	}
+}
+
+// triOf reads a flag the product takes in three states: the client's value
+// (absent), on or off, as the form shows it.
+func triOf(cfg map[string]any, opt *Option) string {
+	if !CfgHas(cfg, opt.Cfg) {
+		return TriClient
+	}
+
+	if CfgBool(cfg, opt.Cfg) != opt.Inverted {
+		return TriOn
+	}
+
+	return TriOff
 }
 
 // optionsSummary says how many options of a card are set, or that the
@@ -451,30 +490,32 @@ func (f *Form) tlsSummary(translate gui.Translator) (bool, string) {
 
 // view renders one option with its current value.
 func (f *Form) view(translate gui.Translator, opt *Option) *OptionView {
-	v := &OptionView{
+	item := &OptionView{
 		Name: opt.Name, Label: translate(opt.Label), Code: opt.Cfg, Short: opt.Short, Min: opt.Min, Max: opt.Max,
 	}
 	if opt.Hint != "" {
-		v.Hint = translate(opt.Hint)
+		item.Hint = translate(opt.Hint)
 	}
 
 	switch opt.Kind {
 	case KindCheck:
-		v.Kind, v.Checked = "check", f.checks[opt.Name]
+		item.Kind, item.Checked = "check", f.checks[opt.Name]
 	case KindSelect:
-		v.Kind, v.Choices = "select", opt.Choices(translate, f.selects[opt.Name])
+		item.Kind, item.Choices = "select", opt.Choices(translate, f.selects[opt.Name])
+	case KindTri:
+		item.Kind, item.Choices = "select", triChoices(translate, f.selects[opt.Name])
 	case KindList:
-		v.Kind = "list"
+		item.Kind = "list"
 		if opt.Cfg == cfgCipherSuites {
-			v.Choices = TLSCipherChoices(translate, f.lists[opt.Name])
+			item.Choices = TLSCipherChoices(translate, f.lists[opt.Name])
 		} else {
-			v.Choices = multi(opt.Values(f.Role), f.lists[opt.Name])
+			item.Choices = multi(opt.Values(f.Role), f.lists[opt.Name])
 		}
 	case KindNumber:
-		v.Kind, v.Value, v.Error = "number", f.fields[opt.Name].Value, f.fields[opt.Name].Error
+		item.Kind, item.Value, item.Error = "number", f.fields[opt.Name].Value, f.fields[opt.Name].Error
 	default:
-		v.Kind, v.Value, v.Error = "text", f.fields[opt.Name].Value, f.fields[opt.Name].Error
+		item.Kind, item.Value, item.Error = "text", f.fields[opt.Name].Value, f.fields[opt.Name].Error
 	}
 
-	return v
+	return item
 }

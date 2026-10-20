@@ -243,6 +243,48 @@ func LocalAccountTypes(proto string) []string {
 	return types
 }
 
+// PartnerTypes are the means the gateway checks of a remote partner of the
+// protocol: the table of the historic page, plus the password of a PeSIT
+// partner (the client checks the password the server presents when the
+// partner holds one). The legacy R66 certificate is offered when the
+// instance allows it.
+func PartnerTypes(proto string) []string {
+	switch proto {
+	case r66.R66, pesit.Pesit:
+		return []string{auth.Password}
+	case r66.R66TLS:
+		return withLegacy([]string{auth.Password, auth.TLSTrustedCertificate})
+	case pesit.PesitTLS:
+		return []string{auth.Password, auth.TLSTrustedCertificate}
+	case httpconst.HTTPS, ftp.FTPS, webdav.WebdavTLS, as2.AS2TLS:
+		return []string{auth.TLSTrustedCertificate}
+	case sftp.SFTP:
+		return []string{sftp.AuthSSHPublicKey}
+	default:
+		return nil
+	}
+}
+
+// RemoteAccountTypes are the means the gateway presents to a remote partner
+// of the protocol on one of its accounts: a password always (the PeSIT
+// client sends it whatever the encryption), a certificate and its key over
+// TLS, a private key over SSH, the legacy R66 certificate when the instance
+// allows it.
+func RemoteAccountTypes(proto string) []string {
+	types := []string{auth.Password}
+
+	switch proto {
+	case r66.R66TLS:
+		types = withLegacy(append(types, auth.TLSCertificate))
+	case httpconst.HTTPS, ftp.FTPS, webdav.WebdavTLS, as2.AS2TLS, pesit.PesitTLS:
+		types = append(types, auth.TLSCertificate)
+	case sftp.SFTP:
+		types = append(types, sftp.AuthSSHPrivateKey)
+	}
+
+	return types
+}
+
 func withLegacy(types []string) []string {
 	if compatibility.IsLegacyR66CertificateAllowed {
 		return append(types, r66auth.AuthLegacyCertificate)

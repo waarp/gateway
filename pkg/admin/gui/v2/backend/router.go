@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/partners"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
@@ -39,6 +40,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeServicesRouter(router, logger)
 	MakeServersRouter(router, db, logger)
 	MakeClientsRouter(router, db, logger)
+	MakePartnersRouter(router, db, logger)
 }
 
 // MakeHomeRouter registers the home page, the "About" page and the "My
@@ -101,6 +103,49 @@ func (s serverRoutes) del(path string, form, action http.HandlerFunc) {
 
 func (s serverRoutes) action(path string, handler http.HandlerFunc) {
 	s.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersWrite, handler))
+}
+
+// partnerRoutes registers the routes of the remote partners screen behind
+// the rights on the partners: the pages in reading, the forms behind the
+// write right, the deletions (of a partner, of an account, of a means)
+// behind the delete right.
+type partnerRoutes struct{ router *mux.Router }
+
+func (p partnerRoutes) read(path string, handler http.HandlerFunc) {
+	p.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermPartnersRead, handler))
+}
+
+func (p partnerRoutes) write(path string, form, action http.HandlerFunc) {
+	p.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermPartnersWrite, form))
+	p.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermPartnersWrite, action))
+}
+
+func (p partnerRoutes) del(path string, form, action http.HandlerFunc) {
+	p.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermPartnersDelete, form))
+	p.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermPartnersDelete, action))
+}
+
+// MakePartnersRouter registers the "Remote partners" screen and the sheet
+// of a partner: the list, the details and the tabs in reading, the
+// creation, the edition, the deletions, the pages of the means.
+func MakePartnersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := partners.New(db, logger)
+	routes := partnerRoutes{router}
+	const partnerPath = "/partners/{id:[0-9]+}"
+
+	routes.read("/partners", handlers.List)
+	routes.write("/partners/new", handlers.NewForm, handlers.Create)
+	routes.read(partnerPath, handlers.Detail)
+	routes.write(partnerPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(partnerPath+"/delete", handlers.DeleteForm, handlers.Delete)
+
+	// The means the gateway checks of the partner.
+	base := partnerPath + "/auth"
+	routes.read(base, handlers.Auth)
+	routes.write(base+"/new", handlers.NewCredForm, handlers.CreateCred)
+	routes.read(base+"/{cid:[0-9]+}", handlers.CredDetail)
+	routes.write(base+"/{cid:[0-9]+}/edit", handlers.EditCredForm, handlers.UpdateCred)
+	routes.del(base+"/{cid:[0-9]+}/delete", handlers.DeleteCredForm, handlers.DeleteCred)
 }
 
 // MakeServersRouter registers the "Local servers" screen and the sheet of a
