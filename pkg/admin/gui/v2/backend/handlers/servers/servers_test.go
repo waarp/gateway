@@ -254,7 +254,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `<main class="w-main" id="contenu"`)
 		assert.Contains(t, body, `href="/webui/servers" aria-current="page"`, "the sidebar entry leads to the new screen")
 		assert.Contains(t, body, `<li><span aria-current="page">Serveurs locaux</span></li>`)
-		assert.Contains(t, body, "https://doc.waarp.org/waarp-gateway/latest/fr/user/webui/serveurs-locaux/")
+		assert.Contains(t, body, `href="https://doc.waarp.org/waarp-gateway/latest/fr/"`, "the header leads to the latest documentation (#710)")
 		assert.NotContains(t, body, "¿", "every key must be in the catalogue")
 
 		// One coloured action, the search with its suggestions, thirteen protocol filters, the count.

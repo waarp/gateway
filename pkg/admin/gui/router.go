@@ -49,7 +49,6 @@ func RouterAutocompletions(secureRouter *mux.Router, db *database.DB) {
 }
 
 func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) {
-	handlePage(secureRouter, "/home", homePage(logger)).Methods("GET")
 	handlePage(secureRouter, "/user_management", userManagementPage(logger, db)).Methods("GET", "POST")
 	handlePage(secureRouter, "/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
 	handlePage(secureRouter, "/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")

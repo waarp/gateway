@@ -466,3 +466,69 @@ accounts:
     created: "Compte « {login} » créé"
     updated: "Compte « {login} » enregistré"
     deleted: "Compte « {login} » supprimé"
+# Page d'accueil : une carte par section, une tuile par écran que l'utilisateur peut lire, une phrase par écran
+# (définitions du glossaire des objets, à l'essai : Driss, 19/10/2026).
+home:
+  title: Accueil
+  desc:
+    servers: Points d'écoute, un par protocole
+    clients: Identités sortantes vers les partenaires
+    partners: Serveurs distants et leurs comptes
+    rules: Sens, chemins et traitements
+    keys: Chiffrement et signature des tâches
+    smtp: Comptes d'envoi de la tâche EMAIL
+    email_templates: Modèles de message de la tâche EMAIL
+    services: État des services, serveurs et clients
+    transfers: Transferts en cours et historique
+    users: Comptes d'accès et leurs droits
+    authorities: Autorités de certification de confiance
+    clouds: Stockages distants, origine ou destination
+    snmp: Agent et alertes SNMP
+    overrides: Valeurs propres à un nœud de grappe
+# « À propos » (dialogue du menu du compte et page de repli) : les phrases du produit ; le cadre et ses libellés
+# viennent du kit (about.title, about.version…).
+about:
+  support: "fournit un support et des services professionnels pour {product}."
+  license: "{product} est sous licence GPLv3."
+  link_download: "Télécharger {product}"
+  link_doc: Documentation
+  link_forums: Forums
+  link_contact: "Contact : {email}"
+# Page « Mon compte » (menu du compte) : l'utilisateur connecté, ses droits en lecture, le changement de son mot de
+# passe (Driss, 19/10/2026).
+me:
+  title: Mon compte
+  identity: Identité
+  username: Identifiant
+  instance: Instance
+  rights: Droits
+  rights_caption: "Vos droits, par domaine : lecture, écriture, suppression"
+  rights_hint: "Vos droits sont fixés par un administrateur, dans « Utilisateurs »."
+  col:
+    area: Domaine
+    read: Lecture
+    write: Écriture
+    delete: Suppression
+  "yes": Oui
+  "no": Non
+  right:
+    transfers: Transferts
+    servers: Serveurs et clients locaux
+    partners: Partenaires distants
+    rules: Règles de transfert
+    users: Utilisateurs
+    admin: Administration
+  password:
+    title: Changer mon mot de passe
+    current: Mot de passe actuel
+    new: Nouveau mot de passe
+    new_hint: "Conservé haché ; personne ne pourra le relire."
+    confirm: Nouveau mot de passe, une seconde fois
+    refused: Le mot de passe n'a pas été modifié.
+    refused_text: Corrigez les champs signalés ci-dessous.
+  error:
+    current: Le mot de passe actuel n'est pas le bon.
+    required: Indiquez le nouveau mot de passe.
+    mismatch: Les deux saisies du nouveau mot de passe diffèrent.
+  toast:
+    password: Mot de passe modifié

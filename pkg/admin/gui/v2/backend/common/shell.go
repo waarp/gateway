@@ -127,15 +127,21 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		Instance:    user.Owner,
 		Username:    user.Username,
 		// The version alone: the revision stays on the About page (2026-10-20).
-		Footer:    translate("nav.footer", "product", constants.AppName, "version", version.Num),
-		DocURL:    constants.DocPage(lang, screen.Doc),
-		LogoutURL: WebuiURL("/logout"),
-		HomeURL:   WebuiURL("/home"),
-		Languages: languages(r, lang),
-		Nav:       makeNav(translate, user.Permissions, screen.Section, screen.Menu),
-		Crumbs:    screen.Crumbs,
-		Notices:   screen.Notices,
-		Data:      screen.Data,
+		Footer: translate("nav.footer", "product", constants.AppName, "version", version.Num),
+		// The header leads to the latest documentation, not to the page of
+		// the screen: the pages of the web interface guide are not published
+		// yet (Driss, 2026-10-19); Screen.Doc is kept for that day.
+		DocURL:     constants.DocLatest(),
+		AccountURL: WebuiURL("/account"),
+		AboutURL:   WebuiURL("/about"),
+		About:      about(translate),
+		LogoutURL:  WebuiURL("/logout"),
+		HomeURL:    WebuiURL("/home"),
+		Languages:  languages(r, lang),
+		Nav:        makeNav(translate, user.Permissions, screen.Section, screen.Menu),
+		Crumbs:     screen.Crumbs,
+		Notices:    screen.Notices,
+		Data:       screen.Data,
 	}
 }
 

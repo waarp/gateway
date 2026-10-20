@@ -1,6 +1,8 @@
 package common
 
 import (
+	"strings"
+
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
@@ -24,6 +26,11 @@ type navGroup struct {
 	key     string // catalogue key of the title
 	entries []navEntry
 }
+
+// navKeyPrefix prefixes the catalogue keys of the screen map; the rest of a
+// key names the screen (ScreenEntry.Key), for the pages that say more about
+// a screen (the home page).
+const navKeyPrefix = "nav."
 
 // navigation is the screen map of the web interface, in the order of the
 // glossary. The screens not reworked yet lead to their historic page.
@@ -63,31 +70,77 @@ func navigation() []navGroup {
 	}
 }
 
-// makeNav builds the sidebar of a user: the entries the user may read, the
-// active one marked, without the sections left empty.
-func makeNav(translate gui.Translator, perms model.PermsMask, section, menu string) []gui.NavGroup {
+// ScreenEntry is a screen of the web interface the user may read, as the
+// screen map gives it: the sidebar and the home page build on it, so that
+// both show the same screens with the same rights.
+type ScreenEntry struct {
+	Section  string // constants.SidebarSection*
+	Menu     string // constants.SidebarMenu*
+	Key      string // name of the screen in the catalogue keys ("servers" for "nav.servers")
+	Icon     string
+	LabelKey string // catalogue key of the label
+	URL      string
+}
+
+// ScreenSection is a section of the screen map with the screens the user
+// may read; a section left without any screen is not listed.
+type ScreenSection struct {
+	Key      string // constants.SidebarSection*
+	TitleKey string // catalogue key of the title
+	Screens  []ScreenEntry
+}
+
+// Screens lists the screens the user may read, by section, in the order of
+// the sidebar.
+func Screens(perms model.PermsMask) []ScreenSection {
 	groups := navigation()
-	nav := make([]gui.NavGroup, 0, len(groups))
+	sections := make([]ScreenSection, 0, len(groups))
 
 	for _, group := range groups {
-		items := make([]gui.NavItem, 0, len(group.entries))
+		section := ScreenSection{Key: group.section, TitleKey: group.key}
 
 		for _, entry := range group.entries {
 			if !perms.HasPermission(entry.perm) {
 				continue
 			}
 
-			items = append(items, gui.NavItem{
-				Icon:    entry.icon,
-				Label:   translate(entry.key),
-				URL:     WebuiURL(entry.path),
-				Current: group.section == section && entry.menu == menu,
+			section.Screens = append(section.Screens, ScreenEntry{
+				Section:  group.section,
+				Menu:     entry.menu,
+				Key:      strings.TrimPrefix(entry.key, navKeyPrefix),
+				Icon:     entry.icon,
+				LabelKey: entry.key,
+				URL:      WebuiURL(entry.path),
 			})
 		}
 
-		if len(items) > 0 {
-			nav = append(nav, gui.NavGroup{Key: group.section, Title: translate(group.key), Items: items})
+		if len(section.Screens) > 0 {
+			sections = append(sections, section)
 		}
+	}
+
+	return sections
+}
+
+// makeNav builds the sidebar of a user: the entries the user may read, the
+// active one marked, without the sections left empty.
+func makeNav(translate gui.Translator, perms model.PermsMask, section, menu string) []gui.NavGroup {
+	sections := Screens(perms)
+	nav := make([]gui.NavGroup, 0, len(sections))
+
+	for _, s := range sections {
+		items := make([]gui.NavItem, 0, len(s.Screens))
+
+		for _, screen := range s.Screens {
+			items = append(items, gui.NavItem{
+				Icon:    screen.Icon,
+				Label:   translate(screen.LabelKey),
+				URL:     screen.URL,
+				Current: screen.Section == section && screen.Menu == menu,
+			})
+		}
+
+		nav = append(nav, gui.NavGroup{Key: s.Key, Title: translate(s.TitleKey), Items: items})
 	}
 
 	return nav
