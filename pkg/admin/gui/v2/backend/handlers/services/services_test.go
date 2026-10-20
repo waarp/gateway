@@ -277,9 +277,9 @@ func TestPage(t *testing.T) {
 		assert.Equal(t, 1, strings.Count(body, `<table class="w-table">`), "only the system services have a table")
 		assert.Equal(t, 2, strings.Count(body, `class="w-empty"`))
 		assert.Contains(t, body, "Aucun serveur local pour l&#39;instant")
-		assert.Contains(t, body, `href="/webui/server_management">Voir les serveurs locaux</a>`)
+		assert.Contains(t, body, `href="/webui/servers">Voir les serveurs locaux</a>`)
 		assert.Contains(t, body, "Aucun client local pour l&#39;instant")
-		assert.Contains(t, body, `href="/webui/local_client_management">Voir les clients locaux</a>`)
+		assert.Contains(t, body, `href="/webui/clients">Voir les clients locaux</a>`)
 		assert.Contains(t, body, "Aucun pour l&#39;instant")
 	})
 

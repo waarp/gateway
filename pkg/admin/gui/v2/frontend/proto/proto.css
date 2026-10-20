@@ -1,0 +1,3 @@
+/* Shared protocol partials (proto/choice, proto/options): what the kit does not decide. Tokens only. */
+.proto-tls { margin-top: var(--sp-3); }
+.proto-note { margin: 0; }

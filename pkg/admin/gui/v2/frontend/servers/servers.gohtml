@@ -32,6 +32,10 @@
           {{ end }}
         </div>
       </fieldset>
+      <div class="w-field w-field--short">
+        <label class="w-field__label" for="tls">{{ t "proto.filter_tls" }}</label>
+        <select class="w-select" id="tls" name="tls">{{ range $d.TLSFilter }}<option value="{{ .Value }}"{{ if .Selected }} selected{{ end }}>{{ .Label }}</option>{{ end }}</select>
+      </div>
       {{ template "gui/filters-foot" (dict "ResetURL" $d.ResetURL) }}
     </div>
   </details>
@@ -56,7 +60,7 @@
       {{ range $d.Rows }}<tr>
         <td><span class="w-cell-title w-nowrap">{{ .Name }}</span></td>
         <td>{{ if .Reason }}<div class="w-cell-stack">{{ template "gui/status" .Status }}<span class="w-cell-sub w-mono">{{ .Reason }}</span></div>{{ else }}{{ template "gui/status" .Status }}{{ end }}</td>
-        <td>{{ .Protocol }}</td>
+        <td>{{ .Protocol }}{{ if .TLS }} <span class="w-badge w-badge--neutral">{{ t "proto.tls_badge" }}</span>{{ end }}</td>
         <td class="w-mono w-nowrap">{{ .Address }}</td>
         <td>{{ template "gui/actions" (dict "ID" (printf "act-%d" .ID) "Name" .Name "Items" .Actions) }}</td>
       </tr>

@@ -1,0 +1,11 @@
+{{/* A client that does not exist: localised 404 in the chrome, with the way back to the list as the user left it.
+     Data: notFoundData{Title, Text, BackLabel, BackURL}. */ -}}
+{{ define "page" -}}
+{{ $d := .Data -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ $d.Title }}</h1>
+  </div>
+</div>
+{{ template "gui/empty" (dict "Icon" "arrows" "Title" $d.Text "Action" (dict "Label" $d.BackLabel "URL" $d.BackURL "Icon" "arrow-left")) }}
+{{- end }}

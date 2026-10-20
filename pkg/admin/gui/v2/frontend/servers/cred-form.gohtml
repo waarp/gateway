@@ -22,7 +22,7 @@
     <fieldset class="w-fieldset w-fieldset--wide">
       <legend class="w-card__title">{{ t "auth.form.card" "owner" $d.Owner }}</legend>
       <div class="w-grid w-grid--2">
-        {{ template "servers/field" (dict "ID" "name" "Label" (t "auth.form.name") "F" $d.Name "Hint" (t "auth.form.name_hint")) }}
+        {{ template "proto/field" (dict "ID" "name" "Label" (t "auth.form.name") "F" $d.Name "Hint" (t "auth.form.name_hint")) }}
         {{ if $d.Edit -}}
         <div class="w-field">
           <label class="w-field__label" for="type">{{ t "auth.form.type" }}</label>

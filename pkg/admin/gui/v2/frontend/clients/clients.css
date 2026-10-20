@@ -1,0 +1,17 @@
+/* Local clients screen: what the kit does not decide (column widths of the list, spacing of the list foot, of the
+   banners and of the action pages, the three parts of the retry delay). Tokens only. */
+.clients-col-name { width: 24%; }
+.clients-col-state { width: 34%; }
+.clients-col-protocol { width: 16%; }
+.clients-col-actions { width: 72px; }
+.clients-pager { margin-top: var(--sp-3); }
+.clients-banner { margin-bottom: var(--sp-4); }
+.clients-lead { margin: 0 0 var(--sp-4); }
+.clients-note { margin: 0; }
+.clients-deflist { margin-top: var(--sp-4); }
+.clients-form-actions { margin-top: var(--sp-5); }
+.clients-delay { margin-top: var(--sp-3); }
+.clients-delay__parts { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.clients-delay__parts .w-field--short { max-width: 8rem; }
+.clients-delay > legend { margin-bottom: var(--sp-2); }
+.clients-delay__parts .w-field__label { font-weight: 400; }

@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
@@ -37,6 +38,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeHomeRouter(router, db, logger)
 	MakeServicesRouter(router, logger)
 	MakeServersRouter(router, db, logger)
+	MakeClientsRouter(router, db, logger)
 }
 
 // MakeHomeRouter registers the home page, the "About" page and the "My
@@ -75,56 +77,82 @@ func MakeServicesRouter(router *mux.Router, logger *log.Logger) {
 	)
 }
 
+// serverRoutes registers the routes of a screen behind the rights on the
+// servers: the pages in reading behind the read right, the forms (a GET page
+// and its POST action) behind the write right, the deletions behind the
+// delete right, the bare actions (start, stop) behind the write right. Every
+// action is a POST (Post/Redirect/Get). The local clients follow the rights
+// on the servers too: the product has no right of their own.
+type serverRoutes struct{ router *mux.Router }
+
+func (s serverRoutes) read(path string, handler http.HandlerFunc) {
+	s.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersRead, handler))
+}
+
+func (s serverRoutes) write(path string, form, action http.HandlerFunc) {
+	s.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersWrite, form))
+	s.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersWrite, action))
+}
+
+func (s serverRoutes) del(path string, form, action http.HandlerFunc) {
+	s.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersDelete, form))
+	s.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersDelete, action))
+}
+
+func (s serverRoutes) action(path string, handler http.HandlerFunc) {
+	s.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersWrite, handler))
+}
+
 // MakeServersRouter registers the "Local servers" screen and the sheet of a
-// server: the list, the details, the tabs and the pages in reading behind
-// the read right, the creation, the edition, the start and the stop behind
-// the write right, the deletions behind the delete right. Every action is a
-// POST (Post/Redirect/Get).
+// server: the list, the details, the tabs and the pages in reading, the
+// creation, the edition, the start and the stop, the deletions.
 func MakeServersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	handlers := servers.New(db, logger, servers.GatewayControl())
+	routes := serverRoutes{router}
 	const (
 		serverPath  = "/servers/{id:[0-9]+}"
 		accountPath = serverPath + "/accounts/{aid:[0-9]+}"
 	)
 
-	read := func(path string, handler http.HandlerFunc) {
-		router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersRead, handler))
-	}
-	write := func(path string, form, action http.HandlerFunc) {
-		router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersWrite, form))
-		router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersWrite, action))
-	}
-	del := func(path string, form, action http.HandlerFunc) {
-		router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermServersDelete, form))
-		router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermServersDelete, action))
-	}
-
-	read("/servers", handlers.List)
-	write("/servers/new", handlers.NewForm, handlers.Create)
-	read(serverPath, handlers.Detail)
-	write(serverPath+"/edit", handlers.EditForm, handlers.Update)
-	del(serverPath+"/delete", handlers.DeleteForm, handlers.Delete)
-	router.Path(serverPath + "/start").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Start)),
-	)
-	router.Path(serverPath + "/stop").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Stop)),
-	)
+	routes.read("/servers", handlers.List)
+	routes.write("/servers/new", handlers.NewForm, handlers.Create)
+	routes.read(serverPath, handlers.Detail)
+	routes.write(serverPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(serverPath+"/delete", handlers.DeleteForm, handlers.Delete)
+	routes.action(serverPath+"/start", handlers.Start)
+	routes.action(serverPath+"/stop", handlers.Stop)
 
 	// The means of the server, then of one of its accounts: the same pages.
 	for _, base := range []string{serverPath + "/auth", accountPath + "/auth"} {
-		read(base, handlers.Auth)
-		write(base+"/new", handlers.NewCredForm, handlers.CreateCred)
-		read(base+"/{cid:[0-9]+}", handlers.CredDetail)
-		write(base+"/{cid:[0-9]+}/edit", handlers.EditCredForm, handlers.UpdateCred)
-		del(base+"/{cid:[0-9]+}/delete", handlers.DeleteCredForm, handlers.DeleteCred)
+		routes.read(base, handlers.Auth)
+		routes.write(base+"/new", handlers.NewCredForm, handlers.CreateCred)
+		routes.read(base+"/{cid:[0-9]+}", handlers.CredDetail)
+		routes.write(base+"/{cid:[0-9]+}/edit", handlers.EditCredForm, handlers.UpdateCred)
+		routes.del(base+"/{cid:[0-9]+}/delete", handlers.DeleteCredForm, handlers.DeleteCred)
 	}
 
-	read(serverPath+"/accounts", handlers.Accounts)
-	write(serverPath+"/accounts/new", handlers.NewAccountForm, handlers.CreateAccount)
-	read(accountPath, handlers.AccountDetail)
-	write(accountPath+"/edit", handlers.EditAccountForm, handlers.UpdateAccount)
-	del(accountPath+"/delete", handlers.DeleteAccountForm, handlers.DeleteAccount)
+	routes.read(serverPath+"/accounts", handlers.Accounts)
+	routes.write(serverPath+"/accounts/new", handlers.NewAccountForm, handlers.CreateAccount)
+	routes.read(accountPath, handlers.AccountDetail)
+	routes.write(accountPath+"/edit", handlers.EditAccountForm, handlers.UpdateAccount)
+	routes.del(accountPath+"/delete", handlers.DeleteAccountForm, handlers.DeleteAccount)
+}
+
+// MakeClientsRouter registers the "Local clients" screen: the list and the
+// details in reading, the creation, the edition, the start and the stop,
+// the deletion.
+func MakeClientsRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := clients.New(db, logger, clients.GatewayControl())
+	routes := serverRoutes{router}
+	const clientPath = "/clients/{id:[0-9]+}"
+
+	routes.read("/clients", handlers.List)
+	routes.write("/clients/new", handlers.NewForm, handlers.Create)
+	routes.read(clientPath, handlers.Detail)
+	routes.write(clientPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(clientPath+"/delete", handlers.DeleteForm, handlers.Delete)
+	routes.action(clientPath+"/start", handlers.Start)
+	routes.action(clientPath+"/stop", handlers.Stop)
 }
 
 func MakeListingRouter(router *mux.Router, db *database.DB, logger *log.Logger) {

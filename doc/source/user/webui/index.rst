@@ -18,6 +18,7 @@ restent décrits par l'interface elle-même.
 
    accueil
    serveurs-locaux
+   clients-locaux
    etat-des-services
 
 

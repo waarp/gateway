@@ -16,6 +16,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -262,7 +263,8 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `class="w-btn w-btn--primary" href="/webui/servers/new">`)
 		assert.Contains(t, body, `<input type="search" name="q" value="" placeholder="Rechercher par nom" list="servers-names"`)
 		assert.Contains(t, body, `<option value="srv-pesit-01"></option><option value="srv-r66-01"></option><option value="srv-sftp-01"></option>`)
-		assert.Equal(t, 13, strings.Count(body, `type="checkbox" name="protocol"`))
+		assert.Equal(t, 7, strings.Count(body, `type="checkbox" name="protocol"`), "seven families")
+		assert.Contains(t, body, `<select class="w-select" id="tls" name="tls"><option value="" selected>Avec ou sans TLS</option>`)
 		assert.Contains(t, body, `<details class="w-disclose">`, "the filters are closed when none is active")
 		assert.Contains(t, body, `aria-live="polite">3 serveurs</span>`)
 
@@ -279,7 +281,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `w-status w-status--ko">Erreur<`)
 		assert.Contains(t, body, `w-status w-status--off">Hors ligne<`)
 		assert.Contains(t, body, `<span class="w-cell-sub w-mono">`+bindReason+`</span>`)
-		assert.Contains(t, body, "<td>R66-TLS</td>")
+		assert.Contains(t, body, `<td>R66 <span class="w-badge w-badge--neutral">TLS</span></td>`, "the family and TLS as a badge")
 		assert.Contains(t, body, "<td>PeSIT</td>")
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">0.0.0.0:10022</td>`)
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">10.20.30.40:5000</td>`)
@@ -388,7 +390,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `<details class="w-disclose" open>`)
 		assert.Contains(t, body, `name="protocol" value="sftp" checked>`)
 		assert.Contains(t, body, `name="protocol" value="pesit" checked>`)
-		assert.Contains(t, body, `name="protocol" value="r66-tls">`)
+		assert.Contains(t, body, `name="protocol" value="r66">`)
 		assert.Contains(t, body, "Filtres · 2")
 		assert.Contains(t, body, `3 serveurs · 2 affichés`)
 		assert.Contains(t, body, `href="/webui/servers?protocol=sftp%2Cpesit&amp;sort=name&amp;dir=desc"`)
@@ -573,7 +575,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Reprise des transferts interrompus</dt><dd>Désactivé</dd>",
 			"the module disables the restart along with the checkpoints: the page shows what is stored")
 		assert.Contains(t, body, "<dt>Points de synchronisation</dt><dd>Désactivé</dd>")
-		assert.NotContains(t, body, "Intervalle entre deux points", "no checkpoint detail when they are disabled")
+		assert.Contains(t, body, "<dt>Intervalle entre deux points de synchronisation</dt><dd>Valeur par défaut de la passerelle</dd>")
 		assert.Contains(t, body, `<dt>Taille maximale d&#39;un message</dt><dd><code class="w-code">32000</code></dd>`)
 		assert.Contains(t, body, "<dt>Mode PeSIT</dt><dd>Non standard</dd>")
 		assert.NotContains(t, body, "Version TLS minimale", "no TLS options for a plain PeSIT server")
@@ -587,7 +589,8 @@ func TestDetail(t *testing.T) {
 
 		body := s.get(t, permRead, s.path(s.r66, "")).Body.String()
 		assert.Contains(t, body, `<dd><span class="w-status w-status--ko">Erreur</span> <code class="w-code">`+bindReason+`</code></dd>`)
-		assert.Contains(t, body, "Options du protocole R66-TLS")
+		assert.Contains(t, body, "Options du protocole R66")
+		assert.Contains(t, body, "<dt>Protocole</dt><dd>R66, chiffré par TLS (R66-TLS)</dd>")
 		assert.Contains(t, body, `<dt>Identifiant attendu du partenaire</dt><dd><code class="w-code">waarp</code></dd>`)
 		assert.Contains(t, body, `<dt>Taille d&#39;un bloc de données</dt><dd><code class="w-code">65536</code></dd>`)
 		assert.Contains(t, body, "<dt>Hachage en fin de transfert</dt><dd>Vérifié</dd>")
@@ -635,13 +638,17 @@ func TestNewServer(t *testing.T) {
 		assert.Contains(t, body, "<title>Nouveau serveur · gw-test · Waarp Gateway</title>")
 		assert.Contains(t, body, `<form class="w-form" method="post" action="/webui/servers/new" novalidate>`)
 		assert.Contains(t, body, `<option value="" selected>Choisissez un protocole</option>`)
-		assert.Equal(t, 13, strings.Count(protocolSelect(body), `<option value="`)-1, "thirteen protocols after the placeholder")
+		assert.Equal(t, 7, strings.Count(protocolSelect(body), `<option value="`)-1, "seven families after the placeholder")
+		assert.Contains(t, body, `<fieldset class="w-fieldset proto-tls" data-case="as2 ftp http pesit r66 webdav">`, "the TLS checkbox for the families that have a TLS variant")
+		assert.Contains(t, body, `<input type="checkbox" id="tls" name="tls" value="1" data-switch="tls" aria-describedby="tls-h">`)
 		assert.Contains(t, body, `<input class="w-input" id="name" name="name" value="" required`)
 		assert.Contains(t, body, `id="port" name="port" value="" required type="number" inputmode="numeric" step="1" min="1" max="65535"`)
-		assert.Contains(t, body, `<div class="w-card" data-case="r66 r66-tls">`)
-		assert.Contains(t, body, `<div class="w-card" data-case="sftp">`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-case="r66">`)
+		assert.Contains(t, body, `<span class="w-fold__meta">Dossiers par défaut de la passerelle</span>`, "the directories fold when empty")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-case="on" data-of="tls">`, "the TLS card follows the checkbox")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-case="sftp">`)
 		assert.Contains(t, body, `<option value="v1.2" selected>TLS 1.2</option>`)
-		assert.Contains(t, body, `data-case="v1.0 v1.1 v1.2" data-of="tls-r66"`)
+		assert.Contains(t, body, `data-case="v1.0 v1.1 v1.2" data-of="tlsver"`)
 		assert.Contains(t, body, `<option value="standard" selected>Standard</option><option value="non-standard">Non standard</option>`)
 		assert.Contains(t, body, `<option value="Optional" selected>TLS explicite facultatif</option>`)
 		assert.Contains(t, body, `<option value="" selected>Aucune signature</option>`)
@@ -662,10 +669,10 @@ func TestNewServer(t *testing.T) {
 		s := newSuite(t)
 
 		rec := s.post(t, permWrite, "/webui/servers/new?ret=sort%3Dstate%26dir%3Ddesc", url.Values{
-			"name": {" srv-new "}, "protocol": {"r66-tls"}, "host": {"0.0.0.0"}, "port": {"6670"}, "root_dir": {"/data/new"},
+			"name": {" srv-new "}, "protocol": {"r66"}, "tls": {"1"}, "host": {"0.0.0.0"}, "port": {"6670"}, "root_dir": {"/data/new"},
 			"r66_login": {"waarp2"}, "r66_block": {"32768"}, "r66_check_block_hash": {"1"},
-			"r66_min_tls": {"v1.3"}, "r66_tls_ciphers": {"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
-			"pesit_checkpoint_size": {"not a number"}, "sftp_kex": {"curve25519-sha256"}, "ftps_min_tls": {"v1.0"},
+			"min_tls": {"v1.3"}, "tls_ciphers": {"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+			"pesit_checkpoint_size": {"not a number"}, "sftp_kex": {"curve25519-sha256"}, "ftp_tls_requirement": {"Implicit"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
 		assert.Equal(t, "/webui/servers?dir=desc&done=created&name=srv-new&sort=state", rec.Header().Get("Location"))
@@ -677,12 +684,12 @@ func TestNewServer(t *testing.T) {
 		assert.Equal(t, "/data/new", agent.RootDir)
 		assert.Equal(t, "in", agent.ReceiveDir, "the model fills the default directories")
 		assert.False(t, agent.Disabled)
-		assert.Equal(t, "waarp2", cfgString(agent.ProtoConfig, "serverLogin"))
-		assert.Equal(t, "32768", cfgString(agent.ProtoConfig, "blockSize"))
-		assert.True(t, cfgBool(agent.ProtoConfig, "checkBlockHash"))
-		assert.False(t, cfgBool(agent.ProtoConfig, "noFinalHash"))
-		assert.Equal(t, "v1.3", cfgString(agent.ProtoConfig, "minTLSVersion"))
-		assert.Equal(t, []string{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"}, cfgList(agent.ProtoConfig, "cipherSuites"))
+		assert.Equal(t, "waarp2", protoform.CfgString(agent.ProtoConfig, "serverLogin"))
+		assert.Equal(t, "32768", protoform.CfgString(agent.ProtoConfig, "blockSize"))
+		assert.True(t, protoform.CfgBool(agent.ProtoConfig, "checkBlockHash"))
+		assert.False(t, protoform.CfgBool(agent.ProtoConfig, "noFinalHash"))
+		assert.Equal(t, "v1.3", protoform.CfgString(agent.ProtoConfig, "minTLSVersion"))
+		assert.Equal(t, []string{"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"}, protoform.CfgList(agent.ProtoConfig, "cipherSuites"))
 		assert.NotContains(t, agent.ProtoConfig, "checkpointSize", "the options of the other protocols are ignored")
 		assert.NotContains(t, agent.ProtoConfig, "keyExchanges")
 
@@ -705,8 +712,8 @@ func TestNewServer(t *testing.T) {
 		agent, err := internal.GetServer(s.db, "srv-sftp")
 		require.NoError(t, err)
 		assert.True(t, agent.Disabled)
-		assert.Equal(t, []string{"curve25519-sha256@libssh.org"}, cfgList(agent.ProtoConfig, "keyExchanges"))
-		assert.Equal(t, []string{"hmac-sha2-256-etm@openssh.com"}, cfgList(agent.ProtoConfig, "macs"))
+		assert.Equal(t, []string{"curve25519-sha256@libssh.org"}, protoform.CfgList(agent.ProtoConfig, "keyExchanges"))
+		assert.Equal(t, []string{"hmac-sha2-256-etm@openssh.com"}, protoform.CfgList(agent.ProtoConfig, "macs"))
 		assert.NotContains(t, agent.ProtoConfig, "ciphers", "an empty list means every algorithm")
 	})
 
@@ -728,7 +735,7 @@ func TestNewServer(t *testing.T) {
 		assert.Contains(t, body, "Indiquez un port entre 1 et 65535.")
 		assert.Contains(t, body, `value="70000"`, "the values are kept")
 		assert.Contains(t, body, `value="/kept"`)
-		assert.Contains(t, body, "Choisissez le protocole du serveur.")
+		assert.Contains(t, body, "Choisissez un protocole.")
 		assert.Contains(t, body, `<option value="" selected>Choisissez un protocole</option>`)
 
 		count, err := s.db.Count(&model.LocalAgent{}).Run()
@@ -799,13 +806,18 @@ func TestEditServer(t *testing.T) {
 		assert.Contains(t, body, `action="`+s.path(s.r66, "/edit")+`?ret=page%3D2" novalidate>`)
 		assert.Contains(t, body, `href="`+s.path(s.r66, "")+`?ret=page%3D2">`, "cancel goes back to the server")
 		assert.Contains(t, body, `id="name" name="name" value="srv-r66-01"`)
-		assert.Contains(t, body, `<option value="r66-tls" selected>R66-TLS</option>`)
+		assert.Contains(t, body, `<option value="r66" selected>R66</option>`)
+		assert.Contains(t, body, `name="tls" value="1" data-switch="tls" aria-describedby="tls-h" checked>`, "TLS on")
 		assert.Contains(t, body, `id="host" name="host" value="0.0.0.0"`)
 		assert.Contains(t, body, `id="port" name="port" value="6666"`)
+		assert.Contains(t, body, `<span class="w-fold__meta">Dossiers par défaut de la passerelle</span>`)
 		assert.Contains(t, body, `id="r66_login" name="r66_login" value="waarp"`)
 		assert.Contains(t, body, `id="r66_block" name="r66_block" value="65536"`)
-		assert.Contains(t, body, `id="r66_min_tls" name="r66_min_tls" data-switch="tls-r66" aria-describedby="r66_min_tls-h"><option value="v1.0">TLS 1.0</option><option value="v1.1">TLS 1.1</option><option value="v1.2" selected>`)
+		assert.Contains(t, body, `id="min_tls" name="min_tls" data-switch="tlsver" aria-describedby="min_tls-h"><option value="v1.0">TLS 1.0</option><option value="v1.1">TLS 1.1</option><option value="v1.2" selected>`)
 		assert.Contains(t, body, `name="no_autostart" value="1"> `, "autostart is on")
+
+		body = s.get(t, permWrite, s.path(s.sftp, "/edit")).Body.String()
+		assert.Contains(t, body, `<span class="w-fold__meta">Racine « /data/sftp »</span>`, "the directories card opens with its root")
 
 		body = s.get(t, permWrite, s.path(s.pesit, "/edit")).Body.String()
 		assert.Contains(t, body, `name="no_autostart" value="1" checked>`)
@@ -832,7 +844,7 @@ func TestEditServer(t *testing.T) {
 		assert.Equal(t, "srv-r66-02", agent.Name)
 		assert.Equal(t, "r66", agent.Protocol)
 		assert.Equal(t, "127.0.0.1:6667", agent.Address.String())
-		assert.True(t, cfgBool(agent.ProtoConfig, "noFinalHash"))
+		assert.True(t, protoform.CfgBool(agent.ProtoConfig, "noFinalHash"))
 		assert.NotContains(t, agent.ProtoConfig, "serverLogin", "the options are those of the form")
 		assert.NotContains(t, agent.ProtoConfig, "minTLSVersion", "no TLS option for a plain R66 server")
 	})
@@ -849,7 +861,7 @@ func TestEditServer(t *testing.T) {
 		assert.Contains(t, body, `id="port" name="port" value="1765"`)
 
 		rec := s.post(t, permWrite, s.path(agent, "/edit"), url.Values{
-			"name": {"srv-any"}, "protocol": {"pesit-tls"}, "host": {"10.0.0.5"}, "port": {"1765"},
+			"name": {"srv-any"}, "protocol": {"pesit"}, "tls": {"1"}, "host": {"10.0.0.5"}, "port": {"1765"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
 
@@ -857,12 +869,12 @@ func TestEditServer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "10.0.0.5:1765", saved.Address.String())
 
-		rec = s.post(t, permWrite, s.path(agent, "/edit"), url.Values{"name": {"srv-any"}, "protocol": {"pesit-tls"}, "host": {""}, "port": {"1765"}})
+		rec = s.post(t, permWrite, s.path(agent, "/edit"), url.Values{"name": {"srv-any"}, "protocol": {"pesit"}, "tls": {"1"}, "host": {""}, "port": {"1765"}})
 		require.Equal(t, http.StatusSeeOther, rec.Code, "an empty host is accepted: every interface")
 		assert.Contains(t, s.get(t, permWrite, "/webui/servers").Body.String(), `<td class="w-mono w-nowrap">*:1765</td>`)
 		assert.Contains(t, s.get(t, permWrite, s.path(agent, "")).Body.String(), `<code class="w-code">*:1765</code>`)
 
-		rec = s.post(t, permWrite, s.path(agent, "/edit"), url.Values{"name": {"srv-any"}, "protocol": {"pesit-tls"}, "host": {"10.0.0.5"}, "port": {"1765"}})
+		rec = s.post(t, permWrite, s.path(agent, "/edit"), url.Values{"name": {"srv-any"}, "protocol": {"pesit"}, "tls": {"1"}, "host": {"10.0.0.5"}, "port": {"1765"}})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 
 		body = s.get(t, permWrite, s.path(agent, "/edit")).Body.String()
@@ -876,7 +888,7 @@ func TestEditServer(t *testing.T) {
 		s.fixtures(t)
 
 		rec := s.post(t, permWrite, s.path(s.r66, "/edit"), url.Values{
-			"name": {"srv-sftp-01"}, "protocol": {"r66-tls"}, "host": {"0.0.0.0"}, "port": {"6666"},
+			"name": {"srv-sftp-01"}, "protocol": {"r66"}, "tls": {"1"}, "host": {"0.0.0.0"}, "port": {"6666"},
 		})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		assert.Contains(t, rec.Body.String(), "Un autre serveur porte déjà ce nom.")
@@ -1022,17 +1034,21 @@ func TestStartStop(t *testing.T) {
 func TestListQuery(t *testing.T) {
 	t.Parallel()
 
-	q := parseListQuery(url.Values{"q": {" srv "}, "protocol": {"sftp,bogus", "pesit"}, "sort": {"address"}, "dir": {"desc"}, "page": {"3"}, "size": {"50"}})
-	assert.Equal(t, listQuery{Q: "srv", Protocols: []string{"sftp", "pesit"}, Sort: "address", Dir: "desc", Page: 3, Size: 50}, q)
-	assert.Equal(t, "dir=desc&page=3&protocol=sftp%2Cpesit&q=srv&size=50&sort=address", q.encode(q.Page))
-	assert.Equal(t, map[string]string{"sort": "address", "dir": "desc", "size": "50"}, q.toolbarHidden())
-	assert.Equal(t, map[string]string{"q": "srv", "protocol": "sftp,pesit", "sort": "address", "dir": "desc"}, q.pagerHidden())
-	assert.Equal(t, q, retOf(q.encode(q.Page)), "the carried state reads back")
+	q := parseListQuery(url.Values{
+		"q": {" srv "}, "protocol": {"sftp,bogus", "pesit"}, "sort": {"address"}, "dir": {"desc"}, "page": {"3"}, "size": {"50"},
+	})
+	assert.Equal(t, "srv", q.Q)
+	assert.Equal(t, []string{"sftp", "pesit"}, protoFilter(q).Families)
+	assert.Equal(t, "dir=desc&page=3&protocol=sftp%2Cpesit&q=srv&size=50&sort=address", q.Encode(q.Page))
+	assert.Equal(t, map[string]string{"q": "srv", "protocol": "sftp,pesit", "sort": "address", "dir": "desc"}, q.PagerHidden())
+	assert.Equal(t, q.Encode(q.Page), listSpec.RetOf(q.Encode(q.Page)).Encode(q.Page), "the carried state reads back")
 
-	dflt := parseListQuery(url.Values{"sort": {"name"}, "dir": {"asc"}, "size": {"10"}, "page": {"1"}})
-	assert.Empty(t, dflt.encode(dflt.Page), "the default state is carried as nothing")
+	withTLS := parseListQuery(url.Values{"protocol": {"r66-tls"}, "tls": {"yes"}})
+	assert.Equal(t, []string{"r66"}, protoFilter(withTLS).Families, "a product key reads as its family")
+	assert.Equal(t, "yes", protoFilter(withTLS).TLS)
+	assert.Equal(t, "protocol=r66&tls=yes", withTLS.Encode(1))
+
 	assert.Equal(t, "/webui/servers", listURL(""))
 	assert.Equal(t, "/webui/servers?q=srv", listURL("q=srv&bogus=1&page=1"), "unknown parameters are dropped")
 	assert.Equal(t, "/webui/servers/new?ret=q%3Dsrv", withRet("/webui/servers/new", "q=srv"))
-	assert.Equal(t, "/webui/servers/new", withRet("/webui/servers/new", ""))
 }

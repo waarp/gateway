@@ -86,6 +86,14 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/servers/1/accounts/1/auth/new"},
 		{path: "/webui/servers/3/auth", tables: 1},
 		{path: "/webui/servers/3/auth/4"},
+		// The local clients: the list, the details of the SFTP client (no
+		// partner of its protocol yet: no table), the pages that add, edit
+		// and delete one.
+		{path: "/webui/clients", tables: 1},
+		{path: "/webui/clients/1"},
+		{path: "/webui/clients/new"},
+		{path: "/webui/clients/1/edit"},
+		{path: "/webui/clients/1/delete"},
 	}
 }
 
@@ -291,6 +299,11 @@ func startE2EServer(t *testing.T) string {
 		require.NoError(t, db.Insert(server).Run())
 		require.EqualValues(t, i+1, server.ID, "the stub services are registered by identifier")
 	}
+
+	// The SFTP client whose service registerE2EServices stubs.
+	client := &model.Client{Name: "cli-sftp", Protocol: "sftp", NbOfAttempts: 3, FirstRetryDelay: 30, RetryIncrementFactor: 2}
+	require.NoError(t, db.Insert(client).Run())
+	require.EqualValues(t, 1, client.ID, "the stub service is registered by identifier")
 
 	// The sheet of the SFTP server: its host key (means 1), an account with
 	// a public key and a password (means 2 and 3) and an account without
