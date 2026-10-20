@@ -1,0 +1,15 @@
+{{/* "About" page: the content of the dialog of the account menu (gui/about-body, from the About of the page), as
+     a page for a browser without JavaScript or a link to keep. Takes the gui.Page. */ -}}
+{{ define "page" -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ t "about.title" "product" .Product }}</h1>
+  </div>
+  <div class="w-page-header__actions">
+    <a class="w-btn w-btn--outline-dark" href="{{ .HomeURL }}">{{ icon "arrow-left" }} {{ t "action.back" }}</a>
+  </div>
+</div>
+<div class="w-card">
+  {{ template "gui/about-body" . }}
+</div>
+{{- end }}

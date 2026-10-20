@@ -59,6 +59,39 @@ func TestServicesRouter(t *testing.T) {
 	})
 }
 
+// TestHomeRouter checks that the home page and the "About" page need no
+// particular right and serve GET only.
+func TestHomeRouter(t *testing.T) {
+	t.Parallel()
+
+	db := dbtest.TestDatabase(t)
+	user := &model.User{Username: "reader", PasswordHash: "$2a$04$notahashbutnotemptyeither", Permissions: 0}
+	require.NoError(t, db.Insert(user).Run())
+
+	router := mux.NewRouter()
+	MakeHomeRouter(router, db, testhelpers.GetTestLogger(t))
+
+	serve := func(method, target string) *httptest.ResponseRecorder {
+		ctx := context.WithValue(context.Background(), constants.ContextUserKey, user)
+		ctx = context.WithValue(ctx, constants.ContextLanguageKey, "en")
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequestWithContext(ctx, method, target, nil))
+
+		return rec
+	}
+
+	rec := serve(http.MethodGet, "/home")
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), `<h1 class="w-page-header__title">Home</h1>`)
+	assert.Equal(t, http.StatusOK, serve(http.MethodGet, "/about").Code)
+	assert.Equal(t, http.StatusOK, serve(http.MethodGet, "/account").Code)
+	assert.Equal(t, http.StatusMethodNotAllowed, serve(http.MethodPost, "/home").Code, "the pages have no action")
+	assert.Equal(t, http.StatusMethodNotAllowed, serve(http.MethodGet, "/account/password").Code, "the change is a POST")
+	assert.Equal(t, http.StatusUnprocessableEntity, serve(http.MethodPost, "/account/password").Code,
+		"an empty form is refused, not served")
+}
+
 // TestServersRouter checks the right each route of the "Local servers"
 // screen requires: reading for the list and the details, writing for the
 // creation, the edition, the start and the stop, deleting for the deletion.

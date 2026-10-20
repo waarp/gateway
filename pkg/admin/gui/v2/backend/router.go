@@ -8,6 +8,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
@@ -32,8 +34,25 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 
 	MakeListingRouter(router, db, logger)
 	MakeTasksRouter(router, db, logger)
+	MakeHomeRouter(router, db, logger)
 	MakeServicesRouter(router, logger)
 	MakeServersRouter(router, db, logger)
+}
+
+// MakeHomeRouter registers the home page, the "About" page and the "My
+// account" page: any authenticated user; GET only, except the change of the
+// user's own password, a POST.
+func MakeHomeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	router.Path("/home").Methods(http.MethodGet).Handler(withPermissions(permAuthenticated, home.Page(logger)))
+	router.Path("/about").Methods(http.MethodGet).Handler(withPermissions(permAuthenticated, home.About(logger)))
+
+	account := me.New(db, logger)
+	router.Path("/account").Methods(http.MethodGet).Handler(
+		withPermissions(permAuthenticated, http.HandlerFunc(account.Page)),
+	)
+	router.Path("/account/password").Methods(http.MethodPost).Handler(
+		withPermissions(permAuthenticated, http.HandlerFunc(account.ChangePassword)),
+	)
 }
 
 // MakeKitStaticRouter serves the files of the GUI kit (styles, scripts,

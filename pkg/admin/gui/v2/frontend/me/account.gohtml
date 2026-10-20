@@ -1,0 +1,66 @@
+{{/* "My account" page: the signed-in user (login, instance), their rights by domain in reading, and the form that
+     changes their password (current, new, confirmation; no value ever rendered back). Data: pageData. */ -}}
+{{ define "page" -}}
+{{ $d := .Data }}{{ $f := $d.Form -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ t "me.title" }}</h1>
+  </div>
+</div>
+<div class="w-stack">
+  <div class="w-card">
+    <h2 class="w-card__title">{{ t "me.identity" }}</h2>
+    <dl class="w-deflist">
+      <dt>{{ t "me.username" }}</dt><dd><code class="w-code">{{ $d.Username }}</code></dd>
+      <dt>{{ t "me.instance" }}</dt><dd><code class="w-code">{{ $d.Instance }}</code></dd>
+    </dl>
+  </div>
+  <div class="w-card">
+    <h2 class="w-card__title">{{ t "me.rights" }}</h2>
+    <div class="w-table-wrap">
+      <table class="w-table">
+        <caption class="visually-hidden">{{ t "me.rights_caption" }}</caption>
+        <thead><tr>
+          <th scope="col">{{ t "me.col.area" }}</th>
+          <th scope="col">{{ t "me.col.read" }}</th>
+          <th scope="col">{{ t "me.col.write" }}</th>
+          <th scope="col">{{ t "me.col.delete" }}</th>
+        </tr></thead>
+        <tbody>
+          {{ range $d.Rights }}<tr>
+            <td><span class="w-cell-title">{{ .Label }}</span></td>
+            <td>{{ if .Read }}{{ t "me.yes" }}{{ else }}<span class="w-muted">{{ t "me.no" }}</span>{{ end }}</td>
+            <td>{{ if .Write }}{{ t "me.yes" }}{{ else }}<span class="w-muted">{{ t "me.no" }}</span>{{ end }}</td>
+            <td>{{ if .Delete }}{{ t "me.yes" }}{{ else }}<span class="w-muted">{{ t "me.no" }}</span>{{ end }}</td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+    <p class="w-form__note me-note">{{ t "me.rights_hint" }}</p>
+  </div>
+  <div class="w-card">
+    <form class="w-form" method="post" action="{{ $f.Action }}" novalidate>
+      <fieldset class="w-fieldset w-fieldset--wide">
+        <legend class="w-card__title">{{ t "me.password.title" }}</legend>
+        {{ if $f.HasErrors }}{{ template "gui/banner" (dict "Kind" "ko" "Title" (t "me.password.refused") "Text" (t "me.password.refused_text")) }}{{ end }}
+        <div class="w-grid w-grid--3">
+          {{ template "me/password" (dict "ID" "current" "Label" (t "me.password.current") "Error" $f.Current "Autocomplete" "current-password") }}
+          {{ template "me/password" (dict "ID" "new" "Label" (t "me.password.new") "Error" $f.New "Hint" (t "me.password.new_hint") "Autocomplete" "new-password") }}
+          {{ template "me/password" (dict "ID" "confirm" "Label" (t "me.password.confirm") "Error" $f.Confirm "Autocomplete" "new-password") }}
+        </div>
+        {{ template "gui/form-actions" (dict "CancelURL" $f.CancelURL "Required" true "Title" (t "me.password.title")) }}
+      </fieldset>
+    </form>
+  </div>
+</div>
+{{- end }}
+
+{{/* me/password: a required password field, never pre-filled. ID, Label, Error, Autocomplete; optional: Hint. */ -}}
+{{ define "me/password" -}}
+<div class="w-field{{ if .Error }} is-invalid{{ end }}">
+  <label class="w-field__label" for="{{ .ID }}">{{ .Label }} <span class="w-field__req" aria-hidden="true">*</span></label>
+  <input class="w-input" type="password" id="{{ .ID }}" name="{{ .ID }}" required autocomplete="{{ .Autocomplete }}"{{ if .Error }} aria-invalid="true" aria-describedby="{{ .ID }}-e"{{ else if opt . "Hint" }} aria-describedby="{{ .ID }}-h"{{ end }}>
+  {{ if .Error }}<span class="w-field__error" id="{{ .ID }}-e">{{ icon "triangle" }} {{ .Error }}</span>{{ else if opt . "Hint" }}<span class="w-field__hint" id="{{ .ID }}-h">{{ opt . "Hint" }}</span>{{ end }}
+</div>
+{{- end }}

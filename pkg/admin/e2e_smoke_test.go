@@ -54,34 +54,38 @@ type e2eScreen struct {
 	tables   int
 	tabs     int
 	fragment string
+	outside  bool // the screen has no entry in the sidebar (the home page)
 }
 
 func e2eScreens() []e2eScreen {
 	return []e2eScreen{
-		{"/webui/services", 3, 3, "fragment=state"},
-		{"/webui/servers", 1, 0, ""},
-		{"/webui/servers/1", 0, 0, ""},
-		{"/webui/servers/new", 0, 0, ""},
-		{"/webui/servers/1/edit", 0, 0, ""},
-		{"/webui/servers/1/delete", 0, 0, ""},
+		{path: "/webui/home", outside: true},
+		{path: "/webui/about", outside: true},
+		{path: "/webui/account", tables: 1, outside: true},
+		{path: "/webui/services", tables: 3, tabs: 3, fragment: "fragment=state"},
+		{path: "/webui/servers", tables: 1},
+		{path: "/webui/servers/1"},
+		{path: "/webui/servers/new"},
+		{path: "/webui/servers/1/edit"},
+		{path: "/webui/servers/1/delete"},
 		// The sheet of the SFTP server: its host key, its accounts, the
 		// sheet of the partner account and its means, the pages that add
 		// a means and an account; the certificate of the HTTPS server.
-		{"/webui/servers/1/auth", 1, 0, ""},
-		{"/webui/servers/1/auth/1", 0, 0, ""},
-		{"/webui/servers/1/auth/new", 0, 0, ""},
-		{"/webui/servers/1/accounts", 1, 0, ""},
-		{"/webui/servers/1/accounts/new", 0, 0, ""},
-		{"/webui/servers/1/accounts/1", 0, 0, ""},
-		{"/webui/servers/1/accounts/1/edit", 0, 0, ""},
-		{"/webui/servers/1/accounts/1/delete", 0, 0, ""},
-		{"/webui/servers/1/accounts/1/auth", 1, 0, ""},
-		{"/webui/servers/1/accounts/1/auth/2", 0, 0, ""},
-		{"/webui/servers/1/accounts/1/auth/3/edit", 0, 0, ""},
-		{"/webui/servers/1/accounts/1/auth/2/delete", 0, 0, ""},
-		{"/webui/servers/1/accounts/1/auth/new", 0, 0, ""},
-		{"/webui/servers/3/auth", 1, 0, ""},
-		{"/webui/servers/3/auth/4", 0, 0, ""},
+		{path: "/webui/servers/1/auth", tables: 1},
+		{path: "/webui/servers/1/auth/1"},
+		{path: "/webui/servers/1/auth/new"},
+		{path: "/webui/servers/1/accounts", tables: 1},
+		{path: "/webui/servers/1/accounts/new"},
+		{path: "/webui/servers/1/accounts/1"},
+		{path: "/webui/servers/1/accounts/1/edit"},
+		{path: "/webui/servers/1/accounts/1/delete"},
+		{path: "/webui/servers/1/accounts/1/auth", tables: 1},
+		{path: "/webui/servers/1/accounts/1/auth/2"},
+		{path: "/webui/servers/1/accounts/1/auth/3/edit"},
+		{path: "/webui/servers/1/accounts/1/auth/2/delete"},
+		{path: "/webui/servers/1/accounts/1/auth/new"},
+		{path: "/webui/servers/3/auth", tables: 1},
+		{path: "/webui/servers/3/auth/4"},
 	}
 }
 
@@ -375,10 +379,11 @@ func (s *e2eSession) login(t *testing.T) {
 	expectURL(t, s.page, s.baseURL+"/webui/home")
 	require.NoError(t, s.tracker.settle())
 
-	// The sign-in and home pages are historic ones, checked once reworked;
-	// their failed requests are reported, not judged.
+	// The sign-in page is a historic one, checked once reworked: its failed
+	// requests are reported, not judged. The home page it lands on is a
+	// reworked screen, checked like every other one.
 	if failures := s.tracker.failuresOf("/webui/login"); len(failures) > 0 {
-		t.Logf("failed requests of the historic sign-in and home pages: %v", failures)
+		t.Logf("failed requests of the historic sign-in page: %v", failures)
 	}
 }
 
@@ -412,7 +417,12 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	assert.Equal(t, 1, s.count(t, "a.w-skip"), "skip link")
 	assert.Equal(t, 1, s.count(t, "main#contenu"), "main landmark")
 	assert.Equal(t, 1, s.count(t, "h1.w-page-header__title"), "page title")
-	assert.Equal(t, 1, s.count(t, `nav:not(.w-tabs) a[aria-current="page"]`), "active sidebar entry")
+	entries := 1
+	if screen.outside {
+		entries = 0
+	}
+
+	assert.Equal(t, entries, s.count(t, `nav:not(.w-tabs) a[aria-current="page"]`), "active sidebar entry")
 	assert.Equal(t, screen.tables, s.count(t, "table.w-table"), "tables")
 
 	// A sheet shows its tab strip, one tab being the page.

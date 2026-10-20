@@ -230,11 +230,6 @@ func NewFuncMap(db *database.DB) template.FuncMap {
 }
 
 var (
-	homeTemplate = template.Must(
-		template.New("home_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, sidebar, "front-end/html/home_page.html"),
-	)
 	loginTemplate = template.Must(
 		template.ParseFS(webFS, "front-end/html/login_page.html"),
 	)

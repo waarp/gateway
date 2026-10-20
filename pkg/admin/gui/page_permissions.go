@@ -28,7 +28,6 @@ func permsFor(read, write, remove model.PermsMask, removeFields ...string) pageP
 
 //nolint:gochecknoglobals //read-only table of the WebUI pages permissions
 var webuiPermissions = map[string]pagePermissions{
-	"/home":            {},
 	"/status_services": {},
 
 	"/user_management": permsFor(model.PermUsersRead, model.PermUsersWrite,
