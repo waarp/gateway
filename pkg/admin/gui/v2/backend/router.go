@@ -125,8 +125,9 @@ func (p partnerRoutes) del(path string, form, action http.HandlerFunc) {
 	p.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermPartnersDelete, action))
 }
 
-// MakePartnersRouter registers the "Remote partners" screen and the sheet
-// of a partner: the list, the details and the tabs in reading, the
+// MakePartnersRouter registers the "Remote partners" screen, the sheet of a
+// partner and the sheets of its remote accounts: the lists, the details and
+// the tabs in reading, the
 // creation, the edition, the deletions, the pages of the means.
 func MakePartnersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	handlers := partners.New(db, logger)
@@ -139,13 +140,23 @@ func MakePartnersRouter(router *mux.Router, db *database.DB, logger *log.Logger)
 	routes.write(partnerPath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(partnerPath+"/delete", handlers.DeleteForm, handlers.Delete)
 
-	// The means the gateway checks of the partner.
-	base := partnerPath + "/auth"
-	routes.read(base, handlers.Auth)
-	routes.write(base+"/new", handlers.NewCredForm, handlers.CreateCred)
-	routes.read(base+"/{cid:[0-9]+}", handlers.CredDetail)
-	routes.write(base+"/{cid:[0-9]+}/edit", handlers.EditCredForm, handlers.UpdateCred)
-	routes.del(base+"/{cid:[0-9]+}/delete", handlers.DeleteCredForm, handlers.DeleteCred)
+	const accountPath = partnerPath + "/accounts/{aid:[0-9]+}"
+
+	// The means the gateway checks of the partner, then the means it
+	// presents on one of its accounts: the same pages.
+	for _, base := range []string{partnerPath + "/auth", accountPath + "/auth"} {
+		routes.read(base, handlers.Auth)
+		routes.write(base+"/new", handlers.NewCredForm, handlers.CreateCred)
+		routes.read(base+"/{cid:[0-9]+}", handlers.CredDetail)
+		routes.write(base+"/{cid:[0-9]+}/edit", handlers.EditCredForm, handlers.UpdateCred)
+		routes.del(base+"/{cid:[0-9]+}/delete", handlers.DeleteCredForm, handlers.DeleteCred)
+	}
+
+	routes.read(partnerPath+"/accounts", handlers.Accounts)
+	routes.write(partnerPath+"/accounts/new", handlers.NewAccountForm, handlers.CreateAccount)
+	routes.read(accountPath, handlers.AccountDetail)
+	routes.write(accountPath+"/edit", handlers.EditAccountForm, handlers.UpdateAccount)
+	routes.del(accountPath+"/delete", handlers.DeleteAccountForm, handlers.DeleteAccount)
 }
 
 // MakeServersRouter registers the "Local servers" screen and the sheet of a

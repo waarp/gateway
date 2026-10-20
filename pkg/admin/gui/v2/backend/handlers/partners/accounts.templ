@@ -1,0 +1,243 @@
+package partners
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// accountAuth: the kinds of means of an account, or the warning that it has
+// none.
+templ accountAuth(r accountRow) {
+	if r.NoAuth.State != "" {
+		@gui.StatusOf(r.NoAuth)
+	} else {
+		{ r.Auth }
+	}
+}
+
+// accountsView: "Remote accounts" tab of a partner: the login as a link to
+// the sheet of the account, the kinds of its authentication means (a
+// warning when it has none: the gateway cannot connect with it), a "⋯"
+// menu; one coloured action, "Add an account".
+templ accountsView(d accountsListData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "partners.back") }
+			</a>
+			if d.AddURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "remote_accounts.add") }
+				</a>
+			}
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
+	if d.List.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "users", Title: gui.T(ctx, "remote_accounts.empty.title"), Text: gui.T(ctx, "remote_accounts.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "remote_accounts.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.List.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.List.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "remote_accounts.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.List.Q } placeholder={ gui.T(ctx, "remote_accounts.search_placeholder") } list="accounts-names" autocomplete="off"/></label>
+			<datalist id="accounts-names">
+				for _, n := range d.List.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.List.Count }</span>
+		</form>
+		if d.List.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.List.NoMatchText, Action: &gui.Link{Label: d.List.NoMatchLink, URL: d.List.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.List.Caption }</caption>
+					<colgroup><col class="sheet-col-login"/><col/><col class="sheet-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "remote_accounts.col.login"), Key: "name", Sort: d.List.Sort, Dir: d.List.Dir, Base: d.List.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "remote_accounts.col.auth"), Key: "auth", Sort: d.List.Sort, Dir: d.List.Dir, Base: d.List.Base})
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "actions.title") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Login }</a></td>
+								<td>@accountAuth(r)</td>
+								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-a%d", r.ID), Name: r.Login, Items: r.Actions})</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.List.Pager != nil {
+				<div class="sheet-pager">@gui.Pager(d.List.Pager.Props(d.List.PagerHidden, d.List.Sizes, d.List.Size))</div>
+			}
+		}
+	}
+}
+
+// accountBackLabel: the label of the back button of the account form.
+templ accountBackLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "action.back") }
+	} else {
+		{ " " + gui.T(ctx, "partners.back_partner") }
+	}
+}
+
+// accountFormView: creation and edition of a remote account. Creation: the
+// account (its login) and its first authentication means on the same page,
+// so that the link between them is plain; the next means are added in the
+// sheet of the account. Edition: the login only. Refused form: a banner,
+// the values kept, a message under each faulty field (422).
+templ accountFormView(d *accountFormData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@accountBackLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
+	if d.HasErrors {
+		<div class="sheet-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "remote_accounts.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "remote_accounts.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } enctype="multipart/form-data" novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "remote_accounts.form.card", "name", d.Partner) }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: "login", Label: gui.T(ctx, "remote_accounts.form.login"), Req: true, F: d.Login, Hint: gui.T(ctx, "remote_accounts.form.login_hint")})
+				</div>
+			</fieldset>
+		</div>
+		if d.Means != nil {
+			<div class="w-card">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="w-card__title">{ gui.T(ctx, "remote_accounts.form.first_means") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></legend>
+					<p class="w-form__note sheet-note">{ gui.T(ctx, "remote_accounts.form.first_means_hint") }</p>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: "means_name", Label: gui.T(ctx, "accounts.form.means_name"), F: d.Means.Name, Hint: gui.T(ctx, "accounts.form.means_name_hint")})
+						<div class={ "w-field", templ.KV("is-invalid", d.Means.TypeError != "") }>
+							<label class="w-field__label" for="means_type">{ gui.T(ctx, "accounts.form.means_type") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+							<select
+								class="w-select"
+								id="means_type"
+								name="means_type"
+								data-switch="means_type"
+								aria-describedby="means_type-h"
+								if d.Means.TypeError != "" {
+									aria-invalid="true"
+								}
+							>
+								for _, c := range d.Means.Types {
+									<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+								}
+							</select>
+							@protoform.Message("means_type-h", d.Means.TypeError, gui.T(ctx, "accounts.form.means_type_hint"))
+						</div>
+					</div>
+					@means.CredFields(d.Means)
+				</fieldset>
+			</div>
+		}
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// accountDetailView: the sheet of a remote account, "Details" tab: the
+// partner, the login and the kinds of its means. "Edit" as a button (write
+// right), "Delete" in the "⋯" menu (delete right).
+templ accountDetailView(d accountDetailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "partners.back_partner") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "remote_accounts.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-account", Name: d.Login, Items: d.Actions})
+			}
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
+	<div class="w-card">
+		<h2 class="w-card__title">{ gui.T(ctx, "remote_account.card") }</h2>
+		<dl class="w-deflist">
+			for _, k := range d.Identity {
+				<dt>{ k.Label }</dt>
+				<dd>@protoform.ValueOf(k)</dd>
+			}
+		</dl>
+		<p class="w-form__note sheet-note">{ gui.T(ctx, "remote_account.detail.note") }</p>
+	</div>
+}
+
+// accountDeleteView: confirmation of the deletion of a remote account
+// (delete right): the consequence, what is deleted, "Cancel" then "Delete"
+// bottom right. Refused (running transfers or a folder watcher use the
+// account): the cause and the way out, no "Delete" button.
+templ accountDeleteView(d accountDeleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "action.back") }
+			</a>
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
+	<div class="w-card">
+		if d.Transfers {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "remote_accounts.delete.blocked_title"), Text: gui.T(ctx, "remote_accounts.delete.blocked_transfers"), Action: &gui.Link{Label: gui.T(ctx, "remote_accounts.delete.blocked_link"), URL: d.TransfersURL, Icon: "clock"}})
+		} else if d.Watchers {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "remote_accounts.delete.blocked_title"), Text: gui.T(ctx, "remote_accounts.delete.blocked_watchers")})
+		} else {
+			<p class="sheet-lead">{ gui.T(ctx, "remote_accounts.delete.text", "name", d.Partner) }</p>
+		}
+		<dl class={ "w-deflist", templ.KV("sheet-deflist", d.blocked()) }>
+			<dt>{ gui.T(ctx, "remote_account.card") }</dt>
+			<dd><code class="w-code">{ d.Login }</code></dd>
+			<dt>{ gui.T(ctx, "remote_account.detail.partner") }</dt>
+			<dd>{ d.Partner }</dd>
+			<dt>{ gui.T(ctx, "remote_account.detail.auth") }</dt>
+			<dd>{ d.Auth }</dd>
+		</dl>
+		if d.blocked() {
+			<div class="w-form__actions sheet-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.back") }</a></div>
+		} else {
+			<form class="sheet-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+		}
+	</div>
+}

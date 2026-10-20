@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
@@ -32,6 +33,9 @@ const (
 	fieldCertPem  = "cert_pem"
 	fieldKeyFile  = "key_file"
 	fieldKeyPem   = "key_pem"
+	// The PeSIT pre-connection: a login and a password, both optional.
+	fieldPreLogin    = "pre_login"
+	fieldPrePassword = "pre_password"
 
 	// A PEM file weighs a few kilobytes: the limit of an upload.
 	maxUpload = 4 << 20
@@ -63,6 +67,9 @@ type Form struct {
 	Pem       protoform.Field
 	PemCert   protoform.Field
 	PemKey    protoform.Field
+	// The PeSIT pre-connection: the login is shown again, the password never.
+	PreLogin    protoform.Field
+	PrePassword protoform.Field
 
 	// What is in place, on edition: an empty field keeps it.
 	CurrentFile     string
@@ -139,6 +146,13 @@ func (f *Form) current(translate gui.Translator, v *view, now time.Time) {
 		f.CurrentFile = v.summary(translate)
 	case auth.Password:
 		f.CurrentPassword = translate("auth.content.secret")
+	case pesit.PreConnectionAuth:
+		f.PreLogin.Value = v.Login
+		f.CurrentPassword = translate("auth.content.pre_no_password")
+
+		if v.HasPassword {
+			f.CurrentPassword = translate("auth.content.pre_password")
+		}
 	}
 }
 
@@ -195,6 +209,8 @@ func (f *Form) Read(translate gui.Translator, r *http.Request, own *Owner,
 		err = f.readFile(translate, r, cred)
 	case familyTwoFile:
 		err = f.readPair(translate, r, cred)
+	case familyPair:
+		f.readPreConnection(r, cred)
 	}
 
 	if err != nil {
@@ -202,9 +218,23 @@ func (f *Form) Read(translate gui.Translator, r *http.Request, own *Owner,
 	}
 
 	f.HasErrors = f.TypeError != "" || f.Password.Error != "" || f.Pem.Error != "" ||
-		f.PemCert.Error != "" || f.PemKey.Error != ""
+		f.PemCert.Error != "" || f.PemKey.Error != "" || f.PreLogin.Error != "" || f.PrePassword.Error != ""
 
 	return nil
+}
+
+// readPreConnection takes the login and the password of a PeSIT
+// pre-connection, both optional (the partner may expect an empty one): the
+// login is what is posted, an empty password keeps the current one on
+// edition. The module checks their length and their characters when the
+// means is saved.
+func (f *Form) readPreConnection(r *http.Request, cred *model.Credential) {
+	f.PreLogin.Value = strings.TrimSpace(r.FormValue(f.Prefix + fieldPreLogin))
+	cred.Value = f.PreLogin.Value
+
+	if password := r.FormValue(f.Prefix + fieldPrePassword); password != "" {
+		cred.Value2 = password
+	}
 }
 
 // readPassword takes the password; empty, it is required at creation and
@@ -290,6 +320,8 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 			f.Pem.Error = text
 		case familyTwoFile:
 			f.PemCert.Error = text
+		case familyPair:
+			f.refusePreConnection(reason, text)
 		default:
 			f.Refused = text
 		}
@@ -298,6 +330,18 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 	}
 
 	f.HasErrors = true
+}
+
+// refusePreConnection puts the refusal of a PeSIT pre-connection on the
+// field it names: the module refuses a login or a password on its own.
+func (f *Form) refusePreConnection(reason, text string) {
+	if strings.Contains(reason, "login") {
+		f.PreLogin.Error = text
+
+		return
+	}
+
+	f.PrePassword.Error = text
 }
 
 // ------------------------------------------------------------ handlers ----

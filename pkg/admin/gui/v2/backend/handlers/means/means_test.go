@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -35,7 +36,19 @@ func TestTypesKnownToModel(t *testing.T) {
 		for _, typ := range PartnerTypes(proto) {
 			assert.NotNilf(t, authentication.GetInternalAuthHandler(typ, proto), "%s on a %s partner", typ, proto)
 		}
+
+		for _, typ := range RemoteAccountTypes(proto) {
+			assert.NotNilf(t, authentication.GetExternalAuthMethod(typ, proto), "%s on a %s remote account", typ, proto)
+		}
+
+		assert.Contains(t, RemoteAccountTypes(proto), auth.Password, "a password is always possible on a remote account")
 	}
+
+	assert.Equal(t, []string{auth.Password, pesit.PreConnectionAuth}, RemoteAccountTypes("pesit"))
+	assert.Equal(t, []string{auth.Password, auth.TLSCertificate, pesit.PreConnectionAuth}, RemoteAccountTypes("pesit-tls"),
+		"the password of a PeSIT over TLS account is sent whatever the encryption")
+	assert.Equal(t, []string{auth.Password, sftp.AuthSSHPrivateKey}, RemoteAccountTypes("sftp"))
+	assert.Equal(t, familyPair, FamilyOf(pesit.PreConnectionAuth))
 
 	assert.Equal(t, []string{auth.Password}, PartnerTypes("pesit"), "the client checks the password of a PeSIT partner")
 	assert.Equal(t, []string{auth.Password, auth.TLSTrustedCertificate}, PartnerTypes("pesit-tls"))
@@ -79,4 +92,11 @@ func TestView(t *testing.T) {
 	echo := func(key string, _ ...any) string { return key }
 	assert.Equal(t, "auth.content.secret", Summary(echo, &model.Credential{Type: auth.Password, Value: "s3cret"}))
 	assert.Equal(t, "auth.content.set", Summary(echo, &model.Credential{Type: auth.TLSCertificate, Value: "garbage"}))
+
+	pre := viewOf(&model.Credential{Type: pesit.PreConnectionAuth, Value: "GWLOGIN", Value2: "pa55"})
+	assert.Equal(t, "GWLOGIN", pre.Login)
+	assert.True(t, pre.HasPassword)
+	assert.Equal(t, "auth.content.pre_login · auth.content.pre_password", pre.summary(echo))
+	none := viewOf(&model.Credential{Type: pesit.PreConnectionAuth})
+	assert.Equal(t, "auth.content.pre_no_login · auth.content.pre_no_password", none.summary(echo), "both parts are optional")
 }

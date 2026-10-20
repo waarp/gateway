@@ -579,6 +579,22 @@ func TestEditCred(t *testing.T) {
 		assert.True(t, utils.IsHash(changed))
 	})
 
+	t.Run("Given the password of the R66 server, stored encrypted", func(t *testing.T) {
+		t.Parallel()
+
+		// The model encrypts an external password when it is written and
+		// decrypts it when it is read: the means read back holds the plain
+		// password, and an edition that keeps it stores it again as it was.
+		require.Equal(t, partnerPassword, s.credOf(t, f.r66Pwd.ID).Value)
+
+		rec := s.post(t, permWrite, s.path(s.r66, fmt.Sprintf("/auth/%d/edit", f.r66Pwd.ID)), url.Values{"name": {"mdp-r66"}})
+		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
+
+		after := s.credOf(t, f.r66Pwd.ID)
+		assert.Equal(t, "mdp-r66", after.Name)
+		assert.Equal(t, partnerPassword, after.Value, "an empty password keeps the current one, readable as before")
+	})
+
 	t.Run("Given the certificate of the HTTPS server", func(t *testing.T) {
 		t.Parallel()
 

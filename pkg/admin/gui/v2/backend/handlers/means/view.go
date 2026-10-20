@@ -14,6 +14,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
@@ -24,6 +25,7 @@ const (
 	familyPassword = "password" // one secret
 	familyFile     = "file"     // one file: a certificate, a public key or a private key
 	familyTwoFile  = "twofile"  // a certificate and its private key
+	familyPair     = "pair"     // a login and a password: the PeSIT pre-connection
 	familyNone     = "none"     // nothing to give: the kind itself is the information
 
 	// The validity state of a certificate: the triangle of the kit for one
@@ -44,6 +46,7 @@ var families = map[string]string{
 	auth.TLSTrustedCertificate:    familyFile,
 	sftp.AuthSSHPrivateKey:        familyFile,
 	sftp.AuthSSHPublicKey:         familyFile,
+	pesit.PreConnectionAuth:       familyPair,
 	r66auth.AuthLegacyCertificate: familyNone,
 }
 
@@ -64,6 +67,10 @@ type view struct {
 	NotBefore   time.Time
 	NotAfter    time.Time
 	Public      string // the public part, shareable: a certificate PEM, a public key line
+	// The PeSIT pre-connection: its login (not a secret) and whether it
+	// holds a password (never the password).
+	Login       string
+	HasPassword bool
 }
 
 func viewOf(c *model.Credential) view {
@@ -81,6 +88,8 @@ func viewOf(c *model.Credential) view {
 			v.readKey(key)
 			v.Public = strings.TrimSpace(c.Value)
 		}
+	case pesit.PreConnectionAuth:
+		v.Login, v.HasPassword = c.Value, c.Value2 != ""
 	}
 
 	return v
@@ -175,9 +184,27 @@ func (v *view) summary(translate gui.Translator) string {
 		return translate("auth.content.private_key", "type", v.KeyType)
 	case v.Type == sftp.AuthSSHPublicKey && v.KeyType != "":
 		return translate("auth.content.key", "type", v.KeyType, "fingerprint", v.Fingerprint)
+	case v.Type == pesit.PreConnectionAuth:
+		return v.preConnection(translate)
 	default:
 		return translate("auth.content.set")
 	}
+}
+
+// preConnection sums up a PeSIT pre-connection: its login, whether it holds
+// a password; both are optional.
+func (v *view) preConnection(translate gui.Translator) string {
+	login := translate("auth.content.pre_no_login")
+	if v.Login != "" {
+		login = translate("auth.content.pre_login", "login", v.Login)
+	}
+
+	password := translate("auth.content.pre_no_password")
+	if v.HasPassword {
+		password = translate("auth.content.pre_password")
+	}
+
+	return login + " · " + password
 }
 
 // Summary is the non-secret content of a means, as the lists show it.

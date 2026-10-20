@@ -10,11 +10,17 @@ Historique des versions
   qui dit par quel client passent les transferts et quelles règles le
   partenaire peut utiliser ; pages de création, de modification et de
   suppression, celle-ci refusée tant que des transferts en cours ou une
-  surveillance de dossiers utilisent un de ses comptes. Les options PeSIT
+  surveillance de dossiers utilisent un de ses comptes. L'onglet des comptes
+  distants liste les comptes du partenaire avec leurs moyens
+  d'authentification, crée un compte avec son premier moyen (mot de passe,
+  certificat et clé, clé privée SSH ou pré-connexion PeSIT selon le
+  protocole) et refuse de supprimer un compte qu'un transfert en cours ou une
+  surveillance de dossiers utilise. Les options PeSIT
   « reprise » et « points de synchronisation » se règlent comme le produit les
   lit (comme le client, activées, désactivées) ; le délai d'acquittement
-  PeSIT, l'algorithme du hachage final R66 et le mot de passe d'un partenaire
-  PeSIT, que l'ancien écran ne montrait pas, sont exposés. Les anciennes
+  PeSIT, l'algorithme du hachage final R66, le mot de passe d'un partenaire
+  PeSIT et celui d'un compte sur un partenaire PeSIT chiffré par TLS, que
+  l'ancien écran ne montrait pas, sont exposés. Les anciennes
   pages restent accessibles à leur adresse jusqu'à la version suivante.
 * :feature:`711` L'écran des clients locaux de l'interface web est refondu sur
   le kit : liste triée par colonne et filtrée (recherche, familles de

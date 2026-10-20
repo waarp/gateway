@@ -268,16 +268,21 @@ func PartnerTypes(proto string) []string {
 // RemoteAccountTypes are the means the gateway presents to a remote partner
 // of the protocol on one of its accounts: a password always (the PeSIT
 // client sends it whatever the encryption), a certificate and its key over
-// TLS, a private key over SSH, the legacy R66 certificate when the instance
-// allows it.
+// TLS, a private key over SSH, the PeSIT pre-connection (a login and a
+// password the partner may expect before the connection), the legacy R66
+// certificate when the instance allows it.
 func RemoteAccountTypes(proto string) []string {
 	types := []string{auth.Password}
 
 	switch proto {
 	case r66.R66TLS:
 		types = withLegacy(append(types, auth.TLSCertificate))
-	case httpconst.HTTPS, ftp.FTPS, webdav.WebdavTLS, as2.AS2TLS, pesit.PesitTLS:
+	case httpconst.HTTPS, ftp.FTPS, webdav.WebdavTLS, as2.AS2TLS:
 		types = append(types, auth.TLSCertificate)
+	case pesit.Pesit:
+		types = append(types, pesit.PreConnectionAuth)
+	case pesit.PesitTLS:
+		types = append(types, auth.TLSCertificate, pesit.PreConnectionAuth)
 	case sftp.SFTP:
 		types = append(types, sftp.AuthSSHPrivateKey)
 	}

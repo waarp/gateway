@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
@@ -92,6 +93,8 @@ func buildDetail(translate gui.Translator, own *Owner, cred *view, now time.Time
 			{Label: translate("auth.detail.fingerprint"), Value: cred.Fingerprint, Mono: true},
 			{Label: translate("auth.detail.private_key"), Value: never},
 		}
+	case cred.Type == pesit.PreConnectionAuth:
+		data.Rows = preConnectionRows(translate, cred, never)
 	case cred.Type == r66auth.AuthLegacyCertificate:
 		data.Rows = []kv{{Label: translate("auth.detail.content"), Value: translate("auth.detail.legacy")}}
 	default:
@@ -99,6 +102,22 @@ func buildDetail(translate gui.Translator, own *Owner, cred *view, now time.Time
 	}
 
 	return data
+}
+
+// preConnectionRows are the rows of a PeSIT pre-connection: its login, and
+// whether it holds a password; neither is required.
+func preConnectionRows(translate gui.Translator, cred *view, never string) []kv {
+	login := kv{Label: translate("auth.detail.pre_login"), Value: translate("auth.detail.pre_no_login")}
+	if cred.Login != "" {
+		login = kv{Label: translate("auth.detail.pre_login"), Value: cred.Login, Mono: true}
+	}
+
+	password := kv{Label: translate("auth.detail.pre_password"), Value: translate("auth.detail.pre_no_password")}
+	if cred.HasPassword {
+		password = kv{Label: translate("auth.detail.pre_password"), Value: never}
+	}
+
+	return []kv{login, password}
 }
 
 // Detail serves GET …/auth/{cid}: a means in reading.

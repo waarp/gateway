@@ -382,6 +382,7 @@ auth:
     ssh_private_key: Clé privée SSH
     ssh_public_key: Clé publique SSH
     r66_legacy_certificate: Certificat R66 historique
+    pesit_pre-connection_auth: Pré-connexion PeSIT
   # Format des dates de validité (disposition Go).
   date: 02/01/2006
   # Contenu non secret d'un moyen, dans la liste et sur sa page.
@@ -395,6 +396,10 @@ auth:
     valid: "Valide jusqu'au {date}"
     expires: "Expire le {date}"
     expired: "Expiré le {date}"
+    pre_login: "Identifiant « {login} »"
+    pre_no_login: Sans identifiant
+    pre_password: mot de passe défini, non affiché
+    pre_no_password: sans mot de passe
   new:
     title: Nouveau moyen d'authentification
   edit:
@@ -422,6 +427,12 @@ auth:
     key_hint: "La clé privée du certificat ; elle n'est jamais réaffichée"
     paste_key: ou coller la clé
     legacy_hint: "Aucune valeur à saisir : ce moyen indique que l'authentification suit la convention historique du marché pour les certificats R66."
+    pre_hint: "Ce que la passerelle envoie au partenaire avant la connexion PeSIT, quand il l'attend : identifiant et mot de passe facultatifs, huit caractères ASCII au plus chacun."
+    pre_login: Identifiant de pré-connexion
+    pre_login_hint: "Vide : aucun identifiant n'est envoyé"
+    pre_password: Mot de passe de pré-connexion
+    pre_password_hint: "Vide : aucun mot de passe n'est envoyé ; conservé chiffré, jamais réaffiché"
+    pre_password_keep: laissez vide pour ne pas en changer
     refused: Le moyen d'authentification n'a pas été enregistré.
     refused_text: Corrigez les champs signalés ci-dessous.
     error:
@@ -445,6 +456,10 @@ auth:
     content: Contenu
     never_shown: Définie, jamais affichée
     legacy: "Aucune valeur : le type suffit"
+    pre_login: Identifiant de pré-connexion
+    pre_no_login: Aucun
+    pre_password: Mot de passe de pré-connexion
+    pre_no_password: Aucun
     pem: Certificat (PEM)
     public_key: Clé publique
     public_note: "Partie publique seulement : elle peut se transmettre au partenaire."
@@ -714,6 +729,53 @@ partners:
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
 # Comptes distants d'un partenaire : l'identité que la passerelle lui présente.
 remote_accounts:
+  add: Ajouter un compte
+  search: Rechercher un compte par son identifiant
+  search_placeholder: Rechercher par identifiant
+  count: "{total} comptes"
+  count_one: 1 compte
+  count_shown: "{total} comptes · {shown} affichés"
+  count_shown_one: "{total} comptes · 1 affiché"
+  caption: "Comptes distants, page {page} sur {pages}, triés par {sort}"
+  pager: "Comptes {from} à {to} sur {total}"
+  sort:
+    name: identifiant
+    auth: authentification
+  col:
+    login: Compte distant
+    auth: Authentification
+  auth_none: "Aucun moyen : ne peut pas se connecter"
+  action:
+    detail: Voir le compte
+    edit: Modifier le compte
+    delete: Supprimer le compte
+  new:
+    title: Nouveau compte distant
+  edit:
+    title: "Modifier « {login} »"
+  form:
+    card: "Compte sur le partenaire « {name} »"
+    login: Identifiant
+    login_hint: "Unique sur ce partenaire ; c'est l'identifiant que la passerelle présente"
+    first_means: Premier moyen d'authentification
+    first_means_hint: "La passerelle s'authentifiera par ce moyen ; vous pourrez en ajouter d'autres dans la fiche du compte."
+    refused: Le compte n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      login: Indiquez l'identifiant du compte.
+      taken: Un autre compte de ce partenaire porte déjà cet identifiant.
+  delete:
+    title: "Supprimer le compte « {login} » ?"
+    text: "Ses moyens d'authentification seront supprimés avec lui ; les transferts vers « {name} » qui le nomment ne pourront plus être créés."
+    blocked_title: Ce compte ne peut pas être supprimé.
+    blocked_transfers: Des transferts en cours l'utilisent. Annulez-les ou attendez leur fin.
+    blocked_watchers: Une surveillance de dossiers l'utilise. Retirez-la d'abord.
+    blocked_link: Voir les transferts en cours
+  empty:
+    title: Aucun compte distant pour l'instant
+    text: "Un compte distant est l'identité que la passerelle présente à ce partenaire ; un transfert le nomme toujours."
+  none:
+    title: "Aucun compte ne correspond à « {query} »"
   not_found:
     title: Compte distant introuvable
     text: Ce compte n'existe pas ou a été supprimé.
@@ -724,9 +786,16 @@ remote_accounts:
 # Fiche d'un compte distant.
 remote_account:
   title: "Compte « {login} »"
+  card: Compte distant
   tab:
     details: Détails
     auth: Authentification
+  detail:
+    partner: Partenaire
+    login: Identifiant
+    auth: Moyens d'authentification
+    auth_none: Aucun
+    note: "Un transfert vers ce partenaire nomme toujours un de ses comptes ; la passerelle s'y présente avec les moyens de l'onglet Authentification."
 # Clients locaux : la liste, le détail (avec les partenaires joignables), les pages d'action.
 clients:
   title: Clients locaux

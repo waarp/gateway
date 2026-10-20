@@ -110,6 +110,19 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/partners/1/auth/new"},
 		{path: "/webui/partners/2"},
 		{path: "/webui/partners/2/auth"},
+		// The remote account of the SFTP partner: the accounts tab, the
+		// sheet of the account and its password (means 6), the pages that
+		// add, edit and delete an account and a means.
+		{path: "/webui/partners/1/accounts", tables: 1},
+		{path: "/webui/partners/1/accounts/new"},
+		{path: "/webui/partners/1/accounts/1"},
+		{path: "/webui/partners/1/accounts/1/edit"},
+		{path: "/webui/partners/1/accounts/1/delete"},
+		{path: "/webui/partners/1/accounts/1/auth", tables: 1},
+		{path: "/webui/partners/1/accounts/1/auth/6"},
+		{path: "/webui/partners/1/accounts/1/auth/6/edit"},
+		{path: "/webui/partners/1/accounts/1/auth/6/delete"},
+		{path: "/webui/partners/1/accounts/1/auth/new"},
 	}
 }
 

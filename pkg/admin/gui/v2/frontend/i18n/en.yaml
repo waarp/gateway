@@ -383,6 +383,7 @@ auth:
     ssh_private_key: SSH private key
     ssh_public_key: SSH public key
     r66_legacy_certificate: Legacy R66 certificate
+    pesit_pre-connection_auth: PeSIT pre-connection
   # Layout of the validity dates (Go layout).
   date: 2006-01-02
   # Non-secret content of a means, in the list and on its page.
@@ -396,6 +397,10 @@ auth:
     valid: "Valid until {date}"
     expires: "Expires on {date}"
     expired: "Expired on {date}"
+    pre_login: "Login “{login}”"
+    pre_no_login: No login
+    pre_password: password set, not shown
+    pre_no_password: no password
   new:
     title: New authentication means
   edit:
@@ -423,6 +428,12 @@ auth:
     key_hint: "The private key of the certificate; it is never shown again"
     paste_key: or paste the key
     legacy_hint: "Nothing to enter: this means states that the authentication follows the historic market convention for R66 certificates."
+    pre_hint: "What the gateway sends to the partner before the PeSIT connection, when it expects it: an optional login and password, at most eight ASCII characters each."
+    pre_login: Pre-connection login
+    pre_login_hint: "Empty: no login is sent"
+    pre_password: Pre-connection password
+    pre_password_hint: "Empty: no password is sent; stored encrypted, never shown again"
+    pre_password_keep: leave empty to keep it as it is
     refused: The authentication means was not saved.
     refused_text: Correct the fields flagged below.
     error:
@@ -446,6 +457,10 @@ auth:
     content: Content
     never_shown: Set, never shown
     legacy: "No value: the kind is enough"
+    pre_login: Pre-connection login
+    pre_no_login: None
+    pre_password: Pre-connection password
+    pre_no_password: None
     pem: Certificate (PEM)
     public_key: Public key
     public_note: "Public part only: it can be given to the partner."
@@ -715,19 +730,73 @@ partners:
     text: "An internal error occurred; the detail is in the log of the gateway."
 # Remote accounts of a partner: the identity the gateway presents to it.
 remote_accounts:
+  add: Add an account
+  search: Search an account by login
+  search_placeholder: Search by login
+  count: "{total} accounts"
+  count_one: 1 account
+  count_shown: "{total} accounts · {shown} shown"
+  count_shown_one: "{total} accounts · 1 shown"
+  caption: "Remote accounts, page {page} of {pages}, sorted by {sort}"
+  pager: "Accounts {from} to {to} of {total}"
+  sort:
+    name: login
+    auth: authentication
+  col:
+    login: Remote account
+    auth: Authentication
+  auth_none: "No means: cannot connect"
+  action:
+    detail: View the account
+    edit: Edit the account
+    delete: Delete the account
+  new:
+    title: New remote account
+  edit:
+    title: "Edit “{login}”"
+  form:
+    card: "Account on the partner “{name}”"
+    login: Login
+    login_hint: "Unique on this partner; the login the gateway presents"
+    first_means: First authentication means
+    first_means_hint: "The gateway will authenticate this way; you can add others in the sheet of the account."
+    refused: The account was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      login: Enter the login of the account.
+      taken: Another account of this partner already has this login.
+  delete:
+    title: "Delete the account “{login}”?"
+    text: "Its authentication means will be deleted with it; transfers to “{name}” that name it can no longer be created."
+    blocked_title: This account cannot be deleted.
+    blocked_transfers: Running transfers use it. Cancel them or wait for them to finish.
+    blocked_watchers: A folder watcher uses it. Remove it first.
+    blocked_link: See the running transfers
+  empty:
+    title: No remote account yet
+    text: "A remote account is the identity the gateway presents to this partner; a transfer always names one."
+  none:
+    title: "No account matches “{query}”"
   not_found:
     title: Remote account not found
     text: This account does not exist or has been deleted.
   toast:
-    created: "Account \"{login}\" created"
-    updated: "Account \"{login}\" saved"
-    deleted: "Account \"{login}\" deleted"
+    created: "Account “{login}” created"
+    updated: "Account “{login}” saved"
+    deleted: "Account “{login}” deleted"
 # Sheet of a remote account.
 remote_account:
-  title: "Account \"{login}\""
+  title: "Account “{login}”"
+  card: Remote account
   tab:
     details: Details
     auth: Authentication
+  detail:
+    partner: Partner
+    login: Login
+    auth: Authentication means
+    auth_none: None
+    note: "A transfer to this partner always names one of its accounts; the gateway presents itself with the means of the Authentication tab."
 # Local clients: the list, the details (with the partners the client can reach), the action pages.
 clients:
   title: Local clients

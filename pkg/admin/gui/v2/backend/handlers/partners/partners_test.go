@@ -62,15 +62,27 @@ func newSuite(t *testing.T) *suite {
 	r.Path("/partners/{id:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.DeleteForm)
 	r.Path("/partners/{id:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.Delete)
 
-	base := "/partners/{id:[0-9]+}/auth"
-	r.Path(base).Methods(http.MethodGet).HandlerFunc(h.Auth)
-	r.Path(base + "/new").Methods(http.MethodGet).HandlerFunc(h.NewCredForm)
-	r.Path(base + "/new").Methods(http.MethodPost).HandlerFunc(h.CreateCred)
-	r.Path(base + "/{cid:[0-9]+}").Methods(http.MethodGet).HandlerFunc(h.CredDetail)
-	r.Path(base + "/{cid:[0-9]+}/edit").Methods(http.MethodGet).HandlerFunc(h.EditCredForm)
-	r.Path(base + "/{cid:[0-9]+}/edit").Methods(http.MethodPost).HandlerFunc(h.UpdateCred)
-	r.Path(base + "/{cid:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.DeleteCredForm)
-	r.Path(base + "/{cid:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.DeleteCred)
+	const accountPath = "/partners/{id:[0-9]+}/accounts/{aid:[0-9]+}"
+
+	for _, base := range []string{"/partners/{id:[0-9]+}/auth", accountPath + "/auth"} {
+		r.Path(base).Methods(http.MethodGet).HandlerFunc(h.Auth)
+		r.Path(base + "/new").Methods(http.MethodGet).HandlerFunc(h.NewCredForm)
+		r.Path(base + "/new").Methods(http.MethodPost).HandlerFunc(h.CreateCred)
+		r.Path(base + "/{cid:[0-9]+}").Methods(http.MethodGet).HandlerFunc(h.CredDetail)
+		r.Path(base + "/{cid:[0-9]+}/edit").Methods(http.MethodGet).HandlerFunc(h.EditCredForm)
+		r.Path(base + "/{cid:[0-9]+}/edit").Methods(http.MethodPost).HandlerFunc(h.UpdateCred)
+		r.Path(base + "/{cid:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.DeleteCredForm)
+		r.Path(base + "/{cid:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.DeleteCred)
+	}
+
+	r.Path("/partners/{id:[0-9]+}/accounts").Methods(http.MethodGet).HandlerFunc(h.Accounts)
+	r.Path("/partners/{id:[0-9]+}/accounts/new").Methods(http.MethodGet).HandlerFunc(h.NewAccountForm)
+	r.Path("/partners/{id:[0-9]+}/accounts/new").Methods(http.MethodPost).HandlerFunc(h.CreateAccount)
+	r.Path(accountPath).Methods(http.MethodGet).HandlerFunc(h.AccountDetail)
+	r.Path(accountPath + "/edit").Methods(http.MethodGet).HandlerFunc(h.EditAccountForm)
+	r.Path(accountPath + "/edit").Methods(http.MethodPost).HandlerFunc(h.UpdateAccount)
+	r.Path(accountPath + "/delete").Methods(http.MethodGet).HandlerFunc(h.DeleteAccountForm)
+	r.Path(accountPath + "/delete").Methods(http.MethodPost).HandlerFunc(h.DeleteAccount)
 
 	return s
 }

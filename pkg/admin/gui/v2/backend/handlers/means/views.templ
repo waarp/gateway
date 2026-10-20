@@ -210,6 +210,62 @@ templ CredFields(f *Form) {
 			</div>
 		</fieldset>
 	}
+	if !f.Edit || f.Family == "pair" {
+		<fieldset
+			class="w-fieldset w-fieldset--wide"
+			if !f.Edit {
+				data-case="pesit_pre-connection_auth"
+				data-of={ f.Prefix + "type" }
+			}
+		>
+			<legend class="w-fieldset__legend">{ gui.T(ctx, "auth.type.pesit_pre-connection_auth") }</legend>
+			<p class="w-form__note sheet-note">{ gui.T(ctx, "auth.form.pre_hint") }</p>
+			<div class="w-grid w-grid--2">
+				<div class={ "w-field", templ.KV("is-invalid", f.PreLogin.Error != "") }>
+					<label class="w-field__label" for={ f.Prefix + "pre_login" }>{ gui.T(ctx, "auth.form.pre_login") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+					<input
+						class="w-input w-mono"
+						id={ f.Prefix + "pre_login" }
+						name={ f.Prefix + "pre_login" }
+						value={ f.PreLogin.Value }
+						maxlength="8"
+						spellcheck="false"
+						autocomplete="off"
+						aria-describedby={ f.Prefix + "pre_login-h" }
+						if f.PreLogin.Error != "" {
+							aria-invalid="true"
+						}
+					/>
+					@protoform.Message(f.Prefix+"pre_login-h", f.PreLogin.Error, gui.T(ctx, "auth.form.pre_login_hint"))
+				</div>
+				<div class={ "w-field", templ.KV("is-invalid", f.PrePassword.Error != "") }>
+					<label class="w-field__label" for={ f.Prefix + "pre_password" }>{ gui.T(ctx, "auth.form.pre_password") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+					<input
+						class="w-input"
+						type="password"
+						id={ f.Prefix + "pre_password" }
+						name={ f.Prefix + "pre_password" }
+						maxlength="8"
+						autocomplete="new-password"
+						aria-describedby={ f.Prefix + "pre_password-h" }
+						if f.PrePassword.Error != "" {
+							aria-invalid="true"
+						}
+					/>
+					if f.PrePassword.Error != "" {
+						<span class="w-field__error" id={ f.Prefix + "pre_password-h" }>
+							@gui.Icon("triangle")
+							{ f.PrePassword.Error }
+						</span>
+					} else if f.Edit {
+						<span class="w-field__hint" id={ f.Prefix + "pre_password-h" }>{ f.CurrentPassword + " · " + gui.T(ctx, "auth.form.pre_password_keep") }</span>
+					} else {
+						<span class="w-field__hint" id={ f.Prefix + "pre_password-h" }>{ gui.T(ctx, "auth.form.pre_password_hint") }</span>
+					}
+				</div>
+			</div>
+		</fieldset>
+	}
 	if !f.Edit || f.Family == "none" {
 		<fieldset
 			class="w-fieldset w-fieldset--wide"

@@ -11,6 +11,7 @@ package partners
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"code.waarp.fr/lib/gui"
@@ -44,14 +45,29 @@ const (
 	kindParam   = liststate.KindParam
 	kindCred    = means.KindCred
 	kindAccount = "account"
+
+	sortAuth = "auth"
 )
+
+//nolint:gochecknoglobals // reference data of the screen
+var accountSortKeys = []string{sortName, sortAuth}
 
 // The tab strip, the state of a tab list and the "not found" page come from
 // the shared pages of the means.
 type (
 	tab          = means.Tab
+	tabList      = liststate.TabList
 	notFoundData = means.NotFoundData
 )
+
+// parseQuery reads the state of a tab list: its search, its sort, its page.
+func parseQuery(v url.Values, sorts []string) *listQuery { return liststate.Parse(v, sorts, pageSizes) }
+
+// redirectSheet sends to a page of the sheet (a tab, already carrying the
+// list state) with the result of the action.
+func redirectSheet(w http.ResponseWriter, r *http.Request, target, kind, done, name string) {
+	liststate.RedirectTo(w, r, target, url.Values{kindParam: {kind}, doneParam: {done}, nameParam: {name}})
+}
 
 // owner is the holder of the authentication means a page concerns: the
 // partner itself (what the gateway checks of it) or one of its remote
