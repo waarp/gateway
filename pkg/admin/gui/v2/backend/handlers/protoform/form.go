@@ -571,7 +571,7 @@ func (f *Form) view(translate gui.Translator, opt *Option) *OptionView {
 		if opt.Cfg == cfgCipherSuites {
 			item.Choices = TLSCipherChoices(translate, f.lists[opt.Name])
 		} else {
-			item.Choices = multi(opt.Values(f.Role), f.lists[opt.Name])
+			item.Choices = sftpAlgoChoices(translate, opt.Values(f.Role), f.lists[opt.Name])
 		}
 	case KindNumber:
 		item.Kind, item.Value, item.Error = "number", f.fields[opt.Name].Value, f.fields[opt.Name].Error

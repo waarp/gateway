@@ -188,7 +188,7 @@ templ section(s SectionView) {
 		</div>
 	}
 	for _, v := range s.Lists {
-		@dualOf(v)
+		@tagsOf(v)
 	}
 }
 
@@ -254,11 +254,13 @@ templ option(v OptionView) {
 	}
 }
 
-// dualOf: a dual list (gui.Dual) with its label and hint.
-templ dualOf(v OptionView) {
+// tagsOf: an ordered list as a Tags field of the kit (gui.Tags: the chosen
+// values as numbered tags in order of preference, the others suggested; a
+// dual list until the kit 0.7.1) with its label and hint.
+templ tagsOf(v OptionView) {
 	<div class="w-field">
 		<label class="w-field__label" for={ v.Name }>{ v.Label } <span class="w-field__opt"><code class="w-code">{ v.Code }</code></span></label>
-		@gui.Dual(gui.DualProps{ID: v.Name, Name: v.Name, Choices: GUIChoices(v.Choices), Describe: v.Name + "-h"})
+		@gui.Tags(gui.TagsProps{ID: v.Name, Name: v.Name, Choices: GUIChoices(v.Choices), Describe: v.Name + "-h"})
 		<span class="w-field__hint" id={ v.Name + "-h" }>{ v.Hint }</span>
 	</div>
 }
@@ -283,7 +285,7 @@ templ tlsBlock(b BlockView) {
 	</div>
 	<fieldset class="w-fieldset w-fieldset--wide" data-case="v1.0 v1.1 v1.2" data-of="tlsver">
 		for _, v := range b.ListList() {
-			@dualOf(v)
+			@tagsOf(v)
 		}
 	</fieldset>
 }

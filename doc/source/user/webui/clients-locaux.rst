@@ -159,8 +159,9 @@ client* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
    * - Options du protocole
      - Les options de la famille choisie et, quand TLS est coché, le bloc
        *Chiffrement TLS* (version minimale, suites de chiffrement). Les
-       listes d'algorithmes se composent en deux colonnes, comme pour les
-       serveurs ; une liste vide accepte tous les algorithmes de la Gateway.
+       listes d'algorithmes se composent en étiquettes ordonnées, comme pour
+       les serveurs ; une liste vide accepte tous les algorithmes de la
+       Gateway.
        Le détail de chaque option se trouve dans la référence des
        :ref:`options de protocole <reference-proto-config>`.
 

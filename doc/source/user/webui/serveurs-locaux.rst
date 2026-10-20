@@ -132,12 +132,18 @@ serveur* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
        et, quand TLS est coché, le bloc *Chiffrement TLS* (version minimale,
        suites de chiffrement). Les
        listes d'algorithmes SSH et de suites de chiffrement TLS se composent
-       en deux colonnes, les algorithmes disponibles à gauche et les
-       algorithmes retenus à droite, dans l'ordre de préférence ; une liste
-       vide accepte tous les algorithmes de la Gateway. Les suites TLS,
-       nommées par leur code décimal puis leur nom (``49195 - TLS_ECDHE_…``,
-       du code le plus élevé au plus bas), se choisissent jusqu'à TLS 1.2 ;
-       en TLS 1.3, la bibliothèque les fixe.
+       en étiquettes : les algorithmes retenus s'affichent numérotés, dans
+       l'ordre de préférence, chacun avec son bouton *Retirer* ; le champ
+       *Ajouter* propose les algorithmes restants (taper filtre la liste,
+       flèche bas la parcourt, Entrée ajoute) ; une étiquette se déplace en
+       la glissant ou par Alt + flèche gauche ou droite, et Suppr la retire.
+       Une liste vide accepte tous les algorithmes de la Gateway. Un
+       algorithme à employer en connaissance de cause le dit dans son nom :
+       *(historique)* pour ceux fondés sur SHA-1, *(désactivé par défaut)*
+       pour les chiffrements que le module n'active plus de lui-même. Les
+       suites TLS, nommées par leur code décimal puis leur nom
+       (``49195 - TLS_ECDHE_…``, du code le plus élevé au plus bas), se
+       choisissent jusqu'à TLS 1.2 ; en TLS 1.3, la bibliothèque les fixe.
        Le détail de chaque option se trouve dans la référence des
        :ref:`options de protocole <reference-proto-config>`.
 
