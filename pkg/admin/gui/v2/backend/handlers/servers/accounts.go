@@ -26,7 +26,8 @@ const (
 
 //nolint:gochecknoglobals // reference data of the screen
 var accountsCounter = counter{
-	"accounts.count_one", "accounts.count", "accounts.count_shown_one", "accounts.count_shown",
+	One: "accounts.count_one", Many: "accounts.count",
+	ShownOne: "accounts.count_shown_one", ShownMany: "accounts.count_shown",
 }
 
 // accountEntry is an account with the kinds of its means.
@@ -123,7 +124,7 @@ func accountActions(translate gui.Translator, sid, aid int64, user rights, onDet
 
 // buildAccountsList computes the "Local accounts" tab: the accounts searched
 // by login, sorted by login or by their means, paged.
-func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry, query listQuery,
+func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry, query *listQuery,
 	user rights, carried string,
 ) accountsListData {
 	sid := e.agent.ID
@@ -152,7 +153,7 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 	slices.Sort(data.List.Names)
 	sortAccounts(translate, kept, query.Sort, query.Dir)
 
-	data.List.Count = accountsCounter.text(translate, len(entries), len(kept))
+	data.List.Count = accountsCounter.Text(translate, len(entries), len(kept))
 
 	switch {
 	case len(entries) == 0:
@@ -165,7 +166,7 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 		return data
 	}
 
-	b := pageOf(len(kept), query)
+	b := query.Bounds(len(kept))
 	data.List.Caption = translate("accounts.caption",
 		"page", b.Page, "pages", b.Pages, "sort", translate("accounts.sort."+query.Sort))
 

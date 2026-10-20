@@ -76,6 +76,108 @@ services:
     title: The states could not be refreshed.
     text: "Last successful read at {time}. The states shown date from that read; a new attempt is made every {seconds} s."
 
+# Protocols, shared by the local servers, the local clients and the remote partners: the family (R66, HTTP,
+# SFTP, FTP, PeSIT, WebDAV, AS2), TLS as an attribute at the screen (Driss, 2026-10-19; the product keeps one
+# key per variant), the options of each family.
+proto:
+  label: Protocol
+  choose: Choose a protocol
+  choose_hint: The options of the protocol appear after the choice.
+  choose_error: Choose a protocol.
+  tls: Secure the connection with TLS
+  tls_hint: "Offered for the protocols that exist with and without TLS; SFTP is secured by SSH"
+  tls_title: TLS encryption
+  tls_badge: TLS
+  described_tls: "{family}, secured by TLS ({name})"
+  filter_tls: TLS encryption
+  filter_tls_all: With or without TLS
+  filter_tls_yes: With TLS
+  filter_tls_no: Without TLS
+  options: "{protocol} options"
+  options_label: Options
+  error_number: Enter a whole number.
+  options_default: Default options of the gateway
+  options_set_one: 1 option set
+  options_set: "{n} options set"
+  tls_summary: "{version} · {suites}"
+  tls_suite_one: 1 suite chosen
+  tls_suites: "{n} suites chosen"
+  # Options by family: the effect for the operator first, the technical term as a monospace hint.
+  opt:
+    r66_login: Login expected from the partner
+    r66_login_hint: "By default, the name of the server"
+    r66_block: Size of a data block
+    r66_block_hint: "In bytes; 65,536 by default"
+    r66_no_final_hash: Do not check the hash at the end of the transfer
+    r66_check_block_hash: Check the hash of every block
+    r66_final_hash: Hash at the end of the transfer
+    r66_block_hash: Hash of every block
+    min_tls: Minimum TLS version
+    min_tls_hint: "Cipher suites are chosen up to TLS 1.2; in TLS 1.3 the library sets them."
+    tls_ciphers: "TLS cipher suites, up to TLS 1.2"
+    tls_ciphers_short: TLS cipher suites
+    tls_ciphers_hint: "Empty: every secure suite of the gateway is accepted when negotiating with the partner. A suite flagged insecure is only added knowingly."
+    tls_insecure: (insecure)
+    ftp_disable_passive: Disable the passive mode
+    ftp_disable_active: Disable the active mode
+    ftp_passive: Passive mode
+    ftp_active: Active mode
+    ftp_passive_min: First port of the passive mode
+    any_port_hint: "Empty: any free port"
+    ftp_passive_max: Last port of the passive mode
+    tls_requirement: TLS requirement
+    tls_requirements:
+      optional: Optional explicit TLS
+      mandatory: Mandatory explicit TLS
+      implicit: Implicit TLS
+    pesit_disable_restart: Disable the restart of interrupted transfers
+    pesit_disable_checkpoints: Disable the checkpoints
+    pesit_restart: Restart of interrupted transfers
+    pesit_checkpoints: Checkpoints
+    pesit_checkpoint_size: Interval between two checkpoints
+    pesit_checkpoint_window: Checkpoints without acknowledgement
+    pesit_checkpoint_window_hint: "Window, in number of checkpoints"
+    pesit_max_message: Maximum size of a message
+    pesit_mode: PeSIT mode
+    pesit_mode_hint: "“Standard” follows the published specification; “Non standard” follows the market convention some partners expect."
+    pesit_modes:
+      standard: Standard
+      non_standard: Non standard
+    pesit_disable_preconnection: Disable the pre-connection
+    pesit_preconnection: Pre-connection
+    sftp_note: "An empty list accepts every algorithm of the gateway; the order of the chosen ones is the preference order."
+    sftp_kex: Key exchange algorithms
+    sftp_kex_hint: "Empty: every key exchange algorithm is accepted"
+    sftp_ciphers: Cipher algorithms
+    sftp_ciphers_hint: "Empty: every cipher algorithm is accepted"
+    sftp_macs: Integrity algorithms
+    sftp_macs_hint: "Empty: every integrity algorithm is accepted"
+    as2_max_file_size: Maximum size of a file
+    as2_max_file_size_hint: "In bytes; cannot exceed the memory of the system"
+    as2_mdn_algo: Signature of the MDN acknowledgements
+    mdn:
+      none: No signature
+    bytes: In bytes
+    enabled: Enabled
+    disabled: Disabled
+    checked: Checked
+    unchecked: Not checked
+    default_login: The name of the server
+    default_block: "65,536 bytes"
+    default_value: Default value of the gateway
+    default_ciphers: Every secure suite of the gateway
+    default_algos: Every algorithm of the gateway
+    any_port: Any free port
+    none: No option for this protocol
+    r66_final_hash_algo: Hash algorithm at the end of the transfer
+    r66_final_hash_algo_hint: "SHA-256 by default"
+    ftp_enable_active: Enable the active mode
+    ftp_active_address: Active mode address
+    ftp_active_address_hint: "Local IP address announced to the server; empty: 0.0.0.0"
+    ftp_active_min: First port of the active mode
+    ftp_active_max: Last port of the active mode
+    default_active_address: "0.0.0.0"
+
 # "Local servers" screen (Connections): list, details, form, deletion, start and stop.
 servers:
   title: Local servers
@@ -123,8 +225,6 @@ servers:
     accounts: Local accounts
     dirs: Directories
     undefined: Not set
-    options: "{protocol} options"
-    options_label: Options
   dirs:
     root: Root directory
     receive: Receive directory
@@ -138,10 +238,6 @@ servers:
     identity: Identity
     name: Name
     name_hint: "Unique on this gateway; letters, digits, dashes and dots"
-    protocol: Protocol
-    protocol_choose: Choose a protocol
-    protocol_hint: The options of the protocol appear after the choice.
-    protocol_error: Choose the protocol of the server.
     no_autostart: Do not start automatically when the gateway starts
     address: Listening address
     host: Host
@@ -151,7 +247,9 @@ servers:
     dirs: Directories
     dirs_hint: "Optional; a relative path is resolved from the gateway root directory."
     tmp_hint: "Files are written there during the reception, then moved to the receive directory"
-    options: "{protocol} options"
+    dirs_root_summary: "Root “{root}”"
+    dirs_count_summary: "{n} directories set"
+    dirs_default_summary: Default directories of the gateway
     refused: The server was not saved.
     refused_text: Correct the fields flagged below.
     error:
@@ -160,76 +258,6 @@ servers:
       address_taken: Another server already listens on this address and port.
       address: Enter a valid host name or IP address.
       port: Enter a port between 1 and 65535.
-      number: Enter a whole number.
-  # Options by protocol: the effect for the operator first, the technical term as a monospace hint.
-  opt:
-    r66_login: Login expected from the partner
-    r66_login_hint: "By default, the name of the server"
-    r66_block: Size of a data block
-    r66_block_hint: "In bytes; 65,536 by default"
-    r66_no_final_hash: Do not check the hash at the end of the transfer
-    r66_check_block_hash: Check the hash of every block
-    r66_final_hash: Hash at the end of the transfer
-    r66_block_hash: Hash of every block
-    tls: TLS
-    min_tls: Minimum TLS version
-    min_tls_hint: "Cipher suites are chosen up to TLS 1.2; in TLS 1.3 the library sets them."
-    tls_ciphers: "TLS cipher suites, up to TLS 1.2"
-    tls_ciphers_short: TLS cipher suites
-    tls_ciphers_hint: "Empty: every secure suite of the gateway is accepted when negotiating with the partner. A suite flagged insecure is only added knowingly."
-    tls_insecure: (insecure)
-    ftp_disable_passive: Disable the passive mode
-    ftp_disable_active: Disable the active mode
-    ftp_passive: Passive mode
-    ftp_active: Active mode
-    ftp_passive_min: First port of the passive mode
-    ftp_passive_min_hint: "Empty: any free port"
-    ftp_passive_max: Last port of the passive mode
-    tls_requirement: TLS requirement
-    tls_requirements:
-      optional: Optional explicit TLS
-      mandatory: Mandatory explicit TLS
-      implicit: Implicit TLS
-    pesit_disable_restart: Disable the restart of interrupted transfers
-    pesit_disable_checkpoints: Disable the checkpoints
-    pesit_restart: Restart of interrupted transfers
-    pesit_checkpoints: Checkpoints
-    pesit_checkpoint_size: Interval between two checkpoints
-    pesit_checkpoint_window: Checkpoints without acknowledgement
-    pesit_checkpoint_window_hint: "Window, in number of checkpoints"
-    pesit_max_message: Maximum size of a message
-    pesit_mode: PeSIT mode
-    pesit_mode_hint: "“Standard” follows the published specification; “Non standard” follows the market convention some partners expect."
-    pesit_modes:
-      standard: Standard
-      non_standard: Non standard
-    pesit_disable_preconnection: Disable the pre-connection
-    pesit_preconnection: Pre-connection
-    sftp_note: "An empty list accepts every algorithm of the gateway; the order of the chosen ones is the preference order."
-    sftp_kex: Key exchange algorithms
-    sftp_kex_hint: "Empty: every key exchange algorithm is accepted"
-    sftp_ciphers: Cipher algorithms
-    sftp_ciphers_hint: "Empty: every cipher algorithm is accepted"
-    sftp_macs: Integrity algorithms
-    sftp_macs_hint: "Empty: every integrity algorithm is accepted"
-    as2_max_file_size: Maximum size of a file
-    as2_max_file_size_hint: "In bytes; cannot exceed the memory of the system"
-    as2_mdn_algo: Signature of the MDN acknowledgements
-    mdn:
-      none: No signature
-    bytes: In bytes
-    enabled: Enabled
-    disabled: Disabled
-    checked: Checked
-    unchecked: Not checked
-    default_login: The name of the server
-    default_block: "65,536 bytes"
-    default_value: Default value of the gateway
-    default_ciphers: Every secure suite of the gateway
-    default_algos: Every algorithm of the gateway
-    ports: "Ports {min} to {max}"
-    any_port: Any free port
-    none: No option for this protocol
   delete:
     title: "Delete the server “{name}”?"
     text: "Its local accounts and their authentication means will be deleted with it. The rules that name it in their access lists will no longer apply to it."
@@ -533,3 +561,123 @@ me:
     mismatch: The two entries of the new password differ.
   toast:
     password: Password changed
+# Local clients: the list, the details (with the partners the client can reach), the action pages.
+clients:
+  title: Local clients
+  add: Add a client
+  search: Search a client by name
+  search_placeholder: Search by name
+  filters: Protocols
+  count: "{total} clients"
+  count_one: 1 client
+  count_shown: "{total} clients · {shown} shown"
+  count_shown_one: "{total} clients · 1 shown"
+  caption: "Local clients, page {page} of {pages}, sorted by {sort}"
+  pager: "Clients {from} to {to} of {total}"
+  back: Back to the list
+  back_client: Back to the client
+  address_auto: Automatic
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    state: status
+    protocol: protocol
+    address: address
+  col:
+    name: Local client
+    state: Status
+    protocol: Protocol
+    address: Local address
+    actions: Actions
+  action:
+    detail: View details
+    start: Start the client
+    stop: Stop the client
+    edit: Edit the client
+    delete: Delete the client
+  detail:
+    title: "Client “{name}”"
+    card: Client
+    state: Status
+    protocol: Protocol
+    address: Local address
+    autostart: Automatic start
+    autostart_yes: "Yes"
+    autostart_no: "No"
+    retries: Transfer retries
+    retries_none: No automatic retry
+    partners: Partners this client can reach
+    partners_hint: "The remote partners of its protocol; a transfer to one of them goes through this client, unless another one is named."
+    partners_none: No partner of this protocol yet.
+    col_partner: Remote partner
+    col_address: Address
+  retries:
+    attempts: Automatic retries after a failure
+    attempts_hint: "0: no retry; 127 at most"
+    delay: Delay before the first retry
+    delay_hint: "Empty: immediate retry"
+    delay_none: No delay
+    delay_hours: "{n} h"
+    delay_minutes: "{n} min"
+    delay_seconds: "{n} s"
+    hours: hours
+    minutes: minutes
+    seconds: seconds
+    factor: Delay growth factor
+    factor_hint: "1: constant delay; 2: the delay doubles at each retry"
+  new:
+    title: New client
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique on this gateway; letters, digits, dashes and dots"
+    no_autostart: Do not start automatically when the gateway starts
+    address: Local address
+    address_hint: "Optional: left empty, the system chooses the outgoing interface and port."
+    host: Host
+    host_hint: "Host name or IP address of the outgoing interface"
+    port: Port
+    port_hint: "Outgoing TCP port, 1 to 65535"
+    retries: Transfer retries
+    retries_hint: "When a transfer through this client fails, the gateway retries it on its own, as set here."
+    retries_summary: "{attempts} retries · {delay} · ×{factor}"
+    retries_summary_one: "1 retry · {delay} · ×{factor}"
+    refused: The client was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: This field is required.
+      name_taken: Another client already has this name. Choose another one.
+      address: Enter a valid host name or IP address.
+      port: Enter a port between 1 and 65535.
+      number: Enter a positive whole number.
+      attempts: Enter a number of retries between 0 and 127.
+      factor: Enter a factor above 0.
+  delete:
+    title: "Delete the client “{name}”?"
+    text: "Transfers to come or interrupted that name it will no longer run; the transfer history keeps its name."
+    running: "It is running: it will be stopped and its running transfers interrupted."
+    blocked_title: This client cannot be deleted.
+    blocked_text: "Folder watchers use it. Delete them first, through the API or the command line."
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Client “{name}” created"
+    updated: "Client “{name}” saved"
+    deleted: "Client “{name}” deleted"
+    started: "Client “{name}” started"
+    stopped: "Client “{name}” stopped"
+    start_failed: "Client “{name}” did not start"
+    stop_failed: "Client “{name}” could not be stopped"
+  empty:
+    title: No local client yet
+    text: "A local client is the outgoing identity of the gateway for one protocol: it connects to the partners to drop or fetch files."
+  none:
+    title: "No client matches “{query}”"
+    filters: No client matches the filters
+  not_found:
+    title: Client not found
+    text: This client does not exist or has been deleted.
+  error:
+    title: The client list could not be loaded.
+    text: "An internal error occurred; the details are in the gateway log."

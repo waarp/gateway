@@ -78,7 +78,9 @@ var (
 		r66auth.AuthLegacyCertificate: familyNone,
 	}
 
-	credsCounter = counter{"auth.count_one", "auth.count", "auth.count_shown_one", "auth.count_shown"}
+	credsCounter = counter{
+		One: "auth.count_one", Many: "auth.count", ShownOne: "auth.count_shown_one", ShownMany: "auth.count_shown",
+	}
 )
 
 func familyOf(typ string) string { return credFamilies[typ] }
@@ -348,7 +350,7 @@ func credActions(translate gui.Translator, own owner, id int64, user rights, car
 
 // buildCredList computes the "Authentication" tab of an owner: the means
 // searched by name, sorted, paged, each one with its non-secret summary.
-func buildCredList(translate gui.Translator, own owner, creds []*model.Credential, query listQuery,
+func buildCredList(translate gui.Translator, own owner, creds []*model.Credential, query *listQuery,
 	user rights, carried string, now time.Time,
 ) credListData {
 	base := own.authURL()
@@ -388,7 +390,7 @@ func buildCredList(translate gui.Translator, own owner, creds []*model.Credentia
 	slices.Sort(data.List.Names)
 	sortViews(translate, views, query.Sort, query.Dir)
 
-	data.List.Count = credsCounter.text(translate, len(creds), len(views))
+	data.List.Count = credsCounter.Text(translate, len(creds), len(views))
 
 	switch {
 	case len(creds) == 0:
@@ -401,7 +403,7 @@ func buildCredList(translate gui.Translator, own owner, creds []*model.Credentia
 		return data
 	}
 
-	b := pageOf(len(views), query)
+	b := query.Bounds(len(views))
 	data.List.Caption = translate("auth.caption",
 		"page", b.Page, "pages", b.Pages, "sort", translate("auth.sort."+query.Sort))
 

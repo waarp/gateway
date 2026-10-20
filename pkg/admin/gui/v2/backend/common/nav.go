@@ -38,7 +38,7 @@ func navigation() []navGroup {
 	return []navGroup{
 		{section: constants.SidebarSectionConnection, key: "nav.connections", entries: []navEntry{
 			{constants.SidebarMenuServers, "server", "nav.servers", "/servers", model.PermServersRead},
-			{constants.SidebarMenuClients, "arrows", "nav.clients", "/local_client_management", model.PermServersRead},
+			{constants.SidebarMenuClients, "arrows", "nav.clients", "/clients", model.PermServersRead},
 			{constants.SidebarMenuPartners, "globe", "nav.partners", "/partner_management", model.PermPartnersRead},
 		}},
 		{section: constants.SidebarSectionTreatments, key: "nav.treatments", entries: []navEntry{

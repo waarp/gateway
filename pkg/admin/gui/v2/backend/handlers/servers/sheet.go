@@ -23,6 +23,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -134,15 +135,6 @@ func (own owner) title(translate gui.Translator) string {
 
 func accountURL(serverID, accountID int64, suffix string) string {
 	return serverURL(serverID, accountsSuffix+"/"+strconv.FormatInt(accountID, 10)+suffix)
-}
-
-// withQuery appends a query to a URL.
-func withQuery(u string, v url.Values) string {
-	if encoded := v.Encode(); encoded != "" {
-		return u + "?" + encoded
-	}
-
-	return u
 }
 
 // owner reads the {id} of the server and, on the routes of an account, its
@@ -418,15 +410,15 @@ type tabList struct {
 }
 
 // newTabList builds the state of a tab list from its query.
-func newTabList(base string, query listQuery, carried string) tabList {
-	hidden, pagerHidden := query.toolbarHidden(), query.pagerHidden()
+func newTabList(base string, query *listQuery, carried string) tabList {
+	hidden, pagerHidden := query.ToolbarHidden(), query.PagerHidden()
 	if carried != "" {
 		hidden[retParam], pagerHidden[retParam] = carried, carried
 	}
 
 	return tabList{
 		Action:      base,
-		Base:        withRet(withQuery(base, query.filterValues()), carried),
+		Base:        withRet(liststate.WithQuery(base, query.FilterValues()), carried),
 		Q:           query.Q,
 		Hidden:      hidden,
 		Sort:        query.Sort,
@@ -443,47 +435,23 @@ func (l *tabList) noMatch(translate gui.Translator, text, base, carried string) 
 	l.NoMatchURL, l.NoMatchLink = withRet(base, carried), translate("search.clear")
 }
 
-// bounds are the page of a list once the matching rows are known: the page
-// bounded by the count, the rows it shows.
-type bounds struct{ Page, Pages, From, To int }
-
-func pageOf(total int, query listQuery) bounds {
-	pages := (total + query.Size - 1) / query.Size
-	page := min(max(query.Page, 1), pages)
-
-	return bounds{Page: page, Pages: pages, From: (page - 1) * query.Size, To: min(page*query.Size, total)}
-}
-
 // foot fills the list foot: the rows per page (offered as soon as there are
 // rows) and the pages.
-func (l *tabList) foot(info string, b bounds, query listQuery, base, carried string) {
+func (l *tabList) foot(info string, b liststate.Bounds, query *listQuery, base, carried string) {
 	l.Sizes = pageSizes
 	l.Pager = &pager{Info: info, Page: b.Page, Pages: b.Pages}
 
 	if b.Page > 1 {
-		l.Pager.PrevURL = withRet(withQuery(base, query.withPage(b.Page-1)), carried)
+		l.Pager.PrevURL = withRet(liststate.WithQuery(base, query.WithPage(b.Page-1)), carried)
 	}
 
 	if b.Page < b.Pages {
-		l.Pager.NextURL = withRet(withQuery(base, query.withPage(b.Page+1)), carried)
+		l.Pager.NextURL = withRet(liststate.WithQuery(base, query.WithPage(b.Page+1)), carried)
 	}
 }
 
 // counter is the set of keys of a count: "N objects", "N objects · n shown".
-type counter struct{ one, many, shownOne, shownMany string }
-
-func (c counter) text(translate gui.Translator, total, shown int) string {
-	switch {
-	case shown == total && total == 1:
-		return translate(c.one)
-	case shown == total:
-		return translate(c.many, "total", total)
-	case shown == 1:
-		return translate(c.shownOne, "total", total)
-	default:
-		return translate(c.shownMany, "total", total, "shown", shown)
-	}
-}
+type counter = liststate.Counter
 
 // ---------------------------------------------------------------- forms ----
 

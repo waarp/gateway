@@ -75,6 +75,108 @@ services:
     title: Les états n'ont pas pu être actualisés.
     text: "Dernière lecture réussie à {time}. Les états affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."
 
+# Protocoles, partagés par les serveurs locaux, les clients locaux et les partenaires distants : la famille
+# (R66, HTTP, SFTP, FTP, PeSIT, WebDAV, AS2), TLS comme attribut à l'écran (Driss, 19/10/2026 ; le produit
+# garde une clé par variante), les options de chaque famille.
+proto:
+  label: Protocole
+  choose: Choisissez un protocole
+  choose_hint: Les options du protocole apparaissent après le choix.
+  choose_error: Choisissez un protocole.
+  tls: Chiffrer la connexion par TLS
+  tls_hint: "Proposé pour les protocoles qui existent avec et sans TLS ; SFTP est chiffré par SSH"
+  tls_title: Chiffrement TLS
+  tls_badge: TLS
+  described_tls: "{family}, chiffré par TLS ({name})"
+  filter_tls: Chiffrement TLS
+  filter_tls_all: Avec ou sans TLS
+  filter_tls_yes: Avec TLS
+  filter_tls_no: Sans TLS
+  options: "Options du protocole {protocol}"
+  options_label: Options
+  error_number: Indiquez un nombre entier.
+  options_default: Options par défaut de la passerelle
+  options_set_one: 1 option renseignée
+  options_set: "{n} options renseignées"
+  tls_summary: "{version} · {suites}"
+  tls_suite_one: 1 suite retenue
+  tls_suites: "{n} suites retenues"
+  # Options par famille : l'effet pour l'exploitant d'abord, le terme technique en aide monospace.
+  opt:
+    r66_login: Identifiant attendu du partenaire
+    r66_login_hint: "Par défaut, le nom du serveur"
+    r66_block: Taille d'un bloc de données
+    r66_block_hint: "En octets ; 65 536 par défaut"
+    r66_no_final_hash: Ne pas vérifier le hachage en fin de transfert
+    r66_check_block_hash: Vérifier le hachage de chaque bloc
+    r66_final_hash: Hachage en fin de transfert
+    r66_block_hash: Hachage de chaque bloc
+    min_tls: Version TLS minimale
+    min_tls_hint: "Les suites de chiffrement se choisissent jusqu'à TLS 1.2 ; en TLS 1.3, la bibliothèque les fixe."
+    tls_ciphers: "Suites de chiffrement TLS, jusqu'à TLS 1.2"
+    tls_ciphers_short: Suites de chiffrement TLS
+    tls_ciphers_hint: "Vide : toutes les suites sûres de la passerelle sont acceptées lors de la négociation avec le partenaire. Une suite marquée « non sécurisée » ne s'ajoute qu'en connaissance de cause."
+    tls_insecure: (non sécurisée)
+    ftp_disable_passive: Désactiver le mode passif
+    ftp_disable_active: Désactiver le mode actif
+    ftp_passive: Mode passif
+    ftp_active: Mode actif
+    ftp_passive_min: Premier port du mode passif
+    any_port_hint: "Vide : n'importe quel port libre"
+    ftp_passive_max: Dernier port du mode passif
+    tls_requirement: Exigence TLS
+    tls_requirements:
+      optional: TLS explicite facultatif
+      mandatory: TLS explicite obligatoire
+      implicit: TLS implicite
+    pesit_disable_restart: Désactiver la reprise des transferts interrompus
+    pesit_disable_checkpoints: Désactiver les points de synchronisation
+    pesit_restart: Reprise des transferts interrompus
+    pesit_checkpoints: Points de synchronisation
+    pesit_checkpoint_size: Intervalle entre deux points de synchronisation
+    pesit_checkpoint_window: Points de synchronisation sans acquittement
+    pesit_checkpoint_window_hint: "Fenêtre, en nombre de points"
+    pesit_max_message: Taille maximale d'un message
+    pesit_mode: Mode PeSIT
+    pesit_mode_hint: "« Standard » suit la spécification publiée ; « Non standard » suit la convention du marché attendue par certains partenaires."
+    pesit_modes:
+      standard: Standard
+      non_standard: Non standard
+    pesit_disable_preconnection: Désactiver la pré-connexion
+    pesit_preconnection: Pré-connexion
+    sftp_note: "Une liste vide accepte tous les algorithmes de la passerelle ; l'ordre des retenus est l'ordre de préférence."
+    sftp_kex: Algorithmes d'échange de clés
+    sftp_kex_hint: "Vide : tous les algorithmes d'échange de clés sont acceptés"
+    sftp_ciphers: Algorithmes de chiffrement
+    sftp_ciphers_hint: "Vide : tous les algorithmes de chiffrement sont acceptés"
+    sftp_macs: Algorithmes d'intégrité
+    sftp_macs_hint: "Vide : tous les algorithmes d'intégrité sont acceptés"
+    as2_max_file_size: Taille maximale d'un fichier
+    as2_max_file_size_hint: "En octets ; ne peut pas dépasser la mémoire du système"
+    as2_mdn_algo: Signature des accusés MDN
+    mdn:
+      none: Aucune signature
+    bytes: En octets
+    enabled: Activé
+    disabled: Désactivé
+    checked: Vérifié
+    unchecked: Non vérifié
+    default_login: Le nom du serveur
+    default_block: "65 536 octets"
+    default_value: Valeur par défaut de la passerelle
+    default_ciphers: Toutes les suites sûres de la passerelle
+    default_algos: Tous les algorithmes de la passerelle
+    any_port: N'importe quel port libre
+    none: Aucune option pour ce protocole
+    r66_final_hash_algo: Algorithme du hachage en fin de transfert
+    r66_final_hash_algo_hint: "SHA-256 par défaut"
+    ftp_enable_active: Activer le mode actif
+    ftp_active_address: Adresse du mode actif
+    ftp_active_address_hint: "Adresse IP locale annoncée au serveur ; vide : 0.0.0.0"
+    ftp_active_min: Premier port du mode actif
+    ftp_active_max: Dernier port du mode actif
+    default_active_address: "0.0.0.0"
+
 # Écran « Serveurs locaux » (Connexions) : liste, détail, formulaire, suppression, démarrage et arrêt.
 servers:
   title: Serveurs locaux
@@ -122,8 +224,6 @@ servers:
     accounts: Comptes locaux
     dirs: Dossiers
     undefined: Non défini
-    options: "Options du protocole {protocol}"
-    options_label: Options
   dirs:
     root: Dossier racine
     receive: Dossier de réception
@@ -137,10 +237,6 @@ servers:
     identity: Identité
     name: Nom
     name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
-    protocol: Protocole
-    protocol_choose: Choisissez un protocole
-    protocol_hint: Les options du protocole apparaissent après le choix.
-    protocol_error: Choisissez le protocole du serveur.
     no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
     address: Adresse d'écoute
     host: Hôte
@@ -150,7 +246,9 @@ servers:
     dirs: Dossiers
     dirs_hint: "Facultatifs ; un chemin relatif s'entend depuis le dossier racine de la passerelle."
     tmp_hint: "Les fichiers y sont écrits pendant la réception, puis déplacés dans le dossier de réception"
-    options: "Options du protocole {protocol}"
+    dirs_root_summary: "Racine « {root} »"
+    dirs_count_summary: "{n} dossiers définis"
+    dirs_default_summary: Dossiers par défaut de la passerelle
     refused: Le serveur n'a pas été enregistré.
     refused_text: Corrigez les champs signalés ci-dessous.
     error:
@@ -159,76 +257,6 @@ servers:
       address_taken: Un autre serveur écoute déjà sur cette adresse et ce port.
       address: "Indiquez un nom d'hôte ou une adresse IP valide."
       port: Indiquez un port entre 1 et 65535.
-      number: Indiquez un nombre entier.
-  # Options par protocole : l'effet pour l'exploitant d'abord, le terme technique en aide monospace.
-  opt:
-    r66_login: Identifiant attendu du partenaire
-    r66_login_hint: "Par défaut, le nom du serveur"
-    r66_block: Taille d'un bloc de données
-    r66_block_hint: "En octets ; 65 536 par défaut"
-    r66_no_final_hash: Ne pas vérifier le hachage en fin de transfert
-    r66_check_block_hash: Vérifier le hachage de chaque bloc
-    r66_final_hash: Hachage en fin de transfert
-    r66_block_hash: Hachage de chaque bloc
-    tls: TLS
-    min_tls: Version TLS minimale
-    min_tls_hint: "Les suites de chiffrement se choisissent jusqu'à TLS 1.2 ; en TLS 1.3, la bibliothèque les fixe."
-    tls_ciphers: "Suites de chiffrement TLS, jusqu'à TLS 1.2"
-    tls_ciphers_short: Suites de chiffrement TLS
-    tls_ciphers_hint: "Vide : toutes les suites sûres de la passerelle sont acceptées lors de la négociation avec le partenaire. Une suite marquée « non sécurisée » ne s'ajoute qu'en connaissance de cause."
-    tls_insecure: (non sécurisée)
-    ftp_disable_passive: Désactiver le mode passif
-    ftp_disable_active: Désactiver le mode actif
-    ftp_passive: Mode passif
-    ftp_active: Mode actif
-    ftp_passive_min: Premier port du mode passif
-    ftp_passive_min_hint: "Vide : n'importe quel port libre"
-    ftp_passive_max: Dernier port du mode passif
-    tls_requirement: Exigence TLS
-    tls_requirements:
-      optional: TLS explicite facultatif
-      mandatory: TLS explicite obligatoire
-      implicit: TLS implicite
-    pesit_disable_restart: Désactiver la reprise des transferts interrompus
-    pesit_disable_checkpoints: Désactiver les points de synchronisation
-    pesit_restart: Reprise des transferts interrompus
-    pesit_checkpoints: Points de synchronisation
-    pesit_checkpoint_size: Intervalle entre deux points de synchronisation
-    pesit_checkpoint_window: Points de synchronisation sans acquittement
-    pesit_checkpoint_window_hint: "Fenêtre, en nombre de points"
-    pesit_max_message: Taille maximale d'un message
-    pesit_mode: Mode PeSIT
-    pesit_mode_hint: "« Standard » suit la spécification publiée ; « Non standard » suit la convention du marché attendue par certains partenaires."
-    pesit_modes:
-      standard: Standard
-      non_standard: Non standard
-    pesit_disable_preconnection: Désactiver la pré-connexion
-    pesit_preconnection: Pré-connexion
-    sftp_note: "Une liste vide accepte tous les algorithmes de la passerelle ; l'ordre des retenus est l'ordre de préférence."
-    sftp_kex: Algorithmes d'échange de clés
-    sftp_kex_hint: "Vide : tous les algorithmes d'échange de clés sont acceptés"
-    sftp_ciphers: Algorithmes de chiffrement
-    sftp_ciphers_hint: "Vide : tous les algorithmes de chiffrement sont acceptés"
-    sftp_macs: Algorithmes d'intégrité
-    sftp_macs_hint: "Vide : tous les algorithmes d'intégrité sont acceptés"
-    as2_max_file_size: Taille maximale d'un fichier
-    as2_max_file_size_hint: "En octets ; ne peut pas dépasser la mémoire du système"
-    as2_mdn_algo: Signature des accusés MDN
-    mdn:
-      none: Aucune signature
-    bytes: En octets
-    enabled: Activé
-    disabled: Désactivé
-    checked: Vérifié
-    unchecked: Non vérifié
-    default_login: Le nom du serveur
-    default_block: "65 536 octets"
-    default_value: Valeur par défaut de la passerelle
-    default_ciphers: Toutes les suites sûres de la passerelle
-    default_algos: Tous les algorithmes de la passerelle
-    ports: "Ports {min} à {max}"
-    any_port: N'importe quel port libre
-    none: Aucune option pour ce protocole
   delete:
     title: "Supprimer le serveur « {name} » ?"
     text: "Ses comptes locaux et leurs moyens d'authentification seront supprimés avec lui. Les règles qui le désignent dans leurs accès ne s'appliqueront plus à lui."
@@ -532,3 +560,123 @@ me:
     mismatch: Les deux saisies du nouveau mot de passe diffèrent.
   toast:
     password: Mot de passe modifié
+# Clients locaux : la liste, le détail (avec les partenaires joignables), les pages d'action.
+clients:
+  title: Clients locaux
+  add: Ajouter un client
+  search: Rechercher un client par son nom
+  search_placeholder: Rechercher par nom
+  filters: Protocoles
+  count: "{total} clients"
+  count_one: 1 client
+  count_shown: "{total} clients · {shown} affichés"
+  count_shown_one: "{total} clients · 1 affiché"
+  caption: "Clients locaux, page {page} sur {pages}, triés par {sort}"
+  pager: "Clients {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_client: Retour au client
+  address_auto: Automatique
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    state: état
+    protocol: protocole
+    address: adresse
+  col:
+    name: Client local
+    state: État
+    protocol: Protocole
+    address: Adresse locale
+    actions: Actions
+  action:
+    detail: Voir le détail
+    start: Démarrer le client
+    stop: Arrêter le client
+    edit: Modifier le client
+    delete: Supprimer le client
+  detail:
+    title: "Client « {name} »"
+    card: Client
+    state: État
+    protocol: Protocole
+    address: Adresse locale
+    autostart: Démarrage automatique
+    autostart_yes: Oui
+    autostart_no: Non
+    retries: Reprise des transferts
+    retries_none: Aucune reprise automatique
+    partners: Partenaires joignables par ce client
+    partners_hint: "Les partenaires distants de son protocole ; un transfert vers l'un d'eux passe par ce client, sauf à en nommer un autre."
+    partners_none: Aucun partenaire de ce protocole pour l'instant.
+    col_partner: Partenaire distant
+    col_address: Adresse
+  retries:
+    attempts: Tentatives automatiques après un échec
+    attempts_hint: "0 : aucune reprise ; 127 au plus"
+    delay: Délai avant la première reprise
+    delay_hint: "Vide : reprise immédiate"
+    delay_none: Aucun délai
+    delay_hours: "{n} h"
+    delay_minutes: "{n} min"
+    delay_seconds: "{n} s"
+    hours: heures
+    minutes: minutes
+    seconds: secondes
+    factor: Facteur de progression du délai
+    factor_hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
+  new:
+    title: Nouveau client
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
+    no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
+    address: Adresse locale
+    address_hint: "Facultative : vide, l'interface et le port de sortie sont choisis par le système."
+    host: Hôte
+    host_hint: "Nom d'hôte ou adresse IP de l'interface de sortie"
+    port: Port
+    port_hint: "Port TCP de sortie, de 1 à 65535"
+    retries: Reprise des transferts
+    retries_hint: "Quand un transfert passé par ce client échoue, la passerelle le retente d'elle-même, selon ces réglages."
+    retries_summary: "{attempts} tentatives · {delay} · ×{factor}"
+    retries_summary_one: "1 tentative · {delay} · ×{factor}"
+    refused: Le client n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Un autre client porte déjà ce nom. Choisissez-en un autre.
+      address: "Indiquez un nom d'hôte ou une adresse IP valide."
+      port: Indiquez un port entre 1 et 65535.
+      number: Indiquez un nombre entier positif.
+      attempts: Indiquez un nombre de tentatives entre 0 et 127.
+      factor: Indiquez un facteur supérieur à 0.
+  delete:
+    title: "Supprimer le client « {name} » ?"
+    text: "Les transferts à venir ou interrompus qui le désignent ne pourront plus s'exécuter ; l'historique des transferts garde son nom."
+    running: "Il est en ligne : il sera arrêté et ses transferts en cours interrompus."
+    blocked_title: Ce client ne peut pas être supprimé.
+    blocked_text: "Des surveillances de dossiers l'utilisent. Supprimez-les d'abord, par l'API ou la ligne de commande."
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Client « {name} » créé"
+    updated: "Client « {name} » enregistré"
+    deleted: "Client « {name} » supprimé"
+    started: "Client « {name} » démarré"
+    stopped: "Client « {name} » arrêté"
+    start_failed: "Le client « {name} » n'a pas démarré"
+    stop_failed: "Le client « {name} » n'a pas pu être arrêté"
+  empty:
+    title: Aucun client local pour l'instant
+    text: "Un client local est l'identité sortante de la passerelle pour un protocole : il se connecte aux partenaires pour déposer ou retirer des fichiers."
+  none:
+    title: "Aucun client ne correspond à « {query} »"
+    filters: Aucun client ne correspond aux filtres
+  not_found:
+    title: Client introuvable
+    text: Ce client n'existe pas ou a été supprimé.
+  error:
+    title: La liste des clients n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

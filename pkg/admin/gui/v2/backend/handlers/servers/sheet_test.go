@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -886,7 +887,7 @@ func TestSheetHelpers(t *testing.T) {
 	t.Parallel()
 
 	q := parseQuery(url.Values{"q": {" x "}, "sort": {"type"}, "dir": {"desc"}, "page": {"2"}, "size": {"25"}, "protocol": {"sftp"}}, credSortKeys)
-	assert.Equal(t, listQuery{Q: "x", Sort: "type", Dir: "desc", Page: 2, Size: 25}, q, "the protocols belong to the servers list only")
+	assert.Equal(t, "dir=desc&page=2&q=x&size=25&sort=type", sortedQuery(q.Encode(q.Page)), "the protocols belong to the servers list only")
 	assert.Equal(t, "name", parseQuery(url.Values{"sort": {"state"}}, credSortKeys).Sort, "a sort of another list falls back")
 
 	list := newTabList("/webui/servers/1/auth", q, "q=srv")
@@ -894,8 +895,8 @@ func TestSheetHelpers(t *testing.T) {
 	assert.Equal(t, map[string]string{"sort": "type", "dir": "desc", "size": "25", "ret": "q=srv"}, list.Hidden)
 	assert.Equal(t, map[string]string{"q": "x", "sort": "type", "dir": "desc", "ret": "q=srv"}, list.PagerHidden)
 
-	b := pageOf(23, listQuery{Page: 9, Size: 10})
-	assert.Equal(t, bounds{Page: 3, Pages: 3, From: 20, To: 23}, b, "the page is bounded by the count")
+	b := liststate.Parse(url.Values{"page": {"9"}, "size": {"10"}}, credSortKeys, pageSizes).Bounds(23)
+	assert.Equal(t, liststate.Bounds{Page: 3, Pages: 3, From: 20, To: 23}, b, "the page is bounded by the count")
 
 	ips, bad := parseIPs("10.0.0.1, 10.0.0.2;\r\n 2001:DB8::1\t")
 	assert.Empty(t, bad)
@@ -917,4 +918,14 @@ func TestSheetHelpers(t *testing.T) {
 	broken := viewOf(&model.Credential{Type: auth.TLSCertificate, Value: "garbage"})
 	assert.Empty(t, broken.Subject)
 	assert.Empty(t, broken.expiry(func(key string, _ ...any) string { return key }, time.Now()).State)
+}
+
+// sortedQuery re-encodes a query with its keys in a stable order.
+func sortedQuery(encoded string) string {
+	v, err := url.ParseQuery(encoded)
+	if err != nil {
+		return encoded
+	}
+
+	return v.Encode()
 }

@@ -32,7 +32,9 @@ La liste
        exemple un port déjà utilisé). Les états sont ceux de l'écran
        :doc:`etat-des-services`.
    * - Protocole
-     - Le protocole du serveur.
+     - La famille du protocole (R66, HTTP, SFTP, FTP, PeSIT, WebDAV, AS2) et,
+       pour une variante sécurisée, le badge *TLS* : R66-TLS se lit « R66 »
+       suivi de *TLS*, HTTPS « HTTP » suivi de *TLS*.
    * - Adresse
      - L'adresse d'écoute, sous la forme ``hôte:port`` ; ``*:port`` quand le
        serveur écoute sur toutes les interfaces (hôte vide).
@@ -42,8 +44,9 @@ La liste
 Les quatre colonnes se trient d'un clic sur leur en-tête (par défaut, le nom
 croissant ; l'état se trie du plus sain au plus dégradé). La recherche filtre
 les serveurs dont le nom commence par le texte saisi et propose les noms
-existants ; le bouton *Filtres* ouvre les cases des protocoles, appliquées dès
-qu'une case change, et *Réinitialiser* revient à la liste complète. Le
+existants ; le bouton *Filtres* ouvre les cases des familles de protocole et
+le choix *Avec ou sans TLS*, appliqués dès qu'ils changent, et *Réinitialiser*
+revient à la liste complète. Le
 compteur, à droite, indique le nombre de serveurs et, quand une recherche ou
 un filtre est actif, le nombre affiché.
 
@@ -110,7 +113,9 @@ serveur* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
    * - Bloc
      - Champs
    * - Identité
-     - Le nom (unique sur la Gateway), le protocole, et la case *Ne pas
+     - Le nom (unique sur la Gateway), le protocole, choisi par sa famille,
+       la case *Chiffrer la connexion par TLS* pour les familles qui existent
+       avec et sans TLS (SFTP est chiffré par SSH), et la case *Ne pas
        démarrer automatiquement au lancement de la passerelle*.
    * - Adresse d'écoute
      - L'hôte (nom ou adresse IP, facultatif : vide, le serveur écoute sur
@@ -123,7 +128,9 @@ serveur* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
        racine est donné, les trois autres prennent par défaut ``in``, ``out``
        et ``tmp``.
    * - Options du protocole
-     - Les options du protocole choisi, qui apparaissent après le choix. Les
+     - Les options de la famille choisie, qui apparaissent après le choix,
+       et, quand TLS est coché, le bloc *Chiffrement TLS* (version minimale,
+       suites de chiffrement). Les
        listes d'algorithmes SSH et de suites de chiffrement TLS se composent
        en deux colonnes, les algorithmes disponibles à gauche et les
        algorithmes retenus à droite, dans l'ordre de préférence ; une liste
@@ -133,6 +140,11 @@ serveur* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
        en TLS 1.3, la bibliothèque les fixe.
        Le détail de chaque option se trouve dans la référence des
        :ref:`options de protocole <reference-proto-config>`.
+
+Les blocs *Dossiers*, *Options du protocole* et *Chiffrement TLS* sont
+repliés tant qu'ils sont à leur valeur par défaut ; leur en-tête résume ce
+qu'ils contiennent, et un clic les ouvre. Un bloc qui porte une valeur ou une
+erreur s'affiche toujours ouvert.
 
 *Valider* enregistre le serveur et ramène à la liste avec une notification ;
 un serveur créé est hors ligne jusqu'à son démarrage (ou au prochain lancement

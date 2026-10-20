@@ -13,7 +13,6 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -26,6 +25,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -45,36 +46,25 @@ const (
 	// deletion.
 	transfersPath = "/transfer_monitoring"
 
-	// The state of the list: search, protocols, sort, page and rows per page.
-	// The action pages carry it (retParam) so that coming back keeps it.
-	queryParam    = "q"
-	protocolParam = "protocol"
-	sortParam     = "sort"
-	dirParam      = "dir"
-	pageParam     = "page"
-	sizeParam     = "size"
-	retParam      = "ret"
-	// The explicit reset: a request without any criterion that clears the
-	// state kept for the session ("Reset", "Clear the search").
-	resetParam = "reset"
-
 	// The cookie that keeps the state of the list for the browser session, so
 	// that coming back through the sidebar finds the list as it was left
 	// (Driss, 2026-10-19). An explicit address always wins over it.
 	stateCookie = "webui_servers_list"
 
-	// The result of the previous action, carried by the redirection.
-	doneParam   = "done"
-	failedParam = "failed"
-	nameParam   = "name"
-	reasonParam = "reason"
+	// The parameters of the list state and of the result of the previous
+	// action, shared by the list screens.
+	retParam    = liststate.RetParam
+	doneParam   = liststate.DoneParam
+	failedParam = liststate.FailedParam
+	nameParam   = liststate.NameParam
+	reasonParam = liststate.ReasonParam
+	dirAsc      = liststate.DirAsc
+	dirDesc     = liststate.DirDesc
 
 	sortName     = "name"
 	sortState    = "state"
 	sortProtocol = "protocol"
 	sortAddress  = "address"
-	dirAsc       = "asc"
-	dirDesc      = "desc"
 
 	doneCreated = "created"
 	doneUpdated = "updated"
@@ -99,12 +89,22 @@ const (
 
 //nolint:gochecknoglobals // reference data of the screen
 var (
-	listParams = []string{queryParam, protocolParam, sortParam, dirParam, pageParam, sizeParam, resetParam}
-	sortKeys   = []string{sortName, sortState, sortProtocol, sortAddress}
-	pageSizes  = []int{10, 25, 50, 100} // rows per page, the first one by default
-	doneKinds  = []string{doneCreated, doneUpdated, doneDeleted, doneStarted, doneStopped}
+	sortKeys  = []string{sortName, sortState, sortProtocol, sortAddress}
+	pageSizes = []int{10, 25, 50, 100} // rows per page, the first one by default
+	doneKinds = []string{doneCreated, doneUpdated, doneDeleted, doneStarted, doneStopped}
 
-	serversCounter = counter{"servers.count_one", "servers.count", "servers.count_shown_one", "servers.count_shown"}
+	serversCounter = counter{
+		One: "servers.count_one", Many: "servers.count",
+		ShownOne: "servers.count_shown_one", ShownMany: "servers.count_shown",
+	}
+
+	// The list of this screen (listSpec): its page, its session cookie, its
+	// sort keys, its rows per page and the protocol filters.
+	listSpec = liststate.Spec{
+		Path: pagePath, Cookie: stateCookie, Sorts: sortKeys, Sizes: pageSizes,
+		ParseFilters: func(v url.Values) liststate.Filters { return protoform.ParseFilter(v) },
+		FilterParams: protoform.FilterParams,
+	}
 )
 
 // Control drives the service of a server. On the gateway it is backed by the
@@ -144,7 +144,9 @@ type Handlers struct {
 }
 
 func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
-	shell := func(file string) *common.Shell { return common.NewShell(partialsTemplateFile, file) }
+	shell := func(file string) *common.Shell {
+		return common.NewShell(protoform.TemplateFile, partialsTemplateFile, file)
+	}
 
 	return &Handlers{
 		db:            db,
@@ -183,16 +185,15 @@ func rightsOf(r *http.Request) rights {
 }
 
 // kv is a row of a key/value list.
-type kv struct {
-	Label string
-	Value string
-	Mono  bool
-}
+type kv = protoform.KV
+
+// choice is an option of a select, selected or not.
+type choice = protoform.Choice
 
 // entry is a local server with its protocol and its running state.
 type entry struct {
 	agent  *model.LocalAgent
-	proto  protocol
+	proto  *protoform.Protocol
 	state  utils.StateCode
 	reason string
 }
@@ -200,7 +201,7 @@ type entry struct {
 func (h *Handlers) entryOf(agent *model.LocalAgent) entry {
 	state, reason := h.ctl.Status(agent)
 
-	return entry{agent: agent, proto: protocolOf(agent.Protocol), state: state, reason: reason}
+	return entry{agent: agent, proto: protoform.ProtocolOf(agent.Protocol), state: state, reason: reason}
 }
 
 func (e entry) running() bool { return e.state == utils.StateRunning }
@@ -243,261 +244,58 @@ func (e entry) stateRank() int {
 
 // --------------------------------------------------------------- list ----
 
-// listQuery is the state of the list asked by the URL.
-type listQuery struct {
-	Q         string
-	Protocols []string
-	Sort      string
-	Dir       string
-	Page      int
-	Size      int
+// listQuery is the state of the list asked by the URL, with the protocol
+// filters (families, TLS); the tab lists of the sheet share it without them.
+type listQuery = liststate.Query
+
+// parseListQuery reads the state of the servers list.
+func parseListQuery(v url.Values) *listQuery { return listSpec.Parse(v) }
+
+// parseQuery reads the state of a tab list, with its own sort keys.
+func parseQuery(v url.Values, sorts []string) *listQuery { return liststate.Parse(v, sorts, pageSizes) }
+
+// protoFilter is the protocol filter of a list query.
+func protoFilter(q *listQuery) *protoform.Filter {
+	if f, ok := q.Filters.(*protoform.Filter); ok {
+		return f
+	}
+
+	return &protoform.Filter{}
 }
 
-// parseListQuery reads the state of the servers list: the search, the sort,
-// the page and the rows per page, plus ?protocol= (repeated or comma
-// separated).
-func parseListQuery(v url.Values) listQuery {
-	query := parseQuery(v, sortKeys)
+// The list state carried by a request, the list as the user left it, and a
+// URL carrying the state: the shared mechanics, on the spec of this list.
+func ret(r *http.Request) string   { return listSpec.Ret(r) }
+func listURL(ret string) string    { return listSpec.ListURL(ret) }
+func withRet(u, ret string) string { return liststate.WithRet(u, ret) }
 
-	for _, raw := range v[protocolParam] {
-		for key := range strings.SplitSeq(raw, ",") {
-			if key = strings.TrimSpace(key); key != "" && isProtocol(key) && !slices.Contains(query.Protocols, key) {
-				query.Protocols = append(query.Protocols, key)
-			}
-		}
-	}
-
-	return query
-}
-
-// parseQuery reads ?q=, ?sort= (among the given keys, the first one by
-// default), ?dir=, ?page= and ?size=. Anything unknown falls back to the
-// default; the page is bounded later, once the count is known.
-func parseQuery(v url.Values, sorts []string) listQuery {
-	query := listQuery{Q: strings.TrimSpace(v.Get(queryParam)), Sort: sorts[0], Dir: dirAsc, Page: 1, Size: pageSizes[0]}
-
-	if slices.Contains(sorts, v.Get(sortParam)) {
-		query.Sort = v.Get(sortParam)
-	}
-
-	if v.Get(dirParam) == dirDesc {
-		query.Dir = dirDesc
-	}
-
-	if page, err := strconv.Atoi(v.Get(pageParam)); err == nil && page > 1 {
-		query.Page = page
-	}
-
-	if size, err := strconv.Atoi(v.Get(sizeParam)); err == nil && slices.Contains(pageSizes, size) {
-		query.Size = size
-	}
-
-	return query
-}
-
-// filterValues carries the search and the filters only: the base of the
-// sort links.
-func (q listQuery) filterValues() url.Values {
-	v := url.Values{}
-	if q.Q != "" {
-		v.Set(queryParam, q.Q)
-	}
-
-	if len(q.Protocols) > 0 {
-		v.Set(protocolParam, strings.Join(q.Protocols, ","))
-	}
-
-	return v
-}
-
-// values carries the search, the filters, the sort and the rows per page
-// when they differ from the default; the page is added by withPage.
-func (q listQuery) values() url.Values {
-	v := q.filterValues()
-	if q.Sort != sortName || q.Dir != dirAsc {
-		v.Set(sortParam, q.Sort)
-		v.Set(dirParam, q.Dir)
-	}
-
-	if q.Size != pageSizes[0] {
-		v.Set(sizeParam, strconv.Itoa(q.Size))
-	}
-
-	return v
-}
-
-func (q listQuery) withPage(page int) url.Values {
-	v := q.values()
-	if page > 1 {
-		v.Set(pageParam, strconv.Itoa(page))
-	}
-
-	return v
-}
-
-// encode is the list state carried by the action pages (?ret=).
-func (q listQuery) encode(page int) string { return q.withPage(page).Encode() }
-
-// toolbarHidden is what the toolbar form (search and filters) must carry so
-// that a new search keeps the sort and the rows per page.
-func (q listQuery) toolbarHidden() map[string]string {
-	hidden := map[string]string{}
-
-	for _, key := range []string{sortParam, dirParam, sizeParam} {
-		if value := q.values().Get(key); value != "" {
-			hidden[key] = value
-		}
-	}
-
-	return hidden
-}
-
-// pagerHidden is what the list foot form must carry besides the page and the
-// rows per page it sets itself.
-func (q listQuery) pagerHidden() map[string]string {
-	hidden := map[string]string{}
-
-	for key, values := range q.values() {
-		if key != sizeParam {
-			hidden[key] = values[0]
-		}
-	}
-
-	return hidden
-}
-
-// retOf reads a carried list state; unknown or invalid parameters are
-// dropped, so that a forged value cannot lead anywhere else than the list.
-func retOf(ret string) listQuery {
-	values, err := url.ParseQuery(ret)
-	if err != nil {
-		return parseListQuery(nil)
-	}
-
-	return parseListQuery(values)
-}
-
-// ret is the list state carried by the request (?ret=), cleaned.
-func ret(r *http.Request) string {
-	q := retOf(r.URL.Query().Get(retParam))
-
-	return q.encode(q.Page)
-}
-
-func listURLOf(v url.Values) string {
-	if encoded := v.Encode(); encoded != "" {
-		return common.WebuiURL(pagePath) + "?" + encoded
-	}
-
-	return common.WebuiURL(pagePath)
-}
-
-// listURL is the list as the user left it: the "Back to the list" links and
-// the redirections after an action.
-func listURL(ret string) string {
-	q := retOf(ret)
-
-	return listURLOf(q.withPage(q.Page))
-}
-
-// resetURL is the list without any criterion, said explicitly so that the
-// state kept for the session is cleared instead of restored.
-func resetURL() string { return listURLOf(url.Values{resetParam: {"1"}}) }
-
-// explicitListURL is the list with the given criteria, or the explicit reset
-// when there is none left.
-func explicitListURL(v url.Values) string {
-	if len(v) == 0 {
-		return resetURL()
-	}
-
-	return listURLOf(v)
-}
-
-// hasListParams tells whether the request says anything about the state of
-// the list, be it a criterion or the explicit reset.
-func hasListParams(params url.Values) bool {
-	return slices.ContainsFunc(listParams, params.Has)
-}
-
-// keptState reads the state kept for the session; a default or unreadable
-// state is no state.
-func keptState(r *http.Request) (listQuery, bool) {
-	cookie, err := r.Cookie(stateCookie)
-	if err != nil {
-		return listQuery{}, false
-	}
-
-	state, err := url.QueryUnescape(cookie.Value)
-	if err != nil {
-		return listQuery{}, false
-	}
-
-	kept := retOf(state)
-
-	return kept, kept.encode(kept.Page) != ""
-}
-
-// keepState stores the state of the list for the browser session, or forgets
-// it when the state is the default one.
-func keepState(w http.ResponseWriter, query listQuery) {
-	cookie := &http.Cookie{
-		Name:     stateCookie,
-		Value:    url.QueryEscape(query.encode(query.Page)),
-		Path:     common.WebuiURL(pagePath),
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	}
-
-	if cookie.Value == "" {
-		cookie.MaxAge = -1
-	}
-
-	http.SetCookie(w, cookie)
+// redirectList sends back to the list as the user left it, with the result
+// of the action.
+func redirectList(w http.ResponseWriter, r *http.Request, carried string, result url.Values) {
+	listSpec.RedirectList(w, r, carried, result)
 }
 
 func serverURL(id int64, suffix string) string {
 	return common.WebuiURL(pagePath + "/" + strconv.FormatInt(id, 10) + suffix)
 }
 
-// withRet appends the carried list state to a URL.
-func withRet(u, ret string) string {
-	if ret == "" {
-		return u
+// filterBox is one family of the filters panel.
+type (
+	filterBox = protoform.FilterBox
+	row       struct {
+		ID       int64
+		Name     string
+		Status   gui.Status
+		Reason   string // raw reason given by the service, never translated
+		Protocol string // the family
+		TLS      bool   // shown as a badge next to the family
+		Address  string
+		Actions  []gui.Action
 	}
-
-	sep := "?"
-	if strings.Contains(u, "?") {
-		sep = "&"
-	}
-
-	return u + sep + retParam + "=" + url.QueryEscape(ret)
-}
-
-type filterBox struct {
-	Key     string
-	Label   string
-	Checked bool
-}
-
-type row struct {
-	ID       int64
-	Name     string
-	Status   gui.Status
-	Reason   string // raw reason given by the service, never translated
-	Protocol string
-	Address  string
-	Actions  []gui.Action
-}
+)
 
 // pager is the list foot, with the fields of "gui/pager".
-type pager struct {
-	Info    string
-	Page    int
-	Pages   int
-	PrevURL string
-	NextURL string
-}
+type pager = liststate.Pager
 
 type listData struct {
 	AddURL       string // empty without the write right: no coloured action at all
@@ -506,6 +304,7 @@ type listData struct {
 	Q            string
 	Names        []string
 	Filters      []filterBox
+	TLSFilter    []protoform.Choice // with or without TLS, or both
 	FiltersOpen  bool
 	FiltersCount int
 	ResetURL     string
@@ -530,28 +329,12 @@ type listData struct {
 
 // List serves GET /webui/servers.
 func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-	if !hasListParams(params) {
-		if kept, ok := keptState(r); ok {
-			target := kept.withPage(kept.Page)
-			for _, name := range []string{doneParam, failedParam, nameParam, reasonParam} {
-				if params.Has(name) {
-					target.Set(name, params.Get(name))
-				}
-			}
-
-			http.Redirect(w, r, listURLOf(target), http.StatusSeeOther)
-
-			return
-		}
+	if listSpec.Restore(w, r) {
+		return
 	}
 
 	translate := h.list.Translator(r)
-	query := parseListQuery(params)
-
-	if hasListParams(params) {
-		keepState(w, query)
-	}
+	query := parseListQuery(r.URL.Query())
 	screen := common.Screen{
 		Title:   translate("servers.title"),
 		Section: constants.SidebarSectionConnection,
@@ -566,7 +349,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		h.logger.Errorf("failed to list the servers: %v", err)
 
 		screen.Status = http.StatusInternalServerError
-		screen.Data = listData{Error: true, RetryURL: listURLOf(query.withPage(query.Page))}
+		screen.Data = listData{Error: true, RetryURL: listSpec.ListURLOf(query.WithPage(query.Page))}
 		h.list.Render(w, h.logger, r, screen)
 
 		return
@@ -585,29 +368,26 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 // page, toolbar state, row actions according to the rights.
 //
 //nolint:funlen // one pass over the list, in the order of the page
-func buildList(translate gui.Translator, all []entry, query listQuery, user rights) listData {
+func buildList(translate gui.Translator, all []entry, query *listQuery, user rights) listData {
+	filter := protoFilter(query)
 	data := listData{
-		Action:   listURLOf(nil),
-		Base:     listURLOf(query.filterValues()),
-		Q:        query.Q,
-		Sort:     query.Sort,
-		Dir:      query.Dir,
-		Size:     query.Size,
-		ResetURL: resetURL(),
-		Hidden:   query.toolbarHidden(),
+		Action:       listSpec.ListURLOf(nil),
+		Base:         listSpec.ListURLOf(query.FilterValues()),
+		Q:            query.Q,
+		Sort:         query.Sort,
+		Dir:          query.Dir,
+		Size:         query.Size,
+		ResetURL:     listSpec.ResetURL(),
+		Hidden:       query.ToolbarHidden(),
+		Filters:      filter.Boxes(),
+		TLSFilter:    filter.TLSChoices(translate),
+		FiltersCount: filter.Count(),
+		FiltersOpen:  filter.Count() > 0,
 	}
 
 	if user.Write {
-		data.AddURL = withRet(common.WebuiURL(pagePath+"/new"), query.encode(query.Page))
+		data.AddURL = withRet(common.WebuiURL(pagePath+"/new"), query.Encode(query.Page))
 	}
-
-	for _, proto := range protocolList() {
-		data.Filters = append(data.Filters,
-			filterBox{Key: proto.Key, Label: proto.Label, Checked: slices.Contains(query.Protocols, proto.Key)})
-	}
-
-	data.FiltersOpen = len(query.Protocols) > 0
-	data.FiltersCount = len(query.Protocols)
 
 	names := make([]string, 0, len(all))
 	kept := make([]entry, 0, len(all))
@@ -620,7 +400,7 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 			continue
 		}
 
-		if len(query.Protocols) > 0 && !slices.Contains(query.Protocols, e.agent.Protocol) {
+		if !filter.Matches(e.proto) {
 			continue
 		}
 
@@ -631,7 +411,7 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 	data.Names = names
 	sortEntries(kept, query.Sort, query.Dir)
 
-	data.Count = serversCounter.text(translate, len(all), len(kept))
+	data.Count = serversCounter.Text(translate, len(all), len(kept))
 
 	switch {
 	case len(all) == 0:
@@ -642,31 +422,31 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 		data.NoMatch = true
 
 		if query.Q != "" {
-			withoutQ := query
+			withoutQ := *query
 			withoutQ.Q = ""
 			data.NoMatchText = translate("servers.none.title", "query", query.Q)
-			data.NoMatchURL, data.NoMatchLink = explicitListURL(withoutQ.values()), translate("search.clear")
+			data.NoMatchURL, data.NoMatchLink = listSpec.ExplicitListURL(withoutQ.Values()), translate("search.clear")
 		} else {
 			data.NoMatchText = translate("servers.none.filters")
-			data.NoMatchURL, data.NoMatchLink = resetURL(), translate("filters.reset")
+			data.NoMatchURL, data.NoMatchLink = listSpec.ResetURL(), translate("filters.reset")
 		}
 
 		return data
 	}
 
-	pages := (len(kept) + query.Size - 1) / query.Size
-	page := min(max(query.Page, 1), pages)
-	from, to := (page-1)*query.Size, min(page*query.Size, len(kept))
-	carried := query.encode(page)
-	data.Caption = translate("servers.caption", "page", page, "pages", pages, "sort", translate(sortKeyPrefix+query.Sort))
+	b := query.Bounds(len(kept))
+	carried := query.Encode(b.Page)
+	data.Caption = translate("servers.caption",
+		"page", b.Page, "pages", b.Pages, "sort", translate(sortKeyPrefix+query.Sort))
 
-	for _, e := range kept[from:to] {
+	for _, e := range kept[b.From:b.To] {
 		data.Rows = append(data.Rows, row{
 			ID:       e.agent.ID,
 			Name:     e.agent.Name,
 			Status:   e.status(translate),
 			Reason:   e.reason,
-			Protocol: e.proto.Label,
+			Protocol: e.proto.Family.Label,
+			TLS:      e.proto.TLS,
 			Address:  e.address(),
 			Actions:  actions(translate, e, user, false, carried),
 		})
@@ -674,23 +454,8 @@ func buildList(translate gui.Translator, all []entry, query listQuery, user righ
 
 	// The rows per page are offered as soon as there are rows (Driss, 2026-10-19).
 	data.Sizes = pageSizes
-
-	if pages > 1 || data.Sizes != nil {
-		data.PagerHidden = query.pagerHidden()
-		data.Pager = &pager{
-			Info:  translate("servers.pager", "from", from+1, "to", to, "total", len(kept)),
-			Page:  page,
-			Pages: pages,
-		}
-
-		if page > 1 {
-			data.Pager.PrevURL = listURLOf(query.withPage(page - 1))
-		}
-
-		if page < pages {
-			data.Pager.NextURL = listURLOf(query.withPage(page + 1))
-		}
-	}
+	data.PagerHidden = query.PagerHidden()
+	data.Pager = listSpec.Pager(query, translate("servers.pager", "from", b.From+1, "to", b.To, "total", len(kept)), b)
 
 	return data
 }
@@ -708,7 +473,7 @@ func sortEntries(entries []entry, key, dir string) {
 		case sortState:
 			order = cmp.Compare(a.stateRank(), b.stateRank())
 		case sortProtocol:
-			order = strings.Compare(a.proto.Label, b.proto.Label)
+			order = cmp.Or(strings.Compare(a.proto.Family.Label, b.proto.Family.Label), boolCmp(a.proto.TLS, b.proto.TLS))
 		case sortAddress:
 			order = cmp.Or(strings.Compare(a.agent.Address.Host, b.agent.Address.Host),
 				cmp.Compare(a.agent.Address.Port, b.agent.Address.Port))
@@ -837,17 +602,6 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 	}
 }
 
-// redirectList sends back to the list as the user left it, with the result
-// of the action.
-func redirectList(w http.ResponseWriter, r *http.Request, carried string, result url.Values) {
-	q := retOf(carried)
-	v := q.withPage(q.Page)
-
-	maps.Copy(v, result)
-
-	http.Redirect(w, r, listURLOf(v), http.StatusSeeOther)
-}
-
 // -------------------------------------------------------------- pages ----
 
 // server reads the {id} of the route; a missing server renders the
@@ -938,12 +692,12 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Name:     srv.agent.Name,
 		Status:   srv.status(translate),
 		Reason:   srv.reason,
-		Protocol: srv.proto.Label,
+		Protocol: srv.proto.Family.Label,
 		Tabs:     tabs,
 		BackURL:  listURL(carried),
 		Actions:  actions(translate, srv, user, true, carried),
 		Identity: []kv{
-			{Label: translate("servers.detail.protocol"), Value: srv.proto.Label},
+			{Label: translate("servers.detail.protocol"), Value: protoform.Describe(translate, srv.proto)},
 			{Label: translate("servers.detail.address"), Value: srv.address(), Mono: true},
 			{Label: translate("servers.detail.autostart"), Value: autostart},
 			// The last tab counts the accounts.
@@ -955,7 +709,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 			{Label: translate("servers.dirs.tmp"), Value: srv.agent.TmpReceiveDir, Mono: true},
 			{Label: translate("servers.dirs.send"), Value: srv.agent.SendDir, Mono: true},
 		},
-		Options: optionRows(translate, srv.proto, srv.agent.ProtoConfig),
+		Options: protoform.Rows(translate, protoform.RoleServer, srv.proto, srv.agent.ProtoConfig),
 	}
 
 	if user.Write {
@@ -1011,7 +765,7 @@ func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e entry, i
 		Name:         e.agent.Name,
 		Status:       e.status(translate),
 		Running:      e.running(),
-		Protocol:     e.proto.Label,
+		Protocol:     protoform.Describe(translate, e.proto),
 		Address:      e.address(),
 		Accounts:     strconv.FormatUint(accounts, 10),
 		CancelURL:    withRet(serverURL(e.agent.ID, ""), carried),
@@ -1087,22 +841,10 @@ func (h *Handlers) Start(w http.ResponseWriter, r *http.Request) {
 		result.Set(doneParam, doneStarted)
 	} else {
 		result.Set(failedParam, failedStart)
-		result.Set(reasonParam, failureReason(reason, startErr))
+		result.Set(reasonParam, liststate.FailureReason(reason, startErr))
 	}
 
 	redirectList(w, r, ret(r), result)
-}
-
-// failureReason is what the notification of a failed action says: the
-// reason the service reports, or, when it reports none (a service left
-// offline by a listener that could not open), the cause the start or stop
-// returned; the port already in use or the address not local are such causes.
-func failureReason(reason string, err error) string {
-	if reason == "" && err != nil {
-		return err.Error()
-	}
-
-	return reason
 }
 
 // Stop serves POST /webui/servers/{id}/stop.
@@ -1119,10 +861,22 @@ func (h *Handlers) Stop(w http.ResponseWriter, r *http.Request) {
 
 		_, reason := h.ctl.Status(e.agent)
 		result.Set(failedParam, failedStop)
-		result.Set(reasonParam, failureReason(reason, err))
+		result.Set(reasonParam, liststate.FailureReason(reason, err))
 	} else {
 		result.Set(doneParam, doneStopped)
 	}
 
 	redirectList(w, r, ret(r), result)
+}
+
+// boolCmp orders false before true.
+func boolCmp(a, b bool) int {
+	switch {
+	case a == b:
+		return 0
+	case b:
+		return -1
+	default:
+		return 1
+	}
 }

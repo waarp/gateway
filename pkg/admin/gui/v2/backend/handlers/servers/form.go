@@ -1,29 +1,26 @@
 package servers
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.waarp.fr/lib/gui"
-	"golang.org/x/exp/constraints"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
-// Names of the form fields. The blocks of every protocol are posted together
-// without JavaScript, so each block has its own names; the server reads the
-// block of the chosen protocol only.
+// Names of the fields the screen owns; the protocol and its options are the
+// shared protocol form (protoform).
 const (
 	fieldName          = "name"
-	fieldProtocol      = "protocol"
 	fieldNoAutoStart   = "no_autostart"
 	fieldHost          = "host"
 	fieldPort          = "port"
@@ -31,66 +28,13 @@ const (
 	fieldReceiveDir    = "receive_dir"
 	fieldTmpReceiveDir = "tmp_receive_dir"
 	fieldSendDir       = "send_dir"
-
-	fieldR66Login          = "r66_login"
-	fieldR66Block          = "r66_block"
-	fieldR66NoFinalHash    = "r66_no_final_hash"
-	fieldR66CheckBlockHash = "r66_check_block_hash"
-
-	fieldFTPDisablePassive = "ftp_disable_passive"
-	fieldFTPDisableActive  = "ftp_disable_active"
-	fieldFTPPassiveMin     = "ftp_passive_min"
-	fieldFTPPassiveMax     = "ftp_passive_max"
-	fieldFTPSRequirement   = "ftps_tls_requirement"
-
-	fieldPesitDisableRestart     = "pesit_disable_restart"
-	fieldPesitDisableCheckpoints = "pesit_disable_checkpoints"
-	fieldPesitCheckpointSize     = "pesit_checkpoint_size"
-	fieldPesitCheckpointWindow   = "pesit_checkpoint_window"
-	fieldPesitMaxMessage         = "pesit_max_message"
-	fieldPesitMode               = "pesit_mode"
-	fieldPesitDisablePreConn     = "pesit_disable_preconnection"
-
-	fieldSFTPKex     = "sftp_kex"
-	fieldSFTPCiphers = "sftp_ciphers"
-	fieldSFTPMACs    = "sftp_macs"
-
-	fieldAS2MaxFileSize = "as2_max_file_size"
-	fieldAS2MDNAlgo     = "as2_mdn_algo"
-
-	// Suffixes of the TLS fields, prefixed by the TLS prefix of the family
-	// ("r66_min_tls", "ftps_tls_ciphers").
-	suffixMinTLS     = "_min_tls"
-	suffixTLSCiphers = "_tls_ciphers"
 )
 
-// tlsPrefixes gives the prefix of the TLS fields of each family.
-//
-//nolint:gochecknoglobals // reference data of the form
-var tlsPrefixes = map[string]string{
-	familyR66: "r66", familyFTP: "ftps", familyPeSIT: "pesit",
-	familyHTTP: "https", familyWebDAV: "webdav", familyAS2: "as2",
-}
+var errPortOutOfRange = errors.New("port out of range")
 
 // field is a text or number field of the form: its value, kept when the form
 // is refused, and the message of its error.
-type field struct {
-	Value string
-	Error string
-}
-
-// formChoices are the option lists of the selects, with the current values
-// selected; the TLS lists are keyed by the TLS prefix of the family.
-type formChoices struct {
-	TLSVersions     map[string][]choice
-	TLSCiphers      map[string][]choice
-	TLSRequirements []choice
-	PesitModes      []choice
-	MDNAlgos        []choice
-	KeyExchanges    []choice
-	Ciphers         []choice
-	MACs            []choice
-}
+type field = protoform.Field
 
 type formData struct {
 	Title     string
@@ -102,18 +46,45 @@ type formData struct {
 	// another reason than a field shown with its own error.
 	Refused string
 
-	Fields        map[string]field // text and number fields, by name
-	Checks        map[string]bool  // checkboxes, by name
-	Protocol      string
-	ProtocolError string
-	Protocols     []protocol
-	Choices       formChoices
+	Fields map[string]field // text and number fields, by name
+	Checks map[string]bool  // checkboxes, by name
+	Proto  *protoform.Form  // the protocol: its family, TLS and options
 
-	// The lists chosen in the dual lists and the selects, by name, and the
-	// port once validated.
-	lists   map[string][]string
-	selects map[string]string
-	port    uint16
+	// The directories card folds (Driss, 2026-10-19): open when it holds a
+	// value or an error, its summary says what it holds.
+	DirsOpen    bool
+	DirsSummary string
+
+	port uint16 // the port once validated
+}
+
+// summarize decides whether the directories card opens and what its summary
+// says, from the values of the form (filled or posted) and their errors.
+func (f *formData) summarize(translate gui.Translator) {
+	dirs := []string{fieldRootDir, fieldReceiveDir, fieldTmpReceiveDir, fieldSendDir}
+	set := 0
+
+	for _, name := range dirs {
+		fld := f.Fields[name]
+		if fld.Value != "" {
+			set++
+		}
+
+		if fld.Error != "" {
+			f.DirsOpen = true
+		}
+	}
+
+	f.DirsOpen = f.DirsOpen || set > 0
+
+	switch {
+	case f.Fields[fieldRootDir].Value != "":
+		f.DirsSummary = translate("servers.form.dirs_root_summary", "root", f.Fields[fieldRootDir].Value)
+	case set > 0:
+		f.DirsSummary = translate("servers.form.dirs_count_summary", "n", set)
+	default:
+		f.DirsSummary = translate("servers.form.dirs_default_summary")
+	}
 }
 
 // newForm builds the form of a new server, or the form of an existing one
@@ -125,16 +96,7 @@ func (h *Handlers) newForm(translate gui.Translator, agent *model.LocalAgent, ca
 		CancelURL: listURL(carried),
 		Fields:    map[string]field{},
 		Checks:    map[string]bool{},
-		Protocols: protocolList(),
-		lists:     map[string][]string{},
-		selects: map[string]string{
-			fieldFTPSRequirement: string(ftp.TLSOptional),
-			fieldPesitMode:       pesit.CompatibilityModeStandard,
-		},
-	}
-
-	for _, prefix := range tlsPrefixes {
-		form.selects[prefix+suffixMinTLS] = protoutils.TLSv12
+		Proto:     protoform.NewForm(protoform.RoleServer),
 	}
 
 	if agent != nil {
@@ -145,7 +107,8 @@ func (h *Handlers) newForm(translate gui.Translator, agent *model.LocalAgent, ca
 		form.fill(agent)
 	}
 
-	form.Choices = buildChoices(translate, form)
+	form.summarize(translate)
+	form.Proto.Prepare(translate)
 
 	return form
 }
@@ -156,144 +119,37 @@ func (f *formData) fill(agent *model.LocalAgent) {
 
 	set(fieldName, agent.Name)
 	set(fieldHost, agent.Address.Host)
-	set(fieldPort, cfgString(map[string]any{"proto": agent.Address.Port}, "proto"))
+	set(fieldPort, strconv.FormatUint(uint64(agent.Address.Port), 10))
 	set(fieldRootDir, agent.RootDir)
 	set(fieldReceiveDir, agent.ReceiveDir)
 	set(fieldTmpReceiveDir, agent.TmpReceiveDir)
 	set(fieldSendDir, agent.SendDir)
-	f.Protocol = agent.Protocol
 	f.Checks[fieldNoAutoStart] = agent.Disabled
-
-	proto := protocolOf(agent.Protocol)
-	cfg := agent.ProtoConfig
-
-	switch proto.Family {
-	case familyR66:
-		set(fieldR66Login, cfgString(cfg, cfgServerLogin))
-		set(fieldR66Block, cfgString(cfg, cfgBlockSize))
-		f.Checks[fieldR66NoFinalHash] = cfgBool(cfg, cfgNoFinalHash)
-		f.Checks[fieldR66CheckBlockHash] = cfgBool(cfg, cfgCheckBlockHash)
-	case familyFTP:
-		f.Checks[fieldFTPDisablePassive] = cfgBool(cfg, cfgDisablePassiveMode)
-		f.Checks[fieldFTPDisableActive] = cfgBool(cfg, cfgDisableActiveMode)
-		set(fieldFTPPassiveMin, cfgString(cfg, cfgPassiveModeMinPort))
-		set(fieldFTPPassiveMax, cfgString(cfg, cfgPassiveModeMaxPort))
-
-		if v := cfgString(cfg, cfgTLSRequirement); v != "" {
-			f.selects[fieldFTPSRequirement] = v
-		}
-	case familyPeSIT:
-		f.Checks[fieldPesitDisableRestart] = cfgBool(cfg, cfgDisableRestart)
-		f.Checks[fieldPesitDisableCheckpoints] = cfgBool(cfg, cfgDisableCheckpoints)
-		set(fieldPesitCheckpointSize, cfgString(cfg, cfgCheckpointSize))
-		set(fieldPesitCheckpointWindow, cfgString(cfg, cfgCheckpointWindow))
-		set(fieldPesitMaxMessage, cfgString(cfg, cfgMaxMessageSize))
-		f.Checks[fieldPesitDisablePreConn] = cfgBool(cfg, cfgDisablePreConnection)
-
-		if v := cfgString(cfg, cfgCompatibilityMode); v != "" {
-			f.selects[fieldPesitMode] = v
-		}
-	case familySFTP:
-		f.lists[fieldSFTPKex] = cfgList(cfg, cfgKeyExchanges)
-		f.lists[fieldSFTPCiphers] = cfgList(cfg, cfgCiphers)
-		f.lists[fieldSFTPMACs] = cfgList(cfg, cfgMACs)
-	case familyAS2:
-		set(fieldAS2MaxFileSize, cfgString(cfg, cfgMaxFileSize))
-		f.selects[fieldAS2MDNAlgo] = cfgString(cfg, cfgMDNSignatureAlgo)
-	}
-
-	if prefix, ok := tlsPrefixes[proto.Family]; ok && proto.TLS {
-		if v := cfgString(cfg, cfgMinTLSVersion); v != "" {
-			f.selects[prefix+suffixMinTLS] = v
-		}
-
-		f.lists[prefix+suffixTLSCiphers] = cfgList(cfg, cfgCipherSuites)
-	}
+	f.Proto.Fill(agent.Protocol, agent.ProtoConfig)
 }
 
-// buildChoices builds the option lists of the selects and the dual lists,
-// with the current values of the form selected.
-func buildChoices(translate gui.Translator, f *formData) formChoices {
-	c := formChoices{
-		TLSVersions:     map[string][]choice{},
-		TLSCiphers:      map[string][]choice{},
-		TLSRequirements: tlsRequirementChoices(translate, f.selects[fieldFTPSRequirement]),
-		PesitModes:      pesitModeChoices(translate, f.selects[fieldPesitMode]),
-		MDNAlgos:        mdnAlgoChoices(translate, f.selects[fieldAS2MDNAlgo]),
-		KeyExchanges:    sftpChoices(sftpKeyExchanges(), f.lists[fieldSFTPKex]),
-		Ciphers:         sftpChoices(sftpCiphers(), f.lists[fieldSFTPCiphers]),
-		MACs:            sftpChoices(sftpMACs(), f.lists[fieldSFTPMACs]),
-	}
-
-	for _, prefix := range tlsPrefixes {
-		c.TLSVersions[prefix] = tlsVersionChoices(f.selects[prefix+suffixMinTLS])
-		c.TLSCiphers[prefix] = tlsCipherChoices(translate, f.lists[prefix+suffixTLSCiphers])
-	}
-
-	return c
-}
-
-// read takes the posted values into the form: every text field, checkbox,
-// select and list, whatever the protocol, so that a refused form comes back
-// as the user filled it.
+// read takes the posted values into the form: every field, whatever the
+// protocol, so that a refused form comes back as the user filled it.
 func (f *formData) read(values url.Values) {
 	for _, name := range []string{
 		fieldName, fieldHost, fieldPort, fieldRootDir, fieldReceiveDir, fieldTmpReceiveDir, fieldSendDir,
-		fieldR66Login, fieldR66Block, fieldFTPPassiveMin, fieldFTPPassiveMax,
-		fieldPesitCheckpointSize, fieldPesitCheckpointWindow, fieldPesitMaxMessage, fieldAS2MaxFileSize,
 	} {
 		f.Fields[name] = field{Value: strings.TrimSpace(values.Get(name))}
 	}
 
-	for _, name := range []string{
-		fieldNoAutoStart, fieldR66NoFinalHash, fieldR66CheckBlockHash, fieldFTPDisablePassive, fieldFTPDisableActive,
-		fieldPesitDisableRestart, fieldPesitDisableCheckpoints, fieldPesitDisablePreConn,
-	} {
-		f.Checks[name] = values.Get(name) != ""
-	}
-
-	f.Protocol = values.Get(fieldProtocol)
-
-	for _, name := range []string{fieldFTPSRequirement, fieldPesitMode, fieldAS2MDNAlgo} {
-		if values.Has(name) {
-			f.selects[name] = values.Get(name)
-		}
-	}
-
-	for _, name := range []string{fieldSFTPKex, fieldSFTPCiphers, fieldSFTPMACs} {
-		f.lists[name] = nonEmpty(values[name])
-	}
-
-	for _, prefix := range tlsPrefixes {
-		if values.Has(prefix + suffixMinTLS) {
-			f.selects[prefix+suffixMinTLS] = values.Get(prefix + suffixMinTLS)
-		}
-
-		f.lists[prefix+suffixTLSCiphers] = nonEmpty(values[prefix+suffixTLSCiphers])
-	}
-}
-
-func nonEmpty(values []string) []string {
-	out := make([]string, 0, len(values))
-
-	for _, value := range values {
-		if value != "" {
-			out = append(out, value)
-		}
-	}
-
-	return out
+	f.Checks[fieldNoAutoStart] = values.Get(fieldNoAutoStart) != ""
+	f.Proto.Read(values)
 }
 
 // validate checks the fields the screen owns (the model checks the rest):
-// the required ones, the port, the protocol, the numbers of the options of
-// the chosen protocol. It marks the errors on the form and returns whether
-// it is valid.
+// the required ones, the port, the protocol and the numbers of its options.
+// It marks the errors on the form and returns whether it is valid.
 func (f *formData) validate(translate gui.Translator) bool {
 	fail := func(name, key string) {
 		fld := f.Fields[name]
 		fld.Error = translate(key)
 		f.Fields[name] = fld
+		f.HasErrors = true
 	}
 
 	// The host is optional: empty, the server listens on every interface.
@@ -308,51 +164,11 @@ func (f *formData) validate(translate gui.Translator) bool {
 
 	f.port = port
 
-	if !isProtocol(f.Protocol) {
-		f.Protocol = ""
-		f.ProtocolError = translate("servers.form.protocol_error")
+	if !f.Proto.Validate(translate) {
+		f.HasErrors = true
 	}
-
-	numbers := map[string]func(string) error{}
-
-	switch protocolOf(f.Protocol).Family {
-	case familyR66:
-		numbers[fieldR66Block] = check(internal.ParseUint[uint32])
-	case familyFTP:
-		numbers[fieldFTPPassiveMin] = check(parsePort)
-		numbers[fieldFTPPassiveMax] = check(parsePort)
-	case familyPeSIT:
-		numbers[fieldPesitCheckpointSize] = check(internal.ParseUint[uint32])
-		numbers[fieldPesitCheckpointWindow] = check(internal.ParseUint[uint8])
-		numbers[fieldPesitMaxMessage] = check(internal.ParseUint[uint16])
-	case familyAS2:
-		numbers[fieldAS2MaxFileSize] = check(internal.ParseInt[int64])
-	}
-
-	for name, parse := range numbers {
-		if value := f.Fields[name].Value; value != "" && parse(value) != nil {
-			fail(name, "servers.form.error.number")
-		}
-	}
-
-	for _, fld := range f.Fields {
-		if fld.Error != "" {
-			f.HasErrors = true
-		}
-	}
-
-	f.HasErrors = f.HasErrors || f.ProtocolError != ""
 
 	return !f.HasErrors
-}
-
-// check adapts a typed parser to a validity check.
-func check[T any](parse func(string) (T, error)) func(string) error {
-	return func(s string) error {
-		_, err := parse(s)
-
-		return err
-	}
 }
 
 func parsePort(s string) (uint16, error) {
@@ -368,86 +184,20 @@ func parsePort(s string) (uint16, error) {
 	return port, nil
 }
 
-// apply writes the validated form into the server: its fields and the
-// options of its protocol, with the keys the product reads.
+// apply writes the validated form into the server: its fields, its protocol
+// and the options of the protocol, with the keys the product reads.
 func (f *formData) apply(agent *model.LocalAgent) {
 	value := func(name string) string { return f.Fields[name].Value }
 
 	agent.Name = value(fieldName)
-	agent.Protocol = f.Protocol
+	agent.Protocol = f.Proto.Protocol()
 	agent.Disabled = f.Checks[fieldNoAutoStart]
 	agent.RootDir = value(fieldRootDir)
 	agent.ReceiveDir = value(fieldReceiveDir)
 	agent.TmpReceiveDir = value(fieldTmpReceiveDir)
 	agent.SendDir = value(fieldSendDir)
-
 	agent.Address = types.Addr(value(fieldHost), f.port)
-
-	cfg := model.Map[any]{}
-	proto := protocolOf(f.Protocol)
-
-	switch proto.Family {
-	case familyR66:
-		setText(cfg, cfgServerLogin, value(fieldR66Login))
-		setNumber(cfg, cfgBlockSize, value(fieldR66Block), internal.ParseUint[uint32])
-		cfg[cfgNoFinalHash] = f.Checks[fieldR66NoFinalHash]
-		cfg[cfgCheckBlockHash] = f.Checks[fieldR66CheckBlockHash]
-	case familyFTP:
-		cfg[cfgDisablePassiveMode] = f.Checks[fieldFTPDisablePassive]
-		cfg[cfgDisableActiveMode] = f.Checks[fieldFTPDisableActive]
-		setNumber(cfg, cfgPassiveModeMinPort, value(fieldFTPPassiveMin), parsePort)
-		setNumber(cfg, cfgPassiveModeMaxPort, value(fieldFTPPassiveMax), parsePort)
-
-		if proto.TLS {
-			setText(cfg, cfgTLSRequirement, f.selects[fieldFTPSRequirement])
-		}
-	case familyPeSIT:
-		cfg[cfgDisableRestart] = f.Checks[fieldPesitDisableRestart]
-		cfg[cfgDisableCheckpoints] = f.Checks[fieldPesitDisableCheckpoints]
-		setNumber(cfg, cfgCheckpointSize, value(fieldPesitCheckpointSize), internal.ParseUint[uint32])
-		setNumber(cfg, cfgCheckpointWindow, value(fieldPesitCheckpointWindow), internal.ParseUint[uint8])
-		setNumber(cfg, cfgMaxMessageSize, value(fieldPesitMaxMessage), internal.ParseUint[uint16])
-		setText(cfg, cfgCompatibilityMode, f.selects[fieldPesitMode])
-		cfg[cfgDisablePreConnection] = f.Checks[fieldPesitDisablePreConn]
-	case familySFTP:
-		setList(cfg, cfgKeyExchanges, f.lists[fieldSFTPKex])
-		setList(cfg, cfgCiphers, f.lists[fieldSFTPCiphers])
-		setList(cfg, cfgMACs, f.lists[fieldSFTPMACs])
-	case familyAS2:
-		setNumber(cfg, cfgMaxFileSize, value(fieldAS2MaxFileSize), internal.ParseInt[int64])
-		setText(cfg, cfgMDNSignatureAlgo, f.selects[fieldAS2MDNAlgo])
-	}
-
-	if prefix, ok := tlsPrefixes[proto.Family]; ok && proto.TLS {
-		setText(cfg, cfgMinTLSVersion, f.selects[prefix+suffixMinTLS])
-		setList(cfg, cfgCipherSuites, f.lists[prefix+suffixTLSCiphers])
-	}
-
-	agent.ProtoConfig = cfg
-}
-
-func setText(cfg model.Map[any], key, value string) {
-	if value != "" {
-		cfg[key] = value
-	}
-}
-
-func setList(cfg model.Map[any], key string, values []string) {
-	if len(values) > 0 {
-		cfg[key] = values
-	}
-}
-
-// setNumber stores a number the form already validated; an empty field
-// leaves the product default.
-func setNumber[T constraints.Integer](cfg model.Map[any], key, value string, parse func(string) (T, error)) {
-	if value == "" {
-		return
-	}
-
-	if n, err := parse(value); err == nil {
-		cfg[key] = n
-	}
+	agent.ProtoConfig = f.Proto.Apply()
 }
 
 // refuse marks the form with the refusal of the model: the known causes go
@@ -560,6 +310,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, agent *model.Loc
 		}
 	}
 
-	form.Choices = buildChoices(translate, form)
+	form.summarize(translate)
+	form.Proto.Prepare(translate)
 	h.form.Render(w, h.logger, r, h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity, form))
 }
