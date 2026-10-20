@@ -3,8 +3,9 @@ package rights
 import "code.waarp.fr/lib/gui"
 
 // Table: the rights of a user by domain, in reading: one row per domain,
-// "Yes" or "No" for the read, write and delete rights. The caption says
-// whose rights they are.
+// "Yes" or "No" for the read, write and delete rights; "—" where the right
+// does not exist (the deletion of the transfers). The caption says whose
+// rights they are.
 templ Table(caption string, rows []Row) {
 	<div class="w-table-wrap">
 		<table class="w-table">
@@ -23,7 +24,13 @@ templ Table(caption string, rows []Row) {
 						<td><span class="w-cell-title">{ rt.Label }</span></td>
 						<td>@YesNo(rt.Read)</td>
 						<td>@YesNo(rt.Write)</td>
-						<td>@YesNo(rt.Delete)</td>
+						<td>
+							if rt.NoDelete {
+								<span class="w-muted">{ gui.T(ctx, "rights.na") }</span>
+							} else {
+								@YesNo(rt.Delete)
+							}
+						</td>
 					</tr>
 				}
 			</tbody>

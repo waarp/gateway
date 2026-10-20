@@ -117,7 +117,8 @@ func TestPage(t *testing.T) {
 		body := s.do(t, "en", http.MethodGet, "/webui/account?done=password", nil).Body.String()
 		assert.Contains(t, body, "<title>My account · gw-test · Waarp Gateway</title>")
 		assert.Contains(t, body, "Password changed")
-		assert.Equal(t, 18, strings.Count(body, `<span class="w-muted">No</span>`), "six domains, no right at all")
+		assert.Equal(t, 17, strings.Count(body, `<span class="w-muted">No</span>`), "six domains, no right at all")
+		assert.Equal(t, 1, strings.Count(body, `<span class="w-muted">—</span>`), "the transfers have no delete right")
 		assert.Contains(t, body, "Your rights are set by an administrator")
 	})
 }

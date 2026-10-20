@@ -620,6 +620,7 @@ rights:
     delete: Delete
   "yes": "Yes"
   "no": "No"
+  na: "—"
   domain:
     transfers: Transfers
     servers: Local servers and clients
@@ -651,6 +652,7 @@ me:
     mismatch: The two entries of the new password differ.
   toast:
     password: Password changed
+    account: Account saved
 # "Remote partners" screen (Connections, #714): list, tabbed sheet, form, deletion.
 partners:
   title: Remote partners
@@ -959,3 +961,108 @@ clients:
   error:
     title: The client list could not be loaded.
     text: "An internal error occurred; the details are in the gateway log."
+# "Users" screen (Administration, #718): list, sheet in reading, form, deletion.
+users:
+  title: Users
+  add: Add a user
+  search: Search a user by login
+  search_placeholder: Search by login
+  count: "{total} users"
+  count_one: 1 user
+  count_shown: "{total} users · {shown} shown"
+  count_shown_one: "{total} users · 1 shown"
+  caption: "Users, page {page} of {pages}, sorted by {sort}"
+  pager: "Users {from} to {to} of {total}"
+  legend: "r: read · w: write · d: delete"
+  you: You
+  last_admin: "Last administrator: the only one holding the write right on the users."
+  back: Back to the list
+  back_user: Back to the user
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: login
+    transfers: rights on the transfers
+    servers: rights on the servers
+    partners: rights on the partners
+    rules: rights on the rules
+    users: rights on the users
+    admin: rights on the administration
+  col:
+    name: User
+    transfers: Transfers
+    servers: Servers
+    partners: Partners
+    rules: Rules
+    users: Users
+    admin: Administration
+    actions: Actions
+  filter:
+    domain: Domain
+    right: Right
+    any_domain: Every domain
+    any_right: Every right
+    level:
+      read: Read
+      write: Write
+      delete: Delete
+      none: No right
+  action:
+    detail: View the sheet
+    edit: Edit the user
+    delete: Delete the user
+  detail:
+    title: "User “{name}”"
+    card: User
+    login: Login
+    rights: Rights
+    rights_caption: "Rights of “{name}”, by domain: read, write, delete"
+  new:
+    title: New user
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    rights: Rights
+    login: Login
+    login_hint: "Unique on this gateway; used by the interface, the API and the command line"
+    password: Password
+    password_hint: "Stored hashed; nobody can read it back. 72 characters at most."
+    password_keep: "Empty: unchanged. 72 characters at most."
+    confirm: Password, once more
+    rights_caption: "Rights to grant, by domain: read, write, delete"
+    right_of: "{right} on {domain}"
+    transfers_delete: Transfers cannot be deleted.
+    self: "This is your own account: your rights apply as soon as it is saved."
+    self_last_admin: "You are the last administrator: if you drop your write right on the users, nobody will be able to manage the users any more."
+    refused: The user was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: This field is required.
+      login_taken: Another user already has this login. Choose another one.
+      password_required: Enter the password.
+      mismatch: The two entries of the password differ.
+      too_long: 72 characters at most.
+  delete:
+    title: "Delete the user “{name}”?"
+    text: "They will no longer be able to sign in to the interface, the API or the command line; their current session will be closed at their next action."
+    blocked_title: This user cannot be deleted.
+    blocked:
+      last_admin: "They are the last one able to manage the users (write right on the users). Give that right to another user first."
+      self: "You cannot delete your own account. Ask another administrator to do it."
+  # Result of the previous action, as a notification.
+  toast:
+    created: "User “{name}” created"
+    updated: "User “{name}” saved"
+    deleted: "User “{name}” deleted"
+  empty:
+    title: No user yet
+    text: "A user is an access account to the administration of the gateway, with its rights by domain."
+  none:
+    title: "No user matches “{query}”"
+    filters: No user matches the filters
+  not_found:
+    title: User not found
+    text: This user does not exist or has been deleted.
+  error:
+    title: The list of users could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."

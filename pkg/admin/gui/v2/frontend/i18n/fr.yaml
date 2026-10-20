@@ -619,6 +619,7 @@ rights:
     delete: Suppression
   "yes": Oui
   "no": Non
+  na: "—"
   domain:
     transfers: Transferts
     servers: Serveurs et clients locaux
@@ -650,6 +651,7 @@ me:
     mismatch: Les deux saisies du nouveau mot de passe diffèrent.
   toast:
     password: Mot de passe modifié
+    account: Compte enregistré
 # Écran « Partenaires distants » (Connexions, #714) : liste, fiche à onglets, formulaire, suppression.
 partners:
   title: Partenaires distants
@@ -957,4 +959,109 @@ clients:
     text: Ce client n'existe pas ou a été supprimé.
   error:
     title: La liste des clients n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+# Écran « Utilisateurs » (Administration, #718) : liste, fiche en lecture, formulaire, suppression.
+users:
+  title: Utilisateurs
+  add: Ajouter un utilisateur
+  search: Rechercher un utilisateur par son identifiant
+  search_placeholder: Rechercher par identifiant
+  count: "{total} utilisateurs"
+  count_one: 1 utilisateur
+  count_shown: "{total} utilisateurs · {shown} affichés"
+  count_shown_one: "{total} utilisateurs · 1 affiché"
+  caption: "Utilisateurs, page {page} sur {pages}, triés par {sort}"
+  pager: "Utilisateurs {from} à {to} sur {total}"
+  legend: "r : lecture · w : écriture · d : suppression"
+  you: Vous
+  last_admin: "Dernier administrateur : le seul à détenir l'écriture sur les utilisateurs."
+  back: Retour à la liste
+  back_user: Retour à l'utilisateur
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: identifiant
+    transfers: droits sur les transferts
+    servers: droits sur les serveurs
+    partners: droits sur les partenaires
+    rules: droits sur les règles
+    users: droits sur les utilisateurs
+    admin: droits sur l'administration
+  col:
+    name: Utilisateur
+    transfers: Transferts
+    servers: Serveurs
+    partners: Partenaires
+    rules: Règles
+    users: Utilisateurs
+    admin: Administration
+    actions: Actions
+  filter:
+    domain: Domaine
+    right: Droit
+    any_domain: Tous les domaines
+    any_right: Tous les droits
+    level:
+      read: Lecture
+      write: Écriture
+      delete: Suppression
+      none: Aucun droit
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'utilisateur
+    delete: Supprimer l'utilisateur
+  detail:
+    title: "Utilisateur « {name} »"
+    card: Utilisateur
+    login: Identifiant
+    rights: Droits
+    rights_caption: "Droits de « {name} », par domaine : lecture, écriture, suppression"
+  new:
+    title: Nouvel utilisateur
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    rights: Droits
+    login: Identifiant
+    login_hint: "Unique sur cette passerelle ; sert à l'interface, à l'API et à la ligne de commande"
+    password: Mot de passe
+    password_hint: "Conservé haché ; personne ne pourra le relire. 72 caractères au plus."
+    password_keep: "Vide : inchangé. 72 caractères au plus."
+    confirm: Mot de passe, une seconde fois
+    rights_caption: "Droits à accorder, par domaine : lecture, écriture, suppression"
+    right_of: "{right} sur {domain}"
+    transfers_delete: Les transferts ne se suppriment pas.
+    self: "C'est votre compte : vos droits s'appliquent dès l'enregistrement."
+    self_last_admin: "Vous êtes le dernier administrateur : si vous retirez votre droit d'écriture sur les utilisateurs, plus personne ne pourra gérer les utilisateurs."
+    refused: L'utilisateur n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      login_taken: Un autre utilisateur porte déjà cet identifiant. Choisissez-en un autre.
+      password_required: Indiquez le mot de passe.
+      mismatch: Les deux saisies du mot de passe diffèrent.
+      too_long: 72 caractères au plus.
+  delete:
+    title: "Supprimer l'utilisateur « {name} » ?"
+    text: "Il ne pourra plus se connecter à l'interface, à l'API ni à la ligne de commande ; sa session en cours sera fermée à sa prochaine action."
+    blocked_title: Cet utilisateur ne peut pas être supprimé.
+    blocked:
+      last_admin: "C'est le dernier à pouvoir gérer les utilisateurs (droit d'écriture sur les utilisateurs). Donnez d'abord ce droit à un autre utilisateur."
+      self: "Vous ne pouvez pas supprimer votre propre compte. Demandez-le à un autre administrateur."
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Utilisateur « {name} » créé"
+    updated: "Utilisateur « {name} » enregistré"
+    deleted: "Utilisateur « {name} » supprimé"
+  empty:
+    title: Aucun utilisateur pour l'instant
+    text: "Un utilisateur est un compte d'accès à l'administration de la passerelle, avec ses droits par domaine."
+  none:
+    title: "Aucun utilisateur ne correspond à « {query} »"
+    filters: Aucun utilisateur ne correspond aux filtres
+  not_found:
+    title: Utilisateur introuvable
+    text: Cet utilisateur n'existe pas ou a été supprimé.
+  error:
+    title: La liste des utilisateurs n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

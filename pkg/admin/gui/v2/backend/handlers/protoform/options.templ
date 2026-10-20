@@ -17,19 +17,23 @@ import (
 
 // FieldProps feeds FieldOf: an input with its label, hint or error. Num
 // makes it a number field (browser arrows to go up and down, typing still
-// possible) with Min and Max; Req marks it required; Code is the technical
-// name shown after the label of an optional option.
+// possible) with Min and Max; Password makes it a password field, whose
+// value is never rendered back; Autocomplete tells the browser what the
+// field holds ("username", "new-password"); Req marks it required; Code is
+// the technical name shown after the label of an optional option.
 type FieldProps struct {
-	ID    string
-	Label string
-	Req   bool
-	F     Field
-	Hint  string
-	Short bool
-	Code  string
-	Num   bool
-	Min   int
-	Max   int
+	ID           string
+	Label        string
+	Req          bool
+	F            Field
+	Hint         string
+	Short        bool
+	Code         string
+	Num          bool
+	Min          int
+	Max          int
+	Password     bool
+	Autocomplete string
 }
 
 // fieldMark: what follows the label of a field: the required star, the
@@ -52,8 +56,15 @@ templ FieldOf(p FieldProps) {
 			class="w-input"
 			id={ p.ID }
 			name={ p.ID }
-			value={ p.F.Value }
+			if p.Password {
+				type="password"
+			} else {
+				value={ p.F.Value }
+			}
 			required?={ p.Req }
+			if p.Autocomplete != "" {
+				autocomplete={ p.Autocomplete }
+			}
 			if p.Num {
 				type="number"
 				inputmode="numeric"

@@ -28,6 +28,10 @@ const (
 
 	doneParam    = "done"
 	donePassword = "password"
+	// The user just saved their own account from the "Users" screen and no
+	// longer reads the users: their sheet would be refused, this page takes
+	// over.
+	doneAccount = "account"
 )
 
 // passwordForm is the form that changes the password: no value is ever
@@ -86,6 +90,10 @@ func (h *Handlers) render(w http.ResponseWriter, r *http.Request, data *pageData
 func notices(translate gui.Translator, v url.Values) []gui.Notice {
 	if v.Get(doneParam) == donePassword {
 		return []gui.Notice{{Kind: "ok", Title: translate("me.toast.password")}}
+	}
+
+	if v.Get(doneParam) == doneAccount {
+		return []gui.Notice{{Kind: "ok", Title: translate("me.toast.account")}}
 	}
 
 	return nil
