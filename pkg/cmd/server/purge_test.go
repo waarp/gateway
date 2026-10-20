@@ -148,8 +148,34 @@ func TestPurgeCommand(t *testing.T) {
 				})
 			})
 
+			Convey("When purging the history with a date limit with a time zone offset", func() {
+				command.OlderThan = t2.Stop.Add(time.Second).Format(untilFormatOffset)
+				So(command.Run(db, time.Now(), in, out), ShouldBeNil)
+
+				Convey("Then it should have purged the selected history entries", func() {
+					var history model.HistoryEntries
+
+					So(db.Select(&history).Run(), ShouldBeNil)
+					So(history, ShouldHaveLength, 1)
+					So(history[0].ID, ShouldEqual, t3.ID)
+				})
+			})
+
+			Convey("When purging the history with a date limit in UTC", func() {
+				command.OlderThan = t2.Stop.Add(time.Second).Format(untilFormatTZ)
+				So(command.Run(db, time.Now(), in, out), ShouldBeNil)
+
+				Convey("Then it should have purged the selected history entries", func() {
+					var history model.HistoryEntries
+
+					So(db.Select(&history).Run(), ShouldBeNil)
+					So(history, ShouldHaveLength, 1)
+					So(history[0].ID, ShouldEqual, t3.ID)
+				})
+			})
+
 			Convey("When purging the history with a duration limit", func() {
-				now := t2.Stop.Local().AddDate(1, 4, 17).Add(time.Second)
+				now := t2.Stop.AddDate(1, 4, 17).Add(time.Second)
 				command.OlderThan = "1year4months2weeks3days"
 				So(command.Run(db, now, in, out), ShouldBeNil)
 
