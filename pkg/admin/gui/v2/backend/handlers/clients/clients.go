@@ -38,8 +38,10 @@ const (
 	// under the web interface.
 	stylesheet      = "/static_v2/clients/clients.css"
 	protoStylesheet = "/static_v2/proto/proto.css"
-	docPage         = "user/webui/clients-locaux"
-	pagePath        = "/clients"
+	script          = "/static_v2/clients/clients.js" // the retries drawn live, on the form
+
+	docPage  = "user/webui/clients-locaux"
+	pagePath = "/clients"
 
 	// The sheet of a remote partner (#714).
 	partnersPath = "/partners"
@@ -611,6 +613,9 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 // options, then the screen.
 func formStylesheets() []string { return []string{protoStylesheet, stylesheet} }
 
+// formScripts is the script of the form: the retries drawn live.
+func formScripts() []string { return []string{script} }
+
 // partnerRow is a remote partner the client can reach: a partner of its
 // protocol (decision of 2026-10-19: the two screens stay apart, linked at
 // the screen).
@@ -621,18 +626,19 @@ type partnerRow struct {
 }
 
 type detailData struct {
-	Name      string
-	Status    gui.Status
-	Reason    string
-	Protocol  string // the family, for the title of the options card
-	BackURL   string
-	EditURL   string
-	Actions   []gui.Action
-	Identity  []kv
-	Retries   []kv
-	NoRetries bool // no automatic retry: the card says so instead of the rows
-	Options   []kv
-	Partners  []partnerRow
+	Name          string
+	Status        gui.Status
+	Reason        string
+	Protocol      string // the family, for the title of the options card
+	BackURL       string
+	EditURL       string
+	Actions       []gui.Action
+	Identity      []kv
+	Retries       []kv
+	RetrySentence string // how long the retries take, in one sentence
+	NoRetries     bool   // no automatic retry: the card says so instead of the rows
+	Options       []kv
+	Partners      []partnerRow
 }
 
 // Detail serves GET /webui/clients/{id}: the client in reading, with the
@@ -684,6 +690,8 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		data.NoRetries = true
 	} else {
 		data.Retries = retryRows(translate, cli.client)
+		data.RetrySentence = retrySentence(translate,
+			cli.client.NbOfAttempts, cli.client.FirstRetryDelay, cli.client.RetryIncrementFactor)
 	}
 
 	for _, partner := range partners {

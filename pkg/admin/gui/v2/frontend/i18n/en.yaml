@@ -877,7 +877,7 @@ clients:
     attempts: Automatic retries after a failure
     attempts_hint: "0: no retry; 127 at most"
     delay: Delay before the first retry
-    delay_hint: "Empty: immediate retry"
+    delay_hint: "Empty: the gateway waits 1 s"
     delay_none: No delay
     delay_hours: "{n} h"
     delay_minutes: "{n} min"
@@ -887,6 +887,20 @@ clients:
     seconds: seconds
     factor: Delay growth factor
     factor_hint: "1: constant delay; 2: the delay doubles at each retry"
+    sentence_none: No automatic retry.
+    sentence_one: "1 attempt, {delay} after the failure."
+    sentence_constant: "{n} attempts, every {delay}: the last one {total} after the first failure."
+    sentence_growing: "{n} attempts: the last one {total} after the first failure, with waits from {first} to {last}."
+    sentence_empty_delay: "Empty delay: the gateway waits 1 s."
+    delay_days: "{n} d"
+    more_than_years: "more than {n} years"
+    failure: Failure
+    details: Details of the attempts
+    details_caption: Attempts, wait before each one and moment since the first failure
+    col_attempt: Attempt
+    col_wait: Wait
+    col_moment: Moment
+    note: "The timeline counts the wait between two attempts from the first failure; the duration of the attempts themselves adds to it."
   new:
     title: New client
   edit:

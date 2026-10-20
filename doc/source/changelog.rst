@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`717` Le formulaire d'un client local de l'interface web refondue
+  dit combien de temps prennent les reprises automatiques : sous les trois
+  réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
+  dernière 15 min 30 s après le premier échec, avec des attentes de 30 s à
+  8 min »), une frise qui place chaque tentative au prorata du temps écoulé,
+  et le détail des tentatives en tableau, recalculés à chaque saisie ; la
+  fiche du client porte la même phrase. Le calcul est celui du moteur de
+  transfert (délai multiplié par le facteur à chaque reprise, tronqué à la
+  seconde), désormais partagé ; un délai vide signifie une attente d'une
+  seconde, ce que l'aide du champ dit maintenant.
+
 * :feature:`716` Dans les formulaires de l'interface web refondue, les listes
   d'algorithmes SSH (échange de clés, chiffrement, intégrité) et de suites de
   chiffrement TLS se composent en étiquettes : les algorithmes retenus

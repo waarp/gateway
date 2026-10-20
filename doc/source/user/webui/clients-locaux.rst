@@ -152,10 +152,16 @@ client* ouvre le même formulaire, pré-rempli. Il se compose de quatre blocs :
    * - Reprise des transferts
      - Le nombre de tentatives automatiques après un échec (0 : aucune
        reprise ; 127 au plus), le délai avant la première reprise, en heures,
-       minutes et secondes, et le facteur de progression du délai (1 : délai
-       constant ; 2 : délai doublé à chaque reprise ; par exemple, avec un
-       délai de 30 secondes et un facteur de 2, les reprises ont lieu après
-       30 secondes, puis 1, 2 et 4 minutes).
+       minutes et secondes (vide, la Gateway attend une seconde), et le
+       facteur de progression du délai (1 : délai constant ; 2 : délai
+       doublé à chaque reprise). Sous ces trois réglages, une phrase dit
+       combien de temps les reprises prennent réellement (« 5 tentatives :
+       la dernière 15 min 30 s après le premier échec, avec des attentes de
+       30 s à 8 min »), une frise place chaque tentative au prorata du temps
+       écoulé depuis le premier échec, et le dépliant *Détail des tentatives*
+       donne, pour chacune, l'attente et le moment ; le tout se recalcule à
+       chaque saisie. La durée des tentatives elles-mêmes s'ajoute à ces
+       attentes. La fiche du client porte la même phrase.
    * - Options du protocole
      - Les options de la famille choisie et, quand TLS est coché, le bloc
        *Chiffrement TLS* (version minimale, suites de chiffrement). Les
