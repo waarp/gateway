@@ -611,6 +611,22 @@ about:
   link_doc: Documentation
   link_forums: Forums
   link_contact: "Contact: {email}"
+# Rights of a user by domain: the table shared by "My account" and the "Users" screen.
+rights:
+  col:
+    domain: Domain
+    read: Read
+    write: Write
+    delete: Delete
+  "yes": "Yes"
+  "no": "No"
+  domain:
+    transfers: Transfers
+    servers: Local servers and clients
+    partners: Remote partners
+    rules: Transfer rules
+    users: Users
+    admin: Administration
 # "My account" page (account menu): the signed-in user, their rights in reading, the change of their password
 # (Driss, 2026-10-19).
 me:
@@ -621,20 +637,6 @@ me:
   rights: Rights
   rights_caption: "Your rights, by domain: read, write, delete"
   rights_hint: "Your rights are set by an administrator, in “Users”."
-  col:
-    area: Domain
-    read: Read
-    write: Write
-    delete: Delete
-  "yes": "Yes"
-  "no": "No"
-  right:
-    transfers: Transfers
-    servers: Local servers and clients
-    partners: Remote partners
-    rules: Transfer rules
-    users: Users
-    admin: Administration
   password:
     title: Change my password
     current: Current password

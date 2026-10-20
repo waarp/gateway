@@ -1,0 +1,41 @@
+package rights
+
+import "code.waarp.fr/lib/gui"
+
+// Table: the rights of a user by domain, in reading: one row per domain,
+// "Yes" or "No" for the read, write and delete rights. The caption says
+// whose rights they are.
+templ Table(caption string, rows []Row) {
+	<div class="w-table-wrap">
+		<table class="w-table">
+			<caption class="visually-hidden">{ caption }</caption>
+			<thead>
+				<tr>
+					<th scope="col">{ gui.T(ctx, "rights.col.domain") }</th>
+					<th scope="col">{ gui.T(ctx, "rights.col.read") }</th>
+					<th scope="col">{ gui.T(ctx, "rights.col.write") }</th>
+					<th scope="col">{ gui.T(ctx, "rights.col.delete") }</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, rt := range rows {
+					<tr>
+						<td><span class="w-cell-title">{ rt.Label }</span></td>
+						<td>@YesNo(rt.Read)</td>
+						<td>@YesNo(rt.Write)</td>
+						<td>@YesNo(rt.Delete)</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// YesNo: a right granted or not.
+templ YesNo(granted bool) {
+	if granted {
+		{ gui.T(ctx, "rights.yes") }
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "rights.no") }</span>
+	}
+}

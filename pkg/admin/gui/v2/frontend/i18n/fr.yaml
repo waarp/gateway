@@ -610,6 +610,22 @@ about:
   link_doc: Documentation
   link_forums: Forums
   link_contact: "Contact : {email}"
+# Droits d'un utilisateur par domaine : le tableau partagé par « Mon compte » et l'écran « Utilisateurs ».
+rights:
+  col:
+    domain: Domaine
+    read: Lecture
+    write: Écriture
+    delete: Suppression
+  "yes": Oui
+  "no": Non
+  domain:
+    transfers: Transferts
+    servers: Serveurs et clients locaux
+    partners: Partenaires distants
+    rules: Règles de transfert
+    users: Utilisateurs
+    admin: Administration
 # Page « Mon compte » (menu du compte) : l'utilisateur connecté, ses droits en lecture, le changement de son mot de
 # passe (Driss, 19/10/2026).
 me:
@@ -620,20 +636,6 @@ me:
   rights: Droits
   rights_caption: "Vos droits, par domaine : lecture, écriture, suppression"
   rights_hint: "Vos droits sont fixés par un administrateur, dans « Utilisateurs »."
-  col:
-    area: Domaine
-    read: Lecture
-    write: Écriture
-    delete: Suppression
-  "yes": Oui
-  "no": Non
-  right:
-    transfers: Transferts
-    servers: Serveurs et clients locaux
-    partners: Partenaires distants
-    rules: Règles de transfert
-    users: Utilisateurs
-    admin: Administration
   password:
     title: Changer mon mot de passe
     current: Mot de passe actuel
