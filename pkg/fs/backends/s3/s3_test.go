@@ -20,11 +20,10 @@ func TestS3(t *testing.T) {
 	backtest.EnvOrSkip(t, "AWS_SECRET_ACCESS_KEY")
 
 	opts := map[string]string{
-		"env_auth":          "true",
-		"bucket":            bucket,
-		"provider":          "AWS",
-		"region":            "eu-west-3",
-		"directory_markers": "true",
+		"env_auth": "true",
+		"bucket":   bucket,
+		"provider": "AWS",
+		"region":   "eu-west-3",
 	}
 
 	s3VFS, fsErr := newVFS("s3", "", "", opts)

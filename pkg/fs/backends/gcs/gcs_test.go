@@ -25,7 +25,6 @@ func TestGCS(t *testing.T) {
 		"env_auth":           "true",
 		"project_number":     projectNb,
 		"bucket_policy_only": "true",
-		"directory_markers":  "true",
 	}
 
 	gcsVFS, fsErr := newVFS("gcs", "", "", opts)
