@@ -37,7 +37,7 @@ const (
 	KindNumber             // a whole number, with bounds
 	KindCheck              // a checkbox
 	KindSelect             // one value among a list
-	KindList               // several values among a list, in order (dual list)
+	KindList               // several values among a list, in order (a Tags field)
 	// KindTri is a flag the product reads in three states: absent (the value
 	// of the client applies), on, off. A select with the three states; an
 	// absent flag is never written as false.

@@ -653,7 +653,10 @@ func TestNewServer(t *testing.T) {
 		assert.Contains(t, body, `<option value="standard" selected>Standard</option><option value="non-standard">Non standard</option>`)
 		assert.Contains(t, body, `<option value="Optional" selected>TLS explicite facultatif</option>`)
 		assert.Contains(t, body, `<option value="" selected>Aucune signature</option>`)
-		assert.Contains(t, body, `name="sftp_kex" multiple size="5" data-dual="Disponibles|Retenus|Ajouter|Retirer"`)
+		assert.Contains(t, body, `name="sftp_kex" multiple size="5" data-tags="{&#34;add&#34;:&#34;Ajouter&#34;,`, "an ordered list is a Tags field of the kit")
+		assert.Contains(t, body, `<option value="diffie-hellman-group14-sha1">diffie-hellman-group14-sha1 (historique)</option>`, "a SHA-1 algorithm is said historic")
+		assert.Contains(t, body, `<option value="arcfour256">arcfour256 (désactivé par défaut)</option>`, "a cipher disabled by default is said so")
+		assert.Contains(t, body, `<option value="curve25519-sha256@libssh.org">curve25519-sha256@libssh.org</option>`, "a current algorithm carries no note")
 		assert.Contains(t, body, `<option value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256">49195 - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256</option>`,
 			"a suite is named by its decimal code then its name")
 		assert.Less(t, strings.Index(body, `>52393 - `), strings.Index(body, `>49195 - `), "the suites are sorted by decreasing code")

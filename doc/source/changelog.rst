@@ -3,6 +3,16 @@
 Historique des versions
 =======================
 
+* :feature:`716` Dans les formulaires de l'interface web refondue, les listes
+  d'algorithmes SSH (échange de clés, chiffrement, intégrité) et de suites de
+  chiffrement TLS se composent en étiquettes : les algorithmes retenus
+  s'affichent numérotés dans l'ordre de préférence, les autres sont proposés
+  par un champ à complétion (taper filtre, Entrée ajoute), une étiquette se
+  déplace en la glissant ou au clavier. Les suites TLS gardent leur code
+  décimal ; les algorithmes SSH fondés sur SHA-1 sont dits historiques, ceux
+  que le module n'active plus par défaut le disent aussi. Kit graphique en
+  version 0.8.0.
+
 * :feature:`714` L'écran des partenaires distants de l'interface web est
   refondu sur le kit : liste triée par colonne et filtrée (recherche, familles
   de protocole, avec ou sans TLS), avec le nombre de comptes de chaque

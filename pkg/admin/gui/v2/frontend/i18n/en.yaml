@@ -140,6 +140,8 @@ proto:
     tls_ciphers_short: TLS cipher suites
     tls_ciphers_hint: "Empty: every secure suite of the gateway is accepted when negotiating with the partner. A suite flagged insecure is only added knowingly."
     tls_insecure: (insecure)
+    algo_historic: (historic)
+    algo_disabled: (disabled by default)
     ftp_disable_passive: Disable the passive mode
     ftp_disable_active: Disable the active mode
     ftp_passive: Passive mode
