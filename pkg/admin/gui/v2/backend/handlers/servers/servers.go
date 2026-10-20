@@ -280,17 +280,19 @@ func serverURL(id int64, suffix string) string {
 }
 
 // filterBox is one family of the filters panel.
-type filterBox = protoform.FilterBox
-type row struct {
-	ID       int64
-	Name     string
-	Status   gui.Status
-	Reason   string // raw reason given by the service, never translated
-	Protocol string // the family
-	TLS      bool   // shown as a badge next to the family
-	Address  string
-	Actions  []gui.Action
-}
+type (
+	filterBox = protoform.FilterBox
+	row       struct {
+		ID       int64
+		Name     string
+		Status   gui.Status
+		Reason   string // raw reason given by the service, never translated
+		Protocol string // the family
+		TLS      bool   // shown as a badge next to the family
+		Address  string
+		Actions  []gui.Action
+	}
+)
 
 // pager is the list foot, with the fields of "gui/pager".
 type pager = liststate.Pager
