@@ -1,0 +1,449 @@
+//go:build e2e
+
+package admin_test
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"regexp"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/mxschmitt/playwright-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+)
+
+// Timings of the smoke test. A screen counts as settled once no request has
+// been in flight for e2eQuiet; the state refresh of the service status
+// screen is awaited explicitly, its period being longer than that.
+const (
+	e2eQuiet         = time.Second
+	e2eSettleTimeout = 30 * time.Second
+	e2ePollInterval  = 50 * time.Millisecond
+	e2eTimeoutMs     = 60_000.0
+	e2eRefreshMs     = 15_000.0
+
+	e2eUsername = "smoke"
+	e2ePassword = "smoke_password"
+)
+
+// e2eScreen is a screen of the reworked web interface, reachable by any
+// authenticated user, with the number of tables and of tile tabs it must
+// render and the query of the fragment it refreshes on its own (empty when it
+// has none).
+type e2eScreen struct {
+	path     string
+	tables   int
+	tabs     int
+	fragment string
+}
+
+func e2eScreens() []e2eScreen {
+	return []e2eScreen{
+		{"/webui/services", 3, 3, "fragment=state"},
+	}
+}
+
+// e2eService is a stub registered in the service lists of the gateway, so
+// that the screens show rows without opening any port.
+type e2eService struct {
+	name   string
+	state  utils.StateCode
+	reason string
+}
+
+func (s *e2eService) Name() string                     { return s.name }
+func (s *e2eService) Start() error                     { return nil }
+func (s *e2eService) Stop(context.Context) error       { return nil }
+func (s *e2eService) State() (utils.StateCode, string) { return s.state, s.reason }
+
+func (s *e2eService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
+	return nil, pipeline.NewError(0, "stub client: no transfer")
+}
+
+// registerE2EServices fills the service lists with every state the service
+// status screen renders, and empties them afterwards.
+func registerE2EServices(t *testing.T) {
+	t.Helper()
+
+	services.Core.Add(&e2eService{name: "Database", state: utils.StateRunning})
+	services.Core.Add(&e2eService{name: "Controller", state: utils.StateRunning})
+	services.Servers.Add(&model.LocalAgent{Identifier: model.Identifier{ID: 1}},
+		&e2eService{name: "srv-sftp-01", state: utils.StateRunning})
+	services.Servers.Add(&model.LocalAgent{Identifier: model.Identifier{ID: 2}},
+		&e2eService{name: "srv-r66-01", state: utils.StateError, reason: "listen tcp: address already in use"})
+	services.Servers.Add(&model.LocalAgent{Identifier: model.Identifier{ID: 3}},
+		&e2eService{name: "srv-https-01", state: utils.StateOffline})
+	services.Clients.Add(&model.Client{Identifier: model.Identifier{ID: 1}},
+		&e2eService{name: "cli-sftp", state: utils.StateRunning})
+
+	t.Cleanup(func() {
+		services.Core = nil
+		services.Servers.Reset()
+		services.Clients.Reset()
+	})
+}
+
+// e2eTracker counts the requests in flight and records the failed ones by
+// screen. Playwright calls its handlers on its own dispatch goroutine.
+type e2eTracker struct {
+	mu       sync.Mutex
+	baseURL  string
+	screen   string
+	inFlight map[playwright.Request]struct{}
+	last     time.Time
+	failures map[string][]string
+}
+
+func trackRequests(page playwright.Page, baseURL string) *e2eTracker {
+	tracker := &e2eTracker{
+		mu:       sync.Mutex{},
+		baseURL:  baseURL,
+		screen:   "",
+		inFlight: make(map[playwright.Request]struct{}),
+		last:     time.Time{},
+		failures: make(map[string][]string),
+	}
+
+	page.OnRequest(tracker.onRequest)
+	page.OnResponse(tracker.onResponse)
+	page.OnRequestFinished(tracker.onDone)
+	page.OnRequestFailed(tracker.onFailed)
+
+	return tracker
+}
+
+func (tr *e2eTracker) isOurs(req playwright.Request) bool {
+	return strings.HasPrefix(req.URL(), tr.baseURL)
+}
+
+func (tr *e2eTracker) onRequest(req playwright.Request) {
+	if !tr.isOurs(req) {
+		return
+	}
+
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	tr.inFlight[req] = struct{}{}
+	tr.last = time.Now()
+}
+
+// onResponse records every response of the backend that is an error, pages
+// and static files included.
+func (tr *e2eTracker) onResponse(res playwright.Response) {
+	if res.Status() < http.StatusBadRequest || !tr.isOurs(res.Request()) {
+		return
+	}
+
+	tr.record(res.Request(), fmt.Sprintf("status %d", res.Status()))
+}
+
+func (tr *e2eTracker) onFailed(req playwright.Request) {
+	if !tr.isOurs(req) {
+		return
+	}
+
+	tr.record(req, fmt.Sprintf("failed: %v", req.Failure()))
+	tr.onDone(req)
+}
+
+func (tr *e2eTracker) onDone(req playwright.Request) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if _, ok := tr.inFlight[req]; ok {
+		delete(tr.inFlight, req)
+		tr.last = time.Now()
+	}
+}
+
+// record keeps a failure under the current screen: settle runs before every
+// screen change, so no request outlives its screen.
+func (tr *e2eTracker) record(req playwright.Request, reason string) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	tr.failures[tr.screen] = append(tr.failures[tr.screen],
+		fmt.Sprintf("%s %s: %s", req.Method(), req.URL(), reason))
+}
+
+// enter makes screen the current screen.
+func (tr *e2eTracker) enter(screen string) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	tr.screen = screen
+}
+
+func (tr *e2eTracker) settled() (bool, []string) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	pending := make([]string, 0, len(tr.inFlight))
+	for req := range tr.inFlight {
+		pending = append(pending, req.URL())
+	}
+
+	return len(pending) == 0 && time.Since(tr.last) >= e2eQuiet, pending
+}
+
+// settle waits until no request has been in flight for e2eQuiet, counted
+// from the call at the earliest.
+func (tr *e2eTracker) settle() error {
+	start := time.Now()
+
+	tr.mu.Lock()
+	tr.last = start
+	tr.mu.Unlock()
+
+	deadline := start.Add(e2eSettleTimeout)
+
+	for {
+		done, pending := tr.settled()
+		if done {
+			return nil
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("requests still in flight: %v", pending) //nolint:err113 // test message
+		}
+
+		time.Sleep(e2ePollInterval)
+	}
+}
+
+// failuresOf returns the failures recorded for screen.
+func (tr *e2eTracker) failuresOf(screen string) []string {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	return slices.Clone(tr.failures[screen])
+}
+
+// startE2EServer serves the administration interface (REST API and web
+// interface) on a fresh database holding one user without any right.
+func startE2EServer(t *testing.T) string {
+	t.Helper()
+
+	db := dbtest.TestDatabase(t)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(e2ePassword), bcrypt.MinCost)
+	require.NoError(t, err)
+	require.NoError(t, db.Insert(&model.User{
+		Username: e2eUsername, PasswordHash: string(hash), Permissions: 0,
+	}).Run())
+
+	registerE2EServices(t)
+
+	server := httptest.NewServer(admin.MakeHandler(testhelpers.GetTestLogger(t), db))
+	t.Cleanup(server.Close)
+
+	return server.URL
+}
+
+//nolint:ireturn // playwright.Page is the library's own interface type
+func newE2EPage(t *testing.T) playwright.Page {
+	t.Helper()
+
+	driver, err := playwright.Run()
+	require.NoError(t, err, "cannot start Playwright (see ./make.sh test e2e)")
+	t.Cleanup(func() { assert.NoError(t, driver.Stop()) })
+
+	browser, err := driver.Chromium.Launch()
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, browser.Close()) })
+
+	page, err := browser.NewPage()
+	require.NoError(t, err)
+
+	page.SetDefaultTimeout(e2eTimeoutMs)
+	page.SetDefaultNavigationTimeout(e2eTimeoutMs)
+
+	return page
+}
+
+// expectURL waits for the page to land on exactly want.
+func expectURL(t *testing.T, page playwright.Page, want string) {
+	t.Helper()
+
+	pattern := regexp.MustCompile("^" + regexp.QuoteMeta(want) + "$")
+	err := playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(pattern)
+	require.NoError(t, err)
+}
+
+// e2eSession is a browser page on the web interface served at baseURL.
+type e2eSession struct {
+	page    playwright.Page
+	tracker *e2eTracker
+	baseURL string
+}
+
+// visit opens path as the current screen and waits for it to settle.
+func (s *e2eSession) visit(t *testing.T, path string) {
+	t.Helper()
+
+	s.tracker.enter(path)
+
+	_, err := s.page.Goto(s.baseURL + path)
+	require.NoError(t, err)
+	require.NoError(t, s.tracker.settle())
+}
+
+func (s *e2eSession) login(t *testing.T) {
+	t.Helper()
+
+	s.visit(t, "/webui/login")
+
+	require.NoError(t, s.page.Locator("#username").Fill(e2eUsername))
+	require.NoError(t, s.page.Locator("#password").Fill(e2ePassword))
+	require.NoError(t, s.page.Locator("form button[type=submit]").Click())
+
+	expectURL(t, s.page, s.baseURL+"/webui/home")
+	require.NoError(t, s.tracker.settle())
+
+	// The sign-in and home pages are historic ones, checked once reworked;
+	// their failed requests are reported, not judged.
+	if failures := s.tracker.failuresOf("/webui/login"); len(failures) > 0 {
+		t.Logf("failed requests of the historic sign-in and home pages: %v", failures)
+	}
+}
+
+// count returns the number of elements matching selector.
+func (s *e2eSession) count(t *testing.T, selector string) int {
+	t.Helper()
+
+	n, err := s.page.Locator(selector).Count()
+	require.NoError(t, err)
+
+	return n
+}
+
+// attribute returns the value of an attribute of the element.
+func attribute(t *testing.T, element playwright.Locator, name string) string {
+	t.Helper()
+
+	value, err := element.GetAttribute(name)
+	require.NoError(t, err)
+
+	return value
+}
+
+func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
+	t.Helper()
+
+	s.visit(t, screen.path)
+	expectURL(t, s.page, s.baseURL+screen.path)
+
+	// The kit chrome and the screen.
+	assert.Equal(t, 1, s.count(t, "a.w-skip"), "skip link")
+	assert.Equal(t, 1, s.count(t, "main#contenu"), "main landmark")
+	assert.Equal(t, 1, s.count(t, "h1.w-page-header__title"), "page title")
+	assert.Equal(t, 1, s.count(t, `nav a[aria-current="page"]`), "active sidebar entry")
+	assert.Equal(t, screen.tables, s.count(t, "table.w-table"), "tables")
+
+	// The first Tab reaches the skip link.
+	require.NoError(t, s.page.Keyboard().Press("Tab"))
+	focused, err := s.page.Evaluate(`document.activeElement.classList.contains("w-skip")`)
+	require.NoError(t, err)
+	assert.Equal(t, true, focused, "the first Tab must reach the skip link")
+
+	// The tiles are tabs: the last one shows its panel alone, and that choice
+	// survives a refresh of the fragment.
+	if screen.tabs > 0 {
+		tabs := s.page.Locator(`[role="tablist"] [role="tab"]`)
+		require.Equal(t, screen.tabs, s.count(t, `[role="tablist"] [role="tab"]`), "tile tabs")
+		require.NoError(t, tabs.Last().Click())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible`), "one panel shown at a time")
+		assert.Equal(t, "true", attribute(t, tabs.Last(), "aria-selected"))
+	}
+
+	// One refresh of the screen's own fragment, served without error, that
+	// keeps the group shown.
+	if screen.fragment != "" {
+		response, err := s.page.ExpectResponse(func(res playwright.Response) bool {
+			return strings.Contains(res.URL(), screen.fragment)
+		}, func() error { return nil }, playwright.PageExpectResponseOptions{Timeout: playwright.Float(e2eRefreshMs)})
+		require.NoError(t, err, "the screen must refresh its fragment on its own")
+		assert.Equal(t, http.StatusOK, response.Status())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 0, s.count(t, "#etat .w-banner"), "no error message after a successful refresh")
+
+		if screen.tabs > 0 {
+			assert.Equal(t, "true", attribute(t, s.page.Locator(`[role="tablist"] [role="tab"]`).Last(), "aria-selected"),
+				"the group shown must survive the refresh")
+			assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible`))
+		}
+	}
+
+	// A sortable column header, sorted ascending by default, sorts descending
+	// once clicked (through the fragment, served without error).
+	if headers := s.count(t, `[role="tabpanel"]:visible th[aria-sort="ascending"] a`); headers > 0 {
+		require.NoError(t, s.page.Locator(`[role="tabpanel"]:visible th[aria-sort="ascending"] a`).First().Click())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible th[aria-sort="descending"]`), "sorted descending")
+	}
+
+	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests")
+
+	t.Run("axe-core", func(t *testing.T) { s.checkAccessibility(t) })
+}
+
+// checkAccessibility runs the axe-core rules on the screen: no serious or
+// critical violation. The rules come from the file named by AXE_CORE_JS,
+// installed by helpers/playwright-bootstrap.sh.
+func (s *e2eSession) checkAccessibility(t *testing.T) {
+	t.Helper()
+
+	path := os.Getenv("AXE_CORE_JS")
+	if path == "" {
+		t.Skip("AXE_CORE_JS is not set: run ./helpers/playwright-bootstrap.sh and source .playwright/env.sh")
+	}
+
+	_, err := s.page.AddScriptTag(playwright.PageAddScriptTagOptions{Path: playwright.String(path)})
+	require.NoError(t, err)
+
+	violations, err := s.page.Evaluate(`async () => {
+		const result = await axe.run(document, { resultTypes: ["violations"] });
+		return result.violations
+			.filter((v) => v.impact === "serious" || v.impact === "critical")
+			.map((v) => v.id + " (" + v.impact + "): " + v.help + " [" + v.nodes.map((n) => n.target.join(" ")).join(", ") + "]");
+	}`)
+	require.NoError(t, err)
+	assert.Empty(t, violations, "serious or critical accessibility violations")
+}
+
+// TestE2ESmokeEveryScreen signs in as a user without any right and visits
+// every screen of the reworked web interface against the real backend: any
+// request answered with an error fails it.
+//
+//nolint:paralleltest // the test fills the global service lists of the gateway
+func TestE2ESmokeEveryScreen(t *testing.T) {
+	baseURL := startE2EServer(t)
+	page := newE2EPage(t)
+	session := &e2eSession{page: page, tracker: trackRequests(page, baseURL), baseURL: baseURL}
+
+	session.login(t)
+
+	for _, screen := range e2eScreens() {
+		t.Run(screen.path, func(t *testing.T) { session.check(t, screen) })
+	}
+}

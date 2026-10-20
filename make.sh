@@ -34,6 +34,14 @@ t_test_watch() {
   goconvey -launchBrowser=false -port=8081 -excludedDirs=doc "$@"
 }
 
+t_test_e2e() {
+  ./helpers/playwright-bootstrap.sh
+  # shellcheck source=/dev/null
+  . .playwright/env.sh
+
+  go test -tags e2e -count=1 "$@" ./pkg/admin/ -run TestE2E
+}
+
 ensure-venv() {
   test -d .venv && return 0
 
@@ -395,6 +403,7 @@ Available actions:
   test               Run tests
   test watch         Starts convey to watch code and run tests when
                      it has been changed
+  test e2e           Runs the browser smoke test of the web interface
 
   doc                Builds the doc
   doc watch          Watch the source of the documentation and builds it when
@@ -464,6 +473,10 @@ case $ACTION in
       watch)
         shift
         t_test_watch "$@"
+        ;;
+      e2e)
+        shift
+        t_test_e2e "$@"
         ;;
       *)
         t_test "$@"

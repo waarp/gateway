@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :feature:`706` L'écran « État des services » de l'interface web est
+  refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
+  sélectionne le tableau affiché), états lisibles sans la couleur, message
+  persistant en cas d'échec de l'actualisation automatique. Il remplace l'ancien écran dans
+  la navigation et sur la page d'accueil ; l'ancien reste accessible à son
+  adresse (``/webui/status_services``) jusqu'à la version suivante. Un
+  premier guide de l'interface web accompagne cet écran
+  (:ref:`user-guide-webui`).
 * :feature:`873` La liste des transferts peut désormais être filtrée par
   acquittement, dans l'API REST (paramètre ``ack``) comme en ligne de commande
   (option ``--ack``) : attendu, reçu, non reçu, envoyé ou sans acquittement,

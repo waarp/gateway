@@ -89,7 +89,9 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	// Add HTTP handlers to the router here.
 	// Example:
 	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
-	router.HandleFunc("/logout", logout()).Methods("GET")
+	// The kit chrome signs out with a POST form; the historic pages link the
+	// GET route.
+	router.HandleFunc("/logout", logout()).Methods("GET", "POST")
 
 	subFS, err := fs.Sub(webFS, "front-end")
 	if err != nil {
@@ -98,6 +100,9 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 		return
 	}
 
+	// The kit files live under the historic static prefix: their route must
+	// come first, mux keeping the first prefix that matches.
+	backend.MakeKitStaticRouter(router)
 	router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServerFS(subFS)))
 
 	secureRouter := router.PathPrefix("/").Subrouter()
@@ -156,7 +161,9 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				return
 			}
 
-			if r.URL.Query().Get("partial") == "" {
+			// A refresh made by a page on its own (historic "partial", v2
+			// "fragment") is not a user action: it does not extend the session.
+			if query := r.URL.Query(); query.Get("partial") == "" && query.Get(constants.FragmentParam) == "" {
 				refreshToken(r, w, tokenCookie.Value)
 			}
 

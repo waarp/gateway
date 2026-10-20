@@ -3,16 +3,23 @@ package backend
 import (
 	"net/http"
 
+	"code.waarp.fr/lib/gui"
 	"github.com/gorilla/mux"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/listing"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
+
+// permAuthenticated is the permission mask of a page any authenticated user
+// may read, whatever their rights.
+const permAuthenticated model.PermsMask = 0
 
 func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	router.PathPrefix(constants.StaticPrefix).Handler(
@@ -24,6 +31,27 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 
 	MakeListingRouter(router, db, logger)
 	MakeTasksRouter(router, db, logger)
+	MakeServicesRouter(router, logger)
+}
+
+// MakeKitStaticRouter serves the files of the GUI kit (styles, scripts,
+// fonts, icons). Like the other static files, they need no authentication.
+func MakeKitStaticRouter(router *mux.Router) {
+	router.PathPrefix(constants.KitStaticPrefix).Handler(
+		http.StripPrefix(
+			constants.WebuiPrefix+constants.KitStaticPrefix,
+			http.FileServerFS(gui.Static),
+		),
+	)
+}
+
+// MakeServicesRouter registers the "Service status" screen. As the historic
+// page it replaces, it requires no particular permission, only an
+// authenticated user; it serves GET only.
+func MakeServicesRouter(router *mux.Router, logger *log.Logger) {
+	router.Path("/services").Methods(http.MethodGet).Handler(
+		withPermissions(permAuthenticated, services.Page(logger, internal.ListServices)),
+	)
 }
 
 func MakeListingRouter(router *mux.Router, db *database.DB, logger *log.Logger) {

@@ -18,3 +18,4 @@ etc/
 *.db
 *.goconvey
 .vagrant
+.playwright/
