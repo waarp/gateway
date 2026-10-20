@@ -216,8 +216,6 @@ func (db *DB) Stop(context.Context) error {
 }
 
 func (db *DB) stop() error {
-	defer func() { db.engine = nil }()
-
 	db.Logger.Info("Shutting down...")
 
 	if err := db.close(); err != nil {
@@ -227,7 +225,6 @@ func (db *DB) stop() error {
 	}
 
 	db.Logger.Info("Shutdown complete")
-	db.engine = nil
 
 	return nil
 }
@@ -239,10 +236,6 @@ func (db *DB) State() (utils.StateCode, string) {
 
 //nolint:wrapcheck //no need to wrap errors here
 func (db *DB) close() error {
-	if db.engine == nil {
-		return nil
-	}
-
 	sqlDB, err := db.engine.DB()
 	if err != nil {
 		return err

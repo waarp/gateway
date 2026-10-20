@@ -64,9 +64,21 @@ func (s *service) listen() (string, error) {
 	return list.Addr().String(), nil
 }
 
-func (s *service) stop(ctx context.Context) error {
-	if err := s.server.Close(ctx); err != nil {
-		return fmt.Errorf("failed to shut down pesit server: %w", err)
+func (s *service) stop(ctx context.Context) (stopErr error) {
+	closeRes := make(chan error)
+	go func() {
+		defer close(closeRes)
+		closeRes <- s.server.Close(ctx)
+	}()
+
+	defer func() {
+		if closeErr := <-closeRes; closeErr != nil {
+			stopErr = fmt.Errorf("failed to shut down pesit server: %w", closeErr)
+		}
+	}()
+
+	if err := pipeline.List.StopAllFromServer(ctx, s.localAgent.ID); err != nil {
+		return fmt.Errorf("failed to stop pipelines: %w", err)
 	}
 
 	return nil
