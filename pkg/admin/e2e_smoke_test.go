@@ -24,6 +24,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -44,10 +45,10 @@ const (
 	e2ePassword = "smoke_password"
 )
 
-// e2eScreen is a screen of the reworked web interface, reachable by any
-// authenticated user, with the number of tables and of tile tabs it must
-// render and the query of the fragment it refreshes on its own (empty when it
-// has none).
+// e2eScreen is a screen of the reworked web interface, with the number of
+// tables and of tile tabs it must render and the query of the fragment it
+// refreshes on its own (empty when it has none). The smoke user holds the
+// rights on the servers, which the local servers screens require.
 type e2eScreen struct {
 	path     string
 	tables   int
@@ -58,6 +59,11 @@ type e2eScreen struct {
 func e2eScreens() []e2eScreen {
 	return []e2eScreen{
 		{"/webui/services", 3, 3, "fragment=state"},
+		{"/webui/servers", 1, 0, ""},
+		{"/webui/servers/1", 0, 0, ""},
+		{"/webui/servers/new", 0, 0, ""},
+		{"/webui/servers/1/edit", 0, 0, ""},
+		{"/webui/servers/1/delete", 0, 0, ""},
 	}
 }
 
@@ -239,7 +245,8 @@ func (tr *e2eTracker) failuresOf(screen string) []string {
 }
 
 // startE2EServer serves the administration interface (REST API and web
-// interface) on a fresh database holding one user without any right.
+// interface) on a fresh database holding one user with the rights on the
+// servers and the three servers whose services registerE2EServices stubs.
 func startE2EServer(t *testing.T) string {
 	t.Helper()
 
@@ -248,8 +255,18 @@ func startE2EServer(t *testing.T) string {
 	hash, err := bcrypt.GenerateFromPassword([]byte(e2ePassword), bcrypt.MinCost)
 	require.NoError(t, err)
 	require.NoError(t, db.Insert(&model.User{
-		Username: e2eUsername, PasswordHash: string(hash), Permissions: 0,
+		Username: e2eUsername, PasswordHash: string(hash),
+		Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete,
 	}).Run())
+
+	for i, server := range []*model.LocalAgent{
+		{Name: "srv-sftp-01", Protocol: "sftp", Address: types.Addr("127.0.0.1", 10022)},
+		{Name: "srv-r66-01", Protocol: "r66", Address: types.Addr("127.0.0.1", 6666)},
+		{Name: "srv-https-01", Protocol: "https", Address: types.Addr("127.0.0.1", 8443)},
+	} {
+		require.NoError(t, db.Insert(server).Run())
+		require.EqualValues(t, i+1, server.ID, "the stub services are registered by identifier")
+	}
 
 	registerE2EServices(t)
 
@@ -395,11 +412,30 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	}
 
 	// A sortable column header, sorted ascending by default, sorts descending
-	// once clicked (through the fragment, served without error).
-	if headers := s.count(t, `[role="tabpanel"]:visible th[aria-sort="ascending"] a`); headers > 0 {
-		require.NoError(t, s.page.Locator(`[role="tabpanel"]:visible th[aria-sort="ascending"] a`).First().Click())
+	// once clicked (through the fragment or a reload, served without error).
+	if headers := s.count(t, `th[aria-sort="ascending"] a:visible`); headers > 0 {
+		require.NoError(t, s.page.Locator(`th[aria-sort="ascending"] a:visible`).First().Click())
 		require.NoError(t, s.tracker.settle())
-		assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible th[aria-sort="descending"]`), "sorted descending")
+		assert.Equal(t, 1, s.count(t, `th[aria-sort="descending"]:visible`), "sorted descending")
+	}
+
+	// The filters of a list apply as soon as one changes; the "⋯" menu of a
+	// row opens and closes from the keyboard.
+	if s.count(t, `form[data-autosubmit] details.w-disclose`) > 0 {
+		require.NoError(t, s.page.Locator(`form[data-autosubmit] details.w-disclose > summary`).Click())
+		require.NoError(t, s.page.Locator(`form[data-autosubmit] input[name="protocol"]`).First().Check())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] input[name="protocol"]:checked`), "the filter is kept after the reload")
+		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] details.w-disclose[open]`), "the filters stay open while one is active")
+	}
+
+	if s.count(t, `button[popovertarget]`) > 0 {
+		menu := s.page.Locator(`button[popovertarget]`).First()
+		require.NoError(t, menu.Focus())
+		require.NoError(t, s.page.Keyboard().Press("Enter"))
+		assert.Equal(t, 1, s.count(t, `.w-actions:popover-open`), "the menu opens from the keyboard")
+		require.NoError(t, s.page.Keyboard().Press("Escape"))
+		assert.Equal(t, 0, s.count(t, `.w-actions:popover-open`), "and closes with Escape")
 	}
 
 	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests")

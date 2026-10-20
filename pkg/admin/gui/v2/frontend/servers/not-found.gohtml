@@ -1,0 +1,9 @@
+{{/* A server that does not exist: localised 404 in the chrome, with the way back to the list as the user left it. */ -}}
+{{ define "page" -}}
+<div class="w-page-header">
+  <div class="w-page-header__text">
+    <h1 class="w-page-header__title">{{ t "servers.not_found.title" }}</h1>
+  </div>
+</div>
+{{ template "gui/empty" (dict "Icon" "server" "Title" (t "servers.not_found.text") "Action" (dict "Label" (t "servers.back") "URL" .Data.BackURL "Icon" "arrow-left")) }}
+{{- end }}

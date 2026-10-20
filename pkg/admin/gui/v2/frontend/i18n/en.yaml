@@ -75,3 +75,186 @@ services:
   error:
     title: The states could not be refreshed.
     text: "Last successful read at {time}. The states shown date from that read; a new attempt is made every {seconds} s."
+
+# "Local servers" screen (Connections): list, details, form, deletion, start and stop.
+servers:
+  title: Local servers
+  add: Add a server
+  search: Search a server by name
+  search_placeholder: Search by name
+  filters: Protocols
+  count: "{total} servers"
+  count_one: 1 server
+  count_shown: "{total} servers · {shown} shown"
+  count_shown_one: "{total} servers · 1 shown"
+  caption: "Local servers, page {page} of {pages}, sorted by {sort}"
+  pager: "Servers {from} to {to} of {total}"
+  back: Back to the list
+  back_server: Back to the server
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    state: status
+    protocol: protocol
+    address: address
+  col:
+    name: Local server
+    state: Status
+    protocol: Protocol
+    address: Address
+    actions: Actions
+  action:
+    detail: View details
+    start: Start the server
+    stop: Stop the server
+    auth: Authentication
+    accounts: Local accounts
+    edit: Edit the server
+    delete: Delete the server
+  detail:
+    title: "Server “{name}”"
+    card: Server
+    state: Status
+    protocol: Protocol
+    address: Listening address
+    autostart: Automatic start
+    autostart_yes: "Yes"
+    autostart_no: "No"
+    accounts: Local accounts
+    dirs: Directories
+    undefined: Not set
+    options: "{protocol} options"
+    options_label: Options
+  dirs:
+    root: Root directory
+    receive: Receive directory
+    tmp: Temporary receive directory
+    send: Send directory
+  new:
+    title: New server
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique on this gateway; letters, digits, dashes and dots"
+    protocol: Protocol
+    protocol_choose: Choose a protocol
+    protocol_hint: The options of the protocol appear after the choice.
+    protocol_error: Choose the protocol of the server.
+    no_autostart: Do not start automatically when the gateway starts
+    address: Listening address
+    host: Host
+    host_hint: "Host name or IP address the server listens on; empty, it listens on every interface (shown as “*”)"
+    port: Port
+    port_hint: "TCP port, 1 to 65535"
+    dirs: Directories
+    dirs_hint: "Optional; a relative path is resolved from the gateway root directory."
+    tmp_hint: "Files are written there during the reception, then moved to the receive directory"
+    options: "{protocol} options"
+    refused: The server was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: This field is required.
+      name_taken: Another server already has this name. Choose another one.
+      address_taken: Another server already listens on this address and port.
+      address: Enter a valid host name or IP address.
+      port: Enter a port between 1 and 65535.
+      number: Enter a whole number.
+  # Options by protocol: the effect for the operator first, the technical term as a monospace hint.
+  opt:
+    r66_login: Login expected from the partner
+    r66_login_hint: "By default, the name of the server"
+    r66_block: Size of a data block
+    r66_block_hint: "In bytes; 65,536 by default"
+    r66_no_final_hash: Do not check the hash at the end of the transfer
+    r66_check_block_hash: Check the hash of every block
+    r66_final_hash: Hash at the end of the transfer
+    r66_block_hash: Hash of every block
+    tls: TLS
+    min_tls: Minimum TLS version
+    min_tls_hint: "Cipher suites are chosen up to TLS 1.2; in TLS 1.3 the library sets them."
+    tls_ciphers: "TLS cipher suites, up to TLS 1.2"
+    tls_ciphers_short: TLS cipher suites
+    tls_ciphers_hint: "Empty: every secure suite of the gateway is accepted when negotiating with the partner. A suite flagged insecure is only added knowingly."
+    tls_insecure: (insecure)
+    ftp_disable_passive: Disable the passive mode
+    ftp_disable_active: Disable the active mode
+    ftp_passive: Passive mode
+    ftp_active: Active mode
+    ftp_passive_min: First port of the passive mode
+    ftp_passive_min_hint: "Empty: any free port"
+    ftp_passive_max: Last port of the passive mode
+    tls_requirement: TLS requirement
+    tls_requirements:
+      optional: Optional explicit TLS
+      mandatory: Mandatory explicit TLS
+      implicit: Implicit TLS
+    pesit_disable_restart: Disable the restart of interrupted transfers
+    pesit_disable_checkpoints: Disable the checkpoints
+    pesit_restart: Restart of interrupted transfers
+    pesit_checkpoints: Checkpoints
+    pesit_checkpoint_size: Interval between two checkpoints
+    pesit_checkpoint_window: Checkpoints without acknowledgement
+    pesit_checkpoint_window_hint: "Window, in number of checkpoints"
+    pesit_max_message: Maximum size of a message
+    pesit_mode: PeSIT mode
+    pesit_mode_hint: "“Standard” follows the published specification; “Non standard” follows the market convention some partners expect."
+    pesit_modes:
+      standard: Standard
+      non_standard: Non standard
+    pesit_disable_preconnection: Disable the pre-connection
+    pesit_preconnection: Pre-connection
+    sftp_note: "An empty list accepts every algorithm of the gateway; the order of the chosen ones is the preference order."
+    sftp_kex: Key exchange algorithms
+    sftp_kex_hint: "Empty: every key exchange algorithm is accepted"
+    sftp_ciphers: Cipher algorithms
+    sftp_ciphers_hint: "Empty: every cipher algorithm is accepted"
+    sftp_macs: Integrity algorithms
+    sftp_macs_hint: "Empty: every integrity algorithm is accepted"
+    as2_max_file_size: Maximum size of a file
+    as2_max_file_size_hint: "In bytes; cannot exceed the memory of the system"
+    as2_mdn_algo: Signature of the MDN acknowledgements
+    mdn:
+      none: No signature
+    bytes: In bytes
+    enabled: Enabled
+    disabled: Disabled
+    checked: Checked
+    unchecked: Not checked
+    default_login: The name of the server
+    default_block: "65,536 bytes"
+    default_value: Default value of the gateway
+    default_ciphers: Every secure suite of the gateway
+    default_algos: Every algorithm of the gateway
+    ports: "Ports {min} to {max}"
+    any_port: Any free port
+    none: No option for this protocol
+  delete:
+    title: "Delete the server “{name}”?"
+    text: "Its local accounts and their authentication means will be deleted with it. The rules that name it in their access lists will no longer apply to it."
+    running: "It is running: it will be stopped."
+    blocked_title: This server cannot be deleted.
+    blocked_text: "Running transfers use it. Cancel them or wait for them to finish, then come back here."
+    blocked_link: See the running transfers
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Server “{name}” created"
+    updated: "Server “{name}” saved"
+    deleted: "Server “{name}” deleted"
+    started: "Server “{name}” started"
+    stopped: "Server “{name}” stopped"
+    start_failed: "Server “{name}” did not start"
+    stop_failed: "Server “{name}” could not be stopped"
+  empty:
+    title: No local server yet
+    text: "A local server is a listening endpoint of the gateway for one protocol: partners connect to it to drop or fetch files."
+  none:
+    title: "No server matches “{query}”"
+    filters: No server matches the filters
+  not_found:
+    title: Server not found
+    text: This server does not exist or has been deleted.
+  error:
+    title: The server list could not be loaded.
+    text: "An internal error occurred; the details are in the gateway log."

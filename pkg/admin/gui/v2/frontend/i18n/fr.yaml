@@ -74,3 +74,186 @@ services:
   error:
     title: Les états n'ont pas pu être actualisés.
     text: "Dernière lecture réussie à {time}. Les états affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."
+
+# Écran « Serveurs locaux » (Connexions) : liste, détail, formulaire, suppression, démarrage et arrêt.
+servers:
+  title: Serveurs locaux
+  add: Ajouter un serveur
+  search: Rechercher un serveur par son nom
+  search_placeholder: Rechercher par nom
+  filters: Protocoles
+  count: "{total} serveurs"
+  count_one: 1 serveur
+  count_shown: "{total} serveurs · {shown} affichés"
+  count_shown_one: "{total} serveurs · 1 affiché"
+  caption: "Serveurs locaux, page {page} sur {pages}, triés par {sort}"
+  pager: "Serveurs {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_server: Retour au serveur
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    state: état
+    protocol: protocole
+    address: adresse
+  col:
+    name: Serveur local
+    state: État
+    protocol: Protocole
+    address: Adresse
+    actions: Actions
+  action:
+    detail: Voir le détail
+    start: Démarrer le serveur
+    stop: Arrêter le serveur
+    auth: Authentification
+    accounts: Comptes locaux
+    edit: Modifier le serveur
+    delete: Supprimer le serveur
+  detail:
+    title: "Serveur « {name} »"
+    card: Serveur
+    state: État
+    protocol: Protocole
+    address: Adresse d'écoute
+    autostart: Démarrage automatique
+    autostart_yes: Oui
+    autostart_no: Non
+    accounts: Comptes locaux
+    dirs: Dossiers
+    undefined: Non défini
+    options: "Options du protocole {protocol}"
+    options_label: Options
+  dirs:
+    root: Dossier racine
+    receive: Dossier de réception
+    tmp: Dossier de réception temporaire
+    send: Dossier d'envoi
+  new:
+    title: Nouveau serveur
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
+    protocol: Protocole
+    protocol_choose: Choisissez un protocole
+    protocol_hint: Les options du protocole apparaissent après le choix.
+    protocol_error: Choisissez le protocole du serveur.
+    no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
+    address: Adresse d'écoute
+    host: Hôte
+    host_hint: "Nom d'hôte ou adresse IP sur lequel le serveur écoute ; vide, il écoute sur toutes les interfaces (affiché « * »)"
+    port: Port
+    port_hint: "Port TCP, de 1 à 65535"
+    dirs: Dossiers
+    dirs_hint: "Facultatifs ; un chemin relatif s'entend depuis le dossier racine de la passerelle."
+    tmp_hint: "Les fichiers y sont écrits pendant la réception, puis déplacés dans le dossier de réception"
+    options: "Options du protocole {protocol}"
+    refused: Le serveur n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Un autre serveur porte déjà ce nom. Choisissez-en un autre.
+      address_taken: Un autre serveur écoute déjà sur cette adresse et ce port.
+      address: "Indiquez un nom d'hôte ou une adresse IP valide."
+      port: Indiquez un port entre 1 et 65535.
+      number: Indiquez un nombre entier.
+  # Options par protocole : l'effet pour l'exploitant d'abord, le terme technique en aide monospace.
+  opt:
+    r66_login: Identifiant attendu du partenaire
+    r66_login_hint: "Par défaut, le nom du serveur"
+    r66_block: Taille d'un bloc de données
+    r66_block_hint: "En octets ; 65 536 par défaut"
+    r66_no_final_hash: Ne pas vérifier le hachage en fin de transfert
+    r66_check_block_hash: Vérifier le hachage de chaque bloc
+    r66_final_hash: Hachage en fin de transfert
+    r66_block_hash: Hachage de chaque bloc
+    tls: TLS
+    min_tls: Version TLS minimale
+    min_tls_hint: "Les suites de chiffrement se choisissent jusqu'à TLS 1.2 ; en TLS 1.3, la bibliothèque les fixe."
+    tls_ciphers: "Suites de chiffrement TLS, jusqu'à TLS 1.2"
+    tls_ciphers_short: Suites de chiffrement TLS
+    tls_ciphers_hint: "Vide : toutes les suites sûres de la passerelle sont acceptées lors de la négociation avec le partenaire. Une suite marquée « non sécurisée » ne s'ajoute qu'en connaissance de cause."
+    tls_insecure: (non sécurisée)
+    ftp_disable_passive: Désactiver le mode passif
+    ftp_disable_active: Désactiver le mode actif
+    ftp_passive: Mode passif
+    ftp_active: Mode actif
+    ftp_passive_min: Premier port du mode passif
+    ftp_passive_min_hint: "Vide : n'importe quel port libre"
+    ftp_passive_max: Dernier port du mode passif
+    tls_requirement: Exigence TLS
+    tls_requirements:
+      optional: TLS explicite facultatif
+      mandatory: TLS explicite obligatoire
+      implicit: TLS implicite
+    pesit_disable_restart: Désactiver la reprise des transferts interrompus
+    pesit_disable_checkpoints: Désactiver les points de synchronisation
+    pesit_restart: Reprise des transferts interrompus
+    pesit_checkpoints: Points de synchronisation
+    pesit_checkpoint_size: Intervalle entre deux points de synchronisation
+    pesit_checkpoint_window: Points de synchronisation sans acquittement
+    pesit_checkpoint_window_hint: "Fenêtre, en nombre de points"
+    pesit_max_message: Taille maximale d'un message
+    pesit_mode: Mode PeSIT
+    pesit_mode_hint: "« Standard » suit la spécification publiée ; « Non standard » suit la convention du marché attendue par certains partenaires."
+    pesit_modes:
+      standard: Standard
+      non_standard: Non standard
+    pesit_disable_preconnection: Désactiver la pré-connexion
+    pesit_preconnection: Pré-connexion
+    sftp_note: "Une liste vide accepte tous les algorithmes de la passerelle ; l'ordre des retenus est l'ordre de préférence."
+    sftp_kex: Algorithmes d'échange de clés
+    sftp_kex_hint: "Vide : tous les algorithmes d'échange de clés sont acceptés"
+    sftp_ciphers: Algorithmes de chiffrement
+    sftp_ciphers_hint: "Vide : tous les algorithmes de chiffrement sont acceptés"
+    sftp_macs: Algorithmes d'intégrité
+    sftp_macs_hint: "Vide : tous les algorithmes d'intégrité sont acceptés"
+    as2_max_file_size: Taille maximale d'un fichier
+    as2_max_file_size_hint: "En octets ; ne peut pas dépasser la mémoire du système"
+    as2_mdn_algo: Signature des accusés MDN
+    mdn:
+      none: Aucune signature
+    bytes: En octets
+    enabled: Activé
+    disabled: Désactivé
+    checked: Vérifié
+    unchecked: Non vérifié
+    default_login: Le nom du serveur
+    default_block: "65 536 octets"
+    default_value: Valeur par défaut de la passerelle
+    default_ciphers: Toutes les suites sûres de la passerelle
+    default_algos: Tous les algorithmes de la passerelle
+    ports: "Ports {min} à {max}"
+    any_port: N'importe quel port libre
+    none: Aucune option pour ce protocole
+  delete:
+    title: "Supprimer le serveur « {name} » ?"
+    text: "Ses comptes locaux et leurs moyens d'authentification seront supprimés avec lui. Les règles qui le désignent dans leurs accès ne s'appliqueront plus à lui."
+    running: "Il est en ligne : il sera arrêté."
+    blocked_title: Ce serveur ne peut pas être supprimé.
+    blocked_text: "Des transferts en cours l'utilisent. Annulez-les ou attendez leur fin, puis revenez ici."
+    blocked_link: Voir les transferts en cours
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Serveur « {name} » créé"
+    updated: "Serveur « {name} » enregistré"
+    deleted: "Serveur « {name} » supprimé"
+    started: "Serveur « {name} » démarré"
+    stopped: "Serveur « {name} » arrêté"
+    start_failed: "Le serveur « {name} » n'a pas démarré"
+    stop_failed: "Le serveur « {name} » n'a pas pu être arrêté"
+  empty:
+    title: Aucun serveur local pour l'instant
+    text: "Un serveur local est un point d'écoute de la passerelle pour un protocole : les partenaires s'y connectent pour déposer ou retirer des fichiers."
+  none:
+    title: "Aucun serveur ne correspond à « {query} »"
+    filters: Aucun serveur ne correspond aux filtres
+  not_found:
+    title: Serveur introuvable
+    text: Ce serveur n'existe pas ou a été supprimé.
+  error:
+    title: La liste des serveurs n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

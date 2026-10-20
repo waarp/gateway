@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :feature:`708` L'écran « Serveurs locaux » de l'interface web est refondu :
+  liste triable par colonne, recherche et filtres par protocole appliqués
+  immédiatement, nombre de lignes par page, actions regroupées dans un menu par
+  ligne, page de détail en lecture, pages de création, de modification et de
+  suppression (une carte par bloc, options du protocole choisi, listes
+  d'algorithmes en deux colonnes). Il remplace l'ancien écran dans la navigation
+  et sur la page d'accueil ; l'ancien reste accessible à son adresse
+  (``/webui/server_management``) jusqu'à la version suivante. Le guide de
+  l'interface web décrit l'écran (:ref:`user-webui-servers`).
 * :feature:`706` L'écran « État des services » de l'interface web est
   refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
   sélectionne le tableau affiché), états lisibles sans la couleur, message
