@@ -194,7 +194,7 @@ templ detailView(d detailData) {
 				{ gui.T(ctx, "partners.back") }
 			</a>
 			if d.EditURL != "" {
-				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
 					@gui.Icon("pen")
 					{ gui.T(ctx, "partners.action.edit") }
 				</a>
@@ -219,12 +219,17 @@ templ detailView(d detailData) {
 		@rulesCardView(d.Rules)
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
-			<dl class="w-deflist">
-				for _, k := range d.Options {
-					<dt>{ k.Label }</dt>
-					<dd>@protoform.ValueOf(k)</dd>
+			for _, g := range protoform.Grouped(d.Options) {
+				if g.Title != "" {
+					<h3 class="proto-section__title">{ g.Title }</h3>
 				}
-			</dl>
+				<dl class="w-deflist">
+					for _, k := range g.Rows {
+						<dt>{ k.Label }</dt>
+						<dd>@protoform.ValueOf(k)</dd>
+					}
+				</dl>
+			}
 		</div>
 	</div>
 }

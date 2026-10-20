@@ -318,7 +318,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Reprise des transferts interrompus</dt><dd>Désactivé</dd>")
 		assert.Contains(t, body, "<dt>Points de synchronisation</dt><dd>Comme le client (par défaut)</dd>")
 		assert.Contains(t, body, "<dt>Attend un acquittement des transferts reçus</dt><dd>Activé</dd>")
-		assert.Contains(t, body, "<dt>Délai d&#39;attente de l&#39;acquittement</dt><dd><code class=\"w-code\">10s</code></dd>")
+		assert.Contains(t, body, "<dt>Délai d&#39;attente de l&#39;acquittement</dt><dd>10 s</dd>", "a duration in words")
 		assert.Contains(t, body, "<dt>Comptes distants</dt><dd>Aucun</dd>")
 
 		body = s.get(t, permClients, s.path(s.pesit, "")).Body.String()
@@ -366,7 +366,7 @@ func TestCreate(t *testing.T) {
 		rec := s.post(t, permWrite, "/webui/partners/new"+anyRet, url.Values{
 			"name": {"part-pesit-tls"}, "protocol": {"pesit"}, "tls": {"1"}, "host": {"10.20.30.41"}, "port": {"5443"},
 			"pesit_login": {"GW01"}, "pesit_restart": {"on"}, "pesit_checkpoints": {""}, "pesit_nsdu": {"1"},
-			"pesit_max_message": {"32000"}, "pesit_ack_timeout": {"1m"}, "pesit_expects_ack": {"1"}, "min_tls": {"v1.3"},
+			"pesit_max_message": {"32000"}, "pesit_ack_timeout_m": {"1"}, "pesit_expects_ack": {"1"}, "min_tls": {"v1.3"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
 		assert.Equal(t, "/webui/partners?done=created&name=part-pesit-tls&q=part", rec.Header().Get("Location"))
@@ -387,7 +387,7 @@ func TestCreate(t *testing.T) {
 		t.Parallel()
 
 		rec := s.post(t, permWrite, "/webui/partners/new", url.Values{
-			"name": {"part-sftp-01"}, "protocol": {"pesit"}, "host": {""}, "port": {"0"}, "pesit_ack_timeout": {"soon"},
+			"name": {"part-sftp-01"}, "protocol": {"pesit"}, "host": {""}, "port": {"0"}, "pesit_ack_timeout_s": {"soon"},
 		})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 
@@ -395,7 +395,7 @@ func TestCreate(t *testing.T) {
 		assert.Contains(t, body, "Le partenaire n&#39;a pas été enregistré.")
 		assert.Contains(t, body, "Indiquez l&#39;hôte.")
 		assert.Contains(t, body, "Indiquez un port de 1 à 65535.")
-		assert.Contains(t, body, "Indiquez une durée, par exemple « 10s », « 1m » ou « 1h ».")
+		assert.Contains(t, body, "Indiquez des nombres entiers d&#39;heures, de minutes et de secondes.")
 		assert.Contains(t, body, `value="soon"`, "the posted values are kept")
 
 		rec = s.post(t, permWrite, "/webui/partners/new", url.Values{

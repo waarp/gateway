@@ -266,6 +266,7 @@ type (
 	row       struct {
 		ID       int64
 		Name     string
+		URL      string // the sheet of the server
 		Status   gui.Status
 		Reason   string // raw reason given by the service, never translated
 		Protocol string // the family
@@ -425,6 +426,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 		data.Rows = append(data.Rows, row{
 			ID:       e.agent.ID,
 			Name:     e.agent.Name,
+			URL:      withRet(serverURL(e.agent.ID, ""), carried),
 			Status:   e.status(translate),
 			Reason:   e.reason,
 			Protocol: e.proto.Family.Label,

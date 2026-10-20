@@ -2,6 +2,7 @@ package protoform
 
 import (
 	"net/url"
+	"slices"
 	"strings"
 
 	"code.waarp.fr/lib/gui"
@@ -78,40 +79,73 @@ type FamilyView struct {
 // HasOptions tells whether the card has anything to show.
 func (v *FamilyView) HasOptions() bool { return v.Plain.any() || v.TLS.any() }
 
-// BlockView is the options of a block: the text, number and select fields
-// share a grid, then the checkboxes stand together, then the lists (Driss,
-// 2026-10-20: the checkboxes of a card in one place, whatever the order of
-// the table).
+// BlockView is the options of a block, grouped by section when the table
+// names one (the themes of a card: identification, synchronisation…); in a
+// section, the text, number and select fields share a grid, then the
+// checkboxes stand together, then the lists (Driss, 2026-10-20).
 type BlockView struct {
+	Sections []SectionView
+}
+
+// SectionView is one theme of a block: its title, when the block has two
+// at least, and its options by kind.
+type SectionView struct {
+	Key    string
+	Label  string
 	Fields []OptionView
 	Checks []OptionView
 	Lists  []OptionView
 }
 
-func (b *BlockView) any() bool { return len(b.Fields)+len(b.Checks)+len(b.Lists) > 0 }
+func (b *BlockView) any() bool { return len(b.Sections) > 0 }
+
+// Titled tells whether the sections of the block carry a title: two at least.
+func (b *BlockView) Titled() bool { return len(b.Sections) > 1 }
 
 func (b *BlockView) add(v *OptionView) {
+	i := slices.IndexFunc(b.Sections, func(s SectionView) bool { return s.Key == v.Section })
+	if i < 0 {
+		b.Sections = append(b.Sections, SectionView{Key: v.Section, Label: v.SectionLabel})
+		i = len(b.Sections) - 1
+	}
+
+	section := &b.Sections[i]
+
 	switch v.Kind {
 	case "check":
-		b.Checks = append(b.Checks, *v)
+		section.Checks = append(section.Checks, *v)
 	case "list":
-		b.Lists = append(b.Lists, *v)
+		section.Lists = append(section.Lists, *v)
 	default:
-		b.Fields = append(b.Fields, *v)
+		section.Fields = append(section.Fields, *v)
 	}
 }
 
-// FieldList lists the fields of a block: the TLS block template renders its
-// select and its list apart.
-func (b *BlockView) FieldList() []OptionView { return b.Fields }
+// FieldList lists the fields of a block, whatever their section: the TLS
+// block template renders its select and its list apart.
+func (b *BlockView) FieldList() []OptionView {
+	var out []OptionView
+	for _, s := range b.Sections {
+		out = append(out, s.Fields...)
+	}
 
-// ListList lists the lists of a block.
-func (b *BlockView) ListList() []OptionView { return b.Lists }
+	return out
+}
+
+// ListList lists the lists of a block, whatever their section.
+func (b *BlockView) ListList() []OptionView {
+	var out []OptionView
+	for _, s := range b.Sections {
+		out = append(out, s.Lists...)
+	}
+
+	return out
+}
 
 // OptionView is one option as the template renders it.
 type OptionView struct {
 	Name    string
-	Kind    string // "text", "number", "check", "select", "list"
+	Kind    string // "text", "number", "check", "select", "list", "duration"
 	Label   string
 	Hint    string
 	Code    string // the configuration key, shown as a technical hint
@@ -122,6 +156,11 @@ type OptionView struct {
 	Error   string
 	Checked bool
 	Choices []Choice
+	// The theme of the option in its card: its key and its translated label.
+	Section      string
+	SectionLabel string
+	// A duration: its parts, as entered.
+	Hours, Mins, Secs string
 }
 
 // NewForm builds the protocol part of a form for a role, with the defaults
@@ -197,10 +236,32 @@ func (f *Form) Fill(protocol string, cfg map[string]any) {
 			}
 		case KindList:
 			f.lists[opt.Name] = CfgList(cfg, opt.Cfg)
+		case KindDuration:
+			value := CfgString(cfg, opt.Cfg)
+			f.fields[opt.Name] = Field{Value: value}
+			hours, minutes, seconds := durationParts(value)
+			f.setDurationParts(opt.Name, hours, minutes, seconds)
 		default:
 			f.fields[opt.Name] = Field{Value: CfgString(cfg, opt.Cfg)}
 		}
 	}
+}
+
+// Names of the fields of the parts of a duration.
+const (
+	suffixHours   = "_h"
+	suffixMinutes = "_m"
+	suffixSeconds = "_s"
+)
+
+func (f *Form) setDurationParts(name, hours, minutes, seconds string) {
+	f.fields[name+suffixHours] = Field{Value: hours}
+	f.fields[name+suffixMinutes] = Field{Value: minutes}
+	f.fields[name+suffixSeconds] = Field{Value: seconds}
+}
+
+func (f *Form) durationParts(name string) (hours, minutes, seconds string) {
+	return f.fields[name+suffixHours].Value, f.fields[name+suffixMinutes].Value, f.fields[name+suffixSeconds].Value
 }
 
 // Read takes the posted values into the form: the family, the TLS checkbox
@@ -220,6 +281,17 @@ func (f *Form) Read(values url.Values) {
 			}
 		case KindList:
 			f.lists[opt.Name] = nonEmpty(values[opt.Name])
+		case KindDuration:
+			f.setDurationParts(opt.Name, strings.TrimSpace(values.Get(opt.Name+suffixHours)),
+				strings.TrimSpace(values.Get(opt.Name+suffixMinutes)), strings.TrimSpace(values.Get(opt.Name+suffixSeconds)))
+			// A part that is not a whole number leaves the duration empty:
+			// Validate marks it.
+			composed, err := composeDuration(f.durationParts(opt.Name))
+			if err != nil {
+				composed = ""
+			}
+
+			f.fields[opt.Name] = Field{Value: composed}
 		default:
 			f.fields[opt.Name] = Field{Value: strings.TrimSpace(values.Get(opt.Name))}
 		}
@@ -249,6 +321,15 @@ func (f *Form) Validate(translate gui.Translator) bool {
 	}
 
 	for _, opt := range f.chosen() {
+		if opt.Kind == KindDuration {
+			if _, err := composeDuration(f.durationParts(opt.Name)); err != nil {
+				f.Fail(opt.Name, translate(Or(opt.ErrorKey, "proto.error_duration")))
+				valid = false
+			}
+
+			continue
+		}
+
 		if opt.Parse == nil || (opt.Kind != KindNumber && opt.Kind != KindText) {
 			continue
 		}
@@ -471,9 +552,16 @@ func (f *Form) view(translate gui.Translator, opt *Option) *OptionView {
 		item.Hint = translate(opt.Hint)
 	}
 
+	if opt.Section != "" {
+		item.Section, item.SectionLabel = opt.Section, translate(opt.Section)
+	}
+
 	switch opt.Kind {
 	case KindCheck:
 		item.Kind, item.Checked = "check", f.checks[opt.Name]
+	case KindDuration:
+		item.Kind, item.Value, item.Error = "duration", f.fields[opt.Name].Value, f.fields[opt.Name].Error
+		item.Hours, item.Mins, item.Secs = f.durationParts(opt.Name)
 	case KindSelect:
 		item.Kind, item.Choices = "select", opt.Choices(translate, f.selects[opt.Name])
 	case KindTri:

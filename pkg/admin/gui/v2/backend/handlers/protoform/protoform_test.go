@@ -343,29 +343,71 @@ func TestPartnerTriState(t *testing.T) {
 	f = NewForm(RolePartner)
 	f.Read(url.Values{
 		"protocol": {"pesit"}, "pesit_restart": {TriOn}, "pesit_checkpoints": {TriOff},
-		"pesit_ack_timeout": {"10s"}, "pesit_login": {"gw"},
+		"pesit_ack_timeout_s": {"10"}, "pesit_login": {"gw"},
 	})
 	require.True(t, f.Validate(translate))
 	cfg = f.Apply()
 	assert.Equal(t, false, cfg["disableRestart"])
 	assert.Equal(t, true, cfg["disableCheckpoints"])
-	assert.Equal(t, "10s", cfg["ackTimeout"])
+	assert.Equal(t, "10s", cfg["ackTimeout"], "a duration entered in parts is stored as the product reads it")
 	assert.Equal(t, "gw", cfg["login"])
 
 	f = NewForm(RolePartner)
-	f.Read(url.Values{"protocol": {"pesit"}, "pesit_ack_timeout": {"soon"}})
-	assert.False(t, f.Validate(translate), "a duration the product cannot read is refused")
-	assert.NotEmpty(t, f.fields["pesit_ack_timeout"].Error)
+	f.Read(url.Values{
+		"protocol": {"pesit"}, "pesit_nsdu": {"1"},
+		"pesit_ack_timeout_h": {"1"}, "pesit_ack_timeout_m": {"30"}, "pesit_ack_timeout_s": {"0"},
+	})
+	require.True(t, f.Validate(translate))
+	assert.Equal(t, "1h30m", f.Apply()["ackTimeout"])
+	f.Prepare(translate)
+	assert.Equal(t, "1 option renseignée", familyView(f, "pesit").Summary, "a duration in parts is one option")
+
+	f = NewForm(RolePartner)
+	f.Fill("pesit", map[string]any{"ackTimeout": "90s"})
+	assert.Equal(t, "90s", f.fields["pesit_ack_timeout"].Value)
+	assert.Equal(t, "1", f.fields["pesit_ack_timeout_m"].Value, "a stored duration is shown in parts")
+	assert.Equal(t, "30", f.fields["pesit_ack_timeout_s"].Value)
+	assert.Equal(t, "1 min 30 s", FormatDuration(translate, "90s"))
+	assert.Equal(t, "2 h", FormatDuration(translate, "2h"))
+
+	f = NewForm(RolePartner)
+	f.Read(url.Values{"protocol": {"pesit"}, "pesit_ack_timeout_m": {"soon"}})
+	assert.False(t, f.Validate(translate), "a part that is not a whole number is refused")
+	assert.Equal(t, "Indiquez des nombres entiers d'heures, de minutes et de secondes.", f.fields["pesit_ack_timeout"].Error)
+	f.Prepare(translate)
+	assert.True(t, familyView(f, "pesit").Open, "a card that carries an error opens")
+	assert.True(t, familyView(f, "pesit").Plain.Titled(), "the PeSIT options are grouped by theme")
+	assert.Equal(t, []string{"Identification", "Reprise et synchronisation", "Messages", "Acquittement"},
+		sectionLabels(familyView(f, "pesit").Plain))
 
 	rows := Rows(translate, RolePartner, ProtocolOf("pesit"), map[string]any{"disableRestart": false})
-	assert.Equal(t, KV{Label: "Reprise des transferts interrompus", Value: "Activé"}, rows[1])
-	assert.Equal(t, KV{Label: "Points de synchronisation", Value: "Comme le client (par défaut)"}, rows[2])
-	assert.Equal(t, KV{Label: "Utiliser les paquets NSDU", Value: "Activé"}, rows[5])
-	assert.Equal(t, KV{Label: "Envoi du PI 37", Value: "Activé"}, rows[11])
+	sync, identity := "Reprise et synchronisation", "Identification"
+	assert.Equal(t, KV{Label: "Reprise des transferts interrompus", Value: "Activé", Section: sync}, rows[1])
+	assert.Equal(t, KV{Label: "Points de synchronisation", Value: "Comme le client (par défaut)", Section: sync}, rows[2])
+	assert.Equal(t, KV{Label: "Utiliser les paquets NSDU", Value: "Activé", Section: "Messages"}, rows[5])
+	assert.Equal(t, KV{Label: "Envoi du PI 37", Value: "Activé", Section: identity}, rows[11])
+
+	groups := Grouped(rows)
+	require.Len(t, groups, 4, "the rows of a details page gather by theme")
+	assert.Equal(t, identity, groups[0].Title)
+	assert.Len(t, groups[0].Rows, 4, "login, mode, pre-connection, PI 37")
+	assert.Equal(t, "Acquittement", groups[3].Title)
+	assert.Empty(t, Grouped(Rows(translate, RolePartner, ProtocolOf("http"), nil))[0].Title, "one group: no title")
 
 	rows = Rows(translate, RolePartner, ProtocolOf("as2"), map[string]any{"signatureAlgorithm": "sha256"})
-	assert.Equal(t, KV{Label: "Algorithme de signature", Value: "sha256"}, rows[0])
-	assert.Equal(t, KV{Label: "Algorithme de chiffrement", Value: "Valeur par défaut de la passerelle"}, rows[1])
+	security := "Signature et chiffrement"
+	assert.Equal(t, KV{Label: "Algorithme de signature", Value: "sha256", Section: security}, rows[0])
+	assert.Equal(t, KV{Label: "Algorithme de chiffrement", Value: "Valeur par défaut de la passerelle", Section: security}, rows[1])
+}
+
+// sectionLabels lists the titles of the sections of a block.
+func sectionLabels(b BlockView) []string {
+	var out []string
+	for _, s := range b.Sections {
+		out = append(out, s.Label)
+	}
+
+	return out
 }
 
 // familyView is the card of a family once the form is prepared.

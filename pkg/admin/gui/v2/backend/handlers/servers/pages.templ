@@ -93,7 +93,7 @@ templ listView(d listData) {
 					<tbody>
 						for _, r := range d.Rows {
 							<tr>
-								<td><span class="w-cell-title w-nowrap">{ r.Name }</span></td>
+								<td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
 								<td>@stateCell(r.Status, r.Reason)</td>
 								<td>@protoform.ProtoCell(r.Protocol, r.TLS)</td>
 								<td class="w-mono w-nowrap">{ r.Address }</td>
@@ -150,7 +150,7 @@ templ detailView(d detailData) {
 				{ gui.T(ctx, "servers.back") }
 			</a>
 			if d.EditURL != "" {
-				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
 					@gui.Icon("pen")
 					{ gui.T(ctx, "servers.action.edit") }
 				</a>
@@ -182,12 +182,17 @@ templ detailView(d detailData) {
 		</div>
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
-			<dl class="w-deflist">
-				for _, k := range d.Options {
-					<dt>{ k.Label }</dt>
-					<dd>@protoform.ValueOf(k)</dd>
+			for _, g := range protoform.Grouped(d.Options) {
+				if g.Title != "" {
+					<h3 class="proto-section__title">{ g.Title }</h3>
 				}
-			</dl>
+				<dl class="w-deflist">
+					for _, k := range g.Rows {
+						<dt>{ k.Label }</dt>
+						<dd>@protoform.ValueOf(k)</dd>
+					}
+				</dl>
+			}
 		</div>
 	</div>
 }

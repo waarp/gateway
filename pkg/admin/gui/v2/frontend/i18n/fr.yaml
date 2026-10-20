@@ -95,7 +95,7 @@ proto:
   options: "Options du protocole {protocol}"
   options_label: Options
   error_number: Indiquez un nombre entier.
-  error_duration: "Indiquez une durée, par exemple « 10s », « 1m » ou « 1h »."
+  error_duration: "Indiquez des nombres entiers d'heures, de minutes et de secondes."
   options_default: Options par défaut de la passerelle
   options_set_one: 1 option renseignée
   options_set: "{n} options renseignées"
@@ -103,6 +103,27 @@ proto:
   tls_suite_one: 1 suite retenue
   tls_suites: "{n} suites retenues"
   # Options par famille : l'effet pour l'exploitant d'abord, le terme technique en aide monospace.
+  duration:
+    hours: Heures
+    minutes: Minutes
+    seconds: Secondes
+    h: h
+    min: min
+    s: s
+  # Thèmes des cartes d'options, quand la famille en nomme au moins deux.
+  section:
+    identity: Identification
+    sync: Reprise et synchronisation
+    messages: Messages
+    ack: Acquittement
+    transfer: Transfert
+    integrity: Contrôle d'intégrité
+    modes: Modes de connexion
+    algorithms: Algorithmes
+    compat: Compatibilité
+    security: Signature et chiffrement
+    mdn: MDN asynchrone
+    other: Autres options
   opt:
     r66_login: Identifiant attendu du partenaire
     r66_login_hint: "Par défaut, le nom du serveur"
@@ -198,7 +219,7 @@ proto:
     pesit_nsdu_hint: Activé par défaut
     pesit_expects_ack: Attend un acquittement des transferts reçus
     pesit_ack_timeout: Délai d'attente de l'acquittement
-    pesit_ack_timeout_hint: "Quand un acquittement est attendu ; vide : sans limite ; par exemple « 10s », « 1m », « 1h »"
+    pesit_ack_timeout_hint: "Quand un acquittement est attendu ; vide : sans limite"
     pesit_ack_no_limit: Sans limite
     pesit_no_pi37: Ne pas envoyer le PI 37
     pesit_pi37: Envoi du PI 37

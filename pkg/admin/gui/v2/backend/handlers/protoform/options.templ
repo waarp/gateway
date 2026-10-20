@@ -154,26 +154,76 @@ templ Options(f *Form) {
 	</details>
 }
 
-// block: the options of a block: the fields in a grid, then the checkboxes
-// together, then the lists.
+// block: the options of a block, by section when the family names two at
+// least (a titled sub-block each); in a section, the fields in a grid, then
+// the checkboxes together, then the lists.
 templ block(b BlockView) {
-	if len(b.Fields) > 0 {
+	for _, s := range b.Sections {
+		if b.Titled() {
+			<fieldset class="w-fieldset w-fieldset--wide proto-section">
+				<legend class="w-fieldset__legend">{ Or(s.Label, gui.T(ctx, "proto.section.other")) }</legend>
+				@section(s)
+			</fieldset>
+		} else {
+			@section(s)
+		}
+	}
+}
+
+// section: the options of one theme: the fields in a grid, then the
+// checkboxes together, then the lists.
+templ section(s SectionView) {
+	if len(s.Fields) > 0 {
 		<div class="w-grid w-grid--2">
-			for _, v := range b.Fields {
+			for _, v := range s.Fields {
 				@option(v)
 			}
 		</div>
 	}
-	if len(b.Checks) > 0 {
+	if len(s.Checks) > 0 {
 		<div class="w-stack w-stack--tight">
-			for _, v := range b.Checks {
+			for _, v := range s.Checks {
 				<label class="w-check"><input type="checkbox" name={ v.Name } value="1" checked?={ v.Checked }/> <span>{ v.Label } (<code class="w-code">{ v.Code }</code>)</span></label>
 			}
 		</div>
 	}
-	for _, v := range b.Lists {
+	for _, v := range s.Lists {
 		@dualOf(v)
 	}
+}
+
+// durationOf: a duration entered in hours, minutes and seconds, three short
+// numbers under one label; the hint or the error under the three.
+templ durationOf(v OptionView) {
+	<fieldset class={ "w-fieldset", "proto-duration", templ.KV("is-invalid", v.Error != "") } aria-describedby={ v.Name + "-h" }>
+		<legend class="w-field__label">{ v.Label } <span class="w-field__opt"><code class="w-code">{ v.Code }</code></span></legend>
+		<div class="proto-duration__parts">
+			@durationPart(v.Name+"_h", gui.T(ctx, "proto.duration.hours"), v.Hours, 0)
+			@durationPart(v.Name+"_m", gui.T(ctx, "proto.duration.minutes"), v.Mins, 59)
+			@durationPart(v.Name+"_s", gui.T(ctx, "proto.duration.seconds"), v.Secs, 59)
+		</div>
+		@Message(v.Name+"-h", v.Error, v.Hint)
+	</fieldset>
+}
+
+// durationPart: one part of a duration, a whole number.
+templ durationPart(id, label, value string, maxValue int) {
+	<div class="w-field w-field--short">
+		<label class="w-field__label" for={ id }>{ label }</label>
+		<input
+			class="w-input"
+			type="number"
+			inputmode="numeric"
+			step="1"
+			min="0"
+			if maxValue != 0 {
+				max={ strconv.Itoa(maxValue) }
+			}
+			id={ id }
+			name={ id }
+			value={ value }
+		/>
+	</div>
 }
 
 // option: a text, number or select field.
@@ -197,6 +247,8 @@ templ option(v OptionView) {
 				<span class="w-field__hint" id={ v.Name + "-h" }>{ v.Hint }</span>
 			}
 		</div>
+	} else if v.Kind == "duration" {
+		@durationOf(v)
 	} else {
 		@FieldOf(FieldProps{ID: v.Name, Label: v.Label, F: Field{Value: v.Value, Error: v.Error}, Hint: v.Hint, Short: v.Short, Code: v.Code, Num: v.Kind == "number", Min: v.Min, Max: v.Max})
 	}

@@ -1,5 +1,15 @@
 /* Shared protocol partials (proto/choice, proto/options): what the kit does not decide. Tokens only. */
 .proto-tls { margin-top: var(--sp-3); }
 .proto-note { margin: 0; }
+/* Themes of a card of options: a titled sub-block in a form, a titled definition list on a details page. */
+.proto-section + .proto-section { margin-top: var(--sp-2); }
+.proto-section__title { margin: var(--sp-3) 0 var(--sp-2); font: 900 var(--fs-micro) / 1 var(--fb); text-transform: uppercase; letter-spacing: var(--ls-caps); color: var(--g600); }
+.proto-section__title:first-child { margin-top: 0; }
+/* A duration in hours, minutes and seconds: three short numbers under one label. */
+.proto-duration { border: 0; margin: 0; padding: 0; min-width: 0; }
+.proto-duration > legend { padding: 0; margin-bottom: var(--sp-2); }
+.proto-duration__parts { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.proto-duration__parts .w-field--short { max-width: 7rem; }
+.proto-duration__parts .w-field__label { font-weight: 400; }
 /* Protocol cell of a list: the family, then the TLS badge aligned from one row to the next (widest family: WebDAV). */
 .proto-cell { display: inline-grid; grid-template-columns: 4.25rem auto; align-items: center; }

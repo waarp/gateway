@@ -392,7 +392,7 @@ templ detailView(d detailData) {
 				{ gui.T(ctx, "action.back") }
 			</a>
 			if d.EditURL != "" {
-				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
 					@gui.Icon("pen")
 					{ gui.T(ctx, "auth.action.edit") }
 				</a>

@@ -178,7 +178,7 @@ templ accountDetailView(d accountDetailData) {
 				{ gui.T(ctx, "partners.back_partner") }
 			</a>
 			if d.EditURL != "" {
-				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
 					@gui.Icon("pen")
 					{ gui.T(ctx, "remote_accounts.action.edit") }
 				</a>
