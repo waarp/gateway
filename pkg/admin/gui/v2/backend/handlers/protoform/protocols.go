@@ -370,6 +370,36 @@ func tlsRequirementChoices(translate gui.Translator, current string) []Choice {
 	}, current)
 }
 
+// triChoices are the three states of a flag a partner may leave to its
+// client: the client's value, on, off.
+func triChoices(translate gui.Translator, current string) []Choice {
+	return pick([][2]string{
+		{TriClient, translate("proto.opt.tristate.client")},
+		{TriOn, translate("proto.opt.tristate.on")},
+		{TriOff, translate("proto.opt.tristate.off")},
+	}, current)
+}
+
+// as2SignChoices and as2EncryptChoices list the algorithms of the AS2
+// module, the product's default first (nothing stored).
+func as2SignChoices(translate gui.Translator, current string) []Choice {
+	pairs := [][2]string{{"", translate("proto.opt.default_value")}}
+	for _, algo := range as2.SignatureAlgorithms() {
+		pairs = append(pairs, [2]string{algo, algo})
+	}
+
+	return pick(pairs, current)
+}
+
+func as2EncryptChoices(translate gui.Translator, current string) []Choice {
+	pairs := [][2]string{{"", translate("proto.opt.default_value")}}
+	for _, algo := range as2.EncryptionAlgorithms() {
+		pairs = append(pairs, [2]string{algo, algo})
+	}
+
+	return pick(pairs, current)
+}
+
 func mdnAlgoChoices(translate gui.Translator, current string) []Choice {
 	pairs := [][2]string{{"", translate("proto.opt.mdn.none")}}
 	for _, algo := range as2.SignatureAlgorithms() {

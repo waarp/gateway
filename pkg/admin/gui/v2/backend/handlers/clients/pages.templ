@@ -95,7 +95,7 @@ templ listView(d listData) {
 							<tr>
 								<td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
 								<td>@stateCell(r.Status, r.Reason)</td>
-								<td>{ r.Protocol }@protoform.TLSBadge(r.TLS)</td>
+								<td>@protoform.ProtoCell(r.Protocol, r.TLS)</td>
 								<td>@addressCell(r.Address)</td>
 								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
 							</tr>
@@ -153,7 +153,7 @@ templ detailView(d detailData) {
 				{ gui.T(ctx, "clients.back") }
 			</a>
 			if d.EditURL != "" {
-				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
 					@gui.Icon("pen")
 					{ gui.T(ctx, "clients.action.edit") }
 				</a>
@@ -188,12 +188,17 @@ templ detailView(d detailData) {
 		</div>
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
-			<dl class="w-deflist">
-				for _, k := range d.Options {
-					<dt>{ k.Label }</dt>
-					<dd>@protoform.ValueOf(k)</dd>
+			for _, g := range protoform.Grouped(d.Options) {
+				if g.Title != "" {
+					<h3 class="proto-section__title">{ g.Title }</h3>
 				}
-			</dl>
+				<dl class="w-deflist">
+					for _, k := range g.Rows {
+						<dt>{ k.Label }</dt>
+						<dd>@protoform.ValueOf(k)</dd>
+					}
+				</dl>
+			}
 		</div>
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "clients.detail.partners") }</h2>

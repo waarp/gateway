@@ -95,6 +95,7 @@ proto:
   options: "Options du protocole {protocol}"
   options_label: Options
   error_number: Indiquez un nombre entier.
+  error_duration: "Indiquez des nombres entiers d'heures, de minutes et de secondes."
   options_default: Options par défaut de la passerelle
   options_set_one: 1 option renseignée
   options_set: "{n} options renseignées"
@@ -102,6 +103,27 @@ proto:
   tls_suite_one: 1 suite retenue
   tls_suites: "{n} suites retenues"
   # Options par famille : l'effet pour l'exploitant d'abord, le terme technique en aide monospace.
+  duration:
+    hours: Heures
+    minutes: Minutes
+    seconds: Secondes
+    h: h
+    min: min
+    s: s
+  # Thèmes des cartes d'options, quand la famille en nomme au moins deux.
+  section:
+    identity: Identification
+    sync: Reprise et synchronisation
+    messages: Messages
+    ack: Acquittement
+    transfer: Transfert
+    integrity: Contrôle d'intégrité
+    modes: Modes de connexion
+    algorithms: Algorithmes
+    compat: Compatibilité
+    security: Signature et chiffrement
+    mdn: MDN asynchrone
+    other: Autres options
   opt:
     r66_login: Identifiant attendu du partenaire
     r66_login_hint: "Par défaut, le nom du serveur"
@@ -176,6 +198,42 @@ proto:
     ftp_active_min: Premier port du mode actif
     ftp_active_max: Dernier port du mode actif
     default_active_address: "0.0.0.0"
+    # Options d'un partenaire distant (#714) : ce que le client de son protocole lit du partenaire.
+    r66_server_login: Identifiant présenté par le serveur
+    r66_server_login_hint: "Par défaut, le nom du partenaire"
+    default_partner_login: Le nom du partenaire
+    ftp_disable_epsv: Désactiver EPSV
+    ftp_epsv: EPSV
+    ftp_implicit_tls: TLS implicite
+    ftp_implicit_tls_hint: "Par défaut, TLS explicite (« AUTH TLS » après la connexion)"
+    ftp_no_session_reuse: Désactiver la réutilisation des sessions TLS
+    ftp_session_reuse: Réutilisation des sessions TLS
+    pesit_login: Identifiant du partenaire
+    pesit_login_hint: "Vide : le partenaire n'est pas authentifié ; son mot de passe est un moyen « Mot de passe » du partenaire"
+    pesit_login_none: Non authentifié
+    tristate:
+      client: Comme le client (par défaut)
+      on: Activé
+      off: Désactivé
+    pesit_nsdu: Utiliser les paquets NSDU
+    pesit_nsdu_hint: Activé par défaut
+    pesit_expects_ack: Attend un acquittement des transferts reçus
+    pesit_ack_timeout: Délai d'attente de l'acquittement
+    pesit_ack_timeout_hint: "Quand un acquittement est attendu ; vide : sans limite"
+    pesit_ack_no_limit: Sans limite
+    pesit_no_pi37: Ne pas envoyer le PI 37
+    pesit_pi37: Envoi du PI 37
+    sftp_use_stat: Lire la taille du fichier avant de le recevoir
+    sftp_no_concurrent_reads: Désactiver la lecture parallèle
+    sftp_no_concurrent_reads_hint: "Par défaut, un fichier reçu est lu par plusieurs lecteurs à la fois"
+    sftp_concurrent_reads: Lecture parallèle
+    as2_sign_algo: Algorithme de signature
+    as2_encrypt_algo: Algorithme de chiffrement
+    as2_async_mdn: Adresse des accusés MDN asynchrones
+    as2_async_mdn_hint: "Vide : aucun accusé asynchrone"
+    as2_async_mdn_none: Aucun accusé asynchrone
+    as2_handle_async_mdn: Traiter les accusés asynchrones
+    as2_handle_async_mdn_hint: "La passerelle les reçoit elle-même ; sinon, un service tiers les traite"
 
 # Écran « Serveurs locaux » (Connexions) : liste, détail, formulaire, suppression, démarrage et arrêt.
 servers:
@@ -239,6 +297,7 @@ servers:
     name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
     no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
     address: Adresse d'écoute
+    address_required: À renseigner
     host: Hôte
     host_hint: "Nom d'hôte ou adresse IP sur lequel le serveur écoute ; vide, il écoute sur toutes les interfaces (affiché « * »)"
     port: Port
@@ -311,10 +370,15 @@ auth:
   title:
     server: Identité présentée par le serveur aux partenaires
     account: Moyens que le partenaire présente pour ce compte
+    partner: Ce que la passerelle vérifie du partenaire
+    remote_account: Ce que la passerelle présente au partenaire
   owner:
     server: "le serveur « {name} »"
     account: "le compte « {login} » du serveur « {name} »"
+    partner: "le partenaire « {name} »"
+    remote_account: "le compte « {login} » du partenaire « {name} »"
   add: Ajouter un moyen d'authentification
+  tab_after_creation: Disponible après la création
   search: Rechercher un moyen d'authentification par son nom
   search_placeholder: Rechercher par nom
   count: "{total} moyens"
@@ -341,6 +405,7 @@ auth:
     ssh_private_key: Clé privée SSH
     ssh_public_key: Clé publique SSH
     r66_legacy_certificate: Certificat R66 historique
+    pesit_pre-connection_auth: Pré-connexion PeSIT
   # Format des dates de validité (disposition Go).
   date: 02/01/2006
   # Contenu non secret d'un moyen, dans la liste et sur sa page.
@@ -354,6 +419,10 @@ auth:
     valid: "Valide jusqu'au {date}"
     expires: "Expire le {date}"
     expired: "Expiré le {date}"
+    pre_login: "Identifiant « {login} »"
+    pre_no_login: Sans identifiant
+    pre_password: mot de passe défini, non affiché
+    pre_no_password: sans mot de passe
   new:
     title: Nouveau moyen d'authentification
   edit:
@@ -381,6 +450,12 @@ auth:
     key_hint: "La clé privée du certificat ; elle n'est jamais réaffichée"
     paste_key: ou coller la clé
     legacy_hint: "Aucune valeur à saisir : ce moyen indique que l'authentification suit la convention historique du marché pour les certificats R66."
+    pre_hint: "Ce que la passerelle envoie au partenaire avant la connexion PeSIT, quand il l'attend : identifiant et mot de passe facultatifs, huit caractères ASCII au plus chacun."
+    pre_login: Identifiant de pré-connexion
+    pre_login_hint: "Vide : aucun identifiant n'est envoyé"
+    pre_password: Mot de passe de pré-connexion
+    pre_password_hint: "Vide : aucun mot de passe n'est envoyé ; conservé chiffré, jamais réaffiché"
+    pre_password_keep: laissez vide pour ne pas en changer
     refused: Le moyen d'authentification n'a pas été enregistré.
     refused_text: Corrigez les champs signalés ci-dessous.
     error:
@@ -404,6 +479,10 @@ auth:
     content: Contenu
     never_shown: Définie, jamais affichée
     legacy: "Aucune valeur : le type suffit"
+    pre_login: Identifiant de pré-connexion
+    pre_no_login: Aucun
+    pre_password: Mot de passe de pré-connexion
+    pre_no_password: Aucun
     pem: Certificat (PEM)
     public_key: Clé publique
     public_note: "Partie publique seulement : elle peut se transmettre au partenaire."
@@ -411,6 +490,8 @@ auth:
     title: "Supprimer le moyen « {name} » ?"
     server: Les partenaires qui vérifient cette identité du serveur ne pourront plus se connecter.
     account: Ce partenaire ne pourra plus s'authentifier par ce moyen.
+    partner: "La passerelle ne vérifiera plus cette identité du partenaire ; selon le protocole, la connexion sera refusée."
+    remote_account: La passerelle ne pourra plus s'authentifier par ce moyen auprès du partenaire.
     means: Moyen
     type: Type
     owner: Pour
@@ -419,9 +500,14 @@ auth:
     title: Aucun moyen d'authentification pour l'instant
     server: "Ajoutez l'identité que ce serveur présente aux partenaires : certificat, clé d'hôte ou mot de passe selon le protocole."
     account: "Ce compte ne peut pas se connecter tant qu'il n'a aucun moyen : ajoutez un mot de passe, un certificat ou une clé publique."
+    partner: "Ajoutez ce que la passerelle doit vérifier du partenaire : certificat de confiance, clé d'hôte ou mot de passe selon le protocole."
+    remote_account: "Ce compte ne peut pas se connecter tant qu'il n'a aucun moyen : ajoutez un mot de passe, un certificat ou une clé privée."
   none_for_protocol:
     title: Ce protocole ne demande aucun moyen d'authentification au serveur
     text: "Les connexions à ce serveur ne sont pas authentifiées par lui : rien à déposer ici."
+    partner:
+      title: Ce protocole ne demande aucune vérification du partenaire
+      text: "Les connexions à ce partenaire ne vérifient pas son identité : rien à déposer ici."
   none:
     title: "Aucun moyen ne correspond à « {query} »"
   not_found:
@@ -560,6 +646,180 @@ me:
     mismatch: Les deux saisies du nouveau mot de passe diffèrent.
   toast:
     password: Mot de passe modifié
+# Écran « Partenaires distants » (Connexions, #714) : liste, fiche à onglets, formulaire, suppression.
+partners:
+  title: Partenaires distants
+  add: Ajouter un partenaire
+  search: Rechercher un partenaire par son nom
+  search_placeholder: Rechercher par nom
+  filters: Protocoles
+  count: "{total} partenaires"
+  count_one: 1 partenaire
+  count_shown: "{total} partenaires · {shown} affichés"
+  count_shown_one: "{total} partenaires · 1 affiché"
+  caption: "Partenaires distants, page {page} sur {pages}, triés par {sort}"
+  pager: "Partenaires {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_partner: Retour au partenaire
+  accounts_none: Aucun
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    protocol: protocole
+    address: adresse
+    accounts: comptes
+  col:
+    name: Partenaire distant
+    protocol: Protocole
+    address: Adresse
+    accounts: Comptes
+    actions: Actions
+  action:
+    detail: Voir la fiche
+    edit: Modifier le partenaire
+    delete: Supprimer le partenaire
+  tabs: Onglets de la fiche
+  tab:
+    details: Détails
+    auth: Authentification
+    accounts: Comptes distants
+  detail:
+    title: "Partenaire « {name} »"
+    card: Partenaire
+    protocol: Protocole
+    address: Adresse
+    accounts: Comptes distants
+    rules_title: Règles de transfert autorisées
+    rules_all: Toutes les règles de transfert de la passerelle.
+    rules_none: Aucune règle ne l'autorise pour l'instant.
+    rules_hint: "Les accès aux règles se gèrent depuis l'écran des règles de transfert."
+    rules_link: Voir les règles de transfert
+    rule_send: envoi
+    rule_receive: réception
+  client:
+    title: Client utilisé
+    one: "Les transferts vers ce partenaire passent par le client « {name} »."
+    many: "{n} clients {protocol} existent : chaque transfert vers ce partenaire doit nommer le sien."
+    none: "Aucun client {protocol} : la passerelle en créera un, nommé « {name} », au premier transfert."
+    add: Ajouter un client
+  new:
+    title: Nouveau partenaire
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique sur la passerelle ; c'est le nom que les règles et les transferts désignent"
+    protocol_hint: "Changer de protocole rend caducs les moyens d'authentification et les comptes qui ne lui correspondent plus."
+    address: Adresse
+    address_required: À renseigner
+    address_hint: "L'adresse à laquelle la passerelle se connecte."
+    host: Hôte
+    host_hint: "Nom d'hôte ou adresse IP du serveur partenaire"
+    port: Port
+    port_hint: "Port TCP, de 1 à 65535"
+    refused: Le partenaire n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Un autre partenaire porte déjà ce nom. Choisissez-en un autre.
+      host: Indiquez l'hôte.
+      port: Indiquez un port de 1 à 65535.
+      address: "Indiquez un nom d'hôte ou une adresse IP valide."
+      async_mdn: "Indiquez l'adresse des accusés MDN asynchrones pour les traiter."
+  delete:
+    title: "Supprimer le partenaire « {name} » ?"
+    text: "Ses {n} comptes distants et leurs moyens d'authentification seront supprimés avec lui, ainsi que ses accès aux règles de transfert ; les transferts vers ce partenaire ne pourront plus être créés."
+    blocked_title: Ce partenaire ne peut pas être supprimé.
+    blocked_transfers: Des transferts en cours utilisent un de ses comptes. Annulez-les ou attendez leur fin.
+    blocked_watchers: Une surveillance de dossiers utilise un de ses comptes. Retirez-la d'abord.
+    blocked_link: Voir les transferts en cours
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Partenaire « {name} » créé"
+    updated: "Partenaire « {name} » enregistré"
+    deleted: "Partenaire « {name} » supprimé"
+  empty:
+    title: Aucun partenaire distant pour l'instant
+    text: "Un partenaire distant est un serveur tiers auquel la passerelle se connecte pour déposer ou retirer des fichiers ; il porte ses comptes et ses moyens d'authentification."
+  none:
+    title: "Aucun partenaire ne correspond à « {query} »"
+    filters: Aucun partenaire ne correspond aux filtres
+  not_found:
+    title: Partenaire introuvable
+    text: Ce partenaire n'existe pas ou a été supprimé.
+  error:
+    title: La liste des partenaires n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+# Comptes distants d'un partenaire : l'identité que la passerelle lui présente.
+remote_accounts:
+  add: Ajouter un compte
+  search: Rechercher un compte par son identifiant
+  search_placeholder: Rechercher par identifiant
+  count: "{total} comptes"
+  count_one: 1 compte
+  count_shown: "{total} comptes · {shown} affichés"
+  count_shown_one: "{total} comptes · 1 affiché"
+  caption: "Comptes distants, page {page} sur {pages}, triés par {sort}"
+  pager: "Comptes {from} à {to} sur {total}"
+  sort:
+    name: identifiant
+    auth: authentification
+  col:
+    login: Compte distant
+    auth: Authentification
+  auth_none: "Aucun moyen : ne peut pas se connecter"
+  action:
+    detail: Voir le compte
+    edit: Modifier le compte
+    delete: Supprimer le compte
+  new:
+    title: Nouveau compte distant
+  edit:
+    title: "Modifier « {login} »"
+  form:
+    card: "Compte sur le partenaire « {name} »"
+    login: Identifiant
+    login_hint: "Unique sur ce partenaire ; c'est l'identifiant que la passerelle présente"
+    first_means: Premier moyen d'authentification
+    first_means_hint: "La passerelle s'authentifiera par ce moyen ; vous pourrez en ajouter d'autres dans la fiche du compte."
+    refused: Le compte n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      login: Indiquez l'identifiant du compte.
+      taken: Un autre compte de ce partenaire porte déjà cet identifiant.
+  delete:
+    title: "Supprimer le compte « {login} » ?"
+    text: "Ses moyens d'authentification seront supprimés avec lui ; les transferts vers « {name} » qui le nomment ne pourront plus être créés."
+    blocked_title: Ce compte ne peut pas être supprimé.
+    blocked_transfers: Des transferts en cours l'utilisent. Annulez-les ou attendez leur fin.
+    blocked_watchers: Une surveillance de dossiers l'utilise. Retirez-la d'abord.
+    blocked_link: Voir les transferts en cours
+  empty:
+    title: Aucun compte distant pour l'instant
+    text: "Un compte distant est l'identité que la passerelle présente à ce partenaire ; un transfert le nomme toujours."
+  none:
+    title: "Aucun compte ne correspond à « {query} »"
+  not_found:
+    title: Compte distant introuvable
+    text: Ce compte n'existe pas ou a été supprimé.
+  toast:
+    created: "Compte « {login} » créé"
+    updated: "Compte « {login} » enregistré"
+    deleted: "Compte « {login} » supprimé"
+# Fiche d'un compte distant.
+remote_account:
+  title: "Compte « {login} »"
+  card: Compte distant
+  tab:
+    details: Détails
+    auth: Authentification
+  detail:
+    partner: Partenaire
+    login: Identifiant
+    auth: Moyens d'authentification
+    auth_none: Aucun
+    note: "Un transfert vers ce partenaire nomme toujours un de ses comptes ; la passerelle s'y présente avec les moyens de l'onglet Authentification."
 # Clients locaux : la liste, le détail (avec les partenaires joignables), les pages d'action.
 clients:
   title: Clients locaux

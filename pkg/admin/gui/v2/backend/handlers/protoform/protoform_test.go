@@ -85,8 +85,10 @@ func TestOptionsByRole(t *testing.T) {
 		return out
 	}
 
-	assert.Equal(t, []string{"ftp_disable_passive", "ftp_disable_active", "ftp_passive_min", "ftp_passive_max",
-		"ftp_tls_requirement"}, names(RoleServer, FamilyFTP))
+	assert.Equal(t, []string{
+		"ftp_disable_passive", "ftp_disable_active", "ftp_passive_min", "ftp_passive_max",
+		"ftp_tls_requirement",
+	}, names(RoleServer, FamilyFTP))
 	assert.Equal(t, []string{"ftp_enable_active", "ftp_active_address", "ftp_active_min", "ftp_active_max"},
 		names(RoleClient, FamilyFTP))
 	assert.Equal(t, []string{"r66_login", "r66_block", "r66_no_final_hash", "r66_check_block_hash"},
@@ -94,6 +96,23 @@ func TestOptionsByRole(t *testing.T) {
 	assert.Equal(t, []string{"r66_block", "r66_final_hash_algo", "r66_no_final_hash", "r66_check_block_hash"},
 		names(RoleClient, FamilyR66))
 	assert.Empty(t, names(RoleClient, FamilyHTTP))
+
+	// The partner: what the client of its protocol reads from it (#714).
+	assert.Equal(t, []string{"r66_server_login", "r66_block", "r66_final_hash_algo", "r66_no_final_hash", "r66_check_block_hash"},
+		names(RolePartner, FamilyR66))
+	assert.Equal(t, []string{"ftp_disable_active", "ftp_disable_epsv", "ftp_implicit_tls", "ftp_no_session_reuse"},
+		names(RolePartner, FamilyFTP))
+	assert.Equal(t, []string{
+		"pesit_login", "pesit_restart", "pesit_checkpoints", "pesit_checkpoint_size",
+		"pesit_checkpoint_window", "pesit_nsdu", "pesit_max_message", "pesit_mode", "pesit_disable_preconnection",
+		"pesit_expects_ack", "pesit_ack_timeout", "pesit_no_pi37",
+	}, names(RolePartner, FamilyPeSIT))
+	assert.Equal(t, []string{"sftp_kex", "sftp_ciphers", "sftp_macs", "sftp_use_stat", "sftp_no_concurrent_reads"},
+		names(RolePartner, FamilySFTP))
+	assert.Equal(t, []string{"as2_sign_algo", "as2_encrypt_algo", "as2_async_mdn", "as2_handle_async_mdn"},
+		names(RolePartner, FamilyAS2))
+	assert.Empty(t, names(RolePartner, FamilyHTTP))
+	assert.Empty(t, names(RolePartner, FamilyWebDAV))
 
 	// Every option has a label the catalogue knows, and a hint when it names one.
 	translate := translator(t)
@@ -108,6 +127,11 @@ func TestOptionsByRole(t *testing.T) {
 
 			if opt.Kind == KindSelect {
 				require.NotNil(t, opt.Choices, opt.Name)
+			}
+
+			if opt.Kind == KindTri {
+				assert.NotEmpty(t, opt.DefaultKey, opt.Name)
+				assert.NotEqual(t, opt.DefaultKey, translate(opt.DefaultKey), "%s: default key unknown", opt.Name)
 			}
 
 			if opt.Kind == KindList {
@@ -281,4 +305,118 @@ func TestR66HashAlgos(t *testing.T) {
 		cfg := &r66.ClientConfig{SharedClientConfig: r66.SharedClientConfig{FinalHashAlgo: algo}}
 		require.NoError(t, cfg.ValidConf(), algo)
 	}
+}
+
+// A partner reads some PeSIT flags in three states: absent (the client's
+// value applies), on, off. The form shows the three, stores on and off as
+// the product reads them (the "disable" key) and never writes an absent
+// flag; the NSDU flag is on when absent.
+func TestPartnerTriState(t *testing.T) {
+	t.Parallel()
+
+	translate := translator(t)
+
+	f := NewForm(RolePartner)
+	f.Fill("pesit", map[string]any{"disableRestart": true, "useNSDU": false})
+	assert.Equal(t, TriOff, f.selects["pesit_restart"], "disableRestart true reads as restart off")
+	assert.Equal(t, TriClient, f.selects["pesit_checkpoints"], "an absent flag is the client's value")
+	assert.False(t, f.checks["pesit_nsdu"])
+
+	cfg := f.Apply()
+	assert.Equal(t, true, cfg["disableRestart"])
+	assert.NotContains(t, cfg, "disableCheckpoints", "an absent flag stays absent")
+	assert.Equal(t, false, cfg["useNSDU"])
+
+	f = NewForm(RolePartner)
+	f.Fill("pesit", nil)
+	assert.True(t, f.checks["pesit_nsdu"], "NSDU is on by default")
+	f.Prepare(translate)
+	assert.False(t, familyView(f, "pesit").Open, "a flag on by default does not open the options card (D16)")
+	assert.Equal(t, "Options par défaut de la passerelle", familyView(f, "pesit").Summary)
+
+	f = NewForm(RolePartner)
+	f.Read(url.Values{"protocol": {"pesit"}})
+	f.Prepare(translate)
+	assert.True(t, familyView(f, "pesit").Open, "NSDU unchecked differs from the default")
+	assert.Equal(t, "1 option renseignée", familyView(f, "pesit").Summary)
+
+	f = NewForm(RolePartner)
+	f.Read(url.Values{
+		"protocol": {"pesit"}, "pesit_restart": {TriOn}, "pesit_checkpoints": {TriOff},
+		"pesit_ack_timeout_s": {"10"}, "pesit_login": {"gw"},
+	})
+	require.True(t, f.Validate(translate))
+	cfg = f.Apply()
+	assert.Equal(t, false, cfg["disableRestart"])
+	assert.Equal(t, true, cfg["disableCheckpoints"])
+	assert.Equal(t, "10s", cfg["ackTimeout"], "a duration entered in parts is stored as the product reads it")
+	assert.Equal(t, "gw", cfg["login"])
+
+	f = NewForm(RolePartner)
+	f.Read(url.Values{
+		"protocol": {"pesit"}, "pesit_nsdu": {"1"},
+		"pesit_ack_timeout_h": {"1"}, "pesit_ack_timeout_m": {"30"}, "pesit_ack_timeout_s": {"0"},
+	})
+	require.True(t, f.Validate(translate))
+	assert.Equal(t, "1h30m", f.Apply()["ackTimeout"])
+	f.Prepare(translate)
+	assert.Equal(t, "1 option renseignée", familyView(f, "pesit").Summary, "a duration in parts is one option")
+
+	f = NewForm(RolePartner)
+	f.Fill("pesit", map[string]any{"ackTimeout": "90s"})
+	assert.Equal(t, "90s", f.fields["pesit_ack_timeout"].Value)
+	assert.Equal(t, "1", f.fields["pesit_ack_timeout_m"].Value, "a stored duration is shown in parts")
+	assert.Equal(t, "30", f.fields["pesit_ack_timeout_s"].Value)
+	assert.Equal(t, "1 min 30 s", FormatDuration(translate, "90s"))
+	assert.Equal(t, "2 h", FormatDuration(translate, "2h"))
+
+	f = NewForm(RolePartner)
+	f.Read(url.Values{"protocol": {"pesit"}, "pesit_ack_timeout_m": {"soon"}})
+	assert.False(t, f.Validate(translate), "a part that is not a whole number is refused")
+	assert.Equal(t, "Indiquez des nombres entiers d'heures, de minutes et de secondes.", f.fields["pesit_ack_timeout"].Error)
+	f.Prepare(translate)
+	assert.True(t, familyView(f, "pesit").Open, "a card that carries an error opens")
+	assert.True(t, familyView(f, "pesit").Plain.Titled(), "the PeSIT options are grouped by theme")
+	assert.Equal(t, []string{"Identification", "Reprise et synchronisation", "Messages", "Acquittement"},
+		sectionLabels(familyView(f, "pesit").Plain))
+
+	rows := Rows(translate, RolePartner, ProtocolOf("pesit"), map[string]any{"disableRestart": false})
+	sync, identity := "Reprise et synchronisation", "Identification"
+	assert.Equal(t, KV{Label: "Reprise des transferts interrompus", Value: "Activé", Section: sync}, rows[1])
+	assert.Equal(t, KV{Label: "Points de synchronisation", Value: "Comme le client (par défaut)", Section: sync}, rows[2])
+	assert.Equal(t, KV{Label: "Utiliser les paquets NSDU", Value: "Activé", Section: "Messages"}, rows[5])
+	assert.Equal(t, KV{Label: "Envoi du PI 37", Value: "Activé", Section: identity}, rows[11])
+
+	groups := Grouped(rows)
+	require.Len(t, groups, 4, "the rows of a details page gather by theme")
+	assert.Equal(t, identity, groups[0].Title)
+	assert.Len(t, groups[0].Rows, 4, "login, mode, pre-connection, PI 37")
+	assert.Equal(t, "Acquittement", groups[3].Title)
+	assert.Empty(t, Grouped(Rows(translate, RolePartner, ProtocolOf("http"), nil))[0].Title, "one group: no title")
+
+	rows = Rows(translate, RolePartner, ProtocolOf("as2"), map[string]any{"signatureAlgorithm": "sha256"})
+	security := "Signature et chiffrement"
+	assert.Equal(t, KV{Label: "Algorithme de signature", Value: "sha256", Section: security}, rows[0])
+	assert.Equal(t, KV{Label: "Algorithme de chiffrement", Value: "Valeur par défaut de la passerelle", Section: security}, rows[1])
+}
+
+// sectionLabels lists the titles of the sections of a block.
+func sectionLabels(b BlockView) []string {
+	var out []string
+	for _, s := range b.Sections {
+		out = append(out, s.Label)
+	}
+
+	return out
+}
+
+// familyView is the card of a family once the form is prepared.
+func familyView(f *Form, key string) *FamilyView {
+	for _, fam := range f.Families {
+		if fam.Key == key {
+			return fam
+		}
+	}
+
+	return &FamilyView{}
 }

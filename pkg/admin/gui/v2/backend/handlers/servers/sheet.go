@@ -5,18 +5,15 @@ package servers
 // the "Local accounts" tab; the sheet of an account (details, authentication);
 // the pages that add, show, edit and delete an authentication means or an
 // account. This file holds what these pages share: the owner of a means (the
-// server or one of its accounts), the tab strip, the breadcrumb, the state of
-// a tab list, the localised "not found" page, the forms with files and the
+// server or one of its accounts) as the shared pages of the means see it,
+// the tab strip, the breadcrumb, the localised "not found" page and the
 // redirections.
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"code.waarp.fr/lib/gui"
 	"github.com/gorilla/mux"
@@ -24,6 +21,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -34,9 +32,9 @@ const (
 	// /servers/{id}/accounts/{aid}.
 	authSuffix     = "/auth"
 	accountsSuffix = "/accounts"
-	newSuffix      = "/new"
-	editSuffix     = "/edit"
-	deleteSuffix   = "/delete"
+	newSuffix      = means.NewSuffix
+	editSuffix     = means.EditSuffix
+	deleteSuffix   = means.DeleteSuffix
 
 	// The tabs of the sheets.
 	tabDetails  = "details"
@@ -46,22 +44,25 @@ const (
 	// The kind of object the previous action concerned, carried by the
 	// redirection next to its result: a means or an account; an action on
 	// the server itself carries none.
-	kindParam   = "kind"
-	kindCred    = "cred"
+	kindParam   = liststate.KindParam
+	kindCred    = means.KindCred
 	kindAccount = "account"
 
-	sortType = "type"
 	sortAuth = "auth"
-
-	// A PEM file weighs a few kilobytes: the limit of an upload.
-	maxUpload = 4 << 20
 )
 
 //nolint:gochecknoglobals // reference data of the screen
 var (
-	credSortKeys    = []string{sortName, sortType}
 	accountSortKeys = []string{sortName, sortAuth}
 	sheetDone       = []string{doneCreated, doneUpdated, doneDeleted}
+)
+
+// The tab strip, the state of a tab list and the "not found" page come from
+// the shared pages of the means.
+type (
+	tab          = means.Tab
+	tabList      = liststate.TabList
+	notFoundData = means.NotFoundData
 )
 
 // owner is the holder of the authentication means a page concerns: the
@@ -92,18 +93,13 @@ func (own owner) authURL() string {
 	return serverURL(own.srv.agent.ID, authSuffix)
 }
 
-// credURL is a page of one means of the owner.
-func (own owner) credURL(id int64, suffix string) string {
-	return own.authURL() + "/" + strconv.FormatInt(id, 10) + suffix
-}
-
 // allowed are the kinds of means the protocol of the server accepts for the owner.
 func (own owner) allowed() []string {
 	if own.acc != nil {
-		return accountCredTypes(own.srv.agent.Protocol)
+		return means.LocalAccountTypes(own.srv.agent.Protocol)
 	}
 
-	return serverCredTypes(own.srv.agent.Protocol)
+	return means.ServerTypes(own.srv.agent.Protocol)
 }
 
 // label names the owner in a sentence.
@@ -123,6 +119,61 @@ func (own owner) title(translate gui.Translator) string {
 
 	return translate("servers.detail.title", "name", own.srv.agent.Name)
 }
+
+// texts are the sentences of the pages of the means that name the owner.
+func (own owner) texts() means.Texts {
+	t := means.Texts{
+		Intro: "auth.title.server", Empty: "auth.empty.server", Delete: "auth.delete.server",
+		NoneTitle: "auth.none_for_protocol.title", NoneText: "auth.none_for_protocol.text",
+		Back: "servers.back", Tabs: "servers.tabs",
+	}
+
+	if own.acc != nil {
+		t.Intro, t.Empty, t.Delete = "auth.title.account", "auth.empty.account", "auth.delete.account"
+		t.Back = "servers.back_server"
+	}
+
+	return t
+}
+
+// meansOwner describes the owner to the shared pages of the means: a local
+// account holds what the partner presents (the internal registry of the
+// model), the server what it presents itself (the external one).
+func (h *Handlers) meansOwner(translate gui.Translator, own owner, carried string, user rights) *means.Owner {
+	back := listURL(carried)
+	if own.acc != nil {
+		back = withRet(serverURL(own.srv.agent.ID, accountsSuffix), carried)
+	}
+
+	return &means.Owner{
+		Table:    own.table(),
+		Protocol: own.srv.agent.Protocol,
+		Verified: own.isAccount(),
+		Allowed:  own.allowed(),
+		AuthURL:  own.authURL(),
+		BackURL:  back,
+		Carried:  carried,
+		Title:    own.title(translate),
+		Label:    own.label(translate),
+		Texts:    own.texts(),
+		Rights:   means.Rights{Write: user.Write, Delete: user.Delete},
+		Tabs:     func(current string) ([]tab, error) { return h.tabsOf(translate, own, current, carried) },
+		Crumbs:   func(last string) []gui.Crumb { return sheetCrumbs(translate, own, last, carried) },
+		Chrome:   chrome(),
+	}
+}
+
+// chrome is the screen of the servers around the pages of a sheet.
+func chrome() means.Chrome {
+	return means.Chrome{
+		Section: constants.SidebarSectionConnection, Menu: constants.SidebarMenuServers, Doc: docPage,
+		Stylesheets: sheetStylesheets(),
+	}
+}
+
+// sheetStylesheets are the stylesheets of the pages of the screen: the
+// shared rules of a sheet, then the screen.
+func sheetStylesheets() []string { return []string{protoStylesheet, means.Stylesheet, stylesheet} }
 
 func accountURL(serverID, accountID int64, suffix string) string {
 	return serverURL(serverID, accountsSuffix+"/"+strconv.FormatInt(accountID, 10)+suffix)
@@ -173,72 +224,12 @@ func (h *Handlers) owner(w http.ResponseWriter, r *http.Request) (owner, bool) {
 	return owner{}, false
 }
 
-// credential reads the {cid} of the route among the means of the owner; a
-// missing one renders the localised "not found" page and returns false.
-func (h *Handlers) credential(w http.ResponseWriter, r *http.Request, own owner) (*model.Credential, bool) {
-	id, parseErr := strconv.ParseInt(mux.Vars(r)["cid"], 10, 64)
-
-	var cred model.Credential
-
-	err := h.db.Get(&cred, "id=?", id).And(own.table().GetCredCond()).Run()
-	if parseErr == nil && err == nil {
-		return &cred, true
-	}
-
-	if err != nil && !database.IsNotFound(err) {
-		h.logger.Errorf("failed to retrieve the authentication means %d: %v", id, err)
-		http.Error(w, "Internal error", http.StatusInternalServerError)
-
-		return nil, false
-	}
-
-	translate := h.shell.Translator(r)
-	carried := ret(r)
-	title := translate("auth.not_found.title")
-
-	h.notFoundPage(w, r, sheetCrumbs(translate, own, title, carried), notFoundData{
-		Title:     title,
-		Text:      translate("auth.not_found.text"),
-		Icon:      "key",
-		BackLabel: translate("action.back"),
-		BackURL:   withRet(own.authURL(), carried),
-	})
-
-	return nil, false
-}
-
-// notFoundData is a localised "not found" page: what is missing and the way
-// back.
-type notFoundData struct {
-	Title     string
-	Text      string
-	Icon      string
-	BackLabel string
-	BackURL   string
-}
-
+// notFoundPage renders the localised "not found" page of the screen.
 func (h *Handlers) notFoundPage(w http.ResponseWriter, r *http.Request, crumbs []gui.Crumb, data notFoundData) {
-	h.shell.Render(w, h.logger, r, common.Screen{
-		Title:   data.Title,
-		Section: constants.SidebarSectionConnection,
-		Menu:    constants.SidebarMenuServers,
-		Doc:     docPage,
-		Crumbs:  crumbs,
-		Status:  http.StatusNotFound,
-	}, notFoundView(data))
+	h.means.NotFound(w, r, chrome(), crumbs, data)
 }
 
 // ---------------------------------------------------------------- tabs ----
-
-// tab is an entry of the tab strip of a sheet: a link to a page, with the
-// number of objects it lists when it is a list.
-type tab struct {
-	Label    string
-	URL      string
-	Count    uint64
-	HasCount bool
-	Current  bool
-}
 
 // serverTabs is the tab strip of a server: its details, its authentication
 // means and its local accounts, counted.
@@ -266,6 +257,13 @@ func (h *Handlers) serverTabs(translate gui.Translator, e entry, current, carrie
 			Count: accounts, HasCount: true, Current: current == tabAccounts,
 		},
 	}, nil
+}
+
+// newServerTabs is the tab strip of the form of a new server: its details,
+// then the means and the accounts it will have once created, greyed.
+func newServerTabs(translate gui.Translator) []tab {
+	return means.PendingTabs(translate, translate("servers.tab.details"),
+		translate("servers.tab.auth"), translate("servers.tab.accounts"))
 }
 
 // accountTabs is the tab strip of an account: its details and its means.
@@ -351,146 +349,21 @@ func (h *Handlers) sheetScreen(translate gui.Translator, title string, own owner
 		Status:  status,
 		Notices: notices,
 
-		Stylesheets: []string{stylesheet},
+		Stylesheets: sheetStylesheets(),
 	}
 }
 
 // redirectSheet sends to a page of the sheet (a tab, already carrying the
-// list state) with the result of the action.
+// list state) with the result of the action: on a means or an account, the
+// kind says which; on the server itself, the kind is empty.
 func redirectSheet(w http.ResponseWriter, r *http.Request, target, kind, done, name string) {
-	u, err := url.Parse(target)
-	if err != nil {
-		http.Redirect(w, r, target, http.StatusSeeOther)
-
-		return
+	result := url.Values{doneParam: {done}, nameParam: {name}}
+	if kind != "" {
+		result.Set(kindParam, kind)
 	}
 
-	query := u.Query()
-	query.Set(kindParam, kind)
-	query.Set(doneParam, done)
-	query.Set(nameParam, name)
-	u.RawQuery = query.Encode()
-
-	http.Redirect(w, r, u.String(), http.StatusSeeOther)
-}
-
-// ------------------------------------------------------------ tab list ----
-
-// tabList is the state of the list of a tab: the toolbar form, the base of
-// the sort links, the count, the rows per page and the list foot. The sheet
-// carries the state of the servers list (?ret=) through every link and form.
-type tabList struct {
-	Action      string
-	Base        string
-	Q           string
-	Names       []string
-	Hidden      map[string]string
-	Count       string
-	Sort        string
-	Dir         string
-	Caption     string
-	Pager       *pager
-	PagerHidden map[string]string
-	Sizes       []int
-	Size        int
-	Empty       bool
-	NoMatch     bool
-	NoMatchText string
-	NoMatchURL  string
-	NoMatchLink string
-}
-
-// newTabList builds the state of a tab list from its query.
-func newTabList(base string, query *listQuery, carried string) tabList {
-	hidden, pagerHidden := query.ToolbarHidden(), query.PagerHidden()
-	if carried != "" {
-		hidden[retParam], pagerHidden[retParam] = carried, carried
-	}
-
-	return tabList{
-		Action:      base,
-		Base:        withRet(liststate.WithQuery(base, query.FilterValues()), carried),
-		Q:           query.Q,
-		Hidden:      hidden,
-		Sort:        query.Sort,
-		Dir:         query.Dir,
-		PagerHidden: pagerHidden,
-		Size:        query.Size,
-	}
-}
-
-// noMatch is the empty result of a search: the way out clears the search.
-func (l *tabList) noMatch(translate gui.Translator, text, base, carried string) {
-	l.NoMatch = true
-	l.NoMatchText = text
-	l.NoMatchURL, l.NoMatchLink = withRet(base, carried), translate("search.clear")
-}
-
-// foot fills the list foot: the rows per page (offered as soon as there are
-// rows) and the pages.
-func (l *tabList) foot(info string, b liststate.Bounds, query *listQuery, base, carried string) {
-	l.Sizes = pageSizes
-	l.Pager = &pager{Info: info, Page: b.Page, Pages: b.Pages}
-
-	if b.Page > 1 {
-		l.Pager.PrevURL = withRet(liststate.WithQuery(base, query.WithPage(b.Page-1)), carried)
-	}
-
-	if b.Page < b.Pages {
-		l.Pager.NextURL = withRet(liststate.WithQuery(base, query.WithPage(b.Page+1)), carried)
-	}
+	liststate.RedirectTo(w, r, target, result)
 }
 
 // counter is the set of keys of a count: "N objects", "N objects · n shown".
 type counter = liststate.Counter
-
-// ---------------------------------------------------------------- forms ----
-
-// parseForm reads the posted form, multipart (with files) or not.
-func parseForm(r *http.Request) error {
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/") {
-		if err := r.ParseMultipartForm(maxUpload); err != nil {
-			return fmt.Errorf("failed to read the multipart form: %w", err)
-		}
-
-		return nil
-	}
-
-	if err := r.ParseForm(); err != nil {
-		return fmt.Errorf("failed to read the form: %w", err)
-	}
-
-	return nil
-}
-
-// fileOrText is the content of the file uploaded in a field or, without one,
-// of the text field next to it where the same content can be pasted. Line
-// ends are normalised and the content trimmed, so that a file written on
-// any system is read the same way.
-func fileOrText(r *http.Request, fileField, textField string) (string, error) {
-	if r.MultipartForm != nil {
-		file, _, err := r.FormFile(fileField)
-
-		switch {
-		case err == nil:
-			defer file.Close() //nolint:errcheck // read only
-
-			content, readErr := io.ReadAll(io.LimitReader(file, maxUpload))
-			if readErr != nil {
-				return "", fmt.Errorf("failed to read the uploaded file: %w", readErr)
-			}
-
-			if len(content) > 0 {
-				return normalizeText(string(content)), nil
-			}
-		case !errors.Is(err, http.ErrMissingFile):
-			return "", fmt.Errorf("failed to read the uploaded file: %w", err)
-		}
-	}
-
-	return normalizeText(r.FormValue(textField)), nil
-}
-
-func normalizeText(s string) string {
-	return strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n"))
-}

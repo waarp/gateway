@@ -96,6 +96,7 @@ proto:
   options: "{protocol} options"
   options_label: Options
   error_number: Enter a whole number.
+  error_duration: "Give whole numbers of hours, minutes and seconds."
   options_default: Default options of the gateway
   options_set_one: 1 option set
   options_set: "{n} options set"
@@ -103,6 +104,27 @@ proto:
   tls_suite_one: 1 suite chosen
   tls_suites: "{n} suites chosen"
   # Options by family: the effect for the operator first, the technical term as a monospace hint.
+  duration:
+    hours: Hours
+    minutes: Minutes
+    seconds: Seconds
+    h: h
+    min: min
+    s: s
+  # Themes of the cards of options, when the family names two at least.
+  section:
+    identity: Identification
+    sync: Restart and synchronisation
+    messages: Messages
+    ack: Acknowledgement
+    transfer: Transfer
+    integrity: Integrity checks
+    modes: Connection modes
+    algorithms: Algorithms
+    compat: Compatibility
+    security: Signature and encryption
+    mdn: Asynchronous MDN
+    other: Other options
   opt:
     r66_login: Login expected from the partner
     r66_login_hint: "By default, the name of the server"
@@ -177,6 +199,42 @@ proto:
     ftp_active_min: First port of the active mode
     ftp_active_max: Last port of the active mode
     default_active_address: "0.0.0.0"
+    # Options of a remote partner (#714): what the client of its protocol reads from the partner.
+    r66_server_login: Login presented by the server
+    r66_server_login_hint: "By default, the name of the partner"
+    default_partner_login: The name of the partner
+    ftp_disable_epsv: Disable EPSV
+    ftp_epsv: EPSV
+    ftp_implicit_tls: Implicit TLS
+    ftp_implicit_tls_hint: "By default, explicit TLS (\"AUTH TLS\" after the connection)"
+    ftp_no_session_reuse: Disable the TLS session reuse
+    ftp_session_reuse: TLS session reuse
+    pesit_login: Login of the partner
+    pesit_login_hint: "Empty: the partner is not authenticated; its password is a \"Password\" means of the partner"
+    pesit_login_none: Not authenticated
+    tristate:
+      client: As the client (default)
+      on: Enabled
+      off: Disabled
+    pesit_nsdu: Use NSDU packets
+    pesit_nsdu_hint: Enabled by default
+    pesit_expects_ack: Expects an acknowledgement of received transfers
+    pesit_ack_timeout: Acknowledgement timeout
+    pesit_ack_timeout_hint: "When an acknowledgement is expected; empty: no limit"
+    pesit_ack_no_limit: No limit
+    pesit_no_pi37: Do not send the PI 37
+    pesit_pi37: Sending of the PI 37
+    sftp_use_stat: Read the size of the file before receiving it
+    sftp_no_concurrent_reads: Disable concurrent reads
+    sftp_no_concurrent_reads_hint: "By default, a received file is read by several readers at once"
+    sftp_concurrent_reads: Concurrent reads
+    as2_sign_algo: Signature algorithm
+    as2_encrypt_algo: Encryption algorithm
+    as2_async_mdn: Address of the asynchronous MDNs
+    as2_async_mdn_hint: "Empty: no asynchronous MDN"
+    as2_async_mdn_none: No asynchronous MDN
+    as2_handle_async_mdn: Handle the asynchronous MDNs
+    as2_handle_async_mdn_hint: "The gateway receives them itself; otherwise a third-party service handles them"
 
 # "Local servers" screen (Connections): list, details, form, deletion, start and stop.
 servers:
@@ -240,6 +298,7 @@ servers:
     name_hint: "Unique on this gateway; letters, digits, dashes and dots"
     no_autostart: Do not start automatically when the gateway starts
     address: Listening address
+    address_required: To be given
     host: Host
     host_hint: "Host name or IP address the server listens on; empty, it listens on every interface (shown as “*”)"
     port: Port
@@ -312,10 +371,15 @@ auth:
   title:
     server: Identity the server presents to the partners
     account: Means the partner presents for this account
+    partner: What the gateway checks of the partner
+    remote_account: What the gateway presents to the partner
   owner:
     server: "the server “{name}”"
     account: "the account “{login}” of the server “{name}”"
+    partner: "the partner “{name}”"
+    remote_account: "the account “{login}” of the partner “{name}”"
   add: Add an authentication means
+  tab_after_creation: Available after the creation
   search: Search an authentication means by name
   search_placeholder: Search by name
   count: "{total} means"
@@ -342,6 +406,7 @@ auth:
     ssh_private_key: SSH private key
     ssh_public_key: SSH public key
     r66_legacy_certificate: Legacy R66 certificate
+    pesit_pre-connection_auth: PeSIT pre-connection
   # Layout of the validity dates (Go layout).
   date: 2006-01-02
   # Non-secret content of a means, in the list and on its page.
@@ -355,6 +420,10 @@ auth:
     valid: "Valid until {date}"
     expires: "Expires on {date}"
     expired: "Expired on {date}"
+    pre_login: "Login “{login}”"
+    pre_no_login: No login
+    pre_password: password set, not shown
+    pre_no_password: no password
   new:
     title: New authentication means
   edit:
@@ -382,6 +451,12 @@ auth:
     key_hint: "The private key of the certificate; it is never shown again"
     paste_key: or paste the key
     legacy_hint: "Nothing to enter: this means states that the authentication follows the historic market convention for R66 certificates."
+    pre_hint: "What the gateway sends to the partner before the PeSIT connection, when it expects it: an optional login and password, at most eight ASCII characters each."
+    pre_login: Pre-connection login
+    pre_login_hint: "Empty: no login is sent"
+    pre_password: Pre-connection password
+    pre_password_hint: "Empty: no password is sent; stored encrypted, never shown again"
+    pre_password_keep: leave empty to keep it as it is
     refused: The authentication means was not saved.
     refused_text: Correct the fields flagged below.
     error:
@@ -405,12 +480,18 @@ auth:
     content: Content
     never_shown: Set, never shown
     legacy: "No value: the kind is enough"
+    pre_login: Pre-connection login
+    pre_no_login: None
+    pre_password: Pre-connection password
+    pre_no_password: None
     pem: Certificate (PEM)
     public_key: Public key
     public_note: "Public part only: it can be given to the partner."
   delete:
     title: "Delete the means “{name}”?"
     server: Partners that check this identity of the server will no longer be able to connect.
+    partner: "The gateway will no longer check this identity of the partner; depending on the protocol, the connection will be refused."
+    remote_account: The gateway will no longer be able to authenticate with this means to the partner.
     account: This partner will no longer be able to authenticate this way.
     means: Means
     type: Kind
@@ -419,10 +500,15 @@ auth:
   empty:
     title: No authentication means yet
     server: "Add the identity this server presents to the partners: certificate, host key or password depending on the protocol."
+    partner: "Add what the gateway must check of the partner: trusted certificate, host key or password depending on the protocol."
+    remote_account: "This account cannot connect while it has no means: add a password, a certificate or a private key."
     account: "This account cannot connect as long as it has no means: add a password, a certificate or a public key."
   none_for_protocol:
     title: This protocol asks no authentication means from the server
     text: "Connections to this server are not authenticated by it: nothing to add here."
+    partner:
+      title: This protocol asks no check of the partner
+      text: "Connections to this partner do not check its identity: nothing to add here."
   none:
     title: "No means matches “{query}”"
   not_found:
@@ -561,6 +647,180 @@ me:
     mismatch: The two entries of the new password differ.
   toast:
     password: Password changed
+# "Remote partners" screen (Connections, #714): list, tabbed sheet, form, deletion.
+partners:
+  title: Remote partners
+  add: Add a partner
+  search: Search a partner by its name
+  search_placeholder: Search by name
+  filters: Protocols
+  count: "{total} partners"
+  count_one: 1 partner
+  count_shown: "{total} partners · {shown} shown"
+  count_shown_one: "{total} partners · 1 shown"
+  caption: "Remote partners, page {page} of {pages}, sorted by {sort}"
+  pager: "Partners {from} to {to} of {total}"
+  back: Back to the list
+  back_partner: Back to the partner
+  accounts_none: None
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    protocol: protocol
+    address: address
+    accounts: accounts
+  col:
+    name: Remote partner
+    protocol: Protocol
+    address: Address
+    accounts: Accounts
+    actions: Actions
+  action:
+    detail: View the sheet
+    edit: Edit the partner
+    delete: Delete the partner
+  tabs: Tabs of the sheet
+  tab:
+    details: Details
+    auth: Authentication
+    accounts: Remote accounts
+  detail:
+    title: "Partner \"{name}\""
+    card: Partner
+    protocol: Protocol
+    address: Address
+    accounts: Remote accounts
+    rules_title: Authorized transfer rules
+    rules_all: Every transfer rule of the gateway.
+    rules_none: No rule authorizes it for now.
+    rules_hint: "The accesses to the rules are managed on the transfer rules screen."
+    rules_link: See the transfer rules
+    rule_send: send
+    rule_receive: receive
+  client:
+    title: Client used
+    one: "Transfers to this partner go through the client \"{name}\"."
+    many: "{n} {protocol} clients exist: each transfer to this partner must name its own."
+    none: "No {protocol} client: the gateway will create one, named \"{name}\", on the first transfer."
+    add: Add a client
+  new:
+    title: New partner
+  edit:
+    title: "Edit \"{name}\""
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique on the gateway; the name rules and transfers refer to"
+    protocol_hint: "Changing the protocol voids the authentication means and the accounts that no longer match it."
+    address: Address
+    address_required: To be given
+    address_hint: "The address the gateway connects to."
+    host: Host
+    host_hint: "Host name or IP address of the partner server"
+    port: Port
+    port_hint: "TCP port, from 1 to 65535"
+    refused: The partner was not saved.
+    refused_text: Correct the fields marked below.
+    error:
+      required: This field is required.
+      name_taken: Another partner already has this name. Choose another one.
+      host: Give the host.
+      port: Give a port from 1 to 65535.
+      address: "Give a valid host name or IP address."
+      async_mdn: "Give the address of the asynchronous MDNs to handle them."
+  delete:
+    title: "Delete the partner \"{name}\"?"
+    text: "Its {n} remote accounts and their authentication means will be deleted with it, as well as its accesses to the transfer rules; transfers to this partner can no longer be created."
+    blocked_title: This partner cannot be deleted.
+    blocked_transfers: Running transfers use one of its accounts. Cancel them or wait for them to end.
+    blocked_watchers: A folder watcher uses one of its accounts. Remove it first.
+    blocked_link: See the running transfers
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Partner \"{name}\" created"
+    updated: "Partner \"{name}\" saved"
+    deleted: "Partner \"{name}\" deleted"
+  empty:
+    title: No remote partner yet
+    text: "A remote partner is a third-party server the gateway connects to, to deposit or retrieve files; it holds its accounts and its authentication means."
+  none:
+    title: "No partner matches \"{query}\""
+    filters: No partner matches the filters
+  not_found:
+    title: Partner not found
+    text: This partner does not exist or has been deleted.
+  error:
+    title: The list of the partners could not be loaded.
+    text: "An internal error occurred; the detail is in the log of the gateway."
+# Remote accounts of a partner: the identity the gateway presents to it.
+remote_accounts:
+  add: Add an account
+  search: Search an account by login
+  search_placeholder: Search by login
+  count: "{total} accounts"
+  count_one: 1 account
+  count_shown: "{total} accounts · {shown} shown"
+  count_shown_one: "{total} accounts · 1 shown"
+  caption: "Remote accounts, page {page} of {pages}, sorted by {sort}"
+  pager: "Accounts {from} to {to} of {total}"
+  sort:
+    name: login
+    auth: authentication
+  col:
+    login: Remote account
+    auth: Authentication
+  auth_none: "No means: cannot connect"
+  action:
+    detail: View the account
+    edit: Edit the account
+    delete: Delete the account
+  new:
+    title: New remote account
+  edit:
+    title: "Edit “{login}”"
+  form:
+    card: "Account on the partner “{name}”"
+    login: Login
+    login_hint: "Unique on this partner; the login the gateway presents"
+    first_means: First authentication means
+    first_means_hint: "The gateway will authenticate this way; you can add others in the sheet of the account."
+    refused: The account was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      login: Enter the login of the account.
+      taken: Another account of this partner already has this login.
+  delete:
+    title: "Delete the account “{login}”?"
+    text: "Its authentication means will be deleted with it; transfers to “{name}” that name it can no longer be created."
+    blocked_title: This account cannot be deleted.
+    blocked_transfers: Running transfers use it. Cancel them or wait for them to finish.
+    blocked_watchers: A folder watcher uses it. Remove it first.
+    blocked_link: See the running transfers
+  empty:
+    title: No remote account yet
+    text: "A remote account is the identity the gateway presents to this partner; a transfer always names one."
+  none:
+    title: "No account matches “{query}”"
+  not_found:
+    title: Remote account not found
+    text: This account does not exist or has been deleted.
+  toast:
+    created: "Account “{login}” created"
+    updated: "Account “{login}” saved"
+    deleted: "Account “{login}” deleted"
+# Sheet of a remote account.
+remote_account:
+  title: "Account “{login}”"
+  card: Remote account
+  tab:
+    details: Details
+    auth: Authentication
+  detail:
+    partner: Partner
+    login: Login
+    auth: Authentication means
+    auth_none: None
+    note: "A transfer to this partner always names one of its accounts; the gateway presents itself with the means of the Authentication tab."
 # Local clients: the list, the details (with the partners the client can reach), the action pages.
 clients:
   title: Local clients

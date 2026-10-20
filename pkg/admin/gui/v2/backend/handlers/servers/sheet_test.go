@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,10 +17,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -134,33 +131,6 @@ func (s *suite) credCount(t *testing.T, owner model.CredOwnerTable) uint64 {
 // The kinds the screen offers are the ones the model accepts for the owner
 // and the protocol: the table of the screen never offers what the model
 // refuses.
-func TestCredTypesKnownToModel(t *testing.T) {
-	t.Parallel()
-
-	for proto := range protocols.List() {
-		for _, typ := range serverCredTypes(proto) {
-			assert.NotNilf(t, authentication.GetExternalAuthMethod(typ, proto), "%s on a %s server", typ, proto)
-		}
-
-		for _, typ := range accountCredTypes(proto) {
-			assert.NotNilf(t, authentication.GetInternalAuthHandler(typ, proto), "%s on a %s account", typ, proto)
-		}
-
-		assert.Contains(t, accountCredTypes(proto), auth.Password, "a password is always possible on an account")
-	}
-
-	assert.Equal(t, []string{sftp.AuthSSHPrivateKey}, serverCredTypes("sftp"))
-	assert.Empty(t, serverCredTypes("http"), "a plain HTTP server presents nothing")
-	assert.Equal(t, []string{auth.Password, sftp.AuthSSHPublicKey}, accountCredTypes("sftp"))
-	assert.Equal(t, []string{auth.Password, auth.TLSTrustedCertificate}, accountCredTypes("pesit-tls"))
-
-	srv := owner{srv: entry{agent: &model.LocalAgent{Protocol: "sftp"}}}
-	acc := owner{srv: srv.srv, acc: &model.LocalAccount{}}
-	assert.True(t, unique(acc, auth.Password), "one password per account")
-	assert.False(t, unique(acc, sftp.AuthSSHPublicKey), "several public keys per account")
-	assert.False(t, unique(srv, sftp.AuthSSHPrivateKey))
-}
-
 func TestServerAuthTab(t *testing.T) {
 	t.Parallel()
 
@@ -609,6 +579,22 @@ func TestEditCred(t *testing.T) {
 		assert.True(t, utils.IsHash(changed))
 	})
 
+	t.Run("Given the password of the R66 server, stored encrypted", func(t *testing.T) {
+		t.Parallel()
+
+		// The model encrypts an external password when it is written and
+		// decrypts it when it is read: the means read back holds the plain
+		// password, and an edition that keeps it stores it again as it was.
+		require.Equal(t, partnerPassword, s.credOf(t, f.r66Pwd.ID).Value)
+
+		rec := s.post(t, permWrite, s.path(s.r66, fmt.Sprintf("/auth/%d/edit", f.r66Pwd.ID)), url.Values{"name": {"mdp-r66"}})
+		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
+
+		after := s.credOf(t, f.r66Pwd.ID)
+		assert.Equal(t, "mdp-r66", after.Name)
+		assert.Equal(t, partnerPassword, after.Value, "an empty password keeps the current one, readable as before")
+	})
+
 	t.Run("Given the certificate of the HTTPS server", func(t *testing.T) {
 		t.Parallel()
 
@@ -648,7 +634,7 @@ func TestDeleteCred(t *testing.T) {
 	assert.Contains(t, body, "<title>Supprimer le moyen « mot-de-passe-r66 » ? · gw-test · Waarp Gateway</title>")
 	assert.Contains(t, body, "Les partenaires qui vérifient cette identité du serveur ne pourront plus se connecter.")
 	assert.Contains(t, body, "<dt>Pour</dt><dd>le serveur « srv-r66-01 »</dd>")
-	assert.Contains(t, body, `<form class="servers-form-actions" method="post" action="`+s.path(s.r66, fmt.Sprintf("/auth/%d/delete", f.r66Pwd.ID))+`?ret=q%3Dsrv">`)
+	assert.Contains(t, body, `<form class="sheet-form-actions" method="post" action="`+s.path(s.r66, fmt.Sprintf("/auth/%d/delete", f.r66Pwd.ID))+`?ret=q%3Dsrv">`)
 
 	rec = s.post(t, permAll, s.path(s.r66, fmt.Sprintf("/auth/%d/delete", f.r66Pwd.ID))+anyRet, nil)
 	require.Equal(t, http.StatusSeeOther, rec.Code)
@@ -813,7 +799,7 @@ func TestDeleteAccount(t *testing.T) {
 		body := rec.Body.String()
 		assert.Contains(t, body, "<strong>Ce compte ne peut pas être supprimé.</strong>Des transferts en cours l&#39;utilisent.")
 		assert.Contains(t, body, `href="/webui/transfer_monitoring">`)
-		assert.NotContains(t, body, `<form class="servers-form-actions"`, "no deletion offered")
+		assert.NotContains(t, body, `<form class="sheet-form-actions"`, "no deletion offered")
 
 		rec = s.post(t, permAll, s.accountPath(f.nobody, "/delete"), nil)
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
@@ -886,16 +872,11 @@ func TestNoSecretInPages(t *testing.T) {
 func TestSheetHelpers(t *testing.T) {
 	t.Parallel()
 
-	q := parseQuery(url.Values{"q": {" x "}, "sort": {"type"}, "dir": {"desc"}, "page": {"2"}, "size": {"25"}, "protocol": {"sftp"}}, credSortKeys)
-	assert.Equal(t, "dir=desc&page=2&q=x&size=25&sort=type", sortedQuery(q.Encode(q.Page)), "the protocols belong to the servers list only")
-	assert.Equal(t, "name", parseQuery(url.Values{"sort": {"state"}}, credSortKeys).Sort, "a sort of another list falls back")
+	q := parseQuery(url.Values{"q": {" x "}, "sort": {"auth"}, "dir": {"desc"}, "page": {"2"}, "size": {"25"}, "protocol": {"sftp"}}, accountSortKeys)
+	assert.Equal(t, "dir=desc&page=2&q=x&size=25&sort=auth", sortedQuery(q.Encode(q.Page)), "the protocols belong to the servers list only")
+	assert.Equal(t, "name", parseQuery(url.Values{"sort": {"state"}}, accountSortKeys).Sort, "a sort of another list falls back")
 
-	list := newTabList("/webui/servers/1/auth", q, "q=srv")
-	assert.Equal(t, "/webui/servers/1/auth?q=x&ret=q%3Dsrv", list.Base)
-	assert.Equal(t, map[string]string{"sort": "type", "dir": "desc", "size": "25", "ret": "q=srv"}, list.Hidden)
-	assert.Equal(t, map[string]string{"q": "x", "sort": "type", "dir": "desc", "ret": "q=srv"}, list.PagerHidden)
-
-	b := liststate.Parse(url.Values{"page": {"9"}, "size": {"10"}}, credSortKeys, pageSizes).Bounds(23)
+	b := liststate.Parse(url.Values{"page": {"9"}, "size": {"10"}}, accountSortKeys, pageSizes).Bounds(23)
 	assert.Equal(t, liststate.Bounds{Page: 3, Pages: 3, From: 20, To: 23}, b, "the page is bounded by the count")
 
 	ips, bad := parseIPs("10.0.0.1, 10.0.0.2;\r\n 2001:DB8::1\t")
@@ -904,20 +885,7 @@ func TestSheetHelpers(t *testing.T) {
 	_, bad = parseIPs("10.0.0.1\n10.0.0.0/24")
 	assert.Equal(t, "10.0.0.0/24", bad, "a range is not an address")
 
-	assert.Equal(t, "AB:CD:EF", colons([]byte{0xab, 0xcd, 0xef}))
 	assert.Equal(t, "/webui/servers/1/accounts/2/auth", accountURL(1, 2, authSuffix))
-
-	v := viewOf(&model.Credential{Type: auth.TLSTrustedCertificate, Value: testhelpers.ClientFooCert})
-	assert.Equal(t, "foo", v.Subject)
-	assert.Equal(t, "foo", v.Issuer)
-	assert.Len(t, v.Fingerprint, 95, "32 bytes in hex pairs with colons")
-	assert.Equal(t, stateOK, v.expiry(func(key string, _ ...any) string { return "02/01/2006" }, time.Now()).State)
-	assert.Equal(t, stateWarn, v.expiry(func(key string, _ ...any) string { return key }, v.NotAfter.Add(-24*time.Hour)).State)
-	assert.Equal(t, stateKO, v.expiry(func(key string, _ ...any) string { return key }, v.NotAfter.Add(time.Hour)).State)
-
-	broken := viewOf(&model.Credential{Type: auth.TLSCertificate, Value: "garbage"})
-	assert.Empty(t, broken.Subject)
-	assert.Empty(t, broken.expiry(func(key string, _ ...any) string { return key }, time.Now()).State)
 }
 
 // sortedQuery re-encodes a query with its keys in a stable order.
@@ -928,4 +896,32 @@ func sortedQuery(encoded string) string {
 	}
 
 	return v.Encode()
+}
+
+// The tab strip of the sheet stays on every page of the server: greyed on
+// the form of a new server, live on edition and on the deletion page
+// (Driss, 2026-10-20).
+func TestSheetTabsOnForms(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+
+	body := s.get(t, permAll, "/webui/servers/new").Body.String()
+	assert.Contains(t, body, `<nav class="w-tabs" aria-label="Onglets de la fiche"><span aria-current="page">Détails</span>`)
+	assert.Contains(t, body, `<span class="w-tabs__disabled" aria-disabled="true" title="Disponible après la création">Authentification</span>`)
+	assert.Contains(t, body, `<span class="w-tabs__disabled" aria-disabled="true" title="Disponible après la création">Comptes locaux</span>`)
+	assert.NotContains(t, body, "w-tabs__count", "nothing to count before the creation")
+
+	body = s.get(t, permAll, s.path(s.sftp, "/edit")+anyRet).Body.String()
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "")+`?ret=q%3Dsrv" aria-current="page">Détails</a>`)
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/accounts")+`?ret=q%3Dsrv">Comptes locaux <span class="w-tabs__count">`)
+	assert.NotContains(t, body, "w-tabs__disabled")
+
+	body = s.get(t, permAll, s.path(s.sftp, "/delete")).Body.String()
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/auth")+`">Authentification <span class="w-tabs__count">`)
+
+	rec := s.post(t, permWrite, "/webui/servers/new", url.Values{"name": {""}})
+	require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+	assert.Contains(t, rec.Body.String(), `<span class="w-tabs__disabled"`, "the refused form keeps the greyed strip")
 }

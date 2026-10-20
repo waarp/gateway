@@ -86,14 +86,43 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/servers/1/accounts/1/auth/new"},
 		{path: "/webui/servers/3/auth", tables: 1},
 		{path: "/webui/servers/3/auth/4"},
-		// The local clients: the list, the details of the SFTP client (no
-		// partner of its protocol yet: no table), the pages that add, edit
-		// and delete one.
+		// The local clients: the list, the details of the SFTP client (the
+		// SFTP partner it reaches: a table), the pages that add, edit and
+		// delete one.
 		{path: "/webui/clients", tables: 1},
-		{path: "/webui/clients/1"},
+		{path: "/webui/clients/1", tables: 1},
 		{path: "/webui/clients/new"},
 		{path: "/webui/clients/1/edit"},
 		{path: "/webui/clients/1/delete"},
+		// The remote partners (#714): the list, the sheet of the SFTP
+		// partner (its details, the host key the gateway checks, the pages
+		// that add a means), the sheet of the R66 over TLS partner (no
+		// means yet), the pages that add, edit and delete a partner.
+		{path: "/webui/partners", tables: 1},
+		{path: "/webui/partners/1"},
+		{path: "/webui/partners/new"},
+		{path: "/webui/partners/1/edit"},
+		{path: "/webui/partners/1/delete"},
+		{path: "/webui/partners/1/auth", tables: 1},
+		{path: "/webui/partners/1/auth/5"},
+		{path: "/webui/partners/1/auth/5/edit"},
+		{path: "/webui/partners/1/auth/5/delete"},
+		{path: "/webui/partners/1/auth/new"},
+		{path: "/webui/partners/2"},
+		{path: "/webui/partners/2/auth"},
+		// The remote account of the SFTP partner: the accounts tab, the
+		// sheet of the account and its password (means 6), the pages that
+		// add, edit and delete an account and a means.
+		{path: "/webui/partners/1/accounts", tables: 1},
+		{path: "/webui/partners/1/accounts/new"},
+		{path: "/webui/partners/1/accounts/1"},
+		{path: "/webui/partners/1/accounts/1/edit"},
+		{path: "/webui/partners/1/accounts/1/delete"},
+		{path: "/webui/partners/1/accounts/1/auth", tables: 1},
+		{path: "/webui/partners/1/accounts/1/auth/6"},
+		{path: "/webui/partners/1/accounts/1/auth/6/edit"},
+		{path: "/webui/partners/1/accounts/1/auth/6/delete"},
+		{path: "/webui/partners/1/accounts/1/auth/new"},
 	}
 }
 
@@ -286,7 +315,8 @@ func startE2EServer(t *testing.T) string {
 	require.NoError(t, err)
 	require.NoError(t, db.Insert(&model.User{
 		Username: e2eUsername, PasswordHash: string(hash),
-		Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete,
+		Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete |
+			model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete,
 	}).Run())
 
 	servers := []*model.LocalAgent{
@@ -322,6 +352,32 @@ func startE2EServer(t *testing.T) string {
 	} {
 		require.NoError(t, db.Insert(cred).Run())
 		require.EqualValues(t, i+1, cred.ID, "the screens are visited by identifier")
+	}
+
+	// The remote partners (#714): an SFTP partner with the host key the
+	// gateway checks (means 5) and a remote account with its password (means
+	// 6), an R66 over TLS partner without anything yet. The SFTP client then
+	// reaches a partner: its sheet shows the table.
+	partners := []*model.RemoteAgent{
+		{Name: "part-sftp-01", Protocol: "sftp", Address: types.Addr("127.0.0.1", 2222), ProtoConfig: map[string]any{"useStat": true}},
+		{Name: "part-r66-tls", Protocol: "r66-tls", Address: types.Addr("127.0.0.2", 6667), ProtoConfig: map[string]any{"serverLogin": "waarp"}},
+	}
+
+	for i, partner := range partners {
+		require.NoError(t, db.Insert(partner).Run())
+		require.EqualValues(t, i+1, partner.ID, "the screens are visited by identifier")
+	}
+
+	remote := &model.RemoteAccount{RemoteAgentID: partners[0].ID, Login: "gateway-prod"}
+	require.NoError(t, db.Insert(remote).Run())
+	require.EqualValues(t, 1, remote.ID)
+
+	for i, cred := range []*model.Credential{
+		{RemoteAgentID: partners[0].NullableID(), Name: "cle-hote-partenaire", Type: "ssh_public_key", Value: testhelpers.SSHPbk},
+		{RemoteAccountID: remote.NullableID(), Name: "mot-de-passe", Type: "password", Value: e2ePassword},
+	} {
+		require.NoError(t, db.Insert(cred).Run())
+		require.EqualValues(t, i+5, cred.ID, "the screens are visited by identifier")
 	}
 
 	registerE2EServices(t)
@@ -438,9 +494,10 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	assert.Equal(t, entries, s.count(t, `nav:not(.w-tabs) a[aria-current="page"]`), "active sidebar entry")
 	assert.Equal(t, screen.tables, s.count(t, "table.w-table"), "tables")
 
-	// A sheet shows its tab strip, one tab being the page.
+	// A sheet shows its tab strip, one tab being the page: a link, or a
+	// plain span on the form of an object not created yet.
 	if s.count(t, "nav.w-tabs") > 0 {
-		assert.Equal(t, 1, s.count(t, `nav.w-tabs a[aria-current="page"]`), "current tab")
+		assert.Equal(t, 1, s.count(t, `nav.w-tabs [aria-current="page"]`), "current tab")
 	}
 
 	// The first Tab reaches the skip link.

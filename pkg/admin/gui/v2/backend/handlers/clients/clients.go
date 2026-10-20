@@ -41,10 +41,8 @@ const (
 	docPage         = "user/webui/clients-locaux"
 	pagePath        = "/clients"
 
-	// The historic page of the remote partners, where a partner is reached
-	// by its exact name, until the partners screen is reworked.
-	partnersPath  = "/partner_management"
-	partnersParam = "search"
+	// The sheet of a remote partner (#714).
+	partnersPath = "/partners"
 
 	// The cookie that keeps the state of the list for the browser session, so
 	// that coming back through the sidebar finds the list as it was left.
@@ -239,9 +237,9 @@ func clientURL(id int64, suffix string) string {
 	return common.WebuiURL(pagePath + "/" + strconv.FormatInt(id, 10) + suffix)
 }
 
-// partnerURL is the historic page of a remote partner, reached by its name.
-func partnerURL(name string) string {
-	return common.WebuiURL(partnersPath) + "?" + url.Values{partnersParam: {name}}.Encode()
+// partnerURL is the sheet of a remote partner.
+func partnerURL(id int64) string {
+	return common.WebuiURL(partnersPath + "/" + strconv.FormatInt(id, 10))
 }
 
 type row struct {
@@ -302,7 +300,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		Crumbs:  crumbs(translate, "", ""),
 		Notices: notices(translate, r.URL.Query()),
 
-		Stylesheets: []string{stylesheet},
+		Stylesheets: []string{protoStylesheet, stylesheet},
 	}
 
 	clients, err := internal.ListClients(h.db, "name", true, 0, 0)
@@ -605,7 +603,7 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  status,
 
-		Stylesheets: []string{stylesheet},
+		Stylesheets: []string{protoStylesheet, stylesheet},
 	}
 }
 
@@ -690,7 +688,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 
 	for _, partner := range partners {
 		data.Partners = append(data.Partners,
-			partnerRow{Name: partner.Name, Address: partner.Address.String(), URL: partnerURL(partner.Name)})
+			partnerRow{Name: partner.Name, Address: partner.Address.String(), URL: partnerURL(partner.ID)})
 	}
 
 	if user.Write {
