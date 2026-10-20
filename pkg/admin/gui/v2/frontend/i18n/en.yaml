@@ -23,7 +23,7 @@ nav:
   clouds: Cloud instances
   snmp: SNMP
   overrides: Configuration overrides
-  footer: "{product} {version} · revision {revision}"
+  footer: "{product} {version}"
 
 # Screen "Service status" (Monitoring).
 services:

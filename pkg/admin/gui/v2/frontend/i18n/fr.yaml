@@ -23,7 +23,7 @@ nav:
   clouds: Instances cloud
   snmp: SNMP
   overrides: Surcharges de configuration
-  footer: "{product} {version} · révision {revision}"
+  footer: "{product} {version}"
 
 # Écran « État des services » (Supervision).
 services:

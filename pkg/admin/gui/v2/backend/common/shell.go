@@ -110,8 +110,8 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		ProductSlug: productSlug,
 		Instance:    user.Owner,
 		Username:    user.Username,
-		Footer: translate("nav.footer", "product", constants.AppName,
-			"version", version.Num, "revision", version.Commit),
+		// The version alone: the revision stays on the About page (2026-10-20).
+		Footer:    translate("nav.footer", "product", constants.AppName, "version", version.Num),
 		DocURL:    constants.DocPage(lang, screen.Doc),
 		LogoutURL: WebuiURL("/logout"),
 		HomeURL:   WebuiURL("/home"),
