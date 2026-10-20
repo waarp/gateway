@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -563,13 +562,10 @@ func (p *Pipeline) done(state statemachine.State) {
 func (p *Pipeline) IsServer() bool { return p.TransCtx.Transfer.IsServer() }
 func (p *Pipeline) IsSend() bool   { return p.TransCtx.Rule.IsSend }
 
+// incrementRetryDelay prepares the wait before the retry after the next one;
+// the model holds the computation, which the web interface shares.
 func incrementRetryDelay(trans *model.Transfer) {
-	newDelay := float32(trans.NextRetryDelay) * trans.RetryIncrementFactor
-	if newDelay > float32(math.MaxInt32) {
-		trans.NextRetryDelay = math.MaxInt32
-	} else {
-		trans.NextRetryDelay = int32(newDelay)
-	}
+	trans.NextRetryDelay = model.NextRetryDelay(trans.NextRetryDelay, trans.RetryIncrementFactor)
 }
 
 const (

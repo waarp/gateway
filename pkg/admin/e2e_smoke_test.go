@@ -91,8 +91,8 @@ func e2eScreens() []e2eScreen {
 		// delete one.
 		{path: "/webui/clients", tables: 1},
 		{path: "/webui/clients/1", tables: 1},
-		{path: "/webui/clients/new"},
-		{path: "/webui/clients/1/edit"},
+		{path: "/webui/clients/new", tables: 1}, // the table of the retries
+		{path: "/webui/clients/1/edit", tables: 1},
 		{path: "/webui/clients/1/delete"},
 		// The remote partners (#714): the list, the sheet of the SFTP
 		// partner (its details, the host key the gateway checks, the pages
@@ -578,6 +578,55 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		chosen, err := s.page.Evaluate(`[...document.querySelectorAll("#sftp_kex option:checked")].map(o => o.value)`)
 		require.NoError(t, err)
 		assert.Equal(t, []any{"curve25519-sha256@libssh.org"}, chosen, "Enter adds the match to the hidden select")
+	}
+
+	// The retries of a client are drawn live: the sentence and the marks of
+	// the timeline follow the three fields, and the script computes the
+	// waits exactly as the model does.
+	if s.count(t, `[data-retry]`) > 0 {
+		_, err := s.page.Evaluate(`document.querySelector('details.w-card--fold:has([data-retry])').open = true`)
+		require.NoError(t, err)
+		require.NoError(t, s.page.Locator(`#attempts`).Fill("5"))
+		require.NoError(t, s.page.Locator(`#delay_s`).Fill("30"))
+		require.NoError(t, s.page.Locator(`#factor`).Fill("2"))
+		assert.Equal(t, 5, s.count(t, `.w-retry__mark`), "one mark per attempt")
+		assert.Equal(t, 5, s.count(t, `.w-retry__rows tr`), "one row per attempt")
+		sentence, err := s.page.Locator(`.w-retry__text`).TextContent()
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(sentence, "5 "), "the sentence counts the attempts: %q", sentence)
+
+		for _, c := range []struct {
+			attempts int8
+			delay    int32
+			factor   float32
+		}{{5, 30, 2}, {3, 0, 1}, {12, 30, 1.5}, {127, 30, 2}, {5, 10, 0.5}, {1, 7, 3}} {
+			// The browser returns whole numbers as int and the others as
+			// float64: everything is compared as int64.
+			got, err := s.page.Evaluate(fmt.Sprintf("window.wRetryWaits(%d, %d, %v)", c.attempts, c.delay, c.factor))
+			require.NoError(t, err)
+
+			values, ok := got.([]any)
+			require.True(t, ok, "the script returns the waits as a list (%+v): %v", c, got)
+
+			gotWaits := make([]int64, 0, len(values))
+			for _, v := range values {
+				switch n := v.(type) {
+				case int:
+					gotWaits = append(gotWaits, int64(n))
+				case float64:
+					gotWaits = append(gotWaits, int64(n))
+				default:
+					t.Fatalf("unexpected wait %v (%T)", v, v)
+				}
+			}
+
+			want := []int64{}
+			for _, w := range model.RetryWaits(c.attempts, c.delay, c.factor) {
+				want = append(want, int64(w))
+			}
+
+			assert.Equal(t, want, gotWaits, "the script computes the waits as the model does (%+v)", c)
+		}
 	}
 
 	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests")
