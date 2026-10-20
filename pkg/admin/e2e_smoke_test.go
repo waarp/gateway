@@ -494,9 +494,10 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	assert.Equal(t, entries, s.count(t, `nav:not(.w-tabs) a[aria-current="page"]`), "active sidebar entry")
 	assert.Equal(t, screen.tables, s.count(t, "table.w-table"), "tables")
 
-	// A sheet shows its tab strip, one tab being the page.
+	// A sheet shows its tab strip, one tab being the page: a link, or a
+	// plain span on the form of an object not created yet.
 	if s.count(t, "nav.w-tabs") > 0 {
-		assert.Equal(t, 1, s.count(t, `nav.w-tabs a[aria-current="page"]`), "current tab")
+		assert.Equal(t, 1, s.count(t, `nav.w-tabs [aria-current="page"]`), "current tab")
 	}
 
 	// The first Tab reaches the skip link.
