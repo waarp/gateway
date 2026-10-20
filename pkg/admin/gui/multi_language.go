@@ -89,9 +89,8 @@ func changeLanguage(w http.ResponseWriter, r *http.Request) string {
 
 func detectLanguage(r *http.Request) string {
 	res := r.Header.Get("Accept-Language")
-	languageAl := strings.Split(res, ",")
 
-	for _, v := range languageAl {
+	for v := range strings.SplitSeq(res, ",") {
 		if strings.HasPrefix(v, English) {
 			return English
 		}
