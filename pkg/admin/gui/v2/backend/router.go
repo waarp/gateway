@@ -48,9 +48,11 @@ func MakeHomeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 
 	account := me.New(db, logger)
 	router.Path("/account").Methods(http.MethodGet).Handler(
-		withPermissions(permAuthenticated, http.HandlerFunc(account.Page)))
+		withPermissions(permAuthenticated, http.HandlerFunc(account.Page)),
+	)
 	router.Path("/account/password").Methods(http.MethodPost).Handler(
-		withPermissions(permAuthenticated, http.HandlerFunc(account.ChangePassword)))
+		withPermissions(permAuthenticated, http.HandlerFunc(account.ChangePassword)),
+	)
 }
 
 // MakeKitStaticRouter serves the files of the GUI kit (styles, scripts,
