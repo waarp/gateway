@@ -562,6 +562,24 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		assert.Equal(t, 0, s.count(t, `.w-actions:popover-open`), "and closes with Escape")
 	}
 
+	// An ordered list is a Tags field of the kit: with the SFTP family shown,
+	// typing in the field of the key exchanges filters the suggestions and
+	// Enter adds the match, which the hidden select then sends first.
+	if s.count(t, `#sftp_kex`) > 0 {
+		_, err := s.page.Locator(`select[data-switch]`).First().SelectOption(playwright.SelectOptionValues{Values: playwright.StringSlice("sftp")})
+		require.NoError(t, err)
+		// The card of the options folds when nothing is set: open it, as a user would.
+		_, err = s.page.Evaluate(`document.querySelector('details[data-case="sftp"]').open = true`)
+		require.NoError(t, err)
+		require.NoError(t, s.page.Locator(`#sftp_kex ~ .w-tags input`).Focus())
+		require.NoError(t, s.page.Keyboard().Type("curve"))
+		assert.Equal(t, 1, s.count(t, `#sftp_kex-menu [role="option"]`), "typing filters the suggestions")
+		require.NoError(t, s.page.Keyboard().Press("Enter"))
+		chosen, err := s.page.Evaluate(`[...document.querySelectorAll("#sftp_kex option:checked")].map(o => o.value)`)
+		require.NoError(t, err)
+		assert.Equal(t, []any{"curve25519-sha256@libssh.org"}, chosen, "Enter adds the match to the hidden select")
+	}
+
 	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests")
 
 	t.Run("axe-core", func(t *testing.T) { s.checkAccessibility(t) })

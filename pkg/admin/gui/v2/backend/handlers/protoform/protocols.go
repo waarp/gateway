@@ -228,6 +228,58 @@ func pick(pairs [][2]string, current string) []Choice {
 
 // multi lists the chosen values first, in their order (the preference order
 // of a dual list), then the other values.
+// The choices of an SSH algorithm list (sftpAlgoChoices): the chosen ones
+// first in their order, each algorithm to use knowingly said so in its
+// label: disabled by default in the SFTP module (the arcfour and cbc
+// ciphers), or historic (the SHA-1 based key exchanges and MACs, which the
+// module keeps for the old partners).
+func sftpAlgoChoices(translate gui.Translator, values, chosen []string) []Choice {
+	out := multi(values, chosen)
+	for i := range out {
+		if note := sftpAlgoNote(translate, out[i].Value); note != "" {
+			out[i].Label += " " + note
+		}
+	}
+
+	return out
+}
+
+func sftpAlgoNote(translate gui.Translator, name string) string {
+	if sftpAlgoDisabled(name) {
+		return translate("proto.opt.algo_disabled")
+	}
+
+	if strings.Contains(name, "sha1") {
+		return translate("proto.opt.algo_historic")
+	}
+
+	return ""
+}
+
+// Whether the SFTP module keeps the algorithm out of its defaults
+// (sftpAlgoDisabled: its tables are the single source of that choice).
+func sftpAlgoDisabled(name string) bool {
+	for _, algo := range sftp.ValidKeyExchanges {
+		if algo.Name == name {
+			return algo.DisabledByDefault
+		}
+	}
+
+	for _, algo := range sftp.ValidCiphers {
+		if algo.Name == name {
+			return algo.DisabledByDefault
+		}
+	}
+
+	for _, algo := range sftp.ValidMACs {
+		if algo.Name == name {
+			return algo.DisabledByDefault
+		}
+	}
+
+	return false
+}
+
 func multi(values, chosen []string) []Choice {
 	out := make([]Choice, 0, len(values))
 

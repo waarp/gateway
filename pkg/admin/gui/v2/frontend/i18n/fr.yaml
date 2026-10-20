@@ -139,6 +139,8 @@ proto:
     tls_ciphers_short: Suites de chiffrement TLS
     tls_ciphers_hint: "Vide : toutes les suites sûres de la passerelle sont acceptées lors de la négociation avec le partenaire. Une suite marquée « non sécurisée » ne s'ajoute qu'en connaissance de cause."
     tls_insecure: (non sécurisée)
+    algo_historic: (historique)
+    algo_disabled: (désactivé par défaut)
     ftp_disable_passive: Désactiver le mode passif
     ftp_disable_active: Désactiver le mode actif
     ftp_passive: Mode passif
