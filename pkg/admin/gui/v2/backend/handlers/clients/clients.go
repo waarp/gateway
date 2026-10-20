@@ -300,7 +300,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		Crumbs:  crumbs(translate, "", ""),
 		Notices: notices(translate, r.URL.Query()),
 
-		Stylesheets: []string{stylesheet},
+		Stylesheets: []string{protoStylesheet, stylesheet},
 	}
 
 	clients, err := internal.ListClients(h.db, "name", true, 0, 0)
@@ -603,7 +603,7 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  status,
 
-		Stylesheets: []string{stylesheet},
+		Stylesheets: []string{protoStylesheet, stylesheet},
 	}
 }
 

@@ -1,3 +1,5 @@
 /* Shared protocol partials (proto/choice, proto/options): what the kit does not decide. Tokens only. */
 .proto-tls { margin-top: var(--sp-3); }
 .proto-note { margin: 0; }
+/* Protocol cell of a list: the family, then the TLS badge aligned from one row to the next (widest family: WebDAV). */
+.proto-cell { display: inline-grid; grid-template-columns: 4.25rem auto; align-items: center; }

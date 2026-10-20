@@ -262,7 +262,13 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, agent *model.Rem
 
 		switch {
 		case err == nil:
-			redirectList(w, r, carried, url.Values{doneParam: {done}, nameParam: {agent.Name}})
+			// A new partner shows in the list; an edited one comes back to its
+			// sheet (Driss, 2026-10-20).
+			if done == doneUpdated {
+				redirectSheet(w, r, withRet(partnerURL(agent.ID, ""), carried), "", done, agent.Name)
+			} else {
+				redirectList(w, r, carried, url.Values{doneParam: {done}, nameParam: {agent.Name}})
+			}
 
 			return
 		case database.IsValidationError(err):

@@ -95,7 +95,7 @@ templ listView(d listData) {
 							<tr>
 								<td><span class="w-cell-title w-nowrap">{ r.Name }</span></td>
 								<td>@stateCell(r.Status, r.Reason)</td>
-								<td>{ r.Protocol }@protoform.TLSBadge(r.TLS)</td>
+								<td>@protoform.ProtoCell(r.Protocol, r.TLS)</td>
 								<td class="w-mono w-nowrap">{ r.Address }</td>
 								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
 							</tr>

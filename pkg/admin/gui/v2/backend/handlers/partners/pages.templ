@@ -103,7 +103,7 @@ templ listView(d listData) {
 						for _, r := range d.Rows {
 							<tr>
 								<td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
-								<td>{ r.Protocol }@protoform.TLSBadge(r.TLS)</td>
+								<td>@protoform.ProtoCell(r.Protocol, r.TLS)</td>
 								<td class="w-mono w-nowrap">{ r.Address }</td>
 								<td class="w-num">@accountsCell(r)</td>
 								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>

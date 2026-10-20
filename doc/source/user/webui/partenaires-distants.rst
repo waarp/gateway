@@ -127,8 +127,9 @@ qu'ils sont à leur valeur par défaut ; leur en-tête résume ce qu'ils
 contiennent, et un clic les ouvre. Un bloc qui porte une valeur ou une erreur
 s'affiche toujours ouvert.
 
-*Valider* enregistre le partenaire et ramène à la liste avec une
-notification. Un formulaire refusé est réaffiché avec les valeurs saisies et,
+*Valider* enregistre le partenaire avec une notification et ramène à la
+liste (création) ou à la fiche du partenaire (modification). Un formulaire
+refusé est réaffiché avec les valeurs saisies et,
 sous chaque champ fautif, ce qu'il faut corriger. Changer le protocole d'un
 partenaire existant rend caducs les moyens d'authentification et les comptes
 qui ne correspondent plus au nouveau protocole : le formulaire le rappelle.

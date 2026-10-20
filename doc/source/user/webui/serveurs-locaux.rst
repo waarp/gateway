@@ -146,7 +146,8 @@ repliés tant qu'ils sont à leur valeur par défaut ; leur en-tête résume ce
 qu'ils contiennent, et un clic les ouvre. Un bloc qui porte une valeur ou une
 erreur s'affiche toujours ouvert.
 
-*Valider* enregistre le serveur et ramène à la liste avec une notification ;
+*Valider* enregistre le serveur avec une notification et ramène à la liste
+(création) ou à la fiche du serveur (modification) ;
 un serveur créé est hors ligne jusqu'à son démarrage (ou au prochain lancement
 de la Gateway s'il démarre automatiquement). Un formulaire refusé est
 réaffiché avec les valeurs saisies et, sous chaque champ fautif, ce qu'il

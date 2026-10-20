@@ -198,7 +198,7 @@ proto:
     pesit_nsdu_hint: Activé par défaut
     pesit_expects_ack: Attend un acquittement des transferts reçus
     pesit_ack_timeout: Délai d'attente de l'acquittement
-    pesit_ack_timeout_hint: "Vide : sans limite ; par exemple « 10s », « 1m », « 1h »"
+    pesit_ack_timeout_hint: "Quand un acquittement est attendu ; vide : sans limite ; par exemple « 10s », « 1m », « 1h »"
     pesit_ack_no_limit: Sans limite
     pesit_no_pi37: Ne pas envoyer le PI 37
     pesit_pi37: Envoi du PI 37

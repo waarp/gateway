@@ -173,7 +173,7 @@ func chrome() means.Chrome {
 
 // sheetStylesheets are the stylesheets of the pages of the screen: the
 // shared rules of a sheet, then the screen.
-func sheetStylesheets() []string { return []string{means.Stylesheet, stylesheet} }
+func sheetStylesheets() []string { return []string{protoStylesheet, means.Stylesheet, stylesheet} }
 
 func accountURL(serverID, accountID int64, suffix string) string {
 	return serverURL(serverID, accountsSuffix+"/"+strconv.FormatInt(accountID, 10)+suffix)
@@ -347,9 +347,15 @@ func (h *Handlers) sheetScreen(translate gui.Translator, title string, own owner
 }
 
 // redirectSheet sends to a page of the sheet (a tab, already carrying the
-// list state) with the result of the action.
+// list state) with the result of the action: on a means or an account, the
+// kind says which; on the server itself, the kind is empty.
 func redirectSheet(w http.ResponseWriter, r *http.Request, target, kind, done, name string) {
-	liststate.RedirectTo(w, r, target, url.Values{kindParam: {kind}, doneParam: {done}, nameParam: {name}})
+	result := url.Values{doneParam: {done}, nameParam: {name}}
+	if kind != "" {
+		result.Set(kindParam, kind)
+	}
+
+	liststate.RedirectTo(w, r, target, result)
 }
 
 // counter is the set of keys of a count: "N objects", "N objects · n shown".

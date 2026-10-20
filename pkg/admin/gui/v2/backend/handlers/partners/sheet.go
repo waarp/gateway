@@ -64,9 +64,15 @@ type (
 func parseQuery(v url.Values, sorts []string) *listQuery { return liststate.Parse(v, sorts, pageSizes) }
 
 // redirectSheet sends to a page of the sheet (a tab, already carrying the
-// list state) with the result of the action.
+// list state) with the result of the action: on a means or an account, the
+// kind says which; on the partner itself, the kind is empty.
 func redirectSheet(w http.ResponseWriter, r *http.Request, target, kind, done, name string) {
-	liststate.RedirectTo(w, r, target, url.Values{kindParam: {kind}, doneParam: {done}, nameParam: {name}})
+	result := url.Values{doneParam: {done}, nameParam: {name}}
+	if kind != "" {
+		result.Set(kindParam, kind)
+	}
+
+	liststate.RedirectTo(w, r, target, result)
 }
 
 // owner is the holder of the authentication means a page concerns: the
@@ -177,7 +183,7 @@ func chrome() means.Chrome {
 
 // sheetStylesheets are the stylesheets of the pages of the screen: the
 // shared rules of a sheet, then the screen.
-func sheetStylesheets() []string { return []string{means.Stylesheet, stylesheet} }
+func sheetStylesheets() []string { return []string{protoStylesheet, means.Stylesheet, stylesheet} }
 
 func accountURL(partnerID, accountID int64, suffix string) string {
 	return partnerURL(partnerID, accountsSuffix+"/"+strconv.FormatInt(accountID, 10)+suffix)

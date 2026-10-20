@@ -199,7 +199,7 @@ proto:
     pesit_nsdu_hint: Enabled by default
     pesit_expects_ack: Expects an acknowledgement of received transfers
     pesit_ack_timeout: Acknowledgement timeout
-    pesit_ack_timeout_hint: "Empty: no limit; for example \"10s\", \"1m\", \"1h\""
+    pesit_ack_timeout_hint: "When an acknowledgement is expected; empty: no limit; for example \"10s\", \"1m\", \"1h\""
     pesit_ack_no_limit: No limit
     pesit_no_pi37: Do not send the PI 37
     pesit_pi37: Sending of the PI 37

@@ -132,7 +132,7 @@ templ Options(f *Form) {
 							<p class="w-form__note proto-note">{ fam.Note }</p>
 						}
 						@block(fam.Plain)
-						if len(fam.TLS.Groups) > 0 {
+						if fam.TLS.any() {
 							<fieldset class="w-fieldset w-fieldset--wide" data-case="on" data-of="tls">
 								<legend class="w-fieldset__legend">{ gui.T(ctx, "proto.tls_title") }</legend>
 								@block(fam.TLS)
@@ -154,21 +154,25 @@ templ Options(f *Form) {
 	</details>
 }
 
-// block: the options of a block in the order of the table: consecutive
-// fields in a grid, a checkbox or a list on its own.
+// block: the options of a block: the fields in a grid, then the checkboxes
+// together, then the lists.
 templ block(b BlockView) {
-	for _, g := range b.Groups {
-		if len(g.Fields) > 0 {
-			<div class="w-grid w-grid--2">
-				for _, v := range g.Fields {
-					@option(v)
-				}
-			</div>
-		} else if g.Check != nil {
-			<label class="w-check"><input type="checkbox" name={ g.Check.Name } value="1" checked?={ g.Check.Checked }/> <span>{ g.Check.Label } (<code class="w-code">{ g.Check.Code }</code>)</span></label>
-		} else if g.List != nil {
-			@dualOf(*g.List)
-		}
+	if len(b.Fields) > 0 {
+		<div class="w-grid w-grid--2">
+			for _, v := range b.Fields {
+				@option(v)
+			}
+		</div>
+	}
+	if len(b.Checks) > 0 {
+		<div class="w-stack w-stack--tight">
+			for _, v := range b.Checks {
+				<label class="w-check"><input type="checkbox" name={ v.Name } value="1" checked?={ v.Checked }/> <span>{ v.Label } (<code class="w-code">{ v.Code }</code>)</span></label>
+			}
+		</div>
+	}
+	for _, v := range b.Lists {
+		@dualOf(v)
 	}
 }
 
@@ -230,6 +234,13 @@ templ tlsBlock(b BlockView) {
 			@dualOf(v)
 		}
 	</fieldset>
+}
+
+// ProtoCell: the family of a protocol and, for the TLS variant, the "TLS"
+// badge, in a cell of a list: the badge is aligned from one row to the next
+// whatever the length of the family name (Driss, 2026-10-20).
+templ ProtoCell(family string, tls bool) {
+	<span class="proto-cell"><span>{ family }</span>@TLSBadge(tls)</span>
 }
 
 // TLSBadge: the "TLS" badge next to the family of a protocol, when the

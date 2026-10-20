@@ -78,61 +78,35 @@ type FamilyView struct {
 // HasOptions tells whether the card has anything to show.
 func (v *FamilyView) HasOptions() bool { return v.Plain.any() || v.TLS.any() }
 
-// BlockView is the options of a block in the order of the table: the
-// consecutive text, number and select fields share a grid, a checkbox and a
-// list stand on their own.
+// BlockView is the options of a block: the text, number and select fields
+// share a grid, then the checkboxes stand together, then the lists (Driss,
+// 2026-10-20: the checkboxes of a card in one place, whatever the order of
+// the table).
 type BlockView struct {
-	Groups []GroupView
-}
-
-// GroupView is one row of a block: a grid of fields, or a checkbox, or a list.
-type GroupView struct {
 	Fields []OptionView
-	Check  *OptionView
-	List   *OptionView
+	Checks []OptionView
+	Lists  []OptionView
 }
 
-func (b *BlockView) any() bool { return len(b.Groups) > 0 }
+func (b *BlockView) any() bool { return len(b.Fields)+len(b.Checks)+len(b.Lists) > 0 }
 
 func (b *BlockView) add(v *OptionView) {
 	switch v.Kind {
 	case "check":
-		b.Groups = append(b.Groups, GroupView{Check: v})
+		b.Checks = append(b.Checks, *v)
 	case "list":
-		b.Groups = append(b.Groups, GroupView{List: v})
+		b.Lists = append(b.Lists, *v)
 	default:
-		if n := len(b.Groups); n > 0 && len(b.Groups[n-1].Fields) > 0 {
-			b.Groups[n-1].Fields = append(b.Groups[n-1].Fields, *v)
-
-			return
-		}
-
-		b.Groups = append(b.Groups, GroupView{Fields: []OptionView{*v}})
+		b.Fields = append(b.Fields, *v)
 	}
 }
 
-// FieldList lists the fields of a block, whatever their group: the TLS block
-// template renders its select and its list apart.
-func (b *BlockView) FieldList() []OptionView {
-	var out []OptionView
-	for _, g := range b.Groups {
-		out = append(out, g.Fields...)
-	}
+// FieldList lists the fields of a block: the TLS block template renders its
+// select and its list apart.
+func (b *BlockView) FieldList() []OptionView { return b.Fields }
 
-	return out
-}
-
-// ListList lists the lists of a block, whatever their group.
-func (b *BlockView) ListList() []OptionView {
-	var out []OptionView
-	for _, g := range b.Groups {
-		if g.List != nil {
-			out = append(out, *g.List)
-		}
-	}
-
-	return out
-}
+// ListList lists the lists of a block.
+func (b *BlockView) ListList() []OptionView { return b.Lists }
 
 // OptionView is one option as the template renders it.
 type OptionView struct {

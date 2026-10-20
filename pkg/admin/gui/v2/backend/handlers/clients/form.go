@@ -11,6 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -410,7 +411,14 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, client *model.Cl
 
 		switch {
 		case err == nil:
-			listSpec.RedirectList(w, r, carried, url.Values{doneParam: {done}, nameParam: {client.Name}})
+			// A new client shows in the list; an edited one comes back to its
+			// page (Driss, 2026-10-20).
+			result := url.Values{doneParam: {done}, nameParam: {client.Name}}
+			if done == doneUpdated {
+				liststate.RedirectTo(w, r, withRet(clientURL(client.ID, ""), carried), result)
+			} else {
+				listSpec.RedirectList(w, r, carried, result)
+			}
 
 			return
 		case database.IsValidationError(err):

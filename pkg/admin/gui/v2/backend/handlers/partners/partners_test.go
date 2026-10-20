@@ -433,7 +433,8 @@ func TestEdit(t *testing.T) {
 		"r66_server_login": {"waarp2"}, "r66_block": {"32768"}, "r66_final_hash_algo": {"SHA-512"},
 	})
 	require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
-	assert.Equal(t, "/webui/partners?done=updated&name=part-r66-tls-2&q=part", rec.Header().Get("Location"))
+	assert.Equal(t, s.path(s.r66, "")+"?done=updated&name=part-r66-tls-2&ret=q%3Dpart", rec.Header().Get("Location"),
+		"an edited partner comes back to its sheet")
 
 	agent := s.partnerOf(t, "part-r66-tls-2")
 	assert.Equal(t, "r66-tls", agent.Protocol)

@@ -267,8 +267,8 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `w-status w-status--ok">En ligne<`)
 		assert.Contains(t, body, `w-status w-status--ko">Erreur<`)
 		assert.Contains(t, body, `<span class="w-cell-sub w-mono">no network</span>`)
-		assert.Contains(t, body, `<td>R66 <span class="w-badge w-badge--neutral">TLS</span></td>`)
-		assert.Contains(t, body, "<td>SFTP</td>")
+		assert.Contains(t, body, `<td><span class="proto-cell"><span>R66</span> <span class="w-badge w-badge--neutral">TLS</span></span></td>`)
+		assert.Contains(t, body, `<td><span class="proto-cell"><span>SFTP</span></span></td>`)
 		assert.Contains(t, body, `<span class="w-mono w-nowrap">10.20.30.40:6000</span>`)
 		assert.Equal(t, 2, strings.Count(body, `<span class="w-muted">Automatique</span>`), "two clients without a local address")
 
@@ -568,7 +568,8 @@ func TestEditClient(t *testing.T) {
 			"pesit_disable_restart": {"1"}, "min_tls": {"v1.3"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
-		assert.Equal(t, "/webui/clients?done=updated&name=cli-pesit&q=cli", rec.Header().Get("Location"))
+		assert.Equal(t, s.path(s.pesit, "")+"?done=updated&name=cli-pesit&ret=q%3Dcli", rec.Header().Get("Location"),
+			"an edited client comes back to its page")
 
 		saved, err := internal.GetClientByID(s.db, s.pesit.ID)
 		require.NoError(t, err)
