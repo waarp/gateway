@@ -222,7 +222,7 @@ func (h *Handlers) Accounts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.accounts.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	entries, err := h.accountsOf(srv.agent.ID)
@@ -243,8 +243,8 @@ func (h *Handlers) Accounts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	own := owner{srv: srv}
-	screen := h.sheetScreen(translate, data.Title, own, "", carried, 0, data, notices(translate, r.URL.Query()))
-	h.accounts.Render(w, h.logger, r, screen)
+	screen := h.sheetScreen(translate, data.Title, own, "", carried, 0, notices(translate, r.URL.Query()))
+	h.shell.Render(w, h.logger, r, screen, accountsView(data))
 }
 
 // -------------------------------------------------------------- detail ----
@@ -275,7 +275,7 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.accountDetail.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	user := rightsOf(r)
 	sid, aid := own.srv.agent.ID, own.acc.ID
@@ -322,8 +322,8 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	screen := h.sheetScreen(translate, data.Title, own, "", carried, 0, data, notices(translate, r.URL.Query()))
-	h.accountDetail.Render(w, h.logger, r, screen)
+	screen := h.sheetScreen(translate, data.Title, own, "", carried, 0, notices(translate, r.URL.Query()))
+	h.shell.Render(w, h.logger, r, screen, accountDetailView(data))
 }
 
 // ---------------------------------------------------------------- form ----
@@ -438,7 +438,7 @@ func (h *Handlers) NewAccountForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.accountForm.Translator(r)
+	translate := h.shell.Translator(r)
 	h.accountFormPage(w, r, owner{srv: srv}, h.newAccountForm(translate, srv, nil, ret(r)), 0)
 }
 
@@ -449,14 +449,14 @@ func (h *Handlers) EditAccountForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.accountForm.Translator(r)
+	translate := h.shell.Translator(r)
 	h.accountFormPage(w, r, own, h.newAccountForm(translate, own.srv, own.acc, ret(r)), 0)
 }
 
 // accountFormPage renders the form of an account: under the server tabs at
 // creation, under the account tabs on edition.
 func (h *Handlers) accountFormPage(w http.ResponseWriter, r *http.Request, own owner, f *accountFormData, status int) {
-	translate := h.accountForm.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	tabs, err := h.tabsOf(translate, own, map[bool]string{true: tabDetails, false: tabAccounts}[f.Edit], carried)
@@ -468,7 +468,8 @@ func (h *Handlers) accountFormPage(w http.ResponseWriter, r *http.Request, own o
 	}
 
 	f.Tabs = tabs
-	h.accountForm.Render(w, h.logger, r, h.sheetScreen(translate, f.Title, own, f.Title, carried, status, f, nil))
+	screen := h.sheetScreen(translate, f.Title, own, f.Title, carried, status, nil)
+	h.shell.Render(w, h.logger, r, screen, accountFormView(f))
 }
 
 // CreateAccount serves POST /webui/servers/{id}/accounts/new: the account
@@ -479,7 +480,7 @@ func (h *Handlers) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.accountForm.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	if err := parseForm(r); err != nil {
@@ -562,7 +563,7 @@ func (h *Handlers) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.accountForm.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	if err := parseForm(r); err != nil {
@@ -627,7 +628,7 @@ func (h *Handlers) accountBlocked(acc *model.LocalAccount) (bool, error) {
 }
 
 func (h *Handlers) accountDeletePage(w http.ResponseWriter, r *http.Request, own owner, blocked bool, status int) {
-	translate := h.accountDel.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	sid, aid := own.srv.agent.ID, own.acc.ID
 
@@ -668,7 +669,8 @@ func (h *Handlers) accountDeletePage(w http.ResponseWriter, r *http.Request, own
 		return
 	}
 
-	h.accountDel.Render(w, h.logger, r, h.sheetScreen(translate, data.Title, own, data.Title, carried, status, data, nil))
+	screen := h.sheetScreen(translate, data.Title, own, data.Title, carried, status, nil)
+	h.shell.Render(w, h.logger, r, screen, accountDeleteView(data))
 }
 
 // DeleteAccountForm serves GET /webui/servers/{id}/accounts/{aid}/delete:

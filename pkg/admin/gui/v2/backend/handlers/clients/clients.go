@@ -34,13 +34,12 @@ import (
 )
 
 const (
-	listTemplateFile     = "clients/clients.gohtml"
-	detailTemplateFile   = "clients/detail.gohtml"
-	formTemplateFile     = "clients/form.gohtml"
-	deleteTemplateFile   = "clients/delete.gohtml"
-	notFoundTemplateFile = "clients/not-found.gohtml"
-	docPage              = "user/webui/clients-locaux"
-	pagePath             = "/clients"
+	// The stylesheets of the screen and of the shared protocol options,
+	// under the web interface.
+	stylesheet      = "/static_v2/clients/clients.css"
+	protoStylesheet = "/static_v2/proto/proto.css"
+	docPage         = "user/webui/clients-locaux"
+	pagePath        = "/clients"
 
 	// The historic page of the remote partners, where a partner is reached
 	// by its exact name, until the partners screen is reworked.
@@ -137,19 +136,15 @@ type Handlers struct {
 	logger *log.Logger
 	ctl    Control
 
-	list, detail, form, del, notFound *common.Shell
+	shell *common.Shell
 }
 
 func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
 	return &Handlers{
-		db:       db,
-		logger:   logger,
-		ctl:      ctl,
-		list:     common.NewShell(listTemplateFile),
-		detail:   common.NewShell(protoform.TemplateFile, detailTemplateFile),
-		form:     common.NewShell(protoform.TemplateFile, formTemplateFile),
-		del:      common.NewShell(deleteTemplateFile),
-		notFound: common.NewShell(notFoundTemplateFile),
+		db:     db,
+		logger: logger,
+		ctl:    ctl,
+		shell:  common.NewShell(),
 	}
 }
 
@@ -297,7 +292,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.list.Translator(r)
+	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := common.Screen{
 		Title:   translate("clients.title"),
@@ -306,6 +301,8 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, "", ""),
 		Notices: notices(translate, r.URL.Query()),
+
+		Stylesheets: []string{stylesheet},
 	}
 
 	clients, err := internal.ListClients(h.db, "name", true, 0, 0)
@@ -313,8 +310,8 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		h.logger.Errorf("failed to list the clients: %v", err)
 
 		screen.Status = http.StatusInternalServerError
-		screen.Data = listData{Error: true, RetryURL: listSpec.ListURLOf(query.WithPage(query.Page))}
-		h.list.Render(w, h.logger, r, screen)
+		h.shell.Render(w, h.logger, r, screen,
+			listView(listData{Error: true, RetryURL: listSpec.ListURLOf(query.WithPage(query.Page))}))
 
 		return
 	}
@@ -324,8 +321,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		entries = append(entries, h.entryOf(client))
 	}
 
-	screen.Data = buildList(translate, entries, query, rightsOf(r))
-	h.list.Render(w, h.logger, r, screen)
+	h.shell.Render(w, h.logger, r, screen, listView(buildList(translate, entries, query, rightsOf(r))))
 }
 
 // buildList computes the list page: filter (name prefix, protocols), sort,
@@ -578,30 +574,29 @@ func (h *Handlers) client(w http.ResponseWriter, r *http.Request) (entry, bool) 
 		return entry{}, false
 	}
 
-	translate := h.notFound.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	title := translate("clients.not_found.title")
 
-	h.notFound.Render(w, h.logger, r, common.Screen{
+	h.shell.Render(w, h.logger, r, common.Screen{
 		Title:   title,
 		Section: constants.SidebarSectionConnection,
 		Menu:    constants.SidebarMenuClients,
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  http.StatusNotFound,
-		Data: notFoundData{
-			Title:     title,
-			Text:      translate("clients.not_found.text"),
-			BackLabel: translate("clients.back"),
-			BackURL:   listURL(carried),
-		},
-	})
+	}, notFoundView(notFoundData{
+		Title:     title,
+		Text:      translate("clients.not_found.text"),
+		BackLabel: translate("clients.back"),
+		BackURL:   listURL(carried),
+	}))
 
 	return entry{}, false
 }
 
 // screen is a page of a client: the chrome of the screen around the data.
-func (h *Handlers) screen(translate gui.Translator, title, carried string, status int, data any) common.Screen {
+func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
 		Title:   title,
 		Section: constants.SidebarSectionConnection,
@@ -609,9 +604,14 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  status,
-		Data:    data,
+
+		Stylesheets: []string{stylesheet},
 	}
 }
+
+// formStylesheets are the stylesheets of the form: the shared protocol
+// options, then the screen.
+func formStylesheets() []string { return []string{protoStylesheet, stylesheet} }
 
 // partnerRow is a remote partner the client can reach: a partner of its
 // protocol (decision of 2026-10-19: the two screens stay apart, linked at
@@ -645,7 +645,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.detail.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	user := rightsOf(r)
 
@@ -698,9 +698,9 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	title := translate("clients.detail.title", "name", cli.client.Name)
-	screen := h.screen(translate, title, carried, 0, data)
+	screen := h.screen(translate, title, carried, 0)
 	screen.Notices = notices(translate, r.URL.Query())
-	h.detail.Render(w, h.logger, r, screen)
+	h.shell.Render(w, h.logger, r, screen, detailView(data))
 }
 
 // retryRows describes the automatic retries of the transfers of a client:
@@ -776,7 +776,7 @@ func (h *Handlers) blocked(e *entry) (bool, error) {
 }
 
 func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e *entry, isBlocked bool, status int) {
-	translate := h.del.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	data := deleteData{
@@ -791,7 +791,7 @@ func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e *entry, 
 	}
 
 	title := translate("clients.delete.title", "name", e.client.Name)
-	h.del.Render(w, h.logger, r, h.screen(translate, title, carried, status, data))
+	h.shell.Render(w, h.logger, r, h.screen(translate, title, carried, status), deleteView(data))
 }
 
 // DeleteForm serves GET /webui/clients/{id}/delete: the confirmation page,

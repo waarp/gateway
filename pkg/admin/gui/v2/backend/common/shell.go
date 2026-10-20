@@ -2,42 +2,37 @@ package common
 
 import (
 	"bytes"
-	"html/template"
 	"net/http"
 
 	"code.waarp.fr/lib/gui"
+	"github.com/a-h/templ"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
-const (
-	productSlug   = "gateway"
-	shellTemplate = "gui/shell"
-)
+const productSlug = "gateway"
 
 // Shell renders the screens built on the GUI kit: the kit chrome (header,
-// sidebar, breadcrumb) around the "page" template of a screen, in the
-// language of the request. A handler creates its shell once, at
-// initialisation, and uses it for every request.
+// sidebar, breadcrumb) around the component of a screen, in the language of
+// the request. A handler creates its shell once, at initialisation, and uses
+// it for every request.
 type Shell struct {
-	tpl     *template.Template
 	catalog locale.Catalog
 }
 
-// NewShell parses the kit templates, then the given screen templates read
-// from the web file system. As for the other v2 initialisations, a parse
-// error is a programming error and panics.
-func NewShell(screenFiles ...string) *Shell {
-	opts := gui.Options{BasePath: constants.WebuiPrefix, StaticPath: constants.KitStaticPrefix}
+// NewShell loads the translation catalogue. As for the other v2
+// initialisations, a loading error is a programming error and panics.
+func NewShell() *Shell {
+	return &Shell{catalog: locale.MustLoadCatalog()}
+}
 
-	tpl := template.Must(template.New("kit").Funcs(gui.Funcs(opts)).ParseFS(gui.Templates, gui.TemplatePatterns...))
-	tpl = template.Must(tpl.ParseFS(webfs.WebFS, screenFiles...))
-
-	return &Shell{tpl: tpl, catalog: locale.MustLoadCatalog()}
+// Options are the options of the kit for the web interface: where the pages
+// live and where the static files of the kit are served.
+func Options() gui.Options {
+	return gui.Options{BasePath: constants.WebuiPrefix, StaticPath: constants.KitStaticPrefix}
 }
 
 // Catalog returns the translation catalogue.
@@ -55,8 +50,11 @@ type Screen struct {
 	Menu    string      // active entry of the sidebar (constants.SidebarMenu*)
 	Doc     string      // documentation page of the screen, relative to the guide
 	Crumbs  []gui.Crumb // breadcrumb, the last item being the screen
-	Data    any         // screen data, .Data in the "page" template
-
+	// Stylesheets and Scripts are the files of the screen, as paths under the
+	// web interface ("/static_v2/services/services.css"), linked in <head>
+	// and at the end of <body>.
+	Stylesheets []string
+	Scripts     []string
 	// Status is the HTTP status of the page: 0 (200 OK) for a page, 422 for a
 	// form rendered again with its errors, 404 for a localised "not found".
 	Status int
@@ -66,37 +64,30 @@ type Screen struct {
 }
 
 // Render writes the complete page: the kit chrome, filled from the request
-// (user, language, rights), around the "page" template of the screen.
+// (user, language, rights), around the component of the screen.
 //
 //nolint:gocritic // hugeParam: one screen per request, built and consumed at once
-func (s *Shell) Render(w http.ResponseWriter, logger *log.Logger, r *http.Request, screen Screen) {
-	s.execute(w, logger, r, shellTemplate, s.makePage(r, screen), screen.Status)
-}
-
-// RenderFragment writes one named template of the screen alone, for the
-// updates without reload (?fragment=...).
-func (s *Shell) RenderFragment(w http.ResponseWriter, logger *log.Logger, r *http.Request,
-	name string, data any,
+func (s *Shell) Render(w http.ResponseWriter, logger *log.Logger, r *http.Request,
+	screen Screen, body templ.Component,
 ) {
-	s.execute(w, logger, r, name, data, 0)
+	s.execute(w, logger, r, gui.Shell(s.makePage(r, screen), body), screen.Status)
 }
 
-// execute renders a template in memory, then writes it with the given HTTP
-// status (0 means 200 OK).
-func (s *Shell) execute(w http.ResponseWriter, logger *log.Logger, r *http.Request, name string, data any, status int) {
-	localized, err := gui.Localize(s.tpl, s.Translator(r))
-	if err != nil {
-		logger.Errorf("failed to localize the templates: %v", err)
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+// RenderFragment writes one component of the screen alone, for the updates
+// without reload (?fragment=...).
+func (s *Shell) RenderFragment(w http.ResponseWriter, logger *log.Logger, r *http.Request, fragment templ.Component) {
+	s.execute(w, logger, r, fragment, 0)
+}
 
-		return
-	}
-
-	// Rendered in memory first, so that a template error yields a clean
+// execute renders a component in memory, with the translator of the request
+// and the options of the web interface bound, then writes it with the given
+// HTTP status (0 means 200 OK).
+func (s *Shell) execute(w http.ResponseWriter, logger *log.Logger, r *http.Request, c templ.Component, status int) {
+	// Rendered in memory first, so that a rendering error yields a clean
 	// error response instead of a truncated page.
 	var page bytes.Buffer
-	if execErr := localized.ExecuteTemplate(&page, name, data); execErr != nil {
-		logger.Errorf("failed to render template %q: %v", name, execErr)
+	if err := gui.Render(r.Context(), &page, s.Translator(r), Options(), c); err != nil {
+		logger.Errorf("failed to render the page: %v", err)
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 
 		return
@@ -134,19 +125,38 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		DocURL:     constants.DocLatest(),
 		AccountURL: WebuiURL("/account"),
 		AboutURL:   WebuiURL("/about"),
-		About:      about(translate),
+		About:      About(translate),
 		LogoutURL:  WebuiURL("/logout"),
 		HomeURL:    WebuiURL("/home"),
 		Languages:  languages(r, lang),
 		Nav:        makeNav(translate, user.Permissions, screen.Section, screen.Menu),
 		Crumbs:     screen.Crumbs,
 		Notices:    screen.Notices,
-		Data:       screen.Data,
+		Head:       headOf(screen.Stylesheets),
+		Scripts:    scriptsOf(screen.Scripts),
 	}
 }
 
-// WebuiURL prefixes a path with the prefix of the web interface, as the "url"
-// template helper does.
+// headOf links the stylesheets of a screen in <head>; nil without any.
+func headOf(paths []string) templ.Component {
+	if len(paths) == 0 {
+		return nil
+	}
+
+	return Stylesheets(paths)
+}
+
+// scriptsOf loads the scripts of a screen at the end of <body>; nil without any.
+func scriptsOf(paths []string) templ.Component {
+	if len(paths) == 0 {
+		return nil
+	}
+
+	return Scripts(paths)
+}
+
+// WebuiURL prefixes a path with the prefix of the web interface, as
+// gui.URL does with the options bound to the context.
 func WebuiURL(path string) string { return constants.WebuiPrefix + path }
 
 // languages builds the language switcher: each entry reloads the current

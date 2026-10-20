@@ -517,8 +517,8 @@ home:
 # "About" (dialog of the account menu and its fallback page): the sentences of the product; the frame and its
 # labels come from the kit (about.title, about.version…).
 about:
-  support: "provides professional support and services for {product}."
-  license: "{product} is licensed under the terms of the GPLv3 License."
+  support_text: "provides professional support and services for {product}."
+  license_text: "{product} is licensed under the terms of the GPLv3 License."
   link_download: "Download {product}"
   link_doc: Documentation
   link_forums: Forums

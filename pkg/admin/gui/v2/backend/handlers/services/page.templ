@@ -1,0 +1,80 @@
+package services
+
+import (
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+)
+
+// page: the service status screen (Supervision). Presentation only: the
+// handler sorts the rows, counts the states, pages the tables and translates
+// the texts. The three tiles are tabs that show one table at a time
+// (kit.js); without JavaScript they are links the server answers with
+// ?group=. The column headers sort through ?sort=&dir=. The state block is
+// also served alone (?fragment=state) and refreshed in place by services.js;
+// without JavaScript, "Refresh" reloads the page.
+templ page(d pageData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "services.title") }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<span class="w-live" id="services-live" role="status" aria-live="polite" data-live={ gui.T(ctx, "services.live") } data-refreshing={ gui.T(ctx, "services.refreshing") }>{ gui.T(ctx, "services.live", "time", d.RefreshedAt) }</span>
+			<a class="w-btn w-btn--outline-dark" id="services-refresh" href={ templ.SafeURL(gui.URL(ctx, pagePath)) }>{ gui.T(ctx, "action.refresh") }</a>
+		</div>
+	</div>
+	@state(d)
+	<template id="services-error">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "services.error.title"), Text: gui.T(ctx, "services.error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: gui.URL(ctx, pagePath)}})</template>
+}
+
+// state: the tiles and the tables, the part refreshed in place.
+templ state(d pageData) {
+	<div id="etat" data-fragment-url={ gui.URL(ctx, pagePath) } data-refresh-seconds={ strconv.Itoa(d.RefreshSeconds) } data-refreshed-at={ d.RefreshedAt }>
+		<div class="w-grid w-grid--3" role="tablist" aria-label={ gui.T(ctx, "services.groups") }>
+			for _, g := range d.Groups {
+				@gui.Tile(g.Tile)
+			}
+		</div>
+		for _, g := range d.Groups {
+			<section class="services-panel" role="tabpanel" id={ g.ID } aria-labelledby={ "tab-" + g.ID } hidden?={ !g.Selected }>
+				if len(g.Rows) > 0 {
+					<div class="w-table-wrap">
+						<table class="w-table">
+							<caption class="visually-hidden">{ g.Caption }</caption>
+							<colgroup><col class="services-col-name"/><col class="services-col-state"/><col/></colgroup>
+							<thead><tr>@gui.Th(gui.ThProps{Label: g.Kind, Key: sortName, Sort: g.Sort, Dir: g.Dir, Base: g.Base})@gui.Th(gui.ThProps{Label: gui.T(ctx, "services.col.state"), Key: sortState, Sort: g.Sort, Dir: g.Dir, Base: g.Base})<th scope="col">{ gui.T(ctx, "services.col.reason") }</th></tr></thead>
+							<tbody>
+								for _, line := range g.Rows {
+									<tr>
+										<td>@rowName(line)</td>
+										<td>@gui.StatusOf(line.Status)</td>
+										if line.Reason != "" {
+											<td class="w-mono">{ line.Reason }</td>
+										} else {
+											<td><span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "services.reason.none") }</span></td>
+										}
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+					if g.Pager != nil {
+						<div class="services-pager">@gui.Pager(*g.Pager)</div>
+					}
+				} else {
+					@gui.Empty(g.Empty)
+				}
+			</section>
+		}
+	</div>
+}
+
+// rowName: the functional name of a service, with its technical name under
+// it when they differ.
+templ rowName(line row) {
+	if line.Tech != "" {
+		<div class="w-cell-stack"><span class="w-cell-title">{ line.Name }</span><span class="w-cell-sub"><code class="w-code">{ line.Tech }</code></span></div>
+	} else {
+		<span class="w-cell-title w-nowrap">{ line.Name }</span>
+	}
+}

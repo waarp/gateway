@@ -1,0 +1,18 @@
+package common
+
+import "code.waarp.fr/lib/gui"
+
+// Stylesheets links the stylesheets of a screen, given as paths under the
+// web interface, in <head>.
+templ Stylesheets(paths []string) {
+	for _, p := range paths {
+		<link rel="stylesheet" href={ templ.SafeURL(gui.URL(ctx, p)) }/>
+	}
+}
+
+// Scripts loads the scripts of a screen, deferred, at the end of <body>.
+templ Scripts(paths []string) {
+	for _, p := range paths {
+		<script src={ templ.SafeURL(gui.URL(ctx, p)) } defer></script>
+	}
+}

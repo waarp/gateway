@@ -536,8 +536,7 @@ func TestEditClient(t *testing.T) {
 		assert.Contains(t, body, `id="delay_m" name="delay_m" value="1"`)
 		assert.Contains(t, body, `id="delay_s" name="delay_s" value="30"`)
 		assert.Contains(t, body, `id="factor" name="factor" value="2"`)
-		assert.Contains(t, body, `<details class="w-card w-card--fold" open>
-    <summary>`, "the retries card opens with its values")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" open><summary>`, "the retries card opens with its values")
 		assert.Contains(t, body, `<span class="w-fold__meta">3 tentatives · 1 h 1 min 30 s · ×2</span>`)
 		assert.Contains(t, body, `<option value="diffie-hellman-group-exchange-sha256" selected>`)
 		assert.Contains(t, body, `href="`+s.path(s.sftp, "")+`?ret=page%3D2">`, "cancel goes back to the client")

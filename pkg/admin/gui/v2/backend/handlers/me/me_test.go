@@ -99,16 +99,9 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `<a href="/webui/home">Accueil</a>`)
 		assert.Contains(t, body, `<dt>Identifiant</dt><dd><code class="w-code">tester</code></dd>`)
 		assert.Contains(t, body, `<dt>Instance</dt><dd><code class="w-code">gw-test</code></dd>`)
-		assert.Contains(t, body, `<td><span class="w-cell-title">Serveurs et clients locaux</span></td>
-            <td>Oui</td>
-            <td>Oui</td>
-            <td>Oui</td>`)
-		assert.Contains(t, body, `<td><span class="w-cell-title">Utilisateurs</span></td>
-            <td>Oui</td>
-            <td><span class="w-muted">Non</span></td>
-            <td><span class="w-muted">Non</span></td>`)
-		assert.Contains(t, body, `<td><span class="w-cell-title">Transferts</span></td>
-            <td><span class="w-muted">Non</span></td>`)
+		assert.Contains(t, body, `<td><span class="w-cell-title">Serveurs et clients locaux</span></td><td>Oui</td><td>Oui</td><td>Oui</td>`)
+		assert.Contains(t, body, `<td><span class="w-cell-title">Utilisateurs</span></td><td>Oui</td><td><span class="w-muted">Non</span></td><td><span class="w-muted">Non</span></td>`)
+		assert.Contains(t, body, `<td><span class="w-cell-title">Transferts</span></td><td><span class="w-muted">Non</span></td>`)
 		assert.Contains(t, body, `<form class="w-form" method="post" action="/webui/account/password" novalidate>`)
 		assert.Contains(t, body, `type="password" id="current" name="current" required autocomplete="current-password"`)
 		assert.Contains(t, body, `type="password" id="new" name="new" required autocomplete="new-password"`)
