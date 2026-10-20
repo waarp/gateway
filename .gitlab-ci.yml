@@ -31,6 +31,14 @@ variables:
   GOCACHE: "$CI_PROJECT_DIR/.cache/gobuild"
   GOLANGCI_LINT_CACHE: "$CI_PROJECT_DIR/.cache/golangci"
   CACHE_COMPRESSION_LEVEL: "fastest"
+  # The GUI kit (code.waarp.fr/lib/gui) lives in a private project: Go fetches
+  # it through git, authenticated with the job token of the pipeline (this
+  # project is on the inbound allowlist of lib/gui). GOPRIVATE keeps the
+  # module away from the public proxy and checksum database.
+  GOPRIVATE: "code.waarp.fr"
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: "url.https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/.insteadOf"
+  GIT_CONFIG_VALUE_0: "https://${CI_SERVER_HOST}/"
 
 stages:
   - test
