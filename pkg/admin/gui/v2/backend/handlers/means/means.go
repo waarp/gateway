@@ -87,6 +87,23 @@ type Tab struct {
 	Count    uint64
 	HasCount bool
 	Current  bool
+	// Disabled is a tab of a sheet whose object does not exist yet: shown
+	// greyed, with Hint saying why (Driss, 2026-10-20: the tab strip stays
+	// visible on every page of a sheet, the form of a new object included).
+	Disabled bool
+	Hint     string
+}
+
+// PendingTabs is the tab strip of the form of an object not created yet:
+// its details, current, then the tabs it will have once saved, greyed.
+func PendingTabs(translate gui.Translator, details string, later ...string) []Tab {
+	tabs := []Tab{{Label: details, Current: true}}
+
+	for _, label := range later {
+		tabs = append(tabs, Tab{Label: label, Disabled: true, Hint: translate("auth.tab_after_creation")})
+	}
+
+	return tabs
 }
 
 // Texts are the catalogue keys of the sentences that name the owner on the

@@ -897,3 +897,31 @@ func sortedQuery(encoded string) string {
 
 	return v.Encode()
 }
+
+// The tab strip of the sheet stays on every page of the server: greyed on
+// the form of a new server, live on edition and on the deletion page
+// (Driss, 2026-10-20).
+func TestSheetTabsOnForms(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+
+	body := s.get(t, permAll, "/webui/servers/new").Body.String()
+	assert.Contains(t, body, `<nav class="w-tabs" aria-label="Onglets de la fiche"><span aria-current="page">Détails</span>`)
+	assert.Contains(t, body, `<span class="w-tabs__disabled" aria-disabled="true" title="Disponible après la création">Authentification</span>`)
+	assert.Contains(t, body, `<span class="w-tabs__disabled" aria-disabled="true" title="Disponible après la création">Comptes locaux</span>`)
+	assert.NotContains(t, body, "w-tabs__count", "nothing to count before the creation")
+
+	body = s.get(t, permAll, s.path(s.sftp, "/edit")+anyRet).Body.String()
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "")+`?ret=q%3Dsrv" aria-current="page">Détails</a>`)
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/accounts")+`?ret=q%3Dsrv">Comptes locaux <span class="w-tabs__count">`)
+	assert.NotContains(t, body, "w-tabs__disabled")
+
+	body = s.get(t, permAll, s.path(s.sftp, "/delete")).Body.String()
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/auth")+`">Authentification <span class="w-tabs__count">`)
+
+	rec := s.post(t, permWrite, "/webui/servers/new", url.Values{"name": {""}})
+	require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+	assert.Contains(t, rec.Body.String(), `<span class="w-tabs__disabled"`, "the refused form keeps the greyed strip")
+}

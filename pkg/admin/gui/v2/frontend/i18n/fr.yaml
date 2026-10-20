@@ -297,6 +297,7 @@ servers:
     name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
     no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
     address: Adresse d'écoute
+    address_required: À renseigner
     host: Hôte
     host_hint: "Nom d'hôte ou adresse IP sur lequel le serveur écoute ; vide, il écoute sur toutes les interfaces (affiché « * »)"
     port: Port
@@ -377,6 +378,7 @@ auth:
     partner: "le partenaire « {name} »"
     remote_account: "le compte « {login} » du partenaire « {name} »"
   add: Ajouter un moyen d'authentification
+  tab_after_creation: Disponible après la création
   search: Rechercher un moyen d'authentification par son nom
   search_placeholder: Rechercher par nom
   count: "{total} moyens"
@@ -710,6 +712,7 @@ partners:
     name_hint: "Unique sur la passerelle ; c'est le nom que les règles et les transferts désignent"
     protocol_hint: "Changer de protocole rend caducs les moyens d'authentification et les comptes qui ne lui correspondent plus."
     address: Adresse
+    address_required: À renseigner
     address_hint: "L'adresse à laquelle la passerelle se connecte."
     host: Hôte
     host_hint: "Nom d'hôte ou adresse IP du serveur partenaire"

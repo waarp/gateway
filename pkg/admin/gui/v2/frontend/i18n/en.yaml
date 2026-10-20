@@ -298,6 +298,7 @@ servers:
     name_hint: "Unique on this gateway; letters, digits, dashes and dots"
     no_autostart: Do not start automatically when the gateway starts
     address: Listening address
+    address_required: To be given
     host: Host
     host_hint: "Host name or IP address the server listens on; empty, it listens on every interface (shown as “*”)"
     port: Port
@@ -378,6 +379,7 @@ auth:
     partner: "the partner “{name}”"
     remote_account: "the account “{login}” of the partner “{name}”"
   add: Add an authentication means
+  tab_after_creation: Available after the creation
   search: Search an authentication means by name
   search_placeholder: Search by name
   count: "{total} means"
@@ -711,6 +713,7 @@ partners:
     name_hint: "Unique on the gateway; the name rules and transfers refer to"
     protocol_hint: "Changing the protocol voids the authentication means and the accounts that no longer match it."
     address: Address
+    address_required: To be given
     address_hint: "The address the gateway connects to."
     host: Host
     host_hint: "Host name or IP address of the partner server"

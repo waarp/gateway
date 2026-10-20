@@ -129,7 +129,8 @@ de quatre blocs :
 Les blocs *Options du protocole* et *Chiffrement TLS* sont repliés tant
 qu'ils sont à leur valeur par défaut ; leur en-tête résume ce qu'ils
 contiennent, et un clic les ouvre. Un bloc qui porte une valeur ou une erreur
-s'affiche toujours ouvert.
+s'affiche toujours ouvert. Le bloc *Adresse* se replie de la même façon mais
+s'ouvre toujours, l'adresse étant obligatoire ; son en-tête la rappelle.
 
 *Valider* enregistre le partenaire avec une notification et ramène à la
 liste (création) ou à la fiche du partenaire (modification). Un formulaire

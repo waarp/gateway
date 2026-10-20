@@ -251,6 +251,7 @@ templ deleteView(d deleteData) {
 			</a>
 		</div>
 	</div>
+	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
 	<div class="w-card">
 		if d.Transfers {
 			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "partners.delete.blocked_title"), Text: gui.T(ctx, "partners.delete.blocked_transfers"), Action: &gui.Link{Label: gui.T(ctx, "partners.delete.blocked_link"), URL: d.TransfersURL, Icon: "clock"}})
@@ -304,6 +305,7 @@ templ formView(d *formData) {
 			</a>
 		</div>
 	</div>
+	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
 	if d.HasErrors {
 		<div class="sheet-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "partners.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "partners.form.refused_text"))})</div>
 	}
@@ -320,16 +322,19 @@ templ formView(d *formData) {
 				}
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "partners.form.address") }</legend>
-				<p class="w-form__note sheet-note">{ gui.T(ctx, "partners.form.address_hint") }</p>
-				<div class="w-grid w-grid--2">
-					@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "partners.form.host"), Req: true, F: d.Fields["host"], Hint: gui.T(ctx, "partners.form.host_hint")})
-					@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "partners.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "partners.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
-				</div>
-			</fieldset>
-		</div>
+		<details class="w-card w-card--fold" open?={ d.AddressOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "partners.form.address") }</span><span class="w-fold__meta">{ d.AddressSummary }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "partners.form.address") }</legend>
+					<p class="w-form__note sheet-note">{ gui.T(ctx, "partners.form.address_hint") }</p>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "partners.form.host"), Req: true, F: d.Fields["host"], Hint: gui.T(ctx, "partners.form.host_hint")})
+						@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "partners.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "partners.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+					</div>
+				</fieldset>
+			</div>
+		</details>
 		@protoform.Options(d.Proto)
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>

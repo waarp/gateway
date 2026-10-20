@@ -259,6 +259,13 @@ func (h *Handlers) serverTabs(translate gui.Translator, e entry, current, carrie
 	}, nil
 }
 
+// newServerTabs is the tab strip of the form of a new server: its details,
+// then the means and the accounts it will have once created, greyed.
+func newServerTabs(translate gui.Translator) []tab {
+	return means.PendingTabs(translate, translate("servers.tab.details"),
+		translate("servers.tab.auth"), translate("servers.tab.accounts"))
+}
+
 // accountTabs is the tab strip of an account: its details and its means.
 func (h *Handlers) accountTabs(translate gui.Translator, own owner, current, carried string) ([]tab, error) {
 	creds, err := h.db.Count(&model.Credential{}).Where(own.acc.GetCredCond()).Run()

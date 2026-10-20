@@ -45,6 +45,9 @@ type formData struct {
 	// Refused is the cause given by the model when it refuses the server for
 	// another reason than a field shown with its own error.
 	Refused string
+	// Tabs is the tab strip of the sheet, kept on the form: the strip of the
+	// server on edition, the greyed strip of a server to create.
+	Tabs []tab
 
 	Fields map[string]field // text and number fields, by name
 	Checks map[string]bool  // checkboxes, by name
@@ -54,13 +57,23 @@ type formData struct {
 	// value or an error, its summary says what it holds.
 	DirsOpen    bool
 	DirsSummary string
+	// The listening address card folds like the other cards but opens by
+	// default: its port is required (Driss, 2026-10-20); its summary is the
+	// address.
+	AddressOpen    bool
+	AddressSummary string
 
 	port uint16 // the port once validated
 }
 
 // summarize decides whether the directories card opens and what its summary
-// says, from the values of the form (filled or posted) and their errors.
+// says, from the values of the form (filled or posted) and their errors, and
+// sums up the listening address.
 func (f *formData) summarize(translate gui.Translator) {
+	f.AddressOpen = true
+	f.AddressSummary = addressSummary(translate("servers.form.address_required"),
+		f.Fields[fieldHost].Value, f.Fields[fieldPort].Value)
+
 	dirs := []string{fieldRootDir, fieldReceiveDir, fieldTmpReceiveDir, fieldSendDir}
 	set := 0
 
@@ -229,6 +242,7 @@ func (h *Handlers) NewForm(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 	f := h.newForm(translate, nil, carried)
+	f.Tabs = newServerTabs(translate)
 
 	screen := h.screen(translate, f.Title, carried, 0)
 	screen.Stylesheets = formStylesheets()
@@ -237,7 +251,21 @@ func (h *Handlers) NewForm(w http.ResponseWriter, r *http.Request) {
 
 // Create serves POST /webui/servers/new.
 func (h *Handlers) Create(w http.ResponseWriter, r *http.Request) {
-	h.save(w, r, nil)
+	h.save(w, r, nil, newServerTabs(h.shell.Translator(r)))
+}
+
+// editTabs is the tab strip of the sheet on the form of an existing server,
+// or an internal error.
+func (h *Handlers) editTabs(w http.ResponseWriter, r *http.Request, e entry) ([]tab, bool) {
+	tabs, err := h.serverTabs(h.shell.Translator(r), e, tabDetails, ret(r))
+	if err != nil {
+		h.logger.Errorf("%v", err)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+
+		return nil, false
+	}
+
+	return tabs, true
 }
 
 // EditForm serves GET /webui/servers/{id}/edit.
@@ -247,9 +275,15 @@ func (h *Handlers) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tabs, ok := h.editTabs(w, r, e)
+	if !ok {
+		return
+	}
+
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 	f := h.newForm(translate, e.agent, carried)
+	f.Tabs = tabs
 
 	screen := h.screen(translate, f.Title, carried, 0)
 	screen.Stylesheets = formStylesheets()
@@ -263,13 +297,19 @@ func (h *Handlers) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.save(w, r, e.agent)
+	tabs, ok := h.editTabs(w, r, e)
+	if !ok {
+		return
+	}
+
+	h.save(w, r, e.agent, tabs)
 }
 
 // save reads, validates and stores the posted form: a new server when agent
-// is nil, the given one otherwise. A refused form is rendered again with its
-// errors (422); a saved one redirects to the list with a notification.
-func (h *Handlers) save(w http.ResponseWriter, r *http.Request, agent *model.LocalAgent) {
+// is nil, the given one otherwise, under the given tab strip. A refused
+// form is rendered again with its errors (422); a saved one redirects with
+// a notification.
+func (h *Handlers) save(w http.ResponseWriter, r *http.Request, agent *model.LocalAgent, tabs []tab) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
@@ -280,6 +320,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, agent *model.Loc
 	}
 
 	form := h.newForm(translate, agent, carried)
+	form.Tabs = tabs
 	form.read(r.PostForm)
 
 	if form.validate(translate) {
@@ -325,4 +366,20 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, agent *model.Loc
 	screen := h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity)
 	screen.Stylesheets = formStylesheets()
 	h.shell.Render(w, h.logger, r, screen, formView(form))
+}
+
+// addressSummary says an address in the header of its card: "host:port",
+// "*:port" when the host is empty (every interface), the host alone, or the
+// given text when nothing is entered yet.
+func addressSummary(none, host, port string) string {
+	switch {
+	case host != "" && port != "":
+		return host + ":" + port
+	case host != "":
+		return host
+	case port != "":
+		return "*:" + port
+	default:
+		return none
+	}
 }

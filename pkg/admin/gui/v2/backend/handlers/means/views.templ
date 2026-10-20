@@ -11,16 +11,23 @@ import (
 )
 
 // TabsNav: the tab strip of a sheet. Links, not script tabs: each tab is a
-// page with its own list and its own address.
+// page with its own list and its own address. On the form of an object not
+// created yet, the current tab has no address and the others are greyed.
 templ TabsNav(label string, tabs []Tab) {
 	<nav class="w-tabs" aria-label={ label }>
 		for _, t := range tabs {
-			<a
-				href={ templ.SafeURL(t.URL) }
-				if t.Current {
-					aria-current="page"
-				}
-			>{ t.Label }@tabCount(t)</a>
+			if t.Disabled {
+				<span class="w-tabs__disabled" aria-disabled="true" title={ t.Hint }>{ t.Label }</span>
+			} else if t.URL == "" {
+				<span aria-current="page">{ t.Label }</span>
+			} else {
+				<a
+					href={ templ.SafeURL(t.URL) }
+					if t.Current {
+						aria-current="page"
+					}
+				>{ t.Label }@tabCount(t)</a>
+			}
 		}
 	</nav>
 }

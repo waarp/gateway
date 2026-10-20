@@ -572,3 +572,30 @@ func TestSheetHelpers(t *testing.T) {
 	assert.Equal(t, "/webui/partners/1/accounts/2/auth", accountURL(1, 2, authSuffix))
 	assert.Equal(t, "/webui/partners/7/edit", partnerURL(7, editSuffix))
 }
+
+// The tab strip of the sheet stays on every page of the partner: greyed on
+// the form of a new partner, live on edition and on the deletion page
+// (Driss, 2026-10-20).
+func TestSheetTabsOnForms(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+
+	body := s.get(t, permAll, "/webui/partners/new").Body.String()
+	assert.Contains(t, body, `<nav class="w-tabs" aria-label="Onglets de la fiche"><span aria-current="page">Détails</span>`)
+	assert.Contains(t, body, `<span class="w-tabs__disabled" aria-disabled="true" title="Disponible après la création">Authentification</span>`)
+	assert.Contains(t, body, `<span class="w-tabs__disabled" aria-disabled="true" title="Disponible après la création">Comptes distants</span>`)
+
+	body = s.get(t, permAll, s.path(s.sftp, "/edit")+anyRet).Body.String()
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "")+`?ret=q%3Dpart" aria-current="page">Détails</a>`)
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/accounts")+`?ret=q%3Dpart">Comptes distants <span class="w-tabs__count">2</span></a>`)
+	assert.NotContains(t, body, "w-tabs__disabled")
+
+	body = s.get(t, permAll, s.path(s.sftp, "/delete")).Body.String()
+	assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/auth")+`">Authentification <span class="w-tabs__count">`)
+
+	rec := s.post(t, permWrite, "/webui/partners/new", url.Values{"name": {""}})
+	require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+	assert.Contains(t, rec.Body.String(), `<span class="w-tabs__disabled"`, "the refused form keeps the greyed strip")
+}

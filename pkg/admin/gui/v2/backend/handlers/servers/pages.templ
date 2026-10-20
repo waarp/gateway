@@ -221,6 +221,7 @@ templ deleteView(d deleteData) {
 			</a>
 		</div>
 	</div>
+	@means.TabsNav(gui.T(ctx, "servers.tabs"), d.Tabs)
 	<div class="w-card">
 		if d.Blocked {
 			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.delete.blocked_title"), Text: gui.T(ctx, "servers.delete.blocked_text"), Action: &gui.Link{Label: gui.T(ctx, "servers.delete.blocked_link"), URL: d.TransfersURL, Icon: "clock"}})
@@ -278,6 +279,7 @@ templ formView(d *formData) {
 			</a>
 		</div>
 	</div>
+	@means.TabsNav(gui.T(ctx, "servers.tabs"), d.Tabs)
 	if d.HasErrors {
 		<div class="sheet-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "servers.form.refused_text"))})</div>
 	}
@@ -292,15 +294,18 @@ templ formView(d *formData) {
 				<label class="w-check"><input type="checkbox" name="no_autostart" value="1" checked?={ d.Checks["no_autostart"] }/> <span>{ gui.T(ctx, "servers.form.no_autostart") }</span></label>
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "servers.form.address") }</legend>
-				<div class="w-grid w-grid--2">
-					@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "servers.form.host"), F: d.Fields["host"], Hint: gui.T(ctx, "servers.form.host_hint")})
-					@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "servers.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "servers.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
-				</div>
-			</fieldset>
-		</div>
+		<details class="w-card w-card--fold" open?={ d.AddressOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "servers.form.address") }</span><span class="w-fold__meta">{ d.AddressSummary }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "servers.form.address") }</legend>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "servers.form.host"), F: d.Fields["host"], Hint: gui.T(ctx, "servers.form.host_hint")})
+						@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "servers.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "servers.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+					</div>
+				</fieldset>
+			</div>
+		</details>
 		<details class="w-card w-card--fold" open?={ d.DirsOpen }>
 			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "servers.form.dirs") }</span><span class="w-fold__meta">{ d.DirsSummary }</span></summary>
 			<div class="w-card__body">

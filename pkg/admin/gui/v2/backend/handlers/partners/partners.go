@@ -719,9 +719,10 @@ type deleteData struct {
 	// accounts (Transfers), or a folder watcher does (Watchers).
 	Transfers bool
 	Watchers  bool
+	Tabs      []tab
 }
 
-func (d deleteData) blocked() bool { return d.Transfers || d.Watchers }
+func (d *deleteData) blocked() bool { return d.Transfers || d.Watchers }
 
 // blockers tells what refuses the deletion of the partner, from the model's
 // own rule (running transfers) and from the folder watchers that name one
@@ -749,11 +750,20 @@ func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e entry, t
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
+	tabs, err := h.partnerTabs(translate, e, tabDetails, carried)
+	if err != nil {
+		h.logger.Errorf("%v", err)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+
+		return
+	}
+
 	data := deleteData{
 		Name:         e.agent.Name,
 		Protocol:     protoform.Describe(translate, e.proto),
 		Address:      e.address(),
 		Accounts:     e.accounts,
+		Tabs:         tabs,
 		CancelURL:    withRet(partnerURL(e.agent.ID, ""), carried),
 		Action:       withRet(partnerURL(e.agent.ID, deleteSuffix), carried),
 		TransfersURL: transfersURL(),

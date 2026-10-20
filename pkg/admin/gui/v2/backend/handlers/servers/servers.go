@@ -721,6 +721,7 @@ type deleteData struct {
 	Action       string
 	TransfersURL string
 	Blocked      bool // running transfers use one of its accounts: the model refuses
+	Tabs         []tab
 }
 
 // blocked tells whether the model refuses the deletion (running transfers
@@ -738,32 +739,41 @@ func (h *Handlers) blocked(e entry) (bool, error) {
 	return false, fmt.Errorf("failed to check the transfers of the server: %w", err)
 }
 
-func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e entry, isBlocked bool, status int) {
+func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, srv entry, isBlocked bool, status int) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
-	accounts, err := h.db.Count(&model.LocalAccount{}).Where("local_agent_id=?", e.agent.ID).Run()
+	accounts, err := h.db.Count(&model.LocalAccount{}).Where("local_agent_id=?", srv.agent.ID).Run()
 	if err != nil {
-		h.logger.Errorf("failed to count the accounts of the server %d: %v", e.agent.ID, err)
+		h.logger.Errorf("failed to count the accounts of the server %d: %v", srv.agent.ID, err)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+
+		return
+	}
+
+	tabs, err := h.serverTabs(translate, srv, tabDetails, carried)
+	if err != nil {
+		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
 		return
 	}
 
 	data := deleteData{
-		Name:         e.agent.Name,
-		Status:       e.status(translate),
-		Running:      e.running(),
-		Protocol:     protoform.Describe(translate, e.proto),
-		Address:      e.address(),
+		Name:         srv.agent.Name,
+		Status:       srv.status(translate),
+		Running:      srv.running(),
+		Tabs:         tabs,
+		Protocol:     protoform.Describe(translate, srv.proto),
+		Address:      srv.address(),
 		Accounts:     strconv.FormatUint(accounts, 10),
-		CancelURL:    withRet(serverURL(e.agent.ID, ""), carried),
-		Action:       withRet(serverURL(e.agent.ID, "/delete"), carried),
+		CancelURL:    withRet(serverURL(srv.agent.ID, ""), carried),
+		Action:       withRet(serverURL(srv.agent.ID, "/delete"), carried),
 		TransfersURL: transfersURL(),
 		Blocked:      isBlocked,
 	}
 
-	title := translate("servers.delete.title", "name", e.agent.Name)
+	title := translate("servers.delete.title", "name", srv.agent.Name)
 	h.shell.Render(w, h.logger, r, h.screen(translate, title, carried, status), deleteView(data))
 }
 
