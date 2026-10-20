@@ -21,7 +21,8 @@ Historique des versions
   PeSIT, l'algorithme du hachage final R66, le mot de passe d'un partenaire
   PeSIT et celui d'un compte sur un partenaire PeSIT chiffré par TLS, que
   l'ancien écran ne montrait pas, sont exposés. Les anciennes
-  pages restent accessibles à leur adresse jusqu'à la version suivante.
+  pages restent accessibles à leur adresse jusqu'à la version suivante
+  (:ref:`user-webui-partners`).
 * :feature:`711` L'écran des clients locaux de l'interface web est refondu sur
   le kit : liste triée par colonne et filtrée (recherche, familles de
   protocole, avec ou sans TLS), fiche en lecture (état, adresse locale,

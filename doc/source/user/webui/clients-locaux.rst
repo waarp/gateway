@@ -122,7 +122,7 @@ La fiche d'un client, adresse ``/webui/clients/<id>``, montre en lecture :
    * - Partenaires joignables par ce client
      - Les partenaires distants de son protocole : un transfert vers l'un
        d'eux passe par ce client, sauf à en nommer un autre. Chaque nom
-       ouvre le partenaire.
+       ouvre la :doc:`fiche du partenaire <partenaires-distants>`.
 
 Le bouton *Modifier le client* et le menu « ⋯ » (démarrer, arrêter,
 supprimer) sont sur la fiche ; *Retour à la liste* ramène à la liste telle
