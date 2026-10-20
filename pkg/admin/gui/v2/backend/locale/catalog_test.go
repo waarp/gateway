@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/lib/gui"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -47,8 +46,8 @@ func TestCatalogMatchesTemplates(t *testing.T) {
 	require.NoError(t, err)
 
 	templates := readAll(t, webfs.WebFS, "*.gohtml", "*/*.gohtml", "*/*/*.gohtml")
-	templates = append(templates, readAll(t, gui.Templates, "*/*.gohtml")...)
-	sources := readGoSources(t, "..")
+	components := readSources(t, "..", ".templ")
+	sources := readSources(t, "..", ".go")
 
 	call := regexp.MustCompile(`\bt "([A-Za-z0-9_.]+)"`)
 	for name, content := range templates {
@@ -56,6 +55,16 @@ func TestCatalogMatchesTemplates(t *testing.T) {
 			assert.Truef(t, catalog.Has(match[1]), "%s calls key %q, missing from the catalogue", name, match[1])
 		}
 	}
+
+	// A component translates with gui.T(ctx, "key", ...).
+	componentCall := regexp.MustCompile(`\bT\(ctx, "([A-Za-z0-9_.]+)"`)
+	for name, content := range components {
+		for _, match := range componentCall.FindAllStringSubmatch(content, -1) {
+			assert.Truef(t, catalog.Has(match[1]), "%s calls key %q, missing from the catalogue", name, match[1])
+		}
+	}
+
+	templates = append(templates, components...)
 
 	literal := regexp.MustCompile(`"([A-Za-z0-9_.]+\.?)"`)
 	used := map[string]bool{}
@@ -107,13 +116,16 @@ func readAll(t *testing.T, fsys fs.FS, patterns ...string) []string {
 	return contents
 }
 
-func readGoSources(t *testing.T, root string) []string {
+// readSources reads the files of the extension under the root: the Go
+// sources without the tests and the generated code, or the templ components.
+func readSources(t *testing.T, root, ext string) []string {
 	t.Helper()
 
 	var contents []string
 
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ext) ||
+			strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, "_templ.go") {
 			return err
 		}
 

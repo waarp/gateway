@@ -19,11 +19,6 @@ const (
 	FieldTLS    = "tls"
 )
 
-// TemplateFile is the file of the shared templates ("proto/field",
-// "proto/choice", "proto/options"), to give the shell of every page that
-// renders a protocol form or its options.
-const TemplateFile = "proto/options.gohtml"
-
 // Field is a text or number field of a form: its value, kept when the form
 // is refused, and the message of its error.
 type Field struct {

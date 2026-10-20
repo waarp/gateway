@@ -17,17 +17,17 @@ const (
 	contactEmail = "info@waarp.fr"
 )
 
-// about is the content of the "About" dialog of the account menu, and of
+// About is the content of the "About" dialog of the account menu, and of
 // the "About" page that stands in for it without JavaScript: the build of the
 // gateway, the support and the licence sentences, the useful links.
-func about(translate gui.Translator) *gui.About {
+func About(translate gui.Translator) *gui.About {
 	return &gui.About{
 		Version:   version.Num,
 		Date:      version.Date,
 		Revision:  version.Commit,
 		EditorURL: editorURL,
-		Support:   translate("about.support", "product", constants.AppName),
-		License:   translate("about.license", "product", constants.AppName),
+		Support:   translate("about.support_text", "product", constants.AppName),
+		License:   translate("about.license_text", "product", constants.AppName),
 		Links: []gui.Link{
 			{Label: translate("about.link_download", "product", constants.AppName), URL: downloadURL},
 			{Label: translate("about.link_doc"), URL: docSiteURL},

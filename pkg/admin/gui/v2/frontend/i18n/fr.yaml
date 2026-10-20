@@ -516,8 +516,8 @@ home:
 # « À propos » (dialogue du menu du compte et page de repli) : les phrases du produit ; le cadre et ses libellés
 # viennent du kit (about.title, about.version…).
 about:
-  support: "fournit un support et des services professionnels pour {product}."
-  license: "{product} est sous licence GPLv3."
+  support_text: "fournit un support et des services professionnels pour {product}."
+  license_text: "{product} est sous licence GPLv3."
   link_download: "Télécharger {product}"
   link_doc: Documentation
   link_forums: Forums

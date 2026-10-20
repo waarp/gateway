@@ -501,3 +501,23 @@ func (o *Option) choiceLabel(translate gui.Translator, value string) string {
 
 	return value
 }
+
+// GUIChoices gives the choices of a list to the kit.
+func GUIChoices(choices []Choice) []gui.Choice {
+	out := make([]gui.Choice, 0, len(choices))
+	for _, c := range choices {
+		out = append(out, gui.Choice{Value: c.Value, Label: c.Label, Selected: c.Selected})
+	}
+
+	return out
+}
+
+// Or returns the first text, or the second when the first is empty: the
+// refusal of the model when it has one, the generic sentence otherwise.
+func Or(text, fallback string) string {
+	if text != "" {
+		return text
+	}
+
+	return fallback
+}

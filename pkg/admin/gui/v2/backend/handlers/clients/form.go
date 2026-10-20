@@ -335,11 +335,13 @@ func (f *formData) refuse(translate gui.Translator, err error) {
 
 // NewForm serves GET /webui/clients/new.
 func (h *Handlers) NewForm(w http.ResponseWriter, r *http.Request) {
-	translate := h.form.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	f := h.newForm(translate, nil, carried)
 
-	h.form.Render(w, h.logger, r, h.screen(translate, f.Title, carried, 0, f))
+	screen := h.screen(translate, f.Title, carried, 0)
+	screen.Stylesheets = formStylesheets()
+	h.shell.Render(w, h.logger, r, screen, formView(f))
 }
 
 // Create serves POST /webui/clients/new.
@@ -354,11 +356,13 @@ func (h *Handlers) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translate := h.form.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 	f := h.newForm(translate, e.client, carried)
 
-	h.form.Render(w, h.logger, r, h.screen(translate, f.Title, carried, 0, f))
+	screen := h.screen(translate, f.Title, carried, 0)
+	screen.Stylesheets = formStylesheets()
+	h.shell.Render(w, h.logger, r, screen, formView(f))
 }
 
 // Update serves POST /webui/clients/{id}/edit.
@@ -375,7 +379,7 @@ func (h *Handlers) Update(w http.ResponseWriter, r *http.Request) {
 // is nil, the given one otherwise. A refused form is rendered again with its
 // errors (422); a saved one redirects to the list with a notification.
 func (h *Handlers) save(w http.ResponseWriter, r *http.Request, client *model.Client) {
-	translate := h.form.Translator(r)
+	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	if err := r.ParseForm(); err != nil {
@@ -421,5 +425,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, client *model.Cl
 
 	form.summarize(translate)
 	form.Proto.Prepare(translate)
-	h.form.Render(w, h.logger, r, h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity, form))
+	screen := h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity)
+	screen.Stylesheets = formStylesheets()
+	h.shell.Render(w, h.logger, r, screen, formView(form))
 }

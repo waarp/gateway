@@ -1,0 +1,108 @@
+package me
+
+import "code.waarp.fr/lib/gui"
+
+// page: the "My account" page: the signed-in user (login, instance), their
+// rights by domain in reading, and the form that changes their password
+// (current, new, confirmation; no value ever rendered back).
+templ page(d *pageData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "me.title") }</h1>
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "me.identity") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "me.username") }</dt>
+				<dd><code class="w-code">{ d.Username }</code></dd>
+				<dt>{ gui.T(ctx, "me.instance") }</dt>
+				<dd><code class="w-code">{ d.Instance }</code></dd>
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "me.rights") }</h2>
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ gui.T(ctx, "me.rights_caption") }</caption>
+					<thead>
+						<tr>
+							<th scope="col">{ gui.T(ctx, "me.col.area") }</th>
+							<th scope="col">{ gui.T(ctx, "me.col.read") }</th>
+							<th scope="col">{ gui.T(ctx, "me.col.write") }</th>
+							<th scope="col">{ gui.T(ctx, "me.col.delete") }</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, rt := range d.Rights {
+							<tr>
+								<td><span class="w-cell-title">{ rt.Label }</span></td>
+								<td>@yesNo(rt.Read)</td>
+								<td>@yesNo(rt.Write)</td>
+								<td>@yesNo(rt.Delete)</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<p class="w-form__note me-note">{ gui.T(ctx, "me.rights_hint") }</p>
+		</div>
+		<div class="w-card">
+			<form class="w-form" method="post" action={ templ.SafeURL(d.Form.Action) } novalidate>
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="w-card__title">{ gui.T(ctx, "me.password.title") }</legend>
+					if d.Form.HasErrors {
+						@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "me.password.refused"), Text: gui.T(ctx, "me.password.refused_text")})
+					}
+					<div class="w-grid w-grid--3">
+						@passwordField(fieldCurrent, gui.T(ctx, "me.password.current"), d.Form.Current, "", "current-password")
+						@passwordField(fieldNew, gui.T(ctx, "me.password.new"), d.Form.New, gui.T(ctx, "me.password.new_hint"), "new-password")
+						@passwordField(fieldConfirm, gui.T(ctx, "me.password.confirm"), d.Form.Confirm, "", "new-password")
+					</div>
+					@gui.FormActions(gui.FormActionsProps{CancelURL: d.Form.CancelURL, Required: true, Title: gui.T(ctx, "me.password.title")})
+				</fieldset>
+			</form>
+		</div>
+	</div>
+}
+
+// yesNo: a right granted or not.
+templ yesNo(granted bool) {
+	if granted {
+		{ gui.T(ctx, "me.yes") }
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "me.no") }</span>
+	}
+}
+
+// passwordField: a required password field, never pre-filled, with its error
+// or its hint.
+templ passwordField(id, label, err, hint, autocomplete string) {
+	<div class={ "w-field", templ.KV("is-invalid", err != "") }>
+		<label class="w-field__label" for={ id }>{ label } <span class="w-field__req" aria-hidden="true">*</span></label>
+		<input
+			class="w-input"
+			type="password"
+			id={ id }
+			name={ id }
+			required
+			autocomplete={ autocomplete }
+			if err != "" {
+				aria-invalid="true"
+				aria-describedby={ id + "-e" }
+			}
+			if err == "" && hint != "" {
+				aria-describedby={ id + "-h" }
+			}
+		/>
+		if err != "" {
+			<span class="w-field__error" id={ id + "-e" }>
+				@gui.Icon("triangle")
+				{ err }
+			</span>
+		} else if hint != "" {
+			<span class="w-field__hint" id={ id + "-h" }>{ hint }</span>
+		}
+	</div>
+}
