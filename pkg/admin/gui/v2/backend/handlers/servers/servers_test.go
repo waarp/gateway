@@ -281,8 +281,9 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `w-status w-status--ko">Erreur<`)
 		assert.Contains(t, body, `w-status w-status--off">Hors ligne<`)
 		assert.Contains(t, body, `<span class="w-cell-sub w-mono">`+bindReason+`</span>`)
-		assert.Contains(t, body, `<td>R66 <span class="w-badge w-badge--neutral">TLS</span></td>`, "the family and TLS as a badge")
-		assert.Contains(t, body, "<td>PeSIT</td>")
+		assert.Contains(t, body, `<td><span class="proto-cell"><span>R66</span> <span class="w-badge w-badge--neutral">TLS</span></span></td>`,
+			"the family and TLS as a badge, aligned from one row to the next")
+		assert.Contains(t, body, `<td><span class="proto-cell"><span>PeSIT</span></span></td>`)
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">0.0.0.0:10022</td>`)
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">10.20.30.40:5000</td>`)
 		assert.Contains(t, body, `Serveurs locaux, page 1 sur 1, triés par nom`)
@@ -837,7 +838,8 @@ func TestEditServer(t *testing.T) {
 			"r66_no_final_hash": {"1"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
-		assert.Equal(t, "/webui/servers?done=updated&name=srv-r66-02&page=2", rec.Header().Get("Location"))
+		assert.Equal(t, s.path(s.r66, "")+"?done=updated&name=srv-r66-02&ret=page%3D2", rec.Header().Get("Location"),
+			"an edited server comes back to its sheet")
 
 		agent, err := internal.GetServerByID(s.db, s.r66.ID)
 		require.NoError(t, err)
@@ -927,7 +929,7 @@ func TestDeleteServer(t *testing.T) {
 		assert.Contains(t, body, "Il est en ligne : il sera arrêté.")
 		assert.Contains(t, body, `<dt>Serveur</dt><dd>srv-sftp-01</dd>`)
 		assert.Contains(t, body, `<dt>Comptes locaux</dt><dd>0</dd>`)
-		assert.Contains(t, body, `<form class="servers-form-actions" method="post" action="`+s.path(s.sftp, "/delete")+`?ret=q%3Dsrv">`)
+		assert.Contains(t, body, `<form class="sheet-form-actions" method="post" action="`+s.path(s.sftp, "/delete")+`?ret=q%3Dsrv">`)
 		assert.Contains(t, body, `<button class="w-btn w-btn--danger" type="submit" aria-label="Supprimer le serveur « srv-sftp-01 » ?">Supprimer</button>`)
 		assert.NotContains(t, body, "w-banner")
 

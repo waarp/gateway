@@ -19,6 +19,7 @@ restent décrits par l'interface elle-même.
    accueil
    serveurs-locaux
    clients-locaux
+   partenaires-distants
    etat-des-services
 
 
@@ -86,7 +87,8 @@ l'accueil ne propose que les écrans que l'utilisateur a le droit de lire.
 L'écran :doc:`serveurs-locaux`
 requiert les droits sur les serveurs : lecture pour la liste et le détail,
 écriture pour créer, modifier, démarrer et arrêter, suppression pour
-supprimer.
+supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
+sur les partenaires.
 
 
 Ancienne et nouvelle interface

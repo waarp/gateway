@@ -40,7 +40,22 @@ const (
 	FailedParam = "failed"
 	NameParam   = "name"
 	ReasonParam = "reason"
+	// KindParam says what object the previous action concerned, when a
+	// screen has several kinds (a server, one of its means, one of its
+	// accounts); the screen renders the right notification from it.
+	KindParam = "kind"
+
+	// DoneCreated, DoneUpdated and DoneDeleted are the results of the actions
+	// every screen has.
+	DoneCreated = "created"
+	DoneUpdated = "updated"
+	DoneDeleted = "deleted"
 )
+
+// DefaultSizes are the rows per page of a list, the first one by default.
+//
+//nolint:gochecknoglobals // reference data of the lists
+var DefaultSizes = []int{10, 25, 50, 100}
 
 // Filters is the part of the state that belongs to the screen (the families
 // and the TLS of the protocol screens): parsed and encoded by it.
@@ -468,4 +483,92 @@ func CountSuffix(n int) string {
 	}
 
 	return " · " + strconv.Itoa(n)
+}
+
+// RedirectTo sends to a page (already carrying the list state) with the
+// result of the action.
+func RedirectTo(w http.ResponseWriter, r *http.Request, target string, result url.Values) {
+	u, err := url.Parse(target)
+	if err != nil {
+		http.Redirect(w, r, target, http.StatusSeeOther)
+
+		return
+	}
+
+	query := u.Query()
+	for name, values := range result {
+		query.Set(name, values[0])
+	}
+
+	u.RawQuery = query.Encode()
+
+	http.Redirect(w, r, u.String(), http.StatusSeeOther)
+}
+
+// ------------------------------------------------------------ tab list ----
+
+// TabList is the state of the list of a tab of a sheet: the toolbar form,
+// the base of the sort links, the count, the rows per page and the list
+// foot. The sheet carries the state of the list of its screen (?ret=)
+// through every link and form.
+type TabList struct {
+	Action      string
+	Base        string
+	Q           string
+	Names       []string
+	Hidden      map[string]string
+	Count       string
+	Sort        string
+	Dir         string
+	Caption     string
+	Pager       *Pager
+	PagerHidden map[string]string
+	Sizes       []int
+	Size        int
+	Empty       bool
+	NoMatch     bool
+	NoMatchText string
+	NoMatchURL  string
+	NoMatchLink string
+}
+
+// NewTabList builds the state of a tab list from its query.
+func NewTabList(base string, query *Query, carried string) TabList {
+	hidden, pagerHidden := query.ToolbarHidden(), query.PagerHidden()
+	if carried != "" {
+		hidden[RetParam], pagerHidden[RetParam] = carried, carried
+	}
+
+	return TabList{
+		Action:      base,
+		Base:        WithRet(WithQuery(base, query.FilterValues()), carried),
+		Q:           query.Q,
+		Hidden:      hidden,
+		Sort:        query.Sort,
+		Dir:         query.Dir,
+		PagerHidden: pagerHidden,
+		Size:        query.Size,
+	}
+}
+
+// SetNoMatch marks the empty result of a search: the way out clears the search.
+func (l *TabList) SetNoMatch(text, clearURL, clearLabel string) {
+	l.NoMatch = true
+	l.NoMatchText = text
+	l.NoMatchURL, l.NoMatchLink = clearURL, clearLabel
+}
+
+// Foot fills the list foot: the rows per page (offered as soon as there are
+// rows) and the pages.
+func (l *TabList) Foot(info string, b Bounds, query *Query, base, carried string) {
+	l.Sizes = query.sizes
+	l.Pager = &Pager{Info: info, Page: b.Page, Pages: b.Pages}
+
+	if b.Page > 1 {
+		l.Pager.PrevURL = WithRet(WithQuery(base, query.WithPage(b.Page-1)), carried)
+	}
+
+	if b.Page < b.Pages {
+		l.Pager.NextURL = WithRet(WithQuery(base, query.WithPage(b.Page+1)), carried)
+	}
 }
