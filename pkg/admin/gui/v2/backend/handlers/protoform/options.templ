@@ -20,7 +20,9 @@ import (
 // possible) with Min and Max; Password makes it a password field, whose
 // value is never rendered back; Autocomplete tells the browser what the
 // field holds ("username", "new-password"); Req marks it required; Code is
-// the technical name shown after the label of an optional option.
+// the technical name shown after the label of an optional option;
+// Placeholder shows an example of a value, or the default, in the empty
+// field (the label stays above it, the hint under it).
 type FieldProps struct {
 	ID           string
 	Label        string
@@ -34,6 +36,7 @@ type FieldProps struct {
 	Max          int
 	Password     bool
 	Autocomplete string
+	Placeholder  string
 }
 
 // fieldMark: what follows the label of a field: the required star, the
@@ -64,6 +67,9 @@ templ FieldOf(p FieldProps) {
 			required?={ p.Req }
 			if p.Autocomplete != "" {
 				autocomplete={ p.Autocomplete }
+			}
+			if p.Placeholder != "" {
+				placeholder={ p.Placeholder }
 			}
 			if p.Num {
 				type="number"

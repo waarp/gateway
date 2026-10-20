@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clouds"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/partners"
@@ -43,6 +44,40 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeClientsRouter(router, db, logger)
 	MakePartnersRouter(router, db, logger)
 	MakeUsersRouter(router, db, logger)
+	MakeCloudsRouter(router, db, logger)
+}
+
+// adminRoutes registers the routes of a screen behind the rights on the
+// administration: the pages in reading, the forms behind the write right,
+// the deletion behind the delete right. Every action is a POST.
+type adminRoutes struct{ router *mux.Router }
+
+func (a adminRoutes) read(path string, handler http.HandlerFunc) {
+	a.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermAdminRead, handler))
+}
+
+func (a adminRoutes) write(path string, form, action http.HandlerFunc) {
+	a.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermAdminWrite, form))
+	a.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermAdminWrite, action))
+}
+
+func (a adminRoutes) del(path string, form, action http.HandlerFunc) {
+	a.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermAdminDelete, form))
+	a.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermAdminDelete, action))
+}
+
+// MakeCloudsRouter registers the "Cloud instances" screen: the list and the
+// sheet in reading, the creation, the edition, the deletion.
+func MakeCloudsRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := clouds.New(db, logger)
+	routes := adminRoutes{router}
+	const cloudPath = "/clouds/{id:[0-9]+}"
+
+	routes.read("/clouds", handlers.List)
+	routes.write("/clouds/new", handlers.NewForm, handlers.Create)
+	routes.read(cloudPath, handlers.Detail)
+	routes.write(cloudPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(cloudPath+"/delete", handlers.DeleteForm, handlers.Delete)
 }
 
 // userRoutes registers the routes of the users screen behind the rights on

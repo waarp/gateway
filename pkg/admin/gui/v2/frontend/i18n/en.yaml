@@ -1071,3 +1071,204 @@ users:
   error:
     title: The list of users could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+# "Cloud instances" screen (Administration, #719): list, sheet in reading, form by type, deletion.
+clouds:
+  title: Cloud instances
+  add: Add a cloud instance
+  search: Search an instance by name
+  search_placeholder: Search by name
+  filters: Types
+  count: "{total} instances"
+  count_one: 1 instance
+  count_shown: "{total} instances · {shown} shown"
+  count_shown_one: "{total} instances · 1 shown"
+  caption: "Cloud instances, page {page} of {pages}, sorted by {sort}"
+  pager: "Instances {from} to {to} of {total}"
+  back: Back to the list
+  back_cloud: Back to the instance
+  location_none: "—"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    type: type
+    location: location
+    auth: authentication
+  col:
+    name: Cloud instance
+    type: Type
+    location: Location
+    auth: Authentication
+    actions: Actions
+  # How the instance authenticates.
+  auth:
+    key: Key given
+    env: Environment variables
+    none: None
+  # The five storage types, named as the reference documentation names them.
+  type:
+    s3: Amazon S3
+    azblob: Azure Blob
+    azfiles: Azure Files
+    gcs: Google Cloud Storage
+    onedrive: OneDrive
+  type_hint:
+    s3: An Amazon S3 bucket, or one of a compatible service.
+    azblob: "An Azure object container; the container is named in the path."
+    azfiles: An Azure file share.
+    gcs: A Google Cloud Storage bucket.
+    onedrive: A OneDrive drive or a SharePoint library.
+  type_stored: "{label} ({key})"
+  action:
+    detail: View the sheet
+    edit: Edit the instance
+    delete: Delete the instance
+  detail:
+    title: "Cloud instance “{name}”"
+    card: Instance
+    type: Type
+    path: Path to use
+    path_example: folder/file
+    path_hint: "A rule, a server or a transfer names the instance this way, instead of a local folder."
+    access: Access
+    secret: Secret
+    secret_set: Set
+    secret_unset: Not set
+    env_auth: Credentials from the environment variables
+    "yes": "Yes"
+    "no": "No"
+    options: Options
+    options_none: No option.
+    default: Default value of the gateway
+    unset: Not set
+    masked: Hidden
+    other: Other options
+    used_by: Used by
+    used_none: No object names this instance yet.
+    used_rules: Transfer rules
+    used_servers: Local servers
+    used_transfers: Transfers
+    used_transfers_count: "{n} transfers name this instance in their local path"
+  new:
+    title: New cloud instance
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique; it prefixes the paths: name:folder/file. “file” is reserved for the local disk."
+    type: Type
+    type_choose: Choose a type
+    type_hint: "Changing the type clears the options of the previous type."
+    access: Access
+    key:
+      any: Key
+      s3: Access key
+      azure: Account name
+      gcs: Credentials file
+      onedrive: Application ID
+    key_hint: "Optional when the credentials come from the environment variables."
+    secret:
+      any: Secret
+    secret_hint: "Stored encrypted; never shown again."
+    secret_keep: "Empty: unchanged. Stored encrypted; never shown again."
+    access_note:
+      s3: "Amazon S3: the key is the access key, the secret the secret key."
+      azblob: "Azure Blob: the key is the name of the storage account, the secret the account key."
+      azfiles: "Azure Files: the key is the name of the storage account, the secret the account key."
+      gcs: "Google Cloud Storage: the key is the path, on the gateway, of the credentials file of the service account; the secret, the JSON content of those credentials when the file is not on the gateway."
+      onedrive: "OneDrive: the key is the ID of the application registered on the Azure portal (Files.ReadWrite.All application permission), the secret its application secret; the gateway requests the token itself."
+    env_auth: Credentials given by the environment variables of the gateway
+    env_hint: "Variables read:"
+    env:
+      s3: "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY; the region and the endpoint may come from AWS_REGION and AWS_ENDPOINT_URL."
+      azblob: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID and AZURE_CLIENT_ID."
+      azfiles: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID and AZURE_CLIENT_ID."
+      gcs: "GOOGLE_APPLICATION_CREDENTIALS."
+    options: "{type} options"
+    options_required: To be given
+    other: Other options
+    other_label: Settings of the storage library
+    other_hint: "One option per line, as key=value, among the accepted options listed below; no credential, no secret."
+    other_none: None
+    other_some: Set
+    accepted: "Options {type} accepts ({n})"
+    accepted_col:
+      option: Option
+      default: Default
+      help: Description
+    accepted_values: "Values: {values}"
+    refused: The instance was not saved.
+    refused_text: Correct the fields flagged below.
+    refused_by_backend: "The storage refused this configuration: {cause} The details are in the log of the gateway."
+    error:
+      required: This field is required.
+      name_file: "“file” is reserved for the local disk."
+      name_taken: Another instance already has this name. Choose another one.
+      type: Choose a type.
+      option: "Enter one option per line, as key=value."
+      other_field: "“{key}” is set in its field, above."
+      other_secret: "“{key}” is a sensitive option: it would be kept and shown in clear; credentials go through the key and the secret, or the environment variables."
+      other_unknown: "{type} does not know the option “{key}”: it would have no effect."
+  # The options of the storages: label, then hints (the product default is injected in {default}).
+  opt:
+    bucket:
+      label: Bucket
+      hint: The bucket the gateway reads and writes in.
+    region:
+      label: Region
+      hint_s3: "Empty: the one of the endpoint or of AWS_REGION."
+      hint_onedrive: "Empty: {default}."
+    endpoint:
+      label: Endpoint
+      hint_s3: "Empty: amazonaws.com; set it for an S3-compatible service."
+      hint_azblob: "Empty: https://<account>.blob.core.windows.net, the account being the key."
+      hint_azfiles: "Empty: https://<account>.file.core.windows.net, the account being the key."
+    chunk_size:
+      label: Size of the uploaded chunks
+      hint: "Empty: {default}; a size with its unit, for example 8MiB."
+    copy_cutoff:
+      label: Chunked copy threshold
+      hint: "Empty: {default}."
+    list_chunk:
+      label: Objects read per listing request
+      hint: "Empty: {default}."
+    share_name:
+      label: Share
+      hint: The Azure Files share the gateway reads and writes in.
+    project_number:
+      label: Project number
+      hint: The number of the Google Cloud project.
+    bucket_policy_only:
+      label: The bucket enforces uniform access
+    tenant:
+      label: Directory (tenant)
+      hint: The identifier of the Azure directory of the application.
+    drive_id:
+      label: Drive ID
+      hint: "The OneDrive drive or the SharePoint library, as the Graph API names it."
+    drive_type:
+      label: Drive type
+      business: Business
+      personal: Personal
+      documentLibrary: Document library
+  delete:
+    title: "Delete the cloud instance “{name}”?"
+    text: "The paths that name it will stop working: the rules, servers and transfers below will no longer read or write in this storage."
+    text_none: "No object names this instance; paths that would name it later would not work."
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Cloud instance “{name}” created"
+    updated: "Cloud instance “{name}” saved"
+    deleted: "Cloud instance “{name}” deleted"
+  empty:
+    title: No cloud instance yet
+    text: "A cloud instance is a remote storage the gateway uses instead of the local disk, named in the paths as name:folder/file."
+  none:
+    title: "No instance matches “{query}”"
+    filters: No instance matches the filters
+  not_found:
+    title: Cloud instance not found
+    text: This instance does not exist or has been deleted.
+  error:
+    title: The list of cloud instances could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."

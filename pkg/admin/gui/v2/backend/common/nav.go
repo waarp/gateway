@@ -60,7 +60,7 @@ func navigation() []navGroup {
 				constants.SidebarMenuAuthorities, "shield", "nav.authorities", "/managing_authentication_authorities",
 				model.PermAdminRead,
 			},
-			{constants.SidebarMenuClouds, "cloud", "nav.clouds", "/cloud_instance_management", model.PermAdminRead},
+			{constants.SidebarMenuClouds, "cloud", "nav.clouds", "/clouds", model.PermAdminRead},
 			{constants.SidebarMenuSNMP, "sliders", "nav.snmp", "/snmp_management", model.PermAdminRead},
 			{
 				constants.SidebarMenuOverrides, "sliders", "nav.overrides", "/managing_configuration_overrides",
