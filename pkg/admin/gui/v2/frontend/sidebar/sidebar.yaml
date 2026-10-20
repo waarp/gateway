@@ -51,8 +51,8 @@ monitoringSection:
   fr: Supervision
 
 servicesStatus:
-  en: Services status
-  fr: Statut des services
+  en: Service status
+  fr: État des services
 
 transferMonitoring:
   en: Transfer monitoring

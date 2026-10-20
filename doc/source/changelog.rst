@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :feature:`706` L'écran « État des services » de l'interface web est
+  refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
+  sélectionne le tableau affiché), états lisibles sans la couleur, message
+  persistant en cas d'échec de l'actualisation automatique. Il remplace l'ancien écran dans
+  la navigation et sur la page d'accueil ; l'ancien reste accessible à son
+  adresse (``/webui/status_services``) jusqu'à la version suivante. Un
+  premier guide de l'interface web accompagne cet écran
+  (:ref:`user-guide-webui`).
+
 * :bug:`751` Correction d'une mauvaise gestion des droits qui empêchait le listage
   de certains éléments dans le formulaire de tâches de la WebUI.
 * :bug:`755` Insérer une tâche via REST contenant un élément de configuration

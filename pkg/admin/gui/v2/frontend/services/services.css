@@ -1,0 +1,6 @@
+/* Service status screen: what the kit does not decide (column widths of the state table, spacing of the panel
+   and of its list foot). Tokens only. */
+.services-col-name { width: 42%; }
+.services-col-state { width: 16%; }
+.services-panel { margin-top: var(--sp-4); }
+.services-pager { margin-top: var(--sp-3); }

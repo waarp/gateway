@@ -10,6 +10,8 @@ import (
 	"golang.org/x/text/currency"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 )
 
 const (
@@ -59,7 +61,7 @@ func pageTranslated(id, userLanguage string) map[string]string {
 }
 
 func changeLanguage(w http.ResponseWriter, r *http.Request) string {
-	userLanguage := r.URL.Query().Get("language")
+	userLanguage := r.URL.Query().Get(constants.LanguageParam)
 	const durationCookie = (hoursDay * time.Hour) * 365
 
 	secure := r.TLS != nil
@@ -87,9 +89,8 @@ func changeLanguage(w http.ResponseWriter, r *http.Request) string {
 
 func detectLanguage(r *http.Request) string {
 	res := r.Header.Get("Accept-Language")
-	languageAl := strings.Split(res, ",")
 
-	for _, v := range languageAl {
+	for v := range strings.SplitSeq(res, ",") {
 		if strings.HasPrefix(v, English) {
 			return English
 		}
