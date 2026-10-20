@@ -2,395 +2,13 @@ package servers
 
 import (
 	"fmt"
-	"strconv"
 
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 )
-
-// tabsNav: the tab strip of a sheet. Links, not script tabs: each tab is a
-// page with its own list and its own address.
-templ tabsNav(tabs []tab) {
-	<nav class="w-tabs" aria-label={ gui.T(ctx, "servers.tabs") }>
-		for _, t := range tabs {
-			<a
-				href={ templ.SafeURL(t.URL) }
-				if t.Current {
-					aria-current="page"
-				}
-			>{ t.Label }@tabCount(t)</a>
-		}
-	</nav>
-}
-
-templ tabCount(t tab) {
-	if t.HasCount {
-		{ " " }<span class="w-tabs__count">{ strconv.FormatUint(t.Count, 10) }</span>
-	}
-}
-
-// credContent: the non-secret content of a means, with the validity of a
-// certificate.
-templ credContent(r credRow) {
-	if r.Expiry.State != "" {
-		<div class="w-cell-stack">@gui.StatusOf(r.Expiry)<span class="w-cell-sub">{ r.Summary }</span></div>
-	} else {
-		{ r.Summary }
-	}
-}
-
-// credTable: the states of the tab (no means possible for the protocol,
-// none yet, no match), the toolbar (search by name), the table (name, kind,
-// non-secret content with the validity of a certificate, "⋯") and the list
-// foot.
-templ credTable(d credListData) {
-	if d.NonePossible {
-		@gui.Empty(gui.EmptyProps{Icon: "key", Title: gui.T(ctx, "auth.none_for_protocol.title"), Text: gui.T(ctx, "auth.none_for_protocol.text")})
-	} else if d.List.Empty {
-		@gui.Empty(gui.EmptyProps{Icon: "key", Title: gui.T(ctx, "auth.empty.title"), Text: d.EmptyText, Action: liststate.AddLink(d.AddURL, gui.T(ctx, "auth.add"))})
-	} else {
-		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.List.Action) } data-autosubmit>
-			for _, h := range liststate.SortedHidden(d.List.Hidden) {
-				<input type="hidden" name={ h.Name } value={ h.Value }/>
-			}
-			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "auth.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.List.Q } placeholder={ gui.T(ctx, "auth.search_placeholder") } list="auth-names" autocomplete="off"/></label>
-			<datalist id="auth-names">
-				for _, n := range d.List.Names {
-					<option value={ n }></option>
-				}
-			</datalist>
-			<span class="w-toolbar__spacer"></span>
-			<span class="w-toolbar__count" aria-live="polite">{ d.List.Count }</span>
-		</form>
-		if d.List.NoMatch {
-			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.List.NoMatchText, Action: &gui.Link{Label: d.List.NoMatchLink, URL: d.List.NoMatchURL}})
-		} else {
-			<div class="w-table-wrap">
-				<table class="w-table">
-					<caption class="visually-hidden">{ d.List.Caption }</caption>
-					<colgroup><col class="servers-col-cred"/><col class="servers-col-type"/><col/><col class="servers-col-actions"/></colgroup>
-					<thead>
-						<tr>
-							@gui.Th(gui.ThProps{Label: gui.T(ctx, "auth.col.name"), Key: "name", Sort: d.List.Sort, Dir: d.List.Dir, Base: d.List.Base})
-							@gui.Th(gui.ThProps{Label: gui.T(ctx, "auth.col.type"), Key: "type", Sort: d.List.Sort, Dir: d.List.Dir, Base: d.List.Base})
-							<th scope="col">{ gui.T(ctx, "auth.col.content") }</th>
-							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "actions.title") }</span></th>
-						</tr>
-					</thead>
-					<tbody>
-						for _, r := range d.Rows {
-							<tr>
-								<td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
-								<td>{ r.Type }</td>
-								<td>@credContent(r)</td>
-								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-c%d", r.ID), Name: r.Name, Items: r.Actions})</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
-			if d.List.Pager != nil {
-				<div class="servers-pager">@gui.Pager(d.List.Pager.Props(d.List.PagerHidden, d.List.Sizes, d.List.Size))</div>
-			}
-		}
-	}
-}
-
-// keyIf is the catalogue key of a hint that differs on edition.
-func keyIf(edit bool, onEdit, onCreate string) string {
-	if edit {
-		return onEdit
-	}
-
-	return onCreate
-}
-
-// credFields: the content of a means, one block per family. At creation
-// every block is rendered and the kind select shows the right one
-// (data-switch named "<Prefix>type"; without JavaScript every block is
-// visible and the server reads the block of the chosen kind). On edition
-// only the block of the kind is rendered, with what is in place next to each
-// field: an empty field keeps it. Secrets are never pre-filled.
-templ credFields(f *credFormData) {
-	if !f.Edit || f.Family == "password" {
-		<fieldset
-			class="w-fieldset w-fieldset--wide"
-			if !f.Edit {
-				data-case="password"
-				data-of={ f.Prefix + "type" }
-			}
-		>
-			<legend class="w-fieldset__legend">{ gui.T(ctx, "auth.form.password") }</legend>
-			<div class="w-grid w-grid--2">
-				<div class={ "w-field", templ.KV("is-invalid", f.Password.Error != "") }>
-					<label class="w-field__label" for={ f.Prefix + "password" }>{ gui.T(ctx, "auth.form.password") }@protoform.ReqMark(!f.Edit)</label>
-					<input
-						class="w-input"
-						type="password"
-						id={ f.Prefix + "password" }
-						name={ f.Prefix + "password" }
-						autocomplete="new-password"
-						aria-describedby={ f.Prefix + "password-h" }
-						if f.Password.Error != "" {
-							aria-invalid="true"
-						}
-					/>
-					if f.Password.Error != "" {
-						<span class="w-field__error" id={ f.Prefix + "password-h" }>
-							@gui.Icon("triangle")
-							{ f.Password.Error }
-						</span>
-					} else if f.Edit {
-						<span class="w-field__hint" id={ f.Prefix + "password-h" }>{ f.CurrentPassword + " · " + gui.T(ctx, "auth.form.password_keep") }</span>
-					} else {
-						<span class="w-field__hint" id={ f.Prefix + "password-h" }>{ gui.T(ctx, "auth.form.password_hint") }</span>
-					}
-				</div>
-			</div>
-		</fieldset>
-	}
-	if !f.Edit || f.Family == "file" {
-		<fieldset
-			class="w-fieldset w-fieldset--wide"
-			if !f.Edit {
-				data-case="trusted_tls_certificate ssh_private_key ssh_public_key"
-				data-of={ f.Prefix + "type" }
-			}
-		>
-			<legend class="w-fieldset__legend">{ gui.T(ctx, "auth.form.file") }</legend>
-			<div class={ "w-field", templ.KV("is-invalid", f.Pem.Error != "") }>
-				<label class="w-field__label" for={ f.Prefix + "file" }>{ gui.T(ctx, "auth.form.file") }@protoform.ReqMark(!f.Edit)</label>
-				@gui.File(gui.FileProps{ID: f.Prefix + "file", Name: f.Prefix + "file", Current: f.CurrentFile, Accept: ".pem,.crt,.cer,.key,.pub", Describe: f.Prefix + "file-h"})
-				@protoform.Message(f.Prefix+"file-h", f.Pem.Error, gui.T(ctx, keyIf(f.Edit, "auth.form.keep_file", "auth.form.file_hint")))
-			</div>
-			<div class="w-field">
-				<label class="w-field__label" for={ f.Prefix + "pem" }>{ gui.T(ctx, "auth.form.paste") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
-				<textarea class="w-textarea w-mono" id={ f.Prefix + "pem" } name={ f.Prefix + "pem" } rows="4" spellcheck="false" placeholder="-----BEGIN …-----">{ f.Pem.Value }</textarea>
-			</div>
-		</fieldset>
-	}
-	if !f.Edit || f.Family == "twofile" {
-		<fieldset
-			class="w-fieldset w-fieldset--wide"
-			if !f.Edit {
-				data-case="tls_certificate"
-				data-of={ f.Prefix + "type" }
-			}
-		>
-			<legend class="w-fieldset__legend">{ gui.T(ctx, "auth.type.tls_certificate") }</legend>
-			<div class="w-grid w-grid--2">
-				<div class={ "w-field", templ.KV("is-invalid", f.PemCert.Error != "") }>
-					<label class="w-field__label" for={ f.Prefix + "cert_file" }>{ gui.T(ctx, "auth.form.cert") }@protoform.ReqMark(!f.Edit)</label>
-					@gui.File(gui.FileProps{ID: f.Prefix + "cert_file", Name: f.Prefix + "cert_file", Current: f.CurrentCert, Accept: ".pem,.crt,.cer", Describe: f.Prefix + "cert-h"})
-					@protoform.Message(f.Prefix+"cert-h", f.PemCert.Error, gui.T(ctx, keyIf(f.Edit, "auth.form.keep_file", "auth.form.cert_hint")))
-					<label class="w-field__label servers-paste" for={ f.Prefix + "cert_pem" }>{ gui.T(ctx, "auth.form.paste_cert") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
-					<textarea class="w-textarea w-mono" id={ f.Prefix + "cert_pem" } name={ f.Prefix + "cert_pem" } rows="4" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----">{ f.PemCert.Value }</textarea>
-				</div>
-				<div class={ "w-field", templ.KV("is-invalid", f.PemKey.Error != "") }>
-					<label class="w-field__label" for={ f.Prefix + "key_file" }>{ gui.T(ctx, "auth.form.key") }@protoform.ReqMark(!f.Edit)</label>
-					@gui.File(gui.FileProps{ID: f.Prefix + "key_file", Name: f.Prefix + "key_file", Current: f.CurrentKey, Accept: ".pem,.key", Describe: f.Prefix + "key-h"})
-					@protoform.Message(f.Prefix+"key-h", f.PemKey.Error, gui.T(ctx, keyIf(f.Edit, "auth.form.keep_file", "auth.form.key_hint")))
-					<label class="w-field__label servers-paste" for={ f.Prefix + "key_pem" }>{ gui.T(ctx, "auth.form.paste_key") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
-					<textarea class="w-textarea w-mono" id={ f.Prefix + "key_pem" } name={ f.Prefix + "key_pem" } rows="4" spellcheck="false" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
-				</div>
-			</div>
-		</fieldset>
-	}
-	if !f.Edit || f.Family == "none" {
-		<fieldset
-			class="w-fieldset w-fieldset--wide"
-			if !f.Edit {
-				data-case="r66_legacy_certificate"
-				data-of={ f.Prefix + "type" }
-			}
-		>
-			<legend class="w-fieldset__legend">{ gui.T(ctx, "auth.type.r66_legacy_certificate") }</legend>
-			<p class="w-form__note servers-note">{ gui.T(ctx, "auth.form.legacy_hint") }</p>
-		</fieldset>
-	}
-}
-
-// authView: "Authentication" tab of a local server (the identity it presents
-// to the partners) or of a local account (what the partner presents). One
-// coloured action, "Add an authentication means", when something can still
-// be added; the tabs are links; the table never shows a secret.
-templ authView(d credListData) {
-	<div class="w-page-header">
-		<div class="w-page-header__text">
-			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
-				@gui.Icon("arrow-left")
-				{ d.BackLabel }
-			</a>
-			if d.AddURL != "" {
-				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
-					@gui.Icon("plus")
-					{ gui.T(ctx, "auth.add") }
-				</a>
-			}
-		</div>
-	</div>
-	@tabsNav(d.Tabs)
-	<p class="w-form__note servers-intro">{ d.Intro }</p>
-	@credTable(d)
-}
-
-// credFormView: creation and edition of an authentication means (of a
-// server or of an account), under the tab strip of its owner. Two cards: the
-// identity (name; kind among the ones the protocol allows and not already
-// present when unique; the kind of an existing means does not change) and
-// the content of the kind. Files arrive by a multipart form or pasted; a
-// secret is never pre-filled and an empty field keeps it. Refused form: a
-// banner, the non-secret values kept, a message under each faulty field.
-templ credFormView(d *credFormData) {
-	<div class="w-page-header">
-		<div class="w-page-header__text">
-			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "action.back") }
-			</a>
-		</div>
-	</div>
-	@tabsNav(d.Tabs)
-	if d.HasErrors {
-		<div class="servers-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "auth.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "auth.form.refused_text"))})</div>
-	}
-	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } enctype="multipart/form-data" novalidate>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "auth.form.card", "owner", d.Owner) }</legend>
-				<div class="w-grid w-grid--2">
-					@protoform.FieldOf(protoform.FieldProps{ID: "name", Label: gui.T(ctx, "auth.form.name"), F: d.Name, Hint: gui.T(ctx, "auth.form.name_hint")})
-					if d.Edit {
-						<div class="w-field">
-							<label class="w-field__label" for="type">{ gui.T(ctx, "auth.form.type") }</label>
-							<input class="w-input" id="type" value={ d.TypeLabel } readonly aria-describedby="type-h"/>
-							<span class="w-field__hint" id="type-h">{ gui.T(ctx, "auth.form.type_fixed") }</span>
-						</div>
-					} else {
-						<div class={ "w-field", templ.KV("is-invalid", d.TypeError != "") }>
-							<label class="w-field__label" for="type">{ gui.T(ctx, "auth.form.type") } <span class="w-field__req" aria-hidden="true">*</span></label>
-							<select
-								class="w-select"
-								id="type"
-								name="type"
-								required
-								data-switch="type"
-								aria-describedby="type-h"
-								if d.TypeError != "" {
-									aria-invalid="true"
-								}
-							>
-								for _, c := range d.Types {
-									<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
-								}
-							</select>
-							@protoform.Message("type-h", d.TypeError, gui.T(ctx, "auth.form.type_hint"))
-						</div>
-					}
-				</div>
-			</fieldset>
-		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "auth.form.content") }</legend>
-				@credFields(d)
-			</fieldset>
-		</div>
-		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
-	</form>
-}
-
-// credDetailView: an authentication means in reading, under the tab strip
-// of its owner. A certificate shows its subject, its issuer, its validity,
-// its fingerprint and its PEM (public part); a public key its kind, its
-// fingerprint and its line; a password or a private key is "set, never
-// shown". "Edit" as a button (write right), "Delete" in the "⋯" menu (delete
-// right).
-templ credDetailView(d credDetailData) {
-	<div class="w-page-header">
-		<div class="w-page-header__text">
-			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "action.back") }
-			</a>
-			if d.EditURL != "" {
-				<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.EditURL) }>
-					@gui.Icon("pen")
-					{ gui.T(ctx, "auth.action.edit") }
-				</a>
-			}
-			if d.DeleteURL != "" {
-				@gui.Actions(gui.ActionsProps{ID: "act-cred", Name: d.Name, Items: []gui.Action{{Icon: "trash", Label: gui.T(ctx, "auth.action.delete"), URL: d.DeleteURL, Danger: true}}})
-			}
-		</div>
-	</div>
-	@tabsNav(d.Tabs)
-	<div class="w-stack">
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "auth.detail.card", "type", d.Type, "owner", d.Owner) }</h2>
-			<dl class="w-deflist">
-				if d.Expiry.State != "" {
-					<dt>{ gui.T(ctx, "auth.detail.state") }</dt>
-					<dd>@gui.StatusOf(d.Expiry)</dd>
-				}
-				for _, k := range d.Rows {
-					<dt>{ k.Label }</dt>
-					<dd>@protoform.ValueOf(k)</dd>
-				}
-			</dl>
-		</div>
-		if d.Public != "" {
-			<div class="w-card">
-				<h2 class="w-card__title">{ d.PublicTitle }</h2>
-				<pre class="w-code servers-pem">{ d.Public }</pre>
-				<p class="w-form__note servers-note">{ gui.T(ctx, "auth.detail.public_note") }</p>
-			</div>
-		}
-	</div>
-}
-
-// credDeleteView: confirmation of the deletion of an authentication means
-// (delete right), under the tab strip of its owner: the consequence, what is
-// deleted, "Cancel" then "Delete" bottom right.
-templ credDeleteView(d credDeleteData) {
-	<div class="w-page-header">
-		<div class="w-page-header__text">
-			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "action.back") }
-			</a>
-		</div>
-	</div>
-	@tabsNav(d.Tabs)
-	<div class="w-card">
-		<p class="servers-lead">{ d.Text }</p>
-		<dl class="w-deflist">
-			<dt>{ gui.T(ctx, "auth.delete.means") }</dt>
-			<dd>{ d.Name }</dd>
-			<dt>{ gui.T(ctx, "auth.delete.type") }</dt>
-			<dd>{ d.Type }</dd>
-			<dt>{ gui.T(ctx, "auth.delete.owner") }</dt>
-			<dd>{ d.Owner }</dd>
-			<dt>{ gui.T(ctx, "auth.delete.content") }</dt>
-			<dd>{ d.Summary }</dd>
-		</dl>
-		<form class="servers-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
-	</div>
-}
 
 // accountAuth: the kinds of means of an account, or the warning that it has
 // none.
@@ -424,7 +42,7 @@ templ accountsView(d accountsListData) {
 			}
 		</div>
 	</div>
-	@tabsNav(d.Tabs)
+	@means.TabsNav(gui.T(ctx, "servers.tabs"), d.Tabs)
 	if d.List.Empty {
 		@gui.Empty(gui.EmptyProps{Icon: "users", Title: gui.T(ctx, "accounts.empty.title"), Text: gui.T(ctx, "accounts.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "accounts.add"))})
 	} else {
@@ -447,7 +65,7 @@ templ accountsView(d accountsListData) {
 			<div class="w-table-wrap">
 				<table class="w-table">
 					<caption class="visually-hidden">{ d.List.Caption }</caption>
-					<colgroup><col class="servers-col-login"/><col/><col class="servers-col-actions"/></colgroup>
+					<colgroup><col class="sheet-col-login"/><col/><col class="sheet-col-actions"/></colgroup>
 					<thead>
 						<tr>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "accounts.col.login"), Key: "name", Sort: d.List.Sort, Dir: d.List.Dir, Base: d.List.Base})
@@ -467,7 +85,7 @@ templ accountsView(d accountsListData) {
 				</table>
 			</div>
 			if d.List.Pager != nil {
-				<div class="servers-pager">@gui.Pager(d.List.Pager.Props(d.List.PagerHidden, d.List.Sizes, d.List.Size))</div>
+				<div class="sheet-pager">@gui.Pager(d.List.Pager.Props(d.List.PagerHidden, d.List.Sizes, d.List.Size))</div>
 			}
 		}
 	}
@@ -500,9 +118,9 @@ templ accountFormView(d *accountFormData) {
 			</a>
 		</div>
 	</div>
-	@tabsNav(d.Tabs)
+	@means.TabsNav(gui.T(ctx, "servers.tabs"), d.Tabs)
 	if d.HasErrors {
-		<div class="servers-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "accounts.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "accounts.form.refused_text"))})</div>
+		<div class="sheet-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "accounts.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "accounts.form.refused_text"))})</div>
 	}
 	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } enctype="multipart/form-data" novalidate>
 		<div class="w-card">
@@ -533,7 +151,7 @@ templ accountFormView(d *accountFormData) {
 			<div class="w-card">
 				<fieldset class="w-fieldset w-fieldset--wide">
 					<legend class="w-card__title">{ gui.T(ctx, "accounts.form.first_means") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></legend>
-					<p class="w-form__note servers-note">{ gui.T(ctx, "accounts.form.first_means_hint") }</p>
+					<p class="w-form__note sheet-note">{ gui.T(ctx, "accounts.form.first_means_hint") }</p>
 					<div class="w-grid w-grid--2">
 						@protoform.FieldOf(protoform.FieldProps{ID: "means_name", Label: gui.T(ctx, "accounts.form.means_name"), F: d.Means.Name, Hint: gui.T(ctx, "accounts.form.means_name_hint")})
 						<div class={ "w-field", templ.KV("is-invalid", d.Means.TypeError != "") }>
@@ -555,7 +173,7 @@ templ accountFormView(d *accountFormData) {
 							@protoform.Message("means_type-h", d.Means.TypeError, gui.T(ctx, "accounts.form.means_type_hint"))
 						</div>
 					</div>
-					@credFields(d.Means)
+					@means.CredFields(d.Means)
 				</fieldset>
 			</div>
 		}
@@ -588,7 +206,7 @@ templ accountDetailView(d accountDetailData) {
 			}
 		</div>
 	</div>
-	@tabsNav(d.Tabs)
+	@means.TabsNav(gui.T(ctx, "servers.tabs"), d.Tabs)
 	<div class="w-card">
 		<h2 class="w-card__title">{ gui.T(ctx, "account.card") }</h2>
 		<dl class="w-deflist">
@@ -597,7 +215,7 @@ templ accountDetailView(d accountDetailData) {
 				<dd>@protoform.ValueOf(k)</dd>
 			}
 		</dl>
-		<p class="w-form__note servers-note">{ gui.T(ctx, "account.detail.ips_note") }</p>
+		<p class="w-form__note sheet-note">{ gui.T(ctx, "account.detail.ips_note") }</p>
 	</div>
 }
 
@@ -617,14 +235,14 @@ templ accountDeleteView(d accountDeleteData) {
 			</a>
 		</div>
 	</div>
-	@tabsNav(d.Tabs)
+	@means.TabsNav(gui.T(ctx, "servers.tabs"), d.Tabs)
 	<div class="w-card">
 		if d.Blocked {
 			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "accounts.delete.blocked_title"), Text: gui.T(ctx, "accounts.delete.blocked_text"), Action: &gui.Link{Label: gui.T(ctx, "accounts.delete.blocked_link"), URL: d.TransfersURL, Icon: "clock"}})
 		} else {
-			<p class="servers-lead">{ gui.T(ctx, "accounts.delete.text", "name", d.Server) }</p>
+			<p class="sheet-lead">{ gui.T(ctx, "accounts.delete.text", "name", d.Server) }</p>
 		}
-		<dl class={ "w-deflist", templ.KV("servers-deflist", d.Blocked) }>
+		<dl class={ "w-deflist", templ.KV("sheet-deflist", d.Blocked) }>
 			<dt>{ gui.T(ctx, "account.card") }</dt>
 			<dd><code class="w-code">{ d.Login }</code></dd>
 			<dt>{ gui.T(ctx, "account.detail.server") }</dt>
@@ -635,9 +253,9 @@ templ accountDeleteView(d accountDeleteData) {
 			<dd>{ d.Auth }</dd>
 		</dl>
 		if d.Blocked {
-			<div class="w-form__actions servers-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.back") }</a></div>
+			<div class="w-form__actions sheet-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.back") }</a></div>
 		} else {
-			<form class="servers-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+			<form class="sheet-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
 		}
 	</div>
 }

@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 )
 
@@ -79,7 +80,7 @@ templ listView(d listData) {
 			<div class="w-table-wrap">
 				<table class="w-table">
 					<caption class="visually-hidden">{ d.Caption }</caption>
-					<colgroup><col class="servers-col-name"/><col class="servers-col-state"/><col class="servers-col-protocol"/><col/><col class="servers-col-actions"/></colgroup>
+					<colgroup><col class="servers-col-name"/><col class="servers-col-state"/><col class="servers-col-protocol"/><col/><col class="sheet-col-actions"/></colgroup>
 					<thead>
 						<tr>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "servers.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
@@ -103,7 +104,7 @@ templ listView(d listData) {
 				</table>
 			</div>
 			if d.Pager != nil {
-				<div class="servers-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+				<div class="sheet-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
 			}
 		}
 	}
@@ -157,7 +158,7 @@ templ detailView(d detailData) {
 			@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
 		</div>
 	</div>
-	@tabsNav(d.Tabs)
+	@means.TabsNav(gui.T(ctx, "servers.tabs"), d.Tabs)
 	<div class="w-stack">
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "servers.detail.card") }</h2>
@@ -219,9 +220,9 @@ templ deleteView(d deleteData) {
 		if d.Blocked {
 			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.delete.blocked_title"), Text: gui.T(ctx, "servers.delete.blocked_text"), Action: &gui.Link{Label: gui.T(ctx, "servers.delete.blocked_link"), URL: d.TransfersURL, Icon: "clock"}})
 		} else {
-			<p class="servers-lead">{ gui.T(ctx, "servers.delete.text") }@runningNote(d.Running)</p>
+			<p class="sheet-lead">{ gui.T(ctx, "servers.delete.text") }@runningNote(d.Running)</p>
 		}
-		<dl class={ "w-deflist", templ.KV("servers-deflist", d.Blocked) }>
+		<dl class={ "w-deflist", templ.KV("sheet-deflist", d.Blocked) }>
 			<dt>{ gui.T(ctx, "servers.detail.card") }</dt>
 			<dd>{ d.Name }</dd>
 			<dt>{ gui.T(ctx, "servers.detail.state") }</dt>
@@ -234,23 +235,11 @@ templ deleteView(d deleteData) {
 			<dd>{ d.Accounts }</dd>
 		</dl>
 		if d.Blocked {
-			<div class="w-form__actions servers-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "servers.back_server") }</a></div>
+			<div class="w-form__actions sheet-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "servers.back_server") }</a></div>
 		} else {
-			<form class="servers-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "servers.delete.title", "name", d.Name)})</form>
+			<form class="sheet-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "servers.delete.title", "name", d.Name)})</form>
 		}
 	</div>
-}
-
-// notFoundView: a server, an account or an authentication means that does
-// not exist: localised 404 in the chrome, with the way back (the list as the
-// user left it, the tab of the server).
-templ notFoundView(d notFoundData) {
-	<div class="w-page-header">
-		<div class="w-page-header__text">
-			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-	</div>
-	@gui.Empty(gui.EmptyProps{Icon: d.Icon, Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
 }
 
 // backLabel: the label of the back button of the form: to the server on
@@ -285,7 +274,7 @@ templ formView(d *formData) {
 		</div>
 	</div>
 	if d.HasErrors {
-		<div class="servers-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "servers.form.refused_text"))})</div>
+		<div class="sheet-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "servers.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "servers.form.refused_text"))})</div>
 	}
 	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
 		<div class="w-card">
@@ -312,7 +301,7 @@ templ formView(d *formData) {
 			<div class="w-card__body">
 				<fieldset class="w-fieldset w-fieldset--wide">
 					<legend class="visually-hidden">{ gui.T(ctx, "servers.form.dirs") }</legend>
-					<p class="w-form__note servers-note">{ gui.T(ctx, "servers.form.dirs_hint") }</p>
+					<p class="w-form__note sheet-note">{ gui.T(ctx, "servers.form.dirs_hint") }</p>
 					<div class="w-grid w-grid--2">
 						@protoform.FieldOf(protoform.FieldProps{ID: "root_dir", Label: gui.T(ctx, "servers.dirs.root"), F: d.Fields["root_dir"]})
 						@protoform.FieldOf(protoform.FieldProps{ID: "receive_dir", Label: gui.T(ctx, "servers.dirs.receive"), F: d.Fields["receive_dir"]})

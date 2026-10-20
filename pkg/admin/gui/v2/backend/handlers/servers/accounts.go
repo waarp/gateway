@@ -14,6 +14,8 @@ import (
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -40,7 +42,7 @@ type accountEntry struct {
 func (e accountEntry) authText(translate gui.Translator) string {
 	labels := make([]string, 0, len(e.types))
 	for _, typ := range e.types {
-		labels = append(labels, typeLabel(translate, typ))
+		labels = append(labels, means.TypeLabel(translate, typ))
 	}
 
 	return strings.Join(labels, ", ")
@@ -130,7 +132,7 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 	sid := e.agent.ID
 	base := serverURL(sid, accountsSuffix)
 	data := accountsListData{
-		List:    newTabList(base, query, carried),
+		List:    liststate.NewTabList(base, query, carried),
 		Title:   translate("servers.detail.title", "name", e.agent.Name),
 		BackURL: listURL(carried),
 	}
@@ -161,7 +163,8 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 
 		return data
 	case len(kept) == 0:
-		data.List.noMatch(translate, translate("accounts.none.title", "query", query.Q), base, carried)
+		data.List.SetNoMatch(translate("accounts.none.title", "query", query.Q), withRet(base, carried),
+			translate("search.clear"))
 
 		return data
 	}
@@ -186,7 +189,7 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 		data.Rows = append(data.Rows, row)
 	}
 
-	data.List.foot(translate("accounts.pager", "from", b.From+1, "to", b.To, "total", len(kept)), b, query, base, carried)
+	data.List.Foot(translate("accounts.pager", "from", b.From+1, "to", b.To, "total", len(kept)), b, query, base, carried)
 
 	return data
 }
@@ -292,7 +295,7 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 	if len(creds) > 0 {
 		labels := make([]string, 0, len(creds))
 		for _, c := range creds {
-			labels = append(labels, typeLabel(translate, c.Type))
+			labels = append(labels, means.TypeLabel(translate, c.Type))
 		}
 
 		auth = strings.Join(labels, ", ")
@@ -343,7 +346,7 @@ type accountFormData struct {
 	Refused   string
 	Login     field
 	IPs       field
-	Means     *credFormData // nil on edition
+	Means     *means.Form // nil on edition
 }
 
 func (h *Handlers) newAccountForm(translate gui.Translator, srv entry, acc *model.LocalAccount,
@@ -357,11 +360,7 @@ func (h *Handlers) newAccountForm(translate gui.Translator, srv entry, acc *mode
 			Action:    withRet(serverURL(sid, accountsSuffix+newSuffix), carried),
 			CancelURL: withRet(serverURL(sid, accountsSuffix), carried),
 			Server:    srv.agent.Name,
-			Means: &credFormData{
-				Prefix:   meansPrefix,
-				Optional: true,
-				Types:    typeChoices(translate, accountCredTypes(srv.agent.Protocol), "", true),
-			},
+			Means:     means.FirstMeans(translate, means.LocalAccountTypes(srv.agent.Protocol), ""),
 		}
 	}
 
@@ -483,7 +482,7 @@ func (h *Handlers) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
-	if err := parseForm(r); err != nil {
+	if err := means.ParseForm(r); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 
 		return
@@ -497,10 +496,10 @@ func (h *Handlers) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	var cred *model.Credential
 
-	if r.FormValue(meansPrefix+fieldType) != "" {
+	if form.Means.Chosen(r) {
 		cred = &model.Credential{}
 
-		if err := form.Means.read(translate, r, own, cred, nil); err != nil {
+		if err := form.Means.Read(translate, r, h.meansOwner(translate, own, carried, rightsOf(r)), cred, nil); err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 
 			return
@@ -540,7 +539,7 @@ func (h *Handlers) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 			return
 		case database.IsValidationError(err) && credRefused:
-			form.Means.refuse(translate, err)
+			form.Means.Refuse(translate, err)
 			form.HasErrors = true
 		case database.IsValidationError(err):
 			form.refuse(translate, err)
@@ -552,7 +551,7 @@ func (h *Handlers) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	form.Means.Types = typeChoices(translate, accountCredTypes(srv.agent.Protocol), form.Means.Type, true)
+	form.Means.Types = means.TypeChoices(translate, means.LocalAccountTypes(srv.agent.Protocol), form.Means.Type, true)
 	h.accountFormPage(w, r, owner{srv: srv}, form, http.StatusUnprocessableEntity)
 }
 
@@ -566,7 +565,7 @@ func (h *Handlers) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
-	if err := parseForm(r); err != nil {
+	if err := means.ParseForm(r); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 
 		return
@@ -644,7 +643,7 @@ func (h *Handlers) accountDeletePage(w http.ResponseWriter, r *http.Request, own
 	if len(creds) > 0 {
 		labels := make([]string, 0, len(creds))
 		for _, c := range creds {
-			labels = append(labels, typeLabel(translate, c.Type))
+			labels = append(labels, means.TypeLabel(translate, c.Type))
 		}
 
 		auth = strings.Join(labels, ", ")

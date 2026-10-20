@@ -26,6 +26,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -78,6 +79,7 @@ const (
 	stateKO      = "ko"
 	stateOffline = "off"
 	stateUnknown = "warn"
+	stateWarn    = "warn" // the triangle of the kit: an account without any means
 
 	// Prefixes of the catalogue keys chosen at run time: the name of a sorted
 	// column ("servers.sort.name") and the result of an action
@@ -136,10 +138,18 @@ type Handlers struct {
 	ctl    Control
 
 	shell *common.Shell
+	// means serves the pages of the authentication means of a server and of
+	// its accounts, shared with the other sheets.
+	means means.Pages
 }
 
 func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
-	return &Handlers{db: db, logger: logger, ctl: ctl, shell: common.NewShell()}
+	shell := common.NewShell()
+
+	return &Handlers{
+		db: db, logger: logger, ctl: ctl, shell: shell,
+		means: means.Pages{DB: db, Logger: logger, Shell: shell},
+	}
 }
 
 func transfersURL() string { return common.WebuiURL(transfersPath) }
@@ -160,9 +170,6 @@ func rightsOf(r *http.Request) rights {
 
 // kv is a row of a key/value list.
 type kv = protoform.KV
-
-// choice is an option of a select, selected or not.
-type choice = protoform.Choice
 
 // entry is a local server with its protocol and its running state.
 type entry struct {
@@ -317,7 +324,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		Crumbs:  crumbs(translate, "", ""),
 		Notices: notices(translate, r.URL.Query()),
 
-		Stylesheets: []string{stylesheet},
+		Stylesheets: sheetStylesheets(),
 	}
 
 	agents, err := internal.ListServers(h.db, "name", true, 0, 0)
@@ -621,13 +628,13 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  status,
 
-		Stylesheets: []string{stylesheet},
+		Stylesheets: sheetStylesheets(),
 	}
 }
 
 // formStylesheets are the stylesheets of the form: the shared protocol
-// options, then the screen.
-func formStylesheets() []string { return []string{protoStylesheet, stylesheet} }
+// options, the shared rules of a sheet, then the screen.
+func formStylesheets() []string { return []string{protoStylesheet, means.Stylesheet, stylesheet} }
 
 type detailData struct {
 	Name     string

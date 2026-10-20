@@ -927,7 +927,7 @@ func TestDeleteServer(t *testing.T) {
 		assert.Contains(t, body, "Il est en ligne : il sera arrêté.")
 		assert.Contains(t, body, `<dt>Serveur</dt><dd>srv-sftp-01</dd>`)
 		assert.Contains(t, body, `<dt>Comptes locaux</dt><dd>0</dd>`)
-		assert.Contains(t, body, `<form class="servers-form-actions" method="post" action="`+s.path(s.sftp, "/delete")+`?ret=q%3Dsrv">`)
+		assert.Contains(t, body, `<form class="sheet-form-actions" method="post" action="`+s.path(s.sftp, "/delete")+`?ret=q%3Dsrv">`)
 		assert.Contains(t, body, `<button class="w-btn w-btn--danger" type="submit" aria-label="Supprimer le serveur « srv-sftp-01 » ?">Supprimer</button>`)
 		assert.NotContains(t, body, "w-banner")
 

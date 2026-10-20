@@ -1,19 +1,5 @@
-/* Local servers screen: what the kit does not decide (column widths of the list, spacing of the list foot, of the
-   banners and of the action pages). Tokens only. */
+/* Local servers screen: the column widths of the list. The rules shared by the pages of a sheet (tabs, banners,
+   action pages) are in sheet/sheet.css. Tokens only. */
 .servers-col-name { width: 24%; }
 .servers-col-state { width: 34%; }
 .servers-col-protocol { width: 16%; }
-.servers-col-actions { width: 72px; }
-.servers-pager { margin-top: var(--sp-3); }
-.servers-banner { margin-bottom: var(--sp-4); }
-.servers-lead { margin: 0 0 var(--sp-4); }
-.servers-note { margin: 0; }
-.servers-deflist { margin-top: var(--sp-4); }
-.servers-form-actions { margin-top: var(--sp-5); }
-/* Server sheet (#709): column widths of the tabs, intro of a tab, pasted content under a file, public PEM block. */
-.servers-col-cred { width: 26%; }
-.servers-col-type { width: 24%; }
-.servers-col-login { width: 34%; }
-.servers-intro { margin: 0 0 var(--sp-4); }
-.servers-paste { margin-top: var(--sp-2); }
-.servers-pem { margin: 0; padding: var(--sp-3); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }

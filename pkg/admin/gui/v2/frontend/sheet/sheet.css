@@ -1,0 +1,15 @@
+/* Pages of a sheet (local servers, remote partners, their accounts and their authentication means): what the kit
+   does not decide. Tokens only. */
+.sheet-col-cred { width: 26%; }
+.sheet-col-type { width: 24%; }
+.sheet-col-login { width: 34%; }
+.sheet-col-actions { width: 72px; }
+.sheet-pager { margin-top: var(--sp-3); }
+.sheet-banner { margin-bottom: var(--sp-4); }
+.sheet-lead { margin: 0 0 var(--sp-4); }
+.sheet-note { margin: 0; }
+.sheet-intro { margin: 0 0 var(--sp-4); }
+.sheet-deflist { margin-top: var(--sp-4); }
+.sheet-form-actions { margin-top: var(--sp-5); }
+.sheet-paste { margin-top: var(--sp-2); }
+.sheet-pem { margin: 0; padding: var(--sp-3); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
