@@ -61,29 +61,39 @@ func MakeServicesRouter(router *mux.Router, logger *log.Logger) {
 // the stop behind the write right, the deletion behind the delete right.
 // Every action is a POST (Post/Redirect/Get).
 func MakeServersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
-	h := servers.New(db, logger, servers.GatewayControl())
-	const id = "/servers/{id:[0-9]+}"
+	handlers := servers.New(db, logger, servers.GatewayControl())
+	const serverPath = "/servers/{id:[0-9]+}"
 
 	router.Path("/servers").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersRead, http.HandlerFunc(h.List)))
+		withPermissions(model.PermServersRead, http.HandlerFunc(handlers.List)),
+	)
 	router.Path("/servers/new").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(h.NewForm)))
+		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.NewForm)),
+	)
 	router.Path("/servers/new").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(h.Create)))
-	router.Path(id).Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersRead, http.HandlerFunc(h.Detail)))
-	router.Path(id + "/edit").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(h.EditForm)))
-	router.Path(id + "/edit").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(h.Update)))
-	router.Path(id + "/delete").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersDelete, http.HandlerFunc(h.DeleteForm)))
-	router.Path(id + "/delete").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersDelete, http.HandlerFunc(h.Delete)))
-	router.Path(id + "/start").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(h.Start)))
-	router.Path(id + "/stop").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermServersWrite, http.HandlerFunc(h.Stop)))
+		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Create)),
+	)
+	router.Path(serverPath).Methods(http.MethodGet).Handler(
+		withPermissions(model.PermServersRead, http.HandlerFunc(handlers.Detail)),
+	)
+	router.Path(serverPath + "/edit").Methods(http.MethodGet).Handler(
+		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.EditForm)),
+	)
+	router.Path(serverPath + "/edit").Methods(http.MethodPost).Handler(
+		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Update)),
+	)
+	router.Path(serverPath + "/delete").Methods(http.MethodGet).Handler(
+		withPermissions(model.PermServersDelete, http.HandlerFunc(handlers.DeleteForm)),
+	)
+	router.Path(serverPath + "/delete").Methods(http.MethodPost).Handler(
+		withPermissions(model.PermServersDelete, http.HandlerFunc(handlers.Delete)),
+	)
+	router.Path(serverPath + "/start").Methods(http.MethodPost).Handler(
+		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Start)),
+	)
+	router.Path(serverPath + "/stop").Methods(http.MethodPost).Handler(
+		withPermissions(model.PermServersWrite, http.HandlerFunc(handlers.Stop)),
+	)
 }
 
 func MakeListingRouter(router *mux.Router, db *database.DB, logger *log.Logger) {

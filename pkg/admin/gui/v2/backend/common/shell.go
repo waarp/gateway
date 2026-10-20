@@ -67,6 +67,8 @@ type Screen struct {
 
 // Render writes the complete page: the kit chrome, filled from the request
 // (user, language, rights), around the "page" template of the screen.
+//
+//nolint:gocritic // hugeParam: one screen per request, built and consumed at once
 func (s *Shell) Render(w http.ResponseWriter, logger *log.Logger, r *http.Request, screen Screen) {
 	s.execute(w, logger, r, shellTemplate, s.makePage(r, screen), screen.Status)
 }
@@ -111,6 +113,7 @@ func (s *Shell) execute(w http.ResponseWriter, logger *log.Logger, r *http.Reque
 	}
 }
 
+//nolint:gocritic // hugeParam: see Render
 func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 	user := GetUser(r)
 	lang := locale.GetLanguage(r)
