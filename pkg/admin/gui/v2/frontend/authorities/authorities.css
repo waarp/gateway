@@ -1,0 +1,20 @@
+/* Authentication authorities screen: what the kit does not decide (column widths of the list, spacing of the list
+   foot, of the banners and of the action pages, the lists of the sheet, the public identity shown in full). Tokens
+   only. */
+.authorities-col-name { width: 22%; }
+.authorities-col-type { width: 8%; }
+.authorities-col-actions { width: 72px; }
+.authorities-pager { margin-top: var(--sp-3); }
+.authorities-banner { margin-bottom: var(--sp-4); }
+.authorities-lead { margin: 0 0 var(--sp-4); }
+.authorities-note { margin: var(--sp-3) 0 0; }
+.authorities-subtitle { margin-top: var(--sp-5); }
+.authorities-form-actions { margin-top: var(--sp-5); }
+.authorities-list { margin: 0; padding-left: var(--sp-5); }
+.authorities-list li { margin-top: var(--sp-1); }
+.authorities-public { margin-top: var(--sp-4); }
+.authorities-public > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--wo-aa); font-weight: 700; }
+.authorities-public > summary::-webkit-details-marker { display: none; }
+.authorities-public > summary > svg.i { transition: transform .2s var(--ease); }
+.authorities-public[open] > summary > svg.i { transform: rotate(90deg); }
+.authorities-pem { margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); max-height: 20rem; overflow: auto; background: var(--g50); border: 1px solid var(--g200); border-radius: var(--rs); font: 400 var(--fs-sm) / 1.4 var(--fm); white-space: pre-wrap; overflow-wrap: anywhere; }

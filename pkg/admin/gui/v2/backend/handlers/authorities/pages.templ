@@ -1,0 +1,416 @@
+package authorities
+
+import (
+	"context"
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the authentication authorities (Administration). Presentation
+// only: the handler searches, filters, sorts and pages the rows, builds the
+// row actions from the rights and translates the texts. One coloured action
+// ("Add an authority"); the filters (types, validity of the certificate)
+// applied as soon as they change; four sortable headers; the validity as a
+// status (shape and words); a "⋯" menu per row; rows per page in the foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "authorities.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "authorities.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "authorities.error.title"), Text: gui.T(ctx, "authorities.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "shield", Title: gui.T(ctx, "authorities.empty.title"), Text: gui.T(ctx, "authorities.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "authorities.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "authorities.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "authorities.search_placeholder") } list="authorities-names" autocomplete="off"/></label>
+			<datalist id="authorities-names">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<details class="w-disclose" open?={ d.FiltersOpen }>
+				<summary class="w-btn w-btn--outline-dark w-btn--sm">
+					@gui.Icon("filter")
+					{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+				</summary>
+				<div class="w-disclose__panel">
+					@filterBoxes(gui.T(ctx, "authorities.filters_type"), d.Types)
+					@filterBoxes(gui.T(ctx, "authorities.filters_validity"), d.Validity)
+					@gui.FiltersFoot(d.ResetURL)
+				</div>
+			</details>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="authorities-col-name"/><col class="authorities-col-type"/><col/><col/><col/><col class="authorities-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "authorities.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "authorities.col.type"), Key: "type", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "authorities.col.identity") }</th>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "authorities.col.validity"), Key: "validity", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "authorities.col.hosts"), Key: "hosts", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "authorities.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-mono w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+								<td>{ r.Type }</td>
+								<td>
+									if r.Readable {
+										{ r.Identity }
+									} else {
+										<span class="w-muted">{ r.Identity }</span>
+									}
+								</td>
+								<td>@validityCell(r.Validity)</td>
+								<td>{ r.Hosts }</td>
+								<td>
+									if len(r.Actions) > 0 {
+										@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="authorities-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// filterBoxes: the checkboxes of one filter of the list, under its legend.
+templ filterBoxes(legend string, boxes []box) {
+	<fieldset class="w-fieldset w-field w-field--wide">
+		<legend class="w-fieldset__legend">{ legend }</legend>
+		<div class="w-checks">
+			for _, b := range boxes {
+				<label class="w-check"><input type="checkbox" name={ b.Name } value={ b.Value } checked?={ b.Checked }/> <span>{ b.Label }</span></label>
+			}
+		</div>
+	</fieldset>
+}
+
+// validityCell: the state of a certificate (round, triangle or diamond, with
+// its date), or "—" for a key or an unreadable identity.
+templ validityCell(s gui.Status) {
+	if s.State != "" {
+		@gui.StatusOf(s)
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "authorities.none_value") }</span>
+	}
+}
+
+// detailView: the sheet of an authority, in reading: its type and what it
+// does, its public identity (readable summary, then in full, folded), its
+// allowed hosts with the form the product compares, and, for a TLS
+// authority, the certificates registered in the gateway that it signs.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "authorities.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "authorities.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "authorities.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
+			}
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "authorities.detail.card") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "authorities.detail.type") }</dt>
+				<dd>{ d.TypeLabel } <code class="w-code">{ d.TypeKey }</code></dd>
+				if d.TypeHint != "" {
+					<dt>{ gui.T(ctx, "authorities.detail.role") }</dt>
+					<dd>{ d.TypeHint }</dd>
+				}
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "authorities.detail.identity") }</h2>
+			if !d.Readable {
+				<p class="authorities-note w-muted">{ gui.T(ctx, "authorities.detail.unreadable") }</p>
+			} else if d.TLS {
+				<dl class="w-deflist">
+					<dt>{ gui.T(ctx, "auth.detail.subject") }</dt>
+					<dd><code class="w-code">{ d.Info.Subject }</code></dd>
+					<dt>{ gui.T(ctx, "auth.detail.issuer") }</dt>
+					<dd><code class="w-code">{ d.Info.Issuer }</code></dd>
+					<dt>{ gui.T(ctx, "auth.detail.validity") }</dt>
+					<dd>{ d.Period } @validityCell(d.Validity)</dd>
+					<dt>{ gui.T(ctx, "auth.detail.fingerprint") }</dt>
+					<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
+				</dl>
+				@publicBlock(gui.T(ctx, "authorities.detail.show_certificate"), d.Info.Public)
+			} else {
+				<dl class="w-deflist">
+					<dt>{ gui.T(ctx, "auth.detail.key_type") }</dt>
+					<dd><code class="w-code">{ d.Info.KeyType }</code></dd>
+					<dt>{ gui.T(ctx, "auth.detail.fingerprint") }</dt>
+					<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
+				</dl>
+				@publicBlock(gui.T(ctx, "authorities.detail.show_key"), d.Info.Public)
+			}
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "authorities.detail.hosts") }</h2>
+			if len(d.Hosts) == 0 {
+				<p class="authorities-note">{ gui.T(ctx, "authorities.hosts.all") }</p>
+			} else {
+				<ul class="authorities-list">
+					for _, host := range d.Hosts {
+						<li><code class="w-code">{ host }</code></li>
+					}
+				</ul>
+			}
+			if d.HostsHint != "" {
+				<p class="authorities-note w-muted">{ d.HostsHint }</p>
+			}
+		</div>
+		if d.TLS {
+			<div class="w-card">
+				<h2 class="w-card__title">{ gui.T(ctx, "authorities.detail.signed") }</h2>
+				@signedList(d.Signed)
+			</div>
+		}
+	</div>
+}
+
+// publicBlock: the public identity in full (a certificate PEM, a key line),
+// folded under its summary: it is public and may be copied.
+templ publicBlock(label, public string) {
+	<details class="authorities-public">
+		<summary>@gui.Icon("chevron-right")<span>{ label }</span></summary>
+		<pre class="authorities-pem">{ public }</pre>
+	</details>
+}
+
+// signedList: the certificates registered in the gateway that the authority
+// signs, each with who holds it and the link to its page; or the sentence
+// saying there is none.
+templ signedList(signed []signed) {
+	if len(signed) == 0 {
+		<p class="authorities-note w-muted">{ gui.T(ctx, "authorities.detail.signed_none") }</p>
+	} else {
+		<ul class="authorities-list">
+			for _, s := range signed {
+				<li><a class="w-link" href={ templ.SafeURL(s.URL) }>{ s.Means }</a> · { ownerText(ctx, s) }</li>
+			}
+		</ul>
+	}
+}
+
+// ownerText: who holds a registered certificate: a server, a partner, or one
+// of their accounts.
+func ownerText(ctx context.Context, s signed) string {
+	if s.Parent != "" {
+		return gui.T(ctx, ownerKeyPrefix+s.Owner, "login", s.Name, "name", s.Parent)
+	}
+
+	return gui.T(ctx, ownerKeyPrefix+s.Owner, "name", s.Name)
+}
+
+// backLabel: the back button of the form: to the authority on edition, to
+// the list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "authorities.back_authority") }
+	} else {
+		{ " " + gui.T(ctx, "authorities.back") }
+	}
+}
+
+// identityBlock: the public identity of one type of authority, shown for the
+// chosen type (data-case; every block rendered without JavaScript, the server
+// reads the chosen one): a file to upload, or the content to paste; what is
+// in place on edition.
+templ identityBlock(v identityView) {
+	<fieldset class="w-fieldset w-fieldset--wide" data-case={ v.Key }>
+		<legend class="visually-hidden">{ v.Label }</legend>
+		<div class={ "w-field", templ.KV("is-invalid", v.Error != "") }>
+			<label class="w-field__label" for={ v.fileID() }>{ v.Label }@protoform.ReqMark(v.Current == "")</label>
+			@gui.File(gui.FileProps{ID: v.fileID(), Name: v.fileID(), Current: v.Current, Accept: v.Accept, Describe: v.fileID() + "-h"})
+			@protoform.Message(v.fileID()+"-h", v.Error, identityHint(ctx, v))
+		</div>
+		<div class="w-field">
+			<label class="w-field__label" for={ v.textID() }>{ gui.T(ctx, pasteKeyPrefix+v.Key) } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+			<textarea class="w-textarea w-mono" id={ v.textID() } name={ v.textID() } rows="5" spellcheck="false" placeholder={ v.Placeholder }>{ v.Text }</textarea>
+		</div>
+	</fieldset>
+}
+
+// identityHint: what the identity is for the type, or, on edition, that an
+// empty one keeps what is in place.
+func identityHint(ctx context.Context, v identityView) string {
+	if v.Current != "" {
+		return gui.T(ctx, "auth.form.keep_file")
+	}
+
+	return v.Hint
+}
+
+// formView: creation and edition of an authority, one page (decision D10),
+// one card per block, every card but the identity foldable with its summary
+// in the header: the identity (name, type), the public identity (one block
+// per type, switched by the type; a file or the pasted content), the allowed
+// hosts (one per line, the hint saying the form the type compares). Refused
+// form: a banner, the values kept, a message under each faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="authorities-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "authorities.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "authorities.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } enctype="multipart/form-data" novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "authorities.form.identity_card") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldName, Label: gui.T(ctx, "authorities.form.name"), Req: true, F: d.Name, Hint: gui.T(ctx, "authorities.form.name_hint")})
+					<div class={ "w-field", templ.KV("is-invalid", d.TypeErr != "") }>
+						<label class="w-field__label" for={ fieldType }>{ gui.T(ctx, "authorities.form.type") } <span class="w-field__req" aria-hidden="true">*</span></label>
+						<select
+							class="w-select"
+							id={ fieldType }
+							name={ fieldType }
+							required
+							data-switch
+							aria-describedby="type-h"
+							if d.TypeErr != "" {
+								aria-invalid="true"
+							}
+						>
+							<option value="" selected?={ d.Type == "" }>{ gui.T(ctx, "authorities.form.type_choose") }</option>
+							for _, c := range d.Types {
+								<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+							}
+						</select>
+						@protoform.Message("type-h", d.TypeErr, gui.T(ctx, "authorities.form.type_hint"))
+					</div>
+				</div>
+			</fieldset>
+		</div>
+		<details class="w-card w-card--fold" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "authorities.detail.identity") }</span><span class="w-fold__meta">{ d.IdentitySummary }</span></summary>
+			<div class="w-card__body">
+				for _, v := range d.Identities {
+					@identityBlock(v)
+				}
+			</div>
+		</details>
+		<details class="w-card w-card--fold" open?={ d.HostsOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "authorities.detail.hosts") }</span><span class="w-fold__meta">{ d.HostsSummary }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "authorities.detail.hosts") }</legend>
+					<div class={ "w-field", templ.KV("is-invalid", d.Hosts.Error != "") }>
+						<label class="w-field__label" for={ fieldHosts }>{ gui.T(ctx, "authorities.form.hosts") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+						<textarea class="w-textarea w-mono" id={ fieldHosts } name={ fieldHosts } rows="4" spellcheck="false" placeholder="server.example.org" aria-describedby="hosts-h">{ d.Hosts.Value }</textarea>
+						<span class="w-field__hint" id="hosts-h">
+							for _, v := range d.Identities {
+								<span data-case={ v.Key }>{ gui.T(ctx, hostsHintPrefix+v.Key) }</span>
+							}
+						</span>
+					</div>
+				</fieldset>
+			</div>
+		</details>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// deleteView: confirmation page of the deletion of an authority (decision
+// D10: a page, not a dialog). The title names it, the text says the
+// consequence, the certificates it signs are listed (TLS); "Cancel" then
+// "Delete" bottom right (D12). The product refuses nothing.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "authorities.delete.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "authorities.back_authority") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		<p class="authorities-lead">{ gui.T(ctx, "authorities.delete.text") }</p>
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "authorities.col.name") }</dt>
+			<dd><code class="w-code">{ d.Name }</code></dd>
+			<dt>{ gui.T(ctx, "authorities.detail.type") }</dt>
+			<dd>{ d.TypeLabel }</dd>
+			<dt>{ gui.T(ctx, "authorities.col.identity") }</dt>
+			<dd>{ d.Identity }</dd>
+			<dt>{ gui.T(ctx, "authorities.col.hosts") }</dt>
+			<dd>{ d.Hosts }</dd>
+		</dl>
+		if d.TLS {
+			<h2 class="w-card__title authorities-subtitle">{ gui.T(ctx, "authorities.detail.signed") }</h2>
+			@signedList(d.Signed)
+		}
+		<form class="authorities-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "authorities.delete.title", "name", d.Name)})</form>
+	</div>
+}
+
+// notFoundView: an authority that does not exist: localised 404 in the
+// chrome, with the way back to the list as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "shield", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}

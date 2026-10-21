@@ -71,8 +71,10 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 	handlePage(secureRouter, "/cryptographic_key_management",
 		cryptographicKeyManagementPage(logger)).Methods("GET", "POST")
 	handlePage(secureRouter, "/snmp_management", snmpManagementPage(logger)).Methods("GET", "POST")
-	handlePage(secureRouter, "/managing_authentication_authorities",
-		managingAuthenticationAuthoritiesPage(logger)).Methods("GET", "POST")
+	// The authorities screen of the reworked interface replaces this page,
+	// which only pointed to the command line (#722).
+	secureRouter.Handle("/managing_authentication_authorities",
+		http.RedirectHandler("authorities", http.StatusMovedPermanently))
 	handlePage(secureRouter, "/managing_configuration_overrides",
 		managingConfigurationOverridesPage(logger)).Methods("GET", "POST")
 	handlePage(secureRouter, "/email_templates_management", EmailTemplateManagementPage(logger)).Methods("GET", "POST")

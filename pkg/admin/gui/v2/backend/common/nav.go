@@ -57,7 +57,7 @@ func navigation() []navGroup {
 		{section: constants.SidebarSectionAdministration, key: "nav.administration", entries: []navEntry{
 			{constants.SidebarMenuUsers, "users", "nav.users", "/users", model.PermUsersRead},
 			{
-				constants.SidebarMenuAuthorities, "shield", "nav.authorities", "/managing_authentication_authorities",
+				constants.SidebarMenuAuthorities, "shield", "nav.authorities", "/authorities",
 				model.PermAdminRead,
 			},
 			{constants.SidebarMenuClouds, "cloud", "nav.clouds", "/clouds", model.PermAdminRead},

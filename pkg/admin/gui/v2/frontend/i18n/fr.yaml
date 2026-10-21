@@ -1271,3 +1271,140 @@ clouds:
   error:
     title: La liste des instances cloud n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Autorités d'authentification » (#722).
+authorities:
+  title: Autorités d'authentification
+  add: Ajouter une autorité
+  search: Rechercher une autorité par son nom
+  search_placeholder: Rechercher par nom
+  filters_type: Types
+  filters_validity: Validité du certificat
+  count: "{total} autorités"
+  count_one: 1 autorité
+  count_shown: "{total} autorités · {shown} affichées"
+  count_shown_one: "{total} autorités · 1 affichée"
+  caption: "Autorités d'authentification, page {page} sur {pages}, triées par {sort}"
+  pager: "Autorités {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_authority: Retour à l'autorité
+  none_value: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    type: type
+    validity: validité
+    hosts: hôtes autorisés
+  col:
+    name: Autorité
+    type: Type
+    identity: Certificat ou clé
+    validity: Validité
+    hosts: Hôtes autorisés
+    actions: Actions
+  # Les deux types, nommés comme la documentation de référence ; la forme courte pour la liste.
+  type:
+    tls_authority: Autorité de certification TLS
+    ssh_cert_authority: Autorité de certification SSH
+  type_short:
+    tls: TLS
+    ssh: SSH
+  type_hint:
+    tls_authority: "Les certificats qu'elle signe sont acceptés pour les connexions TLS, sans être enregistrés au préalable."
+    ssh_cert_authority: "Les certificats SSH qu'elle signe sont acceptés pour les connexions SFTP : ceux des utilisateurs qui se connectent à la passerelle, ceux des serveurs des partenaires."
+  # Filtre de validité du certificat.
+  validity:
+    ok: Valide
+    warn: Expire dans les 30 jours
+    ko: Expirée
+  identity:
+    unreadable: Illisible
+  hosts:
+    all: Tous les hôtes
+    more: "{hosts} et {n} autres"
+    more_one: "{hosts} et 1 autre"
+  # Qui porte un certificat enregistré que l'autorité signe.
+  owner:
+    server: "Serveur local « {name} »"
+    server_account: "Compte « {login} » du serveur « {name} »"
+    partner: "Partenaire « {name} »"
+    partner_account: "Compte « {login} » du partenaire « {name} »"
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'autorité
+    delete: Supprimer l'autorité
+  detail:
+    title: "Autorité « {name} »"
+    card: Autorité
+    type: Type
+    role: Rôle
+    identity: Identité publique
+    unreadable: "L'identité publique enregistrée est illisible ; donnez-en une nouvelle en modifiant l'autorité."
+    show_certificate: Afficher le certificat
+    show_key: Afficher la clé publique
+    hosts: Hôtes autorisés
+    hosts_hint:
+      tls_authority: "Comparés au nom d'hôte du serveur, sans port : celui de l'adresse du partenaire, ou celui du serveur local dont on enregistre le certificat. Une autorité restreinte ne vaut pas pour les certificats des comptes."
+      ssh_cert_authority: "Comparés à l'adresse du serveur SFTP du partenaire, avec son port (sftp.exemple.fr:22). Les certificats des utilisateurs qui se connectent à la passerelle sont acceptés quels que soient les hôtes."
+    signed: Certificats signés
+    signed_none: Aucun certificat enregistré dans la passerelle n'est signé par cette autorité.
+  new:
+    title: Nouvelle autorité d'authentification
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity_card: Identité
+    name: Nom
+    name_hint: Unique.
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Changer de type demande l'identité publique du nouveau type."
+    identity:
+      tls_authority: Certificat de l'autorité
+      ssh_cert_authority: Clé publique de l'autorité
+    identity_hint:
+      tls_authority: "Le certificat de l'autorité de certification, au format PEM (fichier .pem, .crt ou .cer)."
+      ssh_cert_authority: "La clé publique de l'autorité, au format authorized_keys (fichier .pub)."
+    identity_example:
+      tls_authority: "-----BEGIN CERTIFICATE-----"
+      ssh_cert_authority: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA…"
+    paste:
+      tls_authority: ou coller le certificat
+      ssh_cert_authority: ou coller la clé publique
+    to_give: À renseigner
+    hosts: Un hôte par ligne
+    hosts_hint:
+      tls_authority: "Le nom d'hôte ou l'adresse du serveur, sans port, tel qu'il figure dans l'adresse du partenaire ; vide : tous les hôtes."
+      ssh_cert_authority: "L'adresse du serveur SFTP du partenaire, avec son port (sftp.exemple.fr:22) ; vide : tous les hôtes."
+    hosts_one: 1 hôte
+    hosts_count: "{n} hôtes"
+    refused: L'autorité n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Une autre autorité porte déjà ce nom. Choisissez-en un autre.
+      type: Choisissez un type.
+      unreadable:
+        tls_authority: "Ce contenu n'est pas un certificat lisible au format PEM."
+        ssh_cert_authority: "Ce contenu n'est pas une clé publique lisible au format authorized_keys."
+      not_ca: Ce certificat n'est pas celui d'une autorité de certification.
+      not_verified: "Ce certificat ne se vérifie pas : {cause}"
+  delete:
+    title: "Supprimer l'autorité « {name} » ?"
+    text: "Les certificats qu'elle signe ne seront plus acceptés, sauf s'ils sont enregistrés dans la passerelle ou signés par une autorité du système."
+  toast:
+    created: "Autorité « {name} » créée"
+    updated: "Autorité « {name} » enregistrée"
+    deleted: "Autorité « {name} » supprimée"
+  empty:
+    title: Aucune autorité d'authentification pour l'instant
+    text: "La passerelle ne se fie qu'aux autorités du système et aux certificats enregistrés."
+  none:
+    title: "Aucune autorité ne commence par « {query} »"
+    filters: Aucune autorité ne correspond aux filtres.
+  not_found:
+    title: Autorité introuvable
+    text: Cette autorité n'existe pas ou a été supprimée.
+  error:
+    title: La liste des autorités d'authentification n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
