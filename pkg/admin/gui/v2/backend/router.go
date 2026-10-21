@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/authorities"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clouds"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
@@ -45,6 +46,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakePartnersRouter(router, db, logger)
 	MakeUsersRouter(router, db, logger)
 	MakeCloudsRouter(router, db, logger)
+	MakeAuthoritiesRouter(router, db, logger)
 }
 
 // adminRoutes registers the routes of a screen behind the rights on the
@@ -340,4 +342,18 @@ func MakeTasksRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	router.Path("/tasks/forms").Methods(http.MethodGet).Handler(
 		withPermissions(model.PermRulesRead, tasks.GetNewTaskForm(db, logger)),
 	)
+}
+
+// MakeAuthoritiesRouter registers the "Authentication authorities" screen:
+// the list and the sheet in reading, the creation, the edition, the deletion.
+func MakeAuthoritiesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := authorities.New(db, logger)
+	routes := adminRoutes{router}
+	const authorityPath = "/authorities/{id:[0-9]+}"
+
+	routes.read("/authorities", handlers.List)
+	routes.write("/authorities/new", handlers.NewForm, handlers.Create)
+	routes.read(authorityPath, handlers.Detail)
+	routes.write(authorityPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(authorityPath+"/delete", handlers.DeleteForm, handlers.Delete)
 }

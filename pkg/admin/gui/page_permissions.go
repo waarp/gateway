@@ -71,8 +71,6 @@ var webuiPermissions = map[string]pagePermissions{
 		model.PermAdminDelete),
 	"/snmp_management": permsFor(model.PermAdminRead, model.PermAdminWrite,
 		model.PermAdminDelete),
-	"/managing_authentication_authorities": permsFor(model.PermAdminRead, model.PermAdminWrite,
-		model.PermAdminDelete),
 	"/managing_configuration_overrides": permsFor(model.PermAdminRead, model.PermAdminWrite,
 		model.PermAdminDelete),
 

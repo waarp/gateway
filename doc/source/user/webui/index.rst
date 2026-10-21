@@ -22,6 +22,7 @@ restent décrits par l'interface elle-même.
    partenaires-distants
    utilisateurs
    instances-cloud
+   autorites
    etat-des-services
 
 
@@ -91,8 +92,8 @@ requiert les droits sur les serveurs : lecture pour la liste et le détail,
 écriture pour créer, modifier, démarrer et arrêter, suppression pour
 supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
 sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les
-utilisateurs, et l'écran :doc:`instances-cloud` les droits sur
-l'administration.
+utilisateurs, et les écrans :doc:`instances-cloud` et :doc:`autorites` les
+droits sur l'administration.
 
 
 Ancienne et nouvelle interface

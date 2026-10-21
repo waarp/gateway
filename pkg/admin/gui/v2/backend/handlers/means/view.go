@@ -1,17 +1,13 @@
 package means
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/hex"
-	"encoding/pem"
 	"strings"
 	"time"
 
 	"code.waarp.fr/lib/gui"
 	"golang.org/x/crypto/ssh"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/certinfo"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
@@ -27,13 +23,6 @@ const (
 	familyTwoFile  = "twofile"  // a certificate and its private key
 	familyPair     = "pair"     // a login and a password: the PeSIT pre-connection
 	familyNone     = "none"     // nothing to give: the kind itself is the information
-
-	// The validity state of a certificate: the triangle of the kit for one
-	// that expires soon.
-	stateOK       = "ok"
-	stateKO       = "ko"
-	stateWarn     = "warn"
-	expiryWarning = 30 * 24 * time.Hour
 )
 
 // families are the kinds of means the pages handle, by the keys the model
@@ -54,19 +43,13 @@ var families = map[string]string{
 func FamilyOf(typ string) string { return families[typ] }
 
 // view is a means as the pages show it: never the secret, only what
-// identifies it.
+// identifies it (the summary of its certificate or key, shared with the
+// authorities screen).
 type view struct {
-	ID          int64
-	Name        string
-	Type        string
-	Subject     string
-	Issuer      string
-	SelfSigned  bool
-	Fingerprint string
-	KeyType     string
-	NotBefore   time.Time
-	NotAfter    time.Time
-	Public      string // the public part, shareable: a certificate PEM, a public key line
+	ID   int64
+	Name string
+	Type string
+	certinfo.Info
 	// The PeSIT pre-connection: its login (not a secret) and whether it
 	// holds a password (never the password).
 	Login       string
@@ -78,14 +61,18 @@ func viewOf(c *model.Credential) view {
 
 	switch c.Type {
 	case auth.TLSCertificate, auth.TLSTrustedCertificate:
-		v.readCertificate(c.Value)
+		// One that cannot be read leaves nothing: the means is summarised
+		// as "set".
+		if info, ok := certinfo.Certificate(c.Value); ok {
+			v.Info = info
+		}
 	case sftp.AuthSSHPrivateKey:
 		if signer, err := ssh.ParsePrivateKey([]byte(c.Value)); err == nil {
-			v.readKey(signer.PublicKey())
+			v.Info = certinfo.Key(signer.PublicKey())
 		}
 	case sftp.AuthSSHPublicKey:
 		if key, err := sftp.ParseAuthorizedKey(c.Value); err == nil {
-			v.readKey(key)
+			v.Info = certinfo.Key(key)
 			v.Public = strings.TrimSpace(c.Value)
 		}
 	case pesit.PreConnectionAuth:
@@ -95,80 +82,18 @@ func viewOf(c *model.Credential) view {
 	return v
 }
 
-// readCertificate keeps the subject, the issuer, the validity and the
-// SHA-256 fingerprint of a certificate; one that cannot be read leaves
-// nothing, and the means is summarised as "set".
-func (v *view) readCertificate(pemText string) {
-	cert, err := auth.ParseCertPEM(pemText)
-	if err != nil {
-		return
-	}
-
-	sum := sha256.Sum256(cert.Raw)
-	v.Subject = subjectOf(cert)
-	v.Issuer = cert.Issuer.CommonName
-	v.SelfSigned = bytes.Equal(cert.RawIssuer, cert.RawSubject)
-	v.NotBefore, v.NotAfter = cert.NotBefore, cert.NotAfter
-	v.Fingerprint = colons(sum[:])
-	v.Public = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}))
-}
-
-// subjectOf names a certificate: its common name, or the first name it is
-// issued for, or its whole subject.
-func subjectOf(cert *x509.Certificate) string {
-	switch {
-	case cert.Subject.CommonName != "":
-		return cert.Subject.CommonName
-	case len(cert.DNSNames) > 0:
-		return cert.DNSNames[0]
-	case len(cert.IPAddresses) > 0:
-		return cert.IPAddresses[0].String()
-	default:
-		return cert.Subject.String()
-	}
-}
-
-// colons writes a fingerprint as the certificate tools do: upper-case hex
-// pairs separated by colons.
-func colons(sum []byte) string {
-	const pair = 2 // hex digits per byte
-
-	h := strings.ToUpper(hex.EncodeToString(sum))
-	pairs := make([]string, 0, len(h)/pair)
-
-	for i := 0; i+1 < len(h); i += pair {
-		pairs = append(pairs, h[i:i+pair])
-	}
-
-	return strings.Join(pairs, ":")
-}
-
-func (v *view) readKey(key ssh.PublicKey) {
-	v.KeyType = key.Type()
-	v.Fingerprint = ssh.FingerprintSHA256(key)
-}
-
 func (v *view) isCert() bool {
 	return v.Type == auth.TLSCertificate || v.Type == auth.TLSTrustedCertificate
 }
 
-// expiry is the validity state of a certificate: expired, expiring within
-// thirty days, or valid; nothing for the other kinds.
+// expiry is the validity state of a certificate (certinfo); nothing for the
+// other kinds.
 func (v *view) expiry(translate gui.Translator, now time.Time) gui.Status {
-	if !v.isCert() || v.NotAfter.IsZero() {
+	if !v.isCert() {
 		return gui.Status{}
 	}
 
-	date := v.NotAfter.Format(translate("auth.date"))
-
-	switch {
-	case v.NotAfter.Before(now):
-		return gui.Status{State: stateKO, Label: translate("auth.content.expired", "date", date)}
-	case v.NotAfter.Before(now.Add(expiryWarning)):
-		return gui.Status{State: stateWarn, Label: translate("auth.content.expires", "date", date)}
-	default:
-		return gui.Status{State: stateOK, Label: translate("auth.content.valid", "date", date)}
-	}
+	return v.Expiry(translate, now)
 }
 
 // summary is the non-secret content shown in the list.
