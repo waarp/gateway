@@ -382,6 +382,11 @@ func TestNewMonitor(t *testing.T) {
 			`data-switch="security"`, `data-case="authNoPriv authPriv" data-of="security"`,
 			"MD5 (historique)", "SHA (historique)", "SHA-512", `data-case="authPriv" data-of="security"`,
 			"DES (historique)", "AES-256C", "Contexte SNMPv3")
+
+		// The ids of the fields never take one of the icons of the kit sprite,
+		// inlined in the page ("user"): the label would name the icon.
+		assert.Contains(t, body, `for="username"`)
+		assert.Equal(t, 1, strings.Count(body, `id="username"`))
 	})
 
 	t.Run("An SNMPv2c monitor with the default community", func(t *testing.T) {

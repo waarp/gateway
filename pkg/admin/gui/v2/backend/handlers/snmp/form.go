@@ -23,7 +23,7 @@ const (
 	fieldAddress       = "address"
 	fieldCommunity     = "community"
 	fieldSecurity      = "security"
-	fieldUser          = "user"
+	fieldUser          = "username"
 	fieldEngine        = "engine"
 	fieldAuthProtocol  = "auth_protocol"
 	fieldAuthPass      = "auth_pass"
