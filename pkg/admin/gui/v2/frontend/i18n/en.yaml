@@ -1272,3 +1272,140 @@ clouds:
   error:
     title: The list of cloud instances could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Authentication authorities" screen (#722).
+authorities:
+  title: Authentication authorities
+  add: Add an authority
+  search: Search an authority by name
+  search_placeholder: Search by name
+  filters_type: Types
+  filters_validity: Validity of the certificate
+  count: "{total} authorities"
+  count_one: 1 authority
+  count_shown: "{total} authorities · {shown} shown"
+  count_shown_one: "{total} authorities · 1 shown"
+  caption: "Authentication authorities, page {page} of {pages}, sorted by {sort}"
+  pager: "Authorities {from} to {to} of {total}"
+  back: Back to the list
+  back_authority: Back to the authority
+  none_value: "—"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    type: type
+    validity: validity
+    hosts: allowed hosts
+  col:
+    name: Authority
+    type: Type
+    identity: Certificate or key
+    validity: Validity
+    hosts: Allowed hosts
+    actions: Actions
+  # The two types, named as the reference documentation names them; the short form for the list.
+  type:
+    tls_authority: TLS certificate authority
+    ssh_cert_authority: SSH certificate authority
+  type_short:
+    tls: TLS
+    ssh: SSH
+  type_hint:
+    tls_authority: "The certificates it signs are accepted on TLS connections without being registered first."
+    ssh_cert_authority: "The SSH certificates it signs are accepted on SFTP connections: those of the users who connect to the gateway, those of the servers of the partners."
+  # Filter on the validity of the certificate.
+  validity:
+    ok: Valid
+    warn: Expires within 30 days
+    ko: Expired
+  identity:
+    unreadable: Unreadable
+  hosts:
+    all: Any host
+    more: "{hosts} and {n} more"
+    more_one: "{hosts} and 1 more"
+  # Who holds a registered certificate the authority signs.
+  owner:
+    server: "Local server “{name}”"
+    server_account: "Account “{login}” of the server “{name}”"
+    partner: "Partner “{name}”"
+    partner_account: "Account “{login}” of the partner “{name}”"
+  action:
+    detail: View the sheet
+    edit: Edit the authority
+    delete: Delete the authority
+  detail:
+    title: "Authority “{name}”"
+    card: Authority
+    type: Type
+    role: Role
+    identity: Public identity
+    unreadable: "The stored public identity cannot be read; give a new one by editing the authority."
+    show_certificate: Show the certificate
+    show_key: Show the public key
+    hosts: Allowed hosts
+    hosts_hint:
+      tls_authority: "Compared with the host name of the server, without port: the one of the address of the partner, or of the local server whose certificate is registered. A restricted authority does not apply to the certificates of the accounts."
+      ssh_cert_authority: "Compared with the address of the SFTP server of the partner, with its port (sftp.example.com:22). The certificates of the users who connect to the gateway are accepted whatever the hosts."
+    signed: Signed certificates
+    signed_none: No certificate registered in the gateway is signed by this authority.
+  new:
+    title: New authentication authority
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity_card: Identity
+    name: Name
+    name_hint: Unique.
+    type: Type
+    type_choose: Choose a type
+    type_hint: "Changing the type asks for the public identity of the new type."
+    identity:
+      tls_authority: Certificate of the authority
+      ssh_cert_authority: Public key of the authority
+    identity_hint:
+      tls_authority: "The certificate of the certificate authority, in PEM format (a .pem, .crt or .cer file)."
+      ssh_cert_authority: "The public key of the authority, in authorized_keys format (a .pub file)."
+    identity_example:
+      tls_authority: "-----BEGIN CERTIFICATE-----"
+      ssh_cert_authority: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA…"
+    paste:
+      tls_authority: or paste the certificate
+      ssh_cert_authority: or paste the public key
+    to_give: To be given
+    hosts: One host per line
+    hosts_hint:
+      tls_authority: "The host name or address of the server, without port, as in the address of the partner; empty: any host."
+      ssh_cert_authority: "The address of the SFTP server of the partner, with its port (sftp.example.com:22); empty: any host."
+    hosts_one: 1 host
+    hosts_count: "{n} hosts"
+    refused: The authority was not saved.
+    refused_text: Correct the fields marked below.
+    error:
+      required: This field is required.
+      name_taken: Another authority already has this name. Choose another one.
+      type: Choose a type.
+      unreadable:
+        tls_authority: "This content is not a readable certificate in PEM format."
+        ssh_cert_authority: "This content is not a readable public key in authorized_keys format."
+      not_ca: This certificate is not the one of a certificate authority.
+      not_verified: "This certificate cannot be verified: {cause}"
+  delete:
+    title: "Delete the authority “{name}”?"
+    text: "The certificates it signs will no longer be accepted, unless they are registered in the gateway or signed by a system authority."
+  toast:
+    created: "Authority “{name}” created"
+    updated: "Authority “{name}” saved"
+    deleted: "Authority “{name}” deleted"
+  empty:
+    title: No authentication authority yet
+    text: "The gateway only trusts the system authorities and the registered certificates."
+  none:
+    title: "No authority starts with “{query}”"
+    filters: No authority matches the filters.
+  not_found:
+    title: Authority not found
+    text: This authority does not exist or has been deleted.
+  error:
+    title: The list of authentication authorities could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."

@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/certinfo"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -75,15 +76,13 @@ func TestTypesKnownToModel(t *testing.T) {
 func TestView(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "AB:CD:EF", colons([]byte{0xab, 0xcd, 0xef}))
-
 	v := viewOf(&model.Credential{Type: auth.TLSTrustedCertificate, Value: testhelpers.ClientFooCert})
 	assert.Equal(t, "foo", v.Subject)
 	assert.Equal(t, "foo", v.Issuer)
 	assert.Len(t, v.Fingerprint, 95, "32 bytes in hex pairs with colons")
-	assert.Equal(t, stateOK, v.expiry(func(_ string, _ ...any) string { return "02/01/2006" }, time.Now()).State)
-	assert.Equal(t, stateWarn, v.expiry(func(key string, _ ...any) string { return key }, v.NotAfter.Add(-24*time.Hour)).State)
-	assert.Equal(t, stateKO, v.expiry(func(key string, _ ...any) string { return key }, v.NotAfter.Add(time.Hour)).State)
+	assert.Equal(t, certinfo.StateOK, v.expiry(func(_ string, _ ...any) string { return "02/01/2006" }, time.Now()).State)
+	assert.Equal(t, certinfo.StateWarn, v.expiry(func(key string, _ ...any) string { return key }, v.NotAfter.Add(-24*time.Hour)).State)
+	assert.Equal(t, certinfo.StateKO, v.expiry(func(key string, _ ...any) string { return key }, v.NotAfter.Add(time.Hour)).State)
 
 	broken := viewOf(&model.Credential{Type: auth.TLSCertificate, Value: "garbage"})
 	assert.Empty(t, broken.Subject)

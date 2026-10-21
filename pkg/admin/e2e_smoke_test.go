@@ -4,9 +4,19 @@ package admin_test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
+	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"regexp"
 	"slices"
@@ -22,8 +32,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	_ "code.waarp.fr/apps/gateway/gateway/pkg/fs/backends" // the description of the storages: the cloud form lists their options
@@ -147,7 +159,75 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/clouds/1/edit", tables: 5},
 		{path: "/webui/clouds/1/delete"},
 		{path: "/webui/clouds/2"},
+		// The authentication authorities (#722): the list, the sheet of the
+		// TLS authority (with the partner certificate it signs), the sheet of
+		// the SSH authority, the pages that add, edit and delete one.
+		{path: "/webui/authorities", tables: 1},
+		{path: "/webui/authorities/1"},
+		{path: "/webui/authorities/2"},
+		{path: "/webui/authorities/new"},
+		{path: "/webui/authorities/1/edit"},
+		{path: "/webui/authorities/2/delete"},
 	}
+}
+
+// insertE2EAuthorities inserts a TLS authority made for the test, valid two
+// years, with an HTTPS partner whose certificate it signs (the R66 over TLS
+// partner stays without means), and an SSH authority restricted to one SFTP
+// server. The screens are visited by identifier.
+func insertE2EAuthorities(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	partner := &model.RemoteAgent{Name: "part-https", Protocol: "https", Address: types.Addr("127.0.0.3", 8443)}
+	require.NoError(t, db.Insert(partner).Run())
+
+	encode := func(der []byte) string {
+		return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
+	}
+
+	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	caTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "Partners CA", Organization: []string{"Example"}},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().AddDate(2, 0, 0),
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign,
+	}
+	caDER, err := x509.CreateCertificate(rand.Reader, caTmpl, caTmpl, &caKey.PublicKey, caKey)
+	require.NoError(t, err)
+
+	leafKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	leafTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: "part-https"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().AddDate(1, 0, 0),
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses: []net.IP{net.ParseIP(partner.Address.Host)}, // the model checks the address of the partner
+	}
+	leafDER, err := x509.CreateCertificate(rand.Reader, leafTmpl, caTmpl, &leafKey.PublicKey, caKey)
+	require.NoError(t, err)
+
+	sshPub, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+
+	sshKey, err := ssh.NewPublicKey(sshPub)
+	require.NoError(t, err)
+
+	for i, authority := range []*model.Authority{
+		{Name: "ca-partenaires", Type: "tls_authority", PublicIdentity: encode(caDER)},
+		{
+			Name: "ca-ssh-utilisateurs", Type: "ssh_cert_authority", PublicIdentity: string(ssh.MarshalAuthorizedKey(sshKey)),
+			ValidHosts: []string{"sftp.example.org:22"},
+		},
+	} {
+		require.NoError(t, db.Insert(authority).Run())
+		require.EqualValues(t, i+1, authority.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.Credential{
+		RemoteAgentID: partner.NullableID(), Name: "cert-partenaire", Type: "trusted_tls_certificate", Value: encode(leafDER),
+	}).Run())
 }
 
 // registerE2EStorages registers, under the type keys of two cloud
@@ -450,6 +530,8 @@ func startE2EServer(t *testing.T) string {
 	}
 
 	require.NoError(t, db.Insert(&model.Rule{Name: "pull-archive", IsSend: false, Path: "pull-archive", LocalDir: "archive-s3:in"}).Run())
+
+	insertE2EAuthorities(t, db)
 
 	registerE2EServices(t)
 
@@ -759,4 +841,15 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 	for _, screen := range e2eScreens() {
 		t.Run(screen.path, func(t *testing.T) { session.check(t, screen) })
 	}
+
+	// The historic page of the authorities, which only pointed to the
+	// command line, leads to the screen (#722).
+	// The list then restores the state it was left in.
+	t.Run("/webui/managing_authentication_authorities", func(t *testing.T) {
+		session.visit(t, "/webui/managing_authentication_authorities")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/authorities", landed.Path)
+	})
 }

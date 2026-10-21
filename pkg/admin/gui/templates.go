@@ -309,11 +309,6 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, sidebar, "front-end/html/snmp_management_page.html"),
 	)
-	managingAuthenticationAuthoritiesTemplate = template.Must(
-		template.New("managing_authentication_authorities_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, sidebar, "front-end/html/managing_authentication_authorities_page.html"),
-	)
 	managingConfigurationOverridesTemplate = template.Must(
 		template.New("managing_configuration_overrides_page.html").
 			Funcs(funcs).
