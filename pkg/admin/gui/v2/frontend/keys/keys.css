@@ -1,10 +1,14 @@
 /* Cryptographic keys screen: what the kit does not decide (column widths of the list, spacing of the list foot, of
    the banners and of the action pages, the lists of the sheet, the public key shown in full). Tokens only. */
-.keys-col-name { width: 22%; }
-.keys-col-type { width: 10%; }
-.keys-col-uses { width: 12%; }
+.keys-col-name { width: 19%; }
+.keys-col-type { width: 11%; }
+.keys-col-detail { width: 24%; }
+.keys-col-uses { width: 13%; }
 .keys-col-actions { width: 72px; }
-.keys-detail { overflow-wrap: anywhere; }
+.keys-detail { overflow-wrap: break-word; }
+.keys-code { display: block; color: var(--ts); font-size: var(--fs-sm); }
+/* The state of a key wraps: an unusable key says why, in a sentence. */
+.keys-state .w-status { white-space: normal; }
 .keys-pager { margin-top: var(--sp-3); }
 .keys-banner { margin-bottom: var(--sp-4); }
 .keys-lead { margin: 0 0 var(--sp-4); }

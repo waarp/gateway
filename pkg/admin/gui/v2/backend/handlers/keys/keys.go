@@ -58,6 +58,9 @@ const (
 	// The filter of the list: the types.
 	typeParam = "type"
 
+	// The short key ID of a PGP key: its last 8 hexadecimal digits.
+	shortKeyID = 8
+
 	// Prefixes of the catalogue keys chosen at run time.
 	sortKeyPrefix  = "keys.sort."
 	toastKeyPrefix = "keys.toast."
@@ -155,23 +158,34 @@ func (e *entry) typeLabel(translate gui.Translator) string {
 }
 
 // detail is the short summary of the list: the size of an AES key, "secret
-// set" for HMAC, the first identity and the key ID of a PGP key.
-func (e *entry) detail(translate gui.Translator) string {
+// set" for HMAC, the first identity of a PGP key; code is the short key ID
+// of a PGP key (its last 8 hexadecimal digits), shown under the identity.
+func (e *entry) detail(translate gui.Translator) (text, code string) {
 	switch {
 	case !e.info.Readable:
-		return translate("keys.detail.unreadable")
+		return translate("keys.detail.unreadable"), ""
 	case e.key.Type == model.CryptoKeyTypeAES:
-		return "AES-" + itoa(e.info.Bits)
+		return "AES-" + itoa(e.info.Bits), ""
 	case e.kind != nil && e.kind.PGP:
-		label := e.info.KeyID
+		code = e.info.KeyID[max(0, len(e.info.KeyID)-shortKeyID):]
 		if len(e.info.Identities) > 0 {
-			label = e.info.Identities[0] + " · " + e.info.KeyID
+			text = e.info.Identities[0]
 		}
 
-		return label
+		return text, code
 	default:
-		return translate("keys.detail.secret")
+		return translate("keys.detail.secret"), ""
 	}
+}
+
+// summary is the detail on one line, for the pages of a key.
+func (e *entry) summary(translate gui.Translator) string {
+	text, code := e.detail(translate)
+	if text == "" || code == "" {
+		return text + code
+	}
+
+	return text + " · " + code
 }
 
 // usesText says in a cell how many rules use a key.
@@ -311,6 +325,7 @@ type row struct {
 	URL     string
 	Type    string
 	Detail  string
+	Code    string
 	State   gui.Status
 	Uses    string
 	Actions []gui.Action
@@ -450,11 +465,11 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Name:    e.key.Name,
 			URL:     withRet(keyURL(e.key.ID, ""), carried),
 			Type:    e.typeLabel(translate),
-			Detail:  e.detail(translate),
 			State:   e.info.state(translate, now),
 			Uses:    usesText(translate, len(e.uses)),
 			Actions: actions(translate, e, user, false, carried),
 		})
+		data.Rows[len(data.Rows)-1].Detail, data.Rows[len(data.Rows)-1].Code = e.detail(translate)
 	}
 
 	data.Sizes = liststate.DefaultSizes
@@ -719,7 +734,7 @@ func (h *Handlers) renderDelete(w http.ResponseWriter, r *http.Request, item *en
 		Title:     title,
 		Name:      item.key.Name,
 		TypeLabel: item.typeLabel(translate),
-		Detail:    item.detail(translate),
+		Detail:    item.summary(translate),
 		Uses:      useRows(translate, item.uses),
 		Used:      len(item.uses) > 0,
 		Rules:     usesText(translate, len(item.uses)),

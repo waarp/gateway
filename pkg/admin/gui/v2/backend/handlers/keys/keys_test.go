@@ -401,12 +401,13 @@ func TestList(t *testing.T) {
 
 		assert.Equal(t, 5, rows(body))
 		indexes(t, body, "<tbody>", ">aes-paie<", ">aes-texte<", ">hmac-paie<", ">pgp-gateway<", ">pgp-partner<", "</tbody>")
-		assert.Contains(t, body, `>aes-paie</a></td><td class="w-nowrap">AES</td><td class="keys-detail">AES-128</td>`+
-			`<td><span class="w-status w-status--ok">`)
-		assert.Contains(t, body, `>aes-texte</a></td><td class="w-nowrap">AES</td><td class="keys-detail">Illisible</td>`)
+		assert.Contains(t, body, `>aes-paie</a></td><td class="w-nowrap">AES</td><td class="keys-detail"><span>AES-128</span> </td>`+
+			`<td class="keys-state"><span class="w-status w-status--ok">`)
+		assert.Contains(t, body, `>aes-texte</a></td><td class="w-nowrap">AES</td><td class="keys-detail"><span>Illisible</span> </td>`)
 		assert.Contains(t, body, "Inutilisable : la valeur n&#39;est pas une clé AES en base64")
-		assert.Contains(t, body, `<td class="keys-detail">Secret défini</td>`)
-		assert.Contains(t, body, `<td class="keys-detail">Partner &lt;partner@example.org&gt; · `)
+		assert.Contains(t, body, `<td class="keys-detail"><span>Secret défini</span> </td>`)
+		assert.Regexp(t, `<td class="keys-detail"><span>Partner &lt;partner@example.org&gt;</span> `+
+			`<span class="keys-code w-mono">[0-9A-F]{8}</span></td>`, body, "the identity, then the short key ID")
 		assert.Contains(t, body, "Expire le "+s.now.Add(20*day).Format("02/01/2006"))
 		assert.Contains(t, body, `<td class="w-nowrap">2 règles</td>`, "the AES key: both directions of flux-paie")
 		assert.Contains(t, body, `<td class="w-nowrap">1 règle</td>`)
@@ -672,6 +673,7 @@ func TestEditKey(t *testing.T) {
 		assert.Contains(t, body, `name="value_aes"`)
 		assert.NotContains(t, body, `name="value_hmac"`, "the value of its type only")
 		assert.Contains(t, body, "AES-128", "what is in place")
+		assert.NotContains(t, body, "champs obligatoires", "nothing is required")
 
 		rec := s.post(t, permWrite, path(s.aes, "/edit"), url.Values{
 			"name": {"renommee"}, "type": {model.CryptoKeyTypeHMAC}, "value_aes": {aesKey(aes192)},

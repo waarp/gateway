@@ -64,7 +64,7 @@ templ listView(d listData) {
 			<div class="w-table-wrap">
 				<table class="w-table">
 					<caption class="visually-hidden">{ d.Caption }</caption>
-					<colgroup><col class="keys-col-name"/><col class="keys-col-type"/><col/><col/><col class="keys-col-uses"/><col class="keys-col-actions"/></colgroup>
+					<colgroup><col class="keys-col-name"/><col class="keys-col-type"/><col class="keys-col-detail"/><col/><col class="keys-col-uses"/><col class="keys-col-actions"/></colgroup>
 					<thead>
 						<tr>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "keys.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
@@ -80,8 +80,13 @@ templ listView(d listData) {
 							<tr>
 								<td><a class="w-cell-title w-mono w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
 								<td class="w-nowrap">{ r.Type }</td>
-								<td class="keys-detail">{ r.Detail }</td>
-								<td>@gui.StatusOf(r.State)</td>
+								<td class="keys-detail">
+									<span>{ r.Detail }</span>
+									if r.Code != "" {
+										<span class="keys-code w-mono">{ r.Code }</span>
+									}
+								</td>
+								<td class="keys-state">@gui.StatusOf(r.State)</td>
 								<td class="w-nowrap">{ r.Uses }</td>
 								<td>
 									if len(r.Actions) > 0 {
@@ -153,7 +158,7 @@ templ detailView(d detailData) {
 			<h2 class="w-card__title">{ gui.T(ctx, "keys.detail.value") }</h2>
 			<dl class="w-deflist">
 				<dt>{ gui.T(ctx, "keys.detail.state") }</dt>
-				<dd>@gui.StatusOf(d.State)</dd>
+				<dd class="keys-state">@gui.StatusOf(d.State)</dd>
 				if d.Info.Readable && d.Secret {
 					<dt>{ gui.T(ctx, "keys.detail.value") }</dt>
 					<dd>{ gui.T(ctx, "keys.secret_set") }</dd>
@@ -285,7 +290,8 @@ func valueHint(ctx context.Context, v valueView) string {
 
 // formView: creation and edition of a key, one page (decision D10), one
 // card per block: the key (name, type; kept in reading when rules use it),
-// its value (one block per type, switched by the type). Refused form: a
+// its value (one block per type, switched by the type; for a key the rules
+// use, the block of its type alone, nothing being required). Refused form: a
 // banner, the name and type kept, the secrets to type again, a message under
 // each faulty field (422).
 templ formView(d *formData) {
@@ -309,7 +315,7 @@ templ formView(d *formData) {
 				<legend class="w-card__title">{ gui.T(ctx, "keys.detail.card") }</legend>
 				if d.Locked {
 					<dl class="w-deflist">
-						<dt>{ gui.T(ctx, "keys.col.name") }</dt>
+						<dt>{ gui.T(ctx, "keys.form.name") }</dt>
 						<dd><code class="w-code">{ d.Name.Value }</code></dd>
 						<dt>{ gui.T(ctx, "keys.detail.type") }</dt>
 						<dd>{ d.TypeLabel }</dd>
@@ -352,7 +358,7 @@ templ formView(d *formData) {
 				}
 			}
 		</div>
-		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: !d.Locked, Title: d.Title})
 	</form>
 }
 

@@ -285,7 +285,7 @@ func (h *Handlers) render(w http.ResponseWriter, r *http.Request, form *formData
 
 	if form.stored != nil {
 		e := entryOf(form.stored, h.now(), nil)
-		current = e.detail(translate)
+		current = e.summary(translate)
 	}
 
 	form.prepare(translate, current)
