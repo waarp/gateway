@@ -13,7 +13,8 @@
   let asked = 0;
   const refresh = () => {
     const n = ++asked;
-    fetch(form.dataset.preview, { method: "POST", body: new FormData(form), credentials: "same-origin" })
+    // Encodé comme un formulaire HTML (application/x-www-form-urlencoded), ce que le serveur lit.
+    fetch(form.dataset.preview, { method: "POST", body: new URLSearchParams(new FormData(form)), credentials: "same-origin" })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
       .then((html) => { if (n === asked) out.innerHTML = html; })
       .catch(() => {});

@@ -958,6 +958,28 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		}
 	}
 
+	// The form of an email template (#744): typing "#" in the subject opens
+	// the list of the variables, typing filters it and Enter inserts the
+	// marker; the preview, computed by the server, follows the typing.
+	if s.count(t, `form[data-preview]`) > 0 {
+		subject := s.page.Locator(`#subject`)
+		require.NoError(t, subject.Fill("Transfert "))
+		require.NoError(t, subject.Press("End"))
+		require.NoError(t, s.page.Keyboard().Type("#transferi"))
+		first, err := s.page.Locator(`.w-vars [role="option"] .w-vars__code`).First().TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, "#TRANSFERID#", first, "typing filters the variables, the name that starts with it first")
+		require.NoError(t, s.page.Keyboard().Press("Enter"))
+
+		value, err := subject.InputValue()
+		require.NoError(t, err)
+		assert.Equal(t, "Transfert #TRANSFERID#", value, "Enter inserts the marker")
+
+		_, err = s.page.WaitForFunction(`document.querySelector("#et-preview-out").textContent.includes("Transfert 1234")`,
+			nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)})
+		require.NoError(t, err, "the preview follows the typing, with the example values")
+	}
+
 	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests")
 
 	t.Run("axe-core", func(t *testing.T) { s.checkAccessibility(t) })
