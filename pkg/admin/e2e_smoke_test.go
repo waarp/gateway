@@ -214,7 +214,34 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/smtp/1/edit"},
 		{path: "/webui/smtp/1/delete"},
 		{path: "/webui/smtp/2/delete"},
+		// The email templates (#744): the list, the sheet of the template a
+		// rule uses (the rule: a table) with its preview, the sheet of the one
+		// no rule uses, the pages that add and edit one (the rich text field
+		// and the variables of the kit), the deletion refused for the first
+		// (the rules to change first) and confirmed for the second.
+		{path: "/webui/email-templates", tables: 1},
+		{path: "/webui/email-templates/1", tables: 1},
+		{path: "/webui/email-templates/2"},
+		{path: "/webui/email-templates/new"},
+		{path: "/webui/email-templates/1/edit"},
+		{path: "/webui/email-templates/1/delete", tables: 1},
+		{path: "/webui/email-templates/2/delete"},
 	}
+}
+
+// insertE2EEmailTemplates inserts an HTML template with attachments, used by
+// no rule, next to the text one insertE2ESMTP inserts for its rule. The
+// screens are visited by identifier.
+func insertE2EEmailTemplates(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	tpl := &model.EmailTemplate{
+		Name: "rapport-quotidien", Subject: "Rapport du #DATE#", MIMEType: "text/html",
+		Body:        "<p>Le fichier <b>#TRUEFILENAME#</b> de la règle #RULE# est arrivé.</p>",
+		Attachments: []string{"#TRUEFULLPATH#"},
+	}
+	require.NoError(t, db.Insert(tpl).Run())
+	require.EqualValues(t, 2, tpl.ID, "the screens are visited by identifier")
 }
 
 // insertE2ESMTP inserts an SMTP credential with authentication, which the
@@ -569,7 +596,7 @@ func startE2EServer(t *testing.T) string {
 				model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete |
 				model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete |
 				model.PermAdminRead | model.PermAdminWrite | model.PermAdminDelete |
-				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete, // the SMTP credentials (#741)
+				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete, // the SMTP credentials (#741), the email templates (#744)
 		},
 		{Username: "viewer", PasswordHash: string(hash), Permissions: model.PermServersRead | model.PermPartnersRead},
 	} {
@@ -659,6 +686,7 @@ func startE2EServer(t *testing.T) string {
 	insertE2ESNMP(t, db)
 	insertE2EKeys(t, db)
 	insertE2ESMTP(t, db)
+	insertE2EEmailTemplates(t, db)
 
 	// The gateway runs as a node of a cluster, with its own override file
 	// and one address indirection (#730).
@@ -1020,5 +1048,14 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		landed, err := url.Parse(page.URL())
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/smtp", landed.Path)
+	})
+
+	// And the historic page of the email templates (#744).
+	t.Run("/webui/email_templates_management", func(t *testing.T) {
+		session.visit(t, "/webui/email_templates_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/email-templates", landed.Path)
 	})
 }

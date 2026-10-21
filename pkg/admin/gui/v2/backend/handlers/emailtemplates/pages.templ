@@ -1,0 +1,430 @@
+package emailtemplates
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
+)
+
+// listView: the email templates (Treatments). Presentation only: the handler
+// searches, sorts and pages the rows, builds the row actions from the rights
+// and translates the texts. One coloured action ("Add a template"); a search
+// by name, no filter; two sortable headers; how many rules use each
+// template; a "⋯" menu per row; rows per page in the foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "email_templates.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "email_templates.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "email_templates.error.title"), Text: gui.T(ctx, "email_templates.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "envelope", Title: gui.T(ctx, "email_templates.empty.title"), Text: gui.T(ctx, "email_templates.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "email_templates.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "email_templates.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "email_templates.search_placeholder") } list="email-template-names" autocomplete="off"/></label>
+			<datalist id="email-template-names">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="et-col-name"/><col/><col class="et-col-format"/><col class="et-col-files"/><col class="et-col-uses"/><col class="et-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "email_templates.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "email_templates.col.subject"), Key: "subject", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "email_templates.col.format") }</th>
+							<th scope="col">{ gui.T(ctx, "email_templates.col.attachments") }</th>
+							<th scope="col">{ gui.T(ctx, "email_templates.col.uses") }</th>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "email_templates.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-mono et-wrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+								<td class="et-wrap">{ r.Subject }</td>
+								<td>{ r.Format }</td>
+								<td class="w-nowrap">{ r.Attachments }</td>
+								<td class="w-nowrap">{ r.Uses }</td>
+								<td>
+									if len(r.Actions) > 0 {
+										@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="et-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// detailView: the sheet of a template, in reading: the message (subject and
+// format), the preview of the message as the EMAIL task sends it, the
+// attachments, and the rules whose EMAIL tasks name it, each a link to its
+// tasks.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "email_templates.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "email_templates.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "email_templates.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
+			}
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "email_templates.detail.message") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "email_templates.form.subject") }</dt>
+				<dd class="et-wrap"><code class="w-code">{ d.Subject }</code></dd>
+				<dt>{ gui.T(ctx, "email_templates.col.format") }</dt>
+				<dd>{ d.Format }</dd>
+			</dl>
+		</div>
+		@previewCard(d.Preview)
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</h2>
+			if len(d.Attachments) == 0 {
+				<p class="et-note w-muted">{ gui.T(ctx, "email_templates.attachments.none") }</p>
+			} else {
+				<ul class="et-files">
+					for _, a := range d.Attachments {
+						<li><code class="w-code et-wrap">{ a }</code></li>
+					}
+				</ul>
+			}
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "email_templates.detail.uses") }</h2>
+			@usesTable(d.Uses)
+		</div>
+	</div>
+}
+
+// previewCard: the preview of a template. On the sheet, the choice of the
+// values is a GET form (applied as soon as it changes, a button without
+// JavaScript); in the form of the template, the choice belongs to that form
+// and the script of the screen updates the preview as the user types.
+templ previewCard(d *previewData) {
+	<div class="w-card et-preview" id="et-preview">
+		<h2 class="w-card__title">{ gui.T(ctx, "email_templates.preview.title") }</h2>
+		if d.Action != "" {
+			<form class="et-preview__controls" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+				if d.Ret != "" {
+					<input type="hidden" name="ret" value={ d.Ret }/>
+				}
+				@previewControls(d)
+				<noscript><button class="w-btn w-btn--outline-dark w-btn--sm" type="submit">{ gui.T(ctx, "email_templates.preview.show") }</button></noscript>
+			</form>
+		} else {
+			<div class="et-preview__controls">@previewControls(d)</div>
+		}
+		<div id="et-preview-out" aria-live="polite">@previewOutput(d)</div>
+	</div>
+}
+
+templ previewControls(d *previewData) {
+	<label class="et-preview__values">
+		<span class="w-field__label">{ gui.T(ctx, "email_templates.preview.values") }</span>
+		<select class="w-select" name="values" id="et-values">
+			for _, o := range d.Options {
+				<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+			}
+		</select>
+	</label>
+	<label class="w-check"><input type="checkbox" name="mark" value="1" id="et-mark" checked?={ d.Mark }/> <span>{ gui.T(ctx, "email_templates.preview.mark") }</span></label>
+}
+
+// previewOutput: what the preview shows, the part the script replaces: where
+// the values come from, the warning on an HTML body, and the message (from,
+// to, subject, attachments, and the body in a frame isolated by sandbox,
+// which runs nothing).
+templ previewOutput(d *previewData) {
+	<p class="et-note w-muted">{ d.Note }</p>
+	if d.HTML {
+		<div class="et-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "email_templates.preview.html_title"), Text: gui.T(ctx, "email_templates.preview.html_text")})</div>
+	}
+	if d.Failed != "" {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "email_templates.preview.failed"), Text: d.Failed})
+	} else {
+		<div class="et-mail">
+			<dl class="et-mail__head">
+				<dt>{ gui.T(ctx, "email_templates.preview.from") }</dt>
+				<dd class="w-muted">{ gui.T(ctx, "email_templates.preview.from_text") }</dd>
+				<dt>{ gui.T(ctx, "email_templates.preview.to") }</dt>
+				<dd class="w-muted">{ gui.T(ctx, "email_templates.preview.to_text") }</dd>
+				<dt>{ gui.T(ctx, "email_templates.form.subject") }</dt>
+				<dd>@marked(d.Subject)</dd>
+				<dt>{ gui.T(ctx, "email_templates.detail.attachments") }</dt>
+				<dd>
+					if len(d.Files) == 0 {
+						<span class="w-muted">{ gui.T(ctx, "email_templates.attachments.none") }</span>
+					} else {
+						for _, f := range d.Files {
+							<span class="et-file w-mono">@marked(f)</span>
+						}
+					}
+				</dd>
+			</dl>
+			<iframe class="et-mail__body" title={ gui.T(ctx, "email_templates.preview.body") } sandbox="" srcdoc={ d.Body }></iframe>
+		</div>
+	}
+}
+
+// marked: a substituted text, its values highlighted.
+templ marked(segs []segment) {
+	for _, s := range segs {
+		if s.Mark {
+			<mark class="et-mark">{ s.Text }</mark>
+		} else {
+			{ s.Text }
+		}
+	}
+}
+
+// usesTable: the rules whose EMAIL tasks name the template (ruleuse), or the
+// sentence saying no rule uses it.
+templ usesTable(rows []ruleuse.Row) {
+	if len(rows) == 0 {
+		<p class="et-note w-muted">{ gui.T(ctx, "email_templates.detail.uses_none") }</p>
+	} else {
+		<div class="et-uses">@ruleuse.Table(gui.T(ctx, "email_templates.detail.uses_caption"), rows)</div>
+	}
+}
+
+// backLabel: the back button of the form: to the template on edition, to the
+// list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "email_templates.back_template") }
+	} else {
+		{ " " + gui.T(ctx, "email_templates.back") }
+	}
+}
+
+// formView: creation and edition of a template, one page (decision D10), one
+// card per block: the template (name, in reading for a template the rules
+// use, and format), the message (subject, and body: a text, or HTML in the
+// rich text field of the kit), the attachments, the preview. The subject,
+// the body and the attachments offer the variables by "#" (VarList). Refused
+// form: a banner, the values kept, a message under each faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="et-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "email_templates.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "email_templates.form.refused_text"))})</div>
+	}
+	@gui.VarList(d.Vars)
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate data-preview={ previewURL() }>
+		if d.ID != 0 {
+			<input type="hidden" name="template_id" value={ fmt.Sprint(d.ID) }/>
+		}
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "email_templates.form.template") }</legend>
+				<div class="w-grid w-grid--2">
+					if d.Locked {
+						<div class="w-field">
+							<span class="w-field__label">{ gui.T(ctx, "email_templates.form.name") }</span>
+							<code class="w-code et-wrap">{ d.Name.Value }</code>
+							<span class="w-field__hint">{ gui.T(ctx, "email_templates.form.locked", "rules", d.Rules) }</span>
+						</div>
+					} else {
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldName, Label: gui.T(ctx, "email_templates.form.name"), Req: true, F: d.Name, Hint: gui.T(ctx, "email_templates.form.name_hint"), Autocomplete: "off", Placeholder: "fin-de-transfert"})
+					}
+					<div class="w-field">
+						<label class="w-field__label" for="format">{ gui.T(ctx, "email_templates.col.format") } <span class="w-field__req" aria-hidden="true">*</span></label>
+						<select class="w-select" id="format" name="format" data-switch aria-describedby="format-h">
+							for _, o := range d.Formats {
+								<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+							}
+						</select>
+						<span class="w-field__hint" id="format-h">{ gui.T(ctx, "email_templates.form.format_hint") }</span>
+					</div>
+				</div>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "email_templates.detail.message") }</legend>
+				@varField(fieldSubject, gui.T(ctx, "email_templates.form.subject"), gui.T(ctx, "email_templates.form.subject_hint"), d.Subject, false)
+				<div data-case={ d.HTMLCase }>
+					<div class={ "w-field", templ.KV("is-invalid", d.BodyHTML.Error != "") }>
+						<label class="w-field__label" for="body_html">{ gui.T(ctx, "email_templates.form.body") } <span class="w-field__req" aria-hidden="true">*</span></label>
+						@gui.RichText(gui.RichTextProps{ID: fieldBodyHTML, Name: fieldBodyHTML, Value: d.BodyHTML.Value, Describe: describe(fieldBodyHTML, d.BodyHTML), Vars: varListID, Required: true, Invalid: d.BodyHTML.Error != ""})
+						@hintOrError(fieldBodyHTML, gui.T(ctx, "email_templates.form.body_html_hint"), d.BodyHTML)
+					</div>
+				</div>
+				<div data-case={ d.TextCases }>
+					@varField(fieldBodyText, gui.T(ctx, "email_templates.form.body"), gui.T(ctx, "email_templates.form.body_text_hint"), d.BodyText, true)
+				</div>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</legend>
+				@varField(fieldAttachments, gui.T(ctx, "email_templates.form.attachments"), gui.T(ctx, "email_templates.form.attachments_hint"), d.Attachments, true)
+			</fieldset>
+		</div>
+		@previewCard(d.Preview)
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// varField: a field that offers the variables by "#": the subject (an
+// input), the body as a text and the attachments (a textarea, a path per
+// line), with its hint or its error. The attachments are optional.
+templ varField(id, label, hint string, f field, area bool) {
+	<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
+		<label class="w-field__label" for={ id }>
+			{ label }
+			if id == fieldAttachments {
+				{ " " + gui.T(ctx, "form.optional") }
+			} else {
+				<span class="w-field__req" aria-hidden="true"> *</span>
+			}
+		</label>
+		if area {
+			<textarea
+				class={ "w-textarea", templ.KV("w-mono", id == fieldAttachments) }
+				id={ id }
+				name={ id }
+				rows={ rowsOf(id) }
+				spellcheck="false"
+				autocomplete="off"
+				data-vars={ varListID }
+				aria-describedby={ describe(id, f) }
+				if f.Error != "" {
+					aria-invalid="true"
+				}
+			>{ f.Value }</textarea>
+		} else {
+			<input
+				class="w-input"
+				id={ id }
+				name={ id }
+				value={ f.Value }
+				autocomplete="off"
+				data-vars={ varListID }
+				aria-describedby={ describe(id, f) }
+				if f.Error != "" {
+					aria-invalid="true"
+				}
+			/>
+		}
+		@hintOrError(id, hint, f)
+	</div>
+}
+
+// hintOrError: the hint of a field, or its error.
+templ hintOrError(id, hint string, f field) {
+	if f.Error != "" {
+		<span class="w-field__error" id={ id + "-e" }>
+			@gui.Icon("triangle")
+			{ f.Error }
+		</span>
+	} else {
+		<span class="w-field__hint" id={ id + "-h" }>{ hint }</span>
+	}
+}
+
+// deleteView: confirmation page of the deletion of a template (decision D10:
+// a page, not a dialog), "Cancel" then "Delete" bottom right (D12). For a
+// template the rules use, the "action impossible" page: why, the rules whose
+// EMAIL tasks to change first (links to their tasks), "Close" alone.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "email_templates.back_template") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Used {
+			<div class="et-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "email_templates.delete.used_title"), Text: gui.T(ctx, "email_templates.delete.used", "rules", d.Rules)})</div>
+		} else {
+			<p class="et-lead">{ gui.T(ctx, "email_templates.delete.text") }</p>
+		}
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "email_templates.col.name") }</dt>
+			<dd><code class="w-code et-wrap">{ d.Name }</code></dd>
+			<dt>{ gui.T(ctx, "email_templates.col.subject") }</dt>
+			<dd class="et-wrap">{ d.Subject }</dd>
+		</dl>
+		if d.Used {
+			<h2 class="w-card__title et-subtitle">{ gui.T(ctx, "email_templates.detail.uses") }</h2>
+			@usesTable(d.Uses)
+			<div class="w-form__actions et-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.close") }</a></div>
+		} else {
+			<form class="et-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+		}
+	</div>
+}
+
+// notFoundView: a template that does not exist: localised 404 in the chrome,
+// with the way back to the list as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "envelope", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}

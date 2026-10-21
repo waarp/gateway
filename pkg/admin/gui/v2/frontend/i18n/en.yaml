@@ -1879,3 +1879,182 @@ smtp:
   error:
     title: The list of the SMTP credentials could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Email templates" screen (#744): the messages of the EMAIL task.
+email_templates:
+  title: Email templates
+  add: Add a template
+  search: Search a template by its name
+  search_placeholder: Search by name
+  count: "{total} templates"
+  count_one: 1 template
+  count_shown: "{total} templates · {shown} shown"
+  count_shown_one: "{total} templates · 1 shown"
+  caption: "Email templates, page {page} of {pages}, sorted by {sort}"
+  pager: "Templates {from} to {to} of {total}"
+  back: Back to the list
+  back_template: Back to the template
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    subject: subject
+  col:
+    name: Template
+    subject: Subject
+    format: Format
+    attachments: Attachments
+    uses: Used by
+    actions: Actions
+  format:
+    text: Text
+    html: HTML
+  attachments:
+    none: None
+    one: 1 attachment
+    many: "{n} attachments"
+  action:
+    detail: View the sheet
+    edit: Edit the template
+    delete: Delete the template
+  detail:
+    title: "Email template “{name}”"
+    message: Message
+    attachments: Attachments
+    uses: Used by
+    uses_caption: Rules whose EMAIL tasks use the template
+    uses_none: No rule uses it.
+  # The preview: the message as the EMAIL task sends it.
+  preview:
+    title: Preview
+    values: Values of the variables
+    mark: Highlight the variables
+    show: Show
+    example: Example values
+    transfer: "Transfer {id} · {rule} · {date}"
+    transfer_error: "Transfer {id} · {rule} · {date} (failed)"
+    # Go layout of the date of a transfer in the list of the values.
+    date_layout: "2006-01-02 15:04"
+    note_transfer: "Values of the transfer {label}."
+    note_none: "Example values: no transfer has used this template yet. Once the template is used, choose one of its latest transfers to see the message it produced."
+    note_example: "Example values; choose one of the latest transfers of the rules that use the template to see the message it produced."
+    html_title: The gateway sends the body as plain text today.
+    html_text: "The recipient sees the tags; this preview shows the message as they will receive it once HTML sending is supported."
+    failed: The EMAIL task would fail with this template.
+    from: From
+    from_text: The SMTP credential of the EMAIL task
+    to: To
+    to_text: The recipients of the EMAIL task
+    body: Preview of the body of the message
+  # The example values, when no transfer has used the template.
+  example:
+    file: invoices-2026-10.csv
+    partner: example-partner
+    rule: example-rule
+    client: example-client
+    account: example-account
+    error: "The partner refused the file: not enough disk space"
+  new:
+    title: New email template
+  edit:
+    title: "Edit “{name}”"
+  form:
+    template: Template
+    name: Name
+    name_hint: Unique; the EMAIL tasks name the template by it.
+    format_hint: "HTML: formatting and links; Text: a plain message."
+    subject: Subject
+    subject_hint: "Type # to insert a variable, the file name for instance."
+    body: Body
+    body_html_hint: "Type # where you want it: the list of the variables opens, typing filters it, Enter inserts."
+    body_text_hint: "Type # to insert a variable."
+    attachments: One path per line
+    attachments_hint: "The file must exist when the email is sent; type # to insert a variable, the path of the transferred file for instance."
+    locked: "Used by {rules}: the name stays, the EMAIL tasks name the template by it."
+    refused: The template was not saved.
+    refused_text: Correct the fields shown below.
+    error:
+      required: This field is required.
+      format: Choose the Text or HTML format.
+      markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
+      name_taken: Another template already has this name. Choose another one.
+  delete:
+    title: "Delete the template “{name}”?"
+    text: No rule uses it. It will be deleted for good.
+    used_title: This template cannot be deleted.
+    used: "It is used by {rules}: change the template of their EMAIL tasks first, or they would fail at the next transfer."
+  toast:
+    created: "Template “{name}” created"
+    updated: "Template “{name}” saved"
+    deleted: "Template “{name}” deleted"
+  empty:
+    title: No email template yet
+    text: The EMAIL tasks of the rules send these messages, their variables replaced by the values of the transfer.
+  none:
+    title: "No template starts with “{query}”"
+  not_found:
+    title: Template not found
+    text: This template does not exist or was deleted.
+  error:
+    title: The list of the email templates could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+  # The groups of the list of the variables.
+  var_group:
+    file: File
+    transfer: Transfer
+    partners: Partners
+    dates: Dates
+    error: Error (error tasks)
+    paths: Paths
+    info: Transfer info
+  # The variables, by the name of their marker in lower case.
+  var:
+    truefilename: Name of the file
+    basefilename: Name of the file without its extension
+    fileextension: Extension of the file, dot included
+    filesize: Size of the file
+    originalfilename: Original name of the file
+    truefullpath: Path of the file on the disk
+    originalfullpath: Original path of the file
+    rule: Rule of the transfer
+    transferid: Identifier of the transfer
+    remotetransferid: Identifier of the transfer in the protocol
+    remotehost: Remote partner
+    localhost: Local partner
+    requesterhost: Partner that requested the transfer
+    requestedhost: Partner that received the request
+    date: Date of the task (YYYYMMDD)
+    hour: Time of the task (HHMMSS)
+    timestamp: Timestamp of the task, in the chosen format
+    starttimestamp: Timestamp of the start of the transfer, in the chosen format
+    errormsg: Error message
+    errorcode: Error code
+    homepath: Root folder of the gateway
+    inpath: Receive folder
+    outpath: Send folder
+    workpath: Temporary receive folder
+    ti: "Information attached to the transfer: replace “key” with its name"
+    ti_param: key
+  # The elements of the format of a timestamp.
+  token:
+    year: year
+    year_short: year, two digits
+    month_name: month in full
+    month_abbr: month, abbreviated
+    month: month, two digits
+    month_short: month
+    day: day, two digits
+    day_short: day
+    weekday: day of the week
+    weekday_abbr: day of the week, abbreviated
+    hour: hour, 00 to 23
+    hour12: hour, 01 to 12
+    hour12_short: hour, 1 to 12
+    ampm: AM or PM
+    ampm_lower: am or pm
+    minute: minutes, two digits
+    minute_short: minutes
+    second: seconds, two digits
+    second_short: seconds
+    zone: time zone
+    offset: "time offset (+02:00)"
+    offset_short: "time offset (+0200)"

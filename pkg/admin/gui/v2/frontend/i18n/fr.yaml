@@ -1878,3 +1878,182 @@ smtp:
   error:
     title: La liste des identifiants SMTP n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Modèles d'e-mail » (#744) : les messages de la tâche EMAIL.
+email_templates:
+  title: Modèles d'e-mail
+  add: Ajouter un modèle
+  search: Rechercher un modèle par son nom
+  search_placeholder: Rechercher par nom
+  count: "{total} modèles"
+  count_one: 1 modèle
+  count_shown: "{total} modèles · {shown} affichés"
+  count_shown_one: "{total} modèles · 1 affiché"
+  caption: "Modèles d'e-mail, page {page} sur {pages}, triés par {sort}"
+  pager: "Modèles {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_template: Retour au modèle
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    subject: objet
+  col:
+    name: Modèle
+    subject: Objet
+    format: Format
+    attachments: Pièces jointes
+    uses: Utilisé par
+    actions: Actions
+  format:
+    text: Texte
+    html: HTML
+  attachments:
+    none: Aucune
+    one: 1 pièce jointe
+    many: "{n} pièces jointes"
+  action:
+    detail: Voir la fiche
+    edit: Modifier le modèle
+    delete: Supprimer le modèle
+  detail:
+    title: "Modèle d'e-mail « {name} »"
+    message: Message
+    attachments: Pièces jointes
+    uses: Utilisé par
+    uses_caption: Règles dont les tâches EMAIL emploient le modèle
+    uses_none: Aucune règle ne l'emploie.
+  # L'aperçu : le message tel que la tâche EMAIL l'envoie.
+  preview:
+    title: Aperçu
+    values: Valeurs des variables
+    mark: Repérer les variables
+    show: Afficher
+    example: Valeurs d'exemple
+    transfer: "Transfert {id} · {rule} · {date}"
+    transfer_error: "Transfert {id} · {rule} · {date} (en erreur)"
+    # Mise en forme Go de la date d'un transfert dans la liste des valeurs.
+    date_layout: "02/01/2006 15:04"
+    note_transfer: "Valeurs du transfert {label}."
+    note_none: "Valeurs d'exemple : aucun transfert n'a encore employé ce modèle. Sur un modèle employé, choisissez l'un de ses derniers transferts pour voir le message qu'il a produit."
+    note_example: "Valeurs d'exemple ; choisissez l'un des derniers transferts des règles qui emploient le modèle pour voir le message qu'il a produit."
+    html_title: "Aujourd'hui, la Gateway envoie le corps en texte brut."
+    html_text: "Le destinataire voit les balises ; cet aperçu montre le message tel qu'il le recevra une fois l'envoi en HTML pris en charge."
+    failed: La tâche EMAIL échouerait avec ce modèle.
+    from: De
+    from_text: L'identifiant SMTP de la tâche EMAIL
+    to: À
+    to_text: Les destinataires de la tâche EMAIL
+    body: Aperçu du corps du message
+  # Les valeurs d'exemple, quand aucun transfert n'a employé le modèle.
+  example:
+    file: factures-2026-10.csv
+    partner: partenaire-exemple
+    rule: regle-exemple
+    client: client-exemple
+    account: compte-exemple
+    error: "Le partenaire a refusé le fichier : espace disque insuffisant"
+  new:
+    title: Nouveau modèle d'e-mail
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    template: Modèle
+    name: Nom
+    name_hint: "Unique ; les tâches EMAIL désignent le modèle par ce nom."
+    format_hint: "HTML : mise en forme et liens ; Texte : message brut."
+    subject: Objet
+    subject_hint: "Tapez # pour insérer une variable, par exemple le nom du fichier."
+    body: Corps
+    body_html_hint: "Tapez # à l'endroit voulu : la liste des variables s'ouvre, la frappe suivante la filtre, Entrée insère."
+    body_text_hint: "Tapez # pour insérer une variable."
+    attachments: Un chemin par ligne
+    attachments_hint: "Le fichier doit exister au moment de l'envoi ; tapez # pour insérer une variable, par exemple le chemin du fichier transféré."
+    locked: "Employé par {rules} : le nom se conserve, les tâches EMAIL le désignent."
+    refused: Le modèle n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      format: Choisissez le format Texte ou HTML.
+      markers: "Variables que les tâches ne connaissent pas : {markers}. Tapez # pour choisir dans la liste."
+      name_taken: Un autre modèle porte déjà ce nom. Choisissez-en un autre.
+  delete:
+    title: "Supprimer le modèle « {name} » ?"
+    text: Aucune règle ne l'emploie. Il sera supprimé définitivement.
+    used_title: Ce modèle ne peut pas être supprimé.
+    used: "Il est employé par {rules} : changez d'abord le modèle de leurs tâches EMAIL, sinon elles échoueraient au prochain transfert."
+  toast:
+    created: "Modèle « {name} » créé"
+    updated: "Modèle « {name} » enregistré"
+    deleted: "Modèle « {name} » supprimé"
+  empty:
+    title: Aucun modèle d'e-mail pour l'instant
+    text: "Les tâches EMAIL des règles envoient ces messages, leurs variables remplacées par les valeurs du transfert."
+  none:
+    title: "Aucun modèle ne commence par « {query} »"
+  not_found:
+    title: Modèle introuvable
+    text: Ce modèle n'existe pas ou a été supprimé.
+  error:
+    title: La liste des modèles d'e-mail n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+  # Les groupes de la liste des variables.
+  var_group:
+    file: Fichier
+    transfer: Transfert
+    partners: Partenaires
+    dates: Dates
+    error: Erreur (tâches d'erreur)
+    paths: Chemins
+    info: Informations de transfert
+  # Les variables, par le nom de leur marqueur en minuscules.
+  var:
+    truefilename: Nom du fichier
+    basefilename: Nom du fichier sans extension
+    fileextension: Extension du fichier, point compris
+    filesize: Taille du fichier
+    originalfilename: Nom d'origine du fichier
+    truefullpath: Chemin du fichier sur le disque
+    originalfullpath: Chemin d'origine du fichier
+    rule: Règle du transfert
+    transferid: Identifiant du transfert
+    remotetransferid: Identifiant du transfert dans le protocole
+    remotehost: Partenaire distant
+    localhost: Partenaire local
+    requesterhost: Partenaire qui a demandé le transfert
+    requestedhost: Partenaire qui a reçu la demande
+    date: Date de la tâche (AAAAMMJJ)
+    hour: Heure de la tâche (HHMMSS)
+    timestamp: Horodatage de la tâche, au format choisi
+    starttimestamp: Horodatage du début du transfert, au format choisi
+    errormsg: Message d'erreur
+    errorcode: Code d'erreur
+    homepath: Dossier racine de la passerelle
+    inpath: Dossier de réception
+    outpath: Dossier d'envoi
+    workpath: Dossier temporaire de réception
+    ti: "Information attachée au transfert : remplacez « clé » par son nom"
+    ti_param: clé
+  # Les éléments du format d'un horodatage.
+  token:
+    year: année
+    year_short: année sur deux chiffres
+    month_name: mois en toutes lettres
+    month_abbr: mois abrégé
+    month: mois sur deux chiffres
+    month_short: mois
+    day: jour sur deux chiffres
+    day_short: jour
+    weekday: jour de la semaine
+    weekday_abbr: jour de la semaine abrégé
+    hour: heure, de 00 à 23
+    hour12: heure, de 01 à 12
+    hour12_short: heure, de 1 à 12
+    ampm: AM ou PM
+    ampm_lower: am ou pm
+    minute: minutes sur deux chiffres
+    minute_short: minutes
+    second: secondes sur deux chiffres
+    second_short: secondes
+    zone: fuseau horaire
+    offset: "décalage horaire (+02:00)"
+    offset_short: "décalage horaire (+0200)"
