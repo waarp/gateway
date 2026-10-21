@@ -97,11 +97,11 @@ traitement, pas au modèle : l'aperçu les nomme sans les afficher.
   produit ou aurait produit.
 
 Tant qu'aucun transfert n'a employé le modèle, l'aperçu prend les valeurs
-d'exemple et le dit. *Repérer les variables* surligne les valeurs remplacées.
+d'exemple et le dit. *Repérer les variables* montre chaque valeur remplacée
+en étiquette.
 
 Le corps s'affiche dans un cadre isolé : un modèle HTML n'y exécute aucun
-script. Un modèle HTML est accompagné d'un avertissement : aujourd'hui, la
-Gateway envoie le corps en texte brut, et le destinataire voit les balises.
+script.
 
 Si le modèle contient un marqueur que les traitements ne prennent pas en
 charge, l'aperçu donne l'erreur avec laquelle le traitement échouerait.

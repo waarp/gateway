@@ -1934,11 +1934,9 @@ email_templates:
     transfer_error: "Transfer {id} · {rule} · {date} (failed)"
     # Go layout of the date of a transfer in the list of the values.
     date_layout: "2006-01-02 15:04"
-    note_transfer: "Values of the transfer {label}."
+    note_transfer: "Values of the chosen transfer, as the EMAIL task reads them."
     note_none: "Example values: no transfer has used this template yet. Once the template is used, choose one of its latest transfers to see the message it produced."
     note_example: "Example values; choose one of the latest transfers of the rules that use the template to see the message it produced."
-    html_title: The gateway sends the body as plain text today.
-    html_text: "The recipient sees the tags; this preview shows the message as they will receive it once HTML sending is supported."
     failed: The EMAIL task would fail with this template.
     from: From
     from_text: The SMTP credential of the EMAIL task

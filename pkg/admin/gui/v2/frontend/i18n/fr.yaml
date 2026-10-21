@@ -1933,11 +1933,9 @@ email_templates:
     transfer_error: "Transfert {id} · {rule} · {date} (en erreur)"
     # Mise en forme Go de la date d'un transfert dans la liste des valeurs.
     date_layout: "02/01/2006 15:04"
-    note_transfer: "Valeurs du transfert {label}."
+    note_transfer: "Valeurs du transfert choisi, telles que la tâche EMAIL les lit."
     note_none: "Valeurs d'exemple : aucun transfert n'a encore employé ce modèle. Sur un modèle employé, choisissez l'un de ses derniers transferts pour voir le message qu'il a produit."
     note_example: "Valeurs d'exemple ; choisissez l'un des derniers transferts des règles qui emploient le modèle pour voir le message qu'il a produit."
-    html_title: "Aujourd'hui, la Gateway envoie le corps en texte brut."
-    html_text: "Le destinataire voit les balises ; cet aperçu montre le message tel qu'il le recevra une fois l'envoi en HTML pris en charge."
     failed: La tâche EMAIL échouerait avec ce modèle.
     from: De
     from_text: L'identifiant SMTP de la tâche EMAIL

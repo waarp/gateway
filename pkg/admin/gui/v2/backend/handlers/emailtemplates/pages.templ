@@ -179,14 +179,10 @@ templ previewControls(d *previewData) {
 }
 
 // previewOutput: what the preview shows, the part the script replaces: where
-// the values come from, the warning on an HTML body, and the message (from,
-// to, subject, attachments, and the body in a frame isolated by sandbox,
-// which runs nothing).
+// the values come from, and the message (from, to, subject, attachments, and
+// the body in a frame isolated by sandbox, which runs nothing).
 templ previewOutput(d *previewData) {
 	<p class="et-note w-muted">{ d.Note }</p>
-	if d.HTML {
-		<div class="et-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "email_templates.preview.html_title"), Text: gui.T(ctx, "email_templates.preview.html_text")})</div>
-	}
 	if d.Failed != "" {
 		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "email_templates.preview.failed"), Text: d.Failed})
 	} else {

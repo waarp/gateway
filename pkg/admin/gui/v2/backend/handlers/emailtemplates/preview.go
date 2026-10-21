@@ -75,7 +75,7 @@ type previewData struct {
 	Options []valueOption
 	Note    string
 	Mark    bool
-	HTML    bool   // an HTML body: sent as plain text until #743
+	HTML    bool   // an HTML body, rendered as HTML
 	Failed  string // the error the task would fail with
 	Subject []segment
 	Files   [][]segment
@@ -111,7 +111,7 @@ func (h *Handlers) preview(translate gui.Translator, tpl *model.EmailTemplate, u
 	switch {
 	case chosen != nil:
 		transCtx = h.transferContext(chosen)
-		data.Note = translate("email_templates.preview.note_transfer", "label", transferLabel(translate, chosen))
+		data.Note = translate("email_templates.preview.note_transfer")
 	case len(recent) == 0:
 		transCtx = h.exampleContext(translate, uses)
 		data.Note = translate("email_templates.preview.note_none")
@@ -296,7 +296,8 @@ func segments(text string) []segment {
 // client shows by default, the colours of the kit (tokens.css, linked).
 const previewStyle = "body{margin:0;padding:12px 16px;font:14px/1.5 Arial,Helvetica,sans-serif;color:var(--tp)}" +
 	"p{margin:0 0 .7em}h2{font-size:18px;margin:.6em 0 .3em}.plain{white-space:pre-wrap;overflow-wrap:anywhere}" +
-	"mark{background:var(--wo-bg);color:inherit;border-bottom:1px dotted var(--wo-aa)}"
+	"mark{padding:0 4px;border:1px solid var(--wo-aa);border-radius:var(--r-xs);" +
+	"background:var(--wo-bg);color:var(--wo-aa);font-weight:700}"
 
 // bodyDocument is the document the isolated frame of the preview shows: an
 // HTML body as it is (its values highlighted in its text only), a text body

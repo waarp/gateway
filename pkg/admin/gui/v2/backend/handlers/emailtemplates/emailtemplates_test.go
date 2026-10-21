@@ -262,7 +262,6 @@ func TestDetail(t *testing.T) {
 		indexes(t, body, "Message", "Transfert #TRANSFERID# en erreur", "HTML", "Aperçu", "Pièces jointes",
 			"Utilisé par", "flux-paie", "Envoi", "flux-paie", "Réception")
 		assert.Contains(t, body, "Valeurs d&#39;exemple : aucun transfert n&#39;a encore employé ce modèle.")
-		assert.Contains(t, body, "Aujourd&#39;hui, la Gateway envoie le corps en texte brut.", "an HTML body is sent as text until #743")
 		assert.Contains(t, body, "<dd>Transfert 1234 en erreur</dd>", "the subject with the example values")
 		assert.Contains(t, body, `sandbox="" srcdoc="`, "the body in a frame that runs nothing")
 		assert.Contains(t, body, "factures-2026-10.csv", "the example file")
@@ -283,7 +282,7 @@ func TestDetail(t *testing.T) {
 
 		body = s.get(t, permRead, pagePathOf(s.alert, "?values="+strconv.FormatInt(h.ID, 10)+"&mark=1")).Body.String()
 		assert.Contains(t, body, `<option value="1187" selected>`)
-		assert.Contains(t, body, "Valeurs du transfert Transfert 1187 · flux-paie · 20/10/2026 17:40.")
+		assert.Contains(t, body, "Valeurs du transfert choisi, telles que la tâche EMAIL les lit.")
 		assert.Contains(t, body, `<dd>Transfert <mark class="et-mark">1187</mark> en erreur</dd>`)
 		assert.Contains(t, body, "&lt;mark&gt;paie-octobre.xml&lt;/mark&gt;", "the file of the transfer, highlighted in the body")
 		assert.Contains(t, body, "connexion refusée par le partenaire")
@@ -298,7 +297,6 @@ func TestDetail(t *testing.T) {
 
 		body := s.get(t, permRead, pagePathOf(s.report, "")).Body.String()
 		indexes(t, body, "Pièces jointes", "#TRUEFULLPATH#", "/var/rapports/synthese.pdf", "Utilisé par", "Aucune règle ne l&#39;emploie.")
-		assert.NotContains(t, body, "texte brut", "no warning for a text body")
 		assert.Contains(t, body, "factures-2026-10.csv</span>", "the attachment path substituted in the preview")
 		assert.Contains(t, body, `&lt;div class=&#34;plain&#34;&gt;Ci-joint le rapport.&lt;/div&gt;`)
 	})
@@ -461,7 +459,6 @@ func TestPreview(t *testing.T) {
 	body := rec.Body.String()
 	assert.NotContains(t, body, "<html", "a fragment, not a page")
 	assert.Contains(t, body, `<dd>Transfert <mark class="et-mark">1234</mark></dd>`)
-	assert.Contains(t, body, "texte brut")
 
 	body = s.post(t, permRead, "/webui/email-templates/preview", url.Values{
 		"format": {"text/plain"}, "subject": {"#ARCHPATH#"}, "body_text": {"x"},
