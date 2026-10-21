@@ -17,12 +17,10 @@ Historique des versions
   de la tâche TRANSCODE n'encodait pas correctement le caractère "€".
 * :bug:`701` Les options non renseignées d'une instance cloud (S3, Azure Blob,
   Azure Files, Google Cloud Storage, OneDrive) prennent désormais la valeur
-  par défaut documentée par rclone, au lieu de la valeur zéro de leur type.
-  Par exemple, une instance S3 dont le fournisseur requiert l'adressage par
-  chemin, sans l'option ``force_path_style``, utilisait l'adressage par
-  sous-domaine (``https://<bucket>.<endpoint>/…``) au lieu de l'adressage par chemin
-  (``https://<endpoint>/<bucket>/…``). Les valeurs par défaut propres à
-  Gateway (``chunk_size``, ``copy_cutoff``…) sont inchangées.
+  par défaut documentée par rclone. Par exemple, une instance S3 dont le fournisseur
+  requiert l'adressage par chemin, sans l'option ``force_path_style``, utilisait
+  l'adressage par sous-domaine (``https://<bucket>.<endpoint>/…``) au lieu de
+  l'adressage par chemin (``https://<endpoint>/<bucket>/…``).
 
 * :release:`0.17.0 <2026-10-16>`
 * :bug:`699` Correction d'une erreur ``failed to insert transfer info: Duplicate entry``

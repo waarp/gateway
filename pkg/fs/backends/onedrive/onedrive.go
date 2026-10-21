@@ -96,18 +96,22 @@ func (t *tokenRefresher) Set(key, value string) {
 func parseOpts(clientID, clientSecret, token string, userOpts map[string]string,
 ) (configmap.Mapper, error) {
 	// Credential options
-	credOpts := configmap.Simple{
+	overrides := configmap.Simple{
 		"client_id":     clientID,
 		"client_secret": clientSecret,
 		"token":         token,
 	}
 
 	// Make config map
-	config := internal.MakeOptions("onedrive", userOpts, credOpts)
+	config := internal.MakeOptions("onedrive", userOpts, overrides)
 
 	// Check mandatory values
 	if drive, _ := config.Get("drive_id"); drive == "" {
 		return nil, ErrMissingDriveID
+	}
+
+	if _, ok := config.Get("drive_type"); !ok {
+		overrides.Set("drive_type", "business")
 	}
 
 	return &tokenRefresher{
