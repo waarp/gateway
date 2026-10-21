@@ -124,8 +124,8 @@ func (s *Service) sendTransferError(trans *model.NormalizedTransferView) error {
 				Name:  SNMPTrapOID,
 				Type:  gosnmp.ObjectIdentifier,
 			}, {
-				Value: InstanceNameOID,
-				Name:  s.DB.Config.GatewayName,
+				Value: s.DB.Config.GatewayName,
+				Name:  InstanceNameOID,
 				Type:  gosnmp.OctetString,
 			}, {
 				Value: utils.FormatInt(trans.ID),
@@ -192,8 +192,8 @@ func (s *Service) sendServiceError(service string, sErr error) error {
 				Name:  SNMPTrapOID,
 				Type:  gosnmp.ObjectIdentifier,
 			}, {
-				Value: InstanceNameOID,
-				Name:  s.DB.Config.GatewayName,
+				Value: s.DB.Config.GatewayName,
+				Name:  InstanceNameOID,
 				Type:  gosnmp.OctetString,
 			}, {
 				Value: service,
