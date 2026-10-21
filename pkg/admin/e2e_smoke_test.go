@@ -44,6 +44,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -168,7 +169,40 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/authorities/new"},
 		{path: "/webui/authorities/1/edit"},
 		{path: "/webui/authorities/2/delete"},
+		// SNMP (#723): the page of the monitors and of the agent, the sheets
+		// of the SNMPv2c and SNMPv3 monitors, the pages that add, edit and
+		// delete a monitor, the pages that configure and disable the agent.
+		{path: "/webui/snmp", tables: 1},
+		{path: "/webui/snmp/monitors/1"},
+		{path: "/webui/snmp/monitors/2"},
+		{path: "/webui/snmp/monitors/new"},
+		{path: "/webui/snmp/monitors/2/edit"},
+		{path: "/webui/snmp/monitors/1/delete"},
+		{path: "/webui/snmp/agent/edit"},
+		{path: "/webui/snmp/agent/delete"},
 	}
+}
+
+// insertE2ESNMP inserts an SNMPv2c monitor, an SNMPv3 monitor with
+// authentication and encryption, and the configuration of the agent. The
+// screens are visited by identifier.
+func insertE2ESNMP(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	for i, monitor := range []*snmp.MonitorConfig{
+		{Name: "supervision-v2", Version: snmp.Version2, UDPAddress: "127.0.0.1:16162", Community: "smoke-community"},
+		{
+			Name: "supervision-v3", Version: snmp.Version3, UDPAddress: "127.0.0.1:16163",
+			SNMPv3Security: snmp.V3SecurityAuthPriv, AuthEngineID: "0x80001f8880e9630000d61ff449",
+			AuthUsername: "gw", AuthProtocol: snmp.AuthSHA256, AuthPassphrase: "smoke-auth-pass",
+			PrivProtocol: snmp.PrivAES, PrivPassphrase: "smoke-priv-pass",
+		},
+	} {
+		require.NoError(t, db.Insert(monitor).Run())
+		require.EqualValues(t, i+1, monitor.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&snmp.ServerConfig{LocalUDPAddress: "127.0.0.1:16161", SNMPv3Username: "agent"}).Run())
 }
 
 // insertE2EAuthorities inserts a TLS authority made for the test, valid two
@@ -532,6 +566,7 @@ func startE2EServer(t *testing.T) string {
 	require.NoError(t, db.Insert(&model.Rule{Name: "pull-archive", IsSend: false, Path: "pull-archive", LocalDir: "archive-s3:in"}).Run())
 
 	insertE2EAuthorities(t, db)
+	insertE2ESNMP(t, db)
 
 	registerE2EServices(t)
 
@@ -851,5 +886,14 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		landed, err := url.Parse(page.URL())
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/authorities", landed.Path)
+	})
+
+	// So does the historic page of SNMP (#723).
+	t.Run("/webui/snmp_management", func(t *testing.T) {
+		session.visit(t, "/webui/snmp_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/snmp", landed.Path)
 	})
 }

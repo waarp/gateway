@@ -1408,3 +1408,143 @@ authorities:
   error:
     title: La liste des autorités d'authentification n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « SNMP » (#723) : les moniteurs (outils de supervision que la passerelle notifie) et l'agent SNMP.
+snmp:
+  title: SNMP
+  add: Ajouter un moniteur
+  send_test: Tester l'envoi à tous les moniteurs
+  test_not_running: "Le service SNMP de la passerelle ne fonctionne pas."
+  # Les deux sens de SNMP : les alertes que la passerelle envoie, les questions que la supervision lui pose.
+  monitors:
+    title: Alertes envoyées par la passerelle
+    text: "Quand un transfert échoue ou qu'un service tombe en panne, la passerelle envoie une alerte à chacun de ces outils de supervision, appelés moniteurs."
+  caption: "Moniteurs SNMP, page {page} sur {pages}, triés par {sort}"
+  pager: "Moniteurs {from} à {to} sur {total}"
+  back: Retour à SNMP
+  back_monitor: Retour au moniteur
+  none_value: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    address: adresse
+  col:
+    name: Moniteur
+    version: Version
+    address: Adresse
+    security: Sécurité
+    actions: Actions
+  # Comment un moniteur est protégé : sa communauté en SNMPv2c, son niveau en SNMPv3.
+  security:
+    community: Communauté
+    noAuthNoPriv: Sans authentification
+    authNoPriv: Authentification
+    authPriv: Authentification et chiffrement
+  action:
+    detail: Voir la fiche
+    edit: Modifier le moniteur
+    delete: Supprimer le moniteur
+    disable: Désactiver l'agent
+  agent:
+    title: Agent SNMP
+    section: Interrogation par la supervision
+    text: "Une fois configuré, l'agent SNMP de la passerelle répond aux outils de supervision qui l'interrogent : transferts par état et par erreur, mémoire, connexions."
+    disable_note: "Désactiver l'agent arrête cette écoute ; les alertes continuent de partir."
+    state: État du service SNMP
+    address: Adresse d'écoute
+    none: "La passerelle ne répond pas aux requêtes SNMP."
+    action:
+      configure: Configurer l'agent
+      edit: Modifier l'agent
+    versions:
+      label: Versions acceptées
+      all: SNMPv2c et SNMPv3
+      v3: SNMPv3 seulement
+    form:
+      new_title: Configurer l'agent SNMP
+      edit_title: Modifier l'agent SNMP
+    listen_card: Écoute
+    address_hint: "L'adresse et le port UDP où la passerelle reçoit les requêtes, sous la forme hôte:port."
+    v3_only: Accepter seulement SNMPv3
+    v3_only_hint: "Les requêtes SNMPv2c sont alors refusées."
+    user_hint: "L'utilisateur avec lequel un outil de supervision interroge la passerelle en SNMPv3."
+    priv_hint: "Le chiffrement demande l'authentification."
+    restart_hint: "L'enregistrement redémarre le service SNMP de la passerelle."
+    delete:
+      title: "Désactiver l'agent SNMP ?"
+      text: "La passerelle ne répondra plus aux requêtes SNMP ; les notifications continuent."
+      action: Désactiver
+  detail:
+    title: "Moniteur « {name} »"
+    card: Moniteur
+    community: Communauté
+    community_default: "public, la valeur par défaut"
+    set: Définie
+    unset: Non définie
+    none: Aucun
+    protocol_set: "{name}, phrase secrète définie"
+    protocol_unset: "{name}, sans phrase secrète"
+    level: Niveau de sécurité
+    user: Utilisateur SNMPv3
+    engine: Identifiant du moteur d'authentification
+    auth: Authentification
+    priv: Chiffrement
+  new:
+    title: Nouveau moniteur SNMP
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity_card: Identité
+    name: Nom
+    name_hint: Unique.
+    version_choose: Choisissez une version
+    address_hint: "L'adresse et le port UDP de l'outil de supervision, sous la forme hôte:port."
+    community_hint: "Vide : public, la valeur par défaut."
+    secret_keep: "Laisser vide conserve la valeur en place."
+    user_hint: "Obligatoire en SNMPv3, même sans authentification."
+    engine_hint: "En hexadécimal, préfixé de 0x."
+    auth_protocol: Protocole d'authentification
+    auth_pass: Phrase secrète d'authentification
+    priv_protocol: Protocole de chiffrement
+    priv_pass: Phrase secrète de chiffrement
+    protocol_choose: Choisissez un protocole
+    historic: "{name} (historique)"
+    context_card: Contexte SNMPv3
+    context_name: Nom du contexte
+    context_engine: Identifiant du moteur de contexte
+    context_set: Renseigné
+    context_none: Aucun contexte
+    refused: La configuration n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      address_form: "Indiquez une adresse sous la forme hôte:port, avec un port de 1 à 65535."
+      address: "Cette adresse ne se résout pas : {cause}"
+      version: Choisissez une version.
+      security: Choisissez un niveau de sécurité.
+      user: "Indiquez l'utilisateur SNMPv3."
+      engine: "Indiquez un identifiant en hexadécimal préfixé de 0x, ou un nombre décimal."
+      protocol: Choisissez un protocole de la liste.
+      name_taken: Un autre moniteur porte déjà ce nom. Choisissez-en un autre.
+      priv_without_auth: "Choisissez d'abord un protocole d'authentification : le chiffrement le demande."
+  delete:
+    title: "Supprimer le moniteur « {name} » ?"
+    text: "Ce moniteur ne recevra plus les notifications de la passerelle."
+  toast:
+    created: "Moniteur « {name} » créé"
+    updated: "Moniteur « {name} » enregistré"
+    deleted: "Moniteur « {name} » supprimé"
+    agent_saved: Agent SNMP enregistré ; le service SNMP a redémarré
+    agent_disabled: Agent SNMP désactivé
+    tested: Notification de test envoyée aux moniteurs
+    test_failed: "La notification de test n'a pas pu être envoyée."
+    reload_failed: "La configuration est enregistrée, mais le service SNMP ne l'a pas prise en compte."
+  empty:
+    title: Aucun moniteur SNMP pour l'instant
+    text: "La passerelle n'envoie de notification à aucun outil de supervision."
+  not_found:
+    title: Moniteur introuvable
+    text: Ce moniteur n'existe pas ou a été supprimé.
+  error:
+    title: La configuration SNMP n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

@@ -1,0 +1,467 @@
+package snmp
+
+import (
+	"context"
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// pageView: the SNMP screen (Administration). Presentation only: the handler
+// sorts and pages the monitors, builds the actions from the rights and
+// translates the texts. One coloured action ("Add a monitor"); the test
+// notification is an outline button (a POST) named after its reach (every
+// monitor). Two blocks, each titled by the way the information goes and
+// introduced by one sentence (21/10/2026: SNMP reads both ways): first the
+// queries of the monitoring tools (the card of the agent, which answers
+// them), then the alerts the gateway sends (the monitors: two sortable
+// headers, a "⋯" menu per row).
+templ pageView(d pageData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "snmp.title") }</h1>
+		</div>
+		if d.TestURL != "" || d.AddURL != "" {
+			<div class="w-page-header__actions">
+				if d.TestURL != "" {
+					<form class="snmp-inline" method="post" action={ templ.SafeURL(d.TestURL) }>
+						<button class="w-btn w-btn--outline-dark" type="submit">{ gui.T(ctx, "snmp.send_test") }</button>
+					</form>
+				}
+				if d.AddURL != "" {
+					<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+						@gui.Icon("plus")
+						{ gui.T(ctx, "snmp.add") }
+					</a>
+				}
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "snmp.error.title"), Text: gui.T(ctx, "snmp.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else {
+		@agentCard(d.Agent)
+		<section aria-labelledby="snmp-monitors">
+			<h2 class="snmp-heading" id="snmp-monitors">{ gui.T(ctx, "snmp.monitors.title") }</h2>
+			<p class="snmp-intro">{ gui.T(ctx, "snmp.monitors.text") }</p>
+			if d.Empty {
+				@gui.Empty(gui.EmptyProps{Icon: "sliders", Title: gui.T(ctx, "snmp.empty.title"), Text: gui.T(ctx, "snmp.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "snmp.add"))})
+			} else {
+				<div class="w-table-wrap">
+					<table class="w-table">
+						<caption class="visually-hidden">{ d.Caption }</caption>
+						<colgroup><col class="snmp-col-name"/><col class="snmp-col-version"/><col/><col/><col class="snmp-col-actions"/></colgroup>
+						<thead>
+							<tr>
+								@gui.Th(gui.ThProps{Label: gui.T(ctx, "snmp.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+								<th scope="col">{ gui.T(ctx, "snmp.col.version") }</th>
+								@gui.Th(gui.ThProps{Label: gui.T(ctx, "snmp.col.address"), Key: "address", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+								<th scope="col">{ gui.T(ctx, "snmp.col.security") }</th>
+								<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "snmp.col.actions") }</span></th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, r := range d.Rows {
+								<tr>
+									<td><a class="w-cell-title w-mono w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+									<td>{ r.Version }</td>
+									<td class="w-mono">{ r.Address }</td>
+									<td>{ r.Security }</td>
+									<td>
+										if len(r.Actions) > 0 {
+											@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				if d.Pager != nil {
+					<div class="snmp-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+				}
+			}
+		</section>
+	}
+}
+
+// agentCard: the SNMP agent, titled by what it does (the monitoring tools
+// query the gateway) and introduced by one sentence: the state of the SNMP
+// service, what is configured (never a secret), the way to configure it or
+// to disable it, with what disabling does; or the sentence saying the
+// gateway does not answer.
+templ agentCard(a agentData) {
+	<section class="w-card snmp-agent" aria-labelledby="snmp-agent">
+		<div class="snmp-card-head">
+			<h2 class="w-card__title" id="snmp-agent">{ gui.T(ctx, "snmp.agent.section") }</h2>
+			<div class="snmp-card-actions">
+				if a.EditURL != "" {
+					<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(a.EditURL) }>
+						@gui.Icon("pen")
+						{ a.EditLabel }
+					</a>
+				}
+				if len(a.Actions) > 0 {
+					@gui.Actions(gui.ActionsProps{ID: "act-agent", Name: gui.T(ctx, "snmp.agent.title"), Items: a.Actions})
+				}
+			</div>
+		</div>
+		<p class="snmp-intro">{ gui.T(ctx, "snmp.agent.text") }</p>
+		<dl class="w-deflist">
+			if a.HasState {
+				<dt>{ gui.T(ctx, "snmp.agent.state") }</dt>
+				<dd>
+					@gui.StatusOf(a.Status)
+					if a.Reason != "" {
+						<span class="snmp-reason">{ a.Reason }</span>
+					}
+				</dd>
+			}
+			if a.Configured {
+				<dt>{ gui.T(ctx, "snmp.agent.address") }</dt>
+				<dd><code class="w-code">{ a.Address }</code></dd>
+				<dt>{ gui.T(ctx, "snmp.agent.versions.label") }</dt>
+				<dd>{ a.Versions }</dd>
+				<dt>{ gui.T(ctx, "snmp.detail.community") }</dt>
+				<dd>{ a.Community }</dd>
+				<dt>{ gui.T(ctx, "snmp.detail.user") }</dt>
+				<dd>@orNone(a.User, true)</dd>
+				<dt>{ gui.T(ctx, "snmp.detail.auth") }</dt>
+				<dd>{ a.Auth }</dd>
+				<dt>{ gui.T(ctx, "snmp.detail.priv") }</dt>
+				<dd>{ a.Priv }</dd>
+			}
+		</dl>
+		if !a.Configured {
+			<p class="snmp-note">{ gui.T(ctx, "snmp.agent.none") }</p>
+		} else if len(a.Actions) > 0 {
+			<p class="snmp-note w-muted">{ gui.T(ctx, "snmp.agent.disable_note") }</p>
+		}
+	</section>
+}
+
+// orNone: a value, in code when it is technical, or "—".
+templ orNone(value string, code bool) {
+	if value == "" {
+		<span class="w-muted">{ gui.T(ctx, "snmp.none_value") }</span>
+	} else if code {
+		<code class="w-code">{ value }</code>
+	} else {
+		{ value }
+	}
+}
+
+// monitorView: the sheet of a monitor, in reading: its version and address,
+// then its security (the community in SNMPv2c; in SNMPv3 the level, the
+// user and what the level uses); never a secret.
+templ monitorView(d monitorData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "snmp.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "snmp.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "snmp.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
+			}
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "snmp.detail.card") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "snmp.col.version") }</dt>
+				<dd>{ d.Version }</dd>
+				<dt>{ gui.T(ctx, "snmp.col.address") }</dt>
+				<dd><code class="w-code">{ d.Address }</code></dd>
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "snmp.col.security") }</h2>
+			<dl class="w-deflist">
+				if !d.V3 {
+					<dt>{ gui.T(ctx, "snmp.detail.community") }</dt>
+					<dd>{ d.Community }</dd>
+				} else {
+					<dt>{ gui.T(ctx, "snmp.detail.level") }</dt>
+					<dd>{ d.Security }</dd>
+					<dt>{ gui.T(ctx, "snmp.detail.user") }</dt>
+					<dd>@orNone(d.User, true)</dd>
+					if d.ShowAuth {
+						<dt>{ gui.T(ctx, "snmp.detail.engine") }</dt>
+						<dd>@orNone(d.EngineID, true)</dd>
+						<dt>{ gui.T(ctx, "snmp.detail.auth") }</dt>
+						<dd>{ d.Auth }</dd>
+					}
+					if d.ShowPriv {
+						<dt>{ gui.T(ctx, "snmp.detail.priv") }</dt>
+						<dd>{ d.Priv }</dd>
+					}
+					if d.ContextName != "" || d.ContextEngine != "" {
+						<dt>{ gui.T(ctx, "snmp.form.context_name") }</dt>
+						<dd>@orNone(d.ContextName, true)</dd>
+						<dt>{ gui.T(ctx, "snmp.form.context_engine") }</dt>
+						<dd>@orNone(d.ContextEngine, true)</dd>
+					}
+				}
+			</dl>
+		</div>
+	</div>
+}
+
+// selectField: a select with its label, its hint or error; switchName makes
+// it a switch of the blocks of its value (kit.js), empty the first option
+// ("Choose…", or "None" when the choice is optional).
+templ selectField(id, label string, req bool, choices []choice, empty, errMsg, hint, switchName string) {
+	<div class={ "w-field", templ.KV("is-invalid", errMsg != "") }>
+		<label class="w-field__label" for={ id }>
+			{ label }
+			if req {
+				{ " " }<span class="w-field__req" aria-hidden="true">*</span>
+			} else {
+				{ " " }<span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span>
+			}
+		</label>
+		<select
+			class="w-select"
+			id={ id }
+			name={ id }
+			required?={ req }
+			if switchName != "" {
+				data-switch={ switchName }
+			}
+			if errMsg != "" || hint != "" {
+				aria-describedby={ id + "-h" }
+			}
+			if errMsg != "" {
+				aria-invalid="true"
+			}
+		>
+			if empty != "" {
+				<option value="">{ empty }</option>
+			}
+			for _, c := range choices {
+				<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+			}
+		</select>
+		if errMsg != "" || hint != "" {
+			@protoform.Message(id+"-h", errMsg, hint)
+		}
+	</div>
+}
+
+// secretHint: how an empty secret field is read: the default community, or,
+// when a value is stored, kept as it is.
+func secretHint(ctx context.Context, set bool, empty string) string {
+	if set {
+		return gui.T(ctx, "snmp.form.secret_keep")
+	}
+
+	return empty
+}
+
+// backButton: the button of the header of a form: back to the monitor on
+// edition, back to the screen otherwise.
+templ backButton(url string, toMonitor bool) {
+	<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(url) }>
+		@gui.Icon("arrow-left")
+		if toMonitor {
+			{ gui.T(ctx, "snmp.back_monitor") }
+		} else {
+			{ gui.T(ctx, "snmp.back") }
+		}
+	</a>
+}
+
+// refusedBanner: a refused form: what the model said when no field carries
+// it, else the general sentence.
+templ refusedBanner(refused string) {
+	<div class="snmp-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "snmp.form.refused"), Text: protoform.Or(refused, gui.T(ctx, "snmp.form.refused_text"))})</div>
+}
+
+// monitorFormView: creation and edition of a monitor, one page (decision
+// D10), one card per block: the identity (name, version, address), then the
+// block of the chosen version (data-switch "version"): the community in
+// SNMPv2c; in SNMPv3 the level (data-switch "security"), the user and the
+// fields the level asks; the SNMPv3 context, folded. The secrets are never
+// rendered back. Refused form: a banner, the values kept, a message under
+// each faulty field (422).
+templ monitorFormView(d *monitorForm) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			@backButton(d.CancelURL, d.Edit)
+		</div>
+	</div>
+	if d.HasErrors {
+		@refusedBanner(d.Refused)
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "snmp.form.identity_card") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldName, Label: gui.T(ctx, "snmp.form.name"), Req: true, F: d.Fields[fieldName], Hint: gui.T(ctx, "snmp.form.name_hint")})
+					@selectField(fieldVersion, gui.T(ctx, "snmp.col.version"), true, d.Versions, gui.T(ctx, "snmp.form.version_choose"), d.VersionErr, "", "version")
+				</div>
+				@protoform.FieldOf(protoform.FieldProps{ID: fieldAddress, Label: gui.T(ctx, "snmp.col.address"), Req: true, F: d.Fields[fieldAddress], Hint: gui.T(ctx, "snmp.form.address_hint"), Placeholder: "supervision.example.org:162"})
+			</fieldset>
+		</div>
+		<div class="w-card" data-case={ versionV2 } data-of="version">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ versionV2c }</legend>
+				@protoform.FieldOf(protoform.FieldProps{ID: fieldCommunity, Label: gui.T(ctx, "snmp.detail.community"), F: d.Fields[fieldCommunity], Hint: secretHint(ctx, d.CommunitySet, gui.T(ctx, "snmp.form.community_hint")), Password: true, Autocomplete: "off"})
+			</fieldset>
+		</div>
+		<div class="w-card" data-case={ versionV3 } data-of="version">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ versionV3 }</legend>
+				<div class="w-grid w-grid--2">
+					@selectField(fieldSecurity, gui.T(ctx, "snmp.detail.level"), true, d.Levels, "", d.Fields[fieldSecurity].Error, "", "security")
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldUser, Label: gui.T(ctx, "snmp.detail.user"), Req: true, F: d.Fields[fieldUser], Hint: gui.T(ctx, "snmp.form.user_hint"), Autocomplete: "off"})
+				</div>
+				<fieldset class="w-fieldset w-fieldset--wide" data-case="authNoPriv authPriv" data-of="security">
+					<legend class="snmp-legend">{ gui.T(ctx, "snmp.detail.auth") }</legend>
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldEngine, Label: gui.T(ctx, "snmp.detail.engine"), Req: d.EngineReq, F: d.Fields[fieldEngine], Hint: gui.T(ctx, "snmp.form.engine_hint"), Placeholder: "0x80001f8880e9630000d61ff449"})
+					<div class="w-grid w-grid--2">
+						@selectField(fieldAuthProtocol, gui.T(ctx, "snmp.form.auth_protocol"), true, d.AuthProtocols, gui.T(ctx, "snmp.form.protocol_choose"), d.Fields[fieldAuthProtocol].Error, "", "")
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldAuthPass, Label: gui.T(ctx, "snmp.form.auth_pass"), Req: !d.AuthSet, F: d.Fields[fieldAuthPass], Hint: secretHint(ctx, d.AuthSet, ""), Password: true, Autocomplete: "new-password"})
+					</div>
+				</fieldset>
+				<fieldset class="w-fieldset w-fieldset--wide" data-case="authPriv" data-of="security">
+					<legend class="snmp-legend">{ gui.T(ctx, "snmp.detail.priv") }</legend>
+					<div class="w-grid w-grid--2">
+						@selectField(fieldPrivProtocol, gui.T(ctx, "snmp.form.priv_protocol"), true, d.PrivProtocols, gui.T(ctx, "snmp.form.protocol_choose"), d.Fields[fieldPrivProtocol].Error, "", "")
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldPrivPass, Label: gui.T(ctx, "snmp.form.priv_pass"), Req: !d.PrivSet, F: d.Fields[fieldPrivPass], Hint: secretHint(ctx, d.PrivSet, ""), Password: true, Autocomplete: "new-password"})
+					</div>
+				</fieldset>
+			</fieldset>
+		</div>
+		<details class="w-card w-card--fold" data-case={ versionV3 } data-of="version" open?={ d.ContextOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "snmp.form.context_card") }</span><span class="w-fold__meta">{ contextSummary(ctx, d) }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "snmp.form.context_card") }</legend>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldContextName, Label: gui.T(ctx, "snmp.form.context_name"), F: d.Fields[fieldContextName]})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldContextEngine, Label: gui.T(ctx, "snmp.form.context_engine"), F: d.Fields[fieldContextEngine]})
+					</div>
+				</fieldset>
+			</div>
+		</details>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// contextSummary: the header of the folded SNMPv3 context card.
+func contextSummary(ctx context.Context, d *monitorForm) string {
+	if d.ContextOpen {
+		return gui.T(ctx, "snmp.form.context_set")
+	}
+
+	return gui.T(ctx, "snmp.form.context_none")
+}
+
+// agentFormView: the configuration of the agent, one page: where it listens
+// and its community, then its SNMPv3 user and protocols (none by default);
+// saving restarts the SNMP service, the hint says so.
+templ agentFormView(d *agentForm) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			@backButton(d.CancelURL, false)
+		</div>
+	</div>
+	if d.HasErrors {
+		@refusedBanner(d.Refused)
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "snmp.agent.listen_card") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldAddress, Label: gui.T(ctx, "snmp.agent.address"), Req: true, F: d.Fields[fieldAddress], Hint: gui.T(ctx, "snmp.agent.address_hint"), Placeholder: "0.0.0.0:161"})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldCommunity, Label: gui.T(ctx, "snmp.detail.community"), F: d.Fields[fieldCommunity], Hint: secretHint(ctx, d.CommunitySet, gui.T(ctx, "snmp.form.community_hint")), Password: true, Autocomplete: "off"})
+				</div>
+				<label class="w-check"><input type="checkbox" id={ fieldV3Only } name={ fieldV3Only } value="1" checked?={ d.V3Only } aria-describedby="v3-only-h"/> <span>{ gui.T(ctx, "snmp.agent.v3_only") }</span></label>
+				<span class="w-field__hint" id="v3-only-h">{ gui.T(ctx, "snmp.agent.v3_only_hint") }</span>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ versionV3 }</legend>
+				@protoform.FieldOf(protoform.FieldProps{ID: fieldUser, Label: gui.T(ctx, "snmp.detail.user"), F: d.Fields[fieldUser], Hint: gui.T(ctx, "snmp.agent.user_hint"), Autocomplete: "off"})
+				<div class="w-grid w-grid--2">
+					@selectField(fieldAuthProtocol, gui.T(ctx, "snmp.form.auth_protocol"), false, d.AuthProtocols, gui.T(ctx, "snmp.detail.none"), d.Fields[fieldAuthProtocol].Error, "", "")
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldAuthPass, Label: gui.T(ctx, "snmp.form.auth_pass"), F: d.Fields[fieldAuthPass], Hint: secretHint(ctx, d.AuthSet, ""), Password: true, Autocomplete: "new-password"})
+					@selectField(fieldPrivProtocol, gui.T(ctx, "snmp.form.priv_protocol"), false, d.PrivProtocols, gui.T(ctx, "snmp.detail.none"), d.Fields[fieldPrivProtocol].Error, gui.T(ctx, "snmp.agent.priv_hint"), "")
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldPrivPass, Label: gui.T(ctx, "snmp.form.priv_pass"), F: d.Fields[fieldPrivPass], Hint: secretHint(ctx, d.PrivSet, ""), Password: true, Autocomplete: "new-password"})
+				</div>
+			</fieldset>
+		</div>
+		<p class="snmp-note w-muted">{ gui.T(ctx, "snmp.agent.restart_hint") }</p>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// deleteView: the confirmation page of the deletion of a monitor or of the
+// disabling of the agent (decision D10: a page, not a dialog). The title
+// names it, the text says the consequence; "Cancel" then "Delete" (or
+// "Disable") bottom right (D12). The product refuses nothing.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ d.BackLabel }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		<p class="snmp-lead">{ d.Text }</p>
+		<dl class="w-deflist">
+			if d.Agent {
+				<dt>{ gui.T(ctx, "snmp.agent.address") }</dt>
+				<dd><code class="w-code">{ d.Address }</code></dd>
+			} else {
+				<dt>{ gui.T(ctx, "snmp.col.name") }</dt>
+				<dd><code class="w-code">{ d.Name }</code></dd>
+				<dt>{ gui.T(ctx, "snmp.col.version") }</dt>
+				<dd>{ d.Version }</dd>
+				<dt>{ gui.T(ctx, "snmp.col.address") }</dt>
+				<dd><code class="w-code">{ d.Address }</code></dd>
+			}
+		</dl>
+		<form class="snmp-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title, Label: d.Label})</form>
+	</div>
+}
+
+// notFoundView: a monitor that does not exist: localised 404 in the chrome,
+// with the way back to the screen as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "sliders", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}

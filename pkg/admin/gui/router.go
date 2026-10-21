@@ -70,7 +70,9 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 	handlePage(secureRouter, "/cloud_instance_management", cloudInstanceManagementPage(logger, db)).Methods("GET", "POST")
 	handlePage(secureRouter, "/cryptographic_key_management",
 		cryptographicKeyManagementPage(logger)).Methods("GET", "POST")
-	handlePage(secureRouter, "/snmp_management", snmpManagementPage(logger)).Methods("GET", "POST")
+	// The SNMP screen of the reworked interface replaces this page, which
+	// only pointed to the command line (#723).
+	secureRouter.Handle("/snmp_management", http.RedirectHandler("snmp", http.StatusMovedPermanently))
 	// The authorities screen of the reworked interface replaces this page,
 	// which only pointed to the command line (#722).
 	secureRouter.Handle("/managing_authentication_authorities",
