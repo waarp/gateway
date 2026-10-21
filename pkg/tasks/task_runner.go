@@ -23,9 +23,10 @@ type Runner struct {
 	transCtx *model.TransferContext
 	Remote   any
 
-	Ctx  context.Context
-	Stop context.CancelFunc
-	lock sync.WaitGroup
+	Ctx         context.Context
+	Stop        context.CancelFunc
+	lock        sync.WaitGroup
+	fileDeleted bool
 }
 
 // NewTaskRunner returns a new tasks.Runner using the given elements.
@@ -48,17 +49,17 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 
 // PreTasks executes the transfer's pre-tasks.
 func (r *Runner) PreTasks(trace func(rank int) error) *Error {
-	return r.runTasks(r.transCtx.PreTasks, false, trace)
+	return r.runTasks(r.transCtx.PreTasks, trace)
 }
 
 // PostTasks executes the transfer's post-tasks.
 func (r *Runner) PostTasks(trace func(rank int) error) *Error {
-	return r.runTasks(r.transCtx.PostTasks, false, trace)
+	return r.runTasks(r.transCtx.PostTasks, trace)
 }
 
 // ErrorTasks executes the transfer's error-tasks.
 func (r *Runner) ErrorTasks(trace func(rank int)) *Error {
-	return r.runTasks(r.transCtx.ErrTasks, true, func(rank int) error {
+	return r.runTasks(r.transCtx.ErrTasks, func(rank int) error {
 		if trace != nil {
 			trace(rank)
 		}
@@ -67,9 +68,7 @@ func (r *Runner) ErrorTasks(trace func(rank int)) *Error {
 	})
 }
 
-func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo string,
-	isErrTasks bool,
-) *Error {
+func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo string) *Error {
 	runner := model.GetTaskRunner(task.Type)
 	if runner == nil {
 		return newError(types.TeExternalOperation, "unknown task type: %s", task.Type)
@@ -87,7 +86,7 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 
 	var runErr error
 
-	if isErrTasks {
+	if task.Chain == model.ChainError {
 		runErr = runner.Run(context.Background(), args, r.db, r.Logger, r.transCtx, r.Remote)
 	} else {
 		runErr = runner.Run(r.Ctx, args, r.db, r.Logger, r.transCtx, r.Remote)
@@ -110,10 +109,14 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 		r.Logger.Debug(taskInfo)
 	}
 
-	return r.updateProgress(updTicker, isErrTasks)
+	if task.Type == Delete {
+		r.fileDeleted = true
+	}
+
+	return r.updateProgress(updTicker, task)
 }
 
-func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error {
+func (r *Runner) updateProgress(updTicker *time.Ticker, lastTask *model.Task) *Error {
 	r.transCtx.Transfer.TaskNumber++
 
 	size := r.getFilesize()
@@ -131,7 +134,7 @@ func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error 
 		"error_details", "filesize").Run(); dbErr != nil {
 		r.Logger.Errorf("Failed to update transfer after task: %v", dbErr)
 
-		if !isErrTasks {
+		if lastTask.Chain != model.ChainError {
 			return newErrorWith(types.TeInternal, "failed to update transfer", dbErr)
 		}
 	}
@@ -141,8 +144,7 @@ func (r *Runner) updateProgress(updTicker *time.Ticker, isErrTasks bool) *Error 
 
 // runTasks executes sequentially the list of tasks given according to the
 // Runner context.
-func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank int) error,
-) *Error {
+func (r *Runner) runTasks(tasks []*model.Task, trace func(rank int) error) *Error {
 	r.lock.Add(1)
 	defer r.lock.Done()
 
@@ -153,7 +155,7 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, r.transCtx.Rule.Name,
 			task.Chain, task.Rank)
 
-		if !isErrTasks {
+		if task.Chain != model.ChainError {
 			select {
 			case <-r.Ctx.Done():
 				return ErrTransferInterrupted
@@ -161,7 +163,7 @@ func (r *Runner) runTasks(tasks []*model.Task, isErrTasks bool, trace func(rank 
 			}
 		}
 
-		if err := r.runTask(updTicker, task, taskInfo, isErrTasks); err != nil {
+		if err := r.runTask(updTicker, task, taskInfo); err != nil {
 			return err
 		}
 
@@ -210,7 +212,7 @@ func (r *Runner) replace(t *model.Task) (map[string]string, error) {
 }
 
 func (r *Runner) getFilesize() int64 {
-	if !r.transCtx.Rule.IsSend {
+	if !r.transCtx.Rule.IsSend || r.fileDeleted {
 		return -1
 	}
 

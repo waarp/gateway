@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`729` Le moteur d'exécution de tâche n'affiche plus d'avertissement dans
+  les logs indiquant que le fichier de transfert n'existe pas après que celui-ci
+  ait été volontairement supprimé via une tâche DELETE.
 * :bug:`743` Les emails envoyés par la tâche EMAIL sont désormais bien du type MIME
   spécifié dans le template. Précédemment, les emails avaient systématiquement le
   type ``text/plain``, quelque soit le type du template.
