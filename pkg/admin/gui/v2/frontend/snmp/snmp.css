@@ -3,7 +3,8 @@
    the SNMPv3 blocks). Tokens only. */
 .snmp-inline { display: inline; margin: 0; }
 .snmp-section { margin-bottom: var(--sp-6); }
-.snmp-heading { margin: 0 0 var(--sp-3); font: 700 var(--fs-h4) / 1.3 var(--fb); color: var(--tp); }
+.snmp-heading { margin: 0 0 var(--sp-2); font: 700 var(--fs-h4) / 1.3 var(--fb); color: var(--tp); }
+.snmp-intro { margin: 0 0 var(--sp-3); color: var(--ts); }
 .snmp-col-name { width: 24%; }
 .snmp-col-version { width: 12%; }
 .snmp-col-actions { width: 72px; }

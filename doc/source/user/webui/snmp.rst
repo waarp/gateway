@@ -32,7 +32,9 @@ page dit seulement si elles sont définies.
 La page SNMP
 ============
 
-La page montre d'abord les moniteurs, puis l'agent.
+La page montre les deux sens de SNMP, chacun dans un bloc titré par ce qu'il
+fait et introduit par une phrase : *Alertes envoyées par la passerelle* (les
+moniteurs), puis *Interrogation par la supervision* (l'agent).
 
 .. list-table::
    :header-rows: 1
@@ -58,7 +60,7 @@ Les colonnes *Moniteur* et *Adresse* se trient d'un clic sur leur en-tête (par
 défaut, le nom croissant). Le pied de liste permet de changer de page et de
 choisir le nombre de lignes par page.
 
-La carte **Agent SNMP** donne l'état du service SNMP de la Gateway, comme
+La carte **Interrogation par la supervision** donne l'état du service SNMP de la Gateway, comme
 l'écran :doc:`etat-des-services`, avec sa raison en cas d'erreur. Quand l'agent
 est configuré, elle donne aussi :
 
@@ -78,7 +80,7 @@ sans le droit correspondant.
 La notification de test
 =======================
 
-Le bouton *Envoyer une notification de test*, présent dès qu'un moniteur
+Le bouton *Tester l'envoi à tous les moniteurs*, présent dès qu'un moniteur
 existe, fait envoyer par la Gateway une notification d'erreur de transfert
 fictive à tous les moniteurs. La page dit ensuite si l'envoi a réussi ou, s'il a
 échoué, la cause qu'en donne le service SNMP.

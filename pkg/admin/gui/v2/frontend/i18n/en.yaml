@@ -1414,9 +1414,12 @@ authorities:
 snmp:
   title: SNMP
   add: Add a monitor
-  send_test: Send a test notification
+  send_test: Test the sending to every monitor
   test_not_running: "The SNMP service of the gateway is not running."
-  monitors: Monitors
+  # The two ways of SNMP: the alerts the gateway sends, the questions the monitoring tools ask it.
+  monitors:
+    title: Alerts sent by the gateway
+    text: "When a transfer fails or a service breaks down, the gateway sends an alert to each of these monitoring tools, called monitors."
   caption: "SNMP monitors, page {page} of {pages}, sorted by {sort}"
   pager: "Monitors {from} to {to} of {total}"
   back: Back to SNMP
@@ -1445,6 +1448,9 @@ snmp:
     disable: Disable the agent
   agent:
     title: SNMP agent
+    section: Queries from the monitoring tools
+    text: "Once configured, the SNMP agent of the gateway answers the monitoring tools that query it: transfers by state and by error, memory, connections."
+    disable_note: "Disabling the agent stops this listening; the alerts keep going."
     state: State of the SNMP service
     address: Listening address
     none: "The gateway does not answer SNMP requests."

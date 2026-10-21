@@ -1413,9 +1413,12 @@ authorities:
 snmp:
   title: SNMP
   add: Ajouter un moniteur
-  send_test: Envoyer une notification de test
+  send_test: Tester l'envoi à tous les moniteurs
   test_not_running: "Le service SNMP de la passerelle ne fonctionne pas."
-  monitors: Moniteurs
+  # Les deux sens de SNMP : les alertes que la passerelle envoie, les questions que la supervision lui pose.
+  monitors:
+    title: Alertes envoyées par la passerelle
+    text: "Quand un transfert échoue ou qu'un service tombe en panne, la passerelle envoie une alerte à chacun de ces outils de supervision, appelés moniteurs."
   caption: "Moniteurs SNMP, page {page} sur {pages}, triés par {sort}"
   pager: "Moniteurs {from} à {to} sur {total}"
   back: Retour à SNMP
@@ -1444,6 +1447,9 @@ snmp:
     disable: Désactiver l'agent
   agent:
     title: Agent SNMP
+    section: Interrogation par la supervision
+    text: "Une fois configuré, l'agent SNMP de la passerelle répond aux outils de supervision qui l'interrogent : transferts par état et par erreur, mémoire, connexions."
+    disable_note: "Désactiver l'agent arrête cette écoute ; les alertes continuent de partir."
     state: État du service SNMP
     address: Adresse d'écoute
     none: "La passerelle ne répond pas aux requêtes SNMP."
