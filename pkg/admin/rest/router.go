@@ -341,12 +341,12 @@ func makeSNMPHandlers(mkHandler HandlerFactory) {
 		snmpServerPath   = "/snmp/server"
 		snmpMonitorsPath = "/snmp/monitors"
 		snmpMonitorPath  = "/snmp/monitors/{snmp_monitor}"
+		snmpTestTrapPath = "/snmp/test/trap"
 	)
 
 	// SNMP monitors
 	mkHandler(snmpMonitorsPath, addSnmpMonitor, model.PermAdminWrite, http.MethodPost)
 	mkHandler(snmpMonitorsPath, listSnmpMonitors, model.PermAdminRead, http.MethodGet)
-	mkHandler.noDB(snmpMonitorsPath, testSnmpTrapTransErr, model.PermAdminWrite, http.MethodPut)
 	mkHandler(snmpMonitorPath, getSnmpMonitor, model.PermAdminRead, http.MethodGet)
 	mkHandler(snmpMonitorPath, updateSnmpMonitor, model.PermAdminWrite, http.MethodPatch)
 	mkHandler(snmpMonitorPath, deleteSnmpMonitor, model.PermAdminDelete, http.MethodDelete)
@@ -355,6 +355,13 @@ func makeSNMPHandlers(mkHandler HandlerFactory) {
 	mkHandler(snmpServerPath, getSnmpService, model.PermAdminRead, http.MethodGet)
 	mkHandler(snmpServerPath, setSnmpService, model.PermAdminWrite, http.MethodPut)
 	mkHandler(snmpServerPath, deleteSnmpService, model.PermAdminWrite, http.MethodDelete)
+
+	// SNMP test
+	mkHandler.noDB(snmpTestTrapPath, testSnmpTrapTransErr, model.PermAdminWrite, http.MethodPut)
+	mkHandler.noDB(snmpMonitorsPath, // old path kept for compatibility
+		warnHandlerNoDB(testSnmpTrapTransErr, "path %q is deprecated, use %q",
+			snmpMonitorsPath, snmpTestTrapPath),
+		model.PermAdminWrite, http.MethodPut)
 }
 
 func makeKeysHandlers(mkHandler HandlerFactory) {
