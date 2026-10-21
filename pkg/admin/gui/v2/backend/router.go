@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clouds"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/overrides"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/partners"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
@@ -49,6 +50,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeCloudsRouter(router, db, logger)
 	MakeAuthoritiesRouter(router, db, logger)
 	MakeSNMPRouter(router, db, logger)
+	MakeOverridesRouter(router, db, logger)
 }
 
 // adminRoutes registers the routes of a screen behind the rights on the
@@ -383,4 +385,17 @@ func MakeSNMPRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	routes.write("/snmp/agent/edit", handlers.AgentForm, handlers.SaveAgent)
 	routes.write("/snmp/agent/delete", handlers.DisableAgentForm, handlers.DisableAgent)
 	routes.act("/snmp/test", handlers.Test)
+}
+
+// MakeOverridesRouter registers the "Configuration overrides" screen: the
+// list of the addresses replaced on the node, the pages that add, edit and
+// delete a rule (named by its configured address, in a parameter).
+func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := overrides.New(db, logger)
+	routes := adminRoutes{router}
+
+	routes.read("/overrides", handlers.List)
+	routes.write("/overrides/new", handlers.NewForm, handlers.Create)
+	routes.write("/overrides/edit", handlers.EditForm, handlers.Update)
+	routes.del("/overrides/delete", handlers.DeleteForm, handlers.Delete)
 }

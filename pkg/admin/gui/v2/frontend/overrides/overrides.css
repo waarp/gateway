@@ -1,0 +1,12 @@
+/* Configuration overrides screen: what the kit does not decide (the name of the node in the header, the sentence
+   under the title, column widths of the list, spacing of the list foot, of the notes, of the banners and of the
+   action pages). Tokens only. */
+.overrides-node { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--ts); }
+.overrides-intro { margin: 0 0 var(--sp-4); color: var(--ts); }
+.overrides-col-scope { width: 18%; }
+.overrides-col-actions { width: 72px; }
+.overrides-pager { margin-top: var(--sp-3); }
+.overrides-note { margin: var(--sp-3) 0 0; }
+.overrides-banner { margin-bottom: var(--sp-4); }
+.overrides-lead { margin: 0 0 var(--sp-4); }
+.overrides-form-actions { margin-top: var(--sp-5); }
