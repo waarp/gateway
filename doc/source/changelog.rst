@@ -3,6 +3,18 @@
 Historique des versions
 =======================
 
+* :feature:`730` L'interface web propose un écran des surcharges de
+  configuration (voir :ref:`le guide de l'interface web <user-webui-overrides>`),
+  qui n'existait jusqu'ici que par l'API REST et la ligne de commande : la liste
+  des adresses remplacées sur le nœud de grappe qui sert la page, avec la portée
+  de chaque règle (hôte et port, ou hôte seul) et ce qu'elle concerne dans la
+  configuration commune (serveurs locaux, partenaires, administration, cette
+  dernière avec une mise en garde) ; pages d'ajout, de modification et de
+  suppression, qui disent quand une règle s'applique et refusent une adresse
+  qui rendrait le fichier du nœud illisible ou qui est déjà remplacée. Sur une
+  instance démarrée sans nom d'instance, l'écran l'explique. L'ancienne page,
+  qui renvoyait à la ligne de commande, mène désormais à l'écran.
+
 * :feature:`723` L'interface web propose un écran SNMP (voir :ref:`le guide de
   l'interface web <user-webui-snmp>`), qui n'existait jusqu'ici que par l'API
   REST et la ligne de commande : une page avec les moniteurs (version, adresse,
