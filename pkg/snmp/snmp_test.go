@@ -18,21 +18,15 @@ import (
 func TestSNMPClient(t *testing.T) {
 	t.Parallel()
 
+	trapsTimeout = time.Second
+	trapsRetries = 0
+
 	v2Traps, v2Addr := makeTrapListener(t, gosnmp.Version2c)
 
 	t.Run("Testing the SNMP client", func(t *testing.T) {
 		db := dbtest.TestDatabase(t)
 		service := &Service{DB: db}
 
-		snmpV2Monitor := MonitorConfig{
-			Name:       "snmp-v2-monitor",
-			Version:    Version2,
-			UDPAddress: v2Addr.String(),
-			Community:  "public",
-		}
-		require.NoError(t, db.Insert(&snmpV2Monitor).Run())
-
-		/* TODO: uncomment when implementing issue #728
 		snmpV3Monitor := MonitorConfig{
 			Name:           "snmp-v3-monitor",
 			Version:        Version3,
@@ -46,7 +40,14 @@ func TestSNMPClient(t *testing.T) {
 			PrivPassphrase: "mypassword",
 		}
 		require.NoError(t, db.Insert(&snmpV3Monitor).Run())
-		*/
+
+		snmpV2Monitor := MonitorConfig{
+			Name:       "snmp-v2-monitor",
+			Version:    Version2,
+			UDPAddress: v2Addr.String(),
+			Community:  "public",
+		}
+		require.NoError(t, db.Insert(&snmpV2Monitor).Run())
 
 		require.NoError(t, service.Start())
 		t.Cleanup(func() {
@@ -61,7 +62,8 @@ func TestSNMPClient(t *testing.T) {
 
 		t.Run("Reporting a service error", func(t *testing.T) {
 			testError := errors.New("test error message")
-			require.NoError(t, service.sendServiceError("test-service", testError))
+			require.ErrorContains(t, service.sendServiceError("test-service", testError),
+				"failed to send SNMP trap")
 
 			expectedVars := []gosnmp.SnmpPDU{{
 				Name:  SNMPTrapOID,
@@ -101,7 +103,8 @@ func TestSNMPClient(t *testing.T) {
 				IsTransfer:       false,
 			}
 
-			require.NoError(t, service.sendTransferError(transfer))
+			require.ErrorContains(t, service.sendTransferError(transfer),
+				"failed to send SNMP trap")
 
 			expectedVars := []gosnmp.SnmpPDU{{
 				Name:  SNMPTrapOID,

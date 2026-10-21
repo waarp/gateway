@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`728` Dans le cas où plusieurs moniteurs SNMP sont configurés, échouer à
+  envoyer une *trap* à l'un des moniteurs n'empêche plus l'envoi de cette *trap*
+  aux autres moniteurs.
 * :bug:`724` Correction d'un bug de sérialisation d'OID introduit en version
   0.13.0 qui empêchait l'envoi de *trap* SNMP.
 * :bug:`702` Le message d'erreur lors de l'insertion d'un transfert où le

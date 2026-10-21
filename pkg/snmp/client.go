@@ -14,7 +14,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const (
+//nolint:gochecknoglobals //made vars to speed up tests
+var (
 	trapsTimeout = 5 * time.Second
 	trapsRetries = 3
 )
@@ -79,32 +80,35 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 
 	clients := make([]*gosnmp.GoSNMP, 0, len(s.monitors))
 
+	var errs []error
+
 	for _, monitor := range s.monitors {
 		client, err := connect(s.Logger, monitor)
 		if err != nil {
 			s.Logger.Errorf("Failed to connect to SNMP monitor %q at %q: %v",
 				monitor.Name, monitor.UDPAddress, err)
-		}
 
-		clients = append(clients, client)
+			errs = append(errs, fmt.Errorf("failed to connect to SNMP monitor %q at %q: %w",
+				monitor.Name, monitor.UDPAddress, err))
+		} else {
+			clients = append(clients, client)
+		}
 	}
 
 	defer func() {
 		for _, client := range clients {
 			if err := client.Conn.Close(); err != nil {
-				s.Logger.Errorf("Failed to close SNMP connection to %q: %v",
+				s.Logger.Warningf("Failed to close SNMP connection to %q: %v",
 					client.Conn.RemoteAddr().String(), err)
 			}
 		}
 	}()
 
-	var errs []error
-
 	for _, client := range clients {
 		if _, err := client.SendTrap(*trap); err != nil {
 			s.Logger.Errorf("Failed to send SNMP trap: %v", err)
 
-			return fmt.Errorf("failed to send SNMP trap: %w", err)
+			errs = append(errs, fmt.Errorf("failed to send SNMP trap: %w", err))
 		}
 	}
 
