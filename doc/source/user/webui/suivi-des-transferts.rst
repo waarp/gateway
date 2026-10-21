@@ -35,6 +35,10 @@ nombre de filtres actifs s'affiche sur le bouton, *Réinitialiser* les
 retire tous. Les nombres de la rangée des états suivent la recherche et les
 filtres.
 
+La liste montre un transfert par ligne et occupe toute la largeur de l'écran.
+Un texte trop long pour sa colonne se termine par « … » ; il se lit en entier
+dans l'infobulle de sa cellule, comme les informations secondaires.
+
 .. list-table::
    :header-rows: 1
    :widths: 20 80
@@ -44,36 +48,49 @@ filtres.
    * - N°
      - Le numéro du transfert.
    * - Fichier
-     - Le nom du fichier, lien vers la fiche du transfert ; dessous, son
-       protocole. Une infobulle donne le chemin du fichier sur la Gateway
-       quand il est connu, sinon ses noms à la source et à la destination.
+     - Le nom du fichier, lien vers la fiche du transfert. En infobulle, le
+       chemin du fichier sur la Gateway quand il est connu (sinon ses noms à
+       la source et à la destination) et le protocole.
    * - État
-     - L'état du transfert (voir ci-dessous) ; pour un transfert en erreur,
-       la cause de l'erreur, et en infobulle la cause suivie du message.
+     - L'état du transfert (voir ci-dessous). Pour un transfert en erreur,
+       l'infobulle donne la cause et le message.
+   * - Sens
+     - *Envoi* ou *Réception* ; en infobulle, le rôle de la Gateway
+       (*client*, *serveur*).
    * - Règle
-     - La règle ; dessous, le sens (*Envoi*, *Réception*) et le rôle de la
-       Gateway (*client*, *serveur*).
+     - La règle.
    * - Partenaire
-     - Le partenaire distant, ou le serveur local d'un transfert serveur ;
-       dessous, le compte.
+     - Le partenaire distant, ou le serveur local d'un transfert serveur ; en
+       infobulle, le compte.
+   * - Compte
+     - Le compte.
    * - Progression
      - Une barre et le pourcentage quand la taille du fichier est connue,
-       les octets transférés sinon ; dessous, la taille.
+       les octets transférés sinon ; en infobulle, la taille.
    * - Début
-     - L'heure et la date de début ; pour un transfert planifié, l'heure
-       prévue ; pour un transfert attendu, sa date limite.
+     - Le début ; pour un transfert planifié, l'heure prévue ; pour un
+       transfert attendu, sa date limite.
    * - Fin
-     - L'heure et la date de fin ; pour un transfert en erreur qui sera
-       retenté, l'heure de la prochaine tentative.
+     - La fin ; pour un transfert en erreur qui sera retenté, l'heure de la
+       prochaine tentative, précédée de l'icône de reprise.
+
+Une date du jour s'écrit par son heure seule, une date de l'année par le jour
+et l'heure (« 21/10 18:00 »), une autre avec l'année ; l'infobulle donne la
+date complète. Quand la largeur utile est inférieure à 1 500 pixels environ,
+les colonnes *Sens* et *Compte* se replient : une flèche devant la règle
+indique le sens, et le compte se lit dans l'infobulle du partenaire. Sur un
+écran étroit, le tableau défile dans son cadre.
 
 Par défaut, les derniers transferts créés viennent en premier : le tri se
 fait sur le numéro, décroissant. Les colonnes *N°*, *Fichier*, *État*,
 *Règle*, *Début* et *Fin* se trient d'un clic
 sur leur en-tête ; l'état se trie dans l'ordre de la rangée des états. Le
 pied de liste indique les lignes affichées, permet de changer de page et de
-choisir le nombre de lignes par page (10, 25, 50 ou 100). La recherche, les
-filtres, l'état, le tri et la page restent dans l'adresse de la page et sont
-conservés pour la session : revenir à l'écran retrouve la liste telle
+choisir le nombre de lignes par page (10, 25, 50 ou 100 ; 25 par défaut). Il
+est repris au-dessus du tableau, à droite de la recherche, pour changer de page
+sans descendre. La recherche, les filtres, l'état, le tri et la page restent
+dans l'adresse de la page et sont conservés pour la session, même quand ils
+changent sans recharger la page : revenir à l'écran retrouve la liste telle
 qu'elle a été laissée.
 
 Le menu « ⋯ » de chaque ligne mène à la fiche du transfert et propose les
