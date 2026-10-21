@@ -1,0 +1,14 @@
+/* SMTP credentials screen: what the kit does not decide (column widths of the list, spacing of the list foot, of
+   the banners and of the action pages, the long addresses). Tokens only. */
+.smtp-col-sender { width: 30%; }
+.smtp-col-server { width: 28%; }
+.smtp-col-uses { width: 13%; }
+.smtp-col-actions { width: 72px; }
+.smtp-sender, .smtp-server, .smtp-wrap { overflow-wrap: anywhere; }
+.smtp-pager { margin-top: var(--sp-3); }
+.smtp-banner { margin-bottom: var(--sp-4); }
+.smtp-lead { margin: 0 0 var(--sp-4); }
+.smtp-note { margin: var(--sp-3) 0 0; }
+.smtp-subtitle { margin-top: var(--sp-5); }
+.smtp-form-actions { margin-top: var(--sp-5); }
+.smtp-uses { margin-top: var(--sp-2); }

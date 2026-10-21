@@ -203,7 +203,45 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/keys/1/edit"},
 		{path: "/webui/keys/1/delete", tables: 1},
 		{path: "/webui/keys/2/delete"},
+		// The SMTP credentials (#741): the list, the sheet of the credential
+		// a rule uses (the rule: a table), the sheet of the one no rule uses,
+		// the pages that add and edit one, the deletion refused for the first
+		// (the rules to change first) and confirmed for the second.
+		{path: "/webui/smtp", tables: 1},
+		{path: "/webui/smtp/1", tables: 1},
+		{path: "/webui/smtp/2"},
+		{path: "/webui/smtp/new"},
+		{path: "/webui/smtp/1/edit"},
+		{path: "/webui/smtp/1/delete", tables: 1},
+		{path: "/webui/smtp/2/delete"},
 	}
+}
+
+// insertE2ESMTP inserts an SMTP credential with authentication, which the
+// EMAIL task of a sending rule uses, and one on port 465 without
+// authentication, used by no rule. The screens are visited by identifier.
+func insertE2ESMTP(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	for i, cred := range []*model.SMTPCredential{
+		{EmailAddress: "alertes@passerelle.example", ServerAddress: types.Addr("smtp.example.org", 587),
+			Login: "alertes", Password: "smtp-password-never-shown"},
+		{EmailAddress: "rapports@passerelle.example", ServerAddress: types.Addr("smtp.example.org", 465)},
+	} {
+		require.NoError(t, db.Insert(cred).Run())
+		require.EqualValues(t, i+1, cred.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.EmailTemplate{Name: "fin-de-transfert", Subject: "Fin", Body: "Fichier reçu."}).Run())
+
+	rule := &model.Rule{Name: "push-alertes", IsSend: true, Path: "push-alertes"}
+	require.NoError(t, db.Insert(rule).Run())
+	require.NoError(t, db.Insert(&model.Task{
+		RuleID: rule.ID, Chain: model.ChainPost, Type: "EMAIL",
+		Args: map[string]string{
+			"sender": "alertes@passerelle.example", "recipients": "exploitation@client.example", "template": "fin-de-transfert",
+		},
+	}).Run())
 }
 
 // insertE2EKeys inserts an AES-128 key, which the tasks of a sending rule
@@ -530,7 +568,8 @@ func startE2EServer(t *testing.T) string {
 			Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete |
 				model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete |
 				model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete |
-				model.PermAdminRead | model.PermAdminWrite | model.PermAdminDelete,
+				model.PermAdminRead | model.PermAdminWrite | model.PermAdminDelete |
+				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete, // the SMTP credentials (#741)
 		},
 		{Username: "viewer", PasswordHash: string(hash), Permissions: model.PermServersRead | model.PermPartnersRead},
 	} {
@@ -619,6 +658,7 @@ func startE2EServer(t *testing.T) string {
 	insertE2EAuthorities(t, db)
 	insertE2ESNMP(t, db)
 	insertE2EKeys(t, db)
+	insertE2ESMTP(t, db)
 
 	// The gateway runs as a node of a cluster, with its own override file
 	// and one address indirection (#730).
@@ -971,5 +1011,14 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		landed, err := url.Parse(page.URL())
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/keys", landed.Path)
+	})
+
+	// And the historic page of the SMTP credentials (#741).
+	t.Run("/webui/smtp_credentials_management", func(t *testing.T) {
+		session.visit(t, "/webui/smtp_credentials_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/smtp", landed.Path)
 	})
 }

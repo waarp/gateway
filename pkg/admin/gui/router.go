@@ -84,8 +84,10 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 	secureRouter.Handle("/managing_configuration_overrides",
 		http.RedirectHandler("overrides", http.StatusMovedPermanently))
 	handlePage(secureRouter, "/email_templates_management", EmailTemplateManagementPage(logger)).Methods("GET", "POST")
-	handlePage(secureRouter, "/smtp_credentials_management",
-		SMTPCredentialManagementPage(logger)).Methods("GET", "POST")
+	// The SMTP credentials screen of the reworked interface replaces this
+	// page, which only pointed to the command line (#741).
+	secureRouter.Handle("/smtp_credentials_management",
+		http.RedirectHandler("smtp", http.StatusMovedPermanently))
 
 	backend.MakeRouter(secureRouter, db, logger)
 }

@@ -1781,3 +1781,103 @@ rule_uses:
   direction:
     send: Envoi
     receive: Réception
+
+# Écran « Identifiants SMTP » (#741) : les comptes d'envoi de la tâche EMAIL.
+smtp:
+  title: Identifiants SMTP
+  add: Ajouter un identifiant
+  search: Rechercher un identifiant par son expéditeur
+  search_placeholder: Rechercher par expéditeur
+  count: "{total} identifiants"
+  count_one: 1 identifiant
+  count_shown: "{total} identifiants · {shown} affichés"
+  count_shown_one: "{total} identifiants · 1 affiché"
+  caption: "Identifiants SMTP, page {page} sur {pages}, triés par {sort}"
+  pager: "Identifiants {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_credential: Retour à l'identifiant
+  none_value: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    sender: expéditeur
+    server: serveur
+  col:
+    sender: Expéditeur
+    server: Serveur SMTP
+    auth: Authentification
+    uses: Utilisé par
+    actions: Actions
+  auth:
+    none: Aucune
+  # Le chiffrement que le port implique.
+  tls:
+    implicit: TLS dès la connexion
+    starttls: STARTTLS si le serveur le propose
+  password:
+    set: Défini, jamais affiché
+    none: Aucun
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'identifiant
+    delete: Supprimer l'identifiant
+  detail:
+    title: "Identifiant SMTP « {name} »"
+    sender: Expéditeur
+    address: Adresse
+    role: Rôle
+    role_text: "L'adresse d'expédition des e-mails ; les tâches EMAIL désignent l'identifiant par elle."
+    server: Serveur SMTP
+    incomplete: L'adresse du serveur est incomplète.
+    incomplete_text: "Il lui manque l'hôte ou le port : les tâches EMAIL ne pourraient pas se connecter. Modifiez l'identifiant pour la compléter."
+    connection: Connexion
+    auth_none: Aucune authentification
+    login: Identifiant
+    uses: Utilisé par
+    uses_caption: Règles dont les tâches EMAIL emploient l'identifiant
+    uses_none: Aucune règle ne l'emploie.
+  new:
+    title: Nouvel identifiant SMTP
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    sender: Adresse de l'expéditeur
+    sender_hint: "Unique ; les tâches EMAIL désignent l'identifiant par cette adresse."
+    host: Hôte
+    host_hint: Nom d'hôte ou adresse IP du serveur SMTP.
+    port: Port
+    port_hint: "465 : TLS dès la connexion ; 587 ou 25 : STARTTLS si le serveur le propose."
+    login: Identifiant
+    login_hint: "Le compte sur le serveur SMTP ; vide : aucune authentification."
+    password: Mot de passe
+    password_hint: Le mot de passe du compte sur le serveur SMTP.
+    password_keep: Laissez vide pour conserver le mot de passe en place.
+    locked: "Employé par {rules} : l'adresse se conserve, les tâches EMAIL la désignent."
+    refused: L'identifiant n'a pas été enregistré.
+    refused_text: "Corrigez les champs signalés ci-dessous ; le mot de passe est à saisir de nouveau."
+    error:
+      required: Ce champ est obligatoire.
+      sender: "Indiquez une adresse e-mail seule, sans nom affiché : alertes@exemple.fr."
+      sender_taken: Un autre identifiant utilise déjà cette adresse. Choisissez-en une autre.
+      host: Indiquez l'hôte.
+      port: Indiquez un port entre 1 et 65535.
+      password_without_login: Indiquez l'identifiant, ou laissez le mot de passe vide.
+  delete:
+    title: "Supprimer l'identifiant « {name} » ?"
+    text: Aucune règle ne l'emploie. Il sera supprimé définitivement.
+    used_title: Cet identifiant ne peut pas être supprimé.
+    used: "Il est employé par {rules} : changez d'abord l'expéditeur de leurs tâches EMAIL, sinon elles échoueraient au prochain transfert."
+  toast:
+    created: "Identifiant « {name} » créé"
+    updated: "Identifiant « {name} » enregistré"
+    deleted: "Identifiant « {name} » supprimé"
+  empty:
+    title: Aucun identifiant SMTP pour l'instant
+    text: "Les tâches EMAIL des règles envoient leurs e-mails avec ces comptes."
+  none:
+    title: "Aucun identifiant ne commence par « {query} »"
+  not_found:
+    title: Identifiant introuvable
+    text: Cet identifiant n'existe pas ou a été supprimé.
+  error:
+    title: La liste des identifiants SMTP n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

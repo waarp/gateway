@@ -1,0 +1,312 @@
+package smtp
+
+import (
+	"context"
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
+)
+
+// listView: the SMTP credentials (Treatments). Presentation only: the
+// handler searches, sorts and pages the rows, builds the row actions from
+// the rights and translates the texts. One coloured action ("Add a
+// credential"); a search by sender, no filter; two sortable headers; how
+// many rules use each credential; a "⋯" menu per row; rows per page in the
+// foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "smtp.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "smtp.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "smtp.error.title"), Text: gui.T(ctx, "smtp.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "envelope", Title: gui.T(ctx, "smtp.empty.title"), Text: gui.T(ctx, "smtp.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "smtp.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "smtp.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "smtp.search_placeholder") } list="smtp-senders" autocomplete="off"/></label>
+			<datalist id="smtp-senders">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="smtp-col-sender"/><col class="smtp-col-server"/><col/><col class="smtp-col-uses"/><col class="smtp-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "smtp.col.sender"), Key: "sender", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "smtp.col.server"), Key: "server", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "smtp.col.auth") }</th>
+							<th scope="col">{ gui.T(ctx, "smtp.col.uses") }</th>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "smtp.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-mono smtp-sender" href={ templ.SafeURL(r.URL) }>{ r.Sender }</a></td>
+								<td class="w-mono smtp-server">{ r.Server }</td>
+								<td>
+									if r.NoAuth {
+										<span class="w-muted">{ r.Auth }</span>
+									} else {
+										<span class="w-mono">{ r.Auth }</span>
+									}
+								</td>
+								<td class="w-nowrap">{ r.Uses }</td>
+								<td>
+									if len(r.Actions) > 0 {
+										@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Sender, Items: r.Actions})
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="smtp-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// detailView: the sheet of a credential, in reading: the sender and what it
+// is for, the server with the connection its port implies and the
+// authentication (never the password), and the rules whose EMAIL tasks name
+// it, each a link to its tasks.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "smtp.detail.title", "name", d.Sender) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "smtp.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "smtp.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Sender, Items: d.Actions})
+			}
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "smtp.detail.sender") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "smtp.detail.address") }</dt>
+				<dd><code class="w-code smtp-wrap">{ d.Sender }</code></dd>
+				<dt>{ gui.T(ctx, "smtp.detail.role") }</dt>
+				<dd>{ gui.T(ctx, "smtp.detail.role_text") }</dd>
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</h2>
+			if d.Incomplete {
+				<div class="smtp-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "smtp.detail.incomplete"), Text: gui.T(ctx, "smtp.detail.incomplete_text")})</div>
+			}
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "smtp.form.host") }</dt>
+				<dd>@codeOrNone(d.Host)</dd>
+				<dt>{ gui.T(ctx, "smtp.form.port") }</dt>
+				<dd>@codeOrNone(d.Port)</dd>
+				if d.Connection != "" {
+					<dt>{ gui.T(ctx, "smtp.detail.connection") }</dt>
+					<dd>{ d.Connection }</dd>
+				}
+				<dt>{ gui.T(ctx, "smtp.col.auth") }</dt>
+				if d.Login == "" {
+					<dd>{ gui.T(ctx, "smtp.detail.auth_none") }</dd>
+				} else {
+					<dd>{ gui.T(ctx, "smtp.detail.login") } <code class="w-code">{ d.Login }</code></dd>
+					<dt>{ gui.T(ctx, "smtp.form.password") }</dt>
+					if d.PasswordSet {
+						<dd>{ gui.T(ctx, "smtp.password.set") }</dd>
+					} else {
+						<dd>{ gui.T(ctx, "smtp.password.none") }</dd>
+					}
+				}
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "smtp.detail.uses") }</h2>
+			@usesTable(d.Uses)
+		</div>
+	</div>
+}
+
+// codeOrNone: a value in code, or "—" when the REST API left it empty.
+templ codeOrNone(value string) {
+	if value == "" {
+		<span class="w-muted">{ gui.T(ctx, "smtp.none_value") }</span>
+	} else {
+		<code class="w-code">{ value }</code>
+	}
+}
+
+// usesTable: the rules whose EMAIL tasks name the credential (ruleuse), or
+// the sentence saying no rule uses it.
+templ usesTable(rows []ruleuse.Row) {
+	if len(rows) == 0 {
+		<p class="smtp-note w-muted">{ gui.T(ctx, "smtp.detail.uses_none") }</p>
+	} else {
+		<div class="smtp-uses">@ruleuse.Table(gui.T(ctx, "smtp.detail.uses_caption"), rows)</div>
+	}
+}
+
+// backLabel: the back button of the form: to the credential on edition, to
+// the list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "smtp.back_credential") }
+	} else {
+		{ " " + gui.T(ctx, "smtp.back") }
+	}
+}
+
+// passwordHint: what the password is, or, on edition with one in place,
+// that an empty field keeps it.
+func passwordHint(ctx context.Context, d *formData) string {
+	if d.PasswordSet {
+		return gui.T(ctx, "smtp.form.password_keep")
+	}
+
+	return gui.T(ctx, "smtp.form.password_hint")
+}
+
+// formView: creation and edition of a credential, one page (decision D10),
+// one card per block: the sender (in reading for a credential the rules
+// use), the SMTP server (host and port, the hint saying the connection each
+// port implies), the authentication (login and password, the password never
+// rendered back). Refused form: a banner, the values kept but the password,
+// a message under each faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="smtp-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "smtp.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "smtp.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "smtp.detail.sender") }</legend>
+				if d.Locked {
+					<dl class="w-deflist">
+						<dt>{ gui.T(ctx, "smtp.detail.address") }</dt>
+						<dd><code class="w-code smtp-wrap">{ d.Sender.Value }</code></dd>
+					</dl>
+					<p class="smtp-note w-muted">{ gui.T(ctx, "smtp.form.locked", "rules", d.Rules) }</p>
+				} else {
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldSender, Label: gui.T(ctx, "smtp.form.sender"), Req: true, F: d.Sender, Hint: gui.T(ctx, "smtp.form.sender_hint"), Autocomplete: "off", Placeholder: "alerts@example.org"})
+				}
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldHost, Label: gui.T(ctx, "smtp.form.host"), Req: true, F: d.Host, Hint: gui.T(ctx, "smtp.form.host_hint"), Placeholder: "smtp.example.org"})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldPort, Label: gui.T(ctx, "smtp.form.port"), Req: true, F: d.Port, Hint: gui.T(ctx, "smtp.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+				</div>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "smtp.col.auth") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldLogin, Label: gui.T(ctx, "smtp.form.login"), F: d.Login, Hint: gui.T(ctx, "smtp.form.login_hint"), Autocomplete: "off"})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldPassword, Label: gui.T(ctx, "smtp.form.password"), F: d.Password, Hint: passwordHint(ctx, d), Password: true, Autocomplete: "new-password"})
+				</div>
+			</fieldset>
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// deleteView: confirmation page of the deletion of a credential (decision
+// D10: a page, not a dialog), "Cancel" then "Delete" bottom right (D12). For
+// a credential the rules use, the "action impossible" page: why, the rules
+// whose EMAIL tasks to change first (links to their tasks), "Close" alone.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "smtp.back_credential") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Used {
+			<div class="smtp-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "smtp.delete.used_title"), Text: gui.T(ctx, "smtp.delete.used", "rules", d.Rules)})</div>
+		} else {
+			<p class="smtp-lead">{ gui.T(ctx, "smtp.delete.text") }</p>
+		}
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "smtp.col.sender") }</dt>
+			<dd><code class="w-code smtp-wrap">{ d.Sender }</code></dd>
+			<dt>{ gui.T(ctx, "smtp.col.server") }</dt>
+			<dd>@codeOrNone(d.Server)</dd>
+		</dl>
+		if d.Used {
+			<h2 class="w-card__title smtp-subtitle">{ gui.T(ctx, "smtp.detail.uses") }</h2>
+			@usesTable(d.Uses)
+			<div class="w-form__actions smtp-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.close") }</a></div>
+		} else {
+			<form class="smtp-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+		}
+	</div>
+}
+
+// notFoundView: a credential that does not exist: localised 404 in the
+// chrome, with the way back to the list as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "envelope", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}
