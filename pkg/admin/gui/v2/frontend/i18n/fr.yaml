@@ -2143,15 +2143,19 @@ transfers:
     id: N°
     file: Fichier
     state: État
+    direction: Sens
     rule: Règle
     partner: Partenaire
+    account: Compte
     progress: Progression
     start: Début
     stop: Fin
     actions: Actions
   error_tip: "{cause} : {message}"
-  due_at: "jusqu'au {date}"
-  next_attempt: prochaine tentative
+  dir_tip: "{dir}, la passerelle est {role}"
+  partner_tip: "{partner} · compte {account}"
+  due_title: "Attendu jusqu'au {date}"
+  next_title: "Prochaine tentative le {date}"
   no_stop: Pas encore terminé
   no_progress: Aucune progression
   percent: "{pct} %"
@@ -2159,6 +2163,9 @@ transfers:
   # Dates et nombres (disposition Go pour la date).
   date: 02/01/2006
   date_time: "{date} à {time}"
+  # Un moment de la liste : l'heure seule le jour même, sinon le jour et l'heure (disposition Go).
+  date_day: 02/01 15:04
+  date_year: 02/01/2006 15:04
   thousands: " "
   decimal: ","
   size:

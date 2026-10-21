@@ -137,11 +137,13 @@
   const swap = (fresh) => {
     const focused = document.activeElement;
     const href = focused && focused.getAttribute && focused.getAttribute("href");
-    ["transfers-states", "transfers-count", "transfers-table"].forEach((id) => {
+    ["transfers-states", "transfers-count", "transfers-pager-top", "transfers-table"].forEach((id) => {
       const next = fresh.querySelector("#" + id), current = document.getElementById(id);
       if (next && current) current.replaceWith(next);
     });
     enhance(region());
+    const top = document.getElementById("transfers-pager-top");
+    if (top) enhance(top);
     if (href && !document.body.contains(focused)) {
       const again = [...document.querySelectorAll("#transfers-states a, #transfers-table a")]
         .find((a) => a.getAttribute("href") === href);
@@ -178,7 +180,7 @@
   // A state, sort or page link loads the fragment instead of the page; the address follows, so that the next
   // refreshes keep it. The menus have their own entries (pages and actions).
   document.addEventListener("click", (event) => {
-    const link = event.target.closest("#transfers-states a[href], #transfers-table thead a[href], #transfers-table .w-pager a[href]");
+    const link = event.target.closest("#transfers-states a[href], #transfers-table thead a[href], #transfers-table .w-pager a[href], #transfers-pager-top a[href]");
     if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const target = new URL(link.href, location.href);
     if (target.pathname !== location.pathname) return;

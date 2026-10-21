@@ -78,12 +78,16 @@ var (
 	sortKeys  = []string{sortID, sortStart, sortFile, sortState, sortRule, sortStop}
 	pageSizes = liststate.DefaultSizes
 
+	// The rows per page by default: 25, the list showing one line per
+	// transfer (Driss, 2026-10-22).
+	pageSize = 25
+
 	// The list of this screen: its page, its session cookie, its sort keys
 	// (the last transfers first: the highest numbers, as Driss asked on
 	// 2026-10-21; a planned transfer far ahead does not lead the list), its
 	// rows per page and its filters.
 	listSpec = liststate.Spec{
-		Path: pagePath, Cookie: stateCookie, Sorts: sortKeys, Sizes: pageSizes, FirstDesc: true,
+		Path: pagePath, Cookie: stateCookie, Sorts: sortKeys, Sizes: pageSizes, FirstDesc: true, DefaultSize: pageSize,
 		ParseFilters: func(v url.Values) liststate.Filters { return parseFilters(v) },
 		FilterParams: filterParams,
 	}
@@ -174,12 +178,13 @@ func statusOf(translate gui.Translator, status types.TransferStatus) gui.Status 
 type Handlers struct {
 	db     *database.DB
 	logger *log.Logger
+	now    func() time.Time // the clock the list writes its moments against: the time alone for today
 
 	shell *common.Shell
 }
 
 func New(db *database.DB, logger *log.Logger) *Handlers {
-	return &Handlers{db: db, logger: logger, shell: common.NewShell()}
+	return &Handlers{db: db, logger: logger, now: time.Now, shell: common.NewShell()}
 }
 
 // canWrite tells whether the user may act on the transfers. Reading is

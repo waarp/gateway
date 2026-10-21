@@ -32,11 +32,12 @@ templ listView(d listData) {
 					@gui.Icon("plus")
 					{ gui.T(ctx, "transfers.add") }
 				</a>
-				@gui.Actions(gui.ActionsProps{ID: "act-page", Name: gui.T(ctx, "transfers.title"), Items: []gui.Action{{Icon: "upload", Label: gui.T(ctx, "transfers.preregister.title"), URL: d.PreregisterURL}}})
+				@pageMenu("act-page", gui.T(ctx, "transfers.title"), []gui.Action{{Icon: "upload", Label: gui.T(ctx, "transfers.preregister.title"), URL: d.PreregisterURL}})
 			}
 		</div>
 	</div>
 	@statesRow(d)
+	<div class="tf-bar">
 	<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
 		for _, h := range liststate.SortedHidden(d.Hidden) {
 			<input type="hidden" name={ h.Name } value={ h.Value }/>
@@ -55,6 +56,8 @@ templ listView(d listData) {
 		<span class="w-toolbar__spacer"></span>
 		@countSpan(d)
 	</form>
+	@pagerTop(d)
+	</div>
 	@tableRegion(d)
 	<template id="transfers-error">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.refresh_error.title"), Text: gui.T(ctx, "transfers.refresh_error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.FragmentURL}})</template>
 }
@@ -65,6 +68,7 @@ templ listBlock(d listData) {
 	<div id="transfers-fragment" data-refreshed-at={ d.RefreshedAt }>
 		@statesRow(d)
 		@countSpan(d)
+		@pagerTop(d)
 		@tableRegion(d)
 	</div>
 }
@@ -95,9 +99,14 @@ templ statesRow(d listData) {
 	</nav>
 }
 
-// countSpan: the count of the list, in the toolbar.
+// countSpan: the count of the list, in the toolbar, when the list holds on
+// one page; the foot at the top says it when there are several.
 templ countSpan(d listData) {
-	<span class="w-toolbar__count" id="transfers-count" aria-live="polite">{ d.Count }</span>
+	<span class="w-toolbar__count" id="transfers-count" aria-live="polite">
+		if d.Pager == nil || d.Pager.Pages <= 1 {
+			{ d.Count }
+		}
+	</span>
 }
 
 // filtersPanel: the criteria of the list; each applies as soon as it changes
@@ -163,17 +172,19 @@ templ tableRegion(d listData) {
 		} else if d.NoMatch {
 			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
 		} else {
-			<div class="w-table-wrap">
+			<div class="w-table-wrap tf-list">
 				<table class="w-table tf-table">
 					<caption class="visually-hidden">{ d.Caption }</caption>
-					<colgroup><col class="tf-col-id"/><col class="tf-col-file"/><col class="tf-col-state"/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-progress"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-actions"/></colgroup>
+					<colgroup><col class="tf-col-id"/><col class="tf-col-file"/><col class="tf-col-state"/><col class="tf-col-dir tf-x"/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-account tf-x"/><col class="tf-col-progress"/><col class="tf-col-date"/><col class="tf-col-end"/><col class="tf-col-actions"/></colgroup>
 					<thead>
 						<tr>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.id"), Key: sortID, Sort: d.Sort, Dir: d.Dir, Base: d.Base, Num: true})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.file"), Key: sortFile, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.state"), Key: sortState, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col" class="tf-x">{ gui.T(ctx, "transfers.col.direction") }</th>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.rule"), Key: sortRule, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							<th scope="col">{ gui.T(ctx, "transfers.col.partner") }</th>
+							<th scope="col" class="tf-x">{ gui.T(ctx, "transfers.col.account") }</th>
 							<th scope="col">{ gui.T(ctx, "transfers.col.progress") }</th>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.start"), Key: sortStart, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.stop"), Key: sortStop, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
@@ -183,27 +194,29 @@ templ tableRegion(d listData) {
 					<tbody>
 						for _, r := range d.Rows {
 							<tr>
-								<td class="w-num tf-time">{ strconv.FormatInt(r.ID, 10) }</td>
-								<td><a class="w-cell-title tf-file" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }>{ r.File }</a><span class="tf-sub">{ r.Protocol }</span></td>
+								<td class="w-num tf-num">{ strconv.FormatInt(r.ID, 10) }</td>
+								<td><a class="tf-file" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }>{ r.File }</a></td>
 								<td
 									if r.StatusTip != "" {
 										title={ r.StatusTip }
 									}
 								>
 									@gui.StatusOf(r.Status)
-									if r.Cause != "" {
-										<span class="tf-sub tf-cause">{ r.Cause }</span>
-									}
 								</td>
-								<td><span class="w-mono">{ r.Rule }</span><span class="tf-sub">{ r.Direction }</span></td>
-								<td>{ r.Partner }<span class="tf-sub w-mono">{ r.Account }</span></td>
-								<td>@progressCell(r.Progress)</td>
-								<td class="tf-time">{ r.Start }<span class="tf-sub">{ r.StartSub }</span></td>
+								<td class="tf-x"><span class="tf-dir" title={ r.DirTip }>@gui.Icon(r.DirIcon)<span>{ r.Dir }</span></span></td>
+								<td class="w-mono" title={ r.RuleTip }><span class="tf-ruledir">@gui.Icon(r.DirIcon)<span class="visually-hidden">{ r.Dir + " : " }</span></span>{ r.Rule }</td>
+								<td title={ r.PartnerTip }>{ r.Partner }</td>
+								<td class="w-mono tf-x" title={ r.Account }>{ r.Account }</td>
+								<td>@progressInline(r.Progress)</td>
+								<td class="tf-time">@momentCell(r.Start)</td>
 								<td class="tf-time">
-									if r.End != "" {
-										{ r.End }<span class="tf-sub">{ r.EndSub }</span>
+									if r.Next {
+										<span class="tf-next" title={ r.End.Title }>
+											@gui.Icon("rotate")
+											<span>{ r.End.Text }</span>
+										</span>
 									} else {
-										<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_stop") }</span>
+										@momentCell(r.End)
 									}
 								</td>
 								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.File, Items: r.Actions})</td>
@@ -219,9 +232,44 @@ templ tableRegion(d listData) {
 	</div>
 }
 
+// pagerTop: the list foot repeated above the table, without the rows per
+// page, so that changing pages needs no scrolling (Driss, 2026-10-22).
+templ pagerTop(d listData) {
+	<div class="tf-pager-top" id="transfers-pager-top">
+		if d.Pager != nil {
+			@gui.Pager(d.Pager.Props(d.TopHidden, nil, d.Size))
+		}
+	</div>
+}
+
+// momentCell: a moment, short (the time alone for today), the full date as
+// a tooltip; a dash for none.
+templ momentCell(m moment) {
+	if m.Text == "" {
+		<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_stop") }</span>
+	} else {
+		<span title={ m.Title }>{ m.Text }</span>
+	}
+}
+
+// progressInline: the progress in a line of the list, the size as a
+// tooltip.
+templ progressInline(p progressView) {
+	if p.None {
+		<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_progress") }</span>
+	} else {
+		<span class="tf-prog" title={ p.Size }>
+			if p.Bar {
+				<progress class="tf-progress" max="100" value={ strconv.Itoa(p.Pct) } aria-label={ gui.T(ctx, "transfers.progress_label", "pct", p.Pct) }>{ p.Label }</progress>
+			}
+			<span class="tf-pct">{ p.Label }</span>
+		</span>
+	}
+}
+
 // progressCell: a bar and the percentage when the size is known (a native
 // progress element: its value is read out), the bytes otherwise; the size
-// under it.
+// under it. The sheet uses it.
 templ progressCell(p progressView) {
 	if p.None {
 		<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_progress") }</span>
@@ -234,6 +282,46 @@ templ progressCell(p progressView) {
 	if p.Size != "" {
 		<span class="tf-sub">{ p.Size }</span>
 	}
+}
+
+// pageMenu: the "⋯" menu of the secondary actions of a page header, even for
+// one action, as on the other pages (Driss, 2026-10-22), where gui.Actions
+// would show one action as an icon button; the markup of gui.Actions, which
+// kit.js places and drives.
+templ pageMenu(id, name string, items []gui.Action) {
+	<div class="w-table__actions">
+		<button class="w-icon-btn w-icon-btn--round" type="button" popovertarget={ id } aria-label={ gui.T(ctx, "actions.for", "name", name) } title={ gui.T(ctx, "actions.title") }>@gui.Icon("ellipsis")</button>
+		<div class="w-actions" id={ id } popover>
+			for i, it := range items {
+				if it.Danger && i > 0 {
+					<hr/>
+				}
+				if it.URL != "" {
+					<a
+						if it.Danger {
+							class="is-danger"
+						}
+						href={ templ.SafeURL(it.URL) }
+					>
+						@gui.Icon(it.Icon)
+						{ it.Label }
+					</a>
+				} else {
+					<form method="post" action={ templ.SafeURL(it.Action) }>
+						<button
+							if it.Danger {
+								class="is-danger"
+							}
+							type="submit"
+						>
+							@gui.Icon(it.Icon)
+							{ it.Label }
+						</button>
+					</form>
+				}
+			}
+		</div>
+	</div>
 }
 
 // detailView: the sheet of a transfer, in reading: the file as title, its
@@ -259,7 +347,7 @@ templ detailView(d detailData) {
 				</form>
 			}
 			if len(d.Actions) > 0 {
-				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.File, Items: d.Actions})
+				@pageMenu("act-detail", d.File, d.Actions)
 			}
 		</div>
 	</div>

@@ -53,6 +53,7 @@ func newSuite(t *testing.T) *suite {
 
 	s := &suite{db: dbtest.TestDatabase(t), router: mux.NewRouter()}
 	h := New(s.db, testhelpers.GetTestLogger(t))
+	h.now = func() time.Time { return at(12, 0, 0) } // the day of the fixtures: their moments show as times
 
 	r := s.router.PathPrefix(constants.WebuiPrefix).Subrouter()
 	r.Path("/transfers").Methods(http.MethodGet).HandlerFunc(h.List)
@@ -263,16 +264,27 @@ func TestList(t *testing.T) {
 		indexes(t, body, "<tbody>", ">virements.xml</a>", ">commandes-0457.edi</a>", ">inventaire.csv</a>",
 			">rapport-mensuel.pdf</a>", ">releve-20102026.pdf</a>", ">paie-octobre.xml</a>", "</tbody>")
 		assert.Contains(t, body, `class="w-num" aria-sort="descending"><a href="/webui/transfers?sort=id&amp;dir=asc">N°</a>`)
-		indexes(t, body, `<td class="w-num tf-time">`+strconv.FormatInt(s.failed.ID, 10)+`</td>`,
-			`title="releve-20102026.pdf">releve-20102026.pdf</a><span class="tf-sub">SFTP</span>`,
-			`title="Accès refusé : failed to make transfer request: FICHIER DEJA RECU"`,
-			"En erreur", `<span class="tf-sub tf-cause">Accès refusé</span>`,
-			`<span class="w-mono">releves</span><span class="tf-sub">Envoi · client</span>`,
-			`banque-demo<span class="tf-sub w-mono">prod</span>`, "10:38:02", "10:43:02", "prochaine tentative")
-		indexes(t, body, ">paie-octobre.xml</a>", `<progress class="tf-progress" max="100" value="64"`, "64 %", "1,2 Mo")
-		indexes(t, body, ">inventaire.csv</a>", "Attendu", "Réception · serveur", "srv-sftp", "jusqu&#39;au 21/10/2026")
-		indexes(t, body, ">rapport-mensuel.pdf</a>", "Planifié", "18:00:00", "21/10/2026", "</tr>")
+		// One line per transfer: what does not fit goes to the tooltips; a failed transfer says "Failed" alone.
+		indexes(t, body, `<td class="w-num tf-num">`+strconv.FormatInt(s.failed.ID, 10)+`</td>`,
+			`title="releve-20102026.pdf · SFTP">releve-20102026.pdf</a>`,
+			`title="Accès refusé : failed to make transfer request: FICHIER DEJA RECU"`, "En erreur</span>",
+			`title="Envoi, la passerelle est client">`, "<span>Envoi</span>",
+			`title="releves · Envoi, la passerelle est client">`, "releves</td>",
+			`title="banque-demo · compte prod">banque-demo</td>`, `title="prod">prod</td>`,
+			`title="21/10/2026 à 10:38:02">10:38:02</span>`,
+			`<span class="tf-next" title="Prochaine tentative le 21/10/2026 à 10:43:02">`, "<span>10:43:02</span>")
+		assert.NotContains(t, body, "tf-cause", "no part of the error under the state")
+		assert.NotContains(t, body, "tf-sub", "no second line in the list")
+		indexes(t, body, ">paie-octobre.xml</a>", `<span class="tf-prog" title="1,2 Mo">`,
+			`<progress class="tf-progress" max="100" value="64"`, "64 %")
+		indexes(t, body, ">inventaire.csv</a>", "Attendu", `title="Réception, la passerelle est serveur"`, "srv-sftp",
+			`title="Attendu jusqu&#39;au 21/10/2026 à 23:00:00">23:00:00</span>`)
+		indexes(t, body, ">rapport-mensuel.pdf</a>", "Planifié", `title="21/10/2026 à 18:00:00">18:00:00</span>`, "</tr>")
 		assert.NotContains(t, body, "0 octet", "no size before the transfer starts")
+
+		// The secondary action of the header in a "⋯" menu, as on the other pages.
+		indexes(t, body, `popovertarget="act-page"`, `<div class="w-actions" id="act-page" popover>`,
+			`href="/webui/transfers/preregister"`)
 
 		// The actions the state allows, in the menu.
 		indexes(t, body, ">virements.xml</a>", "Voir le transfert", "Relancer", ">commandes-0457.edi</a>")
@@ -403,7 +415,18 @@ func TestList(t *testing.T) {
 		assert.NotContains(t, body, "<html", "the fragment alone")
 		indexes(t, body, `<div id="transfers-fragment"`, `id="transfers-states"`, `id="transfers-count"`,
 			`id="transfers-table"`, ">releve-20102026.pdf</a>")
-		assert.Empty(t, rec.Header().Values("Set-Cookie"), "the refresh does not keep the state")
+		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=state%3Derror",
+			"the state the script loads is the one to find again when coming back")
+
+		// Back to every state by the script: the state kept for the session is
+		// cleared, so that the sidebar leads to every state (Driss, 2026-10-22).
+		rec = s.get(t, permRead, "/webui/transfers?reset=1&fragment=list")
+		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=;")
+		assert.Contains(t, rec.Header().Get("Set-Cookie"), "Max-Age=0")
+
+		// The automatic refresh of the bare list says nothing about the state.
+		rec = s.get(t, permRead, "/webui/transfers?fragment=list")
+		assert.Empty(t, rec.Header().Values("Set-Cookie"))
 	})
 
 	t.Run("Given no transfer", func(t *testing.T) {
@@ -727,6 +750,21 @@ func TestForms(t *testing.T) {
 		assert.Equal(t, types.StatusAvailable, created.Status)
 		assert.Equal(t, sql.NullInt64{Int64: s.south.ID, Valid: true}, created.LocalAccountID)
 	})
+}
+
+func TestMoment(t *testing.T) {
+	t.Parallel()
+
+	translate := common.NewShell().Catalog().Translator("fr")
+	now := at(12, 0, 0)
+
+	assert.Equal(t, moment{Text: "10:38:02", Title: "21/10/2026 à 10:38:02"}, momentOf(translate, at(10, 38, 2), now),
+		"the time alone for today")
+	assert.Equal(t, "20/10 23:59", momentOf(translate, time.Date(2026, 10, 20, 23, 59, 0, 0, time.Local), now).Text,
+		"the day for this year")
+	assert.Equal(t, "31/12/2025 08:00", momentOf(translate, time.Date(2025, 12, 31, 8, 0, 0, 0, time.Local), now).Text,
+		"the year otherwise")
+	assert.Equal(t, moment{}, momentOf(translate, time.Time{}, now))
 }
 
 // TestCatalogue checks that every state, every error code and every step of

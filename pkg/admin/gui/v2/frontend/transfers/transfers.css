@@ -1,5 +1,5 @@
-/* Transfer monitoring screen: what the kit does not decide (the row of the states, the column widths of the list, the
-   progress bar, the sheet and the action pages). Tokens only. */
+/* Transfer monitoring screen: what the kit does not decide (the row of the states, the list on one line, the progress
+   bar, the sheet and the action pages). Tokens only. */
 
 /* The row of the states (variant A, 2026-10-22): tabs underlined on one line, without a frame, the count in a pill,
    scrolling sideways on a narrow screen. The state shown has a thick underline and bold text: not the colour alone. */
@@ -15,35 +15,66 @@
   .tf-states { flex-wrap: nowrap; overflow-x: auto; }
 }
 
-/* The list: fixed columns, the number first (sorted descending by default), then the file, the widest; the direction
-   goes under the rule, which carries it. Under 68.5rem (its width at 1440 px) the table scrolls in its frame, its
-   columns as wide as at 1440 px. Measured: no name cut at 1440 nor at 390 px. */
-.tf-table { table-layout: fixed; min-width: 68.5rem; }
-.tf-table td { vertical-align: top; }
-/* The number holds eight digits in a smaller type, the names of the rules and the partners hold on one line. */
-.tf-col-id { width: 7%; }
-.tf-col-file { width: 19.5%; }
-.tf-col-state { width: 9.5%; }
-.tf-col-rule { width: 17%; }
-.tf-col-partner { width: 12%; }
-.tf-col-progress { width: 12%; }
-.tf-col-date { width: 9%; }
-.tf-table th:first-child, .tf-table td:first-child { padding-right: var(--sp-2); padding-left: var(--sp-2); }
-.tf-table td:first-child { font-size: var(--fs-sm); }
-.tf-col-actions { width: 56px; }
-.tf-file { font-size: var(--fs-body); overflow-wrap: anywhere; }
-.tf-sub { display: block; margin-top: 2px; color: var(--g600); font-size: var(--fs-micro); font-weight: 400; }
-.tf-cause { color: var(--ko); }
-.tf-time { font-variant-numeric: tabular-nums; }
+/* The toolbar and the list foot at the top on one row. */
+.tf-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin: 0 0 var(--sp-3); }
+.tf-bar .w-toolbar { flex: 1 1 28rem; margin: 0; }
+.tf-pager-top:empty { display: none; }
 .tf-pager { margin-top: var(--sp-3); }
 
-/* The progress: a native bar and the percentage, always written; the percentage goes under the bar when the column
-   is narrow. */
+/* The list (2026-10-22): one line per transfer, on the whole width of the screen, the cap of the kit lifted for this
+   screen alone; what does not fit ends with "…" and reads in the tooltip. Under 1 500 px of width, the direction and
+   the account fold (an arrow before the rule, the account in the tooltip of the partner); under 1 000 px, the table
+   scrolls in its frame. Measured on the mockup: 14 lines seen at 1920 × 960, 13 at 1440 × 900. */
+.w-main__inner:has(.tf-table) { max-width: none; }
+.tf-list { container-type: inline-size; }
+.tf-table { table-layout: fixed; width: 100%; }
+.tf-table tbody td, .tf-table thead th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: var(--sp-2) var(--sp-3); vertical-align: middle; }
+.tf-table tbody td:last-child { overflow: visible; padding-top: 0; padding-bottom: 0; }
+.tf-table .w-icon-btn--round { width: 28px; height: 28px; }
+.tf-table .w-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tf-col-id { width: 4.5%; }
+.tf-col-file { width: 17%; }
+.tf-col-state { width: 9%; }
+.tf-col-dir { width: 7.5%; }
+.tf-col-rule { width: 14%; }
+.tf-col-partner { width: 10%; }
+.tf-col-account { width: 7.5%; }
+.tf-col-progress { width: 9%; }
+.tf-col-date { width: 8.5%; }
+.tf-col-end { width: 8.5%; }
+.tf-col-actions { width: 52px; }
+.tf-num { color: var(--g600); font-size: var(--fs-sm); }
+.tf-file { color: var(--tp); font-weight: 700; }
+.tf-time { font-variant-numeric: tabular-nums; }
+.tf-dir, .tf-next { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.tf-next { color: var(--g600); }
+.tf-ruledir { display: none; margin-right: var(--sp-1); color: var(--g600); }
+.tf-prog { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.tf-prog .tf-pct { margin-left: 0; }
+@container (max-width: 1499px) {
+  .tf-table .tf-x { display: none; }
+  .tf-table .tf-ruledir { display: inline-flex; }
+  .tf-col-id { width: 6%; }
+  .tf-col-file { width: 18.5%; }
+  .tf-col-state { width: 10%; }
+  .tf-col-rule { width: 17%; }
+  .tf-col-partner { width: 11%; }
+  .tf-col-progress { width: 12%; }
+  .tf-col-date { width: 10%; }
+  .tf-col-end { width: 9.5%; }
+  .tf-table .tf-progress { width: 2.5rem; }
+}
+@container (max-width: 999px) {
+  .tf-table { width: 70rem; }
+}
+
+/* The progress: a native bar and the percentage, always written. */
 .tf-progress { width: 3.25rem; height: .5rem; border: 1px solid var(--g300); border-radius: var(--r-full); background: var(--g50); vertical-align: middle; overflow: hidden; appearance: none; }
 .tf-progress::-webkit-progress-bar { background: var(--g50); }
 .tf-progress::-webkit-progress-value { background: var(--ok); }
 .tf-progress::-moz-progress-bar { background: var(--ok); }
 .tf-pct { margin-left: var(--sp-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tf-sub { display: block; margin-top: 2px; color: var(--g600); font-size: var(--fs-micro); font-weight: 400; }
 
 /* The sheet: the file as title, the state and the number under it; the error first. */
 .tf-title { overflow-wrap: anywhere; }
