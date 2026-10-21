@@ -15,12 +15,12 @@ import (
 
 var ErrMissingBucket = errors.New("no GCS bucket specified")
 
-func parseOpts(key, secret string, userOpts map[string]string,
+func parseOpts(accFile, accCreds string, userOpts map[string]string,
 ) (config configmap.Mapper, root string, err error) {
 	// Credential options
 	overrides := configmap.Simple{
-		"service_account_credentials": key,
-		"service_account_file":        secret,
+		"service_account_credentials": accCreds,
+		"service_account_file":        accFile,
 	}
 
 	// Make config map
@@ -41,8 +41,8 @@ func parseOpts(key, secret string, userOpts map[string]string,
 	return config, root, nil
 }
 
-func newVFS(name, key, secret string, opts map[string]string) (*vfs.VFS, error) {
-	config, root, err := parseOpts(key, secret, opts)
+func newVFS(name, accFile, accCreds string, opts map[string]string) (*vfs.VFS, error) {
+	config, root, err := parseOpts(accFile, accCreds, opts)
 	if err != nil {
 		return nil, err
 	}

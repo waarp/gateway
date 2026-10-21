@@ -37,9 +37,15 @@ func TestParseOpts(t *testing.T) {
 	t.Parallel()
 
 	opts := map[string]string{"bucket": "name"}
-	_, _, err := parseOpts("account", "password", opts)
+	conf, _, err := parseOpts("file", "creds", opts)
 	require.NoError(t, err)
 
 	assert.NotContains(t, opts, "service_account_credentials")
 	assert.NotContains(t, opts, "service_account_file")
+
+	file, _ := conf.Get("service_account_file")
+	assert.Equal(t, "file", file)
+
+	creds, _ := conf.Get("service_account_credentials")
+	assert.Equal(t, "creds", creds)
 }
