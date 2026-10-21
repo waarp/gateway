@@ -10,3 +10,4 @@
 .overrides-banner { margin-bottom: var(--sp-4); }
 .overrides-lead { margin: 0 0 var(--sp-4); }
 .overrides-form-actions { margin-top: var(--sp-5); }
+.overrides-note > .w-status + span { margin-left: var(--sp-2); }
