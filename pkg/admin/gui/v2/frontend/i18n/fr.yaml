@@ -1674,15 +1674,6 @@ keys:
     locked: "clé privée protégée par une phrase secrète"
     empty: "aucune valeur"
     type: "type inconnu"
-  uses:
-    none: Aucune règle
-    one: 1 règle
-    many: "{n} règles"
-    rule: Règle
-    direction: Sens
-  direction:
-    send: Envoi
-    receive: Réception
   action:
     detail: Voir la fiche
     edit: Modifier la clé
@@ -1777,3 +1768,16 @@ keys:
   error:
     title: La liste des clés cryptographiques n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Règles dont les tâches désignent un objet par son nom (clés cryptographiques, identifiants SMTP).
+rule_uses:
+  count:
+    none: Aucune règle
+    one: 1 règle
+    many: "{n} règles"
+  col:
+    rule: Règle
+    direction: Sens
+  direction:
+    send: Envoi
+    receive: Réception

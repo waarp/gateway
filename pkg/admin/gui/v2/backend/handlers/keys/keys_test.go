@@ -366,37 +366,6 @@ func TestKeyInfo(t *testing.T) {
 	})
 }
 
-func TestUsesOf(t *testing.T) {
-	t.Parallel()
-
-	rules := model.Rules{
-		{Identifier: model.Identifier{ID: 1}, Name: "b-rule", IsSend: false},
-		{Identifier: model.Identifier{ID: 2}, Name: "b-rule", IsSend: true},
-		{Identifier: model.Identifier{ID: 3}, Name: "a-rule", IsSend: true},
-	}
-	list := model.Tasks{
-		{RuleID: 1, Type: tasks.Decrypt, Args: map[string]string{"keyName": "k1"}},
-		{RuleID: 2, Type: tasks.Encrypt, Args: map[string]string{"keyName": "k1"}},
-		{RuleID: 2, Type: tasks.Encrypt, Args: map[string]string{"keyName": "k1"}, Chain: model.ChainError},
-		{RuleID: 3, Type: tasks.DecryptAndVerify, Args: map[string]string{"decryptKeyName": "k2", "verifyKeyName": "k3"}},
-		{RuleID: 3, Type: tasks.Verify, Args: map[string]string{"keyName": "k1"}},
-		{RuleID: 3, Type: "EMAIL", Args: map[string]string{"keyName": "k4"}},
-		{RuleID: 9, Type: tasks.Sign, Args: map[string]string{"keyName": "k5"}},
-	}
-
-	uses := usesOf(list, rules)
-
-	assert.Equal(t, []use{
-		{RuleID: 3, Rule: "a-rule", Send: true},
-		{RuleID: 2, Rule: "b-rule", Send: true},
-		{RuleID: 1, Rule: "b-rule", Send: false},
-	}, uses["k1"], "one line per rule, by name then sending first")
-	assert.Equal(t, []use{{RuleID: 3, Rule: "a-rule", Send: true}}, uses["k2"])
-	assert.Equal(t, []use{{RuleID: 3, Rule: "a-rule", Send: true}}, uses["k3"])
-	assert.NotContains(t, uses, "k4", "a task that reads no key")
-	assert.NotContains(t, uses, "k5", "a task without its rule")
-}
-
 func TestList(t *testing.T) {
 	t.Parallel()
 

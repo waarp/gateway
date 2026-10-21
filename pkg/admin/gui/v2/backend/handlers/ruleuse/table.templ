@@ -1,0 +1,29 @@
+package ruleuse
+
+import "code.waarp.fr/lib/gui"
+
+// Table: the rules whose tasks name an object, each a link to the tasks of
+// the rule (where the object is changed), with its direction. The caller says
+// what the table holds (the caption) and renders the sentence of an object no
+// rule uses.
+templ Table(caption string, rows []Row) {
+	<div class="w-table-wrap">
+		<table class="w-table">
+			<caption class="visually-hidden">{ caption }</caption>
+			<thead>
+				<tr>
+					<th scope="col">{ gui.T(ctx, "rule_uses.col.rule") }</th>
+					<th scope="col">{ gui.T(ctx, "rule_uses.col.direction") }</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, r := range rows {
+					<tr>
+						<td><a class="w-link w-mono" href={ templ.SafeURL(r.URL) }>{ r.Rule }</a></td>
+						<td>{ r.Direction }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}

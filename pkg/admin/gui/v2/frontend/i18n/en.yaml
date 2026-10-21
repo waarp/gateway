@@ -1675,15 +1675,6 @@ keys:
     locked: "private key protected by a passphrase"
     empty: "no value"
     type: "unknown type"
-  uses:
-    none: No rule
-    one: 1 rule
-    many: "{n} rules"
-    rule: Rule
-    direction: Direction
-  direction:
-    send: Send
-    receive: Receive
   action:
     detail: View the sheet
     edit: Edit the key
@@ -1778,3 +1769,16 @@ keys:
   error:
     title: The list of the cryptographic keys could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+
+# Rules whose tasks name an object by its name (cryptographic keys, SMTP credentials).
+rule_uses:
+  count:
+    none: No rule
+    one: 1 rule
+    many: "{n} rules"
+  col:
+    rule: Rule
+    direction: Direction
+  direction:
+    send: Send
+    receive: Receive

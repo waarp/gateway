@@ -1,7 +1,6 @@
 package keys
 
 import (
-	"cmp"
 	"encoding/base64"
 	"slices"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"code.waarp.fr/lib/gui"
 	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
@@ -199,69 +199,15 @@ func (i *keyInfo) state(translate gui.Translator, now time.Time) gui.Status {
 	}
 }
 
-// use is a rule whose tasks name a key: what the screen shows of it, the
-// tasks themselves being always the same ones (encrypt, decrypt, sign,
-// verify).
-type use struct {
-	RuleID int64
-	Rule   string
-	Send   bool
-}
-
 // keyParams are, for each task of the product that reads a cryptographic
 // key, the arguments that name it.
 //
 //nolint:gochecknoglobals // the arguments the tasks of the product read
-var keyParams = map[string][]string{
+var keyParams = ruleuse.Params{
 	tasks.Encrypt:          {"keyName"},
 	tasks.Decrypt:          {"keyName"},
 	tasks.Sign:             {"keyName"},
 	tasks.Verify:           {"keyName"},
 	tasks.EncryptAndSign:   {"encryptKeyName", "signKeyName"},
 	tasks.DecryptAndVerify: {"decryptKeyName", "verifyKeyName"},
-}
-
-// usesOf finds, for every key name, the rules whose tasks name it, by rule
-// name then direction.
-func usesOf(list model.Tasks, rules model.Rules) map[string][]use {
-	byID := make(map[int64]*model.Rule, len(rules))
-	for _, r := range rules {
-		byID[r.ID] = r
-	}
-
-	uses := map[string][]use{}
-
-	for _, t := range list {
-		r, ok := byID[t.RuleID]
-		if !ok {
-			continue
-		}
-
-		for _, param := range keyParams[t.Type] {
-			name := t.Args[param]
-			u := use{RuleID: r.ID, Rule: r.Name, Send: r.IsSend}
-
-			if name != "" && !slices.Contains(uses[name], u) {
-				uses[name] = append(uses[name], u)
-			}
-		}
-	}
-
-	for name := range uses {
-		slices.SortFunc(uses[name], func(a, b use) int {
-			return cmp.Or(strings.Compare(a.Rule, b.Rule), directionOrder(a.Send)-directionOrder(b.Send))
-		})
-	}
-
-	return uses
-}
-
-// directionOrder puts the sending rule before the receiving one of the same
-// name.
-func directionOrder(send bool) int {
-	if send {
-		return 0
-	}
-
-	return 1
 }
