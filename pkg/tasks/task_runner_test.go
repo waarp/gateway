@@ -2,12 +2,18 @@ package tasks
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -15,7 +21,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestSetup(t *testing.T) {
@@ -394,30 +399,29 @@ func TestSetup(t *testing.T) {
 }
 
 func TestRunTasks(t *testing.T) {
-	t.Parallel()
+	setup := func(tb testing.TB) *Runner {
+		tb.Helper()
+		logger := logtest.GetTestLogger(tb)
+		db := dbtest.TestDatabase(tb)
 
-	Convey("Given a processor", t, func(c C) {
-		logger := testhelpers.TestLogger(c, "test_run_tasks")
-		db := database.TestDatabase(c)
-
-		rule := &model.Rule{Name: "rule", IsSend: false, Path: "path"}
-		So(db.Insert(rule).Run(), ShouldBeNil)
+		rule := &model.Rule{Name: "rule", IsSend: true, Path: "path"}
+		require.NoError(tb, db.Insert(rule).Run())
 
 		client := &model.Client{Name: "cli", Protocol: testProtocol}
-		So(db.Insert(client).Run(), ShouldBeNil)
+		require.NoError(tb, db.Insert(client).Run())
 
 		agent := &model.RemoteAgent{
 			Name:     "agent",
 			Protocol: client.Protocol,
 			Address:  types.Addr("localhost", 6622),
 		}
-		So(db.Insert(agent).Run(), ShouldBeNil)
+		require.NoError(tb, db.Insert(agent).Run())
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: agent.ID,
 			Login:         "toto",
 		}
-		So(db.Insert(account).Run(), ShouldBeNil)
+		require.NoError(tb, db.Insert(account).Run())
 
 		trans := &model.Transfer{
 			RuleID:          rule.ID,
@@ -425,142 +429,151 @@ func TestRunTasks(t *testing.T) {
 			RemoteAccountID: account.NullableID(),
 			SrcFilename:     "/src/file",
 			DestFilename:    "/dst/file",
+			LocalPath:       filepath.Join(tb.TempDir(), "file"),
 		}
-		So(db.Insert(trans).Run(), ShouldBeNil)
+		require.NoError(tb, db.Insert(trans).Run())
 
-		proc := &Runner{
+		return &Runner{
 			db:     db,
 			Logger: logger,
 			transCtx: &model.TransferContext{
 				Rule:     rule,
 				Transfer: trans,
 			},
-			Ctx: t.Context(),
+			Ctx: tb.Context(),
+		}
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		proc := setup(t)
+		dummyTaskCheck = make(chan string, 3)
+		tasks := []*model.Task{
+			{
+				RuleID: proc.transCtx.Rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   0,
+				Type:   taskSuccess,
+				Args:   map[string]string{},
+			}, {
+				RuleID: proc.transCtx.Rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   1,
+				Type:   taskSuccess,
+				Args:   map[string]string{},
+			},
 		}
 
-		Convey("Given a list of tasks", func() {
-			Convey("Given that all the tasks succeed", func() {
-				dummyTaskCheck = make(chan string, 3)
-				tasks := []*model.Task{
-					{
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   0,
-						Type:   taskSuccess,
-						Args:   map[string]string{},
-					}, {
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   1,
-						Type:   taskSuccess,
-						Args:   map[string]string{},
-					},
-				}
+		rv := proc.runTasks(tasks, nil)
+		require.Nil(t, rv)
 
-				Convey("Then it should run the tasks without error", func() {
-					rv := proc.runTasks(tasks, false, nil)
-					So(rv, ShouldBeNil)
+		dummyTaskCheck <- "DONE"
 
-					dummyTaskCheck <- "DONE"
+		assert.Equal(t, "SUCCESS", <-dummyTaskCheck)
+		assert.Equal(t, "SUCCESS", <-dummyTaskCheck)
+		assert.Equal(t, "DONE", <-dummyTaskCheck)
+	})
 
-					Convey("Then it should have executed all tasks", func() {
-						So(<-dummyTaskCheck, ShouldEqual, "SUCCESS")
-						So(<-dummyTaskCheck, ShouldEqual, "SUCCESS")
-						So(<-dummyTaskCheck, ShouldEqual, "DONE")
-					})
-				})
-			})
+	t.Run("Warning", func(t *testing.T) {
+		proc := setup(t)
+		dummyTaskCheck = make(chan string, 3)
+		tasks := []*model.Task{
+			{
+				RuleID: proc.transCtx.Rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   0,
+				Type:   taskSuccess,
+				Args:   map[string]string{},
+			}, {
+				RuleID: proc.transCtx.Rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   1,
+				Type:   taskWarning,
+				Args:   map[string]string{},
+			},
+		}
 
-			Convey("Given that one task is in warning", func() {
-				dummyTaskCheck = make(chan string, 3)
-				tasks := []*model.Task{
-					{
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   0,
-						Type:   taskSuccess,
-						Args:   map[string]string{},
-					}, {
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   1,
-						Type:   taskWarning,
-						Args:   map[string]string{},
-					},
-				}
+		rv := proc.runTasks(tasks, nil)
+		require.Nil(t, rv)
 
-				Convey("Then it should run the tasks without error", func() {
-					rv := proc.runTasks(tasks, false, nil)
-					So(rv, ShouldBeNil)
+		dummyTaskCheck <- "DONE"
 
-					dummyTaskCheck <- "DONE"
+		assert.Equal(t, "SUCCESS", <-dummyTaskCheck)
+		assert.Equal(t, "WARNING", <-dummyTaskCheck)
+		assert.Equal(t, "DONE", <-dummyTaskCheck)
 
-					Convey("Then it should have executed all tasks", func() {
-						So(<-dummyTaskCheck, ShouldEqual, "SUCCESS")
-						So(<-dummyTaskCheck, ShouldEqual, "WARNING")
-						So(<-dummyTaskCheck, ShouldEqual, "DONE")
+		assert.Equal(t, types.TeWarning, proc.transCtx.Transfer.ErrCode)
+		assert.Equal(t, "Task TESTWARNING @ rule PRE[1]: warning message",
+			proc.transCtx.Transfer.ErrDetails)
+	})
 
-						Convey("Then the transfer should have a warning", func() {
-							So(trans.ErrCode, ShouldEqual, types.TeWarning)
-							So(trans.ErrDetails, ShouldEqual, "Task TESTWARNING @ rule PRE[1]: warning message")
-						})
-					})
-				})
-			})
+	t.Run("Failure", func(t *testing.T) {
+		proc := setup(t)
+		dummyTaskCheck = make(chan string, 3)
+		tasks := []*model.Task{
+			{
+				RuleID: proc.transCtx.Rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   0,
+				Type:   taskSuccess,
+				Args:   map[string]string{},
+			}, {
+				RuleID: proc.transCtx.Rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   1,
+				Type:   taskFail,
+				Args:   map[string]string{},
+			}, {
+				RuleID: proc.transCtx.Rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   1,
+				Type:   taskSuccess,
+				Args:   map[string]string{},
+			},
+		}
 
-			Convey("Given that one of the tasks fails", func() {
-				dummyTaskCheck = make(chan string, 3)
+		rv := proc.runTasks(tasks, nil)
+		require.Error(t, rv)
+		dummyTaskCheck <- "DONE"
 
-				tasks := []*model.Task{
-					{
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   0,
-						Type:   taskSuccess,
-						Args:   map[string]string{},
-					}, {
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   1,
-						Type:   taskFail,
-						Args:   map[string]string{},
-					}, {
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   1,
-						Type:   taskSuccess,
-						Args:   map[string]string{},
-					},
-				}
+		assert.Equal(t, "SUCCESS", <-dummyTaskCheck)
+		assert.Equal(t, "FAILURE", <-dummyTaskCheck)
+		assert.Equal(t, "DONE", <-dummyTaskCheck)
+	})
 
-				Convey("Then running the tasks should return an error", func() {
-					rv := proc.runTasks(tasks, false, nil)
-					So(rv, ShouldBeError)
-					dummyTaskCheck <- "DONE"
+	t.Run("Unknown task", func(t *testing.T) {
+		proc := setup(t)
+		dummyTaskCheck = make(chan string, 1)
+		tasks := []*model.Task{{
+			RuleID: proc.transCtx.Rule.ID,
+			Chain:  model.ChainPre,
+			Rank:   0,
+			Type:   "unknown",
+			Args:   map[string]string{},
+		}}
 
-					Convey("Then it should have executed all tasks up to the failed one", func() {
-						So(<-dummyTaskCheck, ShouldEqual, "SUCCESS")
-						So(<-dummyTaskCheck, ShouldEqual, "FAILURE")
-						So(<-dummyTaskCheck, ShouldEqual, "DONE")
-					})
-				})
-			})
+		assert.ErrorContains(t, proc.runTasks(tasks, nil), "unknown task type")
+	})
 
-			Convey("Given an unknown type of task", func() {
-				dummyTaskCheck = make(chan string, 1)
+	t.Run("Delete", func(t *testing.T) {
+		proc := setup(t)
+		logOut := &strings.Builder{}
+		proc.Logger = logtest.GetTestLogger(t,
+			logtest.WithLevel("WARNING"),
+			logtest.WithWriter(logOut))
 
-				tasks := []*model.Task{{
-					RuleID: rule.ID,
-					Chain:  model.ChainPre,
-					Rank:   0,
-					Type:   "unknown",
-					Args:   map[string]string{},
-				}}
+		require.NoError(t, os.WriteFile(proc.transCtx.Transfer.LocalPath, []byte{}, 0o600))
 
-				Convey("Then running the tasks should return an error", func() {
-					So(proc.runTasks(tasks, false, nil), ShouldNotBeNil)
-				})
-			})
-		})
+		tasks := []*model.Task{{
+			RuleID: proc.transCtx.Rule.ID,
+			Chain:  model.ChainPre,
+			Rank:   0,
+			Type:   Delete,
+			Args:   map[string]string{},
+		}}
+
+		rv := proc.runTasks(tasks, nil)
+		require.Nil(t, rv)
+
+		assert.Empty(t, logOut.String())
 	})
 }
