@@ -3,6 +3,19 @@
 Historique des versions
 =======================
 
+* :feature:`723` L'interface web propose un écran SNMP (voir :ref:`le guide de
+  l'interface web <user-webui-snmp>`), qui n'existait jusqu'ici que par l'API
+  REST et la ligne de commande : une page avec les moniteurs (version, adresse,
+  sécurité) et l'agent SNMP (état du service, adresse d'écoute, versions
+  acceptées, utilisateur SNMPv3) ; fiche d'un moniteur ; pages de création, de
+  modification et de suppression d'un moniteur, SNMPv2c ou SNMPv3, avec les
+  seuls champs du niveau de sécurité choisi ; pages de configuration et de
+  désactivation de l'agent ; bouton d'envoi de la notification de test, dont la
+  page donne le résultat. Les phrases secrètes et les communautés ne sont
+  jamais réaffichées et restent inchangées quand on les laisse vides.
+  L'ancienne page, qui renvoyait à la ligne de commande, mène désormais à
+  l'écran.
+
 * :feature:`722` L'interface web propose un écran des autorités
   d'authentification (voir :ref:`le guide de l'interface web
   <user-webui-authorities>`), qui n'existait jusqu'ici que par l'API REST et
