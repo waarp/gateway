@@ -304,11 +304,6 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, sidebar, "front-end/html/cryptographic_key_management_page.html"),
 	)
-	snmpManagementTemplate = template.Must(
-		template.New("snmp_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, sidebar, "front-end/html/snmp_management_page.html"),
-	)
 	managingConfigurationOverridesTemplate = template.Must(
 		template.New("managing_configuration_overrides_page.html").
 			Funcs(funcs).
