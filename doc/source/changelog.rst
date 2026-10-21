@@ -3,6 +3,20 @@
 Historique des versions
 =======================
 
+* :feature:`722` L'interface web propose un écran des autorités
+  d'authentification (voir :ref:`le guide de l'interface web
+  <user-webui-authorities>`), qui n'existait jusqu'ici que par l'API REST et
+  la ligne de commande : liste triée par colonne et filtrée par type et par
+  validité du certificat, avec le sujet du certificat ou le type de la clé,
+  l'état du certificat (valide, expire dans les 30 jours, expiré) et les hôtes
+  autorisés ; fiche en lecture avec l'identité publique (sujet, émetteur,
+  validité, empreinte, valeur à copier) et, pour une autorité TLS, les
+  certificats enregistrés dans la Gateway qu'elle signe ; pages de création,
+  de modification et de suppression, l'identité publique déposée en fichier
+  ou collée, vérifiée avant l'enregistrement, et les hôtes autorisés saisis un
+  par ligne, avec la règle de comparaison de chaque type. L'ancienne page, qui
+  renvoyait à la ligne de commande, mène désormais à l'écran.
+
 * :feature:`719` L'écran des instances cloud de l'interface web est refondu sur
   le kit (voir :ref:`le guide de l'interface web <user-webui-clouds>`) et
   propose les cinq types de stockage de la Gateway (S3, Azure Blob, Azure
