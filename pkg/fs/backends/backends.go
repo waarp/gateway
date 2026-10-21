@@ -10,21 +10,18 @@ import (
 
 //nolint:gochecknoinits //init is used by design
 func init() {
-	// S3
-	fs.Register("s3", s3.NewFS)
-	fs.Register("aws", s3.NewFS)
+	register(s3.Storage, s3.NewFS, "s3", "aws")
+	register(azure.BlobStorage, azure.NewBlobFS, "azblob", "azureblob")
+	register(azure.FilesStorage, azure.NewFilesFS, "azfiles", "azurefiles")
+	register(gcs.Storage, gcs.NewFS, "gcs", "google")
+	register(onedrive.Storage, onedrive.NewFS, "onedrive", "sharepoint")
+}
 
-	// Azure
-	fs.Register("azblob", azure.NewBlobFS)
-	fs.Register("azureblob", azure.NewBlobFS)
-	fs.Register("azfiles", azure.NewFilesFS)
-	fs.Register("azurefiles", azure.NewFilesFS)
-
-	// Google Cloud
-	fs.Register("gcs", gcs.NewFS)
-	fs.Register("google", gcs.NewFS)
-
-	// Onedrive
-	fs.Register("onedrive", onedrive.NewFS)
-	fs.Register("sharepoint", onedrive.NewFS)
+// register records a backend under its type and its aliases, with the
+// storage of rclone it is built on.
+func register(storage string, mkfs fs.FSMaker, kinds ...string) {
+	for _, kind := range kinds {
+		fs.Register(kind, mkfs)
+		fs.Describe(kind, fs.Library{Name: storage})
+	}
 }
