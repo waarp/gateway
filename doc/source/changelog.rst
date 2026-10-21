@@ -3,6 +3,20 @@
 Historique des versions
 =======================
 
+* :feature:`744` L'interface web propose un écran des modèles d'e-mail (voir
+  :ref:`le guide de l'interface web <user-webui-email-templates>`), qui n'existait
+  jusqu'ici que par l'API REST et la ligne de commande : liste triée par nom et
+  par objet, avec le format, les pièces jointes et le nombre de règles qui
+  emploient chaque modèle ; fiche en lecture avec un aperçu du message tel que le
+  traitement EMAIL l'envoie, ses marqueurs remplacés par les valeurs de l'un des
+  derniers transferts des règles qui l'emploient ou par des valeurs d'exemple ;
+  pages de création, de modification et de suppression, avec un éditeur HTML
+  et la liste des variables qui s'ouvre en tapant ``#``. Le formulaire refuse un
+  marqueur que les traitements ne connaissent pas ou ne prennent pas en charge ;
+  le nom d'un modèle employé ne se modifie pas, et sa suppression est remplacée
+  par la liste des règles à modifier d'abord. L'ancienne page, qui renvoyait à la
+  ligne de commande, mène désormais à l'écran.
+
 * :feature:`741` L'interface web propose un écran des identifiants SMTP (voir
   :ref:`le guide de l'interface web <user-webui-smtp>`), qui n'existait jusqu'ici
   que par l'API REST et la ligne de commande : liste triée par expéditeur et par

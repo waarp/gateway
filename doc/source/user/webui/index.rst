@@ -22,6 +22,7 @@ restent décrits par l'interface elle-même.
    partenaires-distants
    cles
    smtp
+   modeles
    utilisateurs
    instances-cloud
    autorites
@@ -98,7 +99,8 @@ supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
 sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les
 utilisateurs, et les écrans :doc:`instances-cloud`, :doc:`autorites`,
 :doc:`snmp`, :doc:`surcharges` et :doc:`cles` les droits sur l'administration ;
-l'écran :doc:`smtp` requiert les droits sur les règles, comme l'API REST.
+les écrans :doc:`smtp` et :doc:`modeles` requièrent les droits sur les règles,
+comme l'API REST.
 
 
 Ancienne et nouvelle interface
