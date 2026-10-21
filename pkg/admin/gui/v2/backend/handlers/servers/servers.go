@@ -42,9 +42,8 @@ const (
 	docPage         = "user/webui/serveurs-locaux"
 	pagePath        = "/servers"
 
-	// The historic page of the running transfers, the way out of a refused
-	// deletion.
-	transfersPath = "/transfer_monitoring"
+	// The transfer monitoring screen, the way out of a refused deletion.
+	transfersPath = "/transfers"
 
 	// The cookie that keeps the state of the list for the browser session, so
 	// that coming back through the sidebar finds the list as it was left

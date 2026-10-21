@@ -89,6 +89,25 @@ func TestQuery(t *testing.T) {
 	assert.Empty(t, pager.NextURL)
 }
 
+func TestFirstDesc(t *testing.T) {
+	t.Parallel()
+
+	spec := &Spec{Path: "/things", Sorts: []string{"start", "name"}, Sizes: []int{10}, FirstDesc: true}
+
+	dflt := spec.Parse(url.Values{})
+	assert.Equal(t, "start", dflt.Sort)
+	assert.Equal(t, DirDesc, dflt.Dir, "the first key sorts descending by default")
+	assert.Empty(t, dflt.Encode(1), "the default state is carried as nothing")
+
+	asc := spec.Parse(url.Values{"sort": {"start"}, "dir": {"asc"}})
+	assert.Equal(t, DirAsc, asc.Dir)
+	assert.Equal(t, "dir=asc&sort=start", asc.Encode(1), "the ascending order of the first key is said")
+
+	name := spec.Parse(url.Values{"sort": {"name"}})
+	assert.Equal(t, DirAsc, name.Dir, "the other keys start ascending")
+	assert.Equal(t, "dir=asc&sort=name", name.Encode(1))
+}
+
 func TestKeptState(t *testing.T) {
 	t.Parallel()
 

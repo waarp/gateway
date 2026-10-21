@@ -1,0 +1,260 @@
+package transfers
+
+import (
+	"fmt"
+	"net/http"
+	"slices"
+	"strconv"
+	"strings"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+)
+
+// infoKeyPrefix prefixes the catalogue keys of the names of the reserved
+// transfer information of the product ("transfers.info_key.__followID__"). A
+// key without an entry keeps its technical name.
+const infoKeyPrefix = "transfers.info_key."
+
+type kv = protoform.KV
+
+// infoRow is a transfer information: its name (the functional one of a
+// reserved key, with the technical one under it) and its value.
+type infoRow struct {
+	Name  string
+	Tech  string
+	Value string
+}
+
+// errorView is the error of a transfer: the readable cause, the technical
+// code, the message as the product keeps it, the step it stopped at.
+type errorView struct {
+	Cause   string
+	Code    string
+	Message string
+	Step    string
+}
+
+// button is an action of the header of the sheet, a POST form.
+type button struct {
+	Label   string
+	Icon    string
+	Action  string
+	Primary bool
+}
+
+type detailData struct {
+	ID       int64
+	File     string
+	Status   gui.Status
+	Number   string
+	BackURL  string
+	Buttons  []button
+	Actions  []gui.Action // the menu: retry, cancel
+	Error    *errorView
+	Transfer []kv
+	Files    []kv
+	Run      []kv
+	Progress progressView
+	Retries  []kv // nil for a server transfer
+	Infos    []infoRow
+}
+
+// Detail serves GET /webui/transfers/{id}: the sheet of a transfer.
+func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
+	trans, ok := h.transfer(w, r)
+	if !ok {
+		return
+	}
+
+	translate := h.shell.Translator(r)
+	carried := ret(r)
+	data := detailOf(translate, h.shell.Catalog().Has, trans, canWrite(r), carried)
+
+	screen := h.screen(data.File, crumbs(translate, data.Number, carried), 0)
+	screen.Notices = notices(translate, r.URL.Query())
+	h.shell.Render(w, h.logger, r, screen, detailView(data))
+}
+
+// detailOf lays out the sheet of a transfer.
+func detailOf(translate gui.Translator, has func(string) bool, trans *model.NormalizedTransferView,
+	write bool, carried string,
+) detailData {
+	data := detailData{
+		ID:       trans.ID,
+		File:     fileName(trans),
+		Status:   statusOf(translate, trans.Status),
+		Number:   translate("transfers.detail.number", "id", trans.ID),
+		BackURL:  listURL(carried),
+		Progress: progressOf(translate, trans),
+		Transfer: transferRows(translate, trans),
+		Files:    fileRows(translate, trans),
+		Run:      runRows(translate, trans),
+		Infos:    infoRows(translate, has, trans.TransferInfo),
+	}
+
+	if data.File == "" {
+		data.File = data.Number
+	}
+
+	if label := errorLabel(translate, trans.ErrCode); label != "" {
+		data.Error = &errorView{
+			Cause: label, Code: trans.ErrCode.String(), Message: trans.ErrDetails, Step: stepLabel(translate, trans.Step),
+		}
+	}
+
+	if !trans.IsServer && trans.IsTransfer {
+		data.Retries = retryRows(translate, trans)
+	}
+
+	if write {
+		data.Buttons, data.Actions = sheetActions(translate, trans, carried)
+	}
+
+	return data
+}
+
+// transferRows are the transfer: the rule and its direction, the partner or
+// the server and the account, the client, the protocol, the identifiers.
+func transferRows(translate gui.Translator, trans *model.NormalizedTransferView) []kv {
+	agent := "transfers.detail.partner"
+	if trans.IsServer {
+		agent = "transfers.detail.server"
+	}
+
+	rows := []kv{
+		{Label: translate("transfers.detail.rule"), Value: trans.Rule, Mono: true},
+		{Label: translate("transfers.detail.direction"), Value: direction(translate, trans)},
+		{Label: translate(agent), Value: trans.Agent},
+		{Label: translate("transfers.detail.account"), Value: trans.Account, Mono: true},
+	}
+
+	if trans.Client != "" {
+		rows = append(rows, kv{Label: translate("transfers.detail.client"), Value: trans.Client, Mono: true})
+	}
+
+	rows = append(rows, kv{Label: translate("transfers.detail.protocol"), Value: protocolLabel(trans.Protocol)})
+
+	if trans.RemoteTransferID != "" {
+		rows = append(rows, kv{Label: translate("transfers.detail.remote_id"), Value: trans.RemoteTransferID, Mono: true})
+	}
+
+	if followID, ok := trans.TransferInfo[model.FollowID]; ok {
+		rows = append(rows, kv{Label: translate("transfers.detail.follow_id"), Value: fmt.Sprint(followID), Mono: true})
+	}
+
+	return rows
+}
+
+// fileRows are the file: its names at the source and at the destination,
+// its paths on the gateway and at the partner, its size.
+func fileRows(translate gui.Translator, trans *model.NormalizedTransferView) []kv {
+	size := translate("transfers.detail.size_unknown")
+	if trans.Filesize >= 0 {
+		size = translate("transfers.detail.size_bytes", "bytes", groupDigits(translate, uint64(trans.Filesize)),
+			"size", formatSize(translate, trans.Filesize))
+	}
+
+	rows := []kv{}
+
+	for _, item := range []struct{ key, value string }{
+		{"transfers.detail.src", trans.SrcFilename},
+		{"transfers.detail.dest", trans.DestFilename},
+		{"transfers.detail.local_path", trans.LocalPath},
+		{"transfers.detail.remote_path", trans.RemotePath},
+	} {
+		if item.value != "" {
+			rows = append(rows, kv{Label: translate(item.key), Value: item.value, Mono: true})
+		}
+	}
+
+	return append(rows, kv{Label: translate("transfers.detail.size"), Value: size})
+}
+
+// runRows are the run of the transfer: its start, its end, the step and the
+// task it is at.
+func runRows(translate gui.Translator, trans *model.NormalizedTransferView) []kv {
+	startKey := "transfers.detail.start"
+
+	switch trans.Status {
+	case types.StatusPlanned:
+		startKey = "transfers.detail.start_planned"
+	case types.StatusAvailable:
+		startKey = "transfers.detail.due"
+	default:
+	}
+
+	rows := []kv{{Label: translate(startKey), Value: dateTime(translate, trans.Start)}}
+
+	if !trans.Stop.IsZero() {
+		rows = append(rows, kv{Label: translate("transfers.detail.stop"), Value: dateTime(translate, trans.Stop)})
+	}
+
+	if step := stepLabel(translate, trans.Step); step != "" {
+		rows = append(rows, kv{Label: translate("transfers.detail.step"), Value: step})
+	}
+
+	if trans.TaskNumber > 0 && (trans.Step == types.StepPreTasks || trans.Step == types.StepPostTasks ||
+		trans.Step == types.StepErrorTasks) {
+		rows = append(rows, kv{Label: translate("transfers.detail.task"), Value: strconv.Itoa(int(trans.TaskNumber))})
+	}
+
+	return rows
+}
+
+// retryRows are the automatic retries of a client transfer.
+func retryRows(translate gui.Translator, trans *model.NormalizedTransferView) []kv {
+	if trans.RemainingTries <= 0 {
+		return []kv{{Label: translate("transfers.retries.remaining"), Value: translate("transfers.retries.none")}}
+	}
+
+	rows := []kv{{Label: translate("transfers.retries.remaining"), Value: strconv.Itoa(int(trans.RemainingTries))}}
+
+	if trans.Status == types.StatusError && !trans.NextRetry.IsZero() {
+		rows = append(rows, kv{Label: translate("transfers.retries.next"), Value: dateTime(translate, trans.NextRetry)})
+	}
+
+	rows = append(rows, kv{
+		Label: translate("transfers.retries.delay"),
+		Value: translate("transfers.retries.seconds", "n", groupDigits(translate, uint64(max(trans.NextRetryDelay, 0)))),
+	})
+
+	if trans.RetryIncrementFactor > 0 {
+		factor := strings.Replace(strconv.FormatFloat(float64(trans.RetryIncrementFactor), 'f', -1, 32), ".",
+			translate("transfers.decimal"), 1)
+		rows = append(rows, kv{Label: translate("transfers.retries.factor"), Value: factor})
+	}
+
+	return rows
+}
+
+// stepLabel is the label of a step, "" for none.
+func stepLabel(translate gui.Translator, step types.TransferStep) string {
+	if step == types.StepNone || !step.IsValid() {
+		return ""
+	}
+
+	return translate(stepKeyPrefix + step.String())
+}
+
+// infoRows are the transfer information, in the order of their names: the
+// reserved keys of the product by their functional name.
+func infoRows(translate gui.Translator, has func(string) bool, infos map[string]any) []infoRow {
+	rows := make([]infoRow, 0, len(infos))
+
+	for name, value := range infos {
+		line := infoRow{Name: name, Value: fmt.Sprint(value)}
+		if key := infoKeyPrefix + name; has(key) {
+			line.Name, line.Tech = translate(key), name
+		}
+
+		rows = append(rows, line)
+	}
+
+	slices.SortFunc(rows, func(a, b infoRow) int { return strings.Compare(a.Name, b.Name) })
+
+	return rows
+}

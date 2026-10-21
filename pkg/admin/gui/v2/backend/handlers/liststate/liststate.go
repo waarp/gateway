@@ -74,6 +74,10 @@ type Spec struct {
 	Cookie string // the cookie that keeps the state for the browser session
 	Sorts  []string
 	Sizes  []int
+	// FirstDesc sorts by the first sort key in the descending order by
+	// default (the most recent transfers first); the other keys start
+	// ascending.
+	FirstDesc bool
 	// ParseFilters reads the filters of the screen from a query, dropping
 	// what is unknown; nil when the screen has none.
 	ParseFilters func(url.Values) Filters
@@ -91,8 +95,9 @@ type Query struct {
 	Size    int
 	Filters Filters
 
-	sorts []string
-	sizes []int
+	sorts     []string
+	sizes     []int
+	firstDesc bool
 }
 
 // Parse reads ?q=, ?sort= (among the given keys, the first one by default),
@@ -127,6 +132,13 @@ func Parse(v url.Values, sorts []string, sizes []int) *Query {
 // Parse reads the state of the list of the screen, its filters included.
 func (s *Spec) Parse(v url.Values) *Query {
 	query := Parse(v, s.Sorts, s.Sizes)
+	if s.FirstDesc {
+		query.firstDesc = true
+		if query.Sort == s.Sorts[0] && v.Get(DirParam) != DirAsc {
+			query.Dir = DirDesc
+		}
+	}
+
 	if s.ParseFilters != nil {
 		query.Filters = s.ParseFilters(v)
 	}
@@ -153,7 +165,7 @@ func (q *Query) FilterValues() url.Values {
 // when they differ from the default; the page is added by WithPage.
 func (q *Query) Values() url.Values {
 	v := q.FilterValues()
-	if q.Sort != q.sorts[0] || q.Dir != DirAsc {
+	if q.Sort != q.sorts[0] || q.Dir != q.defaultDir() {
 		v.Set(SortParam, q.Sort)
 		v.Set(DirParam, q.Dir)
 	}
@@ -163,6 +175,16 @@ func (q *Query) Values() url.Values {
 	}
 
 	return v
+}
+
+// defaultDir is the order of the default sort: descending for a list sorted
+// by its first key in that order by default (Spec.FirstDesc).
+func (q *Query) defaultDir() string {
+	if q.firstDesc {
+		return DirDesc
+	}
+
+	return DirAsc
 }
 
 // WithPage is the state with the given page.

@@ -2056,3 +2056,289 @@ email_templates:
     zone: time zone
     offset: "time offset (+02:00)"
     offset_short: "time offset (+0200)"
+
+# "Transfer monitoring" screen (Supervision): the transfers and the history together, the sheet of a transfer, its
+# actions and the pages that add and preregister a transfer.
+transfers:
+  title: Transfer monitoring
+  live: "Refreshed at {time}"
+  refreshing: Refreshing…
+  add: Add a transfer
+  search: Search a transfer by its file or its follow ID
+  search_placeholder: File or follow ID
+  refresh_error:
+    title: The monitoring could not be refreshed
+    text: "Last successful read at {time}. The transfers shown date from that read; a new attempt is made every {seconds} s."
+  load_error:
+    title: The list of the transfers could not be loaded
+    text: The database did not answer. Try again in a moment.
+  empty:
+    title: No transfer yet
+    text: A transfer is the exchange of a file according to a rule, with a partner or for a partner.
+  none:
+    query: "No transfer matches “{query}”"
+    state: "No “{state}” transfer"
+    all_states: Show every transfer
+    filters: No transfer matches the filters
+  count_one: 1 transfer
+  count: "{total} transfers"
+  caption: "Transfers, page {page} of {pages}, sorted by {sort}"
+  sort:
+    start: start
+    file: file
+    state: state
+    rule: rule
+    stop: end
+  pager: "Transfers {from} to {to} of {total}"
+  # A state per transfer, then the row of the states (plural).
+  state:
+    running: In progress
+    error: Failed
+    planned: Planned
+    paused: Paused
+    interrupted: Interrupted
+    available: Available
+    done: Done
+    cancelled: Cancelled
+  states:
+    label: Transfer states
+    all: All
+    running: In progress
+    error: Failed
+    planned: Planned
+    paused: Paused
+    interrupted: Interrupted
+    available: Available
+    done: Done
+    cancelled: Cancelled
+  filter:
+    rule: Rule
+    rule_all: Every rule
+    direction: Direction
+    direction_all: Send and receive
+    partner: Partner or server
+    account: Account
+    protocol: Protocol
+    protocol_all: Every protocol
+    from: Start from
+    to: Start until
+  dir:
+    send: Send
+    receive: Receive
+  role:
+    client: client
+    server: server
+  col:
+    file: File
+    state: State
+    rule: Rule
+    partner: Partner
+    progress: Progress
+    start: Start
+    stop: End
+    actions: Actions
+  number: "No. {id}"
+  due_at: "until {date}"
+  next_attempt: next attempt
+  no_stop: Not over yet
+  no_progress: No progress
+  percent: "{pct}%"
+  progress_label: "Progress {pct}%"
+  # Dates and numbers (Go layout for the date).
+  date: 2006-01-02
+  date_time: "{date} {time}"
+  thousands: ","
+  decimal: "."
+  size:
+    byte: "{n} byte"
+    bytes: "{n} bytes"
+    kb: "{n} KB"
+    mb: "{n} MB"
+    gb: "{n} GB"
+    tb: "{n} TB"
+  # Label of each error code of the product; the technical code stays as a hint.
+  code:
+    TeUnknown: Unknown error
+    TeInternal: Internal error of the gateway
+    TeUnimplemented: Feature the partner does not support
+    TeConnection: Connection impossible
+    TeConnectionReset: Connection broken
+    TeUnknownRemote: Unknown or failing partner
+    TeExceededLimit: Limit reached
+    TeBadAuthentication: Authentication refused
+    TeDataTransfer: Error while transferring the data
+    TeIntegrity: Integrity check failed
+    TeFinalization: Error at the finalization
+    TeExternalOperation: Error of a task
+    TeWarning: Warning of a task
+    TeStopped: Transfer stopped
+    TeCanceled: Transfer cancelled
+    TeFileNotFound: File not found
+    TeForbidden: Access denied
+    TeBadSize: File size refused
+    TeShuttingDown: Gateway or partner shutting down
+    TeExpired: Due date passed
+  step:
+    StepSetup: Setting up the transfer
+    StepPreTasks: Tasks before the transfer
+    StepData: Transferring the data
+    StepPostTasks: Tasks after the transfer
+    StepErrorTasks: Error tasks
+    StepFinalization: Finalization
+  action:
+    detail: View the transfer
+    pause: Pause
+    resume: Resume
+    retry: Retry
+    cancel: Cancel the transfer
+  back: Back to the list
+  back_transfer: Back to the transfer
+  toast:
+    paused: "Transfer “{name}” paused"
+    resumed: "Transfer “{name}” resumed"
+    cancelled: "Transfer “{name}” cancelled"
+    retried: "New transfer No. {name} planned"
+    added: "Transfer No. {name} planned"
+    preregistered: "Transfer No. {name} preregistered"
+  not_found:
+    title: Transfer not found
+    text: This transfer does not exist, or no longer. Go back to the list to find it by its file.
+  detail:
+    number: "Transfer No. {id}"
+    error: Error
+    cause: Cause
+    message: Message
+    error_step: Step
+    transfer: Transfer
+    file: File
+    run: Run
+    retries: Retries
+    infos: Transfer information
+    infos_none: No transfer information.
+    info_name: Information
+    info_value: Value
+    progress: Progress
+    rule: Rule
+    direction: Direction
+    partner: Partner
+    server: Server
+    account: Account
+    client: Client
+    protocol: Protocol
+    remote_id: Remote ID
+    follow_id: Follow ID
+    src: Name at the source
+    dest: Name at the destination
+    local_path: Path on the gateway
+    remote_path: Path at the partner
+    size: Size
+    size_unknown: Unknown
+    size_bytes: "{bytes} bytes ({size})"
+    start: Start
+    start_planned: Planned start
+    due: Due date
+    stop: End
+    step: Step
+    task: Current task
+  retries:
+    attempts: Attempts
+    remaining: Attempts left
+    none: None
+    next: Next attempt
+    delay: Delay before the next one
+    seconds: "{n} s"
+    factor: Growth factor
+  refused:
+    title: Action impossible
+    elsewhere: This transfer runs on another node of the cluster. Act from the interface of that node.
+    pause_title: "“{name}” cannot be paused"
+    pause: "Only a transfer in progress, or planned by the gateway, can be paused. State of the transfer: {state}."
+    resume_title: "“{name}” cannot resume"
+    resume: "Only a paused, interrupted or failed transfer resumes. State of the transfer: {state}."
+    resume_server: A server transfer resumes when the partner connects again.
+    resume_sync: "This transfer is part of transfer No. {parent}: resume that one."
+    cancel_title: "“{name}” cannot be cancelled"
+    cancel: "A done or cancelled transfer can no longer be cancelled. State of the transfer: {state}."
+    retry_title: "“{name}” cannot be retried"
+    retry: "A planned, available or running transfer cannot be retried. State of the transfer: {state}."
+    retry_server: A server transfer is retried by the partner.
+  cancel:
+    title: "Cancel the transfer “{name}”?"
+    text: The transfer goes to the history, cancelled; it will not be tried again. To do it again, retry it.
+    text_running: The running transfer is stopped, then goes to the history, cancelled. To do it again, retry it.
+  retry:
+    title: "Retry “{name}”"
+    text: "A new transfer is created, with the same rule, partner, account and file. {number} stays as it is. To continue a transfer where it stopped, use “Resume” instead."
+    date: Start
+    refused: The retry was not created
+    gone: The rule, the partner, the account or the client of this transfer no longer exists.
+  new:
+    title: New transfer
+  preregister:
+    title: Preregister a transfer
+    text: The transfer waits for the partner to connect to the server to exchange it, until the due date; it shows as “Available”.
+  form:
+    refused: The transfer was not created
+    refused_text: Correct the fields shown.
+    exchange: Exchange
+    file: File
+    file_hint: "To send, the path of the file, relative to the send folder of the rule; to receive, the name of the file to ask for."
+    file_server_hint: The name of the file the partner will send or ask for.
+    output: Name at the destination
+    output_hint: "Empty: the same name."
+    rules_send: Send
+    rules_receive: Receive
+    choose_rule: Choose a rule
+    rule_hint: "The rule sets the direction: send or receive."
+    remote_account: Partner and account
+    remote_account_hint: The account the gateway connects to the partner with.
+    local_account: Server and account
+    local_account_hint: The account the partner will connect to the server with.
+    choose_account: Choose an account
+    client_default: The client of the protocol of the partner
+    client_hint: Useful when several clients exist for the same protocol.
+    start: Start
+    start_hint: "Time of the gateway; empty: now."
+    due_hint: Time of the gateway. After it, the partner can no longer exchange the file.
+    info: "One information per line, “key: value”"
+    info_placeholder: "batch: 2026-10-20-B"
+    info_hint: The tasks of the rule can read them.
+    retries: Retries on error
+    retries_hint: "Empty: those of the client."
+    delay: First delay (s)
+    error:
+      required: Enter a value.
+      choose: Choose a value from the list.
+      date: "Enter a date and a time. Expected format: 2026-10-21 18:00"
+      due_past: Enter a due date to come.
+      info: "Write one information per line, as “key: value”. Line to correct: “{line}”"
+      tries: "Enter a number from 0 to {max}."
+      delay: Enter a number of seconds, 0 or more.
+      factor: "Enter a number, 0 or more (1.5 for example)."
+      client: "Several clients exist for the protocol {protocol}: choose one."
+  # Names of the reserved transfer information of the product; a key without an entry keeps its technical name.
+  info_key:
+    __followID__: Follow ID
+    __syncTransferID__: Parent synchronous transfer
+    __syncTransferRank__: Rank in the synchronous transfer
+    __ackExpected__: Acknowledgement expected
+    __ackSent__: Acknowledgement sent
+    __ackSentTo__: Acknowledgement sent to
+    __ackSentAs__: Acknowledgement sent as
+    __ackSentOn__: Acknowledgement sent on
+    __ackWaitSince__: Waiting for the acknowledgement since
+    __ackWaitTimeout__: Acknowledgement timeout
+    __ackReceived__: Acknowledgement received
+    __ackReceivedOn__: Acknowledgement received on
+    __fileEncoding__: Data encoding
+    __fileType__: File type
+    __organization__: File organization
+    __customerID__: Customer ID
+    __bankID__: Bank ID
+    __clientConnFreetext__: Connection free text of the client
+    __clientTransFreetext__: Transfer free text of the client
+    __serverConnFreetext__: Connection free text of the server
+    __serverTransFreetext__: Transfer free text of the server
+    __articlesLengths__: Record lengths
+    __articlesFormat__: Record format
+    __articlesSeparator__: Record separator

@@ -41,10 +41,10 @@ const (
 	docPage         = "user/webui/partenaires-distants"
 	pagePath        = "/partners"
 
-	// The historic pages the sheet leads to: the running transfers (the way
-	// out of a refused deletion) and the transfer rules (where the accesses
-	// of a partner are managed).
-	transfersPath = "/transfer_monitoring"
+	// The pages the sheet leads to: the transfers (the way out of a refused
+	// deletion) and the historic page of the transfer rules (where the
+	// accesses of a partner are managed).
+	transfersPath = "/transfers"
 	rulesPath     = "/transfer_rules_management"
 
 	// The cookie that keeps the state of the list for the browser session.

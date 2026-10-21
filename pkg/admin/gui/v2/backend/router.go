@@ -22,6 +22,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/smtp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/snmp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/users"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/listing"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
@@ -57,6 +58,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeKeysRouter(router, db, logger)
 	MakeSMTPCredentialsRouter(router, db, logger)
 	MakeEmailTemplatesRouter(router, db, logger)
+	MakeTransfersRouter(router, db, logger)
 }
 
 // adminRoutes registers the routes of a screen behind the rights on the
@@ -470,4 +472,43 @@ func MakeEmailTemplatesRouter(router *mux.Router, db *database.DB, logger *log.L
 	routes.read(templatePath, handlers.Detail)
 	routes.write(templatePath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(templatePath+"/delete", handlers.DeleteForm, handlers.Delete)
+}
+
+// transferRoutes registers the routes of the transfer monitoring screen
+// behind the rights on the transfers: the pages in reading, every action and
+// its page behind the write right. Every action is a POST.
+type transferRoutes struct{ router *mux.Router }
+
+func (u transferRoutes) read(path string, handler http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermTransfersRead, handler))
+}
+
+func (u transferRoutes) write(path string, form, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermTransfersWrite, form))
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermTransfersWrite, action))
+}
+
+// act registers an action without a page of its own (a button of a page),
+// behind the write right.
+func (u transferRoutes) act(path string, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermTransfersWrite, action))
+}
+
+// MakeTransfersRouter registers the "Transfer monitoring" screen: the list
+// and the sheet in reading; the addition of a client transfer, the
+// preregistration of a server transfer, the pause, the resumption, the
+// cancellation and the retry behind the write right.
+func MakeTransfersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := transfers.New(db, logger)
+	routes := transferRoutes{router}
+	const transferPath = "/transfers/{id:[0-9]+}"
+
+	routes.read("/transfers", handlers.List)
+	routes.write("/transfers/new", handlers.NewForm, handlers.Create)
+	routes.write("/transfers/preregister", handlers.PreregisterForm, handlers.Preregister)
+	routes.read(transferPath, handlers.Detail)
+	routes.act(transferPath+"/pause", handlers.Pause)
+	routes.act(transferPath+"/resume", handlers.Resume)
+	routes.write(transferPath+"/cancel", handlers.CancelForm, handlers.Cancel)
+	routes.write(transferPath+"/retry", handlers.RetryForm, handlers.Retry)
 }

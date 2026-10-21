@@ -1,0 +1,685 @@
+package transfers
+
+import (
+	"fmt"
+	"net/http"
+	"net/url"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
+)
+
+// The parameters of the filters of the list: the state (the row of the
+// states) and the criteria of the filters panel.
+const (
+	paramState    = "state"
+	paramRule     = "rule"
+	paramDir      = "direction" // "dir" is the order of the sort
+	paramPartner  = "partner"
+	paramAccount  = "account"
+	paramProtocol = "protocol"
+	paramFrom     = "from"
+	paramTo       = "to"
+
+	dirSend    = "send"
+	dirReceive = "receive"
+
+	// The layout of a datetime-local field, in the time zone of the
+	// gateway.
+	localLayout = "2006-01-02T15:04"
+)
+
+//nolint:gochecknoglobals // reference data of the screen
+var filterParams = []string{
+	paramState, paramRule, paramDir, paramPartner, paramAccount, paramProtocol, paramFrom, paramTo,
+}
+
+// filters is the part of the state of the list that belongs to the screen.
+type filters struct {
+	State    string // key of the row of the states, "" for every state
+	Rule     string
+	Dir      string // dirSend, dirReceive or ""
+	Partner  string // the remote partner or the local server
+	Account  string
+	Protocol string // a protocol key of the gateway
+	From     string // datetime-local values (localLayout)
+	To       string
+}
+
+// parseFilters reads the filters of a query, dropping what is unknown or
+// invalid.
+func parseFilters(v url.Values) *filters {
+	crit := &filters{
+		Rule:    strings.TrimSpace(v.Get(paramRule)),
+		Partner: strings.TrimSpace(v.Get(paramPartner)),
+		Account: strings.TrimSpace(v.Get(paramAccount)),
+	}
+
+	if _, ok := specOfKey(v.Get(paramState)); ok {
+		crit.State = v.Get(paramState)
+	}
+
+	if dir := v.Get(paramDir); dir == dirSend || dir == dirReceive {
+		crit.Dir = dir
+	}
+
+	if protocol := v.Get(paramProtocol); protocols.Exists(protocol) {
+		crit.Protocol = protocol
+	}
+
+	if _, ok := parseLocal(v.Get(paramFrom)); ok {
+		crit.From = v.Get(paramFrom)
+	}
+
+	if _, ok := parseLocal(v.Get(paramTo)); ok {
+		crit.To = v.Get(paramTo)
+	}
+
+	return crit
+}
+
+// parseLocal reads a datetime-local value in the time zone of the gateway.
+func parseLocal(value string) (time.Time, bool) {
+	if value == "" {
+		return time.Time{}, false
+	}
+
+	trans, err := time.ParseInLocation(localLayout, value, time.Local)
+
+	return trans, err == nil
+}
+
+// criteria are the filters with their parameter, in the order of the
+// parameters.
+func (f *filters) criteria() map[string]string {
+	return map[string]string{
+		paramState: f.State, paramRule: f.Rule, paramDir: f.Dir, paramPartner: f.Partner,
+		paramAccount: f.Account, paramProtocol: f.Protocol, paramFrom: f.From, paramTo: f.To,
+	}
+}
+
+// Values encodes the filters, nothing when none is set.
+func (f *filters) Values() url.Values {
+	v := url.Values{}
+
+	for name, value := range f.criteria() {
+		if value != "" {
+			v.Set(name, value)
+		}
+	}
+
+	return v
+}
+
+// Count is the number of the criteria of the filters panel; the state has
+// its own row.
+func (f *filters) Count() int {
+	n := 0
+
+	for name, value := range f.criteria() {
+		if value != "" && name != paramState {
+			n++
+		}
+	}
+
+	return n
+}
+
+// filtersOf is the filters of a list query.
+func filtersOf(q *liststate.Query) *filters {
+	if crit, ok := q.Filters.(*filters); ok {
+		return crit
+	}
+
+	return &filters{}
+}
+
+// selectQuery is the query of the transfers the list state asks for, sorted,
+// in every state or in one.
+func (h *Handlers) selectQuery(q *liststate.Query, crit *filters, status types.TransferStatus,
+) *internal.TransferListQuery {
+	query := internal.StartTransferQuery(h.db, sortExpression(q.Sort), q.Dir == liststate.DirAsc)
+
+	if q.Q != "" {
+		query.Search(q.Q)
+	}
+
+	if status != "" {
+		query.Status(status)
+	}
+
+	if crit.Rule != "" {
+		query.RuleName(crit.Rule)
+	}
+
+	if crit.Dir != "" {
+		query.Direction(crit.Dir == dirSend)
+	}
+
+	if crit.Partner != "" {
+		query.Requested(crit.Partner)
+	}
+
+	if crit.Account != "" {
+		query.Requester(crit.Account)
+	}
+
+	if crit.Protocol != "" {
+		query.Protocol(crit.Protocol)
+	}
+
+	if from, ok := parseLocal(crit.From); ok {
+		query.StartedFrom(from)
+	}
+
+	// The end of a period includes its last minute.
+	if to, ok := parseLocal(crit.To); ok {
+		query.StartedUntil(to.Add(time.Minute - time.Nanosecond))
+	}
+
+	return query
+}
+
+// countStates counts the transfers the search and the filters match, in
+// each state (the state filter apart): the row of the states.
+func (h *Handlers) countStates(q *liststate.Query, crit *filters) (map[string]uint64, error) {
+	counts := map[string]uint64{}
+
+	for _, spec := range stateSpecs() {
+		n, err := h.selectQuery(q, crit, spec.status).Count()
+		if err != nil {
+			return nil, fmt.Errorf("failed to count the transfers %s: %w", spec.status, err)
+		}
+
+		counts[spec.key] = n
+	}
+
+	return counts, nil
+}
+
+// stateItem is a state of the row of the states: its label, its count, the
+// list in that state.
+type stateItem struct {
+	Key     string
+	Label   string
+	Count   string
+	URL     string
+	Current bool
+}
+
+// row is a transfer of the list.
+type row struct {
+	ID        int64
+	File      string
+	URL       string
+	Number    string // "No. 1229 · PeSIT"
+	Status    gui.Status
+	Cause     string // label of the error code, for a transfer in error
+	Rule      string
+	Direction string // "Send · client"
+	Partner   string
+	Account   string
+	Progress  progressView
+	Start     string // time of the start
+	StartSub  string // its date, or "planned" for a planned one
+	End       string // time of the end, or of the next attempt
+	EndSub    string // its date, or "next attempt"
+	Actions   []gui.Action
+}
+
+// progressView is the progress of a transfer: a bar and a percentage when the
+// size is known, the bytes otherwise; the size under it.
+type progressView struct {
+	Bar   bool
+	Pct   int
+	Label string
+	Size  string
+	None  bool // nothing transferred and nothing to say: "—"
+}
+
+type listData struct {
+	RefreshedAt    string
+	RefreshSeconds int
+	FragmentURL    string
+	AddURL         string // empty without the write right
+	PreregisterURL string
+
+	States []stateItem
+
+	Action       string // toolbar form action: the bare list
+	Base         string // list with search and filters: base of the sort links
+	Q            string
+	Hidden       map[string]string // carried by the toolbar form
+	Filters      filterView
+	FiltersOpen  bool
+	FiltersCount int
+	ResetURL     string
+	Sort         string
+	Dir          string
+	Count        string
+	Rows         []row
+	Caption      string
+	Pager        *liststate.Pager
+	PagerHidden  map[string]string
+	Sizes        []int
+	Size         int
+	Empty        bool // no transfer at all
+	NoMatch      bool // transfers exist, none matches
+	NoMatchText  string
+	NoMatchURL   string
+	NoMatchLink  string
+	Error        bool // the transfers could not be read
+	RetryURL     string
+}
+
+// filterView is the filters panel: the current criteria and the choices.
+type filterView struct {
+	Rule      string
+	Rules     []string
+	Dir       string
+	Partner   string
+	Partners  []string
+	Account   string
+	Protocol  string
+	Protocols []gui.Choice
+	From      string
+	To        string
+}
+
+// List serves GET /webui/transfers; with ?fragment=list, the refreshed part
+// alone (the row of the states, the count, the table and its foot).
+func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
+	fragment := r.URL.Query().Get(constants.FragmentParam) == listFragment
+	if !fragment && listSpec.Restore(w, r) {
+		return
+	}
+
+	translate := h.shell.Translator(r)
+	query := listSpec.Parse(r.URL.Query())
+	data := h.buildList(translate, query, canWrite(r))
+
+	if fragment {
+		h.shell.RenderFragment(w, h.logger, r, listBlock(data))
+
+		return
+	}
+
+	screen := h.screen(translate("transfers.title"), crumbs(translate, "", ""), 0)
+	screen.Notices = notices(translate, r.URL.Query())
+	screen.Scripts = []string{script}
+
+	if data.Error {
+		screen.Status = http.StatusInternalServerError
+	}
+
+	h.shell.Render(w, h.logger, r, screen, listView(data))
+}
+
+// buildList reads and lays out one page of the list: the counts of the
+// states, the page of transfers, the toolbar state, the row actions.
+func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, write bool) listData {
+	crit := filtersOf(query)
+	carried := query.Encode(query.Page)
+	data := listData{
+		RefreshedAt:    time.Now().Format(time.TimeOnly),
+		RefreshSeconds: int(refreshPeriod.Seconds()),
+		FragmentURL:    listSpec.ListURLOf(query.WithPage(query.Page)),
+		Action:         listSpec.ListURLOf(nil),
+		Base:           listSpec.ListURLOf(query.FilterValues()),
+		Q:              query.Q,
+		Sort:           query.Sort,
+		Dir:            query.Dir,
+		Size:           query.Size,
+		ResetURL:       listSpec.ResetURL(),
+		Hidden:         query.ToolbarHidden(),
+		Filters:        h.filterView(crit),
+		FiltersCount:   crit.Count(),
+		FiltersOpen:    crit.Count() > 0,
+	}
+
+	// The state has its own row: the toolbar form carries it.
+	if crit.State != "" {
+		data.Hidden[paramState] = crit.State
+	}
+
+	if write {
+		data.AddURL = withRet(common.WebuiURL(pagePath+"/new"), carried)
+		data.PreregisterURL = withRet(common.WebuiURL(pagePath+"/preregister"), carried)
+	}
+
+	counts, err := h.countStates(query, crit)
+	if err != nil {
+		h.logger.Errorf("failed to count the transfers: %v", err)
+
+		data.Error, data.RetryURL = true, data.FragmentURL
+
+		return data
+	}
+
+	var all, shown uint64
+	for _, n := range counts {
+		all += n
+	}
+
+	shown = all
+	if crit.State != "" {
+		shown = counts[crit.State]
+	}
+
+	data.States = stateItems(translate, query, counts, all)
+	data.Count = countText(translate, shown)
+
+	if shown == 0 {
+		h.noRows(translate, &data, query, crit)
+
+		return data
+	}
+
+	b := query.Bounds(int(shown))
+
+	spec, _ := specOfKey(crit.State)
+
+	transfers, err := h.selectQuery(query, crit, spec.status).Limit(query.Size, b.From).Run()
+	if err != nil {
+		h.logger.Errorf("failed to list the transfers: %v", err)
+
+		data.Error, data.RetryURL = true, data.FragmentURL
+
+		return data
+	}
+
+	carried = query.Encode(b.Page)
+	data.Caption = translate("transfers.caption",
+		"page", b.Page, "pages", b.Pages, "sort", translate(sortKeyPrefix+query.Sort))
+
+	for _, trans := range transfers {
+		data.Rows = append(data.Rows, rowOf(translate, trans, write, carried))
+	}
+
+	data.Sizes = pageSizes
+	data.PagerHidden = query.PagerHidden()
+	data.Pager = listSpec.Pager(query, translate("transfers.pager",
+		"from", groupDigits(translate, uint64(b.From+1)), "to", groupDigits(translate, uint64(b.To)),
+		"total", groupDigits(translate, shown)), b)
+
+	return data
+}
+
+// noRows fills the empty states: no transfer at all, or none matching the
+// search, the state or the filters, with the way out.
+func (h *Handlers) noRows(translate gui.Translator, data *listData, query *liststate.Query, crit *filters) {
+	switch {
+	case query.Q == "" && crit.Count() == 0 && crit.State == "":
+		data.Empty = true
+	case query.Q != "":
+		withoutQ := *query
+		withoutQ.Q = ""
+		data.NoMatch = true
+		data.NoMatchText = translate("transfers.none.query", "query", query.Q)
+		data.NoMatchURL, data.NoMatchLink = listSpec.ExplicitListURL(withoutQ.Values()), translate("search.clear")
+	case crit.Count() == 0:
+		data.NoMatch = true
+		data.NoMatchText = translate("transfers.none.state", "state", translate(statesKeyPrefix+crit.State))
+		data.NoMatchURL, data.NoMatchLink = stateURL(query, ""), translate("transfers.none.all_states")
+	default:
+		data.NoMatch = true
+		data.NoMatchText = translate("transfers.none.filters")
+		data.NoMatchURL, data.NoMatchLink = listSpec.ResetURL(), translate("filters.reset")
+	}
+}
+
+// stateItems is the row of the states: every state, then each one, with its
+// count; a click shows the list in that state from its first page, the
+// search, the filters and the sort kept.
+func stateItems(translate gui.Translator, query *liststate.Query, counts map[string]uint64, all uint64) []stateItem {
+	current := filtersOf(query).State
+	items := []stateItem{{
+		Label: translate("transfers.states.all"), Count: groupDigits(translate, all),
+		URL: stateURL(query, ""), Current: current == "",
+	}}
+
+	for _, spec := range stateSpecs() {
+		items = append(items, stateItem{
+			Key: spec.key, Label: translate(statesKeyPrefix + spec.key), Count: groupDigits(translate, counts[spec.key]),
+			URL: stateURL(query, spec.key), Current: current == spec.key,
+		})
+	}
+
+	return items
+}
+
+// stateURL is the list in a state ("" for every state), from its first
+// page.
+func stateURL(query *liststate.Query, key string) string {
+	v := query.Values()
+	if key == "" {
+		v.Del(paramState)
+	} else {
+		v.Set(paramState, key)
+	}
+
+	return listSpec.ExplicitListURL(v)
+}
+
+// countText is the count of the list.
+func countText(translate gui.Translator, n uint64) string {
+	if n == 1 {
+		return translate("transfers.count_one")
+	}
+
+	return translate("transfers.count", "total", groupDigits(translate, n))
+}
+
+// filterView reads the choices of the filters panel: the names of the rules,
+// of the partners and of the servers, the protocols of the gateway (option A
+// of the screen sheet: offered to whoever reads the transfers, which show
+// these names anyway).
+func (h *Handlers) filterView(crit *filters) filterView {
+	view := filterView{
+		Rule: crit.Rule, Dir: crit.Dir, Partner: crit.Partner, Account: crit.Account, Protocol: crit.Protocol,
+		From: crit.From, To: crit.To,
+	}
+
+	if rules, err := internal.ListRules(h.db, "name", true, 0, 0); err == nil {
+		for _, rule := range rules {
+			if !slices.Contains(view.Rules, rule.Name) {
+				view.Rules = append(view.Rules, rule.Name)
+			}
+		}
+	} else {
+		h.logger.Warningf("failed to list the rules for the filters: %v", err)
+	}
+
+	view.Partners = h.agentNames()
+
+	for key := range protocols.List() {
+		view.Protocols = append(view.Protocols, gui.Choice{Value: key, Label: protocolLabel(key)})
+	}
+
+	slices.SortFunc(view.Protocols, func(a, b gui.Choice) int { return strings.Compare(a.Label, b.Label) })
+
+	return view
+}
+
+// agentNames are the names of the remote partners and of the local servers,
+// in order, each once.
+func (h *Handlers) agentNames() []string {
+	var names []string
+
+	if partners, err := internal.ListPartners(h.db, "name", true, 0, 0); err == nil {
+		for _, partner := range partners {
+			names = append(names, partner.Name)
+		}
+	} else {
+		h.logger.Warningf("failed to list the partners for the filters: %v", err)
+	}
+
+	if servers, err := internal.ListServers(h.db, "name", true, 0, 0); err == nil {
+		for _, server := range servers {
+			names = append(names, server.Name)
+		}
+	} else {
+		h.logger.Warningf("failed to list the servers for the filters: %v", err)
+	}
+
+	slices.Sort(names)
+
+	return slices.Compact(names)
+}
+
+// rowOf lays out a transfer of the list.
+func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried string) row {
+	line := row{
+		ID:        trans.ID,
+		File:      fileName(trans),
+		URL:       withRet(transferURL(trans.ID, ""), carried),
+		Number:    numberOf(translate, trans),
+		Status:    statusOf(translate, trans.Status),
+		Rule:      trans.Rule,
+		Direction: direction(translate, trans),
+		Partner:   trans.Agent,
+		Account:   trans.Account,
+		Progress:  progressOf(translate, trans),
+		Actions:   rowActions(translate, trans, write, carried),
+	}
+
+	if trans.Status == types.StatusError {
+		line.Cause = errorLabel(translate, trans.ErrCode)
+	}
+
+	line.Start, line.StartSub = timeAndDate(translate, trans.Start)
+
+	// The due date of a preregistered transfer, its start being the
+	// connection of the partner.
+	if trans.Status == types.StatusAvailable {
+		line.StartSub = translate("transfers.due_at", "date", line.StartSub)
+	}
+
+	switch {
+	case !trans.Stop.IsZero() && !trans.IsTransfer:
+		line.End, line.EndSub = timeAndDate(translate, trans.Stop)
+	case trans.Status == types.StatusError && !trans.NextRetry.IsZero() && trans.RemainingTries > 0:
+		line.End, _ = timeAndDate(translate, trans.NextRetry)
+		line.EndSub = translate("transfers.next_attempt")
+	}
+
+	return line
+}
+
+// numberOf is the number of a transfer and its protocol: "No. 1229 · PeSIT".
+func numberOf(translate gui.Translator, trans *model.NormalizedTransferView) string {
+	number := translate("transfers.number", "id", trans.ID)
+	if label := protocolLabel(trans.Protocol); label != "" {
+		return number + " · " + label
+	}
+
+	return number
+}
+
+// progressOf is the progress of a transfer.
+func progressOf(translate gui.Translator, trans *model.NormalizedTransferView) progressView {
+	// The size once known: a transfer that has not started yet may hold 0.
+	view := progressView{}
+	if trans.Filesize > 0 || (trans.Filesize == 0 && trans.Status == types.StatusDone) {
+		view.Size = formatSize(translate, trans.Filesize)
+	}
+
+	switch {
+	case trans.Filesize > 0:
+		view.Bar = true
+		view.Pct = int(min(max(trans.Progress*100/trans.Filesize, 0), 100)) //nolint:mnd // a percentage
+		view.Label = translate("transfers.percent", "pct", view.Pct)
+	case trans.Progress > 0:
+		view.Label = formatSize(translate, trans.Progress)
+	case trans.Status == types.StatusDone:
+		view.Bar, view.Pct = true, 100
+		view.Label = translate("transfers.percent", "pct", view.Pct)
+	default:
+		view.None = true
+	}
+
+	return view
+}
+
+// timeAndDate is a moment in the time zone of the gateway: its time and its
+// date; "" for none.
+func timeAndDate(translate gui.Translator, moment time.Time) (clock, date string) {
+	if moment.IsZero() {
+		return "", ""
+	}
+
+	local := moment.Local()
+
+	return local.Format(time.TimeOnly), local.Format(translate("transfers.date"))
+}
+
+// dateTime is a moment in the time zone of the gateway, in one text.
+func dateTime(translate gui.Translator, moment time.Time) string {
+	if moment.IsZero() {
+		return ""
+	}
+
+	clock, date := timeAndDate(translate, moment)
+
+	return translate("transfers.date_time", "date", date, "time", clock)
+}
+
+// groupDigits writes a count with the thousands separator of the language.
+func groupDigits(translate gui.Translator, n uint64) string {
+	digits := strconv.FormatUint(n, 10)
+	sep := translate("transfers.thousands")
+
+	var out strings.Builder
+
+	for i, c := range digits {
+		if i > 0 && (len(digits)-i)%3 == 0 {
+			out.WriteString(sep)
+		}
+
+		out.WriteRune(c)
+	}
+
+	return out.String()
+}
+
+// formatSize writes a size in bytes, then in the largest unit that keeps it
+// above one, with one decimal under ten.
+func formatSize(translate gui.Translator, n int64) string {
+	switch {
+	case n < 2: //nolint:mnd // 0 and 1 are singular in French
+		return translate("transfers.size.byte", "n", n)
+	case n < 1024: //nolint:mnd // one kibibyte
+		return translate("transfers.size.bytes", "n", n)
+	}
+
+	value := float64(n)
+	units := []string{"kb", "mb", "gb", "tb"}
+	unit := ""
+
+	for _, u := range units {
+		value /= 1024
+		unit = u
+
+		if value < 1024 { //nolint:mnd // one more unit
+			break
+		}
+	}
+
+	text := strconv.FormatFloat(value, 'f', 0, 64)
+	if value < 10 { //nolint:mnd // one decimal under ten
+		text = strings.Replace(strconv.FormatFloat(value, 'f', 1, 64), ".", translate("transfers.decimal"), 1)
+	}
+
+	return translate("transfers.size."+unit, "n", text)
+}
