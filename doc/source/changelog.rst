@@ -9,7 +9,8 @@ Historique des versions
   le nom du fichier en tête ; une rangée compacte donne le nombre de transferts
   de chaque état et filtre la liste d'un clic ; recherche par fichier ou par
   identifiant de suivi, filtres par règle, sens, partenaire ou serveur, compte,
-  protocole et période, tri et pagination, le tout conservé dans l'adresse ;
+  protocole et période, tri (les derniers transferts en tête) et pagination,
+  le tout conservé dans l'adresse ;
   actualisation toutes les 5 secondes sans recharger la page, qui reprend après
   un échec. La fiche d'un transfert donne la cause d'une erreur par un libellé
   lisible, avec le code technique et le message, et montre les informations de

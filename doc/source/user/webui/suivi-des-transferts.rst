@@ -22,13 +22,15 @@ Liste
 
 En tête de page, une rangée compacte donne le nombre de transferts de chaque
 état : *Tous*, *En cours*, *En erreur*, *Planifiés*, *En pause*,
-*Interrompus*, *Disponibles*, *Terminés*, *Annulés*. Un clic sur un état
-n'affiche que ses transferts ; l'état choisi est souligné et en gras.
+*Interrompus*, *Attendus*, *Terminés*, *Annulés*. Un clic sur un état
+n'affiche que ses transferts ; l'état choisi est souligné et en gras. Une
+infobulle sur chaque état dit ce qu'il signifie.
 
 La barre d'outils recherche un transfert par une partie du nom de son
 fichier, ou par son identifiant de suivi. Le bouton *Filtres* ouvre les
 critères : règle, sens (envoi ou réception), partenaire ou serveur, compte,
-protocole, période de début. Un filtre s'applique dès qu'il change ; le
+protocole (la famille, avec sa variante TLS), période de début. Un filtre
+s'applique dès qu'il change ; le
 nombre de filtres actifs s'affiche sur le bouton, *Réinitialiser* les
 retire tous. Les nombres de la rangée des états suivent la recherche et les
 filtres.
@@ -39,12 +41,15 @@ filtres.
 
    * - Colonne
      - Contenu
+   * - N°
+     - Le numéro du transfert.
    * - Fichier
      - Le nom du fichier, lien vers la fiche du transfert ; dessous, son
-       numéro et son protocole.
+       protocole. Une infobulle donne le chemin du fichier sur la Gateway
+       quand il est connu, sinon ses noms à la source et à la destination.
    * - État
      - L'état du transfert (voir ci-dessous) ; pour un transfert en erreur,
-       la cause de l'erreur.
+       la cause de l'erreur, et en infobulle la cause suivie du message.
    * - Règle
      - La règle ; dessous, le sens (*Envoi*, *Réception*) et le rôle de la
        Gateway (*client*, *serveur*).
@@ -56,13 +61,14 @@ filtres.
        les octets transférés sinon ; dessous, la taille.
    * - Début
      - L'heure et la date de début ; pour un transfert planifié, l'heure
-       prévue ; pour un transfert disponible, sa date limite.
+       prévue ; pour un transfert attendu, sa date limite.
    * - Fin
      - L'heure et la date de fin ; pour un transfert en erreur qui sera
        retenté, l'heure de la prochaine tentative.
 
-Par défaut, les transferts les plus récents viennent en premier. Les
-colonnes *Fichier*, *État*, *Règle*, *Début* et *Fin* se trient d'un clic
+Par défaut, les derniers transferts créés viennent en premier : le tri se
+fait sur le numéro, décroissant. Les colonnes *N°*, *Fichier*, *État*,
+*Règle*, *Début* et *Fin* se trient d'un clic
 sur leur en-tête ; l'état se trie dans l'ordre de la rangée des états. Le
 pied de liste indique les lignes affichées, permet de changer de page et de
 choisir le nombre de lignes par page (10, 25, 50 ou 100). La recherche, les
@@ -100,7 +106,7 @@ lecture réussie ; l'écran réessaie au cycle suivant, sans s'arrêter.
    * - Planifié
      - Anneau gris
      - Transfert client qui attend son heure de départ.
-   * - Disponible
+   * - Attendu
      - Anneau gris
      - Transfert serveur pré-enregistré, qui attend que le partenaire se
        connecte, jusqu'à sa date limite.
@@ -148,7 +154,9 @@ sont affichés dessous. La fiche réunit :
        client, le protocole, l'identifiant distant et l'identifiant de suivi.
    * - Fichier
      - Les noms à la source et à la destination, le chemin sur la Gateway et
-       le chemin chez le partenaire, la taille.
+       le chemin chez le partenaire, la taille. Pour un transfert qui n'a pas
+       encore démarré, les chemins prévus, calculés comme la Gateway le fera
+       au départ.
    * - Déroulement
      - Le début et la fin, l'étape et la tâche en cours, la progression.
    * - Tentatives
@@ -231,8 +239,9 @@ est vide).
    * - Départ
      - Facultatif, à l'heure de la Gateway ; vide, maintenant.
    * - Informations de transfert
-     - Facultatives, une par ligne, sous la forme ``clé: valeur`` ; les
-       traitements de la règle peuvent les lire.
+     - Facultatives : une ligne par information, avec son nom et sa
+       valeur ; *Ajouter une information* ajoute une ligne, le bouton de
+       chaque ligne la retire. Les traitements de la règle peuvent les lire.
    * - Tentatives en cas d'erreur
      - Facultatives : nombre de tentatives, premier délai en secondes,
        facteur d'augmentation ; vides, celles du client.
@@ -243,7 +252,7 @@ Pré-enregistrer un transfert
 
 Le menu « ⋯ » de l'en-tête propose *Pré-enregistrer un transfert* : un
 transfert serveur, que le partenaire échangera en se connectant au serveur
-local, jusqu'à une date limite. Le transfert apparaît à l'état *Disponible*.
+local, jusqu'à une date limite. Le transfert apparaît à l'état *Attendu*.
 La page demande le fichier, la règle, le serveur et le compte local avec
 lequel le partenaire se connectera, et la date limite ; les informations de
 transfert sont facultatives.
