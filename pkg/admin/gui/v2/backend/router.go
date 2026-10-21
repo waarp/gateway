@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/users"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/listing"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
@@ -47,6 +48,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeUsersRouter(router, db, logger)
 	MakeCloudsRouter(router, db, logger)
 	MakeAuthoritiesRouter(router, db, logger)
+	MakeSNMPRouter(router, db, logger)
 }
 
 // adminRoutes registers the routes of a screen behind the rights on the
@@ -66,6 +68,12 @@ func (a adminRoutes) write(path string, form, action http.HandlerFunc) {
 func (a adminRoutes) del(path string, form, action http.HandlerFunc) {
 	a.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermAdminDelete, form))
 	a.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermAdminDelete, action))
+}
+
+// act registers an action without a page of its own (a button of a page),
+// behind the write right.
+func (a adminRoutes) act(path string, action http.HandlerFunc) {
+	a.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermAdminWrite, action))
 }
 
 // MakeCloudsRouter registers the "Cloud instances" screen: the list and the
@@ -356,4 +364,23 @@ func MakeAuthoritiesRouter(router *mux.Router, db *database.DB, logger *log.Logg
 	routes.read(authorityPath, handlers.Detail)
 	routes.write(authorityPath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(authorityPath+"/delete", handlers.DeleteForm, handlers.Delete)
+}
+
+// MakeSNMPRouter registers the "SNMP" screen: the page of the monitors and
+// of the agent, the sheet of a monitor, its creation, edition and deletion,
+// the configuration of the agent and its deletion (the write right, as the
+// REST API asks), the test notification.
+func MakeSNMPRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := snmp.New(db, logger)
+	routes := adminRoutes{router}
+	const monitorPath = "/snmp/monitors/{id:[0-9]+}"
+
+	routes.read("/snmp", handlers.Page)
+	routes.write("/snmp/monitors/new", handlers.NewMonitorForm, handlers.CreateMonitor)
+	routes.read(monitorPath, handlers.Monitor)
+	routes.write(monitorPath+"/edit", handlers.EditMonitorForm, handlers.UpdateMonitor)
+	routes.del(monitorPath+"/delete", handlers.DeleteMonitorForm, handlers.DeleteMonitor)
+	routes.write("/snmp/agent/edit", handlers.AgentForm, handlers.SaveAgent)
+	routes.write("/snmp/agent/delete", handlers.DisableAgentForm, handlers.DisableAgent)
+	routes.act("/snmp/test", handlers.Test)
 }
