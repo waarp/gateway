@@ -270,7 +270,7 @@ type SnmpTestMonitors struct{}
 
 func (s *SnmpTestMonitors) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpTestMonitors) execute(w io.Writer) error {
-	if err := exec(w, "/api/snmp/test/monitors"); err != nil {
+	if err := exec(w, "/api/snmp/test/trap"); err != nil {
 		return err
 	}
 

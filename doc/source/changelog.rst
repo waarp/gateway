@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`725` Les chemins du handler REST et de la commande CLI pour tester
+  l'envoi de *trap* SNMP ont été corrigés. Ces chemins correspondent désormais
+  bien au chemin spécifié dans la documentation. En conséquence, la commande
+  ``snmp test`` fonctionne désormais normalement. L'ancien chemin incorrectement
+  servi par l'API REST demeure accessible mais est désormais déprécié.
 * :bug:`728` Dans le cas où plusieurs moniteurs SNMP sont configurés, échouer à
   envoyer une *trap* à l'un des moniteurs n'empêche plus l'envoi de cette *trap*
   aux autres moniteurs.

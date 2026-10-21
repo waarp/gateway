@@ -544,7 +544,7 @@ func TestSnmpServerDelete(t *testing.T) {
 }
 
 func TestSnmpMonitorTest(t *testing.T) {
-	const path = "/api/snmp/test/monitors"
+	const path = "/api/snmp/test/trap"
 
 	t.Run(`Testing the SNMP monitor "test" command`, func(t *testing.T) {
 		w := newTestOutput()
