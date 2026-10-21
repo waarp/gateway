@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`742` Les icônes des pages historiques de l'interface web s'affichent de
+  nouveau : l'œil qui montre le mot de passe (page de connexion, formulaires des
+  moyens d'authentification, page historique des utilisateurs) et la croix qui
+  vide le filtre de fichier du suivi des transferts n'affichaient qu'un carré
+  depuis la version 0.15.5, la police de leurs icônes n'ayant pas été embarquée
+  avec l'interface. Elles utilisent désormais la bibliothèque d'icônes déjà
+  embarquée par les autres pages.
 * :bug:`702` Le message d'erreur lors de l'insertion d'un transfert où le
   partenaire/serveur n'est pas autorisé à utiliser la règle est désormais plus
   clair et explicite sur les raisons de l'échec.
