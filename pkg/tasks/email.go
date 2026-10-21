@@ -58,7 +58,7 @@ func (m *emailTask) parseParams(db database.ReadAccess, params map[string]string
 		return ErrMailNoTemplate
 	}
 
-	if err := db.Get(&m.connInfo, "email_address=?", m.Sender).Owner().Run(); err != nil {
+	if err := db.Get(&m.connInfo, "email_address=?", m.Sender).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve SMTP credential: %w", err)
 	}
 
@@ -92,14 +92,14 @@ func (m *emailTask) Run(_ context.Context, params map[string]string, db *databas
 	email.SetHeader("From", m.connInfo.EmailAddress)
 	email.SetHeader("To", m.Recipients...)
 	email.SetHeader("Subject", m.template.Subject)
-	email.SetBody("text/plain", m.template.Body)
+	email.SetBody(m.template.MIMEType, m.template.Body)
 
 	for _, attachement := range m.template.Attachments {
 		email.Attach(path.Base(attachement), m.copyFileFunc(attachement))
 	}
 
 	d := gomail.NewDialer(m.connInfo.ServerAddress.Host, int(m.connInfo.ServerAddress.Port),
-		m.connInfo.Login, string(m.connInfo.Password))
+		m.connInfo.Login, m.connInfo.Password)
 	d.TLSConfig = &tls.Config{ServerName: m.connInfo.ServerAddress.Host}
 
 	if err := auth.AddTLSAuthorities(db, d.TLSConfig); err != nil {
