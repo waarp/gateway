@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`742` Correction d'un bug de l'interface web qui n'affichait pas
+  correctement certains icônes.
 * :bug:`695` Correction d'un crash application (panic) pouvant survenir sous
   certaines conditions à l'arrêt ou au rechargement du serveur SNMP.
 * :bug:`753` Les noms d'objets REST (règle, serveurs...) contenant des caractères

@@ -3,7 +3,7 @@
   <head>
   <title>{{ index .tab "title" }}</title>
   <link href="/webui/static/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/webui/static/css/font-awesome_all.min.css" rel="stylesheet">
+  <link href="/webui/static/css/bootstrap-icons.css" rel="stylesheet">
   <script src="/webui/static/javaScript/eyePassword.js"></script>
   <link rel="icon" type="image/png" href="/webui/static/assets/icon_waarp.png">
   <link rel="stylesheet" href="/webui/static/css/style.css">
@@ -37,7 +37,7 @@
           <label for="password" class="form-label">{{ index .tab "password" }}</label>
           <div class="input-group">
               <input type="password" id="password" name="password" class="form-control" required>
-              <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('password', this)"><i class="far fa-eye-slash"></i></button>
+              <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('password', this)"><i class="bi bi-eye-slash"></i></button>
           </div>
         </div>
         <button type="submit" class="btn btn-connexion w-100">{{ index .tab "submit" }}</button>
