@@ -1,15 +1,16 @@
 /* Transfer monitoring screen: what the kit does not decide (the row of the states, the column widths of the list, the
    progress bar, the sheet and the action pages). Tokens only. */
 
-/* The row of the states: one compact line with the count of each state, scrolling sideways on a narrow screen. The
-   state shown has a thick underline, bold text and a tinted background: not the colour alone. */
-.tf-states { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin: 0 0 var(--sp-3); padding: var(--sp-1); border: 1px solid var(--g200); border-radius: var(--rs); background: var(--surface); }
-.tf-state { display: inline-flex; align-items: baseline; gap: var(--sp-1); padding: var(--sp-1) var(--sp-3); border-radius: var(--r-xs); border-bottom: 3px solid transparent; color: var(--tp); font-size: var(--fs-body); text-decoration: none; white-space: nowrap; }
-.tf-state strong { color: var(--g600); font-weight: 700; }
-.tf-state:hover { background: var(--g50); }
-.tf-state[aria-current="true"] { background: var(--wo-bg); border-bottom-color: var(--wo-aa); font-weight: 700; }
-.tf-state[aria-current="true"] strong { color: var(--wo-aa); }
-.tf-state:focus-visible { outline: 2px solid var(--wo); outline-offset: 1px; }
+/* The row of the states (variant A, 2026-10-22): tabs underlined on one line, without a frame, the count in a pill,
+   scrolling sideways on a narrow screen. The state shown has a thick underline and bold text: not the colour alone. */
+.tf-states { display: flex; flex-wrap: wrap; gap: var(--sp-4); margin: 0 0 var(--sp-3); border-bottom: 1px solid var(--g200); }
+.tf-state { display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0; margin-bottom: -1px; border-bottom: 3px solid transparent; color: var(--tp); font-size: var(--fs-body); text-decoration: none; white-space: nowrap; }
+.tf-state:hover { border-bottom-color: var(--g300); }
+.tf-state .w-status { color: inherit; font-size: inherit; font-weight: inherit; }
+.tf-count { min-width: 1.75rem; padding: 0 var(--sp-2); border-radius: var(--r-full); background: var(--g100); color: var(--g600); font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.5; text-align: center; }
+.tf-state[aria-current="true"] { border-bottom-color: var(--wo-aa); font-weight: 700; }
+.tf-state[aria-current="true"] .tf-count { background: var(--wo-bg); color: var(--wo-aa); }
+.tf-state:focus-visible { outline: 2px solid var(--wo); outline-offset: 2px; }
 @media (max-width: 700px) {
   .tf-states { flex-wrap: nowrap; overflow-x: auto; }
 }

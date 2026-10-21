@@ -227,6 +227,7 @@ type stateItem struct {
 	Label   string
 	Hint    string // what the state means, as a tooltip
 	Count   string
+	Alert   bool // failed transfers: the label carries the shape of the error status
 	URL     string
 	Current bool
 }
@@ -468,6 +469,7 @@ func stateItems(translate gui.Translator, query *liststate.Query, counts map[str
 		items = append(items, stateItem{
 			Key: spec.key, Label: translate(statesKeyPrefix + spec.key), Hint: translate(stateHintPrefix + spec.key),
 			Count: groupDigits(translate, counts[spec.key]), URL: stateURL(query, spec.key), Current: current == spec.key,
+			Alert: spec.shape == stateKO && counts[spec.key] > 0,
 		})
 	}
 

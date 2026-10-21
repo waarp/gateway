@@ -246,11 +246,14 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `data-refresh-seconds="5"`)
 
 		// The row of the states: every state then each one, with its count.
-		indexes(t, body, `id="transfers-states"`, `aria-current="true"><span>Tous</span> <strong>6</strong>`,
-			"<span>En cours</span> <strong>1</strong>", "<span>En erreur</span> <strong>1</strong>",
-			"<span>Planifiés</span> <strong>1</strong>", "<span>En pause</span> <strong>0</strong>",
-			"<span>Interrompus</span> <strong>0</strong>", "<span>Attendus</span> <strong>1</strong>",
-			"<span>Terminés</span> <strong>1</strong>", "<span>Annulés</span> <strong>1</strong>", "</nav>")
+		count := func(label string, n int) string {
+			return label + `</span> <span class="tf-count">` + strconv.Itoa(n) + `</span>`
+		}
+		indexes(t, body, `id="transfers-states"`, `aria-current="true"><span>`+count("Tous", 6),
+			"<span>"+count("En cours", 1), `<span class="w-status w-status--ko">`+count("En erreur", 1),
+			"<span>"+count("Planifiés", 1), "<span>"+count("En pause", 0),
+			"<span>"+count("Interrompus", 0), "<span>"+count("Attendus", 1),
+			"<span>"+count("Terminés", 1), "<span>"+count("Annulés", 1), "</nav>")
 		assert.Contains(t, body, `id="transfers-count" aria-live="polite">6 transferts</span>`)
 		assert.Contains(t, body, `title="Transfert pré-enregistré : la passerelle attend que le partenaire se connecte`,
 			"each state says what it means")
@@ -300,7 +303,7 @@ func TestList(t *testing.T) {
 		body := s.get(t, permRead, "/webui/transfers?state=error").Body.String()
 		assert.Equal(t, 1, rows(body))
 		assert.Contains(t, body, ">releve-20102026.pdf</a>")
-		assert.Contains(t, body, `href="/webui/transfers?state=error" title="Le transfert a échoué ; il peut être retenté, repris ou relancé" aria-current="true"><span>En erreur</span>`)
+		assert.Contains(t, body, `href="/webui/transfers?state=error" title="Le transfert a échoué ; il peut être retenté, repris ou relancé" aria-current="true"><span class="w-status w-status--ko">En erreur</span>`)
 		assert.Contains(t, body, `<input type="hidden" name="state" value="error">`, "a search keeps the state")
 		assert.Contains(t, body, `aria-live="polite">1 transfert</span>`)
 
@@ -318,7 +321,9 @@ func TestList(t *testing.T) {
 		body := s.get(t, permRead, "/webui/transfers?q=paie").Body.String()
 		assert.Equal(t, 1, rows(body), "by a part of the file name")
 		assert.Contains(t, body, ">paie-octobre.xml</a>")
-		assert.Contains(t, body, "<span>Tous</span> <strong>1</strong>", "the states count what the search finds")
+		assert.Contains(t, body, `<span>Tous</span> <span class="tf-count">1</span>`, "the states count what the search finds")
+		assert.Contains(t, body, `<span>En erreur</span> <span class="tf-count">0</span>`,
+			"no error shape without a failed transfer")
 
 		body = s.get(t, permRead, "/webui/transfers?q=2112951385528143872").Body.String()
 		assert.Equal(t, 1, rows(body), "by the follow ID")

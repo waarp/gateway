@@ -69,9 +69,10 @@ templ listBlock(d listData) {
 	</div>
 }
 
-// statesRow: every state with its count, on one compact line; the state
-// shown is marked (aria-current, a thick underline and bold: not by the
-// colour alone).
+// statesRow: every state with its count, as tabs underlined on one line
+// (variant A chosen by Driss on 2026-10-22); the state shown is marked
+// (aria-current, a thick underline and bold: not by the colour alone), the
+// failed transfers carry the shape of the error status when there are any.
 templ statesRow(d listData) {
 	<nav class="tf-states" id="transfers-states" aria-label={ gui.T(ctx, "transfers.states.label") }>
 		for _, s := range d.States {
@@ -82,7 +83,14 @@ templ statesRow(d listData) {
 				if s.Current {
 					aria-current="true"
 				}
-			><span>{ s.Label }</span> <strong>{ s.Count }</strong></a>
+			>
+				if s.Alert {
+					<span class="w-status w-status--ko">{ s.Label }</span>
+				} else {
+					<span>{ s.Label }</span>
+				}
+				<span class="tf-count">{ s.Count }</span>
+			</a>
 		}
 	</nav>
 }
