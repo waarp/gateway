@@ -301,7 +301,7 @@ func makeRows(translate gui.Translator, has func(key string) bool, core bool,
 	rows := make([]row, 0, len(services))
 
 	for _, service := range services {
-		line := row{Name: service.Name, Status: status(translate, service.State), Reason: service.Reason}
+		line := row{Name: service.Name, Status: Status(translate, service.State), Reason: service.Reason}
 
 		if key := coreKeyPrefix + service.Name; core && has(key) {
 			line.Name, line.Tech = translate(key), service.Name
@@ -357,9 +357,10 @@ func stateRank(state string) int {
 	return len(order)
 }
 
-// status turns the state code of a service into a shape, a colour and a
-// label; a code outside the three known ones reads "unknown".
-func status(translate gui.Translator, code string) gui.Status {
+// Status turns the state code of a service into a shape, a colour and a
+// label; a code outside the three known ones reads "unknown". The screens
+// that show the state of one service (the SNMP agent) share it.
+func Status(translate gui.Translator, code string) gui.Status {
 	switch code {
 	case utils.StateRunning.String():
 		return gui.Status{State: stateOK, Label: translate("state.running")}
