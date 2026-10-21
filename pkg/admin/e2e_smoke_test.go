@@ -16,12 +16,17 @@ import (
 	"time"
 
 	"github.com/mxschmitt/playwright-go"
+	"github.com/rclone/rclone/fs/object"
+	"github.com/rclone/rclone/vfs"
+	"github.com/rclone/rclone/vfs/vfscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	_ "code.waarp.fr/apps/gateway/gateway/pkg/fs/backends" // the description of the storages: the cloud form lists their options
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -133,6 +138,33 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/users/3/edit"},
 		{path: "/webui/users/3/delete"},
 		{path: "/webui/users/2/delete"},
+		// The cloud instances (#719): the list, the sheet of the S3 instance
+		// (named by a rule), the pages that add, edit and delete it, the
+		// sheet of the OneDrive instance (its token never shown).
+		{path: "/webui/clouds", tables: 1},
+		{path: "/webui/clouds/1"},
+		{path: "/webui/clouds/new", tables: 5}, // the options the storage library accepts, one list per storage
+		{path: "/webui/clouds/1/edit", tables: 5},
+		{path: "/webui/clouds/1/delete"},
+		{path: "/webui/clouds/2"},
+	}
+}
+
+// registerE2EStorages registers, under the type keys of two cloud
+// instances, storages that never reach the network: the screens show the
+// instances, the product instantiates the storage when one is saved.
+func registerE2EStorages(t *testing.T) {
+	t.Helper()
+
+	for _, kind := range []string{"s3", "onedrive"} {
+		fs.Register(kind, func(_, _, _ string, opts map[string]string) (fs.FS, error) {
+			if kind == "onedrive" {
+				opts["token"] = "e2e-token-never-shown"
+			}
+
+			return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
+		})
+		t.Cleanup(func() { fs.Unregister(kind) })
 	}
 }
 
@@ -332,7 +364,8 @@ func startE2EServer(t *testing.T) string {
 			Username: e2eUsername, PasswordHash: string(hash),
 			Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete |
 				model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete |
-				model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete,
+				model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete |
+				model.PermAdminRead | model.PermAdminWrite | model.PermAdminDelete,
 		},
 		{Username: "viewer", PasswordHash: string(hash), Permissions: model.PermServersRead | model.PermPartnersRead},
 	} {
@@ -400,6 +433,23 @@ func startE2EServer(t *testing.T) string {
 		require.NoError(t, db.Insert(cred).Run())
 		require.EqualValues(t, i+5, cred.ID, "the screens are visited by identifier")
 	}
+
+	// The cloud instances (#719): an S3 bucket with a key and a secret, named
+	// by the local folder of a rule; a OneDrive drive whose storage writes
+	// its token in the options. The screens are visited by identifier.
+	registerE2EStorages(t)
+
+	for i, cloud := range []*model.CloudInstance{
+		{Name: "archive-s3", Type: "s3", Key: "AKIAEXAMPLE", Secret: "s3-secret-never-shown",
+			Options: map[string]string{"bucket": "archive", "region": "eu-west-3"}},
+		{Name: "od-drive", Type: "onedrive", Key: "app-id", Secret: "app-secret-never-shown",
+			Options: map[string]string{"tenant": "t-1", "drive_id": "d-1"}},
+	} {
+		require.NoError(t, db.Insert(cloud).Run())
+		require.EqualValues(t, i+1, cloud.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.Rule{Name: "pull-archive", IsSend: false, Path: "pull-archive", LocalDir: "archive-s3:in"}).Run())
 
 	registerE2EServices(t)
 
@@ -569,12 +619,14 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	if s.count(t, `form[data-autosubmit] details.w-disclose`) > 0 {
 		require.NoError(t, s.page.Locator(`form[data-autosubmit] details.w-disclose > summary`).Click())
 
-		// A filter is a checkbox (the protocol families) or a select (the
-		// domain of the rights of a user): the first one is changed.
-		if s.count(t, `form[data-autosubmit] input[name="protocol"]`) > 0 {
-			require.NoError(t, s.page.Locator(`form[data-autosubmit] input[name="protocol"]`).First().Check())
+		// A filter is a checkbox (the protocol families, the storage types)
+		// or a select (the domain of the rights of a user): the first one is
+		// changed.
+		if s.count(t, `form[data-autosubmit] .w-disclose__panel input[type="checkbox"]`) > 0 {
+			require.NoError(t, s.page.Locator(`form[data-autosubmit] .w-disclose__panel input[type="checkbox"]`).First().Check())
 			require.NoError(t, s.tracker.settle())
-			assert.Equal(t, 1, s.count(t, `form[data-autosubmit] input[name="protocol"]:checked`), "the filter is kept after the reload")
+			assert.Equal(t, 1, s.count(t, `form[data-autosubmit] .w-disclose__panel input[type="checkbox"]:checked`),
+				"the filter is kept after the reload")
 		} else {
 			_, err := s.page.Locator(`form[data-autosubmit] .w-disclose__panel select`).First().
 				SelectOption(playwright.SelectOptionValues{Indexes: playwright.IntSlice(1)})

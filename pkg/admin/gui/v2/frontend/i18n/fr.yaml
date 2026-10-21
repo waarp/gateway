@@ -1070,3 +1070,204 @@ users:
   error:
     title: La liste des utilisateurs n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+# Écran « Instances cloud » (Administration, #719) : liste, fiche en lecture, formulaire par type, suppression.
+clouds:
+  title: Instances cloud
+  add: Ajouter une instance cloud
+  search: Rechercher une instance par son nom
+  search_placeholder: Rechercher par nom
+  filters: Types
+  count: "{total} instances"
+  count_one: 1 instance
+  count_shown: "{total} instances · {shown} affichées"
+  count_shown_one: "{total} instances · 1 affichée"
+  caption: "Instances cloud, page {page} sur {pages}, triées par {sort}"
+  pager: "Instances {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_cloud: Retour à l'instance
+  location_none: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    type: type
+    location: emplacement
+    auth: authentification
+  col:
+    name: Instance cloud
+    type: Type
+    location: Emplacement
+    auth: Authentification
+    actions: Actions
+  # Comment l'instance s'authentifie.
+  auth:
+    key: Clé renseignée
+    env: Variables d'environnement
+    none: Aucune
+  # Les cinq types de stockage, nommés comme la documentation de référence.
+  type:
+    s3: Amazon S3
+    azblob: Azure Blob
+    azfiles: Azure Files
+    gcs: Google Cloud Storage
+    onedrive: OneDrive
+  type_hint:
+    s3: Bucket S3 d'Amazon ou d'un service compatible.
+    azblob: "Conteneur d'objets Azure ; le conteneur se nomme dans le chemin."
+    azfiles: Partage de fichiers Azure.
+    gcs: Bucket Google Cloud Storage.
+    onedrive: Lecteur OneDrive ou bibliothèque SharePoint.
+  type_stored: "{label} ({key})"
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'instance
+    delete: Supprimer l'instance
+  detail:
+    title: "Instance cloud « {name} »"
+    card: Instance
+    type: Type
+    path: Chemin à employer
+    path_example: dossier/fichier
+    path_hint: "Une règle, un serveur ou un transfert désigne l'instance ainsi, à la place d'un dossier local."
+    access: Accès
+    secret: Secret
+    secret_set: Défini
+    secret_unset: Non défini
+    env_auth: Identifiants par les variables d'environnement
+    "yes": Oui
+    "no": Non
+    options: Options
+    options_none: Aucune option.
+    default: Valeur par défaut de la passerelle
+    unset: Non défini
+    masked: Masquée
+    other: Autres options
+    used_by: Utilisée par
+    used_none: Aucun objet ne nomme cette instance pour l'instant.
+    used_rules: Règles de transfert
+    used_servers: Serveurs locaux
+    used_transfers: Transferts
+    used_transfers_count: "{n} transferts nomment cette instance dans leur chemin local"
+  new:
+    title: Nouvelle instance cloud
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique ; il préfixe les chemins : nom:dossier/fichier. « file » est réservé au disque local."
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Changer de type vide les options du type précédent."
+    access: Accès
+    key:
+      any: Clé
+      s3: Clé d'accès
+      azure: Nom du compte
+      gcs: Fichier d'identifiants
+      onedrive: Identifiant d'application
+    key_hint: "Facultative quand les identifiants viennent des variables d'environnement."
+    secret:
+      any: Secret
+    secret_hint: "Conservé chiffré ; jamais réaffiché."
+    secret_keep: "Vide : inchangé. Conservé chiffré ; jamais réaffiché."
+    access_note:
+      s3: "Amazon S3 : la clé est la clé d'accès, le secret la clé secrète."
+      azblob: "Azure Blob : la clé est le nom du compte de stockage, le secret la clé du compte."
+      azfiles: "Azure Files : la clé est le nom du compte de stockage, le secret la clé du compte."
+      gcs: "Google Cloud Storage : la clé est le chemin, sur la passerelle, du fichier d'identifiants du compte de service ; le secret, le contenu JSON de ces identifiants quand le fichier n'est pas sur la passerelle."
+      onedrive: "OneDrive : la clé est l'identifiant de l'application enregistrée sur le portail Azure (autorisation d'application Files.ReadWrite.All), le secret son secret d'application ; la passerelle demande elle-même le jeton."
+    env_auth: Identifiants fournis par les variables d'environnement de la passerelle
+    env_hint: "Variables lues :"
+    env:
+      s3: "AWS_ACCESS_KEY_ID et AWS_SECRET_ACCESS_KEY ; la région et le point d'accès peuvent venir de AWS_REGION et AWS_ENDPOINT_URL."
+      azblob: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID et AZURE_CLIENT_ID."
+      azfiles: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID et AZURE_CLIENT_ID."
+      gcs: "GOOGLE_APPLICATION_CREDENTIALS."
+    options: "Options {type}"
+    options_required: À renseigner
+    other: Autres options
+    other_label: Réglages de la bibliothèque de stockage
+    other_hint: "Une option par ligne, sous la forme clé=valeur, parmi les options acceptées listées ci-dessous ; ni identifiant ni secret."
+    other_none: Aucune
+    other_some: Renseignées
+    accepted: "Options acceptées par {type} ({n})"
+    accepted_col:
+      option: Option
+      default: Par défaut
+      help: Description (en anglais)
+    accepted_values: "Valeurs : {values}"
+    refused: L'instance n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    refused_by_backend: "Le stockage a refusé cette configuration : {cause} Le détail est dans le journal de la passerelle."
+    error:
+      required: Ce champ est obligatoire.
+      name_file: "« file » est réservé au disque local."
+      name_taken: Une autre instance porte déjà ce nom. Choisissez-en un autre.
+      type: Choisissez un type.
+      option: "Indiquez une option par ligne, sous la forme clé=valeur."
+      other_field: "« {key} » se règle dans son champ, plus haut."
+      other_secret: "« {key} » est une option sensible : elle serait conservée et affichée en clair ; les identifiants passent par la clé et le secret, ou par les variables d'environnement."
+      other_unknown: "{type} ne connaît pas l'option « {key} » : elle serait sans effet."
+  # Les options des stockages : libellé, puis aides (le défaut du produit est injecté dans {default}).
+  opt:
+    bucket:
+      label: Bucket
+      hint: Le bucket dans lequel la passerelle lit et écrit.
+    region:
+      label: Région
+      hint_s3: "Vide : celle du point d'accès ou de AWS_REGION."
+      hint_onedrive: "Vide : {default}."
+    endpoint:
+      label: Point d'accès
+      hint_s3: "Vide : amazonaws.com ; à renseigner pour un service compatible S3."
+      hint_azblob: "Vide : https://<compte>.blob.core.windows.net, le compte étant la clé."
+      hint_azfiles: "Vide : https://<compte>.file.core.windows.net, le compte étant la clé."
+    chunk_size:
+      label: Taille des morceaux envoyés
+      hint: "Vide : {default} ; une taille avec son unité, par exemple 8MiB."
+    copy_cutoff:
+      label: Seuil de copie par morceaux
+      hint: "Vide : {default}."
+    list_chunk:
+      label: Objets lus par requête de listage
+      hint: "Vide : {default}."
+    share_name:
+      label: Partage
+      hint: Le partage Azure Files dans lequel la passerelle lit et écrit.
+    project_number:
+      label: Numéro du projet
+      hint: Le numéro du projet Google Cloud.
+    bucket_policy_only:
+      label: Le bucket applique une politique d'accès uniforme
+    tenant:
+      label: Annuaire (tenant)
+      hint: L'identifiant de l'annuaire Azure de l'application.
+    drive_id:
+      label: Identifiant du lecteur
+      hint: "Le lecteur OneDrive ou la bibliothèque SharePoint, tel que l'API Graph le nomme."
+    drive_type:
+      label: Type de lecteur
+      business: Professionnel (business)
+      personal: Personnel (personal)
+      documentLibrary: Bibliothèque de documents (documentLibrary)
+  delete:
+    title: "Supprimer l'instance cloud « {name} » ?"
+    text: "Les chemins qui la nomment ne fonctionneront plus : les règles, serveurs et transferts ci-dessous cesseront de lire ou d'écrire dans ce stockage."
+    text_none: "Aucun objet ne nomme cette instance ; les chemins qui la nommeraient ensuite ne fonctionneraient plus."
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Instance cloud « {name} » créée"
+    updated: "Instance cloud « {name} » enregistrée"
+    deleted: "Instance cloud « {name} » supprimée"
+  empty:
+    title: Aucune instance cloud pour l'instant
+    text: "Une instance cloud est un stockage distant que la passerelle emploie à la place du disque local, désigné dans les chemins par nom:dossier/fichier."
+  none:
+    title: "Aucune instance ne correspond à « {query} »"
+    filters: Aucune instance ne correspond aux filtres
+  not_found:
+    title: Instance cloud introuvable
+    text: Cette instance n'existe pas ou a été supprimée.
+  error:
+    title: La liste des instances cloud n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

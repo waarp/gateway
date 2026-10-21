@@ -1,0 +1,571 @@
+package clouds
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the cloud instances list (Administration). Presentation only:
+// the handler searches, filters, sorts and pages the rows, builds the row
+// actions from the rights and translates the texts. One coloured action
+// ("Add a cloud instance"); search and filters neutral, the filters (the
+// storage types) applied as soon as they change (data-autosubmit, "Apply"
+// only without JavaScript); four sortable headers; the name and the location
+// in monospace (they are what the paths carry); a "⋯" menu per row; rows
+// per page in the list foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "clouds.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "clouds.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "clouds.error.title"), Text: gui.T(ctx, "clouds.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "cloud", Title: gui.T(ctx, "clouds.empty.title"), Text: gui.T(ctx, "clouds.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "clouds.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "clouds.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "clouds.search_placeholder") } list="clouds-names" autocomplete="off"/></label>
+			<datalist id="clouds-names">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<details class="w-disclose" open?={ d.FiltersOpen }>
+				<summary class="w-btn w-btn--outline-dark w-btn--sm">
+					@gui.Icon("filter")
+					{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+				</summary>
+				<div class="w-disclose__panel">
+					<fieldset class="w-fieldset w-field w-field--wide">
+						<legend class="w-fieldset__legend">{ gui.T(ctx, "clouds.filters") }</legend>
+						<div class="w-checks">
+							for _, t := range d.Types {
+								<label class="w-check"><input type="checkbox" name="type" value={ t.Key } checked?={ t.Checked }/> <span>{ t.Label }</span></label>
+							}
+						</div>
+					</fieldset>
+					@gui.FiltersFoot(d.ResetURL)
+				</div>
+			</details>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="clouds-col-name"/><col class="clouds-col-type"/><col/><col/><col class="clouds-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clouds.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clouds.col.type"), Key: "type", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clouds.col.location"), Key: "location", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "clouds.col.auth"), Key: "auth", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "clouds.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-mono w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+								<td>{ r.Type }</td>
+								<td>@locationCell(r.Location)</td>
+								<td>{ r.Auth }</td>
+								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="clouds-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// locationCell: the bucket, share or drive of an instance, or "—" when its
+// storage has none (the path names it).
+templ locationCell(location string) {
+	if location != "" {
+		<span class="w-mono">{ location }</span>
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "clouds.location_none") }</span>
+	}
+}
+
+// usageList: the rules, servers and transfers whose paths name the
+// instance, or the sentence saying nothing does.
+templ usageList(u usage) {
+	if u.none() {
+		<p class="clouds-note w-muted">{ gui.T(ctx, "clouds.detail.used_none") }</p>
+	} else {
+		<dl class="w-deflist">
+			if len(u.Rules) > 0 {
+				<dt>{ gui.T(ctx, "clouds.detail.used_rules") }</dt>
+				<dd>
+					<ul class="clouds-usage">
+						for _, n := range u.Rules {
+							<li><code class="w-code">{ n.Name }</code></li>
+						}
+					</ul>
+				</dd>
+			}
+			if len(u.Servers) > 0 {
+				<dt>{ gui.T(ctx, "clouds.detail.used_servers") }</dt>
+				<dd>
+					<ul class="clouds-usage">
+						for _, n := range u.Servers {
+							<li><a class="w-link" href={ templ.SafeURL(n.URL) }>{ n.Name }</a></li>
+						}
+					</ul>
+				</dd>
+			}
+			if u.Transfers > 0 {
+				<dt>{ gui.T(ctx, "clouds.detail.used_transfers") }</dt>
+				<dd>{ gui.T(ctx, "clouds.detail.used_transfers_count", "n", strconv.FormatInt(u.Transfers, 10)) }</dd>
+			}
+		</dl>
+	}
+}
+
+// detailView: the sheet of a cloud instance, in reading: the instance
+// (type, path to use), the access (what the key is for the storage, whether
+// a secret is set, the environment credentials), the options the storage
+// names with the product defaults, the other options, and what names the
+// instance. Breadcrumb and a "Back to the list" button (decision D10);
+// "Edit" as the main action, the deletion in a "⋯" menu.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "clouds.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "clouds.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "clouds.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions})
+			}
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "clouds.detail.card") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "clouds.detail.type") }</dt>
+				<dd>{ d.Type }@typeHint(d.TypeHint)</dd>
+				<dt>{ gui.T(ctx, "clouds.detail.path") }</dt>
+				<dd><code class="w-code">{ d.Path }</code><span class="w-muted">{ gui.T(ctx, "clouds.detail.path_hint") }</span></dd>
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "clouds.detail.access") }</h2>
+			<dl class="w-deflist">
+				<dt>{ d.KeyLabel }</dt>
+				<dd>@keyValue(d.Key)</dd>
+				<dt>{ gui.T(ctx, "clouds.detail.secret") }</dt>
+				<dd>@secretValue(d.Secret)</dd>
+				<dt>{ gui.T(ctx, "clouds.detail.env_auth") }</dt>
+				<dd>{ yesNoOf(ctx, d.EnvAuth) }</dd>
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "clouds.detail.options") }</h2>
+			if len(d.Options) > 0 {
+				<dl class="w-deflist">
+					for _, k := range d.Options {
+						<dt>{ k.Label }</dt>
+						<dd>@protoform.ValueOf(k)</dd>
+					}
+				</dl>
+			}
+			if len(d.Others) > 0 || len(d.Masked) > 0 {
+				<h3 class="w-card__title clouds-subtitle">{ gui.T(ctx, "clouds.detail.other") }</h3>
+				<dl class="w-deflist">
+					for _, k := range d.Others {
+						<dt><code class="w-code">{ k.Label }</code></dt>
+						<dd>@protoform.ValueOf(k)</dd>
+					}
+					for _, key := range d.Masked {
+						<dt><code class="w-code">{ key }</code></dt>
+						<dd><span class="w-muted">{ gui.T(ctx, "clouds.detail.masked") }</span></dd>
+					}
+				</dl>
+			}
+			if len(d.Options) == 0 && len(d.Others) == 0 && len(d.Masked) == 0 {
+				<p class="clouds-note w-muted">{ gui.T(ctx, "clouds.detail.options_none") }</p>
+			}
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "clouds.detail.used_by") }</h2>
+			@usageList(d.Usage)
+		</div>
+	</div>
+}
+
+// typeHint: what the storage is, after its label; nothing for an unknown
+// type key.
+templ typeHint(hint string) {
+	if hint != "" {
+		<span class="w-muted">{ hint }</span>
+	}
+}
+
+// keyValue: the key of an instance, or "not set".
+templ keyValue(key string) {
+	if key != "" {
+		<code class="w-code">{ key }</code>
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "clouds.detail.secret_unset") }</span>
+	}
+}
+
+// secretValue: whether a secret is set; its value is never rendered.
+templ secretValue(set bool) {
+	if set {
+		{ gui.T(ctx, "clouds.detail.secret_set") }
+	} else {
+		<span class="w-muted">{ gui.T(ctx, "clouds.detail.secret_unset") }</span>
+	}
+}
+
+func yesNoOf(ctx context.Context, yes bool) string {
+	if yes {
+		return gui.T(ctx, "clouds.detail.yes")
+	}
+
+	return gui.T(ctx, "clouds.detail.no")
+}
+
+// backLabel: the label of the back button of the form: to the instance on
+// edition, to the list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "clouds.back_cloud") }
+	} else {
+		{ " " + gui.T(ctx, "clouds.back") }
+	}
+}
+
+// optionField: one option of a storage: a text field, a checkbox or a
+// select, named by its field name, with the option key as its technical
+// name.
+templ optionField(v optionView) {
+	if v.Kind == kindCheck {
+		<label class="w-check"><input type="checkbox" id={ v.Name } name={ v.Name } value="1" checked?={ v.Checked }/> <span>{ v.Label } (<code class="w-code">{ v.Code }</code>)</span></label>
+	} else if v.Kind == kindSelect {
+		<div class="w-field w-field--medium">
+			<label class="w-field__label" for={ v.Name }>
+				{ v.Label }
+				if v.Required {
+					@protoform.ReqMark(true)
+				} else {
+					{ " " }<span class="w-field__opt"><code class="w-code">{ v.Code }</code></span>
+				}
+			</label>
+			<select
+				class="w-select"
+				id={ v.Name }
+				name={ v.Name }
+				required?={ v.Required }
+				if v.Hint != "" {
+					aria-describedby={ v.Name + "-h" }
+				}
+			>
+				for _, c := range v.Choices {
+					<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+				}
+			</select>
+			if v.Hint != "" {
+				<span class="w-field__hint" id={ v.Name + "-h" }>{ v.Hint }</span>
+			}
+		</div>
+	} else {
+		@protoform.FieldOf(protoform.FieldProps{ID: v.Name, Label: v.Label, Req: v.Required, F: protoform.Field{Value: v.Value, Error: v.Error}, Hint: v.Hint, Code: v.Code, Placeholder: v.Placeholder})
+	}
+}
+
+// typeCard: the options of one storage, a foldable card shown for the
+// chosen type (data-case; every card rendered without JavaScript, the server
+// reads the chosen one), its summary in the header: a sentence saying what
+// the storage is, the fields in a grid, then the checkboxes.
+templ typeCard(c typeView) {
+	<details class="w-card w-card--fold" data-case={ c.Key } open?={ c.Open }>
+		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clouds.form.options", "type", c.Label) }</span><span class="w-fold__meta">{ c.Summary }</span></summary>
+		<div class="w-card__body">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="visually-hidden">{ gui.T(ctx, "clouds.form.options", "type", c.Label) }</legend>
+				<p class="w-form__note clouds-type-hint">{ c.Hint }</p>
+				<div class="w-grid w-grid--2">
+					for _, v := range c.Options {
+						if v.Kind != kindCheck {
+							@optionField(v)
+						}
+					}
+				</div>
+				for _, v := range c.Options {
+					if v.Kind == kindCheck {
+						@optionField(v)
+					}
+				}
+			</fieldset>
+		</div>
+	</details>
+}
+
+// accessNote: what the key and the secret are for every storage, one
+// sentence per type (data-case), with the environment variables.
+templ accessNote(cards []typeView) {
+	for _, c := range cards {
+		<p class="w-form__note clouds-note" data-case={ c.Key }>{ gui.T(ctx, accessNoteKeyPrefix+c.Key) }</p>
+	}
+}
+
+// envHints: the environment variables each storage reads, one per type
+// (data-case), in the hint of the checkbox.
+templ envHints(cards []typeView) {
+	for _, c := range cards {
+		if c.EnvAuth {
+			<span data-case={ c.Key }>{ gui.T(ctx, envKeyPrefix+c.Key) }</span>
+		}
+	}
+}
+
+// formView: creation and edition of a cloud instance, one page (decision
+// D10), one card per block, every card but the identity foldable with its
+// summary in the header: the identity (name, type), the access (key, secret
+// never rendered back, credentials from the environment; open), the options
+// of the chosen storage (one card per storage, switched by the type), the
+// other options (a text zone, one key=value per line, folded when empty). Refused form: a banner, the values kept, a message under each
+// faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="clouds-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "clouds.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "clouds.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "clouds.form.identity") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldName, Label: gui.T(ctx, "clouds.form.name"), Req: true, F: d.Fields[fieldName], Hint: gui.T(ctx, "clouds.form.name_hint")})
+					<div class={ "w-field", templ.KV("is-invalid", d.TypeErr != "") }>
+						<label class="w-field__label" for={ fieldType }>{ gui.T(ctx, "clouds.form.type") } <span class="w-field__req" aria-hidden="true">*</span></label>
+						<select
+							class="w-select"
+							id={ fieldType }
+							name={ fieldType }
+							required
+							data-switch
+							aria-describedby="type-h"
+							if d.TypeErr != "" {
+								aria-invalid="true"
+							}
+						>
+							<option value="" selected?={ d.Type == "" }>{ gui.T(ctx, "clouds.form.type_choose") }</option>
+							for _, c := range d.Types {
+								<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+							}
+						</select>
+						@protoform.Message("type-h", d.TypeErr, gui.T(ctx, "clouds.form.type_hint"))
+					</div>
+				</div>
+			</fieldset>
+		</div>
+		<details class="w-card w-card--fold" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clouds.form.access") }</span><span class="w-fold__meta">{ d.AccessSummary }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "clouds.form.access") }</legend>
+					@accessNote(d.Cards)
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldKey, Label: gui.T(ctx, "clouds.form.key.any"), F: d.Fields[fieldKey], Hint: gui.T(ctx, "clouds.form.key_hint"), Autocomplete: "off"})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldSecret, Label: gui.T(ctx, "clouds.form.secret.any"), F: d.Fields[fieldSecret], Hint: secretHint(ctx, d.Edit), Password: true, Autocomplete: "off"})
+					</div>
+					<fieldset class="w-fieldset" data-case={ d.Cases }>
+						<label class="w-check"><input type="checkbox" id={ fieldEnvAuth } name={ fieldEnvAuth } value="1" checked?={ d.EnvAuth } aria-describedby="env_auth-h"/> <span>{ gui.T(ctx, "clouds.form.env_auth") } (<code class="w-code">env_auth</code>)</span></label>
+						<span class="w-field__hint" id="env_auth-h">{ gui.T(ctx, "clouds.form.env_hint") } @envHints(d.Cards)</span>
+					</fieldset>
+				</fieldset>
+			</div>
+		</details>
+		for _, c := range d.Cards {
+			@typeCard(c)
+		}
+		<details class="w-card w-card--fold" open?={ d.OtherOpen }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clouds.form.other") }</span><span class="w-fold__meta">{ otherSummary(ctx, d.Fields[fieldOther].Value) }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "clouds.form.other") }</legend>
+					<div class={ "w-field", templ.KV("is-invalid", d.Fields[fieldOther].Error != "") }>
+						<label class="w-field__label" for={ fieldOther }>{ gui.T(ctx, "clouds.form.other_label") }</label>
+						<textarea
+							class="w-textarea w-mono"
+							id={ fieldOther }
+							name={ fieldOther }
+							rows="4"
+							spellcheck="false"
+							aria-describedby="other-h"
+							if d.Fields[fieldOther].Error != "" {
+								aria-invalid="true"
+							}
+						>{ d.Fields[fieldOther].Value }</textarea>
+						@protoform.Message("other-h", d.Fields[fieldOther].Error, gui.T(ctx, "clouds.form.other_hint"))
+					</div>
+				</fieldset>
+				for _, c := range d.Cards {
+					if len(c.Accepted) > 0 {
+						@acceptedTable(c)
+					}
+				}
+			</div>
+		</details>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// acceptedTable: the options the storage library accepts for a storage,
+// beyond the fields, shown for the chosen type (data-case) under the "other
+// options" zone: the key, what the library applies without it, its help in
+// the words of the library (English), the values it proposes when they are
+// few. A bounded region that scrolls, reachable from the keyboard.
+templ acceptedTable(c typeView) {
+	<div class="w-table-wrap clouds-accepted" data-case={ c.Key } role="region" tabindex="0" aria-labelledby={ "accepted-" + c.Key }>
+		<table class="w-table">
+			<caption id={ "accepted-" + c.Key }>{ gui.T(ctx, "clouds.form.accepted", "type", c.Label, "n", len(c.Accepted)) }</caption>
+			<thead>
+				<tr>
+					<th scope="col">{ gui.T(ctx, "clouds.form.accepted_col.option") }</th>
+					<th scope="col">{ gui.T(ctx, "clouds.form.accepted_col.default") }</th>
+					<th scope="col">{ gui.T(ctx, "clouds.form.accepted_col.help") }</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, a := range c.Accepted {
+					<tr>
+						<td><code class="w-code">{ a.Key }</code></td>
+						<td>
+							if a.Default != "" {
+								<code class="w-code">{ a.Default }</code>
+							} else {
+								<span class="w-muted">{ gui.T(ctx, "clouds.location_none") }</span>
+							}
+						</td>
+						<td>
+							<span lang="en">{ a.Help }</span>
+							if a.Values != "" {
+								<span class="clouds-accepted__values w-muted">{ gui.T(ctx, "clouds.form.accepted_values", "values", a.Values) }</span>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// secretHint: how the secret is kept, or, on edition, that an empty one
+// keeps the current value.
+func secretHint(ctx context.Context, edit bool) string {
+	if edit {
+		return gui.T(ctx, "clouds.form.secret_keep")
+	}
+
+	return gui.T(ctx, "clouds.form.secret_hint")
+}
+
+// otherSummary: what the folded "other options" card holds.
+func otherSummary(ctx context.Context, text string) string {
+	if text == "" {
+		return gui.T(ctx, "clouds.form.other_none")
+	}
+
+	return gui.T(ctx, "clouds.form.other_some")
+}
+
+// deleteView: confirmation page of the deletion of a cloud instance
+// (decision D10: a page, not a dialog). The title names the instance, the
+// text says the consequence and lists what names it, "Cancel" then "Delete"
+// bottom right (D12). The product refuses nothing.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "clouds.delete.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "clouds.back_cloud") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Usage.none() {
+			<p class="clouds-lead">{ gui.T(ctx, "clouds.delete.text_none") }</p>
+		} else {
+			<p class="clouds-lead">{ gui.T(ctx, "clouds.delete.text") }</p>
+		}
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "clouds.detail.card") }</dt>
+			<dd><code class="w-code">{ d.Name }</code></dd>
+			<dt>{ gui.T(ctx, "clouds.detail.type") }</dt>
+			<dd>{ d.Type }</dd>
+			<dt>{ gui.T(ctx, "clouds.col.location") }</dt>
+			<dd>@locationCell(d.Location)</dd>
+		</dl>
+		if !d.Usage.none() {
+			<h2 class="w-card__title clouds-subtitle">{ gui.T(ctx, "clouds.detail.used_by") }</h2>
+			@usageList(d.Usage)
+		}
+		<form class="clouds-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "clouds.delete.title", "name", d.Name)})</form>
+	</div>
+}
+
+// notFoundView: an instance that does not exist: localised 404 in the
+// chrome, with the way back to the list as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "cloud", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}

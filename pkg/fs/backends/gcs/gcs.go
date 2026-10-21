@@ -15,6 +15,9 @@ import (
 
 var ErrMissingBucket = errors.New("no GCS bucket specified")
 
+// Storage is the storage of rclone the backend is built on.
+const Storage = "gcs"
+
 func parseOpts(accFile, accCreds string, userOpts map[string]string,
 ) (config configmap.Mapper, root string, err error) {
 	// Credential options
@@ -24,7 +27,7 @@ func parseOpts(accFile, accCreds string, userOpts map[string]string,
 	}
 
 	// Make config map
-	config = internal.MakeOptions("gcs", userOpts, overrides)
+	config = internal.MakeOptions(Storage, userOpts, overrides)
 
 	// Check mandatory options
 	if bucket, ok := config.Get("bucket"); !ok || bucket == "" {
