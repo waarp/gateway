@@ -4,7 +4,7 @@
 /* The row of the states: one compact line with the count of each state, scrolling sideways on a narrow screen. The
    state shown has a thick underline, bold text and a tinted background: not the colour alone. */
 .tf-states { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin: 0 0 var(--sp-3); padding: var(--sp-1); border: 1px solid var(--g200); border-radius: var(--rs); background: var(--surface); }
-.tf-state { display: inline-flex; align-items: baseline; gap: var(--sp-1); padding: var(--sp-1) var(--sp-3); border-radius: var(--r-xs); border-bottom: 3px solid transparent; color: var(--tp); font-size: var(--fs-sm); text-decoration: none; white-space: nowrap; }
+.tf-state { display: inline-flex; align-items: baseline; gap: var(--sp-1); padding: var(--sp-1) var(--sp-3); border-radius: var(--r-xs); border-bottom: 3px solid transparent; color: var(--tp); font-size: var(--fs-body); text-decoration: none; white-space: nowrap; }
 .tf-state strong { color: var(--g600); font-weight: 700; }
 .tf-state:hover { background: var(--g50); }
 .tf-state[aria-current="true"] { background: var(--wo-bg); border-bottom-color: var(--wo-aa); font-weight: 700; }
@@ -14,16 +14,21 @@
   .tf-states { flex-wrap: nowrap; overflow-x: auto; }
 }
 
-/* The list: fixed columns, the file first and widest; the direction goes under the rule, which carries it. Under
-   64rem the table scrolls in its frame. Measured on the mockup: no name cut at 1440 px. */
-.tf-table { table-layout: fixed; min-width: 64rem; }
+/* The list: fixed columns, the number first (sorted descending by default), then the file, the widest; the direction
+   goes under the rule, which carries it. Under 68.5rem (its width at 1440 px) the table scrolls in its frame, its
+   columns as wide as at 1440 px. Measured: no name cut at 1440 nor at 390 px. */
+.tf-table { table-layout: fixed; min-width: 68.5rem; }
 .tf-table td { vertical-align: top; }
-.tf-col-file { width: 22%; }
-.tf-col-state { width: 11%; }
-.tf-col-rule { width: 19%; }
+/* The number holds eight digits in a smaller type, the names of the rules and the partners hold on one line. */
+.tf-col-id { width: 7%; }
+.tf-col-file { width: 19.5%; }
+.tf-col-state { width: 9.5%; }
+.tf-col-rule { width: 17%; }
 .tf-col-partner { width: 12%; }
 .tf-col-progress { width: 12%; }
 .tf-col-date { width: 9%; }
+.tf-table th:first-child, .tf-table td:first-child { padding-right: var(--sp-2); padding-left: var(--sp-2); }
+.tf-table td:first-child { font-size: var(--fs-sm); }
 .tf-col-actions { width: 56px; }
 .tf-file { font-size: var(--fs-body); overflow-wrap: anywhere; }
 .tf-sub { display: block; margin-top: 2px; color: var(--g600); font-size: var(--fs-micro); font-weight: 400; }
@@ -48,6 +53,11 @@
 .tf-infos td { overflow-wrap: anywhere; }
 .tf-inline { display: inline; }
 .tf-note { margin: 0 0 var(--sp-3); }
+
+/* The transfer information of the form: a name and a value per row, the button that removes the row. */
+.tf-info-head, .tf-info-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 2rem; gap: var(--sp-2); align-items: center; }
+.tf-info-head { margin: var(--sp-3) 0 var(--sp-1); color: var(--g600); font-size: var(--fs-sm); font-weight: 700; }
+.tf-info-row { margin-bottom: var(--sp-2); }
 
 /* The action pages. */
 .tf-lead { margin: 0 0 var(--sp-4); }

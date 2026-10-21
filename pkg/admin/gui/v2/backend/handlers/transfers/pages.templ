@@ -78,6 +78,7 @@ templ statesRow(d listData) {
 			<a
 				class="tf-state"
 				href={ templ.SafeURL(s.URL) }
+				title={ s.Hint }
 				if s.Current {
 					aria-current="true"
 				}
@@ -157,9 +158,10 @@ templ tableRegion(d listData) {
 			<div class="w-table-wrap">
 				<table class="w-table tf-table">
 					<caption class="visually-hidden">{ d.Caption }</caption>
-					<colgroup><col class="tf-col-file"/><col class="tf-col-state"/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-progress"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-actions"/></colgroup>
+					<colgroup><col class="tf-col-id"/><col class="tf-col-file"/><col class="tf-col-state"/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-progress"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-actions"/></colgroup>
 					<thead>
 						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.id"), Key: sortID, Sort: d.Sort, Dir: d.Dir, Base: d.Base, Num: true})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.file"), Key: sortFile, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.state"), Key: sortState, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.rule"), Key: sortRule, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
@@ -173,8 +175,13 @@ templ tableRegion(d listData) {
 					<tbody>
 						for _, r := range d.Rows {
 							<tr>
-								<td><a class="w-cell-title tf-file" href={ templ.SafeURL(r.URL) }>{ r.File }</a><span class="tf-sub">{ r.Number }</span></td>
-								<td>
+								<td class="w-num tf-time">{ strconv.FormatInt(r.ID, 10) }</td>
+								<td><a class="w-cell-title tf-file" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }>{ r.File }</a><span class="tf-sub">{ r.Protocol }</span></td>
+								<td
+									if r.StatusTip != "" {
+										title={ r.StatusTip }
+									}
+								>
 									@gui.StatusOf(r.Status)
 									if r.Cause != "" {
 										<span class="tf-sub tf-cause">{ r.Cause }</span>
@@ -522,22 +529,24 @@ templ formView(d *formData) {
 		<div class="w-card">
 			<fieldset class="w-fieldset w-fieldset--wide">
 				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</legend>
-				<div class={ "w-field", templ.KV("is-invalid", d.Info.Error != "") }>
-					<label class="w-field__label" for={ fieldInfo }>{ gui.T(ctx, "transfers.form.info") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
-					<textarea
-						class="w-textarea w-mono"
-						id={ fieldInfo }
-						name={ fieldInfo }
-						rows="3"
-						spellcheck="false"
-						aria-describedby="info-h"
-						placeholder={ gui.T(ctx, "transfers.form.info_placeholder") }
-						if d.Info.Error != "" {
-							aria-invalid="true"
-						}
-					>{ d.Info.Value }</textarea>
-					@protoform.Message("info-h", d.Info.Error, gui.T(ctx, "transfers.form.info_hint"))
+				@protoform.Message("info-h", d.InfoError, gui.T(ctx, "transfers.form.info_hint"))
+				<div
+					class="tf-info-list"
+					data-infos
+					data-label-name={ gui.T(ctx, "transfers.form.info_name_n") }
+					data-label-value={ gui.T(ctx, "transfers.form.info_value_n") }
+					data-label-remove={ gui.T(ctx, "transfers.form.info_remove_n") }
+				>
+					<div class="tf-info-head" aria-hidden="true"><span>{ gui.T(ctx, "transfers.form.info_name") }</span><span>{ gui.T(ctx, "transfers.form.info_value") }</span></div>
+					for i, p := range d.Infos {
+						@infoField(i+1, p)
+					}
 				</div>
+				<template id="tf-info-row">@infoField(0, infoPair{})</template>
+				<button class="w-btn w-btn--outline-dark w-btn--sm" type="submit" name={ fieldInfoAdd } value="1" formnovalidate data-info-add>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "transfers.form.info_add") }
+				</button>
 			</fieldset>
 		</div>
 		if !d.Server {
@@ -555,6 +564,31 @@ templ formView(d *formData) {
 		}
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>
+}
+
+// infoField: a row of the transfer information, numbered from 1 (0 in the
+// template the script copies, which numbers the rows again): the name, the
+// value, the button that removes the row (shown by the script; without it,
+// emptying the row is enough).
+templ infoField(n int, p infoPair) {
+	<div class="tf-info-row">
+		<label class="visually-hidden" for={ fmt.Sprintf("info-name-%d", n) }>{ gui.T(ctx, "transfers.form.info_name_n", "n", n) }</label>
+		<input
+			class="w-input w-mono"
+			id={ fmt.Sprintf("info-name-%d", n) }
+			name={ fieldInfoName }
+			value={ p.Name }
+			autocomplete="off"
+			spellcheck="false"
+			aria-describedby="info-h"
+			if p.Invalid {
+				aria-invalid="true"
+			}
+		/>
+		<label class="visually-hidden" for={ fmt.Sprintf("info-value-%d", n) }>{ gui.T(ctx, "transfers.form.info_value_n", "n", n) }</label>
+		<input class="w-input w-mono" id={ fmt.Sprintf("info-value-%d", n) } name={ fieldInfoValue } value={ p.Value } autocomplete="off" spellcheck="false"/>
+		<button class="w-icon-btn" type="button" hidden data-info-remove aria-label={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) } title={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) }>@gui.Icon("xmark")</button>
+	</div>
 }
 
 // refusedView: an action the state of the transfer does not allow: why, the

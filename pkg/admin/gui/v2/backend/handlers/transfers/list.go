@@ -15,9 +15,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 )
 
 // The parameters of the filters of the list: the state (the row of the
@@ -52,7 +52,7 @@ type filters struct {
 	Dir      string // dirSend, dirReceive or ""
 	Partner  string // the remote partner or the local server
 	Account  string
-	Protocol string // a protocol key of the gateway
+	Protocol string // a protocol family of the gateway, which covers its TLS variant
 	From     string // datetime-local values (localLayout)
 	To       string
 }
@@ -74,9 +74,7 @@ func parseFilters(v url.Values) *filters {
 		crit.Dir = dir
 	}
 
-	if protocol := v.Get(paramProtocol); protocols.Exists(protocol) {
-		crit.Protocol = protocol
-	}
+	crit.Protocol = protoform.FamilyKeyOf(v.Get(paramProtocol))
 
 	if _, ok := parseLocal(v.Get(paramFrom)); ok {
 		crit.From = v.Get(paramFrom)
@@ -176,7 +174,7 @@ func (h *Handlers) selectQuery(q *liststate.Query, crit *filters, status types.T
 	}
 
 	if crit.Protocol != "" {
-		query.Protocol(crit.Protocol)
+		query.Protocols(familyProtocols(crit.Protocol)...)
 	}
 
 	if from, ok := parseLocal(crit.From); ok {
@@ -189,6 +187,20 @@ func (h *Handlers) selectQuery(q *liststate.Query, crit *filters, status types.T
 	}
 
 	return query
+}
+
+// familyProtocols are the protocol keys of a family: its plain and its TLS
+// variants, those the gateway registers.
+func familyProtocols(family string) []string {
+	var keys []string
+
+	for _, f := range protoform.Families() {
+		if f.Key == family {
+			keys = slices.DeleteFunc([]string{f.Plain, f.TLS}, func(key string) bool { return key == "" })
+		}
+	}
+
+	return keys
 }
 
 // countStates counts the transfers the search and the filters match, in
@@ -213,6 +225,7 @@ func (h *Handlers) countStates(q *liststate.Query, crit *filters) (map[string]ui
 type stateItem struct {
 	Key     string
 	Label   string
+	Hint    string // what the state means, as a tooltip
 	Count   string
 	URL     string
 	Current bool
@@ -222,10 +235,12 @@ type stateItem struct {
 type row struct {
 	ID        int64
 	File      string
+	FileTitle string // the path of the file, as a tooltip
 	URL       string
-	Number    string // "No. 1229 · PeSIT"
+	Protocol  string
 	Status    gui.Status
 	Cause     string // label of the error code, for a transfer in error
+	StatusTip string // the cause and the message of an error, as a tooltip
 	Rule      string
 	Direction string // "Send · client"
 	Partner   string
@@ -445,14 +460,14 @@ func (h *Handlers) noRows(translate gui.Translator, data *listData, query *lists
 func stateItems(translate gui.Translator, query *liststate.Query, counts map[string]uint64, all uint64) []stateItem {
 	current := filtersOf(query).State
 	items := []stateItem{{
-		Label: translate("transfers.states.all"), Count: groupDigits(translate, all),
-		URL: stateURL(query, ""), Current: current == "",
+		Label: translate("transfers.states.all"), Hint: translate(stateHintPrefix + "all"),
+		Count: groupDigits(translate, all), URL: stateURL(query, ""), Current: current == "",
 	}}
 
 	for _, spec := range stateSpecs() {
 		items = append(items, stateItem{
-			Key: spec.key, Label: translate(statesKeyPrefix + spec.key), Count: groupDigits(translate, counts[spec.key]),
-			URL: stateURL(query, spec.key), Current: current == spec.key,
+			Key: spec.key, Label: translate(statesKeyPrefix + spec.key), Hint: translate(stateHintPrefix + spec.key),
+			Count: groupDigits(translate, counts[spec.key]), URL: stateURL(query, spec.key), Current: current == spec.key,
 		})
 	}
 
@@ -503,11 +518,11 @@ func (h *Handlers) filterView(crit *filters) filterView {
 
 	view.Partners = h.agentNames()
 
-	for key := range protocols.List() {
-		view.Protocols = append(view.Protocols, gui.Choice{Value: key, Label: protocolLabel(key)})
+	// The families, each covering its TLS variant, as the filters of the
+	// servers and the clients.
+	for _, family := range protoform.Families() {
+		view.Protocols = append(view.Protocols, gui.Choice{Value: family.Key, Label: family.Label})
 	}
-
-	slices.SortFunc(view.Protocols, func(a, b gui.Choice) int { return strings.Compare(a.Label, b.Label) })
 
 	return view
 }
@@ -543,8 +558,9 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 	line := row{
 		ID:        trans.ID,
 		File:      fileName(trans),
+		FileTitle: fileTitle(trans),
 		URL:       withRet(transferURL(trans.ID, ""), carried),
-		Number:    numberOf(translate, trans),
+		Protocol:  protocolLabel(trans.Protocol),
 		Status:    statusOf(translate, trans.Status),
 		Rule:      trans.Rule,
 		Direction: direction(translate, trans),
@@ -556,6 +572,11 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 
 	if trans.Status == types.StatusError {
 		line.Cause = errorLabel(translate, trans.ErrCode)
+		line.StatusTip = line.Cause
+
+		if trans.ErrDetails != "" {
+			line.StatusTip = translate("transfers.error_tip", "cause", line.Cause, "message", trans.ErrDetails)
+		}
 	}
 
 	line.Start, line.StartSub = timeAndDate(translate, trans.Start)
@@ -577,14 +598,20 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 	return line
 }
 
-// numberOf is the number of a transfer and its protocol: "No. 1229 · PeSIT".
-func numberOf(translate gui.Translator, trans *model.NormalizedTransferView) string {
-	number := translate("transfers.number", "id", trans.ID)
-	if label := protocolLabel(trans.Protocol); label != "" {
-		return number + " · " + label
+// fileTitle is the path of the file of a transfer, shown as a tooltip: the
+// file on the gateway once known, else the names at the source and at the
+// destination when they differ.
+func fileTitle(trans *model.NormalizedTransferView) string {
+	switch {
+	case trans.LocalPath != "":
+		return trans.LocalPath
+	case trans.SrcFilename != "" && trans.DestFilename != "" && trans.SrcFilename != trans.DestFilename:
+		return trans.SrcFilename + " → " + trans.DestFilename
+	case trans.SrcFilename != "":
+		return trans.SrcFilename
+	default:
+		return trans.DestFilename
 	}
-
-	return number
 }
 
 // progressOf is the progress of a transfer.

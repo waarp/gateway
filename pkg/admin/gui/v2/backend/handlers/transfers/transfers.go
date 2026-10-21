@@ -50,6 +50,7 @@ const (
 	listFragment  = "list"
 	refreshPeriod = 5 * time.Second
 
+	sortID    = "id"
 	sortStart = "start"
 	sortFile  = "file"
 	sortState = "state"
@@ -65,6 +66,7 @@ const (
 	// Prefixes of the catalogue keys chosen at run time.
 	stateKeyPrefix  = "transfers.state."  // the state of a transfer, "transfers.state.running"
 	statesKeyPrefix = "transfers.states." // a state in the row of the states, "transfers.states.running"
+	stateHintPrefix = "transfers.hint."   // what a state means, "transfers.hint.available"
 	errorKeyPrefix  = "transfers.code."   // the label of an error code, "transfers.code.TeConnection"
 	stepKeyPrefix   = "transfers.step."   // the step of a transfer, "transfers.step.StepData"
 	toastKeyPrefix  = "transfers.toast."  // the result of an action, "transfers.toast.paused"
@@ -73,11 +75,13 @@ const (
 
 //nolint:gochecknoglobals // reference data of the screen
 var (
-	sortKeys  = []string{sortStart, sortFile, sortState, sortRule, sortStop}
+	sortKeys  = []string{sortID, sortStart, sortFile, sortState, sortRule, sortStop}
 	pageSizes = liststate.DefaultSizes
 
 	// The list of this screen: its page, its session cookie, its sort keys
-	// (the most recent transfers first), its rows per page and its filters.
+	// (the last transfers first: the highest numbers, as Driss asked on
+	// 2026-10-21; a planned transfer far ahead does not lead the list), its
+	// rows per page and its filters.
 	listSpec = liststate.Spec{
 		Path: pagePath, Cookie: stateCookie, Sorts: sortKeys, Sizes: pageSizes, FirstDesc: true,
 		ParseFilters: func(v url.Values) liststate.Filters { return parseFilters(v) },
@@ -129,7 +133,7 @@ func sortExpression(key string) string {
 		cases.WriteString(" END")
 
 		return cases.String()
-	case sortRule, sortStop:
+	case sortID, sortRule, sortStop:
 		return key
 	default:
 		return "start"

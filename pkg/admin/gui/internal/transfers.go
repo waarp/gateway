@@ -111,9 +111,10 @@ func (q *TransferListQuery) Direction(isSend bool) *TransferListQuery {
 	return q
 }
 
-// Protocol adds a condition on the protocol of the transfers.
-func (q *TransferListQuery) Protocol(protocol string) *TransferListQuery {
-	q.query.Where("protocol=?", protocol)
+// Protocols adds a condition on the protocol of the transfers: one of the
+// given ones.
+func (q *TransferListQuery) Protocols(protocols ...string) *TransferListQuery {
+	q.query.In("protocol", utils.AsAny(protocols)...)
 
 	return q
 }

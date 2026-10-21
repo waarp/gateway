@@ -2083,6 +2083,7 @@ transfers:
   count: "{total} transferts"
   caption: "Transferts, page {page} sur {pages}, triés par {sort}"
   sort:
+    id: numéro
     start: début
     file: fichier
     state: état
@@ -2096,7 +2097,7 @@ transfers:
     planned: Planifié
     paused: En pause
     interrupted: Interrompu
-    available: Disponible
+    available: Attendu
     done: Terminé
     cancelled: Annulé
   states:
@@ -2107,9 +2108,20 @@ transfers:
     planned: Planifiés
     paused: En pause
     interrupted: Interrompus
-    available: Disponibles
+    available: Attendus
     done: Terminés
     cancelled: Annulés
+  # Ce que dit chaque état, en infobulle de la rangée des états.
+  hint:
+    all: Tous les transferts, à venir, en cours et passés
+    running: Le transfert s'exécute
+    error: Le transfert a échoué ; il peut être retenté, repris ou relancé
+    planned: La passerelle lancera elle-même le transfert à l'heure prévue
+    paused: Le transfert a été mis en pause par un utilisateur
+    interrupted: Le transfert a été interrompu de façon inattendue, par un arrêt de la passerelle par exemple
+    available: "Transfert pré-enregistré : la passerelle attend que le partenaire se connecte pour l'échanger, jusqu'à la date limite"
+    done: Le transfert s'est terminé sans erreur, traitements compris
+    cancelled: Le transfert a été annulé par un utilisateur
   filter:
     rule: Règle
     rule_all: Toutes les règles
@@ -2128,6 +2140,7 @@ transfers:
     client: client
     server: serveur
   col:
+    id: N°
     file: Fichier
     state: État
     rule: Règle
@@ -2136,7 +2149,7 @@ transfers:
     start: Début
     stop: Fin
     actions: Actions
-  number: "n° {id}"
+  error_tip: "{cause} : {message}"
   due_at: "jusqu'au {date}"
   next_attempt: prochaine tentative
   no_stop: Pas encore terminé
@@ -2230,6 +2243,8 @@ transfers:
     dest: Nom à la destination
     local_path: Chemin sur la passerelle
     remote_path: Chemin chez le partenaire
+    expected_local: Chemin prévu sur la passerelle
+    expected_remote: Chemin prévu chez le partenaire
     size: Taille
     size_unknown: Inconnue
     size_bytes: "{bytes} octets ({size})"
@@ -2275,7 +2290,7 @@ transfers:
     title: Nouveau transfert
   preregister:
     title: Pré-enregistrer un transfert
-    text: Le transfert attend que le partenaire se connecte au serveur pour l'échanger, jusqu'à la date limite ; il apparaît à l'état « Disponible ».
+    text: Le transfert attend que le partenaire se connecte au serveur pour l'échanger, jusqu'à la date limite ; il apparaît à l'état « Attendu ».
   form:
     refused: Le transfert n'a pas été créé
     refused_text: Corrigez les champs signalés.
@@ -2299,9 +2314,13 @@ transfers:
     start: Départ
     start_hint: "Heure de la passerelle ; vide : maintenant."
     due_hint: Heure de la passerelle. Passé ce moment, le partenaire ne peut plus échanger le fichier.
-    info: "Une information par ligne, « clé: valeur »"
-    info_placeholder: "lot: 2026-10-20-B"
-    info_hint: Les traitements de la règle peuvent les lire.
+    info_name: Nom
+    info_value: Valeur
+    info_name_n: "Nom de l'information {n}"
+    info_value_n: "Valeur de l'information {n}"
+    info_remove_n: "Retirer l'information {n}"
+    info_add: Ajouter une information
+    info_hint: Facultatives. Les traitements de la règle peuvent les lire.
     retries: Tentatives en cas d'erreur
     retries_hint: "Vides : celles du client."
     delay: Premier délai (s)
@@ -2310,7 +2329,8 @@ transfers:
       choose: Choisissez une valeur dans la liste.
       date: "Indiquez une date et une heure. Format attendu : 21/10/2026 18:00"
       due_past: Indiquez une date limite à venir.
-      info: "Écrivez une information par ligne, sous la forme « clé: valeur ». Ligne à corriger : « {line} »"
+      info_name: "Indiquez le nom de l'information {n}."
+      info_twice: "L'information « {name} » est indiquée deux fois."
       tries: "Indiquez un nombre de 0 à {max}."
       delay: Indiquez un nombre de secondes, 0 ou plus.
       factor: "Indiquez un nombre, 0 ou plus (1,5 par exemple)."

@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 // infoKeyPrefix prefixes the catalogue keys of the names of the reserved
@@ -73,6 +74,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 	data := detailOf(translate, h.shell.Catalog().Has, trans, canWrite(r), carried)
+	data.Files = append(data.Files, h.expectedRows(translate, trans)...)
 
 	screen := h.screen(data.File, crumbs(translate, data.Number, carried), 0)
 	screen.Notices = notices(translate, r.URL.Query())
@@ -115,6 +117,43 @@ func detailOf(translate gui.Translator, has func(string) bool, trans *model.Norm
 	}
 
 	return data
+}
+
+// expectedRows are the paths a transfer not started yet will have, as the
+// pipeline computes them at its start (pipeline.ExpectedPaths); none once it
+// has started, or when they cannot be computed (logged).
+func (h *Handlers) expectedRows(translate gui.Translator, view *model.NormalizedTransferView) []kv {
+	if !view.IsTransfer || view.LocalPath != "" {
+		return nil
+	}
+
+	var trans model.Transfer
+	if err := h.db.Get(&trans, "id=?", view.ID).Run(); err != nil {
+		h.logger.Warningf("failed to read the transfer %d for its expected paths: %v", view.ID, err)
+
+		return nil
+	}
+
+	transCtx, err := model.GetTransferContext(h.db, h.logger, &trans)
+	if err != nil {
+		h.logger.Warningf("failed to read the context of the transfer %d: %v", view.ID, err)
+
+		return nil
+	}
+
+	local, remote, err := pipeline.ExpectedPaths(transCtx)
+	if err != nil {
+		h.logger.Warningf("failed to compute the expected paths of the transfer %d: %v", view.ID, err)
+
+		return nil
+	}
+
+	rows := []kv{{Label: translate("transfers.detail.expected_local"), Value: local, Mono: true}}
+	if remote != "" {
+		rows = append(rows, kv{Label: translate("transfers.detail.expected_remote"), Value: remote, Mono: true})
+	}
+
+	return rows
 }
 
 // transferRows are the transfer: the rule and its direction, the partner or

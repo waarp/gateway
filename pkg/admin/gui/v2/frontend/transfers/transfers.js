@@ -1,10 +1,58 @@
-// Transfer monitoring screen: refreshes the row of the states, the count and the table every few seconds without
+// Transfer monitoring screen. On the pages that add a transfer: the rows of the transfer information. On the list:
+// refreshes the row of the states, the count and the table every few seconds without
 // reloading the page, keeping the search, the filters, the state, the sort and the page (they live in the address);
 // loads the state, sort and page links the same way; keeps a persistent message when a refresh fails, and tries again
 // at the next period. The refresh waits while the user types in the toolbar or has a menu open. The page works without
 // this file: every link then reloads it. Every text comes from the page (data attributes and the error template).
 (() => {
   "use strict";
+
+  // The transfer information of the pages that add a transfer: "Add an information" adds a row in place (without
+  // JavaScript, the form comes back with one more row), the button of a row removes it, and the rows are numbered
+  // again so that every field keeps its own label.
+  const infos = document.querySelector("[data-infos]");
+  const rowTemplate = document.getElementById("tf-info-row");
+  const addInfo = document.querySelector("[data-info-add]");
+  if (infos && rowTemplate && addInfo) {
+    const label = (pattern, n) => pattern.replace("{n}", n);
+    const number = () => {
+      infos.querySelectorAll(".tf-info-row").forEach((row, i) => {
+        const n = String(i + 1);
+        const [name, value] = row.querySelectorAll("input");
+        const [nameLabel, valueLabel] = row.querySelectorAll("label");
+        const remove = row.querySelector("[data-info-remove]");
+        name.id = "info-name-" + n; value.id = "info-value-" + n;
+        nameLabel.htmlFor = name.id; valueLabel.htmlFor = value.id;
+        nameLabel.textContent = label(infos.dataset.labelName, n);
+        valueLabel.textContent = label(infos.dataset.labelValue, n);
+        remove.hidden = false;
+        remove.setAttribute("aria-label", label(infos.dataset.labelRemove, n));
+        remove.title = label(infos.dataset.labelRemove, n);
+      });
+    };
+    addInfo.addEventListener("click", (event) => {
+      event.preventDefault();
+      infos.append(rowTemplate.content.firstElementChild.cloneNode(true));
+      number();
+      infos.lastElementChild.querySelector("input").focus();
+    });
+    infos.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-info-remove]");
+      if (!button) return;
+      const row = button.closest(".tf-info-row");
+      const rows = [...infos.querySelectorAll(".tf-info-row")];
+      if (rows.length === 1) {
+        row.querySelectorAll("input").forEach((input) => { input.value = ""; });
+        row.querySelector("input").focus();
+        return;
+      }
+      const next = rows[rows.indexOf(row) + 1] || rows[rows.indexOf(row) - 1];
+      row.remove();
+      number();
+      next.querySelector("input").focus();
+    });
+    number();
+  }
 
   const live = document.getElementById("transfers-live");
   const errorTemplate = document.getElementById("transfers-error");

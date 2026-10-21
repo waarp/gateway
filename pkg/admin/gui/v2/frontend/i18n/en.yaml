@@ -2084,6 +2084,7 @@ transfers:
   count: "{total} transfers"
   caption: "Transfers, page {page} of {pages}, sorted by {sort}"
   sort:
+    id: number
     start: start
     file: file
     state: state
@@ -2097,7 +2098,7 @@ transfers:
     planned: Planned
     paused: Paused
     interrupted: Interrupted
-    available: Available
+    available: Expected
     done: Done
     cancelled: Cancelled
   states:
@@ -2108,9 +2109,20 @@ transfers:
     planned: Planned
     paused: Paused
     interrupted: Interrupted
-    available: Available
+    available: Expected
     done: Done
     cancelled: Cancelled
+  # What each state means, as a tooltip of the row of the states.
+  hint:
+    all: Every transfer, to come, running and past
+    running: The transfer is running
+    error: The transfer failed; it may be tried again, resumed or retried
+    planned: The gateway will start the transfer itself at the planned time
+    paused: The transfer was paused by a user
+    interrupted: The transfer was interrupted unexpectedly, by a shutdown of the gateway for example
+    available: "Preregistered transfer: the gateway waits for the partner to connect and exchange it, until the due date"
+    done: The transfer ended without error, tasks included
+    cancelled: The transfer was cancelled by a user
   filter:
     rule: Rule
     rule_all: Every rule
@@ -2129,6 +2141,7 @@ transfers:
     client: client
     server: server
   col:
+    id: No.
     file: File
     state: State
     rule: Rule
@@ -2137,7 +2150,7 @@ transfers:
     start: Start
     stop: End
     actions: Actions
-  number: "No. {id}"
+  error_tip: "{cause}: {message}"
   due_at: "until {date}"
   next_attempt: next attempt
   no_stop: Not over yet
@@ -2231,6 +2244,8 @@ transfers:
     dest: Name at the destination
     local_path: Path on the gateway
     remote_path: Path at the partner
+    expected_local: Expected path on the gateway
+    expected_remote: Expected path at the partner
     size: Size
     size_unknown: Unknown
     size_bytes: "{bytes} bytes ({size})"
@@ -2276,7 +2291,7 @@ transfers:
     title: New transfer
   preregister:
     title: Preregister a transfer
-    text: The transfer waits for the partner to connect to the server to exchange it, until the due date; it shows as “Available”.
+    text: The transfer waits for the partner to connect to the server to exchange it, until the due date; it shows as “Expected”.
   form:
     refused: The transfer was not created
     refused_text: Correct the fields shown.
@@ -2300,9 +2315,13 @@ transfers:
     start: Start
     start_hint: "Time of the gateway; empty: now."
     due_hint: Time of the gateway. After it, the partner can no longer exchange the file.
-    info: "One information per line, “key: value”"
-    info_placeholder: "batch: 2026-10-20-B"
-    info_hint: The tasks of the rule can read them.
+    info_name: Name
+    info_value: Value
+    info_name_n: "Name of the information {n}"
+    info_value_n: "Value of the information {n}"
+    info_remove_n: "Remove the information {n}"
+    info_add: Add an information
+    info_hint: Optional. The tasks of the rule can read them.
     retries: Retries on error
     retries_hint: "Empty: those of the client."
     delay: First delay (s)
@@ -2311,7 +2330,8 @@ transfers:
       choose: Choose a value from the list.
       date: "Enter a date and a time. Expected format: 2026-10-21 18:00"
       due_past: Enter a due date to come.
-      info: "Write one information per line, as “key: value”. Line to correct: “{line}”"
+      info_name: "Enter the name of the information {n}."
+      info_twice: "The information “{name}” is given twice."
       tries: "Enter a number from 0 to {max}."
       delay: Enter a number of seconds, 0 or more.
       factor: "Enter a number, 0 or more (1.5 for example)."

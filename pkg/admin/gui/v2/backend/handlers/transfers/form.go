@@ -25,10 +25,15 @@ const (
 	fieldAccount = "account"
 	fieldClient  = "client"
 	fieldStart   = "start"
-	fieldInfo    = "transfer_info" // not "info": the id of an icon of the kit
-	fieldTries   = "tries"
-	fieldDelay   = "delay"
-	fieldFactor  = "factor"
+	// The transfer information: one name and one value per row, as the page
+	// this screen replaces; "add_info" asks for one more row without
+	// JavaScript.
+	fieldInfoName  = "info_name"
+	fieldInfoValue = "info_value"
+	fieldInfoAdd   = "add_info"
+	fieldTries     = "tries"
+	fieldDelay     = "delay"
+	fieldFactor    = "factor"
 
 	maxTries = 127 // the attempts are an int8
 )
@@ -58,19 +63,27 @@ type formData struct {
 	HasErrors bool
 	Refused   string // a refusal of the model no field carries
 
-	File     field
-	Output   field
-	Rule     field
-	Rules    []optGroup
-	Account  field
-	Accounts []optGroup
-	Client   field
-	Clients  []option
-	Start    field // the start of a client transfer, the due date of a server one
-	Info     field
-	Tries    field
-	Delay    field
-	Factor   field
+	File      field
+	Output    field
+	Rule      field
+	Rules     []optGroup
+	Account   field
+	Accounts  []optGroup
+	Client    field
+	Clients   []option
+	Start     field      // the start of a client transfer, the due date of a server one
+	Infos     []infoPair // the rows of the transfer information, an empty one last
+	InfoError string
+	Tries     field
+	Delay     field
+	Factor    field
+}
+
+// infoPair is a row of the transfer information.
+type infoPair struct {
+	Name    string
+	Value   string
+	Invalid bool
 }
 
 // pageOf is the page that adds (or preregisters) a transfer, without its
@@ -202,7 +215,20 @@ func (f *formData) read(values url.Values) {
 
 	f.File.Value, f.Output.Value = get(fieldFile), get(fieldOutput)
 	f.Rule.Value, f.Account.Value, f.Client.Value = get(fieldRule), get(fieldAccount), get(fieldClient)
-	f.Start.Value, f.Info.Value = get(fieldStart), values.Get(fieldInfo)
+	f.Start.Value = get(fieldStart)
+
+	// The rows of the transfer information, in order; an empty row is dropped.
+	names, vals := values[fieldInfoName], values[fieldInfoValue]
+	for i, name := range names {
+		pair := infoPair{Name: strings.TrimSpace(name)}
+		if i < len(vals) {
+			pair.Value = strings.TrimSpace(vals[i])
+		}
+
+		if pair.Name != "" || pair.Value != "" {
+			f.Infos = append(f.Infos, pair)
+		}
+	}
 	f.Tries.Value, f.Delay.Value, f.Factor.Value = get(fieldTries), get(fieldDelay), get(fieldFactor)
 }
 
@@ -255,12 +281,7 @@ func (h *Handlers) validate(translate gui.Translator, form *formData) (parsed, b
 		fail(&form.Start, "transfers.form.error.date")
 	}
 
-	info, bad := parseInfo(form.Info.Value)
-	if bad != "" {
-		fail(&form.Info, "transfers.form.error.info", "line", bad)
-	}
-
-	out.info = info
+	out.info = form.infos(translate)
 	out.tries, out.delay, out.factor = form.retries(fail)
 
 	return out, !form.HasErrors
@@ -298,33 +319,39 @@ func (f *formData) retries(fail func(fld *field, key string, args ...any)) (trie
 	return tries, delay, factor
 }
 
-// parseInfo reads the transfer information, one "key: value" per line; it
-// returns the first line it cannot read.
-func parseInfo(text string) (map[string]any, string) {
+// infos reads the transfer information of the form: a value needs a name,
+// and a name comes once.
+func (f *formData) infos(translate gui.Translator) map[string]any {
 	info := map[string]any{}
 
-	for line := range strings.Lines(text) {
-		line = strings.TrimSpace(line)
-		if line == "" {
+	for i := range f.Infos {
+		pair := &f.Infos[i]
+
+		switch _, twice := info[pair.Name]; {
+		case pair.Name == "":
+			pair.Invalid, f.InfoError = true, translate("transfers.form.error.info_name", "n", i+1)
+		case twice:
+			pair.Invalid, f.InfoError = true, translate("transfers.form.error.info_twice", "name", pair.Name)
+		default:
+			info[pair.Name] = pair.Value
+
 			continue
 		}
 
-		key, value, ok := strings.Cut(line, ":")
-		if key = strings.TrimSpace(key); !ok || key == "" {
-			return nil, line
-		}
-
-		info[key] = strings.TrimSpace(value)
+		f.HasErrors = true
 	}
 
-	return info, ""
+	return info
 }
 
 // render shows the page, with its choices.
 func (h *Handlers) render(w http.ResponseWriter, r *http.Request, form *formData, status int) {
 	translate := h.shell.Translator(r)
-	h.shell.Render(w, h.logger, r, h.screen(form.Title, crumbs(translate, form.Title, ret(r)), status),
-		formView(form))
+	form.Infos = append(form.Infos, infoPair{}) // the row to fill next
+
+	screen := h.screen(form.Title, crumbs(translate, form.Title, ret(r)), status)
+	screen.Scripts = []string{script} // the rows of the transfer information
+	h.shell.Render(w, h.logger, r, screen, formView(form))
 }
 
 // NewForm serves GET /webui/transfers/new.
@@ -368,6 +395,21 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, server bool) {
 
 	form := pageOf(translate, r, server)
 	form.read(r.PostForm)
+
+	// One more row of transfer information, without JavaScript: the form
+	// comes back as typed, nothing is checked nor saved.
+	if r.PostForm.Has(fieldInfoAdd) {
+		if err := h.choices(translate, form); err != nil {
+			h.logger.Errorf("failed to read the choices of the transfer form: %v", err)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+
+			return
+		}
+
+		h.render(w, r, form, http.StatusOK)
+
+		return
+	}
 
 	values, ok := h.validate(translate, form)
 
