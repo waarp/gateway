@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`743` Les emails envoyés par la tâche EMAIL sont désormais bien du type MIME
+  spécifié dans le template. Précédemment, les emails avaient systématiquement le
+  type ``text/plain``, quelque soit le type du template.
 * :bug:`725` Les chemins du handler REST et de la commande CLI pour tester
   l'envoi de *trap* SNMP ont été corrigés. Ces chemins correspondent désormais
   bien au chemin spécifié dans la documentation. En conséquence, la commande
