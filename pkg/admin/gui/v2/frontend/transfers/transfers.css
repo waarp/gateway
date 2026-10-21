@@ -21,17 +21,13 @@
 .tf-pager-top:empty { display: none; }
 .tf-pager { margin-top: var(--sp-3); }
 
-/* The list (2026-10-22): one line per transfer, on the whole width of the screen, the cap of the kit lifted for this
-   screen alone; what does not fit ends with "…" and reads in the tooltip. Under 1 500 px of width, the direction and
-   the account fold (an arrow before the rule, the account in the tooltip of the partner); under 1 000 px, the table
-   scrolls in its frame. Measured on the mockup: 14 lines seen at 1920 × 960, 13 at 1440 × 900. The width is that of
+/* The list (2026-10-22): one line per transfer (w-table--one-line of the kit, since 0.10.0), on the whole width of
+   the screen, the cap of the kit lifted for this screen alone; what does not fit ends with "…" and reads in the
+   tooltip. Under 1 500 px of width, the direction and the account fold (an arrow before the rule, the account in the
+   tooltip of the partner); under 1 000 px, the table scrolls in its frame. Measured on the mockup: 14 lines seen at 1920 × 960, 13 at 1440 × 900. The width is that of
    the list whatever its state (rows, no match, empty, error): the page does not narrow when a filter matches nothing. */
 .w-main__inner:has(#transfers-table) { max-width: none; }
 .tf-list { container-type: inline-size; }
-.tf-table { table-layout: fixed; width: 100%; }
-.tf-table tbody td, .tf-table thead th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: var(--sp-2) var(--sp-3); vertical-align: middle; }
-.tf-table tbody td:last-child { overflow: visible; padding-top: 0; padding-bottom: 0; }
-.tf-table .w-icon-btn--round { width: 28px; height: 28px; }
 .tf-table .w-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tf-col-id { width: 4.5%; }
 .tf-col-file { width: 17%; }

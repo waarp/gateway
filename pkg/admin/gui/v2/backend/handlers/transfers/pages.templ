@@ -32,7 +32,7 @@ templ listView(d listData) {
 					@gui.Icon("plus")
 					{ gui.T(ctx, "transfers.add") }
 				</a>
-				@pageMenu("act-page", gui.T(ctx, "transfers.title"), []gui.Action{{Icon: "upload", Label: gui.T(ctx, "transfers.preregister.title"), URL: d.PreregisterURL}})
+				@gui.Actions(gui.ActionsProps{ID: "act-page", Name: gui.T(ctx, "transfers.title"), Items: []gui.Action{{Icon: "upload", Label: gui.T(ctx, "transfers.preregister.title"), URL: d.PreregisterURL}}, Menu: true})
 			}
 		</div>
 	</div>
@@ -173,7 +173,7 @@ templ tableRegion(d listData) {
 			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
 		} else {
 			<div class="w-table-wrap tf-list">
-				<table class="w-table tf-table">
+				<table class="w-table w-table--one-line tf-table">
 					<caption class="visually-hidden">{ d.Caption }</caption>
 					<colgroup><col class="tf-col-id"/><col class="tf-col-file"/><col class="tf-col-state"/><col class="tf-col-dir tf-x"/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-account tf-x"/><col class="tf-col-progress"/><col class="tf-col-date"/><col class="tf-col-end"/><col class="tf-col-actions"/></colgroup>
 					<thead>
@@ -284,46 +284,6 @@ templ progressCell(p progressView) {
 	}
 }
 
-// pageMenu: the "⋯" menu of the secondary actions of a page header, even for
-// one action, as on the other pages (Driss, 2026-10-22), where gui.Actions
-// would show one action as an icon button; the markup of gui.Actions, which
-// kit.js places and drives.
-templ pageMenu(id, name string, items []gui.Action) {
-	<div class="w-table__actions">
-		<button class="w-icon-btn w-icon-btn--round" type="button" popovertarget={ id } aria-label={ gui.T(ctx, "actions.for", "name", name) } title={ gui.T(ctx, "actions.title") }>@gui.Icon("ellipsis")</button>
-		<div class="w-actions" id={ id } popover>
-			for i, it := range items {
-				if it.Danger && i > 0 {
-					<hr/>
-				}
-				if it.URL != "" {
-					<a
-						if it.Danger {
-							class="is-danger"
-						}
-						href={ templ.SafeURL(it.URL) }
-					>
-						@gui.Icon(it.Icon)
-						{ it.Label }
-					</a>
-				} else {
-					<form method="post" action={ templ.SafeURL(it.Action) }>
-						<button
-							if it.Danger {
-								class="is-danger"
-							}
-							type="submit"
-						>
-							@gui.Icon(it.Icon)
-							{ it.Label }
-						</button>
-					</form>
-				}
-			}
-		</div>
-	</div>
-}
-
 // detailView: the sheet of a transfer, in reading: the file as title, its
 // state and number under it; the error first when there is one; then the
 // transfer, the file, the run, the retries and the transfer information.
@@ -347,7 +307,7 @@ templ detailView(d detailData) {
 				</form>
 			}
 			if len(d.Actions) > 0 {
-				@pageMenu("act-detail", d.File, d.Actions)
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.File, Items: d.Actions, Menu: true})
 			}
 		</div>
 	</div>
