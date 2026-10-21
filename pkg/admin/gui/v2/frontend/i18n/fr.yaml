@@ -1618,3 +1618,160 @@ overrides:
   error:
     title: Les surcharges n'ont pas pu être chargées.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Clés cryptographiques » (#735) : les clés des tâches de chiffrement et de signature.
+keys:
+  title: Clés cryptographiques
+  add: Ajouter une clé
+  search: Rechercher une clé par son nom
+  search_placeholder: Rechercher par nom
+  filters_type: Types
+  count: "{total} clés"
+  count_one: 1 clé
+  count_shown: "{total} clés · {shown} affichées"
+  count_shown_one: "{total} clés · 1 affichée"
+  caption: "Clés cryptographiques, page {page} sur {pages}, triées par {sort}"
+  pager: "Clés {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_key: Retour à la clé
+  secret_set: Définie, jamais affichée
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    type: type
+  col:
+    name: Clé
+    type: Type
+    detail: Détail
+    state: État
+    uses: Utilisée par
+    actions: Actions
+  # Les quatre types, sous les clés du produit.
+  type:
+    AES: AES
+    HMAC: HMAC
+    PGP-PUBLIC: PGP publique
+    PGP-PRIVATE: PGP privée
+  # Ce que fait la clé, en une phrase, sur sa fiche.
+  role:
+    AES: "Chiffre et déchiffre les fichiers ; la même clé sert aux deux partenaires."
+    HMAC: "Signe les fichiers et vérifie leur signature ; le même secret sert aux deux partenaires."
+    PGP-PUBLIC: "Chiffre les fichiers destinés à son détenteur et vérifie les signatures qu'il produit."
+    PGP-PRIVATE: "Déchiffre les fichiers reçus et signe les fichiers envoyés ; elle chiffre et vérifie aussi, comme sa clé publique."
+  state:
+    ok: Utilisable
+    warn: "Expire le {date}"
+    expired: "Expirée le {date}"
+    revoked: Révoquée
+    unusable: "Inutilisable : {cause}"
+  # Pourquoi les tâches ne peuvent pas se servir d'une clé enregistrée.
+  cause:
+    aes: "la valeur n'est pas une clé AES en base64"
+    pgp: "la valeur n'est pas une clé PGP lisible"
+    not_private: "la valeur n'est pas une clé privée"
+    not_public: "la valeur n'est pas une clé publique"
+    locked: "clé privée protégée par une phrase secrète"
+    empty: "aucune valeur"
+    type: "type inconnu"
+  uses:
+    none: Aucune règle
+    one: 1 règle
+    many: "{n} règles"
+    rule: Règle
+    direction: Sens
+  direction:
+    send: Envoi
+    receive: Réception
+  action:
+    detail: Voir la fiche
+    edit: Modifier la clé
+    delete: Supprimer la clé
+  detail:
+    title: "Clé « {name} »"
+    card: Clé
+    type: Type
+    role: Rôle
+    value: Valeur
+    state: État
+    size: Taille
+    bits: "{n} bits"
+    secret: Secret défini
+    unreadable: Illisible
+    identities: Identités
+    identities_none: Aucune
+    fingerprint: Empreinte
+    key_id: Identifiant
+    algorithm: Algorithme
+    created: Créée le
+    expires: Échéance
+    never: Aucune
+    show_public: Afficher la clé publique
+    uses: Utilisée par
+    uses_caption: Règles dont les tâches emploient la clé
+    uses_none: Aucune règle ne l'emploie.
+  new:
+    title: Nouvelle clé cryptographique
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    name: Nom
+    name_hint: "Unique ; les tâches désignent la clé par ce nom."
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Le type dit à quelles tâches la clé sert."
+    type_hint_edit: "Changer de type demande la valeur du nouveau type."
+    to_give: À renseigner
+    locked: "Employée par {rules} : le nom et le type se conservent, les tâches les désignent."
+    value:
+      aes: Clé AES
+      hmac: Secret HMAC
+      pgp_public: Clé publique PGP
+      pgp_private: Clé privée PGP
+    paste:
+      pgp_public: ou coller la clé publique
+      pgp_private: ou coller la clé privée
+    example:
+      pgp_public: "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+      pgp_private: "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+    hint:
+      aes: "La clé en base64 : 24 caractères pour AES-128, 32 pour AES-192."
+      hmac: Le secret partagé avec le partenaire.
+      pgp_public: "La clé exportée en armure ASCII (fichier .asc)."
+      pgp_private: "La clé exportée en armure ASCII (fichier .asc), sans phrase secrète."
+    keep:
+      aes: Laissez vide pour conserver la clé en place.
+      hmac: Laissez vide pour conserver le secret en place.
+      pgp_public: "Déposer ou coller une nouvelle clé la remplace ; sinon la clé en place est conservée."
+      pgp_private: "Déposer ou coller une nouvelle clé la remplace ; sinon la clé en place est conservée."
+    refused: La clé n'a pas été enregistrée.
+    refused_text: "Corrigez les champs signalés ci-dessous ; les secrets sont à saisir de nouveau."
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Une autre clé porte déjà ce nom. Choisissez-en un autre.
+      type: Choisissez un type.
+      aes: "Indiquez la clé en base64 : 24 caractères pour AES-128, 32 pour AES-192."
+      pgp: "Ce contenu n'est pas une clé PGP lisible en armure ASCII."
+      not_private: Cette clé est une clé publique ; choisissez le type « PGP publique » ou donnez la clé privée.
+      not_public: Cette clé est une clé privée ; choisissez le type « PGP privée » ou donnez la clé publique.
+      locked: "Cette clé privée est protégée par une phrase secrète : la passerelle ne peut pas s'en servir. Exportez-la sans phrase secrète."
+  delete:
+    title: "Supprimer la clé « {name} » ?"
+    text: Aucune règle ne l'emploie. Elle sera supprimée définitivement.
+    used_title: Cette clé ne peut pas être supprimée.
+    used: "Elle est employée par {rules} : changez d'abord la clé de leurs tâches, sinon elles échoueraient au prochain transfert."
+  toast:
+    created: "Clé « {name} » créée"
+    updated: "Clé « {name} » enregistrée"
+    deleted: "Clé « {name} » supprimée"
+  empty:
+    title: Aucune clé cryptographique pour l'instant
+    text: "Les tâches de chiffrement, de déchiffrement, de signature et de vérification des règles emploient ces clés."
+  none:
+    title: "Aucune clé ne commence par « {query} »"
+    filters: Aucune clé ne correspond aux filtres.
+  not_found:
+    title: Clé introuvable
+    text: Cette clé n'existe pas ou a été supprimée.
+  error:
+    title: La liste des clés cryptographiques n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

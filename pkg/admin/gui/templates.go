@@ -299,11 +299,6 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, sidebar, "front-end/html/cloud_instance_management_page.html"),
 	)
-	cryptographicKeyManagementTemplate = template.Must(
-		template.New("cryptographic_key_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, sidebar, "front-end/html/cryptographic_key_management_page.html"),
-	)
 	EmailTemplateManagementTemplate = template.Must(
 		template.New("email_templates_management_page.html").
 			Funcs(funcs).

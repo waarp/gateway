@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -26,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/mxschmitt/playwright-go"
 	"github.com/rclone/rclone/fs/object"
 	"github.com/rclone/rclone/vfs"
@@ -190,7 +192,46 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/overrides/new"},
 		{path: "/webui/overrides/edit?target=127.0.0.1"},
 		{path: "/webui/overrides/delete?target=127.0.0.1"},
+		// The cryptographic keys (#735): the list, the sheet of the AES key
+		// (the rule whose tasks use it: a table), the sheet of the PGP public
+		// key, the pages that add and edit one, the deletion refused for the
+		// AES key (the rules to change first) and confirmed for the PGP one.
+		{path: "/webui/keys", tables: 1},
+		{path: "/webui/keys/1", tables: 1},
+		{path: "/webui/keys/2"},
+		{path: "/webui/keys/new"},
+		{path: "/webui/keys/1/edit"},
+		{path: "/webui/keys/1/delete", tables: 1},
+		{path: "/webui/keys/2/delete"},
 	}
+}
+
+// insertE2EKeys inserts an AES-128 key, which the tasks of a sending rule
+// use to encrypt, and the PGP public key of a partner, used by no rule. The
+// screens are visited by identifier.
+func insertE2EKeys(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	key, err := pgp.PGP().KeyGeneration().AddUserId("Partenaire", "partenaire@example.org").New().GenerateKey()
+	require.NoError(t, err)
+
+	public, err := key.GetArmoredPublicKey()
+	require.NoError(t, err)
+
+	for i, k := range []*model.CryptoKey{
+		{Name: "aes-paie", Type: model.CryptoKeyTypeAES, Key: base64.StdEncoding.EncodeToString(make([]byte, 16))},
+		{Name: "pgp-partenaire", Type: model.CryptoKeyTypePGPPublic, Key: public},
+	} {
+		require.NoError(t, db.Insert(k).Run())
+		require.EqualValues(t, i+1, k.ID, "the screens are visited by identifier")
+	}
+
+	rule := &model.Rule{Name: "push-paie", IsSend: true, Path: "push-paie"}
+	require.NoError(t, db.Insert(rule).Run())
+	require.NoError(t, db.Insert(&model.Task{
+		RuleID: rule.ID, Chain: model.ChainPre, Type: "ENCRYPT",
+		Args: map[string]string{"keyName": "aes-paie", "method": "AES-CFB"},
+	}).Run())
 }
 
 // insertE2ESNMP inserts an SNMPv2c monitor, an SNMPv3 monitor with
@@ -577,6 +618,7 @@ func startE2EServer(t *testing.T) string {
 
 	insertE2EAuthorities(t, db)
 	insertE2ESNMP(t, db)
+	insertE2EKeys(t, db)
 
 	// The gateway runs as a node of a cluster, with its own override file
 	// and one address indirection (#730).
@@ -920,5 +962,14 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		landed, err := url.Parse(page.URL())
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/overrides", landed.Path)
+	})
+
+	// And the historic page of the cryptographic keys (#735).
+	t.Run("/webui/cryptographic_key_management", func(t *testing.T) {
+		session.visit(t, "/webui/cryptographic_key_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/keys", landed.Path)
 	})
 }

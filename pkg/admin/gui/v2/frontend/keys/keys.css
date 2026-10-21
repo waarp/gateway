@@ -1,0 +1,23 @@
+/* Cryptographic keys screen: what the kit does not decide (column widths of the list, spacing of the list foot, of
+   the banners and of the action pages, the lists of the sheet, the public key shown in full). Tokens only. */
+.keys-col-name { width: 22%; }
+.keys-col-type { width: 10%; }
+.keys-col-uses { width: 12%; }
+.keys-col-actions { width: 72px; }
+.keys-detail { overflow-wrap: anywhere; }
+.keys-pager { margin-top: var(--sp-3); }
+.keys-banner { margin-bottom: var(--sp-4); }
+.keys-lead { margin: 0 0 var(--sp-4); }
+.keys-note { margin: var(--sp-3) 0 0; }
+.keys-subtitle { margin-top: var(--sp-5); }
+.keys-form-actions { margin-top: var(--sp-5); }
+.keys-card-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-3); }
+.keys-uses { margin-top: var(--sp-2); }
+.keys-list { margin: 0; padding-left: var(--sp-5); }
+.keys-list li + li { margin-top: var(--sp-1); }
+.keys-public { margin-top: var(--sp-4); }
+.keys-public > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--wo-aa); font-weight: 700; }
+.keys-public > summary::-webkit-details-marker { display: none; }
+.keys-public > summary > svg.i { transition: transform .2s var(--ease); }
+.keys-public[open] > summary > svg.i { transform: rotate(90deg); }
+.keys-armour { margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); max-height: 20rem; overflow: auto; background: var(--g50); border: 1px solid var(--g200); border-radius: var(--rs); font: 400 var(--fs-sm) / 1.4 var(--fm); white-space: pre-wrap; overflow-wrap: anywhere; }
