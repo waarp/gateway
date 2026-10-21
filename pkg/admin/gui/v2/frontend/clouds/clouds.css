@@ -1,0 +1,21 @@
+/* Cloud instances screen: what the kit does not decide (column widths of the list, spacing of the list foot, of
+   the banners and of the action pages, the usage lists). Tokens only. */
+.clouds-col-name { width: 26%; }
+.clouds-col-type { width: 22%; }
+.clouds-col-actions { width: 72px; }
+.clouds-pager { margin-top: var(--sp-3); }
+.clouds-banner { margin-bottom: var(--sp-4); }
+.clouds-banner p { overflow-wrap: anywhere; }   /* the cause given by a storage library may hold a long address */
+.clouds-lead { margin: 0 0 var(--sp-4); }
+.clouds-note { margin: 0; }
+.clouds-deflist { margin-top: var(--sp-4); }
+.clouds-form-actions { margin-top: var(--sp-5); }
+.clouds-subtitle { margin-top: var(--sp-5); }
+.clouds-usage { margin: 0; padding-left: var(--sp-5); }
+.clouds-usage li { margin-top: var(--sp-1); }
+.clouds-type-hint { margin: 0 0 var(--sp-4); }
+/* The options the storage library accepts, under the "other options" zone: a bounded region that scrolls (it is
+   reachable from the keyboard), its header kept in view, the proposed values under the help. */
+.clouds-accepted { margin-top: var(--sp-4); max-height: 26rem; overflow-y: auto; }
+.clouds-accepted thead th { position: sticky; top: 0; z-index: 1; }
+.clouds-accepted__values { display: block; margin-top: var(--sp-1); font-size: var(--fs-sm); }

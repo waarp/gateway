@@ -462,7 +462,7 @@ func (f *Form) Prepare(translate gui.Translator) {
 		}
 
 		view.Open = view.Open || set > 0
-		view.Summary = optionsSummary(translate, set)
+		view.Summary = OptionsSummary(translate, set)
 		f.Families = append(f.Families, view)
 	}
 
@@ -509,9 +509,9 @@ func triOf(cfg map[string]any, opt *Option) string {
 	return TriOff
 }
 
-// optionsSummary says how many options of a card are set, or that the
-// product defaults apply.
-func optionsSummary(translate gui.Translator, set int) string {
+// OptionsSummary says how many options of a card are set, or that the
+// product defaults apply: the summary of a folded card of options.
+func OptionsSummary(translate gui.Translator, set int) string {
 	switch set {
 	case 0:
 		return translate("proto.options_default")

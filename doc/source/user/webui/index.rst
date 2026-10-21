@@ -21,6 +21,7 @@ restent décrits par l'interface elle-même.
    clients-locaux
    partenaires-distants
    utilisateurs
+   instances-cloud
    etat-des-services
 
 
@@ -89,8 +90,9 @@ L'écran :doc:`serveurs-locaux`
 requiert les droits sur les serveurs : lecture pour la liste et le détail,
 écriture pour créer, modifier, démarrer et arrêter, suppression pour
 supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
-sur les partenaires, et l'écran :doc:`utilisateurs` les droits sur les
-utilisateurs.
+sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les
+utilisateurs, et l'écran :doc:`instances-cloud` les droits sur
+l'administration.
 
 
 Ancienne et nouvelle interface
