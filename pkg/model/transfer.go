@@ -171,14 +171,14 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 		return fmt.Errorf("failed to retrieve rule: %w", err)
 	}
 
-	var protocol string
+	var protocol, agentType, agent, account string
 
 	switch {
 	case t.LocalAccountID.Valid && t.RemoteAccountID.Valid:
 		return database.NewValidationError("the transfer cannot have both a local and remote account ID")
 	case t.RemoteAccountID.Valid:
-		var account RemoteAccount
-		if err := db.Get(&account, "id=?", t.RemoteAccountID.Int64).Eager().Run(); err != nil {
+		var acc RemoteAccount
+		if err := db.Get(&acc, "id=?", t.RemoteAccountID.Int64).Eager().Run(); err != nil {
 			if database.IsNotFound(err) {
 				return database.NewValidationErrorf("the remote account %d does not exist",
 					t.RemoteAccountID.Int64)
@@ -201,15 +201,19 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 			return fmt.Errorf("failed to retrieve client: %w", err)
 		}
 
-		if account.RemoteAgent.Protocol != client.Protocol {
+		if acc.RemoteAgent.Protocol != client.Protocol {
 			return database.NewValidationErrorf(
 				"the partner's protocol %q does not match the client's protocol %q",
-				account.RemoteAgent.Protocol, client.Protocol,
+				acc.RemoteAgent.Protocol, client.Protocol,
 			)
 		}
 
 		t.setRetryParameters(&client)
+
 		protocol = client.Protocol
+		agent = acc.RemoteAgent.Name
+		agentType = "partner"
+		account = acc.Login
 	case t.LocalAccountID.Valid:
 		acc := LocalAccount{}
 		if err := db.Get(&acc, "id=?", t.LocalAccountID.Int64).Eager().Run(); err != nil {
@@ -222,7 +226,11 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 		}
 
 		t.clearRetryParameters()
+
 		protocol = acc.LocalAgent.Protocol
+		agent = acc.LocalAgent.Name
+		agentType = "server"
+		account = acc.Login
 	default:
 		return database.NewValidationError("the transfer is missing an account ID")
 	}
@@ -235,7 +243,10 @@ func (t *Transfer) BeforeWrite(db database.Access) error {
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
 	} else if !auth {
-		return database.NewValidationErrorf("rule %d is not authorized for this transfer", t.RuleID)
+		return database.NewValidationErrorf(
+			"account %q of %s %q is not allowed to use %s rule %q",
+			account, agentType, agent, rule.Direction(), rule.Name,
+		)
 	}
 
 	return nil

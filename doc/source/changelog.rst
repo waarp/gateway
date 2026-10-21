@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`702` Le message d'erreur lors de l'insertion d'un transfert où le
+  partenaire/serveur n'est pas autorisé à utiliser la règle est désormais plus
+  clair et explicite sur les raisons de l'échec.
 * :bug:`694` Pour palier à d'éventuels problèmes et comportements inattendus dans
   certains cas de figures, l'option ``--older-than`` de la commande
   ``waarp-gatewayd purge`` accepte désormais un fuseau horaire dans la date limite.

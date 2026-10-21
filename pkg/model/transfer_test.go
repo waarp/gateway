@@ -56,12 +56,23 @@ func TestTransferBeforeWrite(t *testing.T) {
 			}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
+			otherAccount := LocalAccount{
+				LocalAgentID: server.ID,
+				Login:        "foobar",
+			}
+			So(db.Insert(&otherAccount).Run(), ShouldBeNil)
+
 			rule := Rule{
 				Name:   "rule1",
 				IsSend: true,
 				Path:   "path",
 			}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
+
+			So(db.Insert(&RuleAccess{
+				RuleID:         rule.ID,
+				LocalAccountID: account.NullableID(),
+			}).Run(), ShouldBeNil)
 
 			Convey("Given a new transfer", func() {
 				trans := Transfer{
@@ -138,6 +149,16 @@ func TestTransferBeforeWrite(t *testing.T) {
 					trans.LocalAccountID = sql.NullInt64{Int64: 1000, Valid: true}
 					shouldFailWith("the local account does not exist", database.NewValidationErrorf(
 						"the local account %d does not exist", trans.LocalAccountID.Int64))
+				})
+
+				Convey("Given that the account is not authorized by the rule", func() {
+					trans.LocalAccountID = otherAccount.NullableID()
+
+					shouldFailWith("the local account is not authorized",
+						database.NewValidationErrorf(
+							"account %q of server %q is not allowed to use %s rule %q",
+							otherAccount.Login, server.Name, rule.Direction(), rule.Name,
+						))
 				})
 
 				statusTestCases := []statusTestCase{
