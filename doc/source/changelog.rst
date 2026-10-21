@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`724` Correction d'un bug de sérialisation d'OID introduit en version
+  0.13.0 qui empêchait l'envoi de *trap* SNMP.
 * :bug:`702` Le message d'erreur lors de l'insertion d'un transfert où le
   partenaire/serveur n'est pas autorisé à utiliser la règle est désormais plus
   clair et explicite sur les raisons de l'échec.

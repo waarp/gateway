@@ -1,5 +1,3 @@
-//go:build manual_test
-
 package snmp
 
 import (
@@ -7,29 +5,34 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/gosnmp/gosnmp"
 	"github.com/stretchr/testify/require"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestSNMPClient(t *testing.T) {
-	Convey("Testing the SNMP client", t, func(c C) {
-		db := database.TestDatabase(c)
+	t.Parallel()
+
+	v2Traps, v2Addr := makeTrapListener(t, gosnmp.Version2c)
+
+	t.Run("Testing the SNMP client", func(t *testing.T) {
+		db := dbtest.TestDatabase(t)
 		service := &Service{DB: db}
 
 		snmpV2Monitor := MonitorConfig{
 			Name:       "snmp-v2-monitor",
 			Version:    Version2,
-			UDPAddress: "localhost:162",
+			UDPAddress: v2Addr.String(),
 			Community:  "public",
 		}
-		So(db.Insert(&snmpV2Monitor).Run(), ShouldBeNil)
+		require.NoError(t, db.Insert(&snmpV2Monitor).Run())
 
+		/* TODO: uncomment when implementing issue #728
 		snmpV3Monitor := MonitorConfig{
 			Name:           "snmp-v3-monitor",
 			Version:        Version3,
@@ -42,53 +45,74 @@ func TestSNMPClient(t *testing.T) {
 			AuthPassphrase: "mypassword",
 			PrivPassphrase: "mypassword",
 		}
-		So(db.Insert(&snmpV3Monitor).Run(), ShouldBeNil)
+		require.NoError(t, db.Insert(&snmpV3Monitor).Run())
+		*/
 
-		So(service.Start(), ShouldBeNil)
-		Reset(func() {
+		require.NoError(t, service.Start())
+		t.Cleanup(func() {
 			ctx, cancel := testhelpers.ContextWithTimeout(5 * time.Second)
 			defer cancel()
-			So(service.Stop(ctx), ShouldBeNil)
+			require.NoError(t, service.Stop(ctx))
 		})
 
-		service.Logger = testhelpers.TestLoggerWithLevel(c, ServiceName, log.LevelTrace)
+		service.Logger = logtest.GetTestLogger(t,
+			logtest.WithName(ServiceName), logtest.WithLevel("TRACE"))
 		service.startTime = time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC)
 
 		t.Run("Reporting a service error", func(t *testing.T) {
 			testError := errors.New("test error message")
 			require.NoError(t, service.sendServiceError("test-service", testError))
+
+			expectedVars := []gosnmp.SnmpPDU{{
+				Name:  SNMPTrapOID,
+				Type:  gosnmp.ObjectIdentifier,
+				Value: ServiceErrorNotifOID,
+			}, {
+				Name:  InstanceNameOID,
+				Type:  gosnmp.OctetString,
+				Value: []byte(db.Config.GatewayName),
+			}}
+			assertReceivedVar(t, v2Traps, expectedVars...)
 		})
 
 		t.Run("Reporting a transfer error", func(t *testing.T) {
-			t.SkipNow()
 			transfer := &model.NormalizedTransferView{
-				HistoryEntry: model.HistoryEntry{
-					ID:               1234,
-					RemoteTransferID: "abcd",
-					IsServer:         false,
-					IsSend:           true,
-					Rule:             "ruleName",
-					Account:          "accountLogin",
-					Agent:            "partnerName",
-					Client:           "clientName",
-					Protocol:         "test_proto",
-					SrcFilename:      "src/file.name",
-					DestFilename:     "dst/file.name",
-					LocalPath:        "/full/local/path/file.name",
-					RemotePath:       "/full/remote/path/file.name",
-					Filesize:         1000,
-					Start:            time.Date(2024, 1, 1, 1, 1, 1, 0, time.UTC),
-					Stop:             time.Date(2024, 1, 1, 2, 2, 2, 0, time.UTC),
-					Status:           types.StatusCancelled,
-					Step:             types.StepData,
-					Progress:         500,
-					ErrCode:          types.TeCanceled,
-					ErrDetails:       "transfer canceled by user",
-				},
-				IsTransfer: false,
+				ID:               1234,
+				RemoteTransferID: "abcd",
+				IsServer:         false,
+				IsSend:           true,
+				Rule:             "ruleName",
+				Account:          "accountLogin",
+				Agent:            "partnerName",
+				Client:           "clientName",
+				Protocol:         "test_proto",
+				SrcFilename:      "src/file.name",
+				DestFilename:     "dst/file.name",
+				LocalPath:        "/full/local/path/file.name",
+				RemotePath:       "/full/remote/path/file.name",
+				Filesize:         1000,
+				Start:            time.Date(2024, 1, 1, 1, 1, 1, 0, time.UTC),
+				Stop:             time.Date(2024, 1, 1, 2, 2, 2, 0, time.UTC),
+				Status:           types.StatusCancelled,
+				Step:             types.StepData,
+				Progress:         500,
+				ErrCode:          types.TeCanceled,
+				ErrDetails:       "transfer canceled by user",
+				IsTransfer:       false,
 			}
 
 			require.NoError(t, service.sendTransferError(transfer))
+
+			expectedVars := []gosnmp.SnmpPDU{{
+				Name:  SNMPTrapOID,
+				Type:  gosnmp.ObjectIdentifier,
+				Value: TransferErrorNotifOID,
+			}, {
+				Name:  InstanceNameOID,
+				Type:  gosnmp.OctetString,
+				Value: []byte(db.Config.GatewayName),
+			}}
+			assertReceivedVar(t, v2Traps, expectedVars...)
 		})
 	})
 }
