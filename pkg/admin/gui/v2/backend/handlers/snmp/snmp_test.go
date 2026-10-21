@@ -258,14 +258,14 @@ func TestPage(t *testing.T) {
 			`<h1 class="w-page-header__title">SNMP</h1>`,
 			`action="/webui/snmp/test"`, ">Tester l&#39;envoi à tous les moniteurs</button>",
 			`href="/webui/snmp/monitors/new"`, "Ajouter un moniteur",
-			">Alertes envoyées par la passerelle</h2>", "la passerelle envoie une alerte à chacun de ces outils",
-			">alerting-v3</a>", "<td>SNMPv3</td>", "127.0.0.1:16163", "<td>Authentification et chiffrement</td>",
-			">supervision-v2</a>", "<td>SNMPv2c</td>", "127.0.0.1:16162", "<td>Communauté</td>",
 			">Interrogation par la supervision</h2>", "Modifier l&#39;agent", "Désactiver l&#39;agent",
 			"l&#39;agent SNMP de la passerelle répond aux outils de supervision qui l&#39;interrogent",
 			"En ligne", "127.0.0.1:16161", "SNMPv2c et SNMPv3", "public, la valeur par défaut",
 			"agent-user", "SHA (historique), phrase secrète définie", "<dd>Aucun</dd>",
-			"Désactiver l&#39;agent arrête cette écoute ; les alertes continuent de partir.")
+			"Désactiver l&#39;agent arrête cette écoute ; les alertes continuent de partir.",
+			">Alertes envoyées par la passerelle</h2>", "la passerelle envoie une alerte à chacun de ces outils",
+			">alerting-v3</a>", "<td>SNMPv3</td>", "127.0.0.1:16163", "<td>Authentification et chiffrement</td>",
+			">supervision-v2</a>", "<td>SNMPv2c</td>", "127.0.0.1:16162", "<td>Communauté</td>")
 		assert.Contains(t, body, "Modifier le moniteur")
 		assert.Contains(t, body, "Supprimer le moniteur")
 	})

@@ -15,10 +15,10 @@ import (
 // translates the texts. One coloured action ("Add a monitor"); the test
 // notification is an outline button (a POST) named after its reach (every
 // monitor). Two blocks, each titled by the way the information goes and
-// introduced by one sentence (21/10/2026: SNMP reads both ways): the
-// alerts the gateway sends (the monitors: two sortable headers, a "⋯" menu
-// per row), then the queries of the monitoring tools (the card of the
-// agent).
+// introduced by one sentence (21/10/2026: SNMP reads both ways): first the
+// queries of the monitoring tools (the card of the agent, which answers
+// them), then the alerts the gateway sends (the monitors: two sortable
+// headers, a "⋯" menu per row).
 templ pageView(d pageData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
@@ -43,7 +43,8 @@ templ pageView(d pageData) {
 	if d.Error {
 		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "snmp.error.title"), Text: gui.T(ctx, "snmp.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
 	} else {
-		<section class="snmp-section" aria-labelledby="snmp-monitors">
+		@agentCard(d.Agent)
+		<section aria-labelledby="snmp-monitors">
 			<h2 class="snmp-heading" id="snmp-monitors">{ gui.T(ctx, "snmp.monitors.title") }</h2>
 			<p class="snmp-intro">{ gui.T(ctx, "snmp.monitors.text") }</p>
 			if d.Empty {
@@ -84,7 +85,6 @@ templ pageView(d pageData) {
 				}
 			}
 		</section>
-		@agentCard(d.Agent)
 	}
 }
 

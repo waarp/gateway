@@ -22,10 +22,10 @@ import (
 // translates the texts. One coloured action ("Add a monitor"); the test
 // notification is an outline button (a POST) named after its reach (every
 // monitor). Two blocks, each titled by the way the information goes and
-// introduced by one sentence (21/10/2026: SNMP reads both ways): the
-// alerts the gateway sends (the monitors: two sortable headers, a "⋯" menu
-// per row), then the queries of the monitoring tools (the card of the
-// agent).
+// introduced by one sentence (21/10/2026: SNMP reads both ways): first the
+// queries of the monitoring tools (the card of the agent, which answers
+// them), then the alerts the gateway sends (the monitors: two sortable
+// headers, a "⋯" menu per row).
 func pageView(d pageData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -156,14 +156,18 @@ func pageView(d pageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section class=\"snmp-section\" aria-labelledby=\"snmp-monitors\"><h2 class=\"snmp-heading\" id=\"snmp-monitors\">")
+			templ_7745c5c3_Err = agentCard(d.Agent).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section aria-labelledby=\"snmp-monitors\"><h2 class=\"snmp-heading\" id=\"snmp-monitors\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(gui.T(ctx, "snmp.monitors.title"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 47, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 48, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -176,7 +180,7 @@ func pageView(d pageData) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(gui.T(ctx, "snmp.monitors.text"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 48, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 49, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -199,7 +203,7 @@ func pageView(d pageData) templ.Component {
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(d.Caption)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 54, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 55, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -220,7 +224,7 @@ func pageView(d pageData) templ.Component {
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(gui.T(ctx, "snmp.col.version"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 59, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 60, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -241,7 +245,7 @@ func pageView(d pageData) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(gui.T(ctx, "snmp.col.security"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 61, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 62, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -254,7 +258,7 @@ func pageView(d pageData) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(gui.T(ctx, "snmp.col.actions"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 62, Col: 86}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 63, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -272,7 +276,7 @@ func pageView(d pageData) templ.Component {
 					var templ_7745c5c3_Var13 templ.SafeURL
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(r.URL))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 68, Col: 80}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 69, Col: 80}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
@@ -285,7 +289,7 @@ func pageView(d pageData) templ.Component {
 					var templ_7745c5c3_Var14 string
 					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(r.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 68, Col: 91}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 69, Col: 91}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 					if templ_7745c5c3_Err != nil {
@@ -298,7 +302,7 @@ func pageView(d pageData) templ.Component {
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(r.Version)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 69, Col: 24}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 70, Col: 24}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -311,7 +315,7 @@ func pageView(d pageData) templ.Component {
 					var templ_7745c5c3_Var16 string
 					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(r.Address)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 70, Col: 39}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 71, Col: 39}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
@@ -324,7 +328,7 @@ func pageView(d pageData) templ.Component {
 					var templ_7745c5c3_Var17 string
 					templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(r.Security)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 71, Col: 25}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `pkg/admin/gui/v2/backend/handlers/snmp/pages.templ`, Line: 72, Col: 25}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 					if templ_7745c5c3_Err != nil {
@@ -365,10 +369,6 @@ func pageView(d pageData) templ.Component {
 				}
 			}
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</section>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = agentCard(d.Agent).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

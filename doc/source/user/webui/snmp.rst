@@ -33,8 +33,8 @@ La page SNMP
 ============
 
 La page montre les deux sens de SNMP, chacun dans un bloc titré par ce qu'il
-fait et introduit par une phrase : *Alertes envoyées par la passerelle* (les
-moniteurs), puis *Interrogation par la supervision* (l'agent).
+fait et introduit par une phrase : *Interrogation par la supervision* (l'agent,
+voir plus bas), puis *Alertes envoyées par la passerelle* (les moniteurs).
 
 .. list-table::
    :header-rows: 1
