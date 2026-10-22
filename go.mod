@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	code.waarp.fr/lib/as2 v0.0.0-20260416131903-c311ae8ece42
 	code.waarp.fr/lib/goftp v0.1.1-0.20240801120050-932aa2b2f9a7
-	code.waarp.fr/lib/gui v0.10.0
+	code.waarp.fr/lib/gui v0.11.0
 	code.waarp.fr/lib/icap v1.0.0
 	code.waarp.fr/lib/log v1.4.0
 	code.waarp.fr/lib/log/v2 v2.4.0
