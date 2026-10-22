@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`737` Les clés PGP chiffrées sont désormais correctement refusées.
 * :bug:`736` Ajout de validations manquantes lors de l'insertion de clés
   cryptographiques AES et HMAC. Précédemment, des clés invalides ne levaient d'erreur
   qu'au moment de leur utilisation (typiquement dans une tâche). Elles sont maintenant

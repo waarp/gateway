@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
@@ -206,5 +207,24 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 		}
 		require.ErrorContains(t, key.BeforeWrite(db),
 			"the given PGP key is not a private key")
+	})
+
+	t.Run("Locked PGP key", func(t *testing.T) {
+		t.Parallel()
+
+		pgpKey, err := pgp.NewKeyFromArmored(testhelpers.TestPGPPrivateKey)
+		require.NoError(t, err)
+		require.NoError(t, pgpKey.GetEntity().EncryptPrivateKeys([]byte("sesame"), nil))
+
+		lockedKey, err := pgpKey.Armor()
+		require.NoError(t, err)
+
+		key := &CryptoKey{
+			Name: "pgp-key",
+			Type: CryptoKeyTypePGPPrivate,
+			Key:  lockedKey,
+		}
+		require.ErrorContains(t, key.BeforeWrite(db),
+			"the given PGP key is encrypted")
 	})
 }

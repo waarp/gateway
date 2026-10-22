@@ -78,6 +78,11 @@ func (k *CryptoKey) checkKeyPGPPrivate() error {
 		return database.NewValidationError("the given PGP key is not a private key")
 	}
 
+	//nolint:errcheck //error does not matter here, and the function should never return one anyway
+	if locked, _ := privKey.IsLocked(); locked {
+		return database.NewValidationError("the given PGP key is encrypted")
+	}
+
 	return nil
 }
 
