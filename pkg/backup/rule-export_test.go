@@ -20,23 +20,26 @@ func TestExportRules(t *testing.T) {
 
 		Convey("Given the database contains 3 rules", func() {
 			rule1 := &model.Rule{
-				Name:   "rule1",
-				IsSend: true,
-				Path:   "rule1/send",
+				Name:    "rule1",
+				Comment: "comment 1",
+				IsSend:  true,
+				Path:    "rule1/send",
 			}
 			So(db.Insert(rule1).Run(), ShouldBeNil)
 
 			rule2 := &model.Rule{
-				Name:   "rule2",
-				IsSend: false,
-				Path:   "/rule2",
+				Name:    "rule2",
+				Comment: "comment 2",
+				IsSend:  false,
+				Path:    "/rule2",
 			}
 			So(db.Insert(rule2).Run(), ShouldBeNil)
 
 			rule1b := &model.Rule{
-				Name:   "rule1",
-				IsSend: false,
-				Path:   "rule1/recv",
+				Name:    "rule1",
+				Comment: "comment 3",
+				IsSend:  false,
+				Path:    "rule1/recv",
 			}
 			So(db.Insert(rule1b).Run(), ShouldBeNil)
 
@@ -48,7 +51,12 @@ func TestExportRules(t *testing.T) {
 				})
 
 				Convey("Then it should return 3 records", func() {
-					So(res, ShouldHaveLength, 3)
+					for i, rule := range []*model.Rule{rule1, rule2, rule1b} {
+						So(res[i].Name, ShouldEqual, rule.Name)
+						So(res[i].Comment, ShouldEqual, rule.Comment)
+						So(res[i].IsSend, ShouldEqual, rule.IsSend)
+						So(res[i].Path, ShouldEqual, rule.Path)
+					}
 				})
 			})
 		})

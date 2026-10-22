@@ -153,6 +153,7 @@ stockées dans un fichier en format JSON ou YAML. Ce fichier a la forme suivante
 * ``rules`` (*array*) - La liste des règles de transfert de la gateway.
 
   * ``name`` (*string*) - Le nom de la règle de transfert.
+  * ``comment`` (*string*) - Un commentaire optionnel sur la règle.
   * ``isSend`` (*bool*) - Le sens de la règle. ``true`` pour l'envoi, ``false``
     pour la réception.
   * ``path`` (*string*) - Le chemin de la règle. Permet d'identifier la règle
