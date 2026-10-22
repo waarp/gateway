@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`740` Tenter d'insérer une clé PGP invalide via REST renvoie désormais un
+  code d'erreur 400 au lieu de 500.
 * :bug:`737` Les clés PGP chiffrées sont désormais correctement refusées.
 * :bug:`736` Ajout de validations manquantes lors de l'insertion de clés
   cryptographiques AES et HMAC. Précédemment, des clés invalides ne levaient d'erreur

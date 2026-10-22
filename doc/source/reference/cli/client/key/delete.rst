@@ -17,4 +17,4 @@ Supprime la clé donnée en paramètre.
 
 .. code-block:: shell
 
-   waarp-gateway user delete "waarp-pgp-key"
+   waarp-gateway key delete "waarp-pgp-key"

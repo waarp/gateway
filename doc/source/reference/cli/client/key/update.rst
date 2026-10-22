@@ -38,4 +38,4 @@ omis restent inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway user add "waarp-pgp-key" -n "waarp-pgp-pkey" -t "PGP-PRIVATE" -k "./waarp_pgp_pkey.pem"
+   waarp-gateway key add "waarp-pgp-key" -n "waarp-pgp-pkey" -t "PGP-PRIVATE" -k "./waarp_pgp_pkey.pem"

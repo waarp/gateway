@@ -37,4 +37,4 @@ Ajoute une nouvelle clé cryptographique avec les attributs donnés.
 
 .. code-block:: shell
 
-   waarp-gateway user add -n "waarp-pgp-key" -t "PGP-PUBLIC" -k "./waarp_pgp_pubkey.pem"
+   waarp-gateway key add -n "waarp-pgp-key" -t "PGP-PUBLIC" -k "./waarp_pgp_pubkey.pem"

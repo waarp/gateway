@@ -2,7 +2,7 @@
 Afficher une clé cryptographique
 ================================
 
-.. program:: waarp-gateway user get
+.. program:: waarp-gateway key get
 
 Affiche les informations de la clé donnée en paramètre.
 
@@ -26,4 +26,4 @@ Affiche les informations de la clé donnée en paramètre.
 
 .. code-block:: shell
 
-   waarp-gateway user get "waarp-pgp-key"
+   waarp-gateway key get "waarp-pgp-key"
