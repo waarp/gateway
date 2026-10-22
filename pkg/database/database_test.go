@@ -284,6 +284,18 @@ func testSelect(db *DB) {
 			shouldContain(query, &res, &testValid{String: bean1.String},
 				&testValid{String: bean2.String}, &testValid{String: bean4.String})
 		})
+
+		Convey("When counting by a column", func() {
+			counts, err := query.CountBy("string")
+			So(err, ShouldBeNil)
+			So(counts, ShouldResemble, map[string]uint64{"str1": 2, "str2": 2, "str3": 1})
+		})
+
+		Convey("When counting by a column with a condition and a limit", func() {
+			counts, err := query.Where("id>?", 2).Limit(1, 0).CountBy("string")
+			So(err, ShouldBeNil)
+			So(counts, ShouldResemble, map[string]uint64{"str1": 1, "str2": 1, "str3": 1})
+		})
 	}
 
 	Convey("When executing a 'SELECT' query", func() {

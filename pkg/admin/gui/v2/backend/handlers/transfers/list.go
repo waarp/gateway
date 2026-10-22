@@ -204,17 +204,18 @@ func familyProtocols(family string) []string {
 }
 
 // countStates counts the transfers the search and the filters match, in
-// each state (the state filter apart): the row of the states.
+// each state (the state filter apart): the row of the states, in one reading
+// grouped by status (a count per state read the transfers eight times: most
+// of the 7.6 s of the list on 1.2 million transfers, 2026-10-22).
 func (h *Handlers) countStates(q *liststate.Query, crit *filters) (map[string]uint64, error) {
+	byStatus, err := h.selectQuery(q, crit, "").CountByStatus()
+	if err != nil {
+		return nil, fmt.Errorf("failed to count the transfers: %w", err)
+	}
+
 	counts := map[string]uint64{}
-
 	for _, spec := range stateSpecs() {
-		n, err := h.selectQuery(q, crit, spec.status).Count()
-		if err != nil {
-			return nil, fmt.Errorf("failed to count the transfers %s: %w", spec.status, err)
-		}
-
-		counts[spec.key] = n
+		counts[spec.key] = byStatus[spec.status]
 	}
 
 	return counts, nil

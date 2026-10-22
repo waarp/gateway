@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -136,6 +137,22 @@ func (q *TransferListQuery) StartedUntil(to time.Time) *TransferListQuery {
 
 func (q *TransferListQuery) Count() (uint64, error) {
 	return q.query.Count()
+}
+
+// CountByStatus counts the transfers of the query for each status, in one
+// reading of the transfers.
+func (q *TransferListQuery) CountByStatus() (map[types.TransferStatus]uint64, error) {
+	counts, err := q.query.CountBy("status")
+	if err != nil {
+		return nil, fmt.Errorf("failed to count the transfers by status: %w", err)
+	}
+
+	byStatus := make(map[types.TransferStatus]uint64, len(counts))
+	for status, n := range counts {
+		byStatus[types.TransferStatus(status)] = n
+	}
+
+	return byStatus, nil
 }
 
 func (q *TransferListQuery) Limit(limit, offset int) *TransferListQuery {
