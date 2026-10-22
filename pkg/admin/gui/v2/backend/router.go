@@ -412,7 +412,8 @@ func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger
 
 // MakeRulesRouter registers the "Transfer rules" screen, behind the rights on
 // the rules as the REST API: the list and the sheet in reading, the creation,
-// the edition, the deletion.
+// the edition, the deletion; the Access tab in reading, the addition and the
+// removal of an access and the opening to all behind the write right.
 func MakeRulesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	handlers := rules.New(db, logger)
 	routes := ruleRoutes{router}
@@ -423,6 +424,10 @@ func MakeRulesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	routes.read(rulePath, handlers.Detail)
 	routes.write(rulePath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(rulePath+"/delete", handlers.DeleteForm, handlers.Delete)
+	routes.read(rulePath+"/access", handlers.AccessTab)
+	routes.write(rulePath+"/access/new", handlers.AccessNewForm, handlers.AccessCreate)
+	routes.write(rulePath+"/access/open", handlers.AccessOpenForm, handlers.AccessOpen)
+	routes.write(rulePath+"/access/{kind}/{target:[0-9]+}/delete", handlers.AccessDeleteForm, handlers.AccessDelete)
 }
 
 // MakeKeysRouter registers the "Cryptographic keys" screen: the list and the

@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`758` L'écran des règles de transfert gagne l'onglet *Accès* (voir
+  :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
+  des droits d'usage : l'état de la règle, ouverte à tous ou réservée, dit en
+  clair ; ses accès en deux blocs, quand un partenaire se connecte (serveurs et
+  comptes locaux) et quand la passerelle se connecte (partenaires et comptes
+  distants) ; un signalement quand la règle n'est réservée que d'un côté, l'autre
+  étant fermé ; les pages d'ajout d'un accès (les cibles qui l'ont déjà sont
+  écartées), de retrait (le dernier rouvre la règle à tous) et de réouverture à
+  tous. L'ancienne page reste accessible à son adresse jusqu'à la version
+  suivante.
+
 * :feature:`757` L'interface web propose un nouvel écran des règles de transfert
   (voir :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace
   l'ancienne page dans la navigation : la liste des règles avec leur sens,

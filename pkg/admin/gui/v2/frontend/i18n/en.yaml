@@ -1810,6 +1810,56 @@ rules:
   access:
     open: Open to all
     restricted: "Restricted: {n}"
+    add: Add an access
+    back: Back to the access
+    state: State
+    open_text: any server, partner or account can use the rule.
+    restricted_title: Restricted
+    restricted_text: only the servers, partners and accounts below can use it; every other one is refused, on both sides.
+    one_sided_title: The rule is restricted on one side only.
+    one_sided_in: "Only servers or local accounts have access: the gateway can no longer use this rule when it connects to a partner."
+    one_sided_out: "Only partners or remote accounts have access: no partner can use this rule any longer when it connects to the gateway."
+    open_action: Open to all again
+    in: When a partner connects
+    in_text: The servers and the local accounts through which a partner can use the rule.
+    in_none: No server and no local account.
+    out: When the gateway connects
+    out_text: The partners and the remote accounts towards which the gateway can use the rule.
+    out_none: No partner and no remote account.
+    col:
+      kind: Type
+      target: Target
+    # The four kinds of access, under the names of the address.
+    kind:
+      server: Server
+      local_account: Local account
+      partner: Partner
+      remote_account: Remote account
+    of_server: "{login} (server {server})"
+    of_partner: "{login} (partner {partner})"
+    unknown: "Object no. {id} of another gateway"
+    remove: Remove the access
+    new_title: "New access to “{name}”"
+    first_title: The rule is open to all.
+    first_note: "From this first access on, it is closed to every other server, partner and account, on both sides."
+    kind_choose: Choose a type
+    kind_hint: A server or a local account when a partner connects; a partner or a remote account when the gateway connects.
+    target_choose: Choose
+    none_left: All of them already have access to the rule.
+    refused: The access was not added.
+    error:
+      kind: Choose a type.
+      target: Choose the target.
+      granted: This target already has access to the rule.
+    remove_title: "Remove the access of “{name}”?"
+    remove_text: It will no longer be able to use the rule.
+    last_title: This is the last access of the rule.
+    last_text: "Once removed, the rule is open to all servers, partners and accounts again."
+    open_title: "Open the rule “{name}” to all again?"
+    open_confirm: "Its access ({n}) is removed: any server, partner or account can use it again."
+    not_found:
+      title: Access not found
+      text: This rule does not give this access.
   action:
     detail: View the sheet
     edit: Edit the rule
@@ -1882,6 +1932,9 @@ rules:
     created: "Rule “{name}” created"
     updated: "Rule “{name}” saved"
     deleted: "Rule “{name}” deleted"
+    access_added: "Access added: {name}"
+    access_removed: "Access removed: {name}"
+    access_opened: "Rule “{name}” open to all"
   empty:
     title: No transfer rule yet
     text: "A rule says in which direction a file is exchanged, between which directories, with which processing and for whom."
