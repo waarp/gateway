@@ -241,23 +241,23 @@ type row struct {
 	URL        string
 	Status     gui.Status
 	StatusTip  string // the cause and the message of an error
-	Dir        string // "Send", "Receive"
-	DirIcon    string
+	DirIcon    string // the direction, a cloud when the gateway is the server
 	DirTip     string // the direction and the role of the gateway
 	Rule       string
-	RuleTip    string
+	RuleTip    string // the rule, the partner and the account (the partner folds on a narrow list)
 	Partner    string
 	PartnerTip string // the partner and the account
-	Account    string
 	Progress   progressView
+	Size       string // the size of the file once known
+	SizeTitle  string // the size to the byte
 	Start      moment
 	End        moment // the end, or the next attempt (Next)
 	Next       bool
 	Actions    []gui.Action
 }
 
-// moment is a date in a cell: short (the time alone for today), the full
-// date as a tooltip.
+// moment is a date in a cell: its date and its time to the second, the
+// sentence as a tooltip.
 type moment struct {
 	Text  string
 	Title string
@@ -333,7 +333,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 
 	translate := h.shell.Translator(r)
 	query := listSpec.Parse(r.URL.Query())
-	data := h.buildList(translate, query, canWrite(r), h.now())
+	data := h.buildList(translate, query, canWrite(r))
 
 	if fragment {
 		// The state the script asks for (a state, a sort or a page loaded in
@@ -359,9 +359,8 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // buildList reads and lays out one page of the list: the counts of the
-// states, the page of transfers, the toolbar state, the row actions; the
-// moments are written against now.
-func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, write bool, now time.Time) listData {
+// states, the page of transfers, the toolbar state, the row actions.
+func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, write bool) listData {
 	crit := filtersOf(query)
 	carried := query.Encode(query.Page)
 	data := listData{
@@ -437,7 +436,7 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 		"page", bounds.Page, "pages", bounds.Pages, "sort", translate(sortKeyPrefix+query.Sort))
 
 	for _, trans := range transfers {
-		data.Rows = append(data.Rows, rowOf(translate, trans, write, carried, now))
+		data.Rows = append(data.Rows, rowOf(translate, trans, write, carried))
 	}
 
 	data.Sizes = pageSizes
@@ -580,22 +579,24 @@ func (h *Handlers) agentNames() []string {
 	return slices.Compact(names)
 }
 
-// rowOf lays out a transfer of the list. The state of a failed transfer
-// says "Failed" alone, its cause and message in the tooltip (Driss,
-// 2026-10-22: no part of the error under the state).
-func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried string,
-	now time.Time,
-) row {
+// rowOf lays out a transfer of the list, in the order of the columns of the
+// historic screen (Driss, 2026-10-22): the direction as an icon, the
+// number, the state, the file, the rule, the partner, the start, the end,
+// the progress and the size. The state is strong, its label in the colour
+// of the state; a failed transfer says "Failed" alone, its cause and message
+// in the tooltip (Driss, 2026-10-22: no part of the error under the state).
+func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried string) row {
 	dir, icon, role := translate("transfers.dir.receive"), "download", translate("transfers.role.client")
 	if trans.IsSend {
 		dir, icon = translate("transfers.dir.send"), "upload"
 	}
 
 	if trans.IsServer {
-		role = translate("transfers.role.server")
+		role, icon = translate("transfers.role.server"), "cloud-"+icon
 	}
 
-	dirTip := translate("transfers.dir_tip", "dir", dir, "role", role)
+	partnerTip := translate("transfers.partner_tip", "partner", trans.Agent, "account", trans.Account)
+	progress := progressOf(translate, trans)
 
 	line := row{
 		ID:         trans.ID,
@@ -603,17 +604,21 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 		FileTitle:  fileTitle(trans),
 		URL:        withRet(transferURL(trans.ID, ""), carried),
 		Status:     statusOf(translate, trans.Status),
-		Dir:        dir,
 		DirIcon:    icon,
-		DirTip:     dirTip,
+		DirTip:     translate("transfers.dir_tip", "dir", dir, "role", role),
 		Rule:       trans.Rule,
-		RuleTip:    trans.Rule + " · " + dirTip,
+		RuleTip:    trans.Rule + " · " + partnerTip,
 		Partner:    trans.Agent,
-		PartnerTip: translate("transfers.partner_tip", "partner", trans.Agent, "account", trans.Account),
-		Account:    trans.Account,
-		Progress:   progressOf(translate, trans),
-		Start:      momentOf(translate, trans.Start, now),
+		PartnerTip: partnerTip,
+		Progress:   progress,
+		Size:       progress.Size,
+		Start:      momentOf(translate, trans.Start),
 		Actions:    rowActions(translate, trans, write, carried),
+	}
+	line.Status.Strong = true
+
+	if line.Size != "" {
+		line.SizeTitle = exactSize(translate, trans.Filesize)
 	}
 
 	if label := protocolLabel(trans.Protocol); label != "" {
@@ -636,9 +641,9 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 
 	switch {
 	case !trans.Stop.IsZero() && !trans.IsTransfer:
-		line.End = momentOf(translate, trans.Stop, now)
+		line.End = momentOf(translate, trans.Stop)
 	case trans.Status == types.StatusError && !trans.NextRetry.IsZero() && trans.RemainingTries > 0:
-		line.End, line.Next = momentOf(translate, trans.NextRetry, now), true
+		line.End, line.Next = momentOf(translate, trans.NextRetry), true
 		line.End.Title = translate("transfers.next_title", "date", line.End.Title)
 	}
 
@@ -646,24 +651,17 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 }
 
 // momentOf writes a moment in a cell, in the time zone of the gateway: the
-// time alone for today, the day and the time for this year, the full date
-// otherwise; the full date and time as a tooltip.
-func momentOf(translate gui.Translator, at, now time.Time) moment {
+// same format on every line, the date and the time to the second (Driss,
+// 2026-10-22: a time without its seconds may mislead); the sentence as a
+// tooltip.
+func momentOf(translate gui.Translator, at time.Time) moment {
 	if at.IsZero() {
 		return moment{}
 	}
 
-	local, today := at.Local(), now.Local()
-	layout := translate("transfers.date_year")
+	clock, date := timeAndDate(translate, at)
 
-	switch {
-	case local.YearDay() == today.YearDay() && local.Year() == today.Year():
-		layout = time.TimeOnly
-	case local.Year() == today.Year():
-		layout = translate("transfers.date_day")
-	}
-
-	return moment{Text: local.Format(layout), Title: dateTime(translate, at)}
+	return moment{Text: translate("transfers.date_cell", "date", date, "time", clock), Title: dateTime(translate, at)}
 }
 
 // fileTitle is the path of the file of a transfer, shown as a tooltip: the
@@ -746,6 +744,16 @@ func groupDigits(translate gui.Translator, n uint64) string {
 	}
 
 	return out.String()
+}
+
+// exactSize is the size of a file to the byte, its digits grouped: the
+// tooltip of the size in the list.
+func exactSize(translate gui.Translator, n int64) string {
+	if n < 2 { //nolint:mnd // 0 and 1 are singular in French
+		return translate("transfers.size.byte", "n", n)
+	}
+
+	return translate("transfers.size.bytes", "n", groupDigits(translate, uint64(n)))
 }
 
 // formatSize writes a size in bytes, then in the largest unit that keeps it

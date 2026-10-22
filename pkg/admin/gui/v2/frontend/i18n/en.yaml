@@ -2147,8 +2147,8 @@ transfers:
     direction: Direction
     rule: Rule
     partner: Partner
-    account: Account
     progress: Progress
+    size: Size
     start: Start
     stop: End
     actions: Actions
@@ -2159,14 +2159,14 @@ transfers:
   next_title: "Next attempt on {date}"
   no_stop: Not over yet
   no_progress: No progress
+  no_size: Size unknown
   percent: "{pct}%"
   progress_label: "Progress {pct}%"
   # Dates and numbers (Go layout for the date).
   date: 2006-01-02
   date_time: "{date} {time}"
-  # A moment of the list: the time alone for today, else the day and the time (Go layout).
-  date_day: Jan 2 15:04
-  date_year: Jan 2 2006 15:04
+  # A moment of the list: the date and the time to the second, on every line.
+  date_cell: "{date} {time}"
   thousands: ","
   decimal: "."
   size:

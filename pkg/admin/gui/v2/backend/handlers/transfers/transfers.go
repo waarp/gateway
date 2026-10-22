@@ -178,13 +178,12 @@ func statusOf(translate gui.Translator, status types.TransferStatus) gui.Status 
 type Handlers struct {
 	db     *database.DB
 	logger *log.Logger
-	now    func() time.Time // the clock the list writes its moments against: the time alone for today
 
 	shell *common.Shell
 }
 
 func New(db *database.DB, logger *log.Logger) *Handlers {
-	return &Handlers{db: db, logger: logger, now: time.Now, shell: common.NewShell()}
+	return &Handlers{db: db, logger: logger, shell: common.NewShell()}
 }
 
 // canWrite tells whether the user may act on the transfers. Reading is

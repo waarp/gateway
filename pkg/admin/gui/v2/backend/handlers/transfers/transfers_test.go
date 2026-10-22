@@ -53,7 +53,6 @@ func newSuite(t *testing.T) *suite {
 
 	s := &suite{db: dbtest.TestDatabase(t), router: mux.NewRouter()}
 	h := New(s.db, testhelpers.GetTestLogger(t))
-	h.now = func() time.Time { return at(12, 0, 0) } // the day of the fixtures: their moments show as times
 
 	r := s.router.PathPrefix(constants.WebuiPrefix).Subrouter()
 	r.Path("/transfers").Methods(http.MethodGet).HandlerFunc(h.List)
@@ -264,23 +263,30 @@ func TestList(t *testing.T) {
 		indexes(t, body, "<tbody>", ">virements.xml</a>", ">commandes-0457.edi</a>", ">inventaire.csv</a>",
 			">rapport-mensuel.pdf</a>", ">releve-20102026.pdf</a>", ">paie-octobre.xml</a>", "</tbody>")
 		assert.Contains(t, body, `class="w-num" aria-sort="descending"><a href="/webui/transfers?sort=id&amp;dir=asc">N°</a>`)
-		// One line per transfer: what does not fit goes to the tooltips; a failed transfer says "Failed" alone.
-		indexes(t, body, `<td class="w-num tf-num">`+strconv.FormatInt(s.failed.ID, 10)+`</td>`,
+		// One line per transfer, in the order of the columns of the historic screen: the direction as an icon, the
+		// number, the state (strong), the file, the rule, the partner, the start, the end, the progress, the size;
+		// what does not fit goes to the tooltips; a failed transfer says "Failed" alone.
+		indexes(t, body, `<td class="tf-dir" title="Envoi, la passerelle est client">`,
+			`<td class="w-num tf-num">`+strconv.FormatInt(s.failed.ID, 10)+`</td>`,
+			`title="Accès refusé : failed to make transfer request: FICHIER DEJA RECU"`,
+			`<span class="w-status w-status--ko w-status--strong">En erreur</span>`,
 			`title="releve-20102026.pdf · SFTP">releve-20102026.pdf</a>`,
-			`title="Accès refusé : failed to make transfer request: FICHIER DEJA RECU"`, "En erreur</span>",
-			`title="Envoi, la passerelle est client">`, "<span>Envoi</span>",
-			`title="releves · Envoi, la passerelle est client">`, "releves</td>",
-			`title="banque-demo · compte prod">banque-demo</td>`, `title="prod">prod</td>`,
-			`title="21/10/2026 à 10:38:02">10:38:02</span>`,
-			`<span class="tf-next" title="Prochaine tentative le 21/10/2026 à 10:43:02">`, "<span>10:43:02</span>")
+			`title="releves · banque-demo · compte prod">releves</td>`,
+			`<td class="tf-x" title="banque-demo · compte prod">banque-demo</td>`,
+			`title="21/10/2026 à 10:38:02">21/10/2026 10:38:02</span>`,
+			`<span class="tf-next" title="Prochaine tentative le 21/10/2026 à 10:43:02">`, "<span>21/10/2026 10:43:02</span>")
 		assert.NotContains(t, body, "tf-cause", "no part of the error under the state")
 		assert.NotContains(t, body, "tf-sub", "no second line in the list")
-		indexes(t, body, ">paie-octobre.xml</a>", `<span class="tf-prog" title="1,2 Mo">`,
-			`<progress class="tf-progress" max="100" value="64"`, "64 %")
-		indexes(t, body, ">inventaire.csv</a>", "Attendu", `title="Réception, la passerelle est serveur"`, "srv-sftp",
-			`title="Attendu jusqu&#39;au 21/10/2026 à 23:00:00">23:00:00</span>`)
-		indexes(t, body, ">rapport-mensuel.pdf</a>", "Planifié", `title="21/10/2026 à 18:00:00">18:00:00</span>`, "</tr>")
-		assert.NotContains(t, body, "0 octet", "no size before the transfer starts")
+		assert.NotContains(t, body, `title="prod">prod</td>`, "the account in the tooltip of the partner only")
+		indexes(t, body, ">paie-octobre.xml</a>", `<span class="tf-gauge"><progress class="tf-progress" max="100" value="64"`,
+			`<span class="tf-gauge__pct" aria-hidden="true">64 %</span>`, `<td class="w-num" title="1 228 800 octets">1,2 Mo</td>`)
+		indexes(t, body, "Attendu</span>", ">inventaire.csv</a>", "srv-sftp",
+			`title="Attendu jusqu&#39;au 21/10/2026 à 23:00:00">21/10/2026 23:00:00</span>`)
+		indexes(t, body, "Planifié</span>", ">rapport-mensuel.pdf</a>",
+			`title="21/10/2026 à 18:00:00">21/10/2026 18:00:00</span>`, "Taille inconnue", "</tr>")
+		assert.Contains(t, body, `title="Réception, la passerelle est serveur"`, "the direction and the role in the tooltip")
+		assert.Contains(t, body, `<use href="#cloud-download"/>`, "a cloud when the gateway is the server")
+		assert.NotContains(t, body, ">0 octet<", "no size before the transfer starts")
 
 		// The secondary action of the header in a "⋯" menu, as on the other pages.
 		indexes(t, body, `popovertarget="act-page"`, `<div class="w-actions" id="act-page" popover>`,
@@ -755,16 +761,14 @@ func TestForms(t *testing.T) {
 func TestMoment(t *testing.T) {
 	t.Parallel()
 
-	translate := common.NewShell().Catalog().Translator("fr")
-	now := at(12, 0, 0)
+	catalog := common.NewShell().Catalog()
+	translate := catalog.Translator("fr")
 
-	assert.Equal(t, moment{Text: "10:38:02", Title: "21/10/2026 à 10:38:02"}, momentOf(translate, at(10, 38, 2), now),
-		"the time alone for today")
-	assert.Equal(t, "20/10 23:59", momentOf(translate, time.Date(2026, 10, 20, 23, 59, 0, 0, time.Local), now).Text,
-		"the day for this year")
-	assert.Equal(t, "31/12/2025 08:00", momentOf(translate, time.Date(2025, 12, 31, 8, 0, 0, 0, time.Local), now).Text,
-		"the year otherwise")
-	assert.Equal(t, moment{}, momentOf(translate, time.Time{}, now))
+	assert.Equal(t, moment{Text: "21/10/2026 10:38:02", Title: "21/10/2026 à 10:38:02"}, momentOf(translate, at(10, 38, 2)),
+		"the date and the time to the second, on every line")
+	assert.Equal(t, "31/12/2025 08:00:00", momentOf(translate, time.Date(2025, 12, 31, 8, 0, 0, 0, time.Local)).Text)
+	assert.Equal(t, "2026-10-21 10:38:02", momentOf(catalog.Translator("en"), at(10, 38, 2)).Text)
+	assert.Equal(t, moment{}, momentOf(translate, time.Time{}))
 }
 
 // TestCatalogue checks that every state, every error code and every step of

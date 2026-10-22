@@ -175,27 +175,30 @@ templ tableRegion(d listData) {
 			<div class="w-table-wrap tf-list">
 				<table class="w-table w-table--one-line tf-table">
 					<caption class="visually-hidden">{ d.Caption }</caption>
-					<colgroup><col class="tf-col-id"/><col class="tf-col-file"/><col class="tf-col-state"/><col class="tf-col-dir tf-x"/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-account tf-x"/><col class="tf-col-progress"/><col class="tf-col-date"/><col class="tf-col-end"/><col class="tf-col-actions"/></colgroup>
+					<colgroup><col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner tf-x"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-progress"/><col class="tf-col-size"/><col class="tf-col-actions"/></colgroup>
 					<thead>
 						<tr>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.direction") }</span></th>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.id"), Key: sortID, Sort: d.Sort, Dir: d.Dir, Base: d.Base, Num: true})
-							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.file"), Key: sortFile, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.state"), Key: sortState, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
-							<th scope="col" class="tf-x">{ gui.T(ctx, "transfers.col.direction") }</th>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.file"), Key: sortFile, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.rule"), Key: sortRule, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
-							<th scope="col">{ gui.T(ctx, "transfers.col.partner") }</th>
-							<th scope="col" class="tf-x">{ gui.T(ctx, "transfers.col.account") }</th>
-							<th scope="col">{ gui.T(ctx, "transfers.col.progress") }</th>
+							<th scope="col" class="tf-x">{ gui.T(ctx, "transfers.col.partner") }</th>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.start"), Key: sortStart, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.stop"), Key: sortStop, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "transfers.col.progress") }</th>
+							<th scope="col" class="w-num">{ gui.T(ctx, "transfers.col.size") }</th>
 							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.actions") }</span></th>
 						</tr>
 					</thead>
 					<tbody>
 						for _, r := range d.Rows {
 							<tr>
+								<td class="tf-dir" title={ r.DirTip }>
+									@gui.Icon(r.DirIcon)
+									<span class="visually-hidden">{ r.DirTip }</span>
+								</td>
 								<td class="w-num tf-num">{ strconv.FormatInt(r.ID, 10) }</td>
-								<td><a class="tf-file" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }>{ r.File }</a></td>
 								<td
 									if r.StatusTip != "" {
 										title={ r.StatusTip }
@@ -203,11 +206,9 @@ templ tableRegion(d listData) {
 								>
 									@gui.StatusOf(r.Status)
 								</td>
-								<td class="tf-x"><span class="tf-dir" title={ r.DirTip }>@gui.Icon(r.DirIcon)<span>{ r.Dir }</span></span></td>
-								<td class="w-mono" title={ r.RuleTip }><span class="tf-ruledir">@gui.Icon(r.DirIcon)<span class="visually-hidden">{ r.Dir + " : " }</span></span>{ r.Rule }</td>
-								<td title={ r.PartnerTip }>{ r.Partner }</td>
-								<td class="w-mono tf-x" title={ r.Account }>{ r.Account }</td>
-								<td>@progressInline(r.Progress)</td>
+								<td><a class="tf-file" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }>{ r.File }</a></td>
+								<td class="w-mono" title={ r.RuleTip }>{ r.Rule }</td>
+								<td class="tf-x" title={ r.PartnerTip }>{ r.Partner }</td>
 								<td class="tf-time">@momentCell(r.Start)</td>
 								<td class="tf-time">
 									if r.Next {
@@ -217,6 +218,19 @@ templ tableRegion(d listData) {
 										</span>
 									} else {
 										@momentCell(r.End)
+									}
+								</td>
+								<td>@progressInline(r.Progress)</td>
+								<td
+									class="w-num"
+									if r.SizeTitle != "" {
+										title={ r.SizeTitle }
+									}
+								>
+									if r.Size != "" {
+										{ r.Size }
+									} else {
+										<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_size") }</span>
 									}
 								</td>
 								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.File, Items: r.Actions})</td>
@@ -242,7 +256,7 @@ templ pagerTop(d listData) {
 	</div>
 }
 
-// momentCell: a moment, short (the time alone for today), the full date as
+// momentCell: a moment, its date and its time to the second, the sentence as
 // a tooltip; a dash for none.
 templ momentCell(m moment) {
 	if m.Text == "" {
@@ -258,12 +272,14 @@ templ progressInline(p progressView) {
 	if p.None {
 		<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_progress") }</span>
 	} else {
-		<span class="tf-prog" title={ p.Size }>
-			if p.Bar {
+		if p.Bar {
+			<span class="tf-gauge">
 				<progress class="tf-progress" max="100" value={ strconv.Itoa(p.Pct) } aria-label={ gui.T(ctx, "transfers.progress_label", "pct", p.Pct) }>{ p.Label }</progress>
-			}
-			<span class="tf-pct">{ p.Label }</span>
-		</span>
+				<span class="tf-gauge__pct" aria-hidden="true">{ p.Label }</span>
+			</span>
+		} else {
+			{ p.Label }
+		}
 	}
 }
 

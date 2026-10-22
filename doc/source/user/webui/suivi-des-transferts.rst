@@ -45,41 +45,46 @@ dans l'infobulle de sa cellule, comme les informations secondaires.
 
    * - Colonne
      - Contenu
+   * - (sens)
+     - Une icône : une flèche montante pour un envoi, descendante pour une
+       réception, dans un nuage quand la Gateway est le serveur du transfert.
+       L'infobulle le dit en toutes lettres (« Envoi, la passerelle est
+       client »).
    * - N°
      - Le numéro du transfert.
+   * - État
+     - L'état du transfert (voir ci-dessous), en gras et dans sa couleur, avec
+       sa forme. Pour un transfert en erreur, l'infobulle donne la cause et le
+       message.
    * - Fichier
      - Le nom du fichier, lien vers la fiche du transfert. En infobulle, le
        chemin du fichier sur la Gateway quand il est connu (sinon ses noms à
-       la source et à la destination) et le protocole.
-   * - État
-     - L'état du transfert (voir ci-dessous). Pour un transfert en erreur,
-       l'infobulle donne la cause et le message.
-   * - Sens
-     - *Envoi* ou *Réception* ; en infobulle, le rôle de la Gateway
-       (*client*, *serveur*).
+       la source et à la destination) et le protocole. La colonne prend toute
+       la place que les autres laissent.
    * - Règle
-     - La règle.
+     - La règle ; en infobulle, le partenaire et le compte.
    * - Partenaire
      - Le partenaire distant, ou le serveur local d'un transfert serveur ; en
        infobulle, le compte.
-   * - Compte
-     - Le compte.
-   * - Progression
-     - Une barre et le pourcentage quand la taille du fichier est connue,
-       les octets transférés sinon ; en infobulle, la taille.
    * - Début
      - Le début ; pour un transfert planifié, l'heure prévue ; pour un
        transfert attendu, sa date limite.
    * - Fin
      - La fin ; pour un transfert en erreur qui sera retenté, l'heure de la
        prochaine tentative, précédée de l'icône de reprise.
+   * - Progression
+     - Une barre qui porte le pourcentage quand la taille du fichier est
+       connue, les octets transférés sinon.
+   * - Taille
+     - La taille du fichier une fois connue (« 1,2 Mo ») ; en infobulle, la
+       taille à l'octet près.
 
-Une date du jour s'écrit par son heure seule, une date de l'année par le jour
-et l'heure (« 21/10 18:00 »), une autre avec l'année ; l'infobulle donne la
-date complète. Quand la largeur utile est inférieure à 1 500 pixels environ,
-les colonnes *Sens* et *Compte* se replient : une flèche devant la règle
-indique le sens, et le compte se lit dans l'infobulle du partenaire. Sur un
-écran étroit, le tableau défile dans son cadre.
+Les colonnes suivent l'ordre de l'écran historique. Les dates s'écrivent
+partout de la même façon, à la seconde (« 21/10/2026 18:00:00 ») ; l'infobulle
+les répète en toutes lettres. Quand la largeur utile est inférieure à
+1 500 pixels environ, la colonne *Partenaire* se replie : le partenaire et le
+compte se lisent dans l'infobulle de la règle. Sur un écran étroit, le tableau
+défile dans son cadre.
 
 Par défaut, les derniers transferts créés viennent en premier : le tri se
 fait sur le numéro, décroissant. Les colonnes *N°*, *Fichier*, *État*,
