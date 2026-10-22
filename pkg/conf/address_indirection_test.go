@@ -2,9 +2,12 @@ package conf
 
 import (
 	"bytes"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -112,48 +115,52 @@ func TestOverrideWrite(t *testing.T) {
 }
 
 func TestAddIndirection(t *testing.T) {
-	Convey("Given an address configOverride", t, func(c C) {
-		overrides := &ConfigOverride{
-			filename: testhelpers.TempFile(c, "test_override_add_indirection_*.ini"),
-			ListenAddresses: &addressOverride{
-				addressMap: map[string]string{
-					"localhost:5555": "127.0.0.1:8080",
-				},
+	t.Parallel()
+
+	requireErrorContains := func(tb testing.TB, err error, msg string) {
+		tb.Helper()
+		var indErr IndirectionError
+		require.ErrorAs(tb, err, &indErr)
+		require.Contains(tb, indErr.Error(), msg)
+	}
+
+	overrides := &ConfigOverride{
+		filename: filepath.Join(t.TempDir(), "test_override_add_indirection.ini"),
+		ListenAddresses: &addressOverride{
+			addressMap: map[string]string{
+				"localhost:5555": "127.0.0.1:8080",
 			},
-		}
+		},
+	}
 
-		Convey("When adding a new indirection", func() {
-			So(overrides.AddIndirection("1.2.3.4", "9.8.7.6"), ShouldBeNil)
+	t.Run("New indirection", func(t *testing.T) {
+		require.NoError(t, overrides.AddIndirection("waarp.fr", "waarp.org"))
 
-			Convey("Then it should have added the indirection", func() {
-				So(overrides.ListenAddresses.addressMap["1.2.3.4"],
-					ShouldEqual, "9.8.7.6")
-				So(overrides.ListenAddresses.Indirections, ShouldContain,
-					"1.2.3.4 -> 9.8.7.6")
-				So(overrides.ListenAddresses.Indirections, ShouldContain,
-					"localhost:5555 -> 127.0.0.1:8080")
-			})
-		})
+		assert.Equal(t, "waarp.org", overrides.ListenAddresses.addressMap["waarp.fr"])
+		assert.Contains(t, overrides.ListenAddresses.Indirections, "waarp.fr -> waarp.org")
+		assert.Contains(t, overrides.ListenAddresses.Indirections, "localhost:5555 -> 127.0.0.1:8080")
+	})
 
-		Convey("When updating an existing indirection", func() {
-			So(overrides.AddIndirection("localhost:5555", "9.8.7.6:5432"), ShouldBeNil)
+	t.Run("Existing indirection", func(t *testing.T) {
+		require.NoError(t, overrides.AddIndirection("localhost:5555", "9.8.7.6:5432"))
 
-			Convey("Then it should have updated the indirection", func() {
-				So(overrides.ListenAddresses.addressMap["localhost:5555"],
-					ShouldEqual, "9.8.7.6:5432")
-				So(overrides.ListenAddresses.Indirections, ShouldContain,
-					"localhost:5555 -> 9.8.7.6:5432")
-			})
-		})
+		assert.Equal(t, "9.8.7.6:5432", overrides.ListenAddresses.addressMap["localhost:5555"])
+		assert.Contains(t, overrides.ListenAddresses.Indirections, "localhost:5555 -> 9.8.7.6:5432")
+	})
 
-		Convey("When adding a new inconsistent indirection", func() {
-			err := overrides.AddIndirection("localhost:5555", "9.8.7.6")
+	t.Run("Inconsistent indirection", func(t *testing.T) {
+		requireErrorContains(t, overrides.AddIndirection("localhost:5555", "waarp.org"),
+			"an address with port must redirect to another address with port")
+	})
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, "address \"9.8.7.6\" is missing a port number: "+
-					"an address with port must redirect to another address with port")
-			})
-		})
+	t.Run("Invalid target", func(t *testing.T) {
+		requireErrorContains(t, overrides.AddIndirection("not an address", "waarp.org"),
+			"failed to parse the target address")
+	})
+
+	t.Run("Invalid redirection", func(t *testing.T) {
+		requireErrorContains(t, overrides.AddIndirection("waarp.fr", "not an address"),
+			"failed to parse the real address")
 	})
 }
 

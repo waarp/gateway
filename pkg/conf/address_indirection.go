@@ -8,12 +8,6 @@ import (
 	"strings"
 )
 
-var (
-	ErrNoOverrideFile      = errors.New("no override file configured")
-	ErrIndirectionWithPort = errors.New("an address with port must redirect to another address with port")
-	ErrIndirectionNoPort   = errors.New("an address without port must redirect to another address without port")
-)
-
 // addressOverride is a struct defining a local list of address indirections
 // (or overrides) which allows a gateway instance to replace an address defined
 // at the cluster level with another one. Address indirections are given using
@@ -62,38 +56,45 @@ func (a *addressOverride) Parse() error {
 	return nil
 }
 
-func checkIndirectionConsistency(target, redirect string) error {
+type IndirectionError string
+
+func IndirectionErrorf(msg string, args ...any) IndirectionError {
+	return IndirectionError(fmt.Sprintf(msg, args...))
+}
+
+func (e IndirectionError) Error() string { return string(e) }
+
+func tcpAddr(addr string) (string, bool) {
 	const missingPort = "missing port in address"
 
-	targetHasPort := true
-	redirectHasPort := true
-
-	if _, _, err := net.SplitHostPort(target); err != nil {
-		var addrErr *net.AddrError
-		if errors.As(err, &addrErr) && addrErr.Err == missingPort {
-			targetHasPort = false
-		} else {
-			return fmt.Errorf("failed to parse the target address %q: %w", target, err)
-		}
+	_, _, err := net.SplitHostPort(addr)
+	if addrErr, ok := errors.AsType[*net.AddrError](err); ok && addrErr.Err == missingPort {
+		return addr + ":0", false
 	}
 
-	if _, _, err := net.SplitHostPort(redirect); err != nil {
-		var addrErr *net.AddrError
-		if errors.As(err, &addrErr) && addrErr.Err == missingPort {
-			redirectHasPort = false
-		} else {
-			return fmt.Errorf("failed to parse the real address %q: %w", redirect, err)
-		}
+	return addr, true
+}
+
+func checkIndirectionConsistency(targ, redir string) error {
+	target, targetHasPort := tcpAddr(targ)
+	redirect, redirectHasPort := tcpAddr(redir)
+
+	if _, err := net.ResolveTCPAddr("tcp", target); err != nil {
+		return IndirectionErrorf("failed to parse the target address %q: %v", target, err)
+	}
+
+	if _, err := net.ResolveTCPAddr("tcp", redirect); err != nil {
+		return IndirectionErrorf("failed to parse the real address %q: %v", redirect, err)
 	}
 
 	if targetHasPort != redirectHasPort {
 		if targetHasPort {
-			return fmt.Errorf("address %q is missing a port number: %w",
-				redirect, ErrIndirectionWithPort)
+			return IndirectionErrorf("address %q is missing a port number: %s",
+				redir, "an address with port must redirect to another address with port")
 		}
 
-		return fmt.Errorf("address %q should not have a port number: %w",
-			redirect, ErrIndirectionNoPort)
+		return IndirectionErrorf("address %q should not have a port number: %s",
+			redir, "an address without port must redirect to another address without port")
 	}
 
 	return nil

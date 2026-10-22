@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`732` Tenter d'insérer une indirection d'adresse invalide via REST renvoie
+  désormais un code d'erreur 400 au lieu de 500.
+* :bug:`731` Les indirections d'adresses DNS incorrectes sont désormais correctement
+  rejetées par l'API REST.
 * :bug:`740` Tenter d'insérer une clé PGP invalide via REST renvoie désormais un
   code d'erreur 400 au lieu de 500.
 * :bug:`737` Les clés PGP chiffrées sont désormais correctement refusées.
