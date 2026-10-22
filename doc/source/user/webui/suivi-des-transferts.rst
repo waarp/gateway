@@ -21,18 +21,20 @@ Liste
 =====
 
 En tête de page, une rangée compacte donne le nombre de transferts de chaque
-état : *Tous*, *En cours*, *En erreur*, *Planifiés*, *En pause*,
-*Interrompus*, *Attendus*, *Terminés*, *Annulés*. Un clic sur un état
-n'affiche que ses transferts ; l'état choisi est souligné et en gras. Une
-infobulle sur chaque état dit ce qu'il signifie.
+statut : *Tous*, *En cours*, *En erreur*, *Planifiés*, *En pause*,
+*Interrompus*, *Attendus*, *Terminés*, *Annulés*. Un clic sur un statut
+n'affiche que ses transferts ; le statut choisi est souligné et en gras. Une
+infobulle sur chaque statut dit ce qu'il signifie.
 
 La barre d'outils recherche un transfert par une partie du nom de son
 fichier, ou par son identifiant de suivi. Le bouton *Filtres* ouvre les
-critères : règle, sens (envoi ou réception), partenaire ou serveur, compte,
+critères : règle, sens (envoi ou réception), partenaire ou serveur (une liste en
+deux groupes, partenaires distants et serveurs locaux), compte (les comptes de
+chaque partenaire ou serveur, ceux du seul partenaire choisi quand il l'est),
 protocole (la famille, avec sa variante TLS), période de début. Un filtre
 s'applique dès qu'il change ; le
 nombre de filtres actifs s'affiche sur le bouton, *Réinitialiser* les
-retire tous. Les nombres de la rangée des états suivent la recherche et les
+retire tous. Les nombres de la rangée des statuts suivent la recherche et les
 filtres.
 
 La liste montre un transfert par ligne et occupe toute la largeur de l'écran.
@@ -48,24 +50,25 @@ dans l'infobulle de sa cellule, comme les informations secondaires.
    * - (sens)
      - Une icône : une flèche montante pour un envoi, descendante pour une
        réception, dans un nuage quand la Gateway est le serveur du transfert.
-       L'infobulle le dit en toutes lettres (« Envoi, la passerelle est
+       L'infobulle le dit en toutes lettres (« Envoi depuis le serveur vers le
        client »).
    * - N°
      - Le numéro du transfert.
-   * - État
-     - L'état du transfert (voir ci-dessous), en gras et dans sa couleur, avec
-       sa forme. Pour un transfert en erreur, l'infobulle donne la cause et le
-       message.
+   * - Statut
+     - Le statut du transfert (voir ci-dessous), en gras et dans sa couleur.
+       Pour un transfert en erreur, l'infobulle donne la cause et le message.
    * - Fichier
-     - Le nom du fichier, lien vers la fiche du transfert. En infobulle, le
-       chemin du fichier sur la Gateway quand il est connu (sinon ses noms à
-       la source et à la destination) et le protocole. La colonne prend toute
-       la place que les autres laissent.
+     - Le fichier à sa destination, lien vers la fiche du transfert : pour un
+       envoi, son chemin chez le partenaire ; pour une réception, son chemin
+       sur la Gateway ; ses noms tant que le transfert n'a pas commencé. Un
+       chemin trop long est coupé au début (« …/in/releve.csv ») : le nom du
+       fichier reste visible. En infobulle, le chemin entier.
+       La colonne prend toute la place que les autres laissent.
    * - Règle
-     - La règle ; en infobulle, le partenaire et le compte.
+     - La règle ; en infobulle, le partenaire, le compte et le protocole.
    * - Partenaire
      - Le partenaire distant, ou le serveur local d'un transfert serveur ; en
-       infobulle, le compte.
+       infobulle, le compte et le protocole.
    * - Début
      - Le début ; pour un transfert planifié, l'heure prévue ; pour un
        transfert attendu, sa date limite.
@@ -87,27 +90,27 @@ compte se lisent dans l'infobulle de la règle. Sur un écran étroit, le tablea
 défile dans son cadre.
 
 Par défaut, les derniers transferts créés viennent en premier : le tri se
-fait sur le numéro, décroissant. Les colonnes *N°*, *Fichier*, *État*,
+fait sur le numéro, décroissant. Les colonnes *N°*, *Fichier*, *Statut*,
 *Règle*, *Début* et *Fin* se trient d'un clic
-sur leur en-tête ; l'état se trie dans l'ordre de la rangée des états. Le
+sur leur en-tête ; le statut se trie dans l'ordre de la rangée des statuts. Le
 pied de liste indique les lignes affichées, permet de changer de page et de
 choisir le nombre de lignes par page (10, 25, 50 ou 100 ; 25 par défaut). Il
 est repris au-dessus du tableau, à droite de la recherche, pour changer de page
-sans descendre. La recherche, les filtres, l'état, le tri et la page restent
+sans descendre. La recherche, les filtres, le statut, le tri et la page restent
 dans l'adresse de la page et sont conservés pour la session, même quand ils
 changent sans recharger la page : revenir à l'écran retrouve la liste telle
 qu'elle a été laissée.
 
 Le menu « ⋯ » de chaque ligne mène à la fiche du transfert et propose les
-actions que son état permet (voir *Actions*).
+actions que son statut permet (voir *Actions*).
 
 
 Actualisation
 -------------
 
-La rangée des états, le nombre de transferts et le tableau sont actualisés
+La rangée des statuts, le nombre de transferts et le tableau sont actualisés
 toutes les 5 secondes, sans recharger la page, en gardant la recherche, les
-filtres, l'état, le tri et la page. L'heure de la dernière lecture s'affiche
+filtres, le statut, le tri et la page. L'heure de la dernière lecture s'affiche
 en haut de page (*Actualisé à …*) ; le bouton *Actualiser* lit sans attendre.
 L'actualisation attend pendant une saisie dans la barre d'outils et tant
 qu'un menu « ⋯ » est ouvert. Si une lecture échoue (session expirée,
@@ -115,50 +118,52 @@ Gateway injoignable), un message persistant donne l'heure de la dernière
 lecture réussie ; l'écran réessaie au cycle suivant, sans s'arrêter.
 
 
-États
-=====
+Statuts
+=======
+
+Dans la liste, le libellé du statut s'écrit en gras dans sa couleur.
 
 .. list-table::
    :header-rows: 1
    :widths: 18 18 64
 
-   * - État
-     - Forme
+   * - Statut
+     - Couleur
      - Signification
    * - Planifié
-     - Anneau gris
+     - Gris
      - Transfert client qui attend son heure de départ.
    * - Attendu
-     - Anneau gris
+     - Gris
      - Transfert serveur pré-enregistré, qui attend que le partenaire se
        connecte, jusqu'à sa date limite.
    * - En cours
-     - Rond vert
+     - Vert
      - Le transfert s'exécute.
    * - En pause
-     - Anneau gris
+     - Gris
      - Le transfert a été mis en pause par un utilisateur.
    * - Interrompu
-     - Triangle orange
+     - Or
      - Le transfert a été interrompu de façon inattendue, par un arrêt de la
        Gateway par exemple.
    * - En erreur
-     - Losange rouge
+     - Rouge
      - Le transfert a échoué. Il reste dans la table des transferts : il
        peut être retenté automatiquement, repris ou relancé.
    * - Terminé
-     - Rond vert
+     - Vert
      - Le transfert, ses traitements avant et après transfert compris, s'est
        terminé sans erreur.
    * - Annulé
-     - Anneau gris
+     - Gris
      - Le transfert a été annulé par un utilisateur.
 
 
 Fiche d'un transfert
 ====================
 
-Le nom du fichier est le titre de la fiche ; l'état et le numéro du transfert
+Le nom du fichier est le titre de la fiche ; le statut et le numéro du transfert
 sont affichés dessous. La fiche réunit :
 
 .. list-table::
@@ -197,8 +202,8 @@ Le message conserve souvent le détail donné par le partenaire.
 Actions
 =======
 
-Les actions dépendent de l'état du transfert ; le serveur vérifie l'état à
-chaque action. Une action que l'état ne permet pas affiche une page qui dit
+Les actions dépendent du statut du transfert ; le serveur vérifie le statut à
+chaque action. Une action que le statut ne permet pas affiche une page qui dit
 pourquoi.
 
 .. list-table::
@@ -206,7 +211,7 @@ pourquoi.
    :widths: 22 78
 
    * - Action
-     - Effet et états concernés
+     - Effet et statuts concernés
    * - Mettre en pause
      - Suspend un transfert en cours, ou un transfert client planifié avant
        son départ.
@@ -217,7 +222,7 @@ pourquoi.
        par son parent.
    * - Annuler le transfert
      - Après une page de confirmation qui nomme le transfert, son fichier et
-       son état : le transfert passe à l'historique, à l'état *Annulé* ; un
+       son statut : le transfert passe à l'historique, au statut *Annulé* ; un
        transfert en cours est d'abord interrompu.
    * - Relancer
      - Crée un nouveau transfert avec la même règle, le même partenaire, le
@@ -274,7 +279,7 @@ Pré-enregistrer un transfert
 
 Le menu « ⋯ » de l'en-tête propose *Pré-enregistrer un transfert* : un
 transfert serveur, que le partenaire échangera en se connectant au serveur
-local, jusqu'à une date limite. Le transfert apparaît à l'état *Attendu*.
+local, jusqu'à une date limite. Le transfert apparaît au statut *Attendu*.
 La page demande le fichier, la règle, le serveur et le compte local avec
 lequel le partenaire se connectera, et la date limite ; les informations de
 transfert sont facultatives.

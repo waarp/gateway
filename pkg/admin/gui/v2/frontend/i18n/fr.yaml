@@ -2086,11 +2086,11 @@ transfers:
     id: numéro
     start: début
     file: fichier
-    state: état
+    state: statut
     rule: règle
     stop: fin
   pager: "Transferts {from} à {to} sur {total}"
-  # Un état par transfert, puis la rangée des états (au pluriel).
+  # Un statut par transfert, puis la rangée des statuts (au pluriel).
   state:
     running: En cours
     error: En erreur
@@ -2101,7 +2101,7 @@ transfers:
     done: Terminé
     cancelled: Annulé
   states:
-    label: États des transferts
+    label: Statuts des transferts
     all: Tous
     running: En cours
     error: En erreur
@@ -2111,7 +2111,7 @@ transfers:
     available: Attendus
     done: Terminés
     cancelled: Annulés
-  # Ce que dit chaque état, en infobulle de la rangée des états.
+  # Ce que dit chaque statut, en infobulle de la rangée des statuts.
   hint:
     all: Tous les transferts, à venir, en cours et passés
     running: Le transfert s'exécute
@@ -2128,7 +2128,11 @@ transfers:
     direction: Sens
     direction_all: Envoi et réception
     partner: Partenaire ou serveur
+    partner_all: Tous les partenaires et serveurs
+    partners: Partenaires distants
+    servers: Serveurs locaux
     account: Compte
+    account_all: Tous les comptes
     protocol: Protocole
     protocol_all: Tous les protocoles
     from: Début à partir du
@@ -2142,7 +2146,7 @@ transfers:
   col:
     id: N°
     file: Fichier
-    state: État
+    state: Statut
     direction: Sens
     rule: Règle
     partner: Partenaire
@@ -2152,7 +2156,12 @@ transfers:
     stop: Fin
     actions: Actions
   error_tip: "{cause} : {message}"
-  dir_tip: "{dir}, la passerelle est {role}"
+  # Le sens et le rôle de la passerelle, dans les mots de l'écran historique.
+  dir_tip:
+    client_send: Envoi depuis le client vers le serveur
+    client_receive: Réception sur le client depuis le serveur
+    server_send: Envoi depuis le serveur vers le client
+    server_receive: Réception sur le serveur depuis le client
   partner_tip: "{partner} · compte {account}"
   due_title: "Attendu jusqu'au {date}"
   next_title: "Prochaine tentative le {date}"
@@ -2273,20 +2282,20 @@ transfers:
     title: Action impossible
     elsewhere: Ce transfert s'exécute sur un autre nœud de la grappe. Agissez depuis l'interface de ce nœud.
     pause_title: "« {name} » ne peut pas être mis en pause"
-    pause: "Seul un transfert en cours, ou planifié par la passerelle, se met en pause. État du transfert : {state}."
+    pause: "Seul un transfert en cours, ou planifié par la passerelle, se met en pause. Statut du transfert : {state}."
     resume_title: "« {name} » ne peut pas reprendre"
-    resume: "Seul un transfert en pause, interrompu ou en erreur reprend. État du transfert : {state}."
+    resume: "Seul un transfert en pause, interrompu ou en erreur reprend. Statut du transfert : {state}."
     resume_server: Un transfert serveur reprend à l'initiative du partenaire, quand il se reconnecte.
     resume_sync: "Ce transfert fait partie du transfert n° {parent} : reprenez celui-ci."
     cancel_title: "« {name} » ne peut pas être annulé"
-    cancel: "Un transfert terminé ou annulé ne s'annule plus. État du transfert : {state}."
+    cancel: "Un transfert terminé ou annulé ne s'annule plus. Statut du transfert : {state}."
     retry_title: "« {name} » ne peut pas être relancé"
-    retry: "Un transfert planifié, disponible ou en cours ne se relance pas. État du transfert : {state}."
+    retry: "Un transfert planifié, disponible ou en cours ne se relance pas. Statut du transfert : {state}."
     retry_server: Un transfert serveur se relance à l'initiative du partenaire.
   cancel:
     title: "Annuler le transfert « {name} » ?"
-    text: Le transfert passe à l'historique, à l'état « Annulé » ; il ne sera plus retenté. Pour le refaire, il faudra le relancer.
-    text_running: Le transfert en cours est interrompu, puis passe à l'historique, à l'état « Annulé ». Pour le refaire, il faudra le relancer.
+    text: Le transfert passe à l'historique, au statut « Annulé » ; il ne sera plus retenté. Pour le refaire, il faudra le relancer.
+    text_running: Le transfert en cours est interrompu, puis passe à l'historique, au statut « Annulé ». Pour le refaire, il faudra le relancer.
   retry:
     title: "Relancer « {name} »"
     text: "Un nouveau transfert est créé, avec la même règle, le même partenaire, le même compte et le même fichier. Le {number} reste tel quel. Pour continuer un transfert là où il s'est arrêté, utilisez plutôt « Reprendre »."
@@ -2297,7 +2306,7 @@ transfers:
     title: Nouveau transfert
   preregister:
     title: Pré-enregistrer un transfert
-    text: Le transfert attend que le partenaire se connecte au serveur pour l'échanger, jusqu'à la date limite ; il apparaît à l'état « Attendu ».
+    text: Le transfert attend que le partenaire se connecte au serveur pour l'échanger, jusqu'à la date limite ; il apparaît au statut « Attendu ».
   form:
     refused: Le transfert n'a pas été créé
     refused_text: Corrigez les champs signalés.

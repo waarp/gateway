@@ -2087,11 +2087,11 @@ transfers:
     id: number
     start: start
     file: file
-    state: state
+    state: status
     rule: rule
     stop: end
   pager: "Transfers {from} to {to} of {total}"
-  # A state per transfer, then the row of the states (plural).
+  # A status per transfer, then the row of the statuses (plural).
   state:
     running: In progress
     error: Failed
@@ -2102,7 +2102,7 @@ transfers:
     done: Done
     cancelled: Cancelled
   states:
-    label: Transfer states
+    label: Transfer statuses
     all: All
     running: In progress
     error: Failed
@@ -2112,7 +2112,7 @@ transfers:
     available: Expected
     done: Done
     cancelled: Cancelled
-  # What each state means, as a tooltip of the row of the states.
+  # What each status means, as a tooltip of the row of the statuses.
   hint:
     all: Every transfer, to come, running and past
     running: The transfer is running
@@ -2129,7 +2129,11 @@ transfers:
     direction: Direction
     direction_all: Send and receive
     partner: Partner or server
+    partner_all: Every partner and server
+    partners: Remote partners
+    servers: Local servers
     account: Account
+    account_all: Every account
     protocol: Protocol
     protocol_all: Every protocol
     from: Start from
@@ -2143,7 +2147,7 @@ transfers:
   col:
     id: No.
     file: File
-    state: State
+    state: Status
     direction: Direction
     rule: Rule
     partner: Partner
@@ -2153,7 +2157,12 @@ transfers:
     stop: End
     actions: Actions
   error_tip: "{cause}: {message}"
-  dir_tip: "{dir}, the gateway is the {role}"
+  # The direction and the role of the gateway, in the words of the historic screen.
+  dir_tip:
+    client_send: Sending from client to server
+    client_receive: Reception on the client from the server
+    server_send: Sending from server to client
+    server_receive: Reception on the server from the client
   partner_tip: "{partner} · account {account}"
   due_title: "Expected until {date}"
   next_title: "Next attempt on {date}"
@@ -2274,15 +2283,15 @@ transfers:
     title: Action impossible
     elsewhere: This transfer runs on another node of the cluster. Act from the interface of that node.
     pause_title: "“{name}” cannot be paused"
-    pause: "Only a transfer in progress, or planned by the gateway, can be paused. State of the transfer: {state}."
+    pause: "Only a transfer in progress, or planned by the gateway, can be paused. Status of the transfer: {state}."
     resume_title: "“{name}” cannot resume"
-    resume: "Only a paused, interrupted or failed transfer resumes. State of the transfer: {state}."
+    resume: "Only a paused, interrupted or failed transfer resumes. Status of the transfer: {state}."
     resume_server: A server transfer resumes when the partner connects again.
     resume_sync: "This transfer is part of transfer No. {parent}: resume that one."
     cancel_title: "“{name}” cannot be cancelled"
-    cancel: "A done or cancelled transfer can no longer be cancelled. State of the transfer: {state}."
+    cancel: "A done or cancelled transfer can no longer be cancelled. Status of the transfer: {state}."
     retry_title: "“{name}” cannot be retried"
-    retry: "A planned, available or running transfer cannot be retried. State of the transfer: {state}."
+    retry: "A planned, available or running transfer cannot be retried. Status of the transfer: {state}."
     retry_server: A server transfer is retried by the partner.
   cancel:
     title: "Cancel the transfer “{name}”?"

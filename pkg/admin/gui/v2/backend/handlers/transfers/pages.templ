@@ -131,16 +131,42 @@ templ filtersPanel(f filterView) {
 	</div>
 	<div class="w-field">
 		<label class="w-field__label" for="f-partner">{ gui.T(ctx, "transfers.filter.partner") }</label>
-		<input class="w-input" id="f-partner" name={ paramPartner } value={ f.Partner } list="tf-partners" autocomplete="off"/>
-		<datalist id="tf-partners">
-			for _, name := range f.Partners {
-				<option value={ name }></option>
+		<select class="w-select" id="f-partner" name={ paramPartner }>
+			<option value="">{ gui.T(ctx, "transfers.filter.partner_all") }</option>
+			if f.PartnerExtra != "" {
+				<option value={ f.PartnerExtra } selected>{ f.PartnerExtra }</option>
 			}
-		</datalist>
+			if len(f.Partners) > 0 {
+				<optgroup label={ gui.T(ctx, "transfers.filter.partners") }>
+					for _, name := range f.Partners {
+						<option value={ name } selected?={ name == f.Partner }>{ name }</option>
+					}
+				</optgroup>
+			}
+			if len(f.Servers) > 0 {
+				<optgroup label={ gui.T(ctx, "transfers.filter.servers") }>
+					for _, name := range f.Servers {
+						<option value={ name } selected?={ name == f.Partner }>{ name }</option>
+					}
+				</optgroup>
+			}
+		</select>
 	</div>
 	<div class="w-field">
 		<label class="w-field__label" for="f-account">{ gui.T(ctx, "transfers.filter.account") }</label>
-		<input class="w-input" id="f-account" name={ paramAccount } value={ f.Account } autocomplete="off"/>
+		<select class="w-select" id="f-account" name={ paramAccount }>
+			<option value="">{ gui.T(ctx, "transfers.filter.account_all") }</option>
+			if f.AccountExtra != "" {
+				<option value={ f.AccountExtra } selected>{ f.AccountExtra }</option>
+			}
+			for i, group := range f.Accounts {
+				<optgroup label={ group.Agent }>
+					for _, login := range group.Logins {
+						<option value={ login } selected?={ i == f.AccountGroup && login == f.Account }>{ login }</option>
+					}
+				</optgroup>
+			}
+		</select>
 	</div>
 	<div class="w-field">
 		<label class="w-field__label" for="f-protocol">{ gui.T(ctx, "transfers.filter.protocol") }</label>
@@ -206,7 +232,7 @@ templ tableRegion(d listData) {
 								>
 									@gui.StatusOf(r.Status)
 								</td>
-								<td><a class="tf-file" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }>{ r.File }</a></td>
+								<td><a class="tf-file w-truncate w-truncate--start" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }><bdi>{ r.File }</bdi></a></td>
 								<td class="w-mono" title={ r.RuleTip }>{ r.Rule }</td>
 								<td class="tf-x" title={ r.PartnerTip }>{ r.Partner }</td>
 								<td class="tf-time">@momentCell(r.Start)</td>
@@ -233,7 +259,7 @@ templ tableRegion(d listData) {
 										<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_size") }</span>
 									}
 								</td>
-								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.File, Items: r.Actions})</td>
+								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
 							</tr>
 						}
 					</tbody>

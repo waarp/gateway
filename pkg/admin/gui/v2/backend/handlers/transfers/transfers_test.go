@@ -260,42 +260,62 @@ func TestList(t *testing.T) {
 
 		// The last transfers first (the highest numbers); the number, then the file with its protocol under it.
 		assert.Equal(t, 6, rows(body))
-		indexes(t, body, "<tbody>", ">virements.xml</a>", ">commandes-0457.edi</a>", ">inventaire.csv</a>",
-			">rapport-mensuel.pdf</a>", ">releve-20102026.pdf</a>", ">paie-octobre.xml</a>", "</tbody>")
+		indexes(t, body, "<tbody>", "<bdi>virements.xml</bdi></a>", "<bdi>commandes-0457.edi</bdi></a>", "<bdi>inventaire.csv</bdi></a>",
+			"<bdi>rapport-mensuel.pdf</bdi></a>", "<bdi>releve-20102026.pdf</bdi></a>", "<bdi>paie-octobre.xml</bdi></a>", "</tbody>")
 		assert.Contains(t, body, `class="w-num" aria-sort="descending"><a href="/webui/transfers?sort=id&amp;dir=asc">N°</a>`)
 		// One line per transfer, in the order of the columns of the historic screen: the direction as an icon, the
 		// number, the state (strong), the file, the rule, the partner, the start, the end, the progress, the size;
 		// what does not fit goes to the tooltips; a failed transfer says "Failed" alone.
-		indexes(t, body, `<td class="tf-dir" title="Envoi, la passerelle est client">`,
+		indexes(t, body, `<td class="tf-dir" title="Envoi depuis le client vers le serveur">`,
 			`<td class="w-num tf-num">`+strconv.FormatInt(s.failed.ID, 10)+`</td>`,
 			`title="Accès refusé : failed to make transfer request: FICHIER DEJA RECU"`,
 			`<span class="w-status w-status--ko w-status--strong">En erreur</span>`,
-			`title="releve-20102026.pdf · SFTP">releve-20102026.pdf</a>`,
-			`title="releves · banque-demo · compte prod">releves</td>`,
-			`<td class="tf-x" title="banque-demo · compte prod">banque-demo</td>`,
+			`title="releve-20102026.pdf"><bdi>releve-20102026.pdf</bdi></a>`,
+			`title="releves · banque-demo · compte prod · SFTP">releves</td>`,
+			`<td class="tf-x" title="banque-demo · compte prod · SFTP">banque-demo</td>`,
 			`title="21/10/2026 à 10:38:02">21/10/2026 10:38:02</span>`,
 			`<span class="tf-next" title="Prochaine tentative le 21/10/2026 à 10:43:02">`, "<span>21/10/2026 10:43:02</span>")
 		assert.NotContains(t, body, "tf-cause", "no part of the error under the state")
 		assert.NotContains(t, body, "tf-sub", "no second line in the list")
 		assert.NotContains(t, body, `title="prod">prod</td>`, "the account in the tooltip of the partner only")
-		indexes(t, body, ">paie-octobre.xml</a>", `<span class="tf-gauge"><progress class="tf-progress" max="100" value="64"`,
+		indexes(t, body, "<bdi>paie-octobre.xml</bdi></a>", `<span class="tf-gauge"><progress class="tf-progress" max="100" value="64"`,
 			`<span class="tf-gauge__pct" aria-hidden="true">64 %</span>`, `<td class="w-num" title="1 228 800 octets">1,2 Mo</td>`)
-		indexes(t, body, "Attendu</span>", ">inventaire.csv</a>", "srv-sftp",
+		indexes(t, body, "Attendu</span>", "<bdi>inventaire.csv</bdi></a>", "srv-sftp",
 			`title="Attendu jusqu&#39;au 21/10/2026 à 23:00:00">21/10/2026 23:00:00</span>`)
-		indexes(t, body, "Planifié</span>", ">rapport-mensuel.pdf</a>",
+		indexes(t, body, "Planifié</span>", "<bdi>rapport-mensuel.pdf</bdi></a>",
 			`title="21/10/2026 à 18:00:00">21/10/2026 18:00:00</span>`, "Taille inconnue", "</tr>")
-		assert.Contains(t, body, `title="Réception, la passerelle est serveur"`, "the direction and the role in the tooltip")
+		assert.Contains(t, body, `title="Réception sur le serveur depuis le client"`, "the direction and the role in the tooltip")
 		assert.Contains(t, body, `<use href="#cloud-download"/>`, "a cloud when the gateway is the server")
 		assert.NotContains(t, body, ">0 octet<", "no size before the transfer starts")
+
+		// The partner and the account chosen in lists, as the rule and the direction: the partners and the servers
+		// in two groups, the accounts under their partner or server.
+		indexes(t, body, `<select class="w-select" id="f-partner" name="partner">`, "Tous les partenaires et serveurs",
+			`<optgroup label="Partenaires distants">`, `<option value="banque-demo">banque-demo</option>`,
+			`<optgroup label="Serveurs locaux">`, `<option value="srv-sftp">srv-sftp</option>`, "</select>",
+			`<select class="w-select" id="f-account" name="account">`, "Tous les comptes",
+			`<optgroup label="banque-demo">`, `<option value="prod">prod</option>`,
+			`<optgroup label="srv-sftp">`, `<option value="filiale-sud">filiale-sud</option>`, "</select>")
+
+		// A partner chosen: its accounts alone.
+		rec = s.get(t, permWrite, "/webui/transfers?partner=srv-sftp&account=filiale-sud")
+		chosen := rec.Body.String()
+		indexes(t, chosen, `<option value="srv-sftp" selected>srv-sftp</option>`, `<select class="w-select" id="f-account"`,
+			`<optgroup label="srv-sftp">`, `<option value="filiale-sud" selected>filiale-sud</option>`, "</select>")
+		assert.NotContains(t, chosen, `<optgroup label="banque-demo">`, "the accounts of the chosen partner alone")
+
+		// A partner of the address that the lists do not hold shows alone, chosen.
+		rec = s.get(t, permWrite, "/webui/transfers?partner=partenaire-supprime")
+		assert.Contains(t, rec.Body.String(), `<option value="partenaire-supprime" selected>partenaire-supprime</option>`)
 
 		// The secondary action of the header in a "⋯" menu, as on the other pages.
 		indexes(t, body, `popovertarget="act-page"`, `<div class="w-actions" id="act-page" popover>`,
 			`href="/webui/transfers/preregister"`)
 
 		// The actions the state allows, in the menu.
-		indexes(t, body, ">virements.xml</a>", "Voir le transfert", "Relancer", ">commandes-0457.edi</a>")
-		indexes(t, body, ">releve-20102026.pdf</a>", "Voir le transfert", "Reprendre", "Relancer", "Annuler le transfert",
-			">paie-octobre.xml</a>", "Voir le transfert", "Mettre en pause", "Annuler le transfert", "</tbody>")
+		indexes(t, body, "<bdi>virements.xml</bdi></a>", "Voir le transfert", "Relancer", "<bdi>commandes-0457.edi</bdi></a>")
+		indexes(t, body, "<bdi>releve-20102026.pdf</bdi></a>", "Voir le transfert", "Reprendre", "Relancer", "Annuler le transfert",
+			"<bdi>paie-octobre.xml</bdi></a>", "Voir le transfert", "Mettre en pause", "Annuler le transfert", "</tbody>")
 	})
 
 	t.Run("Given a user who may only read", func(t *testing.T) {
@@ -320,7 +340,7 @@ func TestList(t *testing.T) {
 
 		body := s.get(t, permRead, "/webui/transfers?state=error").Body.String()
 		assert.Equal(t, 1, rows(body))
-		assert.Contains(t, body, ">releve-20102026.pdf</a>")
+		assert.Contains(t, body, "<bdi>releve-20102026.pdf</bdi></a>")
 		assert.Contains(t, body, `href="/webui/transfers?state=error" title="Le transfert a échoué ; il peut être retenté, repris ou relancé" aria-current="true"><span class="w-status w-status--ko">En erreur</span>`)
 		assert.Contains(t, body, `<input type="hidden" name="state" value="error">`, "a search keeps the state")
 		assert.Contains(t, body, `aria-live="polite">1 transfert</span>`)
@@ -338,14 +358,14 @@ func TestList(t *testing.T) {
 
 		body := s.get(t, permRead, "/webui/transfers?q=paie").Body.String()
 		assert.Equal(t, 1, rows(body), "by a part of the file name")
-		assert.Contains(t, body, ">paie-octobre.xml</a>")
+		assert.Contains(t, body, "<bdi>paie-octobre.xml</bdi></a>")
 		assert.Contains(t, body, `<span>Tous</span> <span class="tf-count">1</span>`, "the states count what the search finds")
 		assert.Contains(t, body, `<span>En erreur</span> <span class="tf-count">0</span>`,
 			"no error shape without a failed transfer")
 
 		body = s.get(t, permRead, "/webui/transfers?q=2112951385528143872").Body.String()
 		assert.Equal(t, 1, rows(body), "by the follow ID")
-		assert.Contains(t, body, ">releve-20102026.pdf</a>")
+		assert.Contains(t, body, "<bdi>releve-20102026.pdf</bdi></a>")
 
 		body = s.get(t, permRead, "/webui/transfers?q=absent").Body.String()
 		assert.Contains(t, body, "Aucun transfert ne correspond à « absent »")
@@ -390,22 +410,22 @@ func TestList(t *testing.T) {
 		s.fixtures(t)
 
 		body := s.get(t, permRead, "/webui/transfers?sort=file&dir=asc").Body.String()
-		indexes(t, body, "<tbody>", ">commandes-0457.edi</a>", ">inventaire.csv</a>", ">paie-octobre.xml</a>",
-			">rapport-mensuel.pdf</a>", ">releve-20102026.pdf</a>", ">virements.xml</a>")
+		indexes(t, body, "<tbody>", "<bdi>commandes-0457.edi</bdi></a>", "<bdi>inventaire.csv</bdi></a>", "<bdi>paie-octobre.xml</bdi></a>",
+			"<bdi>rapport-mensuel.pdf</bdi></a>", "<bdi>releve-20102026.pdf</bdi></a>", "<bdi>virements.xml</bdi></a>")
 
 		body = s.get(t, permRead, "/webui/transfers?sort=state&dir=asc").Body.String()
-		indexes(t, body, "<tbody>", ">paie-octobre.xml</a>", ">releve-20102026.pdf</a>", ">rapport-mensuel.pdf</a>",
-			">inventaire.csv</a>", ">commandes-0457.edi</a>", ">virements.xml</a>")
+		indexes(t, body, "<tbody>", "<bdi>paie-octobre.xml</bdi></a>", "<bdi>releve-20102026.pdf</bdi></a>", "<bdi>rapport-mensuel.pdf</bdi></a>",
+			"<bdi>inventaire.csv</bdi></a>", "<bdi>commandes-0457.edi</bdi></a>", "<bdi>virements.xml</bdi></a>")
 
 		body = s.get(t, permRead, "/webui/transfers?sort=start&dir=asc").Body.String()
-		indexes(t, body, "<tbody>", ">virements.xml</a>", ">commandes-0457.edi</a>", ">rapport-mensuel.pdf</a>")
+		indexes(t, body, "<tbody>", "<bdi>virements.xml</bdi></a>", "<bdi>commandes-0457.edi</bdi></a>", "<bdi>rapport-mensuel.pdf</bdi></a>")
 		assert.Contains(t, body, `aria-sort="ascending"`)
 
 		body = s.get(t, permRead, "/webui/transfers?sort=id&dir=asc").Body.String()
-		indexes(t, body, "<tbody>", ">paie-octobre.xml</a>", ">releve-20102026.pdf</a>", ">virements.xml</a>")
+		indexes(t, body, "<tbody>", "<bdi>paie-octobre.xml</bdi></a>", "<bdi>releve-20102026.pdf</bdi></a>", "<bdi>virements.xml</bdi></a>")
 
 		body = s.get(t, permRead, "/webui/transfers?sort=start&dir=desc").Body.String()
-		indexes(t, body, "<tbody>", ">inventaire.csv</a>", ">rapport-mensuel.pdf</a>", ">paie-octobre.xml</a>")
+		indexes(t, body, "<tbody>", "<bdi>inventaire.csv</bdi></a>", "<bdi>rapport-mensuel.pdf</bdi></a>", "<bdi>paie-octobre.xml</bdi></a>")
 	})
 
 	t.Run("Given the refresh", func(t *testing.T) {
@@ -420,7 +440,7 @@ func TestList(t *testing.T) {
 		body := rec.Body.String()
 		assert.NotContains(t, body, "<html", "the fragment alone")
 		indexes(t, body, `<div id="transfers-fragment"`, `id="transfers-states"`, `id="transfers-count"`,
-			`id="transfers-table"`, ">releve-20102026.pdf</a>")
+			`id="transfers-table"`, "<bdi>releve-20102026.pdf</bdi></a>")
 		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=state%3Derror",
 			"the state the script loads is the one to find again when coming back")
 
@@ -535,7 +555,7 @@ func TestActions(t *testing.T) {
 		rec = s.post(t, permWrite, pathOf(s.done.ID, "/pause"), nil)
 		require.Equal(t, http.StatusConflict, rec.Code)
 		assert.Contains(t, rec.Body.String(), "« commandes-0457.edi » ne peut pas être mis en pause")
-		assert.Contains(t, rec.Body.String(), "État du transfert : Terminé.")
+		assert.Contains(t, rec.Body.String(), "Statut du transfert : Terminé.")
 	})
 
 	t.Run("Pause on another node", func(t *testing.T) {
@@ -569,7 +589,7 @@ func TestActions(t *testing.T) {
 		rec = s.post(t, permWrite, pathOf(s.planned.ID, "/resume"), nil)
 		require.Equal(t, http.StatusConflict, rec.Code)
 		assert.Contains(t, rec.Body.String(), "Seul un transfert en pause, interrompu ou en erreur reprend.")
-		assert.Contains(t, rec.Body.String(), "État du transfert : Planifié.")
+		assert.Contains(t, rec.Body.String(), "Statut du transfert : Planifié.")
 	})
 
 	t.Run("Cancel", func(t *testing.T) {
@@ -728,7 +748,7 @@ func TestForms(t *testing.T) {
 		s.fixtures(t)
 
 		body := s.get(t, permWrite, "/webui/transfers/preregister").Body.String()
-		indexes(t, body, "Pré-enregistrer un transfert", "à l&#39;état « Attendu »", `<optgroup label="srv-sftp">`,
+		indexes(t, body, "Pré-enregistrer un transfert", "au statut « Attendu »", `<optgroup label="srv-sftp">`,
 			">filiale-sud</option>", "Date limite")
 		assert.NotContains(t, body, "Tentatives en cas d&#39;erreur", "no retry for a server transfer")
 
@@ -769,6 +789,24 @@ func TestMoment(t *testing.T) {
 	assert.Equal(t, "31/12/2025 08:00:00", momentOf(translate, time.Date(2025, 12, 31, 8, 0, 0, 0, time.Local)).Text)
 	assert.Equal(t, "2026-10-21 10:38:02", momentOf(catalog.Translator("en"), at(10, 38, 2)).Text)
 	assert.Equal(t, moment{}, momentOf(translate, time.Time{}))
+}
+
+func TestDestination(t *testing.T) {
+	t.Parallel()
+
+	send := &model.NormalizedTransferView{
+		IsSend: true, LocalPath: "/gw/out/a.csv", RemotePath: "in/a.csv", SrcFilename: "a.csv", DestFilename: "a.csv",
+	}
+	assert.Equal(t, "in/a.csv", destination(send), "a send: its path at the partner")
+
+	receive := &model.NormalizedTransferView{
+		LocalPath: "/gw/in/b.csv", RemotePath: "out/b.csv", SrcFilename: "b.csv", DestFilename: "b.csv",
+	}
+	assert.Equal(t, "/gw/in/b.csv", destination(receive), "a receive: its path on the gateway")
+
+	planned := &model.NormalizedTransferView{IsSend: true, SrcFilename: "c.csv", DestFilename: "c-dest.csv"}
+	assert.Equal(t, "c-dest.csv", destination(planned), "the name at the destination until the path is known")
+	assert.Equal(t, "d.csv", destination(&model.NormalizedTransferView{SrcFilename: "d.csv"}))
 }
 
 // TestCatalogue checks that every state, every error code and every step of

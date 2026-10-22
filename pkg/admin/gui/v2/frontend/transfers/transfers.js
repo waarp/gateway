@@ -1,15 +1,11 @@
-// Transfer monitoring screen. On the pages that add a transfer: the rows of the transfer information. On the list:
-// refreshes the row of the states, the count and the table every few seconds without
-// reloading the page, keeping the search, the filters, the state, the sort and the page (they live in the address);
-// loads the state, sort and page links the same way; keeps a persistent message when a refresh fails, and tries again
-// at the next period. The refresh waits while the user types in the toolbar or has a menu open. The page works without
-// this file: every link then reloads it. Every text comes from the page (data attributes and the error template).
+// Transfer monitoring screen. Pages that add a transfer: the rows of the transfer information. The list: refreshes
+// the states, the count and the table in place (the address keeps search, filters, state, sort and page), loads the
+// state, sort and page links the same way, keeps a message when a refresh fails. Without this file, links reload.
 (() => {
   "use strict";
 
-  // The transfer information of the pages that add a transfer: "Add an information" adds a row in place (without
-  // JavaScript, the form comes back with one more row), the button of a row removes it, and the rows are numbered
-  // again so that every field keeps its own label.
+  // Transfer information: "Add" adds a row in place (without JavaScript, the form comes back with one more), a row's
+  // button removes it, the rows are numbered again so that every field keeps its label.
   const infos = document.querySelector("[data-infos]");
   const rowTemplate = document.getElementById("tf-info-row");
   const addInfo = document.querySelector("[data-info-add]");
@@ -63,7 +59,7 @@
 
   const period = Number(region().dataset.refreshSeconds) * 1000;
   let lastRead = live.textContent.replace(/^.*?(\d{1,2}:\d{2}:\d{2}).*$/, "$1");
-  let busy = false;
+  let request = null, timer = 0;
 
   const announce = (text) => { live.textContent = text; };
   const settled = () => announce(live.dataset.live.replace("{time}", lastRead));
@@ -76,8 +72,7 @@
     return url;
   };
 
-  // The menus and the list foot of the new table, as kit.js enhances them at load: the menu opens under its button,
-  // the arrows move between its entries, an entry closes it; a new page or a new number of rows is sent.
+  // The menus and the list foot of the new table, as kit.js enhances them at load.
   const enhance = (root) => {
     root.querySelectorAll(".w-actions[popover]").forEach((menu) => {
       const btn = root.querySelector('[popovertarget="' + menu.id + '"]');
@@ -151,29 +146,37 @@
     }
   };
 
+  // A click cancels a refresh under way, a late answer never replaces a newer one; the next refresh comes a period
+  // after the end of the last (2026-10-22: a slow list lost pages and jumped back).
+  const later = () => { clearTimeout(timer); timer = setTimeout(() => refresh(false), period); };
   const refresh = async (asked) => {
-    if (busy || (!asked && waiting())) return;
-    busy = true;
+    if (!asked && (request || waiting())) { if (!request) later(); return; }
+    if (request) request.abort();
+    const mine = request = new AbortController();
     region().setAttribute("aria-busy", "true");
     announce(live.dataset.refreshing);
     try {
       const response = await fetch(fragmentURL(), {
-        headers: { Accept: "text/html" }, credentials: "same-origin", redirect: "error", cache: "no-store",
+        headers: { Accept: "text/html" }, credentials: "same-origin", redirect: "error", cache: "no-store", signal: mine.signal,
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
       const fresh = new DOMParser().parseFromString(await response.text(), "text/html").getElementById("transfers-fragment");
       if (!fresh) throw new Error("unexpected fragment");
+      if (mine !== request) return;
       const banner = document.querySelector(".tf-refresh-error");
       if (banner) banner.remove();
       lastRead = fresh.dataset.refreshedAt || lastRead;
       swap(fresh);
     } catch (error) {
-      showError();
+      if (mine === request) showError();
     } finally {
-      const current = region();
-      if (current) current.removeAttribute("aria-busy");
-      settled();
-      busy = false;
+      if (mine === request) {
+        request = null;
+        const current = region();
+        if (current) current.removeAttribute("aria-busy");
+        settled();
+        later();
+      }
     }
   };
 
@@ -207,5 +210,5 @@
 
   if (refreshButton) refreshButton.addEventListener("click", (event) => { event.preventDefault(); refresh(true); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(false); });
-  setInterval(() => refresh(false), period);
+  later();
 })();

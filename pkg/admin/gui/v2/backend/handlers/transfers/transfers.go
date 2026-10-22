@@ -123,8 +123,9 @@ func stateSpecs() []stateSpec {
 // the row of the states. The expressions are written from constants only.
 func sortExpression(key string) string {
 	switch key {
-	case sortFile:
-		return "COALESCE(NULLIF(src_filename, ''), dest_filename)"
+	case sortFile: // what the list shows: the destination of the file
+		return "CASE WHEN is_send THEN COALESCE(NULLIF(remote_path, ''), NULLIF(dest_filename, ''), src_filename) " +
+			"ELSE COALESCE(NULLIF(local_path, ''), NULLIF(dest_filename, ''), src_filename) END"
 	case sortState:
 		var cases strings.Builder
 
@@ -202,6 +203,24 @@ func fileName(trans *model.NormalizedTransferView) string {
 	for _, name := range []string{trans.LocalPath, trans.SrcFilename, trans.DestFilename} {
 		if name != "" {
 			return path.Base(strings.ReplaceAll(name, "\\", "/"))
+		}
+	}
+
+	return ""
+}
+
+// destination is the file of a transfer where it goes, as the list shows it
+// (Driss, 2026-10-22): for a send, its path at the partner; for a receive,
+// its path on the gateway; the names of the transfer until they are known.
+func destination(trans *model.NormalizedTransferView) string {
+	where := trans.LocalPath
+	if trans.IsSend {
+		where = trans.RemotePath
+	}
+
+	for _, name := range []string{where, trans.DestFilename, trans.SrcFilename} {
+		if name != "" {
+			return name
 		}
 	}
 

@@ -236,8 +236,9 @@ type stateItem struct {
 // not fit goes to the tooltips.
 type row struct {
 	ID         int64
-	File       string
-	FileTitle  string // the path of the file and its protocol
+	File       string // the file where it goes (destination), cut at its start when too long
+	FileTitle  string // the same, whole
+	Name       string // the name of the file, for the label of the actions
 	URL        string
 	Status     gui.Status
 	StatusTip  string // the cause and the message of an error
@@ -311,16 +312,29 @@ type listData struct {
 
 // filterView is the filters panel: the current criteria and the choices.
 type filterView struct {
-	Rule      string
-	Rules     []string
-	Dir       string
-	Partner   string
-	Partners  []string
-	Account   string
-	Protocol  string
-	Protocols []gui.Choice
-	From      string
-	To        string
+	Rule     string
+	Rules    []string
+	Dir      string
+	Partner  string
+	Partners []string // the remote partners
+	Servers  []string // the local servers
+	Account  string
+	Accounts []accountGroup
+	// A partner or an account of the address that the lists do not hold (a
+	// partner deleted since) shows alone, chosen: the filter in use stays seen.
+	PartnerExtra string
+	AccountExtra string
+	AccountGroup int // the group that carries the chosen account: a login under several partners is chosen once
+	Protocol     string
+	Protocols    []gui.Choice
+	From         string
+	To           string
+}
+
+// accountGroup is the accounts of a partner or of a server, in the filters.
+type accountGroup struct {
+	Agent  string
+	Logins []string
 }
 
 // List serves GET /webui/transfers; with ?fragment=list, the refreshed part
@@ -542,7 +556,17 @@ func (h *Handlers) filterView(crit *filters) filterView {
 		h.logger.Warningf("failed to list the rules for the filters: %v", err)
 	}
 
-	view.Partners = h.agentNames()
+	view.Partners, view.Servers, view.Accounts = h.agentChoices(crit.Partner)
+	view.AccountGroup = firstGroupOf(view.Accounts, crit.Account)
+
+	known := slices.Contains(view.Partners, crit.Partner) || slices.Contains(view.Servers, crit.Partner)
+	if crit.Partner != "" && !known {
+		view.PartnerExtra = crit.Partner
+	}
+
+	if crit.Account != "" && view.AccountGroup < 0 {
+		view.AccountExtra = crit.Account
+	}
 
 	// The families, each covering its TLS variant, as the filters of the
 	// servers and the clients.
@@ -553,30 +577,70 @@ func (h *Handlers) filterView(crit *filters) filterView {
 	return view
 }
 
-// agentNames are the names of the remote partners and of the local servers,
-// in order, each once.
-func (h *Handlers) agentNames() []string {
-	var names []string
+// agentChoices are the remote partners and the local servers of the filters,
+// in order, and their accounts: those of the partner or of the server chosen
+// alone when there is one, the filters applying as soon as they change
+// (Driss, 2026-10-22: the partner and the account chosen in lists, as the
+// rule and the direction).
+func (h *Handlers) agentChoices(chosen string) (partners, servers []string, accounts []accountGroup) {
+	if list, err := internal.ListPartners(h.db, "name", true, 0, 0); err == nil {
+		for _, partner := range list {
+			partners = append(partners, partner.Name)
 
-	if partners, err := internal.ListPartners(h.db, "name", true, 0, 0); err == nil {
-		for _, partner := range partners {
-			names = append(names, partner.Name)
+			if chosen != "" && chosen != partner.Name {
+				continue
+			}
+
+			if logins, accErr := internal.ListPartnerAccounts(h.db, partner.Name, "login", true, 0, 0); accErr == nil {
+				accounts = appendAccounts(accounts, partner.Name, logins, func(acc *model.RemoteAccount) string {
+					return acc.Login
+				})
+			}
 		}
 	} else {
 		h.logger.Warningf("failed to list the partners for the filters: %v", err)
 	}
 
-	if servers, err := internal.ListServers(h.db, "name", true, 0, 0); err == nil {
-		for _, server := range servers {
-			names = append(names, server.Name)
+	if list, err := internal.ListServers(h.db, "name", true, 0, 0); err == nil {
+		for _, server := range list {
+			servers = append(servers, server.Name)
+
+			if chosen != "" && chosen != server.Name {
+				continue
+			}
+
+			if logins, accErr := internal.ListServerAccounts(h.db, server.Name, "login", true, 0, 0); accErr == nil {
+				accounts = appendAccounts(accounts, server.Name, logins, func(acc *model.LocalAccount) string {
+					return acc.Login
+				})
+			}
 		}
 	} else {
 		h.logger.Warningf("failed to list the servers for the filters: %v", err)
 	}
 
-	slices.Sort(names)
+	return partners, servers, accounts
+}
 
-	return slices.Compact(names)
+// firstGroupOf is the index of the first group that holds a login, -1 for
+// none: a login under several partners is chosen once.
+func firstGroupOf(groups []accountGroup, login string) int {
+	return slices.IndexFunc(groups, func(group accountGroup) bool { return slices.Contains(group.Logins, login) })
+}
+
+// appendAccounts adds the accounts of a partner or of a server to the
+// filters, when it has some.
+func appendAccounts[A any](groups []accountGroup, agent string, accounts []A, login func(A) string) []accountGroup {
+	if len(accounts) == 0 {
+		return groups
+	}
+
+	group := accountGroup{Agent: agent}
+	for _, acc := range accounts {
+		group.Logins = append(group.Logins, login(acc))
+	}
+
+	return append(groups, group)
 }
 
 // rowOf lays out a transfer of the list, in the order of the columns of the
@@ -586,26 +650,34 @@ func (h *Handlers) agentNames() []string {
 // of the state; a failed transfer says "Failed" alone, its cause and message
 // in the tooltip (Driss, 2026-10-22: no part of the error under the state).
 func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried string) row {
-	dir, icon, role := translate("transfers.dir.receive"), "download", translate("transfers.role.client")
+	// The direction and the role as one icon, in the words of the historic
+	// screen in the tooltip ("Sending from the server to the client").
+	dir, icon, role := "receive", "download", "client"
 	if trans.IsSend {
-		dir, icon = translate("transfers.dir.send"), "upload"
+		dir, icon = "send", "upload"
 	}
 
 	if trans.IsServer {
-		role, icon = translate("transfers.role.server"), "cloud-"+icon
+		role, icon = "server", "cloud-"+icon
 	}
 
+	// The protocol in the tooltip of the partner, with the account (Driss,
+	// 2026-10-22), not in that of the file.
 	partnerTip := translate("transfers.partner_tip", "partner", trans.Agent, "account", trans.Account)
+	if label := protocolLabel(trans.Protocol); label != "" {
+		partnerTip += " · " + label
+	}
 	progress := progressOf(translate, trans)
 
 	line := row{
 		ID:         trans.ID,
-		File:       fileName(trans),
-		FileTitle:  fileTitle(trans),
+		File:       destination(trans),
+		FileTitle:  destination(trans),
+		Name:       fileName(trans),
 		URL:        withRet(transferURL(trans.ID, ""), carried),
 		Status:     statusOf(translate, trans.Status),
 		DirIcon:    icon,
-		DirTip:     translate("transfers.dir_tip", "dir", dir, "role", role),
+		DirTip:     translate("transfers.dir_tip." + role + "_" + dir),
 		Rule:       trans.Rule,
 		RuleTip:    trans.Rule + " · " + partnerTip,
 		Partner:    trans.Agent,
@@ -619,10 +691,6 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 
 	if line.Size != "" {
 		line.SizeTitle = exactSize(translate, trans.Filesize)
-	}
-
-	if label := protocolLabel(trans.Protocol); label != "" {
-		line.FileTitle += " · " + label
 	}
 
 	if trans.Status == types.StatusError {
@@ -662,22 +730,6 @@ func momentOf(translate gui.Translator, at time.Time) moment {
 	clock, date := timeAndDate(translate, at)
 
 	return moment{Text: translate("transfers.date_cell", "date", date, "time", clock), Title: dateTime(translate, at)}
-}
-
-// fileTitle is the path of the file of a transfer, shown as a tooltip: the
-// file on the gateway once known, else the names at the source and at the
-// destination when they differ.
-func fileTitle(trans *model.NormalizedTransferView) string {
-	switch {
-	case trans.LocalPath != "":
-		return trans.LocalPath
-	case trans.SrcFilename != "" && trans.DestFilename != "" && trans.SrcFilename != trans.DestFilename:
-		return trans.SrcFilename + " → " + trans.DestFilename
-	case trans.SrcFilename != "":
-		return trans.SrcFilename
-	default:
-		return trans.DestFilename
-	}
 }
 
 // progressOf is the progress of a transfer.

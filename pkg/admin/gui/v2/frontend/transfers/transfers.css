@@ -32,7 +32,7 @@
 .tf-list { container-type: inline-size; }
 .tf-table .w-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tf-col-dir { width: 2.5rem; }
-.tf-col-id { width: 4.5rem; }
+.tf-col-id { width: 5rem; }   /* seven digits (Driss, 2026-10-22) */
 .tf-col-state { width: 7.5rem; }
 .tf-col-rule { width: 12%; }
 .tf-col-partner { width: 10%; }
@@ -40,14 +40,14 @@
 .tf-col-progress { width: 7.75rem; }   /* the header "Progression" whole */
 .tf-col-size { width: 5.5rem; }
 .tf-col-actions { width: 52px; }
-.tf-dir { color: var(--ts); text-align: center; }
+.tf-table td.tf-dir { padding-left: var(--sp-2); padding-right: var(--sp-2); color: var(--ts); }
+.tf-dir svg.i { display: block; width: 1.5rem; height: 1.5rem; margin: 0 auto; }   /* 24 px, the grid of the drawing: a sharp 2 px line */
 .tf-num { color: var(--g600); font-size: var(--fs-sm); }
 .tf-file { color: var(--tp); font-weight: 700; }
 .tf-time { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }   /* the date and the time to the second, smaller */
 .tf-next { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--g600); }
 @container (max-width: 1499px) {
   .tf-table .tf-x { display: none; }
-  .tf-col-id { width: 4rem; }
   .tf-col-state { width: 6.75rem; }
 }
 @container (max-width: 999px) {
