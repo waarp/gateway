@@ -1769,6 +1769,129 @@ keys:
     title: La liste des clés cryptographiques n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
 
+# Écran « Règles de transfert » (#757) : la liste, la fiche (onglet Détails) et les pages d'action ; les onglets
+# Tâches et Accès mènent aux pages actuelles jusqu'à leurs propres écrans.
+rules:
+  title: Règles de transfert
+  add: Ajouter une règle
+  search: Rechercher une règle par son nom ou son chemin
+  search_placeholder: Rechercher par nom ou chemin
+  filters_direction: Sens
+  count: "{total} règles"
+  count_one: 1 règle
+  count_shown: "{total} règles · {shown} affichées"
+  count_shown_one: "{total} règles · 1 affichée"
+  caption: "Règles de transfert, page {page} sur {pages}, triées par {sort}"
+  pager: "Règles {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_rule: Retour à la règle
+  tasks_tip: "Avant le transfert : {pre} · après le transfert : {post} · en cas d'erreur : {error}"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    direction: sens
+    path: chemin
+  col:
+    name: Règle
+    direction: Sens
+    path: Chemin
+    tasks: Tâches
+    tasks_tip: "Nombre de tâches avant le transfert · après le transfert · en cas d'erreur"
+    access: Accès
+    comment: Commentaire
+    actions: Actions
+  # Les deux sens ; la forme en minuscules complète « Une autre règle … ».
+  direction:
+    send: Envoi
+    receive: Réception
+    send_lower: d'envoi
+    receive_lower: de réception
+  access:
+    open: Ouverte à tous
+    restricted: "Réservée : {n}"
+  action:
+    detail: Voir la fiche
+    edit: Modifier la règle
+    tasks: Voir les tâches
+    access: Voir les accès
+    transfers: Voir les transferts
+    delete: Supprimer la règle
+  tab:
+    label: Onglets de la règle
+    details: Détails
+    tasks: Tâches
+    access: Accès
+  dir:
+    local: Dossier local
+    remote: Dossier distant
+    tmp: Dossier de réception temporaire
+    local_empty: "Non défini : celui du serveur, sinon celui de la passerelle."
+    remote_empty: "Non défini : le partenaire reçoit le fichier sous son seul nom."
+    tmp_empty: "Non défini : un dossier choisi par la passerelle (celui de la règle ou du serveur)."
+  detail:
+    title: "Règle « {name} »"
+    card: Règle
+    folders: Dossiers
+    no_comment: Aucun commentaire
+    path_hint: "Les serveurs SFTP, FTP, WebDAV, AS2 et PeSIT standard reconnaissent la règle à ce chemin ; en R66, HTTP et PeSIT non standard, le partenaire la nomme."
+    open_hint: "Tout serveur, partenaire ou compte peut l'employer."
+  new:
+    title: Nouvelle règle de transfert
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    name: Nom
+    name_hint: "Unique dans un sens, sans « / » ; l'historique désigne la règle par ce nom."
+    path: Chemin
+    path_hint: "Ce par quoi les serveurs SFTP, FTP, WebDAV, AS2 et PeSIT standard reconnaissent la règle. Vide : le nom de la règle."
+    direction_hint: Le sens ne change plus une fois la règle créée.
+    direction_kept: "Le sens ne change pas : les tâches et les accès de la règle en dépendent. Pour l'autre sens, créez une règle."
+    direction_text:
+      send: "La passerelle envoie le fichier : un client l'envoie à un partenaire, ou un partenaire vient le chercher sur un serveur."
+      receive: "La passerelle reçoit le fichier : un partenaire le dépose sur un serveur, ou un client va le chercher."
+    local_hint: "Où le fichier est lu (envoi) ou déposé (réception) : chemin absolu, relatif au dossier du serveur ou de la passerelle, ou instance cloud."
+    remote_hint: "Où le fichier va chez le partenaire, pour un transfert lancé par la passerelle. Vers une Gateway en SFTP ou FTP : le chemin de sa règle de réception."
+    tmp_hint: Où le fichier attend la fin de sa réception ; un dossier local.
+    refused: La règle n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    history_title: L'historique désigne cette règle par son nom.
+    history_text: "Après un renommage, les transferts passés sous le nom « {name} » ne pourront plus être relancés."
+    error:
+      required: Ce champ est obligatoire.
+      slash: "Le nom ne peut pas contenir « / » : l'API ne pourrait plus désigner la règle."
+      too_long: "{n} caractères au plus."
+      direction: Choisissez un sens.
+      name_taken: "Une autre règle {direction} porte déjà ce nom."
+      path_taken: "Une autre règle {direction} a déjà ce chemin."
+      path_under: "Ce chemin se trouve sous celui d'une autre règle {direction} : choisissez un chemin à part."
+      path_above: "Une autre règle {direction} a un chemin sous celui-ci : choisissez un chemin à part."
+      tmp_local: "Le dossier de réception temporaire doit être local, pas une instance cloud."
+  delete:
+    title: "Supprimer la règle « {name} » ?"
+    gone: "Ses tâches ({tasks}) et ses accès ({access}) seront supprimés avec elle. L'historique de ses transferts reste, sous son nom."
+    held_title: Cette règle ne peut pas être supprimée.
+    held_text: "Des transferts ou des dossiers surveillés la désignent encore : annulez ou terminez ces transferts, changez ou supprimez ces dossiers surveillés, puis revenez."
+    transfers: "Transferts qui la désignent encore : {n} (en cours, programmés, en pause ou en erreur)."
+    transfers_link: Voir ces transferts
+    watcher: "Dossier surveillé « {name} » (ligne de commande ou API)."
+    refused: La règle n'a pas été supprimée.
+  toast:
+    created: "Règle « {name} » créée"
+    updated: "Règle « {name} » enregistrée"
+    deleted: "Règle « {name} » supprimée"
+  empty:
+    title: Aucune règle de transfert pour l'instant
+    text: "Une règle dit dans quel sens un fichier s'échange, entre quels dossiers, avec quels traitements et pour qui."
+  none:
+    title: "Aucune règle ne correspond à « {query} »"
+    filters: Aucune règle ne correspond aux filtres.
+  not_found:
+    title: Règle introuvable
+    text: Cette règle n'existe pas ou a été supprimée.
+  error:
+    title: La liste des règles de transfert n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
 # Règles dont les tâches désignent un objet par son nom (clés cryptographiques, identifiants SMTP).
 rule_uses:
   count:

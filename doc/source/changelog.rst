@@ -3,6 +3,19 @@
 Historique des versions
 =======================
 
+* :feature:`757` L'interface web propose un nouvel écran des règles de transfert
+  (voir :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace
+  l'ancienne page dans la navigation : la liste des règles avec leur sens,
+  leur chemin, le nombre de tâches de chaque chaîne et l'état de leurs accès,
+  recherche par nom ou chemin, filtre par sens, tri et pagination ; la fiche
+  d'une règle avec ses dossiers et ce que la Gateway emploie quand l'un est
+  vide, et des onglets vers ses tâches et ses accès ; les pages d'ajout, de
+  modification et de suppression. Le sens d'une règle ne change plus après sa
+  création, un nom ne peut plus contenir « / », le renommage d'une règle que
+  l'historique emploie est signalé, et la suppression d'une règle que des
+  transferts ou des dossiers surveillés désignent encore est expliquée.
+  L'ancienne page reste accessible à son adresse jusqu'à la version suivante.
+
 * :feature:`745` L'interface web propose un nouvel écran de suivi des transferts
   (voir :ref:`le guide de l'interface web <user-webui-transfers>`), qui remplace
   l'ancienne page dans la navigation : les transferts et l'historique ensemble,

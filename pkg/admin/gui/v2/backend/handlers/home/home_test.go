@@ -51,7 +51,7 @@ func TestHomePage(t *testing.T) {
 		assert.Contains(t, body, `<h2 class="w-card__title" id="home-connection">Connexions</h2>`)
 		assert.Contains(t, body, `href="/webui/servers"`, "a reworked screen leads to its new page")
 		assert.Contains(t, body, `href="/webui/partners"`, "the partners too (#714)")
-		assert.Contains(t, body, `href="/webui/transfer_rules_management"`, "a screen not reworked yet leads to its historic page")
+		assert.Contains(t, body, `href="/webui/rules"`, "the transfer rules too (#757)")
 		assert.Contains(t, body, `<span class="w-link-card__label">Serveurs locaux</span>`)
 		assert.Contains(t, body, `<span class="w-link-card__text">Points d&#39;écoute, un par protocole</span>`)
 

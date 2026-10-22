@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/overrides"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/partners"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
@@ -55,6 +56,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeAuthoritiesRouter(router, db, logger)
 	MakeSNMPRouter(router, db, logger)
 	MakeOverridesRouter(router, db, logger)
+	MakeRulesRouter(router, db, logger)
 	MakeKeysRouter(router, db, logger)
 	MakeSMTPCredentialsRouter(router, db, logger)
 	MakeEmailTemplatesRouter(router, db, logger)
@@ -406,6 +408,21 @@ func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger
 	routes.write("/overrides/new", handlers.NewForm, handlers.Create)
 	routes.write("/overrides/edit", handlers.EditForm, handlers.Update)
 	routes.del("/overrides/delete", handlers.DeleteForm, handlers.Delete)
+}
+
+// MakeRulesRouter registers the "Transfer rules" screen, behind the rights on
+// the rules as the REST API: the list and the sheet in reading, the creation,
+// the edition, the deletion.
+func MakeRulesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := rules.New(db, logger)
+	routes := ruleRoutes{router}
+	const rulePath = "/rules/{id:[0-9]+}"
+
+	routes.read("/rules", handlers.List)
+	routes.write("/rules/new", handlers.NewForm, handlers.Create)
+	routes.read(rulePath, handlers.Detail)
+	routes.write(rulePath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(rulePath+"/delete", handlers.DeleteForm, handlers.Delete)
 }
 
 // MakeKeysRouter registers the "Cryptographic keys" screen: the list and the
