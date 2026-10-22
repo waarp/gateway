@@ -8,7 +8,6 @@ package ruleuse
 
 import (
 	"cmp"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -104,8 +103,8 @@ func Read(db database.ReadAccess, params Params) (map[string][]Use, error) {
 // Stylesheet is the stylesheet of List, for the screens that show it.
 const Stylesheet = "/static_v2/ruleuse/ruleuse.css"
 
-// Row is a rule that names an object, ready to render: a link to the tasks
-// of the rule, where the object is changed, and its direction.
+// Row is a rule that names an object, ready to render: a link to the Tasks
+// tab of the rule, where the object is changed, and its direction.
 type Row struct {
 	Rule      string
 	URL       string
@@ -123,7 +122,7 @@ func Rows(translate gui.Translator, uses []Use) []Row {
 
 		out = append(out, Row{
 			Rule:      u.Rule,
-			URL:       common.WebuiURL("/tasks") + "?" + url.Values{"ruleID": {strconv.FormatInt(u.RuleID, 10)}}.Encode(),
+			URL:       common.WebuiURL("/rules/" + strconv.FormatInt(u.RuleID, 10) + "/tasks"),
 			Direction: direction,
 		})
 	}

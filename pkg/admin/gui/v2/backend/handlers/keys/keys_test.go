@@ -269,7 +269,7 @@ func path(k *model.CryptoKey, suffix string) string {
 }
 
 func tasksURL(r *model.Rule) string {
-	return "/webui/tasks?ruleID=" + strconv.FormatInt(r.ID, 10)
+	return "/webui/rules/" + strconv.FormatInt(r.ID, 10) + "/tasks"
 }
 
 // indexes asserts that the markers appear in the body in the given order.

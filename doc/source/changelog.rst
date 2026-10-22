@@ -3,6 +3,21 @@
 Historique des versions
 =======================
 
+* :feature:`759` L'écran des règles de transfert gagne l'onglet *Tâches* (voir
+  :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
+  des tâches : les trois chaînes (avant le transfert, après, en cas d'erreur)
+  avec, pour chaque tâche, son libellé, son code et ses paramètres en clair ;
+  un objet que la Gateway n'a plus (clé, identifiant SMTP, modèle d'e-mail) y
+  est signalé ; les pages d'ajout (le type par famille, puis ses paramètres,
+  pour les 28 types de tâches), de modification et de suppression d'une tâche,
+  et les actions *Monter* et *Descendre* à la place du glisser-déposer. Chaque
+  changement réécrit la chaîne en une transaction, comme l'API REST ; les cases
+  à cocher et les tâches de chiffrement s'enregistrent telles que saisies, la
+  tâche ``SENDMESSAGE`` demande son partenaire, son compte et son client, que
+  la Gateway exige, et les paramètres que l'écran ne connaît pas sont
+  conservés. Les liens « Utilisée par » des clés, des identifiants SMTP et des
+  modèles d'e-mail mènent à cet onglet.
+
 * :feature:`758` L'écran des règles de transfert gagne l'onglet *Accès* (voir
   :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
   des droits d'usage : l'état de la règle, ouverte à tous ou réservée, dit en

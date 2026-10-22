@@ -1935,6 +1935,68 @@ rules:
     transfers_link: Voir ces transferts
     watcher: "Dossier surveillé « {name} » (ligne de commande ou API)."
     refused: La règle n'a pas été supprimée.
+  tasks:
+    add: Ajouter une tâche
+    back: Retour aux tâches
+    none: Aucune tâche.
+    count_none: aucune tâche
+    count_one: 1 tâche
+    count: "{n} tâches"
+    chain:
+      pre: Avant le transfert
+      post: Après le transfert
+      error: En cas d'erreur
+    # « Nouvelle tâche après le transfert » : la chaîne en minuscules.
+    chain_lower:
+      pre: avant le transfert
+      post: après le transfert
+      error: en cas d'erreur
+    chain_text:
+      pre: "Exécutées dans l'ordre avant le transfert ; la première en échec arrête la chaîne et met le transfert en erreur."
+      post: "Exécutées dans l'ordre après le transfert ; la première en échec arrête la chaîne et met le transfert en erreur."
+      error: "Exécutées dans l'ordre quand le transfert est en erreur ; la première en échec arrête la chaîne."
+    col:
+      rank: N°
+      type: Tâche
+      args: Paramètres
+    action:
+      edit: Modifier la tâche
+      up: Monter
+      down: Descendre
+      delete: Supprimer la tâche
+    ticked: Oui
+    unknown_type: "Type inconnu de cet écran"
+    missing: "{name} (introuvable)"
+    missing_status: Introuvable
+    new_title: "Nouvelle tâche ({chain})"
+    edit_title: "Modifier la tâche n° {n} ({chain})"
+    delete_title: "Supprimer la tâche n° {n} ({chain}) ?"
+    delete_text: "Elle sera retirée de la chaîne ; les tâches suivantes remontent d'un rang."
+    type: Type de tâche
+    type_choose: Choisissez un type
+    type_hint: "Choisissez le type, puis ses paramètres."
+    type_kept: "Le type ne change pas ; pour un autre type, supprimez la tâche et ajoutez-en une."
+    type_change: Changer de type
+    continue: Continuer
+    args: Paramètres
+    no_args: Cette tâche n'a aucun paramètre.
+    option_none: Aucun
+    keep_unknown: "Paramètres conservés tels quels, que cet écran ne connaît pas : {names}."
+    refused: La tâche n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    refused_product: "La passerelle refuse la tâche : {cause}"
+    error:
+      required: Ce champ est obligatoire.
+      number: Indiquez un nombre entier.
+      decimal: Indiquez un nombre.
+      min: "{min} au moins."
+      range: "Entre {min} et {max}."
+      json: "Indiquez un objet JSON, par exemple {\"lot\": \"A\"}."
+      pairs: "Une ligne par information, sous la forme clé=valeur."
+      type: Choisissez un type.
+    not_found:
+      title: Tâche introuvable
+      text: Cette chaîne n'a pas de tâche à ce rang.
   toast:
     created: "Règle « {name} » créée"
     updated: "Règle « {name} » enregistrée"
@@ -1942,6 +2004,10 @@ rules:
     access_added: "Accès ajouté : {name}"
     access_removed: "Accès retiré : {name}"
     access_opened: "Règle « {name} » ouverte à tous"
+    task_added: "Tâche ajoutée : {name}"
+    task_updated: "Tâche enregistrée : {name}"
+    task_deleted: "Tâche supprimée : {name}"
+    task_moved: "Tâche déplacée : {name}"
   empty:
     title: Aucune règle de transfert pour l'instant
     text: "Une règle dit dans quel sens un fichier s'échange, entre quels dossiers, avec quels traitements et pour qui."
@@ -1954,6 +2020,406 @@ rules:
   error:
     title: La liste des règles de transfert n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Onglet Tâches des règles (#759) : les types de tâches, leurs familles et leurs arguments, d'après le module de
+# tâches v2 (libellés et aides corrigés) ; un intitulé court par type, son code en aide.
+task_types:
+  family:
+    fileOperations: "Opérations de fichiers"
+    executables: "Exécutables"
+    transfer: "Transfert"
+    fileAlterations: "Altérations de fichiers"
+    archiving: "Archivage et compression"
+    network: "Réseau"
+    crypto: "Cryptographie"
+  hint:
+    duration: "Une durée : 30s, 5m, 1h30m."
+    millis: "En millisecondes."
+    json: "Par exemple {\"lot\": \"A\"}."
+    octal: "En octal, par exemple 640."
+  choice:
+    send: "Envoi"
+    receive: "Réception"
+    icap_nothing: "Ne rien faire"
+    icap_delete: "Supprimer le fichier"
+    icap_move: "Déplacer le fichier"
+    choose: "Choisissez"
+  copy:
+    label: "Copier le fichier"
+    text: "Crée une copie du fichier de transfert dans un autre dossier. Le nom du nouveau fichier restera identique au fichier d'origine."
+    arg:
+      path:
+        label: "Dossier de destination"
+        hint: "Le dossier de destination du fichier copié."
+  copyrename:
+    label: "Copier le fichier sous un autre nom"
+    text: "Crée une copie du fichier de transfert."
+    arg:
+      path:
+        label: "Chemin de destination"
+        hint: "Le chemin de destination du fichier copié."
+  move:
+    label: "Déplacer le fichier"
+    text: "Déplace le fichier de transfert dans un autre dossier. Le nom du fichier restera inchangé."
+    arg:
+      path:
+        label: "Dossier de destination"
+        hint: "Le dossier de destination du fichier."
+  moverename:
+    label: "Déplacer et renommer le fichier"
+    text: "Déplace le fichier de transfert dans un autre dossier."
+    arg:
+      path:
+        label: "Chemin de destination"
+        hint: "Le chemin de destination du fichier."
+  delete:
+    label: "Supprimer le fichier"
+    text: "Supprime le fichier de transfert."
+  remotedelete:
+    label: "Supprimer chez le partenaire"
+    text: "Supprime un fichier ou dossier sur un serveur distant."
+    arg:
+      path:
+        label: "Chemin"
+        hint: "Le chemin du fichier ou dossier à supprimer."
+      recursive:
+        label: "Récursif"
+        hint: "Indique si le contenu du dossier doit être supprimé récursivement. Note : si cette option est fausse, le serveur peut refuser de supprimer le dossier s'il n'est pas vide."
+      timeout:
+        label: "Durée limite"
+        hint: "La durée maximale pour la tâche. Si la tâche dure plus longtemps que cette durée, elle sera considérée comme un échec. Par défaut, il n'y a pas de limite de temps."
+  chmod:
+    label: "Changer les permissions"
+    text: "Change les permissions sur le fichier de transfert."
+    arg:
+      perms:
+        label: "Permissions"
+        hint: "Les permissions (en format octal) à appliquer au fichier de transfert."
+  exec:
+    label: "Exécuter un programme"
+    text: "Exécute un programme externe."
+    arg:
+      path:
+        label: "Chemin de l'exécutable"
+        hint: "Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH, vous pouvez simplement taper son nom."
+      args:
+        label: "Arguments du programme"
+        hint: "Les arguments bruts du programme, donnés comme ils seraient tapés dans un terminal."
+      delay:
+        label: "Délai d'exécution"
+        hint: "Durée maximale d'exécution du programme. Si le programme n'a pas terminé après que cette durée s'est écoulée, le programme sera interrompu et le traitement sera considéré comme ayant échoué."
+  execmove:
+    label: "Exécuter un programme qui déplace le fichier"
+    text: "Exécute un programme externe. Le programme doit déplacer le fichier de transfert au cours de son exécution, et doit également afficher le nouveau chemin du fichier sur la sortie standard."
+    arg:
+      path:
+        label: "Chemin de l'exécutable"
+        hint: "Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH, vous pouvez simplement taper son nom."
+      args:
+        label: "Arguments du programme"
+        hint: "Les arguments bruts du programme, donnés comme ils seraient tapés dans un terminal."
+      delay:
+        label: "Délai d'exécution"
+        hint: "Durée maximale d'exécution du programme. Si le programme n'a pas terminé après que cette durée s'est écoulée, le programme sera interrompu et le traitement sera considéré comme ayant échoué."
+  execoutput:
+    label: "Exécuter un programme et lire sa sortie"
+    text: "Exécute un programme externe. Si une erreur survient durant l'exécution, les lignes écrites dans la sortie standard seront interprétées comme message d’erreur. Il est également possible pour le programme de déplacer le fichier de transfert durant l’exécution. Dans ce cas, la dernière ligne écrite sur la sortie standard par le programme doit commencer par NEWFILENAME:, suivi du nouveau chemin du fichier."
+    arg:
+      path:
+        label: "Chemin de l'exécutable"
+        hint: "Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH, vous pouvez simplement taper son nom."
+      args:
+        label: "Arguments du programme"
+        hint: "Les arguments bruts du programme, donnés comme ils seraient tapés dans un terminal."
+      delay:
+        label: "Délai d'exécution"
+        hint: "Durée maximale d'exécution du programme. Si le programme n'a pas terminé après que cette durée s'est écoulée, le programme sera interrompu et le traitement sera considéré comme ayant échoué."
+  updateconf:
+    label: "Importer une configuration"
+    text: "Importe les fichiers de configuration d'une archive ZIP générée par Waarp Manager."
+    arg:
+      zipFile:
+        label: "Archive ZIP"
+        hint: "Le chemin de l'archive à extraire et importer. Par défaut, ce sera le fichier de transfert."
+  rename:
+    label: "Changer le fichier du transfert"
+    text: "Change le fichier cible du transfert."
+    arg:
+      path:
+        label: "Nouveau fichier de transfert"
+        hint: "Le chemin du nouveau fichier de transfert."
+  transfer:
+    label: "Lancer un transfert"
+    text: "Programme un nouveau transfert client avec les paramètres fournis."
+    arg:
+      synchronous:
+        label: "Synchrone"
+        hint: "En mode synchrone, la tâche attendra que le transfert se termine avant de renvoyer un résultat. Si le transfert échoue, la tâche sera aussi considérée comme échouée."
+      file:
+        label: "Fichier"
+        hint: "Le chemin du fichier à transférer."
+      output:
+        label: "Chemin de destination"
+        hint: "Le chemin de destination du fichier."
+      to:
+        label: "Vers le partenaire (envoi)"
+        hint: "Le partenaire auquel envoyer le fichier ; vide pour une réception."
+      from:
+        label: "Depuis le partenaire (réception)"
+        hint: "Le partenaire chez qui chercher le fichier ; vide pour un envoi."
+      as:
+        label: "Compte"
+        hint: "Le compte à utiliser pour le transfert."
+      using:
+        label: "Client"
+        hint: "Le client à utiliser pour le transfert."
+      rule:
+        label: "Règle"
+        hint: "La règle à utiliser pour le transfert."
+      info:
+        label: "Informations de transfert"
+        hint: "Informations sur le transfert sous forme d'un objet JSON."
+      copyInfo:
+        label: "Copier les informations"
+        hint: "Copie les informations du transfert courant sur le nouveau."
+      nbOfAttempts:
+        label: "Nombre d'essais"
+        hint: "Le nombre de fois que le transfert sera tenté automatiquement."
+      firstRetryDelay:
+        label: "Délai du premier essai"
+        hint: "Le délai entre le transfert original et la première nouvelle tentative."
+      retryIncrementFactor:
+        label: "Facteur d'incrément"
+        hint: "Le facteur par lequel le délai entre chaque nouvelle tentative sera multiplié. Les nombres décimaux sont acceptés."
+      timeout:
+        label: "Durée limite de transfert"
+        hint: "La durée limite autorisée pour le nouveau transfert (uniquement en mode synchrone)."
+  preregister:
+    label: "Pré-enregistrer un transfert"
+    text: "Pré-enregistre un nouveau transfert serveur avec les paramètres fournis."
+    arg:
+      file:
+        label: "Fichier"
+        hint: "Le chemin du fichier à transférer."
+      isSend:
+        label: "Sens"
+        hint: "Le sens du transfert."
+      rule:
+        label: "Règle"
+        hint: "La règle à utiliser pour le transfert."
+      server:
+        label: "Serveur"
+        hint: "Le serveur qui recevra la requête de transfert."
+      account:
+        label: "Compte"
+        hint: "Le compte local qui fera la requête de transfert."
+      validFor:
+        label: "Valide pour"
+        hint: "La période de validité du transfert. Passé cette durée, le transfert tombera en erreur. Par défaut, le transfert est valide pour une durée illimitée."
+      info:
+        label: "Informations de transfert"
+        hint: "Informations sur le transfert sous forme d'un objet JSON."
+      copyInfo:
+        label: "Copier les informations"
+        hint: "Copie les informations du transfert courant sur le nouveau."
+  setinfo:
+    label: "Positionner des informations de transfert"
+    text: "Positionne ou modifie des clés TransferInfo. Permet d'injecter des métadonnées avant un transfert (encodage, identifiant métier, adresse de retour, etc.). Si la valeur est vide, la clé sera supprimée si elle est présente. Supporte la substitution de variables (#TRUEFILENAME#, #TI_...#, etc.)."
+    arg:
+      pairs:
+        label: "Informations de transfert"
+        hint: "Une ligne par information, sous la forme clé=valeur ; une valeur vide supprime la clé. Les variables sont substituées."
+  transcode:
+    label: "Changer l'encodage"
+    text: "Change l'encodage du fichier de transfert."
+    arg:
+      fromCharset:
+        label: "Depuis"
+        hint: "L’encodage actuel (source) du fichier."
+      toCharset:
+        label: "Vers"
+        hint: "L’encodage souhaité (destination) du fichier."
+  chnewline:
+    label: "Changer les fins de ligne"
+    text: "Change le caractère de fin de ligne dans le fichier de transfert."
+    arg:
+      from:
+        label: "Depuis"
+        hint: "Le caractère de fin de ligne actuel du fichier."
+      to:
+        label: "Vers"
+        hint: "Le caractère de fin de ligne souhaité pour le fichier."
+  archive:
+    label: "Créer une archive"
+    text: "Crée une archive avec les fichiers fournis."
+    arg:
+      files:
+        label: "Fichiers"
+        hint: "La liste, séparée par des virgules, des fichiers à ajouter à l'archive."
+      compressionLevel:
+        label: "Niveau de compression"
+        hint: "Le niveau de compression sur une échelle de 0 (aucune compression) à 9 (compression maximale)."
+      outputPath:
+        label: "Chemin de destination"
+        hint: "Le chemin de l'archive ; son extension en fixe le format ({extensions})."
+  extract:
+    label: "Extraire une archive"
+    text: "Extrait les fichiers d'une archive."
+    arg:
+      archive:
+        label: "Archive"
+        hint: "Le chemin de l'archive à extraire. Par défaut, le fichier de transfert sera utilisé."
+      outputDir:
+        label: "Dossier de destination"
+        hint: "Le chemin du dossier dans lequel les fichiers doivent être extraits."
+  icap:
+    label: "Soumettre à un serveur ICAP"
+    text: "Envoie le fichier de transfert à un serveur ICAP, une analyse antivirus par exemple ; le serveur l'accepte, le refuse ou le modifie."
+    arg:
+      uploadURL:
+        label: "Adresse d'envoi (URL)"
+        hint: "L'URL ICAP à laquelle le fichier de transfert est envoyé."
+      useTLS:
+        label: "Utiliser TLS"
+        hint: "Se connecter au serveur ICAP en TLS."
+      timeout:
+        label: "Délai maximal"
+        hint: "La durée maximale autorisée pour la tâche."
+      allowFileModifications:
+        label: "Permettre les modifications de fichier"
+        hint: "Spécifie si le serveur ICAP est autorisé à modifier le fichier qui lui est envoyé."
+      onError:
+        label: "En cas d'erreur"
+        hint: "Que faire avec le fichier si le serveur ICAP le refuse."
+      onErrorMovePath:
+        label: "Chemin de quarantaine"
+        hint: "Le chemin où le fichier doit être déplacé si refusé par le serveur."
+  email:
+    label: "Envoyer un e-mail"
+    text: "Envoie un e-mail aux destinataires donnés, depuis l'expéditeur donné, avec le modèle d'e-mail donné."
+    arg:
+      sender:
+        label: "Expéditeur"
+        hint: "L'adresse de l'expéditeur ; ses identifiants SMTP doivent avoir été enregistrés au préalable."
+      recipients:
+        label: "Destinataires"
+        hint: "Les adresses des destinataires, séparées par des virgules."
+      template:
+        label: "Modèle"
+        hint: "Le modèle d'e-mail ; il doit avoir été enregistré au préalable."
+  sendmessage:
+    label: "Envoyer un message PeSIT"
+    text: "Envoie un F.MESSAGE PeSIT à un partenaire distant, principalement pour les acquittements en mode différé (Store-and-Forward)."
+    arg:
+      partner:
+        label: "Partenaire"
+        hint: "Le partenaire PeSIT distant auquel envoyer le message."
+      account:
+        label: "Compte"
+        hint: "Le compte distant avec lequel la passerelle s'authentifie chez ce partenaire."
+      client:
+        label: "Client"
+        hint: "Le client PeSIT par lequel la passerelle envoie le message."
+      message:
+        label: "Message"
+        hint: "Le contenu du F.MESSAGE à envoyer. Supporte la substitution de variables (ex: #TRUEFILENAME#, #TRANSFERID#). 4096 caractères max."
+  encrypt:
+    label: "Chiffrer"
+    text: "Chiffre le fichier de transfert à l'aide de la clé donnée."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données chiffrées. Par défaut, ce sera le même chemin que le fichier original, avec l'extension \".crypt\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original clair doit être conservé ou non. Par défaut, le fichier clair est supprimé après chiffrement."
+      method:
+        label: "Méthode de chiffrement"
+        hint: "La méthode de chiffrement à utiliser."
+      keyName:
+        label: "Clé de chiffrement"
+        hint: "La clé de chiffrement à utiliser. Doit avoir été préalablement enregistrée."
+  decrypt:
+    label: "Déchiffrer"
+    text: "Déchiffre le fichier de transfert à l'aide de la clé donnée."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données déchiffrées. Par défaut, ce sera le même chemin que le fichier chiffré, avec l'extension \".plain\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original chiffré doit être conservé ou non. Par défaut, le fichier chiffré est supprimé après déchiffrement."
+      method:
+        label: "Méthode de déchiffrement"
+        hint: "La méthode de déchiffrement à utiliser."
+      keyName:
+        label: "Clé de déchiffrement"
+        hint: "La clé de déchiffrement à utiliser. Doit avoir été préalablement enregistrée."
+  sign:
+    label: "Signer"
+    text: "Crée une signature cryptographique du fichier de transfert avec la clé donnée."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier dans lequel la signature sera écrite."
+      method:
+        label: "Méthode de signature"
+        hint: "La méthode de signature à utiliser."
+      keyName:
+        label: "Clé de signature"
+        hint: "La clé à utiliser pour signer. Doit avoir été préalablement enregistrée."
+  verify:
+    label: "Vérifier une signature"
+    text: "Vérifie la signature cryptographique du fichier de transfert avec la clé donnée."
+    arg:
+      signatureFile:
+        label: "Fichier de signature"
+        hint: "Le fichier contenant la signature à vérifier."
+      method:
+        label: "Méthode de signature"
+        hint: "La méthode de signature utilisée."
+      keyName:
+        label: "Clé de vérification"
+        hint: "La clé à utiliser pour vérifier la signature. Doit avoir été préalablement enregistrée."
+  encrypt_sign:
+    label: "Chiffrer et signer"
+    text: "Chiffre et signe le fichier de transfert à l'aide des clés données."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données chiffrées et la signature. Par défaut, ce sera le même chemin que le fichier original, avec l'extension \".crypt\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original clair doit être conservé ou non. Par défaut, le fichier clair est supprimé après chiffrement."
+      method:
+        label: "Méthode de chiffrement/signature"
+        hint: "La méthode de chiffrement/signature à utiliser."
+      encryptKeyName:
+        label: "Clé de chiffrement"
+        hint: "La clé de chiffrement à utiliser. Doit avoir été préalablement enregistrée."
+      signKeyName:
+        label: "Clé de signature"
+        hint: "La clé à utiliser pour signer. Doit avoir été préalablement enregistrée."
+  decrypt_verify:
+    label: "Déchiffrer et vérifier"
+    text: "Déchiffre et valide la signature du fichier de transfert à l'aide des clés données."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données déchiffrées. Par défaut, ce sera le même chemin que le fichier chiffré, avec l'extension \".plain\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original chiffré doit être conservé ou non. Par défaut, le fichier chiffré est supprimé après déchiffrement."
+      method:
+        label: "Méthode de déchiffrement/vérification"
+        hint: "La méthode de déchiffrement/vérification à utiliser."
+      decryptKeyName:
+        label: "Clé de déchiffrement"
+        hint: "La clé de déchiffrement à utiliser. Doit avoir été préalablement enregistrée."
+      verifyKeyName:
+        label: "Clé de vérification"
+        hint: "La clé à utiliser pour vérifier la signature. Doit avoir été préalablement enregistrée."
+
 
 # Règles dont les tâches désignent un objet par son nom (clés cryptographiques, identifiants SMTP).
 rule_uses:

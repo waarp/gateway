@@ -412,18 +412,29 @@ func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger
 
 // MakeRulesRouter registers the "Transfer rules" screen, behind the rights on
 // the rules as the REST API: the list and the sheet in reading, the creation,
-// the edition, the deletion; the Access tab in reading, the addition and the
-// removal of an access and the opening to all behind the write right.
+// the edition, the deletion; the Tasks tab in reading, the addition, the
+// edition, the removal and the moves of a task behind the write right; the
+// Access tab in reading, the addition and the removal of an access and the
+// opening to all behind the write right.
 func MakeRulesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	handlers := rules.New(db, logger)
 	routes := ruleRoutes{router}
-	const rulePath = "/rules/{id:[0-9]+}"
+	const (
+		rulePath = "/rules/{id:[0-9]+}"
+		taskPath = rulePath + "/tasks/{chain}/{rank:[0-9]+}"
+	)
 
 	routes.read("/rules", handlers.List)
 	routes.write("/rules/new", handlers.NewForm, handlers.Create)
 	routes.read(rulePath, handlers.Detail)
 	routes.write(rulePath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(rulePath+"/delete", handlers.DeleteForm, handlers.Delete)
+	routes.read(rulePath+"/tasks", handlers.TasksTab)
+	routes.write(rulePath+"/tasks/{chain}/new", handlers.TaskNewForm, handlers.TaskCreate)
+	routes.write(taskPath+"/edit", handlers.TaskEditForm, handlers.TaskUpdate)
+	routes.write(taskPath+"/delete", handlers.TaskDeleteForm, handlers.TaskDelete)
+	routes.act(taskPath+"/up", handlers.TaskUp)
+	routes.act(taskPath+"/down", handlers.TaskDown)
 	routes.read(rulePath+"/access", handlers.AccessTab)
 	routes.write(rulePath+"/access/new", handlers.AccessNewForm, handlers.AccessCreate)
 	routes.write(rulePath+"/access/open", handlers.AccessOpenForm, handlers.AccessOpen)
@@ -445,8 +456,9 @@ func MakeKeysRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 }
 
 // ruleRoutes registers the routes of a screen behind the rights on the
-// rules: the pages in reading, the forms behind the write right, the
-// deletion behind the delete right. Every action is a POST.
+// rules: the pages in reading, the forms and the actions without a page
+// behind the write right, the deletion behind the delete right. Every action
+// is a POST.
 type ruleRoutes struct{ router *mux.Router }
 
 func (u ruleRoutes) read(path string, handler http.HandlerFunc) {
@@ -461,6 +473,10 @@ func (u ruleRoutes) write(path string, form, action http.HandlerFunc) {
 func (u ruleRoutes) del(path string, form, action http.HandlerFunc) {
 	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermRulesDelete, form))
 	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermRulesDelete, action))
+}
+
+func (u ruleRoutes) act(path string, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermRulesWrite, action))
 }
 
 // MakeSMTPCredentialsRouter registers the "SMTP credentials" screen, behind

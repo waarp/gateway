@@ -1,0 +1,306 @@
+package rules
+
+import (
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// tasksView: the Tasks tab of a rule: one foldable section per chain (before
+// the transfer, after it, on error), its tasks in order (rank, task with its
+// code, parameters in words, "⋯" menu), then "Add a task" to that chain. No
+// coloured action: three chains, three neutral buttons.
+templ tasksView(d tasksData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.back") }
+			</a>
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "rules.tab.label"), d.Tabs)
+	<div class="w-stack">
+		for _, c := range d.Chains {
+			@chainBlock(c)
+		}
+	</div>
+}
+
+// chainBlock: a chain, open, its number of tasks in its head.
+templ chainBlock(c chainView) {
+	<details class="w-card w-card--fold" id={ "chain-" + c.Slug } open>
+		<summary>@gui.Icon("chevron-right")<h2 class="w-card__title">{ c.Title }</h2><span class="w-fold__meta">{ c.Count }</span></summary>
+		<div class="w-card__body">
+			<p class="rules-hint rules-block-hint w-muted">{ c.Text }</p>
+			if len(c.Rows) == 0 {
+				<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.none") }</p>
+			} else {
+				<div class="w-table-wrap">
+					<table class="w-table rules-tasks">
+						<caption class="visually-hidden">{ c.Title }</caption>
+						<colgroup><col class="rules-col-rank"/><col class="rules-col-task"/><col/><col class="rules-col-actions"/></colgroup>
+						<thead>
+							<tr>
+								<th scope="col" class="w-num">{ gui.T(ctx, "rules.tasks.col.rank") }</th>
+								<th scope="col">{ gui.T(ctx, "rules.tasks.col.type") }</th>
+								<th scope="col">{ gui.T(ctx, "rules.tasks.col.args") }</th>
+								<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "rules.col.actions") }</span></th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, r := range c.Rows {
+								<tr>
+									<td class="w-num">{ strconv.Itoa(r.Rank) }</td>
+									<td>
+										<span class="rules-task">{ r.Label }</span>
+										<code class="w-code rules-task-code">{ r.Code }</code>
+										if r.Unknown {
+											<span class="rules-task-code">@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.unknown_type")})</span>
+										}
+									</td>
+									<td>
+										if len(r.Args) > 0 {
+											@argList(r.Args)
+										}
+									</td>
+									<td>
+										if len(r.Actions) > 0 {
+											@gui.Actions(gui.ActionsProps{ID: "act-" + r.ID, Name: r.Label, Items: r.Actions})
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+			if c.AddURL != "" {
+				<div class="rules-card-actions">
+					<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.AddURL) }>
+						@gui.Icon("plus")
+						{ gui.T(ctx, "rules.tasks.add") }<span class="visually-hidden">{ " " + c.Lower }</span>
+					</a>
+				</div>
+			}
+		</div>
+	</details>
+}
+
+// argList: the parameters of a task, one label and its value a line; an
+// object the gateway does not have is marked, with the screen of its kind.
+templ argList(args []argView) {
+	<dl class="rules-args">
+		for _, a := range args {
+			<dt>{ a.Label }</dt>
+			<dd>
+				<span class="rules-value">{ a.Value }</span>
+				if a.Missing {
+					{ " " }
+					@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.missing_status")})
+					if a.ScreenURL != "" {
+						{ " " }<a href={ templ.SafeURL(a.ScreenURL) }>{ a.ScreenLabel }</a>
+					}
+				}
+			</dd>
+		}
+	</dl>
+}
+
+// taskFormView: the page of a task: first the type, by family (a new task,
+// in a GET form), then its parameters, each as its description says (text,
+// box, number, list of the objects of the gateway, JSON, key=value lines).
+templ taskFormView(d *taskFormData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.tasks.back") }
+			</a>
+		</div>
+	</div>
+	if d.Choose {
+		@typeStep(d)
+	} else {
+		@argsStep(d)
+	}
+}
+
+// typeStep: the type of a new task, the families as groups of the list.
+templ typeStep(d *taskFormData) {
+	<form class="w-form" method="get" action={ templ.SafeURL(d.Action) } novalidate>
+		if d.Ret != "" {
+			<input type="hidden" name="ret" value={ d.Ret }/>
+		}
+		<div class="w-card">
+			<div class={ "w-field", templ.KV("is-invalid", d.TypeErr != "") }>
+				<label class="w-field__label" for={ fieldType }>{ gui.T(ctx, "rules.tasks.type") } <span class="w-field__req" aria-hidden="true">*</span></label>
+				<select
+					class="w-select"
+					id={ fieldType }
+					name={ fieldType }
+					required
+					aria-describedby="type-h"
+					if d.TypeErr != "" {
+						aria-invalid="true"
+					}
+				>
+					<option value="">{ gui.T(ctx, "rules.tasks.type_choose") }</option>
+					for _, f := range d.Families {
+						<optgroup label={ f.Label }>
+							for _, o := range f.Types {
+								<option value={ o.Value }>{ o.Label }</option>
+							}
+						</optgroup>
+					}
+				</select>
+				@protoform.Message("type-h", d.TypeErr, gui.T(ctx, "rules.tasks.type_hint"))
+			</div>
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title, Label: gui.T(ctx, "rules.tasks.continue")})
+	</form>
+}
+
+// argsStep: the type in reading (a new task can go back to the choice), then
+// the parameters.
+templ argsStep(d *taskFormData) {
+	if d.HasErrors {
+		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.tasks.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.tasks.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<input type="hidden" name={ fieldType } value={ d.Type }/>
+		<div class="w-stack">
+			<div class="w-card">
+				<h2 class="w-card__title">{ gui.T(ctx, "rules.tasks.type") }</h2>
+				<p class="rules-lead rules-type"><strong>{ d.TypeLabel }</strong> <code class="w-code">{ d.Type }</code></p>
+				<p class="rules-hint w-muted rules-type-text">{ d.TypeText }</p>
+				if d.ChangeURL != "" {
+					<p class="rules-none"><a href={ templ.SafeURL(d.ChangeURL) }>{ gui.T(ctx, "rules.tasks.type_change") }</a></p>
+				} else {
+					<p class="rules-none rules-hint w-muted">{ gui.T(ctx, "rules.tasks.type_kept") }</p>
+				}
+			</div>
+			<div class="w-card">
+				<h2 class="w-card__title">{ gui.T(ctx, "rules.tasks.args") }</h2>
+				if d.Unknown != "" {
+					<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: d.Unknown})</div>
+				}
+				if len(d.Fields) == 0 {
+					<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
+				}
+				for _, f := range d.Fields {
+					@taskField(f)
+				}
+			</div>
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: d.Required, Title: d.Title})
+	</form>
+}
+
+// argMark: what follows the label of a parameter: the required star, or
+// "(optional)".
+templ argMark(required bool) {
+	if required {
+		{ " " }<span class="w-field__req" aria-hidden="true">*</span>
+	} else {
+		{ " " }<span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span>
+	}
+}
+
+// taskField: a parameter of the task, as its kind asks.
+templ taskField(f fieldView) {
+	switch f.Kind {
+		case fieldText, fieldDecimal:
+			@protoform.FieldOf(protoform.FieldProps{ID: f.ID, Label: f.Label, Req: f.Required, F: protoform.Field{Value: f.Value, Error: f.Error}, Hint: f.Hint, Short: f.Kind == fieldDecimal})
+		case fieldNumber:
+			@protoform.FieldOf(protoform.FieldProps{ID: f.ID, Label: f.Label, Req: f.Required, F: protoform.Field{Value: f.Value, Error: f.Error}, Hint: f.Hint, Short: true, Num: true, Min: f.Min, Max: f.Max})
+		case fieldBool:
+			<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
+				<label class="w-check"><input type="checkbox" id={ f.ID } name={ f.ID } value="true" checked?={ f.Checked } aria-describedby={ f.ID + "-h" }/> <span>{ f.Label }</span></label>
+				@protoform.Message(f.ID+"-h", f.Error, f.Hint)
+			</div>
+		case fieldSelect:
+			<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
+				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required)</label>
+				<select
+					class="w-select"
+					id={ f.ID }
+					name={ f.ID }
+					required?={ f.Required }
+					aria-describedby={ f.ID + "-h" }
+					if f.Error != "" {
+						aria-invalid="true"
+					}
+				>
+					<option value="">{ f.None }</option>
+					for _, g := range f.Groups {
+						if g.Label == "" {
+							for _, o := range g.Options {
+								<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+							}
+						} else {
+							<optgroup label={ g.Label }>
+								for _, o := range g.Options {
+									<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+								}
+							</optgroup>
+						}
+					}
+				</select>
+				@protoform.Message(f.ID+"-h", f.Error, f.Hint)
+			</div>
+		default:
+			<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
+				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required)</label>
+				<textarea
+					class="w-textarea w-mono"
+					id={ f.ID }
+					name={ f.ID }
+					rows={ strconv.Itoa(f.Rows) }
+					spellcheck="false"
+					aria-describedby={ f.ID + "-h" }
+					if f.Error != "" {
+						aria-invalid="true"
+					}
+				>{ f.Value }</textarea>
+				@protoform.Message(f.ID+"-h", f.Error, f.Hint)
+			</div>
+	}
+}
+
+// taskDeleteView: confirmation page of the removal of a task (decision D10):
+// the task and its parameters, then what moves.
+templ taskDeleteView(d taskDeleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.tasks.back") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		<p class="rules-lead">{ gui.T(ctx, "rules.tasks.delete_text") }</p>
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "rules.tasks.col.type") }</dt>
+			<dd>{ d.Label } <code class="w-code">{ d.Code }</code></dd>
+			if len(d.Args) > 0 {
+				<dt>{ gui.T(ctx, "rules.tasks.col.args") }</dt>
+				<dd>@argList(d.Args)</dd>
+			}
+		</dl>
+		<form class="rules-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+	</div>
+}

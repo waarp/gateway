@@ -1,0 +1,436 @@
+package rules
+
+import (
+	"net/http"
+	"net/url"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
+)
+
+const (
+	sender   = "alertes@passerelle.example"
+	template = "fin-de-transfert"
+)
+
+// taskFixtures gives "commandes" a chain after the transfer (copy, email,
+// move) and a SETINFO task on error; the email names an SMTP credential and a
+// template, which it returns.
+func (s *suite) taskFixtures(t *testing.T) *model.SMTPCredential {
+	t.Helper()
+
+	cred := &model.SMTPCredential{EmailAddress: sender, ServerAddress: types.Addr("smtp.example.org", 587)}
+	require.NoError(t, s.db.Insert(cred).Run())
+	require.NoError(t, s.db.Insert(&model.EmailTemplate{Name: template, Subject: "Fin", Body: "Fichier reçu."}).Run())
+
+	for _, task := range []*model.Task{
+		{RuleID: s.orders.ID, Chain: model.ChainPost, Rank: 0, Type: tasks.Copy, Args: map[string]string{"path": "/archives"}},
+		{RuleID: s.orders.ID, Chain: model.ChainPost, Rank: 1, Type: tasks.Email, Args: map[string]string{
+			"sender": sender, "recipients": "exploitation@example.org", "template": template,
+		}},
+		{RuleID: s.orders.ID, Chain: model.ChainPost, Rank: 2, Type: tasks.Move, Args: map[string]string{"path": "/sortie"}},
+		{RuleID: s.orders.ID, Chain: model.ChainError, Rank: 0, Type: tasks.SetInfo, Args: map[string]string{"lot": "A", "vide": ""}},
+	} {
+		require.NoError(t, s.db.Insert(task).Run())
+	}
+
+	return cred
+}
+
+// chain reads the types of a chain of a rule, by rank, with their arguments.
+func (s *suite) chain(t *testing.T, rule *model.Rule, chain model.Chain) []*model.Task {
+	t.Helper()
+
+	var list model.Tasks
+	require.NoError(t, s.db.Select(&list).Where("rule_id=? AND chain=?", rule.ID, chain).Run())
+
+	out := make([]*model.Task, len(list))
+	for _, task := range list {
+		require.Less(t, int(task.Rank), len(list), "the ranks follow each other")
+		out[task.Rank] = task
+	}
+
+	return out
+}
+
+// indexes asserts that the markers appear in the body in the given order.
+func indexes(t *testing.T, body string, markers ...string) {
+	t.Helper()
+
+	from := 0
+
+	for _, marker := range markers {
+		pos := strings.Index(body[from:], marker)
+		require.NotEqualf(t, -1, pos, "%q not found in order in the page", marker)
+		from += pos + len(marker)
+	}
+}
+
+func typesOf(list []*model.Task) []string {
+	out := make([]string, 0, len(list))
+	for _, task := range list {
+		out = append(out, task.Type)
+	}
+
+	return out
+}
+
+func TestTasksTab(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	s.taskFixtures(t)
+
+	t.Run("Given a reader", func(t *testing.T) {
+		t.Parallel()
+
+		rec := s.get(t, permRead, path(s.orders, "/tasks"))
+		require.Equal(t, http.StatusOK, rec.Code)
+		body := rec.Body.String()
+
+		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.orders.ID)+`/tasks" aria-current="page">Tâches`)
+		indexes(t, body, "Avant le transfert", "Aucune tâche.", "Après le transfert", "3 tâches",
+			"Copier le fichier", "COPY", "Dossier de destination", "/archives",
+			"Envoyer un e-mail", "Expéditeur", sender,
+			"Déplacer le fichier", "/sortie",
+			"En cas d&#39;erreur", "1 tâche", "lot", ">A<", "vide")
+		assert.NotContains(t, body, "Ajouter une tâche", "no addition without the write right")
+		assert.NotContains(t, body, "Modifier la tâche", "nor a menu")
+		assert.NotContains(t, body, "Introuvable", "every named object exists")
+	})
+
+	t.Run("Given a writer", func(t *testing.T) {
+		t.Parallel()
+
+		body := s.get(t, permWrite, path(s.orders, "/tasks")).Body.String()
+		assert.Equal(t, 3, strings.Count(body, "Ajouter une tâche<span"), "one addition a chain")
+		assert.Contains(t, body, `<span class="visually-hidden"> après le transfert</span>`, "which says its chain")
+		assert.Contains(t, body, path(s.orders, "/tasks/post/new"))
+		assert.Contains(t, body, path(s.orders, "/tasks/post/1/edit"))
+		assert.Contains(t, body, `action="`+path(s.orders, "/tasks/post/1/up")+`"`)
+		assert.Contains(t, body, `action="`+path(s.orders, "/tasks/post/1/down")+`"`)
+		assert.NotContains(t, body, path(s.orders, "/tasks/post/0/up"), "the first one does not move up")
+		assert.NotContains(t, body, path(s.orders, "/tasks/post/2/down"), "the last one does not move down")
+		assert.Contains(t, body, path(s.orders, "/tasks/post/2/delete"), "the write right removes a task, as in the REST API")
+	})
+
+	t.Run("Given a rule that does not exist", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, http.StatusNotFound, s.get(t, permRead, "/webui/rules/9999/tasks").Code)
+	})
+}
+
+func TestTasksTabMissingObject(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	cred := s.taskFixtures(t)
+	require.NoError(t, s.db.Delete(cred).Run())
+
+	body := s.get(t, permRead, path(s.orders, "/tasks")).Body.String()
+	indexes(t, body, sender, `<span class="w-status w-status--warn">Introuvable</span>`,
+		`<a href="/webui/smtp">Identifiants SMTP</a>`, template)
+	assert.Equal(t, 1, strings.Count(body, "Introuvable"), "the template is still there")
+
+	screens := map[string]bool{}
+	for _, section := range common.Screens(model.PermAll) {
+		for _, screen := range section.Screens {
+			screens[screen.Key] = true
+		}
+	}
+
+	for _, key := range refScreens {
+		assert.True(t, screens[key], "the screen %q of the screen map lists a kind of object", key)
+	}
+
+	body = s.get(t, permWrite, path(s.orders, "/tasks/post/1/edit")).Body.String()
+	assert.Contains(t, body, `<option value="`+sender+`" selected>`+sender+` (introuvable)</option>`,
+		"the form keeps the value, marked")
+}
+
+func TestTaskAdd(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	s.taskFixtures(t)
+
+	t.Run("Given the first step", func(t *testing.T) {
+		t.Parallel()
+
+		rec := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?ret=page%3D2")
+		require.Equal(t, http.StatusOK, rec.Code)
+		body := rec.Body.String()
+
+		assert.Contains(t, body, "Nouvelle tâche (avant le transfert)")
+		assert.Contains(t, body, `method="get" action="`+path(s.orders, "/tasks/pre/new")+`"`)
+		assert.Contains(t, body, `<input type="hidden" name="ret" value="page=2">`, "the list state goes along")
+		indexes(t, body, `<optgroup label="Opérations de fichiers">`, `<option value="COPY">Copier le fichier (COPY)</option>`,
+			`<optgroup label="Réseau">`, `<option value="SENDMESSAGE">`, `<optgroup label="Cryptographie">`)
+		assert.Equal(t, len(taskSpecs), strings.Count(body, ")</option>"), "every type, and nothing else")
+	})
+
+	t.Run("Given a type the screen does not know", func(t *testing.T) {
+		t.Parallel()
+
+		rec := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=INCONNU")
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		assert.Contains(t, rec.Body.String(), "Choisissez un type.")
+
+		assert.Equal(t, http.StatusNotFound, s.get(t, permWrite, path(s.orders, "/tasks/ailleurs/new")).Code,
+			"nor a chain")
+	})
+
+	t.Run("Given the parameters of a type", func(t *testing.T) {
+		t.Parallel()
+
+		body := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=TRANSFER").Body.String()
+		assert.Contains(t, body, `<input type="hidden" name="type" value="TRANSFER">`)
+		assert.Contains(t, body, "Changer de type")
+		assert.Contains(t, body, `<input type="checkbox" id="arg_synchronous" name="arg_synchronous" value="true"`)
+		indexes(t, body, `<select class="w-select" id="arg_to" name="arg_to"`, `<option value="">Aucun</option>`,
+			`<option value="banque-demo">banque-demo</option>`)
+		indexes(t, body, `id="arg_as"`, `<option value="">Choisissez</option>`, `<optgroup label="banque-demo">`,
+			`<option value="prod">prod</option>`)
+		indexes(t, body, `id="arg_rule"`, `<option value="commandes">`, `<option value="releves">`)
+		assert.Equal(t, 1, strings.Count(body, `<option value="releves">`), "a rule name once, for both directions")
+		assert.Contains(t, body, `id="arg_nbOfAttempts" name="arg_nbOfAttempts" value="" type="number"`)
+		assert.Contains(t, body, `<textarea class="w-textarea w-mono" id="arg_info"`)
+		assert.Contains(t, body, "Une durée : 30s, 5m, 1h30m.", "a duration says its form")
+
+		body = s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=DELETE").Body.String()
+		assert.Contains(t, body, "Cette tâche n&#39;a aucun paramètre.")
+
+		body = s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=ARCHIVE").Body.String()
+		assert.Contains(t, body, "("+strings.Join(tasks.ArchiveExtensions.Keys(), ", ")+")", "the formats of the product")
+	})
+
+	t.Run("Given a task added after the others", func(t *testing.T) {
+		t.Parallel()
+
+		rule := &model.Rule{Name: "ajout", IsSend: true, Path: "ajout"}
+		require.NoError(t, s.db.Insert(rule).Run())
+
+		rec := s.post(t, permWrite, path(rule, "/tasks/post/new")+"?ret=page%3D2", url.Values{
+			"type": {tasks.Copy}, "arg_path": {" /archives "},
+		})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+		location := rec.Header().Get("Location")
+		assert.Contains(t, location, path(rule, "/tasks"))
+		assert.Contains(t, location, "done=task_added")
+		assert.Contains(t, location, "ret=page%3D2")
+
+		rec = s.post(t, permWrite, path(rule, "/tasks/post/new"), url.Values{
+			"type": {tasks.RemoteDelete}, "arg_recursive": {"true"}, "arg_timeout": {""},
+		})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+
+		rec = s.post(t, permWrite, path(rule, "/tasks/post/new"), url.Values{
+			"type": {tasks.RemoteDelete}, "arg_recursive": {"on"},
+		})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+
+		got := s.chain(t, rule, model.ChainPost)
+		assert.Equal(t, []string{tasks.Copy, tasks.RemoteDelete, tasks.RemoteDelete}, typesOf(got))
+		assert.Equal(t, map[string]string{"path": "/archives"}, map[string]string(got[0].Args))
+		assert.Equal(t, map[string]string{"recursive": "true"}, map[string]string(got[1].Args),
+			"a ticked box as true, an empty field left out")
+		assert.Empty(t, got[2].Args, "a box is ticked by true alone")
+
+		body := s.get(t, permRead, path(rule, "/tasks")+"?done=task_added&name=Copier+le+fichier").Body.String()
+		assert.Contains(t, body, "Tâche ajoutée : Copier le fichier")
+	})
+
+	t.Run("Given the tasks the former page could not save", func(t *testing.T) {
+		t.Parallel()
+
+		keys := newSuite(t)
+		keys.fixtures(t)
+		keys.keyFixtures(t)
+
+		for _, form := range []url.Values{
+			{"type": {tasks.Encrypt}, "arg_method": {"AES-CFB"}, "arg_keyName": {"aes"}},
+			{"type": {tasks.Sign}, "arg_method": {"HMAC-SHA256"}, "arg_keyName": {"hmac"}},
+			{"type": {tasks.SendMessage}, "arg_partner": {"banque-demo"}, "arg_account": {"prod"}, "arg_client": {"cli-sftp"}},
+		} {
+			rec := keys.post(t, permWrite, path(keys.orders, "/tasks/post/new"), form)
+			assert.Equal(t, http.StatusSeeOther, rec.Code, "%s is saved", form.Get("type"))
+		}
+
+		got := keys.chain(t, keys.orders, model.ChainPost)
+		assert.Equal(t, []string{tasks.Encrypt, tasks.Sign, tasks.SendMessage}, typesOf(got))
+		assert.Equal(t, map[string]string{"method": "AES-CFB", "keyName": "aes"}, map[string]string(got[0].Args))
+		assert.Equal(t, map[string]string{"partner": "banque-demo", "account": "prod", "client": "cli-sftp"},
+			map[string]string(got[2].Args))
+	})
+
+	t.Run("Given parameters the form refuses", func(t *testing.T) {
+		t.Parallel()
+
+		rec := s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{"type": {tasks.Copy}})
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		body := rec.Body.String()
+		assert.Contains(t, body, "La tâche n&#39;a pas été enregistrée.")
+		assert.Contains(t, body, "Ce champ est obligatoire.")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.Archive}, "arg_files": {"*.csv"}, "arg_compressionLevel": {"12"}, "arg_outputPath": {"/a.zip"},
+		}).Body.String()
+		assert.Contains(t, body, "Entre 0 et 9.")
+		assert.Contains(t, body, `value="*.csv"`, "the typed values stay")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.Transfer}, "arg_file": {"f"}, "arg_as": {"prod"}, "arg_rule": {"releves"},
+			"arg_info": {"[1]"}, "arg_retryIncrementFactor": {"deux"}, "arg_synchronous": {"true"},
+		}).Body.String()
+		assert.Contains(t, body, "Indiquez un objet JSON")
+		assert.Contains(t, body, "Indiquez un nombre.")
+		assert.Contains(t, body, `name="arg_synchronous" value="true" checked`, "the ticked box stays ticked")
+		assert.Contains(t, body, `<option value="prod" selected>prod</option>`, "the chosen object stays chosen")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.SetInfo}, "arg_pairs": {"lot=A\nsans signe"},
+		}).Body.String()
+		assert.Contains(t, body, "Une ligne par information, sous la forme clé=valeur.")
+
+		assert.Empty(t, s.chain(t, s.orders, model.ChainPre), "nothing saved")
+	})
+
+	t.Run("Given parameters the product refuses", func(t *testing.T) {
+		t.Parallel()
+
+		rec := s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.Transcode}, "arg_fromCharset": {"klingon"}, "arg_toCharset": {"UTF-8"},
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		body := rec.Body.String()
+		assert.Contains(t, body, "La passerelle refuse la tâche")
+		assert.Contains(t, body, "klingon (introuvable)", "the refused value stays offered")
+		assert.Empty(t, s.chain(t, s.orders, model.ChainPre), "nothing saved")
+	})
+}
+
+func TestTaskEdit(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	s.taskFixtures(t)
+
+	t.Run("Given a task", func(t *testing.T) {
+		t.Parallel()
+
+		rec := s.get(t, permWrite, path(s.orders, "/tasks/post/1/edit"))
+		require.Equal(t, http.StatusOK, rec.Code)
+		body := rec.Body.String()
+
+		assert.Contains(t, body, "Modifier la tâche n° 2 (après le transfert)")
+		assert.Contains(t, body, "Le type ne change pas")
+		assert.NotContains(t, body, "Changer de type")
+		assert.Contains(t, body, `<option value="`+sender+`" selected>`+sender+`</option>`)
+		assert.Contains(t, body, `<option value="`+template+`" selected>`+template+`</option>`)
+		assert.Contains(t, body, `value="exploitation@example.org"`)
+
+		body = s.get(t, permWrite, path(s.orders, "/tasks/error/0/edit")).Body.String()
+		assert.Contains(t, body, ">lot=A\nvide=</textarea>", "the SETINFO keys one a line")
+
+		assert.Equal(t, http.StatusNotFound, s.get(t, permWrite, path(s.orders, "/tasks/post/3/edit")).Code)
+	})
+
+	t.Run("Given a task with parameters the screen does not know", func(t *testing.T) {
+		t.Parallel()
+
+		rule := &model.Rule{Name: "inconnus", IsSend: true, Path: "inconnus"}
+		require.NoError(t, s.db.Insert(rule).Run())
+		require.NoError(t, s.db.Insert(&model.Task{
+			RuleID: rule.ID, Chain: model.ChainPre, Type: tasks.Copy, Args: map[string]string{"path": "/a", "ancien": "x"},
+		}).Run())
+
+		body := s.get(t, permWrite, path(rule, "/tasks/pre/0/edit")).Body.String()
+		assert.Contains(t, body, "Paramètres conservés tels quels, que cet écran ne connaît pas : ancien.")
+
+		rec := s.post(t, permWrite, path(rule, "/tasks/pre/0/edit"), url.Values{"type": {"MOVE"}, "arg_path": {"/b"}})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Contains(t, rec.Header().Get("Location"), "done=task_updated")
+
+		got := s.chain(t, rule, model.ChainPre)
+		assert.Equal(t, []string{tasks.Copy}, typesOf(got), "the type is kept")
+		assert.Equal(t, map[string]string{"path": "/b", "ancien": "x"}, map[string]string(got[0].Args))
+	})
+
+	t.Run("Given a SETINFO task", func(t *testing.T) {
+		t.Parallel()
+
+		rule := &model.Rule{Name: "infos", IsSend: true, Path: "infos"}
+		require.NoError(t, s.db.Insert(rule).Run())
+		require.NoError(t, s.db.Insert(&model.Task{
+			RuleID: rule.ID, Chain: model.ChainPost, Type: tasks.SetInfo, Args: map[string]string{"lot": "A"},
+		}).Run())
+
+		rec := s.post(t, permWrite, path(rule, "/tasks/post/0/edit"), url.Values{"arg_pairs": {"lot = B\r\n\r\nvide=\n"}})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Equal(t, map[string]string{"lot": "B", "vide": ""}, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args),
+			"the lines replace the keys; an empty value stays (it removes the key when the task runs)")
+	})
+
+	t.Run("Given a task of a type the screen does not know", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, http.StatusNotFound, s.get(t, permWrite, "/webui/rules/9999/tasks/post/0/edit").Code)
+	})
+}
+
+func TestTaskDelete(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	s.taskFixtures(t)
+
+	rec := s.get(t, permWrite, path(s.orders, "/tasks/post/0/delete"))
+	require.Equal(t, http.StatusOK, rec.Code)
+	body := rec.Body.String()
+	assert.Contains(t, body, "Supprimer la tâche n° 1 (après le transfert) ?")
+	assert.Contains(t, body, "les tâches suivantes remontent d&#39;un rang")
+	assert.Contains(t, body, "/archives")
+
+	rec = s.post(t, permWrite, path(s.orders, "/tasks/post/0/delete"), url.Values{})
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Contains(t, rec.Header().Get("Location"), "done=task_deleted")
+	assert.Equal(t, []string{tasks.Email, tasks.Move}, typesOf(s.chain(t, s.orders, model.ChainPost)),
+		"the next ones move up one rank")
+}
+
+func TestTaskMove(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	s.taskFixtures(t)
+
+	rec := s.post(t, permWrite, path(s.orders, "/tasks/post/2/up"), url.Values{})
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Contains(t, rec.Header().Get("Location"), "done=task_moved")
+	assert.Equal(t, []string{tasks.Copy, tasks.Move, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)))
+
+	rec = s.post(t, permWrite, path(s.orders, "/tasks/post/0/down"), url.Values{})
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Equal(t, []string{tasks.Move, tasks.Copy, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)))
+
+	rec = s.post(t, permWrite, path(s.orders, "/tasks/post/0/up"), url.Values{})
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.NotContains(t, rec.Header().Get("Location"), "done=", "the first one stays where it is")
+	assert.Equal(t, []string{tasks.Move, tasks.Copy, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)))
+
+	assert.Equal(t, http.StatusNotFound, s.post(t, permWrite, path(s.orders, "/tasks/post/3/up"), url.Values{}).Code)
+}

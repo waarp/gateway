@@ -209,6 +209,17 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/rules/2/access"},
 		{path: "/webui/rules/2/access/new"},
 		{path: "/webui/rules/2/access/new?side=out"},
+		// Its Tasks tab (#759): the chain of the rule whose task encrypts
+		// (a table) and of the one whose task sends an email, the type to
+		// choose, the parameters of a TRANSFER task (the partners, accounts,
+		// clients and rules of the gateway), the pages that edit and delete
+		// the encrypting task (the methods and the keys).
+		{path: "/webui/rules/2/tasks", tables: 1},
+		{path: "/webui/rules/3/tasks", tables: 1},
+		{path: "/webui/rules/2/tasks/post/new"},
+		{path: "/webui/rules/2/tasks/post/new?type=TRANSFER"},
+		{path: "/webui/rules/2/tasks/pre/0/edit"},
+		{path: "/webui/rules/2/tasks/pre/0/delete"},
 		// The cryptographic keys (#735): the list, the sheet of the AES key
 		// (the rule whose tasks use it: a table), the sheet of the PGP public
 		// key, the pages that add and edit one, the deletion refused for the

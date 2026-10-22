@@ -104,7 +104,7 @@ navigateur, comme pour les autres listes.
      - Le formulaire de la règle.
    * - Voir les tâches
      - lecture
-     - La page des tâches de la règle.
+     - L'onglet *Tâches* de la règle (voir ci-dessous).
    * - Voir les accès
      - lecture
      - L'onglet *Accès* de la règle (voir ci-dessous).
@@ -141,8 +141,91 @@ L'onglet *Détails* montre en lecture :
      - Le dossier local, le dossier distant et le dossier de réception
        temporaire ; un dossier vide dit ce que la Gateway emploie à sa place.
 
-L'onglet *Tâches*, avec leur nombre, mène à la page des tâches de la règle ;
-l'onglet *Accès* est décrit ci-dessous.
+Les onglets *Tâches* et *Accès*, avec leur nombre, sont décrits ci-dessous.
+
+
+Onglet Tâches
+=============
+
+L'onglet *Tâches* de la fiche, adresse ``/webui/rules/<id>/tasks``, montre les
+traitements que la Gateway exécute pour chaque transfert de la règle. Sa
+consultation requiert le droit de lecture sur les règles ; l'ajout, la
+modification, le déplacement et la suppression d'une tâche, le droit
+d'écriture, comme dans l'API REST.
+
+**Trois chaînes.** Chacune est une section repliable, avec son nombre de
+tâches :
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Chaîne
+     - Exécutée
+   * - Avant le transfert
+     - Avant l'échange du fichier ; la première tâche en échec arrête la
+       chaîne et met le transfert en erreur.
+   * - Après le transfert
+     - Après l'échange du fichier ; même arrêt à la première tâche en échec.
+   * - En cas d'erreur
+     - Quand le transfert est en erreur ; la première tâche en échec arrête la
+       chaîne.
+
+Les tâches s'y lisent dans leur ordre d'exécution : le rang, la tâche (son
+libellé et son code, par exemple ``COPY``) et ses paramètres en clair. Une
+case cochée se lit « Oui ». Un objet que la Gateway n'a plus (une clé, un
+identifiant SMTP, un modèle d'e-mail supprimé depuis) est marqué
+*Introuvable*, avec un lien vers l'écran où le recréer. Le détail de chaque
+type est dans :ref:`la référence des traitements <reference-tasks>`.
+
+**Ajouter une tâche.** Chaque chaîne a son bouton *Ajouter une tâche*. La page
+fait d'abord choisir le type, groupé par famille (opérations de fichiers,
+exécutables, transfert, altérations de fichiers, archivage, réseau,
+cryptographie), puis demande ses paramètres. La tâche s'ajoute à la fin de la
+chaîne. Un paramètre se saisit selon sa nature :
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Nature
+     - Saisie
+   * - Texte
+     - Un chemin, une adresse, une liste de fichiers ; les
+       :ref:`substitutions <reference-tasks-substitutions>` y sont admises.
+   * - Case à cocher
+     - Cochée, le paramètre vaut ``true`` ; décochée, il est omis et la tâche
+       prend sa valeur par défaut.
+   * - Nombre
+     - Un entier, borné quand la tâche le borne (niveau de compression de 0 à
+       9), ou un délai en millisecondes.
+   * - Durée
+     - Sous la forme ``30s``, ``5m`` ou ``1h30m``.
+   * - Liste
+     - Les valeurs que la tâche accepte (méthodes de chiffrement, jeux de
+       caractères) ou les objets de la Gateway (clés, identifiants SMTP,
+       modèles d'e-mail, partenaires, comptes, clients, serveurs, règles).
+   * - Objet JSON
+     - Les informations de transfert d'une tâche ``TRANSFER`` ou
+       ``PREREGISTER``, par exemple ``{"lot": "A"}``.
+   * - Lignes clé=valeur
+     - Les informations de transfert que pose une tâche ``SETINFO``, une par
+       ligne ; une valeur vide retire la clé au moment de l'exécution.
+
+Le formulaire vérifie ce qu'il peut (paramètres obligatoires, nombres, JSON) ;
+la Gateway contrôle ensuite la tâche (un jeu de caractères, une clé, un
+partenaire qu'elle ne connaît pas) et son refus s'affiche sur la page, sans
+rien enregistrer.
+
+**Modifier une tâche.** Le menu « ⋯ » d'une tâche mène à sa page de
+modification. Son type ne change pas : pour un autre type, supprimer la tâche
+et en ajouter une. Les paramètres que l'écran ne connaît pas (posés par l'API
+REST, par exemple) sont conservés tels quels, et la page le dit.
+
+**Ordre et suppression.** *Monter* et *Descendre* échangent une tâche avec sa
+voisine. La page de suppression rappelle la tâche et ses paramètres ; les
+tâches suivantes remontent d'un rang. Chaque ajout, modification, déplacement
+ou suppression réécrit la chaîne en une seule transaction, comme l'API REST.
 
 
 Onglet Accès
