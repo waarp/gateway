@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
@@ -35,16 +36,21 @@ func (k *CryptoKey) checkKeyAES() error {
 		return database.NewValidationError("the AES key is missing")
 	}
 
+	keyBytes, err := base64.StdEncoding.DecodeString(k.Key)
+	if err != nil {
+		return database.NewValidationErrorf("failed to decode AES key: %w", err)
+	}
+
 	const (
 		aes128KeyLen = 16
 		aes192KeyLen = 24
 		aes256KeyLen = 32
 	)
 
-	switch len(k.Key) {
+	switch l := len(keyBytes); l {
 	case aes128KeyLen, aes192KeyLen, aes256KeyLen:
 	default:
-		return database.NewValidationError("AES keys must be 16, 24, or 32 bytes long")
+		return database.NewValidationErrorf("AES keys must be 16, 24, or 32 bytes long (was %d)", l)
 	}
 
 	return nil
@@ -53,6 +59,10 @@ func (k *CryptoKey) checkKeyAES() error {
 func (k *CryptoKey) checkKeyHMAC() error {
 	if k.Key == "" {
 		return database.NewValidationError("the HMAC key is missing")
+	}
+
+	if _, err := base64.StdEncoding.DecodeString(k.Key); err != nil {
+		return database.NewValidationErrorf("failed to decode HMAC key: %w", err)
 	}
 
 	return nil

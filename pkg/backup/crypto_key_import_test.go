@@ -17,8 +17,8 @@ func TestCryptoKeysImport(t *testing.T) {
 
 	const (
 		aesKey   = "0123456789abcdefhijklABCDEFHIJKL"
-		hmacKey1 = "0123456789"
-		hmacKey2 = "abcdefghij"
+		hmacKey1 = "0123456789ab"
+		hmacKey2 = "abcdefghijkl"
 	)
 
 	logger := testhelpers.GetTestLogger(t)

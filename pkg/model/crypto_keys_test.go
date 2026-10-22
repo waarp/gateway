@@ -14,10 +14,12 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 	t.Parallel()
 	db := dbtest.TestDatabase(t)
 
+	const aesKey = "0123456789abcdefhijklABCDEFHIJKLMNOPQRSTUVW="
+
 	existing := &CryptoKey{
 		Name: "existing",
 		Type: CryptoKeyTypeAES,
-		Key:  "0123456789abcdefhijklABCDEFHIJKL",
+		Key:  aesKey,
 	}
 	require.NoError(t, db.Insert(existing).Run())
 
@@ -27,7 +29,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 		key := &CryptoKey{
 			Name: "aes-key",
 			Type: CryptoKeyTypeAES,
-			Key:  "0123456789abcdefhijklABCDEFHIJKL",
+			Key:  aesKey,
 		}
 		require.NoError(t, key.BeforeWrite(db))
 	})
@@ -38,7 +40,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 		key := &CryptoKey{
 			Name: "hmac-key",
 			Type: CryptoKeyTypeHMAC,
-			Key:  "0123456789abcdefhijklABCDEFHIJKL",
+			Key:  aesKey,
 		}
 		require.NoError(t, key.BeforeWrite(db))
 	})
@@ -70,7 +72,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 
 		key := &CryptoKey{
 			Type: CryptoKeyTypeAES,
-			Key:  "0123456789abcdefhijklABCDEFHIJKL",
+			Key:  aesKey,
 		}
 		require.ErrorContains(t, key.BeforeWrite(db),
 			"the cryptographic key's name is missing")
@@ -81,7 +83,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 
 		key := &CryptoKey{
 			Name: "aes-key",
-			Key:  "0123456789abcdefhijklABCDEFHIJKL",
+			Key:  aesKey,
 		}
 		require.ErrorContains(t, key.BeforeWrite(db),
 			"the cryptographic key's type is missing")
@@ -104,7 +106,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 		key := &CryptoKey{
 			Name: existing.Name,
 			Type: CryptoKeyTypeAES,
-			Key:  "0123456789abcdefhijklABCDEFHIJKL",
+			Key:  aesKey,
 		}
 		require.ErrorContains(t, key.BeforeWrite(db),
 			fmt.Sprintf("a cryptographic key named %q already exists", key.Name))
@@ -122,16 +124,40 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			fmt.Sprintf("unknown cryptographic key type %q", key.Type))
 	})
 
-	t.Run("Illegal AES value", func(t *testing.T) {
+	t.Run("Not base64 AES value", func(t *testing.T) {
 		t.Parallel()
 
 		key := &CryptoKey{
 			Name: "aes-key",
 			Type: CryptoKeyTypeAES,
-			Key:  "0123456789abcdefhijklABCDEFHIJK",
+			Key:  "not base64",
+		}
+		require.ErrorContains(t, key.BeforeWrite(db),
+			"failed to decode AES key")
+	})
+
+	t.Run("Wrong length AES value", func(t *testing.T) {
+		t.Parallel()
+
+		key := &CryptoKey{
+			Name: "aes-key",
+			Type: CryptoKeyTypeAES,
+			Key:  "0123456789abcdefhijklABCDEFHIJKLMNOPQRST",
 		}
 		require.ErrorContains(t, key.BeforeWrite(db),
 			"AES keys must be 16, 24, or 32 bytes long")
+	})
+
+	t.Run("Not base64 HMAC value", func(t *testing.T) {
+		t.Parallel()
+
+		key := &CryptoKey{
+			Name: "aes-key",
+			Type: CryptoKeyTypeHMAC,
+			Key:  "not base64",
+		}
+		require.ErrorContains(t, key.BeforeWrite(db),
+			"failed to decode HMAC key")
 	})
 
 	t.Run("Illegal PGP public key value", func(t *testing.T) {
