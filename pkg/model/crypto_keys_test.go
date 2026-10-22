@@ -7,6 +7,7 @@ import (
 	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -14,6 +15,13 @@ import (
 func TestCryptoKeyBeforeWrite(t *testing.T) {
 	t.Parallel()
 	db := dbtest.TestDatabase(t)
+
+	requireErrorContains := func(tb testing.TB, err error, msg string) {
+		tb.Helper()
+		var valErr *database.ValidationError
+		require.ErrorAs(tb, err, &valErr)
+		require.ErrorContains(tb, valErr, msg)
+	}
 
 	const aesKey = "0123456789abcdefhijklABCDEFHIJKLMNOPQRSTUVW="
 
@@ -75,7 +83,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypeAES,
 			Key:  aesKey,
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"the cryptographic key's name is missing")
 	})
 
@@ -86,7 +94,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Name: "aes-key",
 			Key:  aesKey,
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"the cryptographic key's type is missing")
 	})
 
@@ -97,7 +105,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Name: "aes-key",
 			Type: CryptoKeyTypeAES,
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"the cryptographic key value is missing")
 	})
 
@@ -109,7 +117,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypeAES,
 			Key:  aesKey,
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			fmt.Sprintf("a cryptographic key named %q already exists", key.Name))
 	})
 
@@ -121,7 +129,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: "not a type",
 			Key:  "0123456789abcdefhijklABCDEFHIJKL",
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			fmt.Sprintf("unknown cryptographic key type %q", key.Type))
 	})
 
@@ -133,7 +141,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypeAES,
 			Key:  "not base64",
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"failed to decode AES key")
 	})
 
@@ -145,7 +153,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypeAES,
 			Key:  "0123456789abcdefhijklABCDEFHIJKLMNOPQRST",
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"AES keys must be 16, 24, or 32 bytes long")
 	})
 
@@ -157,7 +165,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypeHMAC,
 			Key:  "not base64",
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"failed to decode HMAC key")
 	})
 
@@ -169,7 +177,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypePGPPublic,
 			Key:  "not a PGP key",
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"failed to parse PGP public key")
 	})
 
@@ -181,7 +189,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypePGPPrivate,
 			Key:  "not a PGP key",
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"failed to parse PGP private key")
 	})
 
@@ -193,7 +201,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypePGPPublic,
 			Key:  testhelpers.TestPGPPrivateKey,
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"the given PGP key is not a public key")
 	})
 
@@ -205,7 +213,7 @@ func TestCryptoKeyBeforeWrite(t *testing.T) {
 			Type: CryptoKeyTypePGPPrivate,
 			Key:  testhelpers.TestPGPPublicKey,
 		}
-		require.ErrorContains(t, key.BeforeWrite(db),
+		requireErrorContains(t, key.BeforeWrite(db),
 			"the given PGP key is not a private key")
 	})
 

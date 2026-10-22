@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 
@@ -71,7 +70,7 @@ func (k *CryptoKey) checkKeyHMAC() error {
 func (k *CryptoKey) checkKeyPGPPrivate() error {
 	privKey, privErr := pgp.NewKeyFromArmored(k.Key)
 	if privErr != nil {
-		return fmt.Errorf("failed to parse PGP private key: %w", privErr)
+		return database.NewValidationErrorf("failed to parse PGP private key: %w", privErr)
 	}
 
 	if !privKey.IsPrivate() {
@@ -89,7 +88,7 @@ func (k *CryptoKey) checkKeyPGPPrivate() error {
 func (k *CryptoKey) checkKeyPGPPublic() error {
 	pubKey, err := pgp.NewKeyFromArmored(k.Key)
 	if err != nil {
-		return fmt.Errorf("failed to parse PGP public key: %w", err)
+		return database.NewValidationErrorf("failed to parse PGP public key: %w", err)
 	}
 
 	if pubKey.IsPrivate() {
