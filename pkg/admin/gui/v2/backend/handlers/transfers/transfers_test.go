@@ -232,7 +232,7 @@ func TestList(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		rec := s.get(t, permWrite, "/webui/transfers")
+		rec := s.get(t, permWrite, "/webui/transfers?full=1")
 		require.Equal(t, http.StatusOK, rec.Code)
 
 		body := rec.Body.String()
@@ -243,7 +243,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `class="w-btn w-btn--primary" href="/webui/transfers/new">`)
 		assert.Contains(t, body, `href="/webui/transfers/preregister"`)
 		assert.Contains(t, body, "transfers.js", "the list refreshes itself")
-		assert.Contains(t, body, `data-refresh-seconds="5"`)
+		assert.Contains(t, body, `<div data-live data-live-period="5">`, "the list refreshes itself, as a live list of the kit")
 
 		// The row of the states: every state then each one, with its count.
 		count := func(label string, n int) string {
@@ -254,7 +254,7 @@ func TestList(t *testing.T) {
 			"<span>"+count("Planifiés", 1), "<span>"+count("En pause", 0),
 			"<span>"+count("Interrompus", 0), "<span>"+count("Attendus", 1),
 			"<span>"+count("Terminés", 1), "<span>"+count("Annulés", 1), "</nav>")
-		assert.Contains(t, body, `id="transfers-count" aria-live="polite">6 transferts</span>`)
+		assert.Contains(t, body, `id="transfers-count" aria-live="polite" data-live-part="counts">6 transferts</span>`)
 		assert.Contains(t, body, `title="Transfert pré-enregistré : la passerelle attend que le partenaire se connecte`,
 			"each state says what it means")
 
@@ -298,14 +298,14 @@ func TestList(t *testing.T) {
 			`<optgroup label="srv-sftp">`, `<option value="filiale-sud">filiale-sud</option>`, "</select>")
 
 		// A partner chosen: its accounts alone.
-		rec = s.get(t, permWrite, "/webui/transfers?partner=srv-sftp&account=filiale-sud")
+		rec = s.get(t, permWrite, "/webui/transfers?full=1&partner=srv-sftp&account=filiale-sud")
 		chosen := rec.Body.String()
 		indexes(t, chosen, `<option value="srv-sftp" selected>srv-sftp</option>`, `<select class="w-select" id="f-account"`,
 			`<optgroup label="srv-sftp">`, `<option value="filiale-sud" selected>filiale-sud</option>`, "</select>")
 		assert.NotContains(t, chosen, `<optgroup label="banque-demo">`, "the accounts of the chosen partner alone")
 
 		// A partner of the address that the lists do not hold shows alone, chosen.
-		rec = s.get(t, permWrite, "/webui/transfers?partner=partenaire-supprime")
+		rec = s.get(t, permWrite, "/webui/transfers?full=1&partner=partenaire-supprime")
 		assert.Contains(t, rec.Body.String(), `<option value="partenaire-supprime" selected>partenaire-supprime</option>`)
 
 		// The secondary action of the header in a "⋯" menu, as on the other pages.
@@ -324,7 +324,7 @@ func TestList(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		body := s.get(t, permRead, "/webui/transfers").Body.String()
+		body := s.get(t, permRead, "/webui/transfers?full=1").Body.String()
 		assert.NotContains(t, body, "/webui/transfers/new", "no addition without the write right")
 		assert.NotContains(t, body, "w-btn--primary")
 		assert.NotContains(t, body, "Mettre en pause")
@@ -338,14 +338,14 @@ func TestList(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		body := s.get(t, permRead, "/webui/transfers?state=error").Body.String()
+		body := s.get(t, permRead, "/webui/transfers?full=1&state=error").Body.String()
 		assert.Equal(t, 1, rows(body))
 		assert.Contains(t, body, "<bdi>releve-20102026.pdf</bdi></a>")
 		assert.Contains(t, body, `href="/webui/transfers?state=error" title="Le transfert a échoué ; il peut être retenté, repris ou relancé" aria-current="true"><span class="w-status w-status--ko">En erreur</span>`)
 		assert.Contains(t, body, `<input type="hidden" name="state" value="error">`, "a search keeps the state")
-		assert.Contains(t, body, `aria-live="polite">1 transfert</span>`)
+		assert.Contains(t, body, `aria-live="polite" data-live-part="counts">1 transfert</span>`)
 
-		body = s.get(t, permRead, "/webui/transfers?state=paused").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&state=paused").Body.String()
 		assert.Contains(t, body, "Aucun transfert « En pause »")
 		assert.Contains(t, body, `href="/webui/transfers?reset=1"`, "the way out shows every state")
 	})
@@ -356,18 +356,18 @@ func TestList(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		body := s.get(t, permRead, "/webui/transfers?q=paie").Body.String()
+		body := s.get(t, permRead, "/webui/transfers?full=1&q=paie").Body.String()
 		assert.Equal(t, 1, rows(body), "by a part of the file name")
 		assert.Contains(t, body, "<bdi>paie-octobre.xml</bdi></a>")
 		assert.Contains(t, body, `<span>Tous</span> <span class="tf-count">1</span>`, "the states count what the search finds")
 		assert.Contains(t, body, `<span>En erreur</span> <span class="tf-count">0</span>`,
 			"no error shape without a failed transfer")
 
-		body = s.get(t, permRead, "/webui/transfers?q=2112951385528143872").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&q=2112951385528143872").Body.String()
 		assert.Equal(t, 1, rows(body), "by the follow ID")
 		assert.Contains(t, body, "<bdi>releve-20102026.pdf</bdi></a>")
 
-		body = s.get(t, permRead, "/webui/transfers?q=absent").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&q=absent").Body.String()
 		assert.Contains(t, body, "Aucun transfert ne correspond à « absent »")
 	})
 
@@ -377,28 +377,28 @@ func TestList(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		body := s.get(t, permRead, "/webui/transfers?rule=commandes").Body.String()
+		body := s.get(t, permRead, "/webui/transfers?full=1&rule=commandes").Body.String()
 		assert.Equal(t, 2, rows(body))
 		assert.Contains(t, body, "Filtres · 1")
 		assert.Contains(t, body, `<details class="w-disclose" open>`)
 
-		body = s.get(t, permRead, "/webui/transfers?direction=receive&partner=srv-sftp").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&direction=receive&partner=srv-sftp").Body.String()
 		assert.Equal(t, 2, rows(body))
 		assert.Contains(t, body, "Filtres · 2")
 
-		body = s.get(t, permRead, "/webui/transfers?account=prod&protocol=sftp").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&account=prod&protocol=sftp").Body.String()
 		assert.Equal(t, 4, rows(body))
 		assert.Contains(t, body, `<option value="sftp" selected>SFTP</option>`)
 		assert.Contains(t, body, `<option value="r66">R66</option>`, "the families of the protocols")
 		assert.NotContains(t, body, `value="r66-tls"`, "a TLS variant goes with its family")
 
-		body = s.get(t, permRead, "/webui/transfers?protocol=r66-tls").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&protocol=r66-tls").Body.String()
 		assert.Contains(t, body, `<option value="r66" selected>R66</option>`, "a variant reads as its family")
 
-		body = s.get(t, permRead, "/webui/transfers?from=2026-10-21T10:36&to=2026-10-21T10:39").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&from=2026-10-21T10:36&to=2026-10-21T10:39").Body.String()
 		assert.Equal(t, 2, rows(body), "the period of the start, its last minute included")
 
-		body = s.get(t, permRead, "/webui/transfers?direction=sideways&from=hier").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&direction=sideways&from=hier").Body.String()
 		assert.Equal(t, 6, rows(body), "an invalid filter is dropped")
 		assert.NotContains(t, body, "Filtres · ")
 	})
@@ -409,57 +409,90 @@ func TestList(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		body := s.get(t, permRead, "/webui/transfers?sort=file&dir=asc").Body.String()
+		body := s.get(t, permRead, "/webui/transfers?full=1&sort=file&dir=asc").Body.String()
 		indexes(t, body, "<tbody>", "<bdi>commandes-0457.edi</bdi></a>", "<bdi>inventaire.csv</bdi></a>", "<bdi>paie-octobre.xml</bdi></a>",
 			"<bdi>rapport-mensuel.pdf</bdi></a>", "<bdi>releve-20102026.pdf</bdi></a>", "<bdi>virements.xml</bdi></a>")
 
-		body = s.get(t, permRead, "/webui/transfers?sort=state&dir=asc").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&sort=state&dir=asc").Body.String()
 		indexes(t, body, "<tbody>", "<bdi>paie-octobre.xml</bdi></a>", "<bdi>releve-20102026.pdf</bdi></a>", "<bdi>rapport-mensuel.pdf</bdi></a>",
 			"<bdi>inventaire.csv</bdi></a>", "<bdi>commandes-0457.edi</bdi></a>", "<bdi>virements.xml</bdi></a>")
 
-		body = s.get(t, permRead, "/webui/transfers?sort=start&dir=asc").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&sort=start&dir=asc").Body.String()
 		indexes(t, body, "<tbody>", "<bdi>virements.xml</bdi></a>", "<bdi>commandes-0457.edi</bdi></a>", "<bdi>rapport-mensuel.pdf</bdi></a>")
 		assert.Contains(t, body, `aria-sort="ascending"`)
 
-		body = s.get(t, permRead, "/webui/transfers?sort=id&dir=asc").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&sort=id&dir=asc").Body.String()
 		indexes(t, body, "<tbody>", "<bdi>paie-octobre.xml</bdi></a>", "<bdi>releve-20102026.pdf</bdi></a>", "<bdi>virements.xml</bdi></a>")
 
-		body = s.get(t, permRead, "/webui/transfers?sort=start&dir=desc").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&sort=start&dir=desc").Body.String()
 		indexes(t, body, "<tbody>", "<bdi>inventaire.csv</bdi></a>", "<bdi>rapport-mensuel.pdf</bdi></a>", "<bdi>paie-octobre.xml</bdi></a>")
 	})
 
-	t.Run("Given the refresh", func(t *testing.T) {
+	t.Run("Given the parts of the live list", func(t *testing.T) {
 		t.Parallel()
 
 		s := newSuite(t)
 		s.fixtures(t)
 
-		rec := s.get(t, permRead, "/webui/transfers?state=error&fragment=list")
+		// The part of the counts: the row of the states and the count, alone.
+		rec := s.get(t, permRead, "/webui/transfers?state=error&fragment=counts")
 		require.Equal(t, http.StatusOK, rec.Code)
 
 		body := rec.Body.String()
-		assert.NotContains(t, body, "<html", "the fragment alone")
-		indexes(t, body, `<div id="transfers-fragment"`, `id="transfers-states"`, `id="transfers-count"`,
-			`id="transfers-table"`, "<bdi>releve-20102026.pdf</bdi></a>")
+		assert.NotContains(t, body, "<html", "the part alone")
+		indexes(t, body, `id="transfers-states"`, `data-live-part="counts"`, `id="transfers-count"`)
+		assert.NotContains(t, body, `id="transfers-table"`)
 		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=state%3Derror",
-			"the state the script loads is the one to find again when coming back")
+			"the state the list loads is the one to find again when coming back")
 
-		// Back to every state by the script: the state kept for the session is
-		// cleared, so that the sidebar leads to every state (Driss, 2026-10-22).
-		rec = s.get(t, permRead, "/webui/transfers?reset=1&fragment=list")
+		// The part of the rows: the feet of the list and the table, which change with the page.
+		rec = s.get(t, permRead, "/webui/transfers?state=error&fragment=rows")
+		body = rec.Body.String()
+		indexes(t, body, `id="transfers-pager-top" data-live-part="rows" data-live-paged`,
+			`id="transfers-table" data-live-part="rows" data-live-paged`, "<bdi>releve-20102026.pdf</bdi></a>")
+		assert.NotContains(t, body, `id="transfers-states"`)
+
+		// Back to every state: the state kept for the session is cleared, so
+		// that the sidebar leads to every state (Driss, 2026-10-22).
+		rec = s.get(t, permRead, "/webui/transfers?reset=1&fragment=rows")
 		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=;")
 		assert.Contains(t, rec.Header().Get("Set-Cookie"), "Max-Age=0")
 
-		// The automatic refresh of the bare list says nothing about the state.
-		rec = s.get(t, permRead, "/webui/transfers?fragment=list")
+		// The refresh of the bare list says nothing about the state.
+		rec = s.get(t, permRead, "/webui/transfers?fragment=counts")
 		assert.Empty(t, rec.Header().Values("Set-Cookie"))
+	})
+
+	t.Run("Given the frame", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		// The page comes at once, without reading the transfers: the parts
+		// wait for the live list of the kit, which reads them in parallel.
+		body := s.get(t, permRead, "/webui/transfers").Body.String()
+		indexes(t, body, `<script src="/webui/static/gui/live.js" defer></script>`,
+			`<noscript><meta http-equiv="refresh" content="0;url=/webui/transfers?full=1"></noscript>`,
+			`<div data-live data-live-period="5">`, `data-live-status`,
+			`id="transfers-states" aria-label="Statuts des transferts" data-live-part="counts"`, "data-live-pending",
+			`data-live-hold data-live-carry="state sort dir size"`,
+			`id="transfers-table" data-live-part="rows" data-live-paged`, `<tr class="w-skeleton-row">`,
+			"<template data-live-error>")
+		assert.NotContains(t, body, "<bdi>", "no transfer read for the frame")
+
+		// The whole list, for a browser without JavaScript, does not send to itself.
+		body = s.get(t, permRead, "/webui/transfers?full=1").Body.String()
+		assert.NotContains(t, body, `http-equiv="refresh"`)
+		assert.NotContains(t, body, "data-live-pending")
+		assert.Contains(t, body, "<bdi>releve-20102026.pdf</bdi></a>")
 	})
 
 	t.Run("Given no transfer", func(t *testing.T) {
 		t.Parallel()
 
 		s := newSuite(t)
-		body := s.get(t, permWrite, "/webui/transfers").Body.String()
+		body := s.get(t, permWrite, "/webui/transfers?full=1").Body.String()
 		assert.Contains(t, body, "Aucun transfert pour l&#39;instant")
 		assert.Contains(t, body, `href="/webui/transfers/new"`)
 	})

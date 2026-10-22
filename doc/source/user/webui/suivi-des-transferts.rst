@@ -105,8 +105,21 @@ Le menu « ⋯ » de chaque ligne mène à la fiche du transfert et propose les
 actions que son statut permet (voir *Actions*).
 
 
-Actualisation
--------------
+Chargement et actualisation
+---------------------------
+
+L'écran s'ouvre aussitôt : l'en-tête, la recherche et les filtres s'affichent,
+la rangée des statuts et le tableau en attente. La rangée des statuts (avec le
+nombre de transferts) et le tableau (avec ses pieds de liste) se lisent ensuite
+en même temps, chacun s'affichant dès qu'il est prêt. Quand une lecture demandée
+dure, un message *Chargement en cours…* s'affiche en haut à droite jusqu'à ce
+qu'elle aboutisse.
+
+Un changement de statut, de tri ou de page se charge sans recharger l'écran.
+Après chaque affichage, la page suivante puis la précédente sont lues d'avance :
+passer à l'une d'elles est immédiat. En revenant à la liste depuis la fiche d'un
+transfert, la liste réapparaît aussitôt telle qu'elle a été laissée, à la même
+page, puis se met à jour.
 
 La rangée des statuts, le nombre de transferts et le tableau sont actualisés
 toutes les 5 secondes, sans recharger la page, en gardant la recherche, les
@@ -116,6 +129,9 @@ L'actualisation attend pendant une saisie dans la barre d'outils et tant
 qu'un menu « ⋯ » est ouvert. Si une lecture échoue (session expirée,
 Gateway injoignable), un message persistant donne l'heure de la dernière
 lecture réussie ; l'écran réessaie au cycle suivant, sans s'arrêter.
+
+Sans JavaScript, l'écran s'affiche en une fois, liste comprise, et ne
+s'actualise pas.
 
 
 Statuts

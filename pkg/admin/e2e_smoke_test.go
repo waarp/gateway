@@ -231,7 +231,7 @@ func e2eScreens() []e2eScreen {
 		// sheet of the failed transfer (its information: a table), of the
 		// done one; the pages that add and preregister a transfer, cancel
 		// the failed one and retry the done one.
-		{path: "/webui/transfers", tables: 1, fragment: "fragment=list"},
+		{path: "/webui/transfers", tables: 1, fragment: "fragment=rows"},
 		{path: "/webui/transfers/1", tables: 1},
 		{path: "/webui/transfers/1001"},
 		{path: "/webui/transfers/new"},

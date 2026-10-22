@@ -7,14 +7,16 @@ Historique des versions
   (voir :ref:`le guide de l'interface web <user-webui-transfers>`), qui remplace
   l'ancienne page dans la navigation : les transferts et l'historique ensemble,
   le nom du fichier en tête ; une rangée compacte donne le nombre de transferts
-  de chaque état et filtre la liste d'un clic ; recherche par fichier ou par
+  de chaque statut et filtre la liste d'un clic ; recherche par fichier ou par
   identifiant de suivi, filtres par règle, sens, partenaire ou serveur, compte,
   protocole et période, tri (les derniers transferts en tête) et pagination,
-  le tout conservé dans l'adresse ;
-  actualisation toutes les 5 secondes sans recharger la page, qui reprend après
-  un échec. La fiche d'un transfert donne la cause d'une erreur par un libellé
-  lisible, avec le code technique et le message, et montre les informations de
-  transfert. Les actions sont contrôlées selon l'état par le serveur : mise en
+  le tout conservé dans l'adresse ; ouverture immédiate, la rangée des statuts et
+  la liste arrivant ensuite en parallèle, pages voisines lues d'avance et retour
+  à la liste immédiat, même sur un historique de plus d'un million de
+  transferts ; actualisation toutes les 5 secondes sans recharger la page, qui
+  reprend après un échec. La fiche d'un transfert donne la cause d'une erreur
+  par un libellé lisible, avec le code technique et le message, et montre les
+  informations de transfert. Les actions sont contrôlées selon l'état par le serveur : mise en
   pause, reprise, annulation après confirmation, relance maintenant ou à une
   date ; un transfert en cours sur un autre nœud d'une grappe n'est ni mis en
   pause ni annulé depuis ce nœud. Les pages d'ajout d'un transfert client et de

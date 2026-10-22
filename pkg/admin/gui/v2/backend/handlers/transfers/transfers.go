@@ -44,11 +44,16 @@ const (
 	// that coming back through the sidebar finds the list as it was left.
 	stateCookie = "webui_transfers_list"
 
-	// The block of the list refreshed in place (?fragment=list), and how
-	// often: every 5 seconds, as the page this screen replaces (decision of
-	// 2026-10-21).
-	listFragment  = "list"
+	// The parts of the list read by the live list of the kit (?fragment=),
+	// the whole list without JavaScript (?full=1), and how often the parts are
+	// read again: every 5 seconds, as the page this screen replaces (decision
+	// of 2026-10-21).
+	partCounts    = "counts"
+	partRows      = "rows"
+	fullParam     = "full"
 	refreshPeriod = 5 * time.Second
+	// The counts a page change takes: those read less than two periods ago.
+	countsMaxAge = 2 * refreshPeriod
 
 	sortID    = "id"
 	sortStart = "start"
@@ -179,12 +184,13 @@ func statusOf(translate gui.Translator, status types.TransferStatus) gui.Status 
 type Handlers struct {
 	db     *database.DB
 	logger *log.Logger
+	counts *countCache
 
 	shell *common.Shell
 }
 
 func New(db *database.DB, logger *log.Logger) *Handlers {
-	return &Handlers{db: db, logger: logger, shell: common.NewShell()}
+	return &Handlers{db: db, logger: logger, counts: newCountCache(), shell: common.NewShell()}
 }
 
 // canWrite tells whether the user may act on the transfers. Reading is

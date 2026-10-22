@@ -1,6 +1,7 @@
 package transfers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -203,6 +204,26 @@ func familyProtocols(family string) []string {
 	return keys
 }
 
+// countsRead is the result of a reading of the counts.
+type countsRead struct {
+	counts map[string]uint64
+	err    error
+}
+
+// readPage reads a page of the transfers the search, the filters and the
+// state match.
+func (h *Handlers) readPage(query *liststate.Query, crit *filters, page int,
+) ([]*model.NormalizedTransferView, error) {
+	spec, _ := specOfKey(crit.State)
+
+	transfers, err := h.selectQuery(query, crit, spec.status).Limit(query.Size, (max(page, 1)-1)*query.Size).Run()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list the transfers: %w", err)
+	}
+
+	return transfers, nil
+}
+
 // countStates counts the transfers the search and the filters match, in
 // each state (the state filter apart): the row of the states, in one reading
 // grouped by status (a count per state read the transfers eight times: most
@@ -276,6 +297,9 @@ type progressView struct {
 }
 
 type listData struct {
+	Pending        bool   // the frame alone: the live list of the kit reads its parts
+	FullURL        string // the whole list, for a browser without JavaScript
+	CountShown     bool   // the count in the toolbar: the list holds on one page
 	RefreshedAt    string
 	RefreshSeconds int
 	FragmentURL    string
@@ -338,33 +362,63 @@ type accountGroup struct {
 	Logins []string
 }
 
-// List serves GET /webui/transfers; with ?fragment=list, the refreshed part
-// alone (the row of the states, the count, the table and its foot).
+// List serves GET /webui/transfers: the frame of the list, whose parts the
+// live list of the kit reads at once and in parallel (?fragment=counts, the
+// row of the states and the count; ?fragment=rows, the feet of the list and
+// the table); with ?full=1, the whole list, for a browser without
+// JavaScript (2026-10-22: the list of 1.2 million transfers took 4.6 s to
+// show anything).
 func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
-	fragment := r.URL.Query().Get(constants.FragmentParam) == listFragment
-	if !fragment && listSpec.Restore(w, r) {
+	values := r.URL.Query()
+	part := values.Get(constants.FragmentParam)
+
+	if part != partCounts && part != partRows {
+		part = ""
+	}
+
+	if part == "" && listSpec.Restore(w, r) {
 		return
 	}
 
 	translate := h.shell.Translator(r)
-	query := listSpec.Parse(r.URL.Query())
-	data := h.buildList(translate, query, canWrite(r))
+	query := listSpec.Parse(values)
 
-	if fragment {
-		// The state the script asks for (a state, a sort or a page loaded in
+	if part != "" {
+		// The state the list asks for (a state, a sort or a page loaded in
 		// place) is the one to find again when coming back to the screen.
-		if listSpec.HasParams(r.URL.Query()) {
+		if listSpec.HasParams(values) {
 			listSpec.KeepState(w, query)
 		}
 
-		h.shell.RenderFragment(w, h.logger, r, listBlock(data))
+		data := h.buildList(translate, query, canWrite(r), part)
+		if data.Error {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		if part == partCounts {
+			h.shell.RenderFragment(w, h.logger, r, countsPart(data))
+		} else {
+			h.shell.RenderFragment(w, h.logger, r, rowsPart(data))
+		}
 
 		return
 	}
 
+	var data listData
+	if values.Get(fullParam) != "" {
+		data = h.buildList(translate, query, canWrite(r), partCounts, partRows)
+	} else {
+		data = h.buildList(translate, query, canWrite(r))
+	}
+
+	full := query.WithPage(query.Page)
+	full.Set(fullParam, "1")
+	data.FullURL = listSpec.ListURLOf(full)
+
 	screen := h.screen(translate("transfers.title"), crumbs(translate, "", ""), 0)
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Scripts = []string{script}
+	screen.Head = liveHead(data.FullURL, data.Pending)
 
 	if data.Error {
 		screen.Status = http.StatusInternalServerError
@@ -373,9 +427,12 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	h.shell.Render(w, h.logger, r, screen, listView(data))
 }
 
-// buildList reads and lays out one page of the list: the counts of the
-// states, the page of transfers, the toolbar state, the row actions.
-func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, write bool) listData {
+// buildList lays out the list: the frame alone without parts (the live list
+// of the kit reads them), else the counts of the states, the page of
+// transfers, or both. The counts and the page are read at the same time; the
+// counts are shared by the parts read together, and a page change takes
+// those read a moment before.
+func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, write bool, parts ...string) listData {
 	crit := filtersOf(query)
 	carried := query.Encode(query.Page)
 	data := listData{
@@ -405,14 +462,50 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 		data.PreregisterURL = withRet(common.WebuiURL(pagePath+"/preregister"), carried)
 	}
 
-	counts, err := h.countStates(query, crit)
-	if err != nil {
-		h.logger.Errorf("failed to count the transfers: %v", err)
+	if len(parts) == 0 {
+		data.Pending = true
+
+		return data
+	}
+
+	withRows := slices.Contains(parts, partRows)
+
+	// The part of the counts reads them again; the rows alone (a page change)
+	// take those read less than two periods ago.
+	maxAge := time.Duration(0)
+	if !slices.Contains(parts, partCounts) {
+		maxAge = countsMaxAge
+	}
+
+	read := make(chan countsRead, 1)
+
+	go func() {
+		counts, err := h.counts.get(countKey(query.Q, crit), maxAge, func() (map[string]uint64, error) {
+			return h.countStates(query, crit)
+		})
+		read <- countsRead{counts, err}
+	}()
+
+	// The page the address asks for is read meanwhile.
+	var (
+		transfers []*model.NormalizedTransferView
+		pageErr   error
+	)
+
+	if withRows {
+		transfers, pageErr = h.readPage(query, crit, query.Page)
+	}
+
+	counted := <-read
+	if counted.err != nil || pageErr != nil {
+		h.logger.Errorf("failed to read the transfers: %v", errors.Join(counted.err, pageErr))
 
 		data.Error, data.RetryURL = true, data.FragmentURL
 
 		return data
 	}
+
+	counts := counted.counts
 
 	var all, shown uint64
 	for _, n := range counts {
@@ -426,6 +519,11 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 
 	data.States = stateItems(translate, query, counts, all)
 	data.Count = countText(translate, shown)
+	data.CountShown = shown <= uint64(query.Size) //nolint:gosec // a page size, small
+
+	if !withRows {
+		return data
+	}
 
 	if shown == 0 {
 		h.noRows(translate, &data, query, crit)
@@ -435,15 +533,16 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 
 	bounds := query.Bounds(int(shown))
 
-	spec, _ := specOfKey(crit.State)
+	// The page asked lies beyond the end of the list: the last one.
+	if bounds.Page != query.Page {
+		var err error
+		if transfers, err = h.readPage(query, crit, bounds.Page); err != nil {
+			h.logger.Errorf("failed to list the transfers: %v", err)
 
-	transfers, err := h.selectQuery(query, crit, spec.status).Limit(query.Size, bounds.From).Run()
-	if err != nil {
-		h.logger.Errorf("failed to list the transfers: %v", err)
+			data.Error, data.RetryURL = true, data.FragmentURL
 
-		data.Error, data.RetryURL = true, data.FragmentURL
-
-		return data
+			return data
+		}
 	}
 
 	carried = query.Encode(bounds.Page)

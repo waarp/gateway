@@ -12,18 +12,27 @@ import (
 
 // listView: the transfer monitoring screen (Supervision). Presentation only:
 // the handler counts, filters, sorts, pages and translates. The row of the
-// states, the count and the table are refreshed in place every few seconds
-// (transfers.js, ?fragment=list); without JavaScript, "Refresh" reloads the
-// page. The toolbar applies the search and the filters as they change
-// (kit.js), carrying the state and the sort.
+// states, the count and the table are the two parts of a live list of the
+// kit (live.js): the page comes as a frame, the parts are read at once and in
+// parallel, then every few seconds; a state, a sort or a page loads in place,
+// the next and previous pages are read ahead. Without JavaScript, the whole
+// list (?full=1). The toolbar applies the search and the filters as they
+// change (kit.js), carrying the state and the sort.
 templ listView(d listData) {
+	<div data-live data-live-period={ strconv.Itoa(d.RefreshSeconds) }>
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ gui.T(ctx, "transfers.title") }</h1>
 		</div>
 		<div class="w-page-header__actions">
-			<span class="w-live" id="transfers-live" role="status" aria-live="polite" data-live={ gui.T(ctx, "transfers.live") } data-refreshing={ gui.T(ctx, "transfers.refreshing") }>{ gui.T(ctx, "transfers.live", "time", d.RefreshedAt) }</span>
-			<a class="w-btn w-btn--outline-dark" id="transfers-refresh" href={ templ.SafeURL(d.FragmentURL) }>
+			<span class="w-live" id="transfers-live" role="status" aria-live="polite" data-live-status data-live={ gui.T(ctx, "transfers.live") } data-refreshing={ gui.T(ctx, "transfers.refreshing") } data-live-time={ d.RefreshedAt }>
+				if d.Pending {
+					{ gui.T(ctx, "transfers.refreshing") }
+				} else {
+					{ gui.T(ctx, "transfers.live", "time", d.RefreshedAt) }
+				}
+			</span>
+			<a class="w-btn w-btn--outline-dark" id="transfers-refresh" href={ templ.SafeURL(d.FragmentURL) } data-live-refresh>
 				@gui.Icon("rotate")
 				{ gui.T(ctx, "action.refresh") }
 			</a>
@@ -38,7 +47,7 @@ templ listView(d listData) {
 	</div>
 	@statesRow(d)
 	<div class="tf-bar">
-	<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+	<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-hold data-live-carry="state sort dir size">
 		for _, h := range liststate.SortedHidden(d.Hidden) {
 			<input type="hidden" name={ h.Name } value={ h.Value }/>
 		}
@@ -59,18 +68,31 @@ templ listView(d listData) {
 	@pagerTop(d)
 	</div>
 	@tableRegion(d)
-	<template id="transfers-error">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.refresh_error.title"), Text: gui.T(ctx, "transfers.refresh_error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.FragmentURL}})</template>
+	<template data-live-error>@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.refresh_error.title"), Text: gui.T(ctx, "transfers.refresh_error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.FragmentURL}})</template>
+	</div>
 }
 
-// listBlock: the refreshed parts alone, for ?fragment=list: the row of the
-// states, the count and the table region, each found by its id.
-templ listBlock(d listData) {
-	<div id="transfers-fragment" data-refreshed-at={ d.RefreshedAt }>
-		@statesRow(d)
-		@countSpan(d)
-		@pagerTop(d)
-		@tableRegion(d)
-	</div>
+// liveHead: the live list of the kit; the frame sends a browser without
+// JavaScript to the whole list (the whole list itself must not, or it would
+// load itself again without end).
+templ liveHead(fullURL string, frame bool) {
+	@gui.LiveAssets()
+	if frame {
+		<noscript><meta http-equiv="refresh" content={ "0;url=" + fullURL }/></noscript>
+	}
+}
+
+// countsPart: the part of the counts, for ?fragment=counts.
+templ countsPart(d listData) {
+	@statesRow(d)
+	@countSpan(d)
+}
+
+// rowsPart: the part of the rows, which changes with the page, for
+// ?fragment=rows.
+templ rowsPart(d listData) {
+	@pagerTop(d)
+	@tableRegion(d)
 }
 
 // statesRow: every state with its count, as tabs underlined on one line
@@ -78,7 +100,10 @@ templ listBlock(d listData) {
 // (aria-current, a thick underline and bold: not by the colour alone), the
 // failed transfers carry the shape of the error status when there are any.
 templ statesRow(d listData) {
-	<nav class="tf-states" id="transfers-states" aria-label={ gui.T(ctx, "transfers.states.label") }>
+	<nav class="tf-states" id="transfers-states" aria-label={ gui.T(ctx, "transfers.states.label") } data-live-part="counts" data-live-time={ d.RefreshedAt } data-live-pending?={ d.Pending }>
+		if d.Pending {
+			<span class="w-skeleton tf-states-wait"></span>
+		}
 		for _, s := range d.States {
 			<a
 				class="tf-state"
@@ -102,8 +127,8 @@ templ statesRow(d listData) {
 // countSpan: the count of the list, in the toolbar, when the list holds on
 // one page; the foot at the top says it when there are several.
 templ countSpan(d listData) {
-	<span class="w-toolbar__count" id="transfers-count" aria-live="polite">
-		if d.Pager == nil || d.Pager.Pages <= 1 {
+	<span class="w-toolbar__count" id="transfers-count" aria-live="polite" data-live-part="counts" data-live-pending?={ d.Pending }>
+		if d.CountShown {
 			{ d.Count }
 		}
 	</span>
@@ -190,7 +215,7 @@ templ filtersPanel(f filterView) {
 // tableRegion: the table and its foot, or what replaces them: the reading
 // error, no transfer at all, none matching.
 templ tableRegion(d listData) {
-	<div id="transfers-table" data-fragment-url={ d.FragmentURL } data-refresh-seconds={ strconv.Itoa(d.RefreshSeconds) }>
+	<div id="transfers-table" data-live-part="rows" data-live-paged data-live-time={ d.RefreshedAt } data-live-pending?={ d.Pending }>
 		if d.Error {
 			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.load_error.title"), Text: gui.T(ctx, "transfers.load_error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
 		} else if d.Empty {
@@ -218,6 +243,9 @@ templ tableRegion(d listData) {
 						</tr>
 					</thead>
 					<tbody>
+						if d.Pending {
+							@gui.SkeletonRows(gui.SkeletonRowsProps{Rows: 10, Cols: 11})
+						}
 						for _, r := range d.Rows {
 							<tr>
 								<td class="tf-dir" title={ r.DirTip }>
@@ -275,7 +303,7 @@ templ tableRegion(d listData) {
 // pagerTop: the list foot repeated above the table, without the rows per
 // page, so that changing pages needs no scrolling (Driss, 2026-10-22).
 templ pagerTop(d listData) {
-	<div class="tf-pager-top" id="transfers-pager-top">
+	<div class="tf-pager-top" id="transfers-pager-top" data-live-part="rows" data-live-paged>
 		if d.Pager != nil {
 			@gui.Pager(d.Pager.Props(d.TopHidden, nil, d.Size))
 		}
