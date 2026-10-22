@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`736` Ajout de validations manquantes lors de l'insertion de clés
+  cryptographiques AES et HMAC. Précédemment, des clés invalides ne levaient d'erreur
+  qu'au moment de leur utilisation (typiquement dans une tâche). Elles sont maintenant
+  rejetées à l'insertion.
 * :bug:`729` Le moteur d'exécution de tâche n'affiche plus d'avertissement dans
   les logs indiquant que le fichier de transfert n'existe pas après que celui-ci
   ait été volontairement supprimé via une tâche DELETE.

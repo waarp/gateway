@@ -5,6 +5,7 @@ import (
 	"crypto/md5" //nolint:gosec //MD5 is needed for compatibility
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"hash"
@@ -39,7 +40,12 @@ func makeHMACVerifier(cryptoKey *model.CryptoKey, mkHash func() hash.Hash) (veri
 		return nil, ErrVerifyNotHMACKey
 	}
 
-	hasher := hmac.New(mkHash, []byte(cryptoKey.Key))
+	bytes, b64Err := base64.StdEncoding.DecodeString(cryptoKey.Key)
+	if b64Err != nil {
+		return nil, fmt.Errorf("failed to decode HMAC key: %w", b64Err)
+	}
+
+	hasher := hmac.New(mkHash, bytes)
 
 	return func(file io.Reader, expected []byte) error {
 		if _, err := io.Copy(hasher, file); err != nil {

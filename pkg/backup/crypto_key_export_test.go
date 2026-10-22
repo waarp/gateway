@@ -16,7 +16,7 @@ func TestExportCryptoKeys(t *testing.T) {
 
 	const (
 		aesKey  = "0123456789abcdefhijklABCDEFHIJKL"
-		hmacKey = "0987654321"
+		hmacKey = "0987654321ab"
 	)
 
 	logger := testhelpers.GetTestLogger(t)
