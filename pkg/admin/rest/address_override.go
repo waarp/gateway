@@ -1,10 +1,12 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gorilla/mux"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
@@ -40,7 +42,12 @@ func addAddressOverride(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		for target, realAddr := range indirections {
-			if err := db.Config.Overrides.AddIndirection(target, realAddr); handleError(w, logger, err) {
+			if err := db.Config.Overrides.AddIndirection(target, realAddr); err != nil {
+				if indErr, ok := errors.AsType[conf.IndirectionError](err); ok {
+					err = badRequest(indErr.Error())
+				}
+				handleError(w, logger, err)
+
 				return
 			}
 		}
