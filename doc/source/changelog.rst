@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`756` Le fichier d'import/export prend désormais bien en compte les
+  commentaires de règle, à l'import et à l'export.
 * :bug:`732` Tenter d'insérer une indirection d'adresse invalide via REST renvoie
   désormais un code d'erreur 400 au lieu de 500.
 * :bug:`731` Les indirections d'adresses DNS incorrectes sont désormais correctement

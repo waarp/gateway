@@ -43,6 +43,7 @@ func exportRules(logger *log.Logger, db database.ReadAccess) ([]file.Rule, error
 
 		res[i] = file.Rule{
 			Name:           src.Name,
+			Comment:        src.Comment,
 			IsSend:         src.IsSend,
 			Path:           src.Path,
 			LocalDir:       src.LocalDir,

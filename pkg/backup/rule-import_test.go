@@ -81,9 +81,10 @@ func TestImportRules(t *testing.T) {
 
 			Convey("Given a new Rule to import", func() {
 				Rule1 := file.Rule{
-					Name:   "foo",
-					IsSend: true,
-					Path:   "test/path",
+					Name:    "foo",
+					Comment: "this is a comment",
+					IsSend:  true,
+					Path:    "test/path",
 					Accesses: []string{
 						"local::server",
 						"local::server::account1",
@@ -126,6 +127,7 @@ func TestImportRules(t *testing.T) {
 						dbRule := dbRules[1]
 
 						So(dbRule.Name, ShouldEqual, Rule1.Name)
+						So(dbRule.Comment, ShouldEqual, Rule1.Comment)
 						So(dbRule.IsSend, ShouldEqual, Rule1.IsSend)
 						So(dbRule.Path, ShouldEqual, Rule1.Path)
 

@@ -58,6 +58,7 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 		}
 
 		rule.Name = src.Name
+		rule.Comment = src.Comment
 		rule.IsSend = src.IsSend
 		rule.Path = src.Path
 		rule.LocalDir = src.LocalDir
@@ -156,8 +157,8 @@ func importRuleAccesses(db database.Access, list []string, rule *model.Rule) err
 			return err
 		}
 		// If ruleAccess does not exist create
-		if err = db.Get(access, "rule_id=?", access.RuleID).And(
-			target.GenAccessSelectCond()).Run(); database.IsNotFound(err) {
+		if err = db.Get(access, "rule_id=?", access.RuleID).
+			And(target.GenAccessSelectCond()).Run(); database.IsNotFound(err) {
 			if err2 := db.Insert(access).Run(); err2 != nil {
 				return fmt.Errorf("failed to create rule access: %w", err2)
 			}

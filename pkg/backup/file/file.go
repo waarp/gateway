@@ -114,6 +114,7 @@ type Certificate struct {
 // Rule is the JSON struct representing a transfer rule.
 type Rule struct {
 	Name           string   `json:"name" yaml:"name"`
+	Comment        string   `json:"comment,omitempty" yaml:"comment,omitempty"`
 	IsSend         bool     `json:"isSend" yaml:"isSend"`
 	Path           string   `json:"path" yaml:"path"`
 	LocalDir       string   `json:"localDir,omitempty" yaml:"localDir,omitempty"`
