@@ -77,8 +77,16 @@ func TestAccessAdd(t *testing.T) {
 
 		body := s.get(t, permWrite, path(s.receive, "/access/new")).Body.String()
 		assert.Contains(t, body, "La règle est ouverte à tous.", "the first access closes it")
-		assert.Contains(t, body, `<option value="`+itoa64(s.server.ID)+`">srv-sftp</option>`)
-		assert.Contains(t, body, `<optgroup label="srv-sftp"><option value="`+itoa64(s.local.ID)+`">filiale-sud</option>`)
+		assert.Contains(t, body, `src="/webui/static/gui/combobox.js"`, "the targets in the list to type in")
+		for _, marker := range []string{
+			`data-combobox="`, `<optgroup label="Serveurs">`,
+			`<option value="server:` + itoa64(s.server.ID) + `" data-label="srv-sftp" data-code="SFTP">srv-sftp (SFTP)</option>`,
+			`<optgroup label="Comptes locaux">`,
+			`<option value="local_account:` + itoa64(s.local.ID) + `" data-label="filiale-sud" data-code="srv-sftp">`,
+			`<optgroup label="Partenaires">`, `<optgroup label="Comptes distants">`,
+		} {
+			assert.Contains(t, body, marker)
+		}
 	})
 
 	t.Run("Given the form of a rule kept for a partner", func(t *testing.T) {
@@ -88,8 +96,13 @@ func TestAccessAdd(t *testing.T) {
 		s.fixtures(t)
 
 		body := s.get(t, permWrite, path(s.send, "/access/new")).Body.String()
-		assert.NotContains(t, body, ">banque-demo</option>", "a target already granted is left out")
-		assert.Contains(t, body, "Tous ont déjà accès à la règle.")
+		assert.NotContains(t, body, `value="partner:`, "a target already granted is left out")
+		assert.Contains(t, body, `data-label="prod" data-code="banque-demo"`)
+
+		require.NoError(t, s.db.Insert(&model.RuleAccess{RuleID: s.send.ID, RemoteAccountID: s.account.NullableID()}).Run())
+		body = s.get(t, permWrite, path(s.send, "/access/new?side=out")).Body.String()
+		assert.Contains(t, body, "Tous ont déjà accès à la règle.", "nothing left on the side")
+		assert.NotContains(t, body, `data-combobox="`)
 	})
 
 	t.Run("Given the form of one side", func(t *testing.T) {
@@ -99,16 +112,16 @@ func TestAccessAdd(t *testing.T) {
 		s.fixtures(t)
 
 		body := s.get(t, permWrite, path(s.receive, "/access/new?side=in")).Body.String()
-		assert.Contains(t, body, `<option value="`+kindServer+`">`)
-		assert.Contains(t, body, `<option value="`+kindLocalAccount+`">`)
-		assert.NotContains(t, body, `<option value="`+kindPartner+`">`, "the kinds of the other side are left out")
+		assert.Contains(t, body, `<option value="server:`)
+		assert.Contains(t, body, `<option value="local_account:`)
+		assert.NotContains(t, body, `<option value="partner:`, "the kinds of the other side are left out")
 		assert.Contains(t, body, `action="/webui/rules/`+itoa64(s.receive.ID)+`/access/new?side=in"`, "the side is kept")
 
 		rec := s.post(t, permWrite, path(s.receive, "/access/new?side=in"), url.Values{
-			fieldKind: {kindPartner}, kindPartner: {itoa64(s.partner.ID)},
+			fieldTarget: {targetValue(kindPartner, s.partner.ID)},
 		})
 		assert.Equal(t, http.StatusUnprocessableEntity, rec.Code, "a kind of the other side is refused")
-		assert.Contains(t, rec.Body.String(), "Choisissez un type.")
+		assert.Contains(t, rec.Body.String(), "Choisissez la cible.")
 		assert.Equal(t, uint64(0), s.count(t, &model.RuleAccess{}, "rule_id=?", s.receive.ID))
 	})
 
@@ -119,7 +132,7 @@ func TestAccessAdd(t *testing.T) {
 		s.fixtures(t)
 
 		rec := s.post(t, permWrite, path(s.receive, "/access/new"), url.Values{
-			fieldKind: {kindLocalAccount}, kindLocalAccount: {itoa64(s.local.ID)},
+			fieldTarget: {targetValue(kindLocalAccount, s.local.ID)},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		assert.Contains(t, rec.Header().Get("Location"), path(s.receive, "/access"))
@@ -130,13 +143,14 @@ func TestAccessAdd(t *testing.T) {
 		name, message string
 		form          func(s *suite) url.Values
 	}{
-		{"no kind", "Choisissez un type.", func(*suite) url.Values { return url.Values{} }},
-		{"no target", "Choisissez la cible.", func(*suite) url.Values { return url.Values{fieldKind: {kindServer}} }},
+		{"no target", "Choisissez la cible.", func(*suite) url.Values { return url.Values{} }},
+		{"an unknown kind", "Choisissez la cible.", func(*suite) url.Values { return url.Values{fieldTarget: {"rule:1"}} }},
+		{"an unknown target", "Choisissez la cible.", func(*suite) url.Values {
+			return url.Values{fieldTarget: {targetValue(kindServer, 9999)}}
+		}},
 		{
 			"a target already granted", "Cette cible a déjà accès à la règle.",
-			func(s *suite) url.Values {
-				return url.Values{fieldKind: {kindPartner}, kindPartner: {itoa64(s.partner.ID)}}
-			},
+			func(s *suite) url.Values { return url.Values{fieldTarget: {targetValue(kindPartner, s.partner.ID)}} },
 		},
 	} {
 		t.Run("Given "+tc.name, func(t *testing.T) {

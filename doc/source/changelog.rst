@@ -9,10 +9,11 @@ Historique des versions
   clair ; ses accès en deux blocs, quand un partenaire se connecte (serveurs et
   comptes locaux) et quand la passerelle se connecte (partenaires et comptes
   distants) ; un signalement quand la règle n'est réservée que d'un côté, l'autre
-  étant fermé ; les pages d'ajout d'un accès (les cibles qui l'ont déjà sont
-  écartées), de retrait (le dernier rouvre la règle à tous) et de réouverture à
-  tous. L'ancienne page reste accessible à son adresse jusqu'à la version
-  suivante.
+  étant fermé ; chaque accès en carte, son type au-dessus de sa cible ; les
+  pages d'ajout d'un accès (la cible se tape ou se choisit dans une liste groupée
+  par type, celles qui l'ont déjà sont écartées), de retrait (le dernier rouvre
+  la règle à tous) et de réouverture à tous. L'ancienne page reste accessible à
+  son adresse jusqu'à la version suivante.
 
 * :feature:`757` L'interface web propose un nouvel écran des règles de transfert
   (voir :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace

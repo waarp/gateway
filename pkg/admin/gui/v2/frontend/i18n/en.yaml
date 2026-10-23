@@ -1846,13 +1846,17 @@ rules:
     new_title: "New access to “{name}”"
     first_title: The rule is open to all.
     first_note: "From this first access on, it is closed to every other server, partner and account, on both sides."
-    kind_choose: Choose a type
-    kind_hint: A server or a local account when a partner connects; a partner or a remote account when the gateway connects.
-    target_choose: Choose
+    target_choose: Type or choose a target
+    target_hint: The name of a server or a partner finds its accounts too.
+    # The groups of the list of targets, one per kind of access.
+    group:
+      server: Servers
+      local_account: Local accounts
+      partner: Partners
+      remote_account: Remote accounts
     none_left: All of them already have access to the rule.
     refused: The access was not added.
     error:
-      kind: Choose a type.
       target: Choose the target.
       granted: This target already has access to the rule.
     remove_title: "Remove the access of “{name}”?"

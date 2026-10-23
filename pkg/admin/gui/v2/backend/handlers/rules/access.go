@@ -13,6 +13,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -30,7 +31,8 @@ const (
 	kindPartner       = "partner"
 	kindRemoteAccount = "remote_account"
 
-	fieldKind = "kind"
+	// The target of an access in the form: its kind, then its ID ("server:3").
+	fieldTarget = "target"
 
 	// The side of the tab an addition comes from: its form offers the kinds
 	// of that side only.
@@ -44,7 +46,8 @@ const (
 
 	causeGranted = "already been granted"
 
-	accessKindKeyPrefix = "rules.access.kind."
+	accessKindKeyPrefix  = "rules.access.kind."
+	accessGroupKeyPrefix = "rules.access.group."
 )
 
 //nolint:gochecknoglobals // reference data of the screen
@@ -372,97 +375,75 @@ func accessCount(translate gui.Translator, n int) string {
 	return translate("rules.access.count", "n", n)
 }
 
-// option is a target offered by the form, in its group (the server or the
-// partner of an account).
-type option struct {
-	Value    string
-	Label    string
-	Selected bool
-}
-
-type optGroup struct {
-	Label   string
-	Options []option
-}
-
-// kindChoice is a kind of access with the targets the form offers for it.
-type kindChoice struct {
-	Value    string
-	Label    string
-	Selected bool
-	Groups   []optGroup // one group without label for the servers and the partners
-	Empty    bool       // nothing left to grant of this kind
-}
-
+// accessForm is the page that adds an access: the targets it offers, the one
+// posted and what was wrong with it.
 type accessForm struct {
 	Title     string
 	Action    string
 	CancelURL string
-	Kind      string
-	Kinds     []kindChoice
-	KindErr   string
+	Groups    []gui.ComboGroup // the targets of the side, one group per kind
 	TargetErr string
 	HasErrors bool
 	Refused   string
 	Note      string // the rule is open: the first access closes it
 
-	targetID int64
-	side     string // the side of the tab the addition comes from, "" for both
+	target string // the target posted, "kind:id"
+	side   string // the side of the tab the addition comes from, "" for both
 }
 
-// choices builds the kinds of access and their targets, the ones already
-// granted left out, sorted by name.
+// targetValue is a target in the form: its kind, then its ID.
+func targetValue(kind string, id int64) string { return kind + ":" + strconv.FormatInt(id, 10) }
+
+// choices builds the targets of the side for the list to type in (Driss,
+// 2026-10-23, as the type of a task), one group per kind: a server or a
+// partner with its protocol, an account with its server or partner, so that
+// typing the name of one finds its accounts too. The ones already granted are
+// left out; the servers and partners sorted by name, the accounts by owner.
 func choices(translate gui.Translator, known *targets, granted []grant, form *accessForm) {
 	has := func(kind string, id int64) bool {
 		return slices.ContainsFunc(granted, func(g grant) bool { return g.Kind == kind && g.ID == id })
 	}
 
 	for _, kind := range kindsOf(form.side) {
-		c := kindChoice{Value: kind, Label: translate(accessKindKeyPrefix + kind), Selected: form.Kind == kind}
-		groups := map[string][]option{}
+		var list []gui.ComboChoice
 
-		add := func(group string, id int64, label string) {
-			if !has(kind, id) {
-				groups[group] = append(groups[group], option{
-					Value: strconv.FormatInt(id, 10), Label: label, Selected: form.Kind == kind && form.targetID == id,
-				})
+		add := func(id int64, label, code string) {
+			if value := targetValue(kind, id); !has(kind, id) {
+				list = append(list, gui.ComboChoice{Value: value, Label: label, Code: code, Selected: value == form.target})
 			}
 		}
 
 		switch kind {
 		case kindServer:
 			for id, s := range known.servers {
-				add("", id, s.Name)
+				add(id, s.Name, protoform.ProtocolOf(s.Protocol).Label)
 			}
 		case kindPartner:
 			for id, p := range known.partners {
-				add("", id, p.Name)
+				add(id, p.Name, protoform.ProtocolOf(p.Protocol).Label)
 			}
 		case kindLocalAccount:
 			for id, a := range known.locals {
-				add(known.servers[a.LocalAgentID].Name, id, a.Login)
+				add(id, a.Login, known.servers[a.LocalAgentID].Name)
 			}
 		case kindRemoteAccount:
 			for id, a := range known.remotes {
-				add(known.partners[a.RemoteAgentID].Name, id, a.Login)
+				add(id, a.Login, known.partners[a.RemoteAgentID].Name)
 			}
 		}
 
-		names := make([]string, 0, len(groups))
-		for name := range groups {
-			names = append(names, name)
+		if len(list) == 0 {
+			continue
 		}
 
-		slices.Sort(names)
+		slices.SortFunc(list, func(a, b gui.ComboChoice) int {
+			if kind == kindLocalAccount || kind == kindRemoteAccount {
+				return cmp.Or(strings.Compare(a.Code, b.Code), strings.Compare(a.Label, b.Label))
+			}
 
-		for _, name := range names {
-			opts := groups[name]
-			slices.SortFunc(opts, func(a, b option) int { return strings.Compare(a.Label, b.Label) })
-			c.Groups = append(c.Groups, optGroup{Label: name, Options: opts})
-		}
-
-		c.Empty = len(c.Groups) == 0
-		form.Kinds = append(form.Kinds, c)
+			return strings.Compare(a.Label, b.Label)
+		})
+		form.Groups = append(form.Groups, gui.ComboGroup{Label: translate(accessGroupKeyPrefix + kind), Choices: list})
 	}
 }
 
@@ -555,33 +536,26 @@ func (h *Handlers) accessForm(w http.ResponseWriter, r *http.Request, post bool)
 	}
 
 	choices(translate, known, granted, form)
-	h.shell.Render(w, h.logger, r, h.screen(translate, form.Title, carried, status), accessFormView(form))
+
+	screen := h.screen(translate, form.Title, carried, status)
+	screen.Head = gui.ComboboxAssets() // the targets in the list to type in
+	h.shell.Render(w, h.logger, r, screen, accessFormView(form))
 }
 
-// read takes the kind and the target of the posted form: the select of the
-// chosen kind holds the target.
+// read takes the target of the posted form, "kind:id", of a kind of the side.
 func (f *accessForm) read(translate gui.Translator, r *http.Request, t *targets) (model.AccessTarget, string, bool) {
-	f.Kind = r.PostFormValue(fieldKind)
-	if !slices.Contains(kindsOf(f.side), f.Kind) {
-		f.Kind = ""
-		f.KindErr = translate("rules.access.error.kind")
-		f.HasErrors = true
+	f.target = r.PostFormValue(fieldTarget)
+	kind, rawID, _ := strings.Cut(f.target, ":")
+	id, err := strconv.ParseInt(rawID, 10, 64)
+
+	target, ok := t.target(kind, id)
+	if err != nil || !ok || !slices.Contains(kindsOf(f.side), kind) {
+		f.TargetErr, f.HasErrors = translate("rules.access.error.target"), true
 
 		return nil, "", false
 	}
 
-	id, err := strconv.ParseInt(r.PostFormValue(f.Kind), 10, 64)
-	f.targetID = id
-
-	target, ok := t.target(f.Kind, id)
-	if err != nil || !ok {
-		f.TargetErr = translate("rules.access.error.target")
-		f.HasErrors = true
-
-		return nil, "", false
-	}
-
-	label, _ := t.label(translate, f.Kind, id)
+	label, _ := t.label(translate, kind, id)
 
 	return target, label, true
 }

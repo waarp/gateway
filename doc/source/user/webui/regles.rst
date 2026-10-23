@@ -171,15 +171,19 @@ est fermée à tous les autres, des deux côtés :
 
 Une règle réservée d'un seul côté est donc fermée de l'autre ; l'onglet le
 signale. L'état de la règle, puis les deux côtés, côte à côte, sont des cartes
-repliables : une carte repliée le reste au retour sur l'onglet. Chaque accès a
-son menu « ⋯ », qui mène à sa page de retrait.
+repliables : une carte repliée le reste au retour sur l'onglet. Chaque accès y
+est une carte, son type au-dessus de sa cible, avec son menu « ⋯ », qui mène à
+sa page de retrait. Un accès ne porte que sa cible : il ne se modifie pas, on
+retire l'un et on ajoute l'autre.
 
 **Ajouter un accès.** Chaque côté a son bouton : *Ajouter un serveur ou un
 compte local*, *Ajouter un partenaire ou un compte distant*. Il ouvre une page
-où l'on choisit le type, parmi ceux de ce côté, puis la cible ; les comptes sont
-groupés par serveur ou par partenaire, et les cibles qui ont déjà accès ne sont
-pas proposées. Sur une règle ouverte à tous, la page rappelle que ce premier
-accès la ferme à tous les autres.
+où l'on tape ou choisit la cible, dans une liste groupée par type, parmi ceux de
+ce côté : les serveurs et les partenaires avec leur protocole, les comptes avec
+leur serveur ou leur partenaire. La saisie filtre la liste ; le nom d'un serveur
+ou d'un partenaire trouve aussi ses comptes. Les cibles qui ont déjà accès ne
+sont pas proposées. Sur une règle ouverte à tous, la page rappelle que ce
+premier accès la ferme à tous les autres.
 
 **Retirer un accès, rouvrir à tous.** La page de retrait d'un accès dit, pour
 le dernier, que la règle redevient ouverte à tous. Le bouton *Rouvrir à tous*

@@ -1845,13 +1845,17 @@ rules:
     new_title: "Nouvel accès à « {name} »"
     first_title: La règle est ouverte à tous.
     first_note: "Dès ce premier accès, elle sera fermée à tous les autres serveurs, partenaires et comptes, des deux côtés."
-    kind_choose: Choisissez un type
-    kind_hint: "Un serveur ou un compte local quand un partenaire se connecte ; un partenaire ou un compte distant quand la passerelle se connecte."
-    target_choose: Choisissez
+    target_choose: Tapez ou choisissez une cible
+    target_hint: "Le nom d'un serveur ou d'un partenaire trouve aussi ses comptes."
+    # Les groupes de la liste des cibles, un par type d'accès.
+    group:
+      server: Serveurs
+      local_account: Comptes locaux
+      partner: Partenaires
+      remote_account: Comptes distants
     none_left: Tous ont déjà accès à la règle.
     refused: L'accès n'a pas été ajouté.
     error:
-      kind: Choisissez un type.
       target: Choisissez la cible.
       granted: Cette cible a déjà accès à la règle.
     remove_title: "Retirer l'accès de « {name} » ?"

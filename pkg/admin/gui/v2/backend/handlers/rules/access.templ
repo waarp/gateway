@@ -54,7 +54,8 @@ templ accessView(d accessData) {
 }
 
 // accessBlock: the access of one side, its addition, or the sentence saying
-// it has none.
+// it has none. Each access is a card on the background of the page, its kind
+// over its target, its menu (no table in a card: Driss, 2026-10-23).
 templ accessBlock(key, title, text, add string, side accessSide) {
 	@ruleFold(key, title, side.Count) {
 		<p class="rules-hint rules-block-hint w-muted">{ text }</p>
@@ -69,39 +70,27 @@ templ accessBlock(key, title, text, add string, side accessSide) {
 		if len(side.Rows) == 0 {
 			<p class="rules-none w-muted">{ side.None }</p>
 		} else {
-			<div class="w-table-wrap">
-				<table class="w-table">
-					<caption class="visually-hidden">{ title }</caption>
-					<colgroup><col class="rules-col-kind"/><col/><col class="rules-col-actions"/></colgroup>
-					<thead>
-						<tr>
-							<th scope="col">{ gui.T(ctx, "rules.access.col.kind") }</th>
-							<th scope="col">{ gui.T(ctx, "rules.access.col.target") }</th>
-							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "rules.col.actions") }</span></th>
-						</tr>
-					</thead>
-					<tbody>
-						for _, r := range side.Rows {
-							<tr>
-								<td class="w-nowrap">{ r.Kind }</td>
-								<td class="w-mono">{ r.Label }</td>
-								<td>
-									if len(r.Actions) > 0 {
-										@gui.Actions(gui.ActionsProps{ID: "act-" + r.ID, Name: r.Label, Items: r.Actions})
-									}
-								</td>
-							</tr>
+			<ul class="rules-accesslist" aria-label={ title }>
+				for _, r := range side.Rows {
+					<li class="rules-accessitem">
+						<div>
+							<span class="rules-accesskind">{ r.Kind }</span>
+							<strong class="rules-accesstarget">{ r.Label }</strong>
+						</div>
+						if len(r.Actions) > 0 {
+							@gui.Actions(gui.ActionsProps{ID: "act-" + r.ID, Name: r.Label, Items: r.Actions})
 						}
-					</tbody>
-				</table>
-			</div>
+					</li>
+				}
+			</ul>
 		}
 	}
 }
 
-// accessFormView: the page that adds an access: the kind, then the target of
-// that kind (one select per kind, shown for the chosen one; the accounts in
-// groups by server or partner; the targets already granted left out).
+// accessFormView: the page that adds an access: its target, in the list to
+// type in of the kit, by kind (the servers and partners with their protocol,
+// the accounts with their server or partner; the targets already granted left
+// out), or the sentence saying every one has access.
 templ accessFormView(d *accessForm) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
@@ -122,56 +111,17 @@ templ accessFormView(d *accessForm) {
 			if d.Note != "" {
 				<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.access.first_title"), Text: d.Note})</div>
 			}
-			<div class={ "w-field", templ.KV("is-invalid", d.KindErr != "") }>
-				<label class="w-field__label" for={ fieldKind }>{ gui.T(ctx, "rules.access.col.kind") } <span class="w-field__req" aria-hidden="true">*</span></label>
-				<select
-					class="w-select"
-					id={ fieldKind }
-					name={ fieldKind }
-					required
-					data-switch
-					aria-describedby="kind-h"
-					if d.KindErr != "" {
-						aria-invalid="true"
-					}
-				>
-					<option value="" selected?={ d.Kind == "" }>{ gui.T(ctx, "rules.access.kind_choose") }</option>
-					for _, k := range d.Kinds {
-						<option value={ k.Value } selected?={ k.Selected }>{ k.Label }</option>
-					}
-				</select>
-				@protoform.Message("kind-h", d.KindErr, gui.T(ctx, "rules.access.kind_hint"))
-			</div>
-			for _, k := range d.Kinds {
-				<fieldset class="w-fieldset w-fieldset--wide" data-case={ k.Value }>
-					<legend class="visually-hidden">{ k.Label }</legend>
-					<div class={ "w-field", templ.KV("is-invalid", d.TargetErr != "" && k.Selected) }>
-						<label class="w-field__label" for={ k.Value }>{ k.Label } <span class="w-field__req" aria-hidden="true">*</span></label>
-						if k.Empty {
-							<p class="w-muted">{ gui.T(ctx, "rules.access.none_left") }</p>
-						} else {
-							<select class="w-select" id={ k.Value } name={ k.Value } aria-describedby={ k.Value + "-h" }>
-								<option value="">{ gui.T(ctx, "rules.access.target_choose") }</option>
-								for _, g := range k.Groups {
-									if g.Label == "" {
-										for _, o := range g.Options {
-											<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
-										}
-									} else {
-										<optgroup label={ g.Label }>
-											for _, o := range g.Options {
-												<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
-											}
-										</optgroup>
-									}
-								}
-							</select>
-						}
-						if k.Selected {
-							@protoform.Message(k.Value+"-h", d.TargetErr, "")
-						}
-					</div>
-				</fieldset>
+			if len(d.Groups) == 0 {
+				<p class="w-muted">{ gui.T(ctx, "rules.access.none_left") }</p>
+			} else {
+				<div class={ "w-field", templ.KV("is-invalid", d.TargetErr != "") }>
+					<label class="w-field__label" for={ fieldTarget }>{ gui.T(ctx, "rules.access.col.target") } <span class="w-field__req" aria-hidden="true">*</span></label>
+					@gui.Combobox(gui.ComboboxProps{
+						ID: fieldTarget, Name: fieldTarget, Groups: d.Groups, Placeholder: gui.T(ctx, "rules.access.target_choose"),
+						Required: true, Invalid: d.TargetErr != "", Describe: "target-h",
+					})
+					@protoform.Message("target-h", d.TargetErr, gui.T(ctx, "rules.access.target_hint"))
+				</div>
 			}
 		</div>
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
