@@ -3,6 +3,8 @@ package emailtemplates
 import (
 	"bytes"
 	"context"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -127,22 +129,57 @@ func (s *suite) request(t *testing.T, perms model.PermsMask, method, target stri
 ) *httptest.ResponseRecorder {
 	t.Helper()
 
+	if form != nil {
+		return s.submit(t, perms, method, target, bytes.NewBufferString(form.Encode()), "application/x-www-form-urlencoded")
+	}
+
+	return s.submit(t, perms, method, target, nil, "")
+}
+
+// submit serves a request of the given body and content type, as the user of
+// the given rights, in French.
+func (s *suite) submit(t *testing.T, perms model.PermsMask, method, target string, body io.Reader, contentType string,
+) *httptest.ResponseRecorder {
+	t.Helper()
+
 	user := &model.User{Username: "tester", Owner: "gw-test", Permissions: perms}
 	ctx := context.WithValue(context.Background(), constants.ContextUserKey, user)
 	ctx = context.WithValue(ctx, constants.ContextLanguageKey, "fr")
 
-	var req *http.Request
-	if form != nil {
-		req = httptest.NewRequestWithContext(ctx, method, target, bytes.NewBufferString(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	} else {
-		req = httptest.NewRequestWithContext(ctx, method, target, nil)
+	req := httptest.NewRequestWithContext(ctx, method, target, body)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 
 	rec := httptest.NewRecorder()
 	s.router.ServeHTTP(rec, req)
 
 	return rec
+}
+
+// postFile posts the form as multipart, with the body file of the given name
+// and content.
+func (s *suite) postFile(t *testing.T, target string, form url.Values, name string, content []byte,
+) *httptest.ResponseRecorder {
+	t.Helper()
+
+	body := &bytes.Buffer{}
+	w := multipart.NewWriter(body)
+
+	for k, values := range form {
+		for _, v := range values {
+			require.NoError(t, w.WriteField(k, v))
+		}
+	}
+
+	part, err := w.CreateFormFile(fieldBodyFile, name)
+	require.NoError(t, err)
+
+	_, err = part.Write(content)
+	require.NoError(t, err)
+	require.NoError(t, w.Close())
+
+	return s.submit(t, permWrite, http.MethodPost, target, body, w.FormDataContentType())
 }
 
 func (s *suite) get(t *testing.T, perms model.PermsMask, target string) *httptest.ResponseRecorder {
@@ -444,6 +481,77 @@ func TestForm(t *testing.T) {
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code, "the type in place stays accepted")
 		assert.Equal(t, "image/png", s.stored(t, "ancien").MIMEType)
+	})
+}
+
+func TestBodyFile(t *testing.T) {
+	t.Parallel()
+
+	form := func(name, format string) url.Values {
+		return url.Values{
+			"name": {name}, "format": {format}, "subject": {"Arrivée"},
+			"body_text": {"remplacé"}, "body_html": {"<p>remplacé</p>"},
+		}
+	}
+
+	t.Run("Given the creation form", func(t *testing.T) {
+		t.Parallel()
+
+		body := newSuite(t).get(t, permWrite, "/webui/email-templates/new").Body.String()
+		assert.Contains(t, body, `enctype="multipart/form-data"`)
+		assert.Contains(t, body, `id="body_file" name="body_file" accept=".html,.htm,.txt,text/html,text/plain"`)
+		assert.Contains(t, body, `data-loaded="« {name} » est chargé dans le corps : relisez-le avant de valider."`,
+			"the message of the script keeps its parameter")
+	})
+
+	t.Run("Given an HTML file, the text format chosen", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+
+		rec := s.postFile(t, "/webui/email-templates/new", form("html", "text/plain"), "Message.HTM",
+			[]byte("<p>Le fichier #TRUEFILENAME#.</p>\r\n"))
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+
+		saved := s.stored(t, "html")
+		assert.Equal(t, "text/html", saved.MIMEType, "the format follows the extension")
+		assert.Equal(t, "<p>Le fichier #TRUEFILENAME#.</p>", saved.Body, "the content of the file")
+	})
+
+	t.Run("Given a text file, the HTML format chosen", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+
+		rec := s.postFile(t, "/webui/email-templates/new", form("texte", "text/html"), "message.txt",
+			[]byte("Bonjour,\r\nle fichier #TRUEFILENAME# est arrivé.\r\n"))
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+
+		saved := s.stored(t, "texte")
+		assert.Equal(t, "text/plain", saved.MIMEType)
+		assert.Equal(t, "Bonjour,\nle fichier #TRUEFILENAME# est arrivé.", saved.Body)
+	})
+
+	t.Run("Given a refused file", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+
+		for _, c := range []struct {
+			name, file string
+			content    []byte
+			cause      string
+		}{
+			{"type", "message.pdf", []byte("%PDF-1.7"), "Choisissez un fichier .html, .htm ou .txt."},
+			{"taille", "gros.html", bytes.Repeat([]byte("a"), maxBodyFile+1), "Le fichier dépasse 1 Mo."},
+			{"encodage", "latin.txt", []byte("Arriv\xe9e"), "Le fichier n&#39;est pas en UTF-8"},
+		} {
+			rec := s.postFile(t, "/webui/email-templates/new", form(c.name, "text/plain"), c.file, c.content)
+			require.Equal(t, http.StatusUnprocessableEntity, rec.Code, c.name)
+			assert.Contains(t, rec.Body.String(), c.cause, c.name)
+			assert.Contains(t, rec.Body.String(), `id="body_file-e"`, "the cause under the field")
+			assert.Error(t, s.db.Get(&model.EmailTemplate{}, "name=?", c.name).Run(), "nothing saved")
+		}
 	})
 }
 

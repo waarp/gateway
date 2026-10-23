@@ -263,7 +263,7 @@ templ formView(d *formData) {
 		<div class="et-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "email_templates.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "email_templates.form.refused_text"))})</div>
 	}
 	@gui.VarList(d.Vars)
-	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate data-preview={ previewURL() }>
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } enctype="multipart/form-data" novalidate data-preview={ previewURL() }>
 		if d.ID != 0 {
 			<input type="hidden" name="template_id" value={ fmt.Sprint(d.ID) }/>
 		}
@@ -296,6 +296,21 @@ templ formView(d *formData) {
 			<fieldset class="w-fieldset w-fieldset--wide">
 				<legend class="w-card__title">{ gui.T(ctx, "email_templates.detail.message") }</legend>
 				@varField(fieldSubject, gui.T(ctx, "email_templates.form.subject"), gui.T(ctx, "email_templates.form.subject_hint"), d.Subject, false)
+				<div class={ "w-field", templ.KV("is-invalid", d.BodyFile.Error != "") }>
+					<label class="w-field__label" for="body_file">{ gui.T(ctx, "email_templates.form.body_file") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+					@gui.File(gui.FileProps{ID: fieldBodyFile, Name: fieldBodyFile, Accept: bodyFileAccept, Describe: describe(fieldBodyFile, d.BodyFile)})
+					if d.BodyFile.Error != "" {
+						@hintOrError(fieldBodyFile, "", d.BodyFile)
+					} else {
+						<span
+							class="w-field__hint"
+							id={ fieldBodyFile + "-h" }
+							aria-live="polite"
+							data-loaded={ gui.T(ctx, "email_templates.form.body_file_loaded") }
+							data-refused={ gui.T(ctx, "email_templates.form.body_file_refused") }
+						>{ gui.T(ctx, "email_templates.form.body_file_hint") }</span>
+					}
+				</div>
 				<div data-case={ d.HTMLCase }>
 					<div class={ "w-field", templ.KV("is-invalid", d.BodyHTML.Error != "") }>
 						<label class="w-field__label" for="body_html">{ gui.T(ctx, "email_templates.form.body") } <span class="w-field__req" aria-hidden="true">*</span></label>

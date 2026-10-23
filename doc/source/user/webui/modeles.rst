@@ -126,7 +126,11 @@ modèle* ouvre le même formulaire. Il se compose de quatre blocs :
      - L'objet et le corps. Un corps HTML s'écrit dans un éditeur (voir
        ci-dessous) ; un corps texte, dans une zone de texte. Changer de format
        convertit le corps : les paragraphes d'un texte deviennent des
-       paragraphes HTML, un HTML devient son texte.
+       paragraphes HTML, un HTML devient son texte. Le corps peut aussi se charger
+       depuis un fichier HTML (.html, .htm) ou texte (.txt), en UTF-8, de 1 Mo
+       au plus : son contenu remplace le corps et le format suit son extension ;
+       il se relit avant validation. Un fichier d'un autre type, trop gros ou
+       d'un autre encodage est refusé, avec sa raison.
    * - Pièces jointes
      - Les chemins des fichiers à joindre, un par ligne. Le fichier doit
        exister au moment de l'envoi, sinon le traitement échoue.
