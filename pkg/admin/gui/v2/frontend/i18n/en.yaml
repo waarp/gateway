@@ -1776,9 +1776,6 @@ rule_uses:
     none: No rule
     one: 1 rule
     many: "{n} rules"
-  col:
-    rule: Rule
-    direction: Direction
   direction:
     send: Send
     receive: Receive

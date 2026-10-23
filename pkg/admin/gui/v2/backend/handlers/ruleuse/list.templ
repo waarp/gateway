@@ -1,0 +1,17 @@
+package ruleuse
+
+// List: the rules whose tasks name an object, each a card on the background
+// of the page (no table in a card: Driss, 2026-10-23), its direction over its
+// name, a link to the tasks of the rule (where the object is changed). The
+// caller says what the list holds (its accessible name), links Stylesheet and
+// renders the sentence of an object no rule uses.
+templ List(caption string, rows []Row) {
+	<ul class="ruleuse-list" aria-label={ caption }>
+		for _, r := range rows {
+			<li class="ruleuse-item">
+				<span class="ruleuse-direction">{ r.Direction }</span>
+				<a class="w-link ruleuse-rule" href={ templ.SafeURL(r.URL) }>{ r.Rule }</a>
+			</li>
+		}
+	</ul>
+}

@@ -115,7 +115,7 @@ La fiche d'un identifiant, adresse ``/webui/smtp/<id>``, montre en lecture :
        connecter.
    * - Utilisé par
      - Les règles dont les traitements ``EMAIL`` désignent l'identifiant,
-       chacune avec son sens (envoi ou réception) ; le nom de la règle ouvre
+       chacune en carte avec son sens (envoi ou réception) ; le nom de la règle ouvre
        ses traitements, où l'expéditeur se change. Une règle qui porte le même
        nom dans les deux sens figure deux fois.
 

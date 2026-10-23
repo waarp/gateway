@@ -251,9 +251,11 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "STARTTLS si le serveur le propose")
 		assert.Contains(t, body, `Identifiant <code class="w-code">alertes</code>`)
 		assert.Contains(t, body, "Défini, jamais affiché")
-		indexes(t, body, "Utilisé par",
-			`<a class="w-link w-mono" href="`+tasksURL(s.send)+`">flux-paie</a></td><td>Envoi</td>`,
-			`<a class="w-link w-mono" href="`+tasksURL(s.receive)+`">flux-paie</a></td><td>Réception</td>`)
+		indexes(t, body, "Utilisé par", `<ul class="ruleuse-list" aria-label="Règles dont les tâches EMAIL emploient l&#39;identifiant">`,
+			`<span class="ruleuse-direction">Envoi</span> <a class="w-link ruleuse-rule" href="`+tasksURL(s.send)+`">flux-paie</a>`,
+			`<span class="ruleuse-direction">Réception</span> <a class="w-link ruleuse-rule" href="`+tasksURL(s.receive)+`">flux-paie</a>`)
+		assert.Contains(t, body, `href="/webui/static_v2/ruleuse/ruleuse.css"`, "the cards of the rules")
+		assert.NotContains(t, body, "<table", "no table in a card")
 		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.alerts, "/edit")+`"`)
 		assert.NotContains(t, body, secret)
 	})

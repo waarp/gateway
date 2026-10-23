@@ -160,7 +160,7 @@ templ detailView(d detailData) {
 		</div>
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "smtp.detail.uses") }</h2>
-			@usesTable(d.Uses)
+			@usesList(d.Uses)
 		</div>
 	</div>
 }
@@ -174,13 +174,13 @@ templ codeOrNone(value string) {
 	}
 }
 
-// usesTable: the rules whose EMAIL tasks name the credential (ruleuse), or
+// usesList: the rules whose EMAIL tasks name the credential (ruleuse), or
 // the sentence saying no rule uses it.
-templ usesTable(rows []ruleuse.Row) {
+templ usesList(rows []ruleuse.Row) {
 	if len(rows) == 0 {
 		<p class="smtp-note w-muted">{ gui.T(ctx, "smtp.detail.uses_none") }</p>
 	} else {
-		<div class="smtp-uses">@ruleuse.Table(gui.T(ctx, "smtp.detail.uses_caption"), rows)</div>
+		<div class="smtp-uses">@ruleuse.List(gui.T(ctx, "smtp.detail.uses_caption"), rows)</div>
 	}
 }
 
@@ -292,7 +292,7 @@ templ deleteView(d deleteData) {
 		</dl>
 		if d.Used {
 			<h2 class="w-card__title smtp-subtitle">{ gui.T(ctx, "smtp.detail.uses") }</h2>
-			@usesTable(d.Uses)
+			@usesList(d.Uses)
 			<div class="w-form__actions smtp-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.close") }</a></div>
 		} else {
 			<form class="smtp-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>

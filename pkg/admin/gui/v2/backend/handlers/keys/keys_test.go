@@ -467,9 +467,11 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "Chiffre et déchiffre les fichiers")
 		assert.Contains(t, body, "Définie, jamais affichée")
 		assert.Contains(t, body, "128 bits")
-		indexes(t, body, "Utilisée par",
-			`<a class="w-link w-mono" href="`+tasksURL(s.send)+`">flux-paie</a></td><td>Envoi</td>`,
-			`<a class="w-link w-mono" href="`+tasksURL(s.receive)+`">flux-paie</a></td><td>Réception</td>`)
+		indexes(t, body, "Utilisée par", `<ul class="ruleuse-list" aria-label="Règles dont les tâches emploient la clé">`,
+			`<span class="ruleuse-direction">Envoi</span> <a class="w-link ruleuse-rule" href="`+tasksURL(s.send)+`">flux-paie</a>`,
+			`<span class="ruleuse-direction">Réception</span> <a class="w-link ruleuse-rule" href="`+tasksURL(s.receive)+`">flux-paie</a>`)
+		assert.Contains(t, body, `href="/webui/static_v2/ruleuse/ruleuse.css"`, "the cards of the rules")
+		assert.NotContains(t, body, "<table", "no table in a card")
 		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.aes, "/edit")+`"`)
 		s.assertNoSecret(t, body)
 	})

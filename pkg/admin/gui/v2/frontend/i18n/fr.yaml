@@ -1775,9 +1775,6 @@ rule_uses:
     none: Aucune règle
     one: 1 règle
     many: "{n} règles"
-  col:
-    rule: Règle
-    direction: Sens
   direction:
     send: Envoi
     receive: Réception

@@ -101,6 +101,9 @@ func Read(db database.ReadAccess, params Params) (map[string][]Use, error) {
 	return Of(list, rules, params), nil
 }
 
+// Stylesheet is the stylesheet of List, for the screens that show it.
+const Stylesheet = "/static_v2/ruleuse/ruleuse.css"
+
 // Row is a rule that names an object, ready to render: a link to the tasks
 // of the rule, where the object is changed, and its direction.
 type Row struct {
@@ -109,7 +112,7 @@ type Row struct {
 	Direction string
 }
 
-// Rows prepares the rules for the table.
+// Rows prepares the rules for the list.
 func Rows(translate gui.Translator, uses []Use) []Row {
 	out := make([]Row, 0, len(uses))
 	for _, u := range uses {

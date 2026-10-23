@@ -197,22 +197,22 @@ func e2eScreens() []e2eScreen {
 		// key, the pages that add and edit one, the deletion refused for the
 		// AES key (the rules to change first) and confirmed for the PGP one.
 		{path: "/webui/keys", tables: 1},
-		{path: "/webui/keys/1", tables: 1},
+		{path: "/webui/keys/1"},
 		{path: "/webui/keys/2"},
 		{path: "/webui/keys/new"},
 		{path: "/webui/keys/1/edit"},
-		{path: "/webui/keys/1/delete", tables: 1},
+		{path: "/webui/keys/1/delete"},
 		{path: "/webui/keys/2/delete"},
 		// The SMTP credentials (#741): the list, the sheet of the credential
 		// a rule uses (the rule: a table), the sheet of the one no rule uses,
 		// the pages that add and edit one, the deletion refused for the first
 		// (the rules to change first) and confirmed for the second.
 		{path: "/webui/smtp", tables: 1},
-		{path: "/webui/smtp/1", tables: 1},
+		{path: "/webui/smtp/1"},
 		{path: "/webui/smtp/2"},
 		{path: "/webui/smtp/new"},
 		{path: "/webui/smtp/1/edit"},
-		{path: "/webui/smtp/1/delete", tables: 1},
+		{path: "/webui/smtp/1/delete"},
 		{path: "/webui/smtp/2/delete"},
 	}
 }
