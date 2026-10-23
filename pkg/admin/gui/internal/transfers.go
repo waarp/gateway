@@ -179,7 +179,7 @@ func GetTransfer(db database.ReadAccess, id int64) (*model.Transfer, error) {
 
 func StartTransferQuery(db database.ReadAccess, orderBy string, asc bool) *TransferListQuery {
 	list := &TransferListQuery{}
-	list.query = db.Select(&list.transfers).Owner().OrderBy(orderBy, asc)
+	list.query = db.Select(&list.transfers).OrderBy(orderBy, asc)
 
 	return list
 }
