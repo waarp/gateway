@@ -35,7 +35,7 @@ const (
 
 	day = 24 * time.Hour
 
-	hmacSecret = "un-secret-hmac-de-test"
+	hmacSecret = "dW4tc2VjcmV0LWhtYWMtZGUtdGVzdA==" // in base64, as the tasks read it (#736)
 )
 
 // aesKey is a key of n bytes, in base64 as the tasks read it.
@@ -170,13 +170,31 @@ func (s *suite) fixtures(t *testing.T) {
 	}
 }
 
-// insert stores a key through the model, which accepts the keys the tasks
-// cannot use: an AES key of 16 characters of text, a locked private key.
+// insert stores a key as a database may hold it: through the model when it
+// accepts the value, else, for a value the model refuses since #736 and #737
+// (an AES key of text, a locked private key, kept from before), with a valid
+// value of its type, then its value written over, encrypted as the model
+// writes it.
 func (s *suite) insert(t *testing.T, name, typ, value string) *model.CryptoKey {
 	t.Helper()
 
 	k := &model.CryptoKey{Name: name, Type: typ, Key: value}
+	if err := s.db.Insert(k).Run(); err == nil {
+		return k
+	}
+
+	valid := map[string]string{
+		model.CryptoKeyTypeAES: aesKey(aes128), model.CryptoKeyTypeHMAC: hmacSecret,
+		model.CryptoKeyTypePGPPublic: newPGP(t, "Valid", time.Now(), 0).Public,
+		model.CryptoKeyTypePGPPrivate: newPGP(t, "Valid", time.Now(), 0).Private,
+	}
+	k = &model.CryptoKey{Name: name, Type: typ, Key: valid[typ]}
 	require.NoError(t, s.db.Insert(k).Run())
+
+	stored, err := s.db.Encrypt(value)
+	require.NoError(t, err)
+	require.NoError(t, s.db.Exec("UPDATE "+model.TableCryptoKeys+" SET value=? WHERE id=?", stored, k.ID))
+	k.Key = value
 
 	return k
 }
@@ -340,7 +358,9 @@ func TestKeyInfo(t *testing.T) {
 	t.Run("HMAC keys and unknown types", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, keyInfo{Readable: true}, infoOf(&model.CryptoKey{Type: model.CryptoKeyTypeHMAC, Key: "x"}, now))
+		assert.Equal(t, keyInfo{Readable: true}, infoOf(&model.CryptoKey{Type: model.CryptoKeyTypeHMAC, Key: hmacSecret}, now))
+		assert.Equal(t, keyInfo{Cause: causeHMAC}, infoOf(&model.CryptoKey{Type: model.CryptoKeyTypeHMAC, Key: "pas en base64"}, now),
+			"the tasks read an HMAC secret in base64 (#736)")
 		assert.Equal(t, keyInfo{Cause: causeEmpty}, infoOf(&model.CryptoKey{Type: model.CryptoKeyTypeHMAC}, now))
 		assert.Equal(t, keyInfo{Cause: causeType}, infoOf(&model.CryptoKey{Type: "DES"}, now))
 	})
@@ -546,7 +566,7 @@ func TestNewKey(t *testing.T) {
 
 		assert.Contains(t, body, `id="value_aes" name="value_aes" type="password"`)
 		assert.Contains(t, body, `autocomplete="new-password"`)
-		assert.Contains(t, body, "24 caractères pour AES-128, 32 pour AES-192")
+		assert.Contains(t, body, "24 caractères pour AES-128, 32 pour AES-192, 44 pour AES-256")
 		assert.Contains(t, body, `name="value_pgp_public_file"`)
 		assert.Contains(t, body, `placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"`)
 		assert.NotRegexp(t, `<(input|select|textarea)[^>]* id="key"`, body, "no field id collides with an icon of the kit")
@@ -568,9 +588,9 @@ func TestNewKey(t *testing.T) {
 		assert.Equal(t, aesKey(aes192), s.key(t, "aes-192").Key)
 
 		rec = s.post(t, permWrite, "/webui/keys/new",
-			url.Values{"name": {"hmac"}, "type": {model.CryptoKeyTypeHMAC}, "value_hmac": {" secret avec espaces "}})
+			url.Values{"name": {"hmac"}, "type": {model.CryptoKeyTypeHMAC}, "value_hmac": {" " + hmacSecret + "\n"}})
 		require.Equal(t, http.StatusSeeOther, rec.Code, rec.Body.String())
-		assert.Equal(t, " secret avec espaces ", s.key(t, "hmac").Key, "an HMAC secret is kept as typed")
+		assert.Equal(t, hmacSecret, s.key(t, "hmac").Key, "an HMAC secret in base64, the spaces around left out")
 
 		rec = s.upload(t, "/webui/keys/new", map[string]string{"name": "pub", "type": model.CryptoKeyTypePGPPublic},
 			"value_pgp_public_file", strings.ReplaceAll(p.Public, "\n", "\r\n"))
@@ -610,8 +630,10 @@ func TestNewKey(t *testing.T) {
 			"Indiquez la clé en base64")
 		assert.NotContains(t, body, "0123456789abcdef", "a secret typed is never rendered back")
 
-		refused(url.Values{"name": {"x"}, "type": {model.CryptoKeyTypeAES}, "value_aes": {aesKey(aes256)}},
+		refused(url.Values{"name": {"x"}, "type": {model.CryptoKeyTypeAES}, "value_aes": {aesKey(20)}},
 			"Indiquez la clé en base64")
+		refused(url.Values{"name": {"x"}, "type": {model.CryptoKeyTypeHMAC}, "value_hmac": {"pas en base64"}},
+			"Indiquez le secret en base64.")
 		refused(url.Values{"name": {"x"}, "type": {model.CryptoKeyTypePGPPrivate}, "value_pgp_private_text": {p.locked(t)}},
 			"Cette clé privée est protégée par une phrase secrète")
 		refused(url.Values{"name": {"x"}, "type": {model.CryptoKeyTypePGPPrivate}, "value_pgp_private_text": {p.Public}},
@@ -625,7 +647,7 @@ func TestNewKey(t *testing.T) {
 			"Ce contenu n&#39;est pas une clé PGP lisible")
 		assert.Contains(t, body, ">garbage</textarea>", "a public armour pasted comes back")
 
-		refused(url.Values{"name": {"aes-paie"}, "type": {model.CryptoKeyTypeHMAC}, "value_hmac": {"x"}},
+		refused(url.Values{"name": {"aes-paie"}, "type": {model.CryptoKeyTypeHMAC}, "value_hmac": {hmacSecret}},
 			"Une autre clé porte déjà ce nom.")
 
 		count, err := s.db.Count(&model.CryptoKey{}).Run()

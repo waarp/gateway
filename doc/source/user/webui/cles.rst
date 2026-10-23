@@ -21,11 +21,12 @@ nom, unique, par lequel les traitements la désignent, un type et une valeur.
      - Traitements
    * - AES (``AES``)
      - La clé en base64 : 24 caractères pour une clé AES-128 (16 octets), 32
-       pour une clé AES-192 (24 octets). Secrète.
+       pour une clé AES-192 (24 octets), 44 pour une clé AES-256 (32 octets).
+       Secrète.
      - :doc:`/reference/tasks/encrypt` et :doc:`/reference/tasks/decrypt`,
        avec une méthode AES ; la même clé sert aux deux partenaires.
    * - HMAC (``HMAC``)
-     - Le secret partagé avec le partenaire. Secrète.
+     - Le secret partagé avec le partenaire, en base64. Secrète.
      - :doc:`/reference/tasks/sign` et :doc:`/reference/tasks/verify`, avec
        une méthode HMAC.
    * - PGP publique (``PGP-PUBLIC``)
@@ -111,7 +112,7 @@ droit correspondant.
 
 Une clé enregistrée par l'API REST ou la ligne de commande peut être
 *Inutilisable* : une clé AES qui n'est pas en base64 ou dont la taille ne
-convient pas, une clé PGP illisible, une clé publique enregistrée comme
+convient pas, un secret HMAC qui n'est pas en base64, une clé PGP illisible, une clé publique enregistrée comme
 privée ou l'inverse, une clé privée protégée par une phrase secrète (la
 Gateway n'a pas de champ pour la phrase). Les traitements qui la désignent
 échoueraient au prochain transfert ; il faut lui donner une nouvelle valeur
@@ -170,7 +171,8 @@ clé* ouvre le même formulaire. Il se compose de deux blocs :
        type demande la valeur du nouveau type.
 
 Le formulaire refuse ce que les traitements ne pourraient pas lire : une clé
-AES qui n'est pas la base64 de 16 ou 24 octets, une clé PGP illisible, une
+AES qui n'est pas la base64 de 16, 24 ou 32 octets, un secret HMAC qui n'est
+pas en base64, une clé PGP illisible, une
 clé publique donnée comme privée ou l'inverse, et une clé privée protégée par
 une phrase secrète, qu'il faut exporter sans phrase.
 

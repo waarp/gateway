@@ -1667,6 +1667,7 @@ keys:
   # Pourquoi les tâches ne peuvent pas se servir d'une clé enregistrée.
   cause:
     aes: "la valeur n'est pas une clé AES en base64"
+    hmac: "la valeur n'est pas un secret HMAC en base64"
     pgp: "la valeur n'est pas une clé PGP lisible"
     not_private: "la valeur n'est pas une clé privée"
     not_public: "la valeur n'est pas une clé publique"
@@ -1734,8 +1735,8 @@ keys:
       pgp_public: "-----BEGIN PGP PUBLIC KEY BLOCK-----"
       pgp_private: "-----BEGIN PGP PRIVATE KEY BLOCK-----"
     hint:
-      aes: "La clé en base64 : 24 caractères pour AES-128, 32 pour AES-192."
-      hmac: Le secret partagé avec le partenaire.
+      aes: "La clé en base64 : 24 caractères pour AES-128, 32 pour AES-192, 44 pour AES-256."
+      hmac: "Le secret partagé avec le partenaire, en base64."
       pgp_public: "La clé exportée en armure ASCII (fichier .asc)."
       pgp_private: "La clé exportée en armure ASCII (fichier .asc), sans phrase secrète."
     keep:
@@ -1749,7 +1750,8 @@ keys:
       required: Ce champ est obligatoire.
       name_taken: Une autre clé porte déjà ce nom. Choisissez-en un autre.
       type: Choisissez un type.
-      aes: "Indiquez la clé en base64 : 24 caractères pour AES-128, 32 pour AES-192."
+      aes: "Indiquez la clé en base64 : 24 caractères pour AES-128, 32 pour AES-192, 44 pour AES-256."
+      hmac: Indiquez le secret en base64.
       pgp: "Ce contenu n'est pas une clé PGP lisible en armure ASCII."
       not_private: Cette clé est une clé publique ; choisissez le type « PGP publique » ou donnez la clé privée.
       not_public: Cette clé est une clé privée ; choisissez le type « PGP privée » ou donnez la clé publique.

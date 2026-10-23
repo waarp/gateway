@@ -150,10 +150,9 @@ func (f *formData) read(r *http.Request) error {
 	}
 
 	if !k.PGP {
-		f.value = r.PostFormValue(prefixValue + k.Slug)
-		if k.Key == model.CryptoKeyTypeAES {
-			f.value = strings.TrimSpace(f.value)
-		}
+		// An AES key and an HMAC secret are in base64: spaces around are not
+		// part of them.
+		f.value = strings.TrimSpace(r.PostFormValue(prefixValue + k.Slug))
 
 		return nil
 	}
@@ -170,15 +169,16 @@ func (f *formData) read(r *http.Request) error {
 
 // validate checks what the screen can check before the model: the name, the
 // type, the value given (required for a new key or a new type) and usable by
-// the tasks: an AES key in base64 of 16 or 24 bytes (what the model and the
-// tasks both accept), a PGP key readable, of the right kind and not locked.
+// the tasks, as the model reads it (#736): an AES key in base64 of 16, 24 or
+// 32 bytes, an HMAC secret in base64, a PGP key readable, of the right kind
+// and not locked.
 func (f *formData) validate(translate gui.Translator) bool {
 	if f.Name.Value == "" {
 		f.Name.Error = translate("keys.form.error.required")
 		f.HasErrors = true
 	}
 
-	k, ok := kindOf(f.Type)
+	kind, ok := kindOf(f.Type)
 	if !ok {
 		f.TypeErr = translate("keys.form.error.type")
 		f.HasErrors = true
@@ -188,22 +188,27 @@ func (f *formData) validate(translate gui.Translator) bool {
 
 	switch {
 	case f.value == "" && (f.stored == nil || f.stored.Type != f.Type):
-		f.errors[k.Key] = translate("keys.form.error.required")
+		f.errors[kind.Key] = translate("keys.form.error.required")
 		f.HasErrors = true
 	case f.value == "":
-	case k.Key == model.CryptoKeyTypeAES:
-		if info := aesInfo(f.value); !info.Readable || info.Bits == aes256*bitsPerByte {
-			f.errors[k.Key] = translate("keys.form.error.aes")
+	case kind.Key == model.CryptoKeyTypeAES:
+		if info := aesInfo(f.value); !info.Readable {
+			f.errors[kind.Key] = translate("keys.form.error.aes")
 			f.HasErrors = true
 		}
-	case k.PGP:
+	case kind.Key == model.CryptoKeyTypeHMAC:
+		if info := hmacInfo(f.value); !info.Readable {
+			f.errors[kind.Key] = translate("keys.form.error.hmac")
+			f.HasErrors = true
+		}
+	case kind.PGP:
 		// The dates do not matter here: an expired key is still saved.
-		if info := pgpInfo(k.Key, f.value, time.Time{}); !info.Readable {
-			f.errors[k.Key] = translate(errorKeyPrefix + info.Cause)
+		if info := pgpInfo(kind.Key, f.value, time.Time{}); !info.Readable {
+			f.errors[kind.Key] = translate(errorKeyPrefix + info.Cause)
 			f.HasErrors = true
 
 			if info.Cause == causeNotPublic {
-				delete(f.texts, k.Key) // a private key pasted as a public one is a secret
+				delete(f.texts, kind.Key) // a private key pasted as a public one is a secret
 			}
 		}
 	}

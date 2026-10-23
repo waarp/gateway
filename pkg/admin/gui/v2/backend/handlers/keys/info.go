@@ -31,6 +31,7 @@ const (
 
 	// The causes of an unusable key, completing "keys.cause.".
 	causeAES        = "aes"
+	causeHMAC       = "hmac"
 	causePGP        = "pgp"
 	causeNotPrivate = "not_private"
 	causeNotPublic  = "not_public"
@@ -80,7 +81,7 @@ func infoOf(k *model.CryptoKey, now time.Time) keyInfo {
 			return keyInfo{Cause: causeEmpty}
 		}
 
-		return keyInfo{Readable: true}
+		return hmacInfo(k.Key)
 	case model.CryptoKeyTypePGPPublic, model.CryptoKeyTypePGPPrivate:
 		return pgpInfo(k.Type, k.Key, now)
 	default:
@@ -96,6 +97,15 @@ func aesInfo(value string) keyInfo {
 	}
 
 	return keyInfo{Readable: true, Bits: len(decoded) * bitsPerByte}
+}
+
+// hmacInfo decodes an HMAC secret from base64, as the tasks do (#736).
+func hmacInfo(value string) keyInfo {
+	if _, err := base64.StdEncoding.DecodeString(value); err != nil {
+		return keyInfo{Cause: causeHMAC}
+	}
+
+	return keyInfo{Readable: true}
 }
 
 // pgpInfo reads an armoured PGP key: its identities, fingerprint, algorithm

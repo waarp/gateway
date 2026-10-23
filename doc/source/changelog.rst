@@ -14,7 +14,8 @@ Historique des versions
   modification et de suppression, la clé PGP déposée en fichier ou collée. Les
   valeurs secrètes ne sont jamais réaffichées et restent inchangées quand on
   les laisse vides. Le formulaire refuse une clé que les traitements ne
-  pourraient pas lire (clé AES hors base64 de 16 ou 24 octets, clé PGP privée
+  pourraient pas lire (clé AES hors base64 de 16, 24 ou 32 octets, secret HMAC
+  hors base64, clé PGP privée
   protégée par une phrase secrète) ; le nom et le type d'une clé employée ne se
   modifient pas, et sa suppression est remplacée par la liste des règles à
   modifier d'abord. L'ancienne page, qui renvoyait à la ligne de commande, mène

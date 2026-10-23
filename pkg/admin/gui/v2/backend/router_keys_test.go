@@ -25,7 +25,7 @@ func TestKeysRouter(t *testing.T) {
 
 	db := dbtest.TestDatabase(t)
 
-	key := &model.CryptoKey{Name: "hmac-key", Type: model.CryptoKeyTypeHMAC, Key: "secret"}
+	key := &model.CryptoKey{Name: "hmac-key", Type: model.CryptoKeyTypeHMAC, Key: "c2VjcmV0"}
 	require.NoError(t, db.Insert(key).Run())
 
 	router := mux.NewRouter()
