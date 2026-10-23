@@ -78,7 +78,7 @@
         <input class="form-check-input" name="mode" required
                type="radio" id="modeAsync" value="async" form=""
                onclick="changeMode(this.value)"
-               {{ if ne $sync "false" }}checked{{ end }}>
+               {{ if eq $sync "false" }}checked{{ end }}>
         <label class="form-check-label" for="modeAsync">
             {{ .Text.async }}
             <i class="bi bi-info-circle"
@@ -89,11 +89,6 @@
         </label>
     </div>
 </div>
-{{ if $mode }}
-    <script defer>
-        changeDirection({{$mode}})
-    </script>
-{{ end }}
 
 <!-- File -->
 {{ template "textInputRow" dict
@@ -151,7 +146,7 @@
     </div>
 </div>
 {{ if $partner }}
-<script defer>
+<script>
     changeDirection({{$direction}})
 </script>
 {{ end }}
@@ -187,7 +182,7 @@
     "placeholder" .Text.clientPlaceholder
     "onchange" "fillPartnerList"
 }}
-<script defer>
+<script>
     fillSelect("listing/clients",
         document.getElementById("transferTaskClient"),
         "{{ $client }}")
@@ -291,7 +286,7 @@
     }}
 </div>
 {{ if .Task.Args.nbOfAttempts }}
-<script defer>
+<script>
     document.getElementById("retrySettingsCheck").checked = true
     toggleRetrySettings("true")
 </script>
@@ -309,3 +304,10 @@
         "optional" true
     }}
 </div>
+
+<!-- Form init -->
+{{ if $mode }}
+    <script>
+        changeMode({{$mode}})
+    </script>
+{{ end }}

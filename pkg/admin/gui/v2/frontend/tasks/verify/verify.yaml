@@ -1,6 +1,10 @@
 description:
-  en: Make a cryptographic signature of the transfer file using the provided key.
-  fr: Crée une signature cryptographique du fichier de transfert avec la clé donnée.
+  en: >
+    Verify that the transfer file matches the cryptographic signature in the given
+    file and was made with the provided key.
+  fr: >
+    Vérifie que le fichier de transfert correspond à la signature cryptographique
+    donnée et que celle-ci a bien été faite avec la clé fournie.
 
 signatureFile:
   en: Signature file
@@ -19,7 +23,7 @@ methodTooltip:
   fr: La méthode de signature utilisée.
 
 methodPlaceholder:
-  en: Chose an algorithm
+  en: Choose an algorithm
   fr: Choisir un algorithme
 
 keyName:

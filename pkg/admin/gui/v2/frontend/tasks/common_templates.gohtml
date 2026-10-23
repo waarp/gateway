@@ -104,7 +104,7 @@
            type="checkbox"
            value="true"
            {{ if .onchange }}onchange="window[{{.onchange}}](this.checked)"{{ end }}
-           {{ if .value }}checked{{ end }}>
+           {{ if eq .value "true" }}checked{{ end }}>
 </div>
 {{ end }}
 

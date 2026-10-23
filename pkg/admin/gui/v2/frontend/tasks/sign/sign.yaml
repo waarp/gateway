@@ -7,8 +7,14 @@ outputFile:
   fr: Fichier de sortie
 
 outputFileTooltip:
-  en: The file to which the signature will be written.
-  fr: Le fichier dans lequel la signature sera écrite.
+  en: >
+    The file to which the signature will be written. By default, the signature 
+    will be written to the a file with the same name as the transfer file with
+    the ".sig" extension added at the end.
+  fr: >
+    Le fichier dans lequel la signature sera écrite. Par défaut, la signature
+    sera écrite dans un fichier avec le même nom que le fichier de transfert, 
+    avec l'extension ".sig" ajoutée à la fin.
 
 method:
   en: Signature method
