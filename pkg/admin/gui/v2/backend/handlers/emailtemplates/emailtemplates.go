@@ -419,7 +419,7 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Doc:         docPage,
 		Crumbs:      crumbs(translate, title, carried),
 		Status:      status,
-		Stylesheets: []string{stylesheet},
+		Stylesheets: []string{stylesheet, ruleuse.Stylesheet},
 	}
 }
 

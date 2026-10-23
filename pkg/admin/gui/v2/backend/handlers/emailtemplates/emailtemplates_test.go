@@ -260,7 +260,9 @@ func TestDetail(t *testing.T) {
 		assert.NotContains(t, body, "¿")
 		assert.Contains(t, body, "<h1 class=\"w-page-header__title\">Modèle d&#39;e-mail « alerte-erreur »</h1>")
 		indexes(t, body, "Message", "Transfert #TRANSFERID# en erreur", "HTML", "Aperçu", "Pièces jointes",
-			"Utilisé par", "flux-paie", "Envoi", "flux-paie", "Réception")
+			"Utilisé par", `<ul class="ruleuse-list"`, "Envoi", "flux-paie", "Réception", "flux-paie")
+		assert.Contains(t, body, `href="/webui/static_v2/ruleuse/ruleuse.css"`, "the cards of the rules")
+		assert.NotContains(t, body, "<table", "no table in a card")
 		assert.Contains(t, body, "Valeurs d&#39;exemple : aucun transfert n&#39;a encore employé ce modèle.")
 		assert.Contains(t, body, "<dd>Transfert 1234 en erreur</dd>", "the subject with the example values")
 		assert.Contains(t, body, `sandbox="" srcdoc="`, "the body in a frame that runs nothing")

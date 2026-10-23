@@ -220,11 +220,11 @@ func e2eScreens() []e2eScreen {
 		// and the variables of the kit), the deletion refused for the first
 		// (the rules to change first) and confirmed for the second.
 		{path: "/webui/email-templates", tables: 1},
-		{path: "/webui/email-templates/1", tables: 1},
+		{path: "/webui/email-templates/1"},
 		{path: "/webui/email-templates/2"},
 		{path: "/webui/email-templates/new"},
 		{path: "/webui/email-templates/1/edit"},
-		{path: "/webui/email-templates/1/delete", tables: 1},
+		{path: "/webui/email-templates/1/delete"},
 		{path: "/webui/email-templates/2/delete"},
 	}
 }

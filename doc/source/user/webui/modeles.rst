@@ -75,7 +75,7 @@ lecture :
      - Les chemins des pièces jointes, un par ligne, ou *Aucune*.
    * - Utilisé par
      - Les règles dont les traitements ``EMAIL`` désignent le modèle, chacune
-       avec son sens (envoi ou réception) ; le nom de la règle ouvre ses
+       en carte avec son sens (envoi ou réception) ; le nom de la règle ouvre ses
        traitements, où le modèle se change.
 
 
