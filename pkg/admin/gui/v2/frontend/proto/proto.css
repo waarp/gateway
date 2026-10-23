@@ -11,6 +11,9 @@
 .proto-duration__parts { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
 .proto-duration__parts .w-field--short { max-width: 7rem; }
 .proto-duration__parts .w-field__label { font-weight: 400; }
+/* Protocol filters of a list: the families and the TLS buttons side by side, on one line where the width allows. */
+.proto-filters { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-6); margin-bottom: var(--sp-3); }
+.proto-filters .w-fieldset { margin: 0; min-width: 0; max-width: none; }
 /* Protocol cell of a list: the family, then the TLS lock aligned from one row to the next (widest family: WebDAV). */
 .proto-cell { display: inline-grid; grid-template-columns: 4.25rem auto; align-items: center; }
 .proto-lock { display: inline-flex; color: var(--ts); }

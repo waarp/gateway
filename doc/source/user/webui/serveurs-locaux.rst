@@ -45,8 +45,9 @@ La liste
 Les quatre colonnes se trient d'un clic sur leur en-tête (par défaut, le nom
 croissant ; l'état se trie du plus sain au plus dégradé). La recherche filtre
 les serveurs dont le nom commence par le texte saisi et propose les noms
-existants ; le bouton *Filtres* ouvre les cases des familles de protocole et
-le choix *Avec ou sans TLS*, appliqués dès qu'ils changent, et *Réinitialiser*
+existants ; le bouton *Filtres* ouvre les familles de protocole, en boutons joints dont plusieurs peuvent être
+choisis, et le choix *Tous*, *Avec TLS* ou *Sans TLS*, sur une seule ligne
+quand la largeur le permet, appliqués dès qu'ils changent, et *Réinitialiser*
 revient à la liste complète. Le
 compteur, à droite, indique le nombre de serveurs et, quand une recherche ou
 un filtre est actif, le nombre affiché.

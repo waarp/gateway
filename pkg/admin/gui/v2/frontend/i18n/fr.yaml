@@ -89,7 +89,7 @@ proto:
   tls_lock: Chiffré par TLS
   described_tls: "{family}, chiffré par TLS ({name})"
   filter_tls: Chiffrement TLS
-  filter_tls_all: Avec ou sans TLS
+  filter_tls_all: Tous
   filter_tls_yes: Avec TLS
   filter_tls_no: Sans TLS
   options: "Options du protocole {protocol}"
