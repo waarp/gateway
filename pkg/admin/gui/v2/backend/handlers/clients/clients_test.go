@@ -253,7 +253,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `class="w-btn w-btn--primary" href="/webui/clients/new">`)
 		assert.Contains(t, body, `<option value="cli-pesit"></option><option value="cli-r66"></option><option value="cli-sftp"></option>`)
 		assert.Equal(t, 7, strings.Count(body, `type="checkbox" name="protocol"`), "seven families")
-		assert.Contains(t, body, `<select class="w-select" id="tls" name="tls">`)
+		assert.Equal(t, 3, strings.Count(body, `type="radio" name="tls"`), "all, with and without TLS")
 		assert.Contains(t, body, `aria-live="polite">3 clients</span>`)
 
 		// Four sortable headers, sorted by name ascending; the rows by name, each name a link.
@@ -306,7 +306,7 @@ func TestList(t *testing.T) {
 		assert.Equal(t, 1, rows(body))
 		assert.Contains(t, body, `<details class="w-disclose" open>`)
 		assert.Contains(t, body, `name="protocol" value="r66" checked>`)
-		assert.Contains(t, body, `<option value="yes" selected>Avec TLS</option>`)
+		assert.Contains(t, body, `<input type="radio" name="tls" value="yes" checked>`, "with TLS")
 		assert.Contains(t, body, "Filtres · 2")
 
 		body = s.get(t, permAll, "/webui/clients?tls=no").Body.String()

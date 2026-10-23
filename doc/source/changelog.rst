@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`764` Les filtres des listes des serveurs locaux, des clients
+  locaux et des partenaires distants tiennent sur une ligne : les familles de
+  protocole en boutons joints, dont plusieurs peuvent être choisis, puis
+  *Tous*, *Avec TLS* ou *Sans TLS* ; un bouton choisi se reconnaît à sa
+  bordure, au gras et à sa coche. Les critères envoyés ne changent pas.
+
 * :feature:`763` Dans les listes des serveurs locaux, des clients locaux et des
   partenaires distants, un cadenas remplace le badge *TLS* à côté de la famille
   du protocole ; son info-bulle et son nom accessible disent « Chiffré par
