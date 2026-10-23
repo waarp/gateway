@@ -1,8 +1,11 @@
 package transfers
 
 import (
+	"encoding/json"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -31,9 +34,12 @@ const (
 	fieldInfoName  = "info_name"
 	fieldInfoValue = "info_value"
 	fieldInfoAdd   = "add_info"
-	fieldTries     = "tries"
-	fieldDelay     = "delay"
-	fieldFactor    = "factor"
+	// The stored JSON of a value shown again (a task edited), kept while the
+	// value is unchanged; empty for a typed one.
+	fieldInfoRaw = "info_raw"
+	fieldTries   = "tries"
+	fieldDelay   = "delay"
+	fieldFactor  = "factor"
 
 	maxTries = 127 // the attempts are an int8
 )
@@ -72,18 +78,95 @@ type formData struct {
 	Client    field
 	Clients   []option
 	Start     field      // the start of a client transfer, the due date of a server one
-	Infos     []infoPair // the rows of the transfer information, an empty one last
+	Infos     []InfoPair // the rows of the transfer information, an empty one last
 	InfoError string
 	Tries     field
 	Delay     field
 	Factor    field
 }
 
-// infoPair is a row of the transfer information.
-type infoPair struct {
+// InfoPair is a row of the transfer information. Raw is the stored JSON of
+// the value (a task edited): an unchanged value keeps it, so that a number
+// stays a number; the transfer form leaves it empty.
+type InfoPair struct {
 	Name    string
 	Value   string
+	Raw     string
 	Invalid bool
+}
+
+// ReadInfoPairs reads the posted rows of the transfer information, in
+// order; an empty row is dropped.
+func ReadInfoPairs(values url.Values) []InfoPair {
+	var out []InfoPair
+
+	names, vals, raws := values[fieldInfoName], values[fieldInfoValue], values[fieldInfoRaw]
+	for i, name := range names {
+		pair := InfoPair{Name: strings.TrimSpace(name)}
+		if i < len(vals) {
+			pair.Value = strings.TrimSpace(vals[i])
+		}
+
+		if i < len(raws) {
+			pair.Raw = raws[i]
+		}
+
+		if pair.Name != "" || pair.Value != "" {
+			out = append(out, pair)
+		}
+	}
+
+	return out
+}
+
+// AddsInfo says whether the form asks for one more row of transfer
+// information (without JavaScript): it comes back as typed, nothing saved.
+func AddsInfo(values url.Values) bool { return values.Has(fieldInfoAdd) }
+
+// InfoObject reads the rows of the transfer information: a value needs a
+// name, a name comes once (the faulty row marked, its message returned); a
+// value unchanged since it was shown keeps its stored JSON.
+func InfoObject(translate gui.Translator, pairs []InfoPair) (map[string]any, string) {
+	info := map[string]any{}
+	msg := ""
+
+	for i := range pairs {
+		pair := &pairs[i]
+
+		switch _, twice := info[pair.Name]; {
+		case pair.Name == "":
+			pair.Invalid, msg = true, translate("transfers.form.error.info_name", "n", i+1)
+		case twice:
+			pair.Invalid, msg = true, translate("transfers.form.error.info_twice", "name", pair.Name)
+		case pair.Raw != "" && json.Valid([]byte(pair.Raw)) && InfoText(json.RawMessage(pair.Raw)) == pair.Value:
+			info[pair.Name] = json.RawMessage(pair.Raw)
+		default:
+			info[pair.Name] = pair.Value
+		}
+	}
+
+	return info, msg
+}
+
+// InfoPairs are the rows of a stored transfer information, by name, each
+// value shown as text (a string as it is, any other value as its JSON).
+func InfoPairs(info map[string]json.RawMessage) []InfoPair {
+	out := make([]InfoPair, 0, len(info))
+	for _, name := range slices.Sorted(maps.Keys(info)) {
+		out = append(out, InfoPair{Name: name, Value: InfoText(info[name]), Raw: string(info[name])})
+	}
+
+	return out
+}
+
+// InfoText is a stored value of the transfer information as a row shows it.
+func InfoText(raw json.RawMessage) string {
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		return text
+	}
+
+	return string(raw)
 }
 
 // pageOf is the page that adds (or preregisters) a transfer, without its
@@ -217,18 +300,7 @@ func (f *formData) read(values url.Values) {
 	f.Rule.Value, f.Account.Value, f.Client.Value = get(fieldRule), get(fieldAccount), get(fieldClient)
 	f.Start.Value = get(fieldStart)
 
-	// The rows of the transfer information, in order; an empty row is dropped.
-	names, vals := values[fieldInfoName], values[fieldInfoValue]
-	for i, name := range names {
-		pair := infoPair{Name: strings.TrimSpace(name)}
-		if i < len(vals) {
-			pair.Value = strings.TrimSpace(vals[i])
-		}
-
-		if pair.Name != "" || pair.Value != "" {
-			f.Infos = append(f.Infos, pair)
-		}
-	}
+	f.Infos = ReadInfoPairs(values)
 	f.Tries.Value, f.Delay.Value, f.Factor.Value = get(fieldTries), get(fieldDelay), get(fieldFactor)
 }
 
@@ -322,23 +394,9 @@ func (f *formData) retries(fail func(fld *field, key string, args ...any)) (trie
 // infos reads the transfer information of the form: a value needs a name,
 // and a name comes once.
 func (f *formData) infos(translate gui.Translator) map[string]any {
-	info := map[string]any{}
-
-	for i := range f.Infos {
-		pair := &f.Infos[i]
-
-		switch _, twice := info[pair.Name]; {
-		case pair.Name == "":
-			pair.Invalid, f.InfoError = true, translate("transfers.form.error.info_name", "n", i+1)
-		case twice:
-			pair.Invalid, f.InfoError = true, translate("transfers.form.error.info_twice", "name", pair.Name)
-		default:
-			info[pair.Name] = pair.Value
-
-			continue
-		}
-
-		f.HasErrors = true
+	info, msg := InfoObject(translate, f.Infos)
+	if msg != "" {
+		f.InfoError, f.HasErrors = msg, true
 	}
 
 	return info
@@ -347,7 +405,7 @@ func (f *formData) infos(translate gui.Translator) map[string]any {
 // render shows the page, with its choices.
 func (h *Handlers) render(w http.ResponseWriter, r *http.Request, form *formData, status int) {
 	translate := h.shell.Translator(r)
-	form.Infos = append(form.Infos, infoPair{}) // the row to fill next
+	form.Infos = append(form.Infos, InfoPair{}) // the row to fill next
 
 	screen := h.screen(form.Title, crumbs(translate, form.Title, ret(r)), status)
 	screen.Scripts = []string{script} // the rows of the transfer information
@@ -398,7 +456,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, server bool) {
 
 	// One more row of transfer information, without JavaScript: the form
 	// comes back as typed, nothing is checked nor saved.
-	if r.PostForm.Has(fieldInfoAdd) {
+	if AddsInfo(r.PostForm) {
 		if err := h.choices(translate, form); err != nil {
 			h.logger.Errorf("failed to read the choices of the transfer form: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)

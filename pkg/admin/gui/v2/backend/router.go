@@ -18,14 +18,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/overrides"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/partners"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/smtp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/users"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/listing"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -44,8 +42,6 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 		),
 	)
 
-	MakeListingRouter(router, db, logger)
-	MakeTasksRouter(router, db, logger)
 	MakeHomeRouter(router, db, logger)
 	MakeServicesRouter(router, logger)
 	MakeServersRouter(router, db, logger)
@@ -303,67 +299,6 @@ func MakeClientsRouter(router *mux.Router, db *database.DB, logger *log.Logger) 
 	routes.action(clientPath+"/stop", handlers.Stop)
 }
 
-func MakeListingRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
-	router.Path("/listing/rules").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermRulesRead, listing.ListRules(db, logger)),
-	)
-
-	router.Path("/listing/clients").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersRead, listing.ListClients(db, logger)),
-	)
-
-	router.Path("/listing/servers").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersRead, listing.ListServers(db, logger)),
-	)
-
-	router.Path("/listing/partners").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermPartnersRead, listing.ListPartners(db, logger)),
-	)
-
-	router.Path("/listing/local_accounts").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermServersRead, listing.ListLocalAccounts(db, logger)),
-	)
-
-	router.Path("/listing/remote_accounts").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermPartnersRead, listing.ListRemoteAccounts(db, logger)),
-	)
-
-	router.Path("/listing/keys").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermRulesRead, listing.ListCryptoKeys(db, logger)),
-	)
-
-	router.Path("/listing/email_templates").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermRulesRead, listing.ListEmailTemplates(db, logger)),
-	)
-
-	router.Path("/listing/smtp_credentials").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermRulesRead, listing.ListSMTPCredentials(db, logger)),
-	)
-}
-
-func MakeTasksRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
-	router.Path("/tasks").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermRulesRead, tasks.GetTasksPage(db, logger)),
-	)
-	router.Path("/tasks").Methods(http.MethodPost).Handler(
-		withPermissions(model.PermRulesWrite, tasks.PostTask(db, logger)),
-	)
-	router.Path("/tasks").Methods(http.MethodPut).Handler(
-		withPermissions(model.PermRulesWrite, tasks.ReorderTasks(db, logger)),
-	)
-	router.Path("/tasks").Methods(http.MethodDelete).Handler(
-		withPermissions(model.PermRulesDelete, tasks.DeleteTask(db, logger)),
-	)
-
-	router.Path("/tasks/modal").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermRulesRead, tasks.GetNewTaskModal(db, logger)),
-	)
-
-	router.Path("/tasks/forms").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermRulesRead, tasks.GetNewTaskForm(db, logger)),
-	)
-}
-
 // MakeAuthoritiesRouter registers the "Authentication authorities" screen:
 // the list and the sheet in reading, the creation, the edition, the deletion.
 func MakeAuthoritiesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
@@ -412,18 +347,33 @@ func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger
 
 // MakeRulesRouter registers the "Transfer rules" screen, behind the rights on
 // the rules as the REST API: the list and the sheet in reading, the creation,
-// the edition, the deletion; the Access tab in reading, the addition and the
-// removal of an access and the opening to all behind the write right.
+// the edition, the deletion; the Tasks tab in reading, the addition, the
+// edition, the removal and the moves of a task, and the order of a chain,
+// behind the write right; the
+// Access tab in reading, the addition and the removal of an access and the
+// opening to all behind the write right. The address of the former tasks
+// page leads to the Tasks tab.
 func MakeRulesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	handlers := rules.New(db, logger)
 	routes := ruleRoutes{router}
-	const rulePath = "/rules/{id:[0-9]+}"
+	const (
+		rulePath = "/rules/{id:[0-9]+}"
+		taskPath = rulePath + "/tasks/{chain}/{rank:[0-9]+}"
+	)
 
 	routes.read("/rules", handlers.List)
 	routes.write("/rules/new", handlers.NewForm, handlers.Create)
 	routes.read(rulePath, handlers.Detail)
 	routes.write(rulePath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(rulePath+"/delete", handlers.DeleteForm, handlers.Delete)
+	routes.read("/tasks", rules.FormerTasksPage)
+	routes.read(rulePath+"/tasks", handlers.TasksTab)
+	routes.write(rulePath+"/tasks/{chain}/new", handlers.TaskNewForm, handlers.TaskCreate)
+	routes.write(taskPath+"/edit", handlers.TaskEditForm, handlers.TaskUpdate)
+	routes.write(taskPath+"/delete", handlers.TaskDeleteForm, handlers.TaskDelete)
+	routes.act(taskPath+"/up", handlers.TaskUp)
+	routes.act(taskPath+"/down", handlers.TaskDown)
+	routes.act(rulePath+"/tasks/{chain}/order", handlers.TaskOrder)
 	routes.read(rulePath+"/access", handlers.AccessTab)
 	routes.write(rulePath+"/access/new", handlers.AccessNewForm, handlers.AccessCreate)
 	routes.write(rulePath+"/access/open", handlers.AccessOpenForm, handlers.AccessOpen)
@@ -445,8 +395,9 @@ func MakeKeysRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 }
 
 // ruleRoutes registers the routes of a screen behind the rights on the
-// rules: the pages in reading, the forms behind the write right, the
-// deletion behind the delete right. Every action is a POST.
+// rules: the pages in reading, the forms and the actions without a page
+// behind the write right, the deletion behind the delete right. Every action
+// is a POST.
 type ruleRoutes struct{ router *mux.Router }
 
 func (u ruleRoutes) read(path string, handler http.HandlerFunc) {
@@ -461,6 +412,10 @@ func (u ruleRoutes) write(path string, form, action http.HandlerFunc) {
 func (u ruleRoutes) del(path string, form, action http.HandlerFunc) {
 	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermRulesDelete, form))
 	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermRulesDelete, action))
+}
+
+func (u ruleRoutes) act(path string, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermRulesWrite, action))
 }
 
 // MakeSMTPCredentialsRouter registers the "SMTP credentials" screen, behind

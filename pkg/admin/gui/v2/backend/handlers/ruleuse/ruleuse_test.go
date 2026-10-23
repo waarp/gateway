@@ -54,8 +54,8 @@ func TestRowsAndCount(t *testing.T) {
 	}
 
 	assert.Equal(t, []Row{
-		{Rule: "a-rule", URL: "/webui/tasks?ruleID=3", Direction: "rule_uses.direction.send"},
-		{Rule: "b-rule", URL: "/webui/tasks?ruleID=1", Direction: "rule_uses.direction.receive"},
+		{Rule: "a-rule", URL: "/webui/rules/3/tasks", Direction: "rule_uses.direction.send"},
+		{Rule: "b-rule", URL: "/webui/rules/1/tasks", Direction: "rule_uses.direction.receive"},
 	}, Rows(echo, []Use{{RuleID: 3, Rule: "a-rule", Send: true}, {RuleID: 1, Rule: "b-rule"}}))
 
 	assert.Equal(t, "rule_uses.count.none", Count(echo, 0))

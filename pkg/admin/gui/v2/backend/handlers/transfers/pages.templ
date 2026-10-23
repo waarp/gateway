@@ -655,24 +655,7 @@ templ formView(d *formData) {
 		<div class="w-card">
 			<fieldset class="w-fieldset w-fieldset--wide">
 				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</legend>
-				@protoform.Message("info-h", d.InfoError, gui.T(ctx, "transfers.form.info_hint"))
-				<div
-					class="tf-info-list"
-					data-infos
-					data-label-name={ gui.T(ctx, "transfers.form.info_name_n") }
-					data-label-value={ gui.T(ctx, "transfers.form.info_value_n") }
-					data-label-remove={ gui.T(ctx, "transfers.form.info_remove_n") }
-				>
-					<div class="tf-info-head" aria-hidden="true"><span>{ gui.T(ctx, "transfers.form.info_name") }</span><span>{ gui.T(ctx, "transfers.form.info_value") }</span></div>
-					for i, p := range d.Infos {
-						@infoField(i+1, p)
-					}
-				</div>
-				<template id="tf-info-row">@infoField(0, infoPair{})</template>
-				<button class="w-btn w-btn--outline-dark w-btn--sm" type="submit" name={ fieldInfoAdd } value="1" formnovalidate data-info-add>
-					@gui.Icon("plus")
-					{ gui.T(ctx, "transfers.form.info_add") }
-				</button>
+				@InfoList(d.Infos, d.InfoError)
 			</fieldset>
 		</div>
 		if !d.Server {
@@ -692,11 +675,40 @@ templ formView(d *formData) {
 	</form>
 }
 
+// InfoList: the rows of the transfer information, an empty one last to
+// fill, each with the button that removes it; "Add an information" adds one
+// in place (transfers.js) or, without JavaScript, posts the form back with
+// one more (AddsInfo). The tasks TRANSFER and PREREGISTER of the transfer
+// rules ask their information with it, and load InfoScript and
+// InfoStylesheet.
+templ InfoList(rows []InfoPair, errText string) {
+	@protoform.Message("info-h", errText, gui.T(ctx, "transfers.form.info_hint"))
+	<div
+		class="tf-info-list"
+		data-infos
+		data-label-name={ gui.T(ctx, "transfers.form.info_name_n") }
+		data-label-value={ gui.T(ctx, "transfers.form.info_value_n") }
+		data-label-remove={ gui.T(ctx, "transfers.form.info_remove_n") }
+	>
+		<div class="tf-info-head" aria-hidden="true"><span>{ gui.T(ctx, "transfers.form.info_name") }</span><span>{ gui.T(ctx, "transfers.form.info_value") }</span></div>
+		for i, p := range rows {
+			@infoField(i+1, p)
+		}
+	</div>
+	<template id="tf-info-row">@infoField(0, InfoPair{})</template>
+	<div class="tf-info-actions">
+		<button class="w-btn w-btn--outline-dark w-btn--sm" type="submit" name={ fieldInfoAdd } value="1" formnovalidate data-info-add>
+			@gui.Icon("plus")
+			{ gui.T(ctx, "transfers.form.info_add") }
+		</button>
+	</div>
+}
+
 // infoField: a row of the transfer information, numbered from 1 (0 in the
 // template the script copies, which numbers the rows again): the name, the
 // value, the button that removes the row (shown by the script; without it,
 // emptying the row is enough).
-templ infoField(n int, p infoPair) {
+templ infoField(n int, p InfoPair) {
 	<div class="tf-info-row">
 		<label class="visually-hidden" for={ fmt.Sprintf("info-name-%d", n) }>{ gui.T(ctx, "transfers.form.info_name_n", "n", n) }</label>
 		<input
@@ -713,6 +725,7 @@ templ infoField(n int, p infoPair) {
 		/>
 		<label class="visually-hidden" for={ fmt.Sprintf("info-value-%d", n) }>{ gui.T(ctx, "transfers.form.info_value_n", "n", n) }</label>
 		<input class="w-input w-mono" id={ fmt.Sprintf("info-value-%d", n) } name={ fieldInfoValue } value={ p.Value } autocomplete="off" spellcheck="false"/>
+		<input type="hidden" name={ fieldInfoRaw } value={ p.Raw }/>
 		<button class="w-icon-btn" type="button" hidden data-info-remove aria-label={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) } title={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) }>@gui.Icon("xmark")</button>
 	</div>
 }

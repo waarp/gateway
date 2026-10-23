@@ -209,9 +209,8 @@ func testHandler(db *database.DB, logger *log.Logger) http.HandlerFunc {
 		ctx = context.WithValue(ctx, constants.ContextLanguageKey, "fr")
 
 		router := mux.NewRouter()
-		MakeListingRouter(router, db, logger)
 		// Change this to the handler you wish to test.
-		MakeTasksRouter(router, db, logger)
+		MakeRulesRouter(router, db, logger)
 
 		router.ServeHTTP(w, r.WithContext(ctx))
 	}
