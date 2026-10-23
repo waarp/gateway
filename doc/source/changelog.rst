@@ -3,6 +3,16 @@
 Historique des versions
 =======================
 
+* :feature:`762` L'interface web ouvre la documentation dans un nouvel onglet,
+  sans quitter l'application. Une page de création ou de modification dont le
+  formulaire a changé sans être validé demande confirmation avant d'être
+  quittée : un lien de l'interface ouvre la fenêtre *Quitter sans
+  enregistrer ?* (rester sur la page, ou la quitter sans enregistrer), la
+  fermeture de l'onglet, le retour et le rechargement celle du navigateur ; rien
+  n'est demandé sans modification, à la validation, ni sur *Annuler*, et un
+  formulaire refusé compte comme modifié (voir :ref:`le guide de l'interface
+  web <user-guide-webui>`).
+
 * :feature:`759` L'écran des règles de transfert gagne l'onglet *Tâches* (voir
   :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
   des tâches : les trois chaînes (avant le transfert, après, en cas d'erreur)

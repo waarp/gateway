@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -859,11 +860,38 @@ func expectURL(t *testing.T, page playwright.Page, want string) {
 	require.NoError(t, err)
 }
 
-// e2eSession is a browser page on the web interface served at baseURL.
+// e2eSession is a browser page on the web interface served at baseURL;
+// leaves counts the leave dialogs the browser opened, all accepted.
 type e2eSession struct {
 	page    playwright.Page
 	tracker *e2eTracker
 	baseURL string
+	leaves  atomic.Int32
+}
+
+// onDialog accepts the leave dialog of a changed form, so that the test goes
+// on to the next screen, and counts it; any other dialog is dismissed, as
+// Playwright does without a handler.
+func (s *e2eSession) onDialog(dialog playwright.Dialog) {
+	if dialog.Type() == "beforeunload" {
+		s.leaves.Add(1)
+		_ = dialog.Accept()
+
+		return
+	}
+
+	_ = dialog.Dismiss()
+}
+
+// followSidebar leaves the page by an entry of the sidebar and waits for the
+// screen it leads to.
+func (s *e2eSession) followSidebar(t *testing.T, entry string) {
+	t.Helper()
+
+	s.tracker.enter(entry)
+	require.NoError(t, s.page.Locator(`nav:not(.w-tabs) a[href="`+entry+`"]`).First().Click())
+	expectURL(t, s.page, s.baseURL+entry)
+	require.NoError(t, s.tracker.settle())
 }
 
 // visit opens path as the current screen and waits for it to settle.
@@ -1148,6 +1176,7 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 	baseURL := startE2EServer(t)
 	page := newE2EPage(t)
 	session := &e2eSession{page: page, tracker: trackRequests(page, baseURL), baseURL: baseURL}
+	page.OnDialog(session.onDialog)
 
 	session.login(t)
 
@@ -1232,5 +1261,66 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		landed, err := url.Parse(page.URL())
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/rules/2/tasks", landed.Path)
+	})
+
+	// A changed form asks before it is left (#762): a link of the page opens
+	// the dialog of the kit, where the operator stays or leaves without
+	// saving; reloading opens the dialog of the browser, the only one it
+	// allows; an untouched form and "Cancel" ask nothing.
+	t.Run("a changed form asks before it is left", func(t *testing.T) {
+		const form, list, other = "/webui/servers/new", "/webui/servers", "/webui/services"
+
+		dialog := page.Locator("#w-leave")
+		typeName := func(value string) {
+			require.NoError(t, page.Locator("#name").Click())
+			require.NoError(t, page.Keyboard().Type(value))
+		}
+		native := session.leaves.Load()
+
+		session.visit(t, form)
+		session.followSidebar(t, other)
+
+		session.visit(t, form)
+		typeName("srv-left")
+		require.NoError(t, page.Locator(`nav:not(.w-tabs) a[href="`+other+`"]`).First().Click())
+		require.NoError(t, dialog.WaitFor(playwright.LocatorWaitForOptions{State: playwright.WaitForSelectorStateVisible}),
+			"a link of the page opens the dialog of the kit")
+		require.NoError(t, dialog.Locator("[data-close]").Click())
+		require.NoError(t, dialog.WaitFor(playwright.LocatorWaitForOptions{State: playwright.WaitForSelectorStateHidden}))
+		expectURL(t, page, baseURL+form)
+
+		session.tracker.enter(other)
+		require.NoError(t, page.Locator(`nav:not(.w-tabs) a[href="`+other+`"]`).First().Click())
+		require.NoError(t, dialog.Locator("[data-leave-go]").Click(), "leave without saving")
+		expectURL(t, page, baseURL+other)
+		require.NoError(t, session.tracker.settle())
+		assert.Equal(t, native, session.leaves.Load(), "the links asked through the dialog of the kit only")
+
+		session.visit(t, form)
+		typeName("srv-reloaded")
+		_, err := page.Reload()
+		require.NoError(t, err)
+		assert.Equal(t, native+1, session.leaves.Load(), "reloading asks through the dialog of the browser")
+
+		session.visit(t, form)
+		typeName("srv-cancelled")
+
+		before := session.leaves.Load()
+		require.NoError(t, page.Locator("form.w-form [data-leave]").Click())
+
+		// The list, with the criteria the session keeps for it.
+		listURL := regexp.MustCompile("^" + regexp.QuoteMeta(baseURL+list) + `(\?.*)?$`)
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(listURL))
+		assert.Equal(t, before, session.leaves.Load(), "cancel")
+	})
+
+	// The documentation opens in a new tab, which its name says (#762).
+	t.Run("the documentation opens in a new tab", func(t *testing.T) {
+		session.visit(t, "/webui/home")
+
+		doc := page.Locator(`header a[href*="doc.waarp.org"]`)
+		assert.Equal(t, "_blank", attribute(t, doc, "target"))
+		assert.Contains(t, attribute(t, doc, "rel"), "noopener")
+		assert.Contains(t, attribute(t, doc, "aria-label"), "(")
 	})
 }

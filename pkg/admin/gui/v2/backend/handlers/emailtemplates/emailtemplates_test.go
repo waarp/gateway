@@ -485,7 +485,7 @@ func TestDelete(t *testing.T) {
 	rec := s.get(t, permAll, pagePathOf(s.alert, "/delete"))
 	require.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Ce modèle ne peut pas être supprimé.")
-	assert.NotContains(t, rec.Body.String(), "w-btn--danger")
+	assert.NotContains(t, rec.Body.String(), `class="w-btn w-btn--danger" type="submit"`, "no deletion offered")
 
 	rec = s.post(t, permAll, pagePathOf(s.alert, "/delete"), url.Values{})
 	assert.Equal(t, http.StatusConflict, rec.Code)

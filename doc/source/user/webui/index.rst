@@ -65,8 +65,8 @@ Navigation
    * - Zone
      - Contenu
    * - En-tête
-     - Produit, nom de l'instance, langue, lien vers la documentation, menu du
-       compte.
+     - Produit, nom de l'instance, langue, lien vers la documentation (ouverte
+       dans un nouvel onglet), menu du compte.
    * - Barre latérale
      - Les écrans, groupés par section : Connexions, Traitements,
        Supervision, Administration. Un groupe se replie d'un clic sur son
@@ -79,6 +79,20 @@ Navigation
 
 Le lien « Aller au contenu », premier élément atteint par la touche
 :kbd:`Tab`, mène directement au contenu de l'écran.
+
+
+Pages de création et de modification
+====================================
+
+Une page de création ou de modification dont le formulaire a changé sans être
+validé demande confirmation avant d'être quittée. Un lien de l'interface
+(barre latérale, fil d'Ariane, bouton de retour) ouvre la fenêtre *Quitter
+sans enregistrer ?*, qui propose de rester sur la page ou de la quitter sans
+enregistrer. La fermeture de l'onglet, le retour du navigateur et le
+rechargement ouvrent la fenêtre du navigateur, la seule qu'il permette dans ces
+cas. Rien n'est demandé si rien n'a été saisi, à la validation, ni sur
+*Annuler*. Un formulaire refusé, un champ en erreur par exemple, n'est pas
+enregistré : le quitter demande aussi confirmation.
 
 
 Droits
