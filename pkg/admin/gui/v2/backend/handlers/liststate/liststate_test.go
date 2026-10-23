@@ -89,6 +89,41 @@ func TestQuery(t *testing.T) {
 	assert.Empty(t, pager.NextURL)
 }
 
+func TestFirstDesc(t *testing.T) {
+	t.Parallel()
+
+	spec := &Spec{Path: "/things", Sorts: []string{"start", "name"}, Sizes: []int{10}, FirstDesc: true}
+
+	dflt := spec.Parse(url.Values{})
+	assert.Equal(t, "start", dflt.Sort)
+	assert.Equal(t, DirDesc, dflt.Dir, "the first key sorts descending by default")
+	assert.Empty(t, dflt.Encode(1), "the default state is carried as nothing")
+
+	asc := spec.Parse(url.Values{"sort": {"start"}, "dir": {"asc"}})
+	assert.Equal(t, DirAsc, asc.Dir)
+	assert.Equal(t, "dir=asc&sort=start", asc.Encode(1), "the ascending order of the first key is said")
+
+	name := spec.Parse(url.Values{"sort": {"name"}})
+	assert.Equal(t, DirAsc, name.Dir, "the other keys start ascending")
+	assert.Equal(t, "dir=asc&sort=name", name.Encode(1))
+}
+
+func TestDefaultSize(t *testing.T) {
+	t.Parallel()
+
+	spec := &Spec{Path: "/things", Sorts: []string{"id"}, Sizes: []int{10, 25, 50}, DefaultSize: 25}
+
+	dflt := spec.Parse(url.Values{})
+	assert.Equal(t, 25, dflt.Size, "the rows per page by default")
+	assert.Empty(t, dflt.Encode(1), "the default state is carried as nothing")
+
+	ten := spec.Parse(url.Values{"size": {"10"}})
+	assert.Equal(t, 10, ten.Size)
+	assert.Equal(t, "size=10", ten.Encode(1), "the first size is said when it is not the default")
+
+	assert.Equal(t, 25, spec.Parse(url.Values{"size": {"7"}}).Size, "an unknown size falls back to the default")
+}
+
 func TestKeptState(t *testing.T) {
 	t.Parallel()
 

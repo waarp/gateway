@@ -29,6 +29,7 @@ restent décrits par l'interface elle-même.
    snmp
    surcharges
    etat-des-services
+   suivi-des-transferts
 
 
 Connexion
@@ -100,7 +101,9 @@ sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les
 utilisateurs, et les écrans :doc:`instances-cloud`, :doc:`autorites`,
 :doc:`snmp`, :doc:`surcharges` et :doc:`cles` les droits sur l'administration ;
 les écrans :doc:`smtp` et :doc:`modeles` requièrent les droits sur les règles,
-comme l'API REST.
+comme l'API REST. L'écran :doc:`suivi-des-transferts` requiert les droits sur
+les transferts : lecture pour la liste et la fiche, écriture pour toute
+action.
 
 
 Ancienne et nouvelle interface

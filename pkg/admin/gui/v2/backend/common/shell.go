@@ -58,6 +58,9 @@ type Screen struct {
 	// Editor loads the rich text field and the variables list of the kit
 	// (gui.EditorAssets), for the screens that use them.
 	Editor bool
+	// Head is more content of <head>, for the screens that need it (the live
+	// list of the kit: gui.LiveAssets); nil for none.
+	Head templ.Component
 	// Status is the HTTP status of the page: 0 (200 OK) for a page, 422 for a
 	// form rendered again with its errors, 404 for a localised "not found".
 	Status int
@@ -135,22 +138,33 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		Nav:        makeNav(translate, user.Permissions, screen.Section, screen.Menu),
 		Crumbs:     screen.Crumbs,
 		Notices:    screen.Notices,
-		Head:       headOf(screen.Stylesheets, screen.Editor),
+		Head:       headOf(screen.Stylesheets, screen.Editor, screen.Head),
 		Scripts:    scriptsOf(screen.Scripts),
 	}
 }
 
 // headOf links the stylesheets of a screen in <head>, after the files of the
-// editor of the kit when the screen uses it; nil without any.
-func headOf(paths []string, editor bool) templ.Component {
-	switch {
-	case editor:
-		return templ.Join(gui.EditorAssets(), Stylesheets(paths))
-	case len(paths) == 0:
-		return nil
-	default:
-		return Stylesheets(paths)
+// editor of the kit when the screen uses it, and its own head content; nil
+// without any.
+func headOf(paths []string, editor bool, more templ.Component) templ.Component {
+	var parts []templ.Component
+	if editor {
+		parts = append(parts, gui.EditorAssets())
 	}
+
+	if more != nil {
+		parts = append(parts, more)
+	}
+
+	if len(paths) > 0 {
+		parts = append(parts, Stylesheets(paths))
+	}
+
+	if len(parts) == 0 {
+		return nil
+	}
+
+	return templ.Join(parts...)
 }
 
 // scriptsOf loads the scripts of a screen at the end of <body>; nil without any.

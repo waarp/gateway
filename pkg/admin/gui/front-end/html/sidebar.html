@@ -44,7 +44,7 @@
         <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
             <li><i class="bi bi-list-check fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="services">{{ index .tab "status_of_services" }}</a></li>
             {{ if contains .myPermission.Transfers "r" }}
-                <li><i class="bi bi-arrow-left-right fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="transfer_monitoring">{{ index .tab "transfer_monitoring" }}</a></li>
+                <li><i class="bi bi-arrow-left-right fs-8 ms-0 me-1"></i><a class="link-dark rounded ms-0" href="transfers">{{ index .tab "transfer_monitoring" }}</a></li>
             {{ end }}
         </ul>
         </div>

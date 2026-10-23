@@ -966,7 +966,7 @@ func TestDeleteServer(t *testing.T) {
 		body := rec.Body.String()
 		assert.Contains(t, body, `<div class="w-banner w-banner--ko" role="alert">`)
 		assert.Contains(t, body, "<strong>Ce serveur ne peut pas être supprimé.</strong>Des transferts en cours l&#39;utilisent.")
-		assert.Contains(t, body, `href="/webui/transfer_monitoring">`)
+		assert.Contains(t, body, `href="/webui/transfers">`)
 		assert.Contains(t, body, "Voir les transferts en cours")
 		assert.NotContains(t, body, "w-btn--danger", "no deletion offered")
 		assert.NotContains(t, body, "cannot be deleted", "never the model&#39;s own message")

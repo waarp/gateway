@@ -491,7 +491,7 @@ func TestDelete(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), "Ce partenaire ne peut pas être supprimé.")
 		assert.Contains(t, rec.Body.String(), "Des transferts en cours utilisent un de ses comptes.")
-		assert.Contains(t, rec.Body.String(), `href="/webui/transfer_monitoring"`)
+		assert.Contains(t, rec.Body.String(), `href="/webui/transfers"`)
 		assert.NotContains(t, rec.Body.String(), `<form class="sheet-form-actions"`, "no deletion offered")
 
 		rec = s.post(t, permAll, s.path(s.sftp, "/delete"), nil)

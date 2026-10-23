@@ -49,7 +49,7 @@ func navigation() []navGroup {
 		}},
 		{section: constants.SidebarSectionMonitoring, key: "nav.supervision", entries: []navEntry{
 			{constants.SidebarMenuStatus, "shield", "nav.services", "/services", 0},
-			{constants.SidebarMenuTransfers, "clock", "nav.transfers", "/transfer_monitoring", model.PermTransfersRead},
+			{constants.SidebarMenuTransfers, "clock", "nav.transfers", "/transfers", model.PermTransfersRead},
 		}},
 		{section: constants.SidebarSectionAdministration, key: "nav.administration", entries: []navEntry{
 			{constants.SidebarMenuUsers, "users", "nav.users", "/users", model.PermUsersRead},

@@ -798,7 +798,7 @@ func TestDeleteAccount(t *testing.T) {
 
 		body := rec.Body.String()
 		assert.Contains(t, body, "<strong>Ce compte ne peut pas être supprimé.</strong>Des transferts en cours l&#39;utilisent.")
-		assert.Contains(t, body, `href="/webui/transfer_monitoring">`)
+		assert.Contains(t, body, `href="/webui/transfers">`)
 		assert.NotContains(t, body, `<form class="sheet-form-actions"`, "no deletion offered")
 
 		rec = s.post(t, permAll, s.accountPath(f.nobody, "/delete"), nil)
