@@ -1830,7 +1830,8 @@ rules:
     remote_empty: "Not set: the partner receives the file under its name alone."
     tmp_empty: "Not set: a directory the gateway chooses (the rule's or the server's)."
   detail:
-    title: "Rule “{name}”"
+    title_send: "Send rule “{name}”"
+    title_receive: "Receive rule “{name}”"
     card: Rule
     folders: Directories
     no_comment: No comment
@@ -1857,6 +1858,7 @@ rules:
     refused_text: Correct the fields marked below.
     history_title: The history names this rule by its name.
     history_text: "After a rename, the transfers made under the name “{name}” can no longer be restarted."
+    history_confirm: Save again to rename the rule.
     error:
       required: This field is required.
       slash: "The name cannot hold “/”: the API could no longer reach the rule."

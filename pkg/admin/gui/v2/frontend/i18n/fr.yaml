@@ -1829,7 +1829,8 @@ rules:
     remote_empty: "Non défini : le partenaire reçoit le fichier sous son seul nom."
     tmp_empty: "Non défini : un dossier choisi par la passerelle (celui de la règle ou du serveur)."
   detail:
-    title: "Règle « {name} »"
+    title_send: "Règle d'envoi « {name} »"
+    title_receive: "Règle de réception « {name} »"
     card: Règle
     folders: Dossiers
     no_comment: Aucun commentaire
@@ -1856,6 +1857,7 @@ rules:
     refused_text: Corrigez les champs signalés ci-dessous.
     history_title: L'historique désigne cette règle par son nom.
     history_text: "Après un renommage, les transferts passés sous le nom « {name} » ne pourront plus être relancés."
+    history_confirm: Validez de nouveau pour renommer la règle.
     error:
       required: Ce champ est obligatoire.
       slash: "Le nom ne peut pas contenir « / » : l'API ne pourrait plus désigner la règle."

@@ -182,9 +182,10 @@ fiche, avec une notification. La modification d'une règle conserve ses tâches
 et ses accès.
 
 **Renommer une règle employée.** L'historique désigne chaque transfert passé
-par le nom de sa règle. Quand l'historique emploie le nom de la règle, le
-formulaire le rappelle : après un renommage, ces transferts ne pourront plus
-être relancés.
+par le nom de sa règle. Quand le nom change et que l'historique emploie
+l'ancien, la validation s'arrête une fois sur un encadré : après un renommage,
+ces transferts ne pourront plus être relancés. Valider de nouveau renomme la
+règle.
 
 
 Supprimer une règle

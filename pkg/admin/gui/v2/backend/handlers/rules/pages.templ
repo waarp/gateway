@@ -130,7 +130,7 @@ templ filterBoxes(legend string, boxes []box) {
 templ detailView(d detailData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
-			<h1 class="w-page-header__title">{ gui.T(ctx, "rules.detail.title", "name", d.Name) }</h1>
+			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
 		<div class="w-page-header__actions">
 			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
@@ -243,7 +243,8 @@ templ directionField(d *formData) {
 // formView: creation and edition of a rule, one page (decision D10), one
 // card per block: the rule (name, direction, path, comment), its
 // directories. Refused form: a banner, the values kept, a message under each
-// faulty field (422).
+// faulty field (422). A rename the history would lose is asked once more:
+// a banner, the new name kept in a hidden field (422).
 templ formView(d *formData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
@@ -259,13 +260,16 @@ templ formView(d *formData) {
 	if d.HasErrors {
 		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.form.refused_text"))})</div>
 	}
+	if d.Renaming {
+		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.form.history_title"), Text: gui.T(ctx, "rules.form.history_text", "name", d.stored.Name) + " " + gui.T(ctx, "rules.form.history_confirm")})</div>
+	}
 	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		if d.Renaming {
+			<input type="hidden" name={ fieldConfirmName } value={ d.Name.Value }/>
+		}
 		<div class="w-card">
 			<fieldset class="w-fieldset w-fieldset--wide">
 				<legend class="w-card__title">{ gui.T(ctx, "rules.detail.card") }</legend>
-				if d.InHistory {
-					<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.form.history_title"), Text: gui.T(ctx, "rules.form.history_text", "name", d.stored.Name)})</div>
-				}
 				<div class="w-grid w-grid--2">
 					@protoform.FieldOf(protoform.FieldProps{ID: fieldName, Label: gui.T(ctx, "rules.form.name"), Req: true, F: d.Name, Hint: gui.T(ctx, "rules.form.name_hint")})
 					@protoform.FieldOf(protoform.FieldProps{ID: fieldPath, Label: gui.T(ctx, "rules.form.path"), F: d.Path, Hint: gui.T(ctx, "rules.form.path_hint")})

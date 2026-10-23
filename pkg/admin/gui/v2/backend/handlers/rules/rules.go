@@ -658,6 +658,7 @@ type folder struct {
 }
 
 type detailData struct {
+	Title      string
 	Name       string
 	Direction  string
 	DirIcon    string
@@ -671,6 +672,16 @@ type detailData struct {
 	BackURL    string
 	EditURL    string
 	Actions    []gui.Action
+}
+
+// ruleTitle is the title of the sheet of a rule, which says its direction
+// (Driss, 2026-10-23: the direction was not visible enough).
+func ruleTitle(translate gui.Translator, rule *model.Rule) string {
+	if rule.IsSend {
+		return translate("rules.detail.title_send", "name", rule.Name)
+	}
+
+	return translate("rules.detail.title_receive", "name", rule.Name)
 }
 
 // folders are the three directories of the rule, each with what an empty one
@@ -695,6 +706,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	user := rightsOf(r)
 
 	data := detailData{
+		Title:      ruleTitle(translate, item.rule),
 		Name:       item.rule.Name,
 		Direction:  item.direction(translate),
 		DirIcon:    directionIcon(item.rule.IsSend),
@@ -713,8 +725,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		data.EditURL = withRet(ruleURL(item.rule.ID, "/edit"), carried)
 	}
 
-	title := translate("rules.detail.title", "name", item.rule.Name)
-	screen := h.screen(translate, title, carried, 0)
+	screen := h.screen(translate, data.Title, carried, 0)
 	screen.Notices = notices(translate, r.URL.Query())
 	h.shell.Render(w, h.logger, r, screen, detailView(data))
 }

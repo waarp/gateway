@@ -25,6 +25,10 @@ const (
 	fieldRemote    = "remote_dir"
 	fieldTmp       = "tmp_dir"
 
+	// The new name of a rule the history names, carried once
+	// the user has been told what the rename loses.
+	fieldConfirmName = "confirm_name"
+
 	// The columns of the name and of the path hold 100 characters on
 	// PostgreSQL and MySQL; a longer value would fail there with a database
 	// error.
@@ -68,9 +72,10 @@ type formData struct {
 	Remote     field
 	Tmp        field
 
-	// InHistory: the history names the rule as it is (edition), its entries
-	// could no longer be restarted after a rename.
-	InHistory bool
+	// Renaming: the name changes and the history names the rule by the old
+	// one, whose entries could no longer be restarted; the form asks to
+	// validate again (Driss, 2026-10-23: told at the validation, not before).
+	Renaming bool
 
 	stored *model.Rule
 }
@@ -208,12 +213,21 @@ func (h *Handlers) inHistory(rule *model.Rule) bool {
 	return len(entries) > 0
 }
 
+// renameUnconfirmed says whether an edition renames a rule the history names
+// without the new name confirmed yet; the form is then marked to ask for it.
+func (h *Handlers) renameUnconfirmed(r *http.Request, form *formData) bool {
+	if form.stored == nil || form.Name.Value == form.stored.Name ||
+		r.PostFormValue(fieldConfirmName) == form.Name.Value || !h.inHistory(form.stored) {
+		return false
+	}
+
+	form.Renaming = true
+
+	return true
+}
+
 func (h *Handlers) render(w http.ResponseWriter, r *http.Request, form *formData, status int) {
 	translate := h.shell.Translator(r)
-
-	if form.stored != nil {
-		form.InHistory = h.inHistory(form.stored)
-	}
 
 	form.prepare(translate)
 	h.shell.Render(w, h.logger, r, h.screen(translate, form.Title, ret(r), status), formView(form))
@@ -267,7 +281,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, e *entry) {
 	form := newForm(translate, e, carried)
 	form.read(r)
 
-	if form.validate(translate) {
+	if form.validate(translate) && !h.renameUnconfirmed(r, form) {
 		// A copy: a refused edition leaves the rule as it was read.
 		done, rule := doneCreated, &model.Rule{}
 		if e != nil {

@@ -226,7 +226,7 @@ func TestDetail(t *testing.T) {
 		body := rec.Body.String()
 
 		id := strconv.FormatInt(s.send.ID, 10)
-		assert.Contains(t, body, "Règle « releves »")
+		assert.Contains(t, body, "Règle d&#39;envoi « releves »", "the title says the direction")
 		assert.Contains(t, body, `href="/webui/rules/`+id+`" aria-current="page">Détails</a>`)
 		assert.Contains(t, body, `href="/webui/tasks?ruleID=`+id+`">Tâches <span class="w-tabs__count">2</span>`)
 		assert.Contains(t, body, `href="/webui/management_usage_rights_rules?ruleID=`+id+`">Accès <span class="w-tabs__count">1</span>`)
@@ -350,10 +350,32 @@ func TestEdit(t *testing.T) {
 			Start: time.Now().Add(-time.Hour), Stop: time.Now(),
 		}).Run())
 
-		assert.Contains(t, s.get(t, permWrite, path(s.send, "/edit")).Body.String(),
-			"L&#39;historique désigne cette règle par son nom.", "a rename is warned")
-		assert.NotContains(t, s.get(t, permWrite, path(s.receive, "/edit")).Body.String(),
-			"L&#39;historique désigne cette règle", "not for the rule of the other direction")
+		assert.NotContains(t, s.get(t, permWrite, path(s.send, "/edit")).Body.String(),
+			"L&#39;historique désigne cette règle", "nothing is said before the validation")
+
+		values := url.Values{fieldName: {"releves-v2"}, fieldPath: {"releves-envoi"}}
+		rec := s.post(t, permWrite, path(s.send, "/edit"), values)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "a rename is asked once more")
+		body := rec.Body.String()
+		assert.Contains(t, body, "L&#39;historique désigne cette règle par son nom.")
+		assert.Contains(t, body, "Validez de nouveau pour renommer la règle.")
+		assert.Contains(t, body, `<input type="hidden" name="confirm_name" value="releves-v2">`)
+		assert.Equal(t, "releves", s.read(t, s.send).Name, "nothing is saved yet")
+
+		values.Set(fieldConfirmName, "releves-v2")
+		values.Set(fieldName, "releves-v3")
+		rec = s.post(t, permWrite, path(s.send, "/edit"), values)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "a name changed after the warning is asked again")
+		assert.Contains(t, rec.Body.String(), `<input type="hidden" name="confirm_name" value="releves-v3">`)
+
+		values.Set(fieldConfirmName, "releves-v3")
+		require.Equal(t, http.StatusSeeOther, s.post(t, permWrite, path(s.send, "/edit"), values).Code,
+			"validated again, the rule is renamed")
+		assert.Equal(t, "releves-v3", s.read(t, s.send).Name)
+
+		require.Equal(t, http.StatusSeeOther, s.post(t, permWrite, path(s.receive, "/edit"), url.Values{
+			fieldName: {"releves-v2"}, fieldPath: {"releves-reception"},
+		}).Code, "the rule of the other direction, which the history does not name, is renamed at once")
 	})
 }
 
