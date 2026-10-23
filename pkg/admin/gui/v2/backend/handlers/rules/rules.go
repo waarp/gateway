@@ -580,9 +580,14 @@ func crumbs(translate gui.Translator, last, carried string) []gui.Crumb {
 	return append(c, gui.Crumb{Label: translate("rules.title"), URL: listURL(carried)}, gui.Crumb{Label: last})
 }
 
-// notices turns the result of the previous action into a notification.
+// notices turns the result of the previous action into a notification; a
+// change refused because its chain changed is an error, which stays.
 func notices(translate gui.Translator, values url.Values) []gui.Notice {
-	if done := values.Get(doneParam); slices.Contains(doneKinds, done) {
+	if done := values.Get(doneParam); done == doneTaskStale {
+		return []gui.Notice{{
+			Kind: "ko", Title: translate(toastKeyPrefix + done), Text: translate(toastKeyPrefix + done + "_text"),
+		}}
+	} else if slices.Contains(doneKinds, done) {
 		return []gui.Notice{{Kind: "ok", Title: translate(toastKeyPrefix+done, "name", values.Get(nameParam))}}
 	}
 

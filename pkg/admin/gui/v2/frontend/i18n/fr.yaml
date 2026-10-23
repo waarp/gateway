@@ -2008,6 +2008,8 @@ rules:
     task_updated: "Tâche enregistrée : {name}"
     task_deleted: "Tâche supprimée : {name}"
     task_moved: "Tâche déplacée : {name}"
+    task_stale: "Rien n'a été enregistré"
+    task_stale_text: "La chaîne a changé depuis l'affichage de la page : voici son état actuel."
   empty:
     title: Aucune règle de transfert pour l'instant
     text: "Une règle dit dans quel sens un fichier s'échange, entre quels dossiers, avec quels traitements et pour qui."

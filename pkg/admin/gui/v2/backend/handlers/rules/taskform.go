@@ -2,6 +2,7 @@ package rules
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"slices"
@@ -209,9 +210,10 @@ func pairsText(args map[string]string) string {
 }
 
 // readArgs takes the posted arguments of a task: the values given (a ticked
-// box as "true"; a box left empty and an empty field are left out), checked
-// as far as the form can (required, numbers, JSON, key=value lines); the
-// arguments of the stored task the description does not know are kept.
+// box as "true"; a box left empty and an empty field are left out, but a box
+// the stored task has stays, as "false"), checked as far as the form can
+// (required, numbers, JSON, key=value lines); the arguments of the stored
+// task the description does not know are kept.
 func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored map[string]string,
 	form []fieldView,
 ) (map[string]string, bool) {
@@ -225,6 +227,10 @@ func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored 
 
 		if msg := checkArg(translate, arg, raw, args); msg != "" {
 			form[i].Error, valid = msg, false
+		}
+
+		if _, had := stored[arg.Name]; had && arg.Kind == argBool && raw != trueValue {
+			args[arg.Name] = falseValue
 		}
 	}
 
@@ -396,7 +402,7 @@ func (h *Handlers) taskForm(w http.ResponseWriter, r *http.Request, edit, post b
 	case edit:
 		form.Type, stored = list[place.rank].Type, list[place.rank].Args
 		form.Title = translate("rules.tasks.edit_title", "n", place.rank+1, "chain", chain)
-		form.Action = withRet(taskURL(item.rule.ID, place.slug, place.rank, "/edit"), carried)
+		form.Action = withRet(withVersion(taskURL(item.rule.ID, place.slug, place.rank, "/edit"), versionOf(list)), carried)
 	case post:
 		form.Type = r.PostFormValue(fieldType)
 	default:
@@ -468,9 +474,10 @@ func (h *Handlers) chooseType(w http.ResponseWriter, r *http.Request, form *task
 }
 
 // saveTask reads the posted arguments and rewrites the chain with the task
-// added at its end or replaced at its rank; it answers whether the page was
-// answered (a redirection to the tab, or an internal error). A refusal of
-// the product goes under the field it names, or in the banner.
+// added at its end or replaced at its rank (the chain shown by the page, or
+// the tab says it changed); it answers whether the page was answered (a
+// redirection to the tab, or an internal error). A refusal of the product
+// goes under the field it names, or in the banner.
 func (h *Handlers) saveTask(w http.ResponseWriter, r *http.Request, form *taskFormData, spec *taskSpec,
 	stored map[string]string, place *taskPlace, list []*model.Task, edit bool,
 ) bool {
@@ -482,18 +489,25 @@ func (h *Handlers) saveTask(w http.ResponseWriter, r *http.Request, form *taskFo
 	}
 
 	task := &model.Task{Type: spec.Type, Args: args}
-	next := slices.Clone(list)
-	done := doneTaskAdded
+	version, done := "", doneTaskAdded
+	change := func(current []*model.Task) []*model.Task { return append(current, task) }
 
 	if edit {
-		next[place.rank], done = task, doneTaskUpdated
-	} else {
-		next = append(next, task)
+		version, done = versionOf(list), doneTaskUpdated
+		change = func(current []*model.Task) []*model.Task {
+			current[place.rank] = task
+
+			return current
+		}
 	}
 
-	err := h.writeChain(place.ruleID, place.chain(), next)
+	err := h.modifyChain(place.ruleID, place.chain(), version, change)
 
 	switch {
+	case errors.Is(err, errChainChanged):
+		h.stale(w, r, place.ruleID)
+
+		return true
 	case err == nil:
 		liststate.RedirectTo(w, r, withRet(tasksTabURL(place.ruleID), ret(r)),
 			url.Values{doneParam: {done}, nameParam: {form.TypeLabel}})

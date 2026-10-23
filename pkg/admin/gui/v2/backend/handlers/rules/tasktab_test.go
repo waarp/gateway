@@ -3,6 +3,7 @@ package rules
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -73,6 +74,14 @@ func indexes(t *testing.T, body string, markers ...string) {
 	}
 }
 
+// at is the address of a change to a task, with the version of its chain
+// as the tab shows it now.
+func (s *suite) at(t *testing.T, rule *model.Rule, chain model.Chain, slug string, rank int, suffix string) string {
+	t.Helper()
+
+	return withVersion(path(rule, "/tasks/"+slug+"/"+strconv.Itoa(rank)+suffix), versionOf(s.chain(t, rule, chain)))
+}
+
 func typesOf(list []*model.Task) []string {
 	out := make([]string, 0, len(list))
 	for _, task := range list {
@@ -115,8 +124,9 @@ func TestTasksTab(t *testing.T) {
 		assert.Contains(t, body, `<span class="visually-hidden"> après le transfert</span>`, "which says its chain")
 		assert.Contains(t, body, path(s.orders, "/tasks/post/new"))
 		assert.Contains(t, body, path(s.orders, "/tasks/post/1/edit"))
-		assert.Contains(t, body, `action="`+path(s.orders, "/tasks/post/1/up")+`"`)
-		assert.Contains(t, body, `action="`+path(s.orders, "/tasks/post/1/down")+`"`)
+		version := versionOf(s.chain(t, s.orders, model.ChainPost))
+		assert.Contains(t, body, `action="`+path(s.orders, "/tasks/post/1/up")+`?v=`+version+`"`, "with the chain shown")
+		assert.Contains(t, body, `action="`+path(s.orders, "/tasks/post/1/down")+`?v=`+version+`"`)
 		assert.NotContains(t, body, path(s.orders, "/tasks/post/0/up"), "the first one does not move up")
 		assert.NotContains(t, body, path(s.orders, "/tasks/post/2/down"), "the last one does not move down")
 		assert.Contains(t, body, path(s.orders, "/tasks/post/2/delete"), "the write right removes a task, as in the REST API")
@@ -378,7 +388,7 @@ func TestTaskEdit(t *testing.T) {
 		body := s.get(t, permWrite, path(rule, "/tasks/pre/0/edit")).Body.String()
 		assert.Contains(t, body, "Paramètres conservés tels quels, que cet écran ne connaît pas : ancien.")
 
-		rec := s.post(t, permWrite, path(rule, "/tasks/pre/0/edit"), url.Values{"type": {"MOVE"}, "arg_path": {"/b"}})
+		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPre, "pre", 0, "/edit"), url.Values{"type": {"MOVE"}, "arg_path": {"/b"}})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		assert.Contains(t, rec.Header().Get("Location"), "done=task_updated")
 
@@ -396,7 +406,8 @@ func TestTaskEdit(t *testing.T) {
 			RuleID: rule.ID, Chain: model.ChainPost, Type: tasks.SetInfo, Args: map[string]string{"lot": "A"},
 		}).Run())
 
-		rec := s.post(t, permWrite, path(rule, "/tasks/post/0/edit"), url.Values{"arg_pairs": {"lot = B\r\n\r\nvide=\n"}})
+		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"),
+			url.Values{"arg_pairs": {"lot = B\r\n\r\nvide=\n"}})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		assert.Equal(t, map[string]string{"lot": "B", "vide": ""}, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args),
 			"the lines replace the keys; an empty value stays (it removes the key when the task runs)")
@@ -423,7 +434,7 @@ func TestTaskDelete(t *testing.T) {
 	assert.Contains(t, body, "les tâches suivantes remontent d&#39;un rang")
 	assert.Contains(t, body, "/archives")
 
-	rec = s.post(t, permWrite, path(s.orders, "/tasks/post/0/delete"), url.Values{})
+	rec = s.post(t, permWrite, s.at(t, s.orders, model.ChainPost, "post", 0, "/delete"), url.Values{})
 	require.Equal(t, http.StatusSeeOther, rec.Code)
 	assert.Contains(t, rec.Header().Get("Location"), "done=task_deleted")
 	assert.Equal(t, []string{tasks.Email, tasks.Move}, typesOf(s.chain(t, s.orders, model.ChainPost)),
@@ -437,19 +448,20 @@ func TestTaskMove(t *testing.T) {
 	s.fixtures(t)
 	s.taskFixtures(t)
 
-	rec := s.post(t, permWrite, path(s.orders, "/tasks/post/2/up"), url.Values{})
+	rec := s.post(t, permWrite, s.at(t, s.orders, model.ChainPost, "post", 2, "/up"), url.Values{})
 	require.Equal(t, http.StatusSeeOther, rec.Code)
 	assert.Contains(t, rec.Header().Get("Location"), "done=task_moved")
 	assert.Equal(t, []string{tasks.Copy, tasks.Move, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)))
 
-	rec = s.post(t, permWrite, path(s.orders, "/tasks/post/0/down"), url.Values{})
+	rec = s.post(t, permWrite, s.at(t, s.orders, model.ChainPost, "post", 0, "/down"), url.Values{})
 	require.Equal(t, http.StatusSeeOther, rec.Code)
 	assert.Equal(t, []string{tasks.Move, tasks.Copy, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)))
 
-	rec = s.post(t, permWrite, path(s.orders, "/tasks/post/0/up"), url.Values{})
+	rec = s.post(t, permWrite, s.at(t, s.orders, model.ChainPost, "post", 0, "/up"), url.Values{})
 	require.Equal(t, http.StatusSeeOther, rec.Code)
 	assert.NotContains(t, rec.Header().Get("Location"), "done=", "the first one stays where it is")
 	assert.Equal(t, []string{tasks.Move, tasks.Copy, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)))
 
-	assert.Equal(t, http.StatusNotFound, s.post(t, permWrite, path(s.orders, "/tasks/post/3/up"), url.Values{}).Code)
+	assert.Equal(t, http.StatusNotFound, s.post(t, permWrite, s.at(t, s.orders, model.ChainPost, "post", 3, "/up"), url.Values{}).Code,
+		"a rank the chain shown does not have")
 }

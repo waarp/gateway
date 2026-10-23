@@ -1,6 +1,10 @@
 package rules
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -20,7 +24,10 @@ import (
 // on error), each task with its type and its arguments in words, and the
 // pages that add, edit, delete and move a task. Each change rewrites the
 // chain in one transaction, as the REST API does: the product checks every
-// task, and its refusal comes back on the form. The tasks are part of the
+// task, and its refusal comes back on the form. A change to a task carries
+// the state of its chain as the page showed it, and is refused when the
+// chain changed since: it never applies to another task than the one shown.
+// The tasks are part of the
 // rule: the write right on the rules adds, edits, moves and removes them, as
 // in the REST API. A task that names an object the gateway no longer has (a
 // key, an SMTP credential, a template deleted since) says so in its chain,
@@ -37,12 +44,18 @@ const (
 	doneTaskUpdated = "task_updated"
 	doneTaskDeleted = "task_deleted"
 	doneTaskMoved   = "task_moved"
+	doneTaskStale   = "task_stale"
+
+	// The state of a chain as a page showed it, in the address of a change.
+	versionParam  = "v"
+	versionDigits = 16
 
 	taskTypesPrefix = "task_types."
 	chainKeyPrefix  = "rules.tasks.chain."
 	chainLowerKey   = "rules.tasks.chain_lower."
 
 	trueValue      = "true"
+	falseValue     = "false"
 	pairsSeparator = "="
 	jsonLines      = 3
 	pairsLines     = 5
@@ -129,17 +142,65 @@ func (h *Handlers) chainTasks(ruleID int64) (map[model.Chain][]*model.Task, erro
 	return out, nil
 }
 
-// writeChain rewrites a chain of a rule in one transaction, as the REST API
-// does: the chain is emptied, then its tasks are inserted again by rank; the
-// product checks every task (a validation error comes back to the form).
-func (h *Handlers) writeChain(ruleID int64, chain model.Chain, list []*model.Task) error {
-	//nolint:wrapcheck // the caller tells a validation error from the others
+// errChainChanged: the chain changed since the page that sent the change
+// showed it.
+var errChainChanged = errors.New("the chain changed since the page showed it")
+
+// versionOf is the state of a chain: a digest of its tasks in order, their
+// types and their arguments by name, each string after its length (no string
+// can end inside another one).
+func versionOf(list []*model.Task) string {
+	digest := sha256.New()
+	write := func(text string) { digest.Write([]byte(strconv.Itoa(len(text)) + ":" + text)) }
+
+	for _, task := range list {
+		write(task.Type)
+		write(strconv.Itoa(len(task.Args)))
+
+		for _, name := range slices.Sorted(maps.Keys(task.Args)) {
+			write(name)
+			write(task.Args[name])
+		}
+	}
+
+	return hex.EncodeToString(digest.Sum(nil))[:versionDigits]
+}
+
+func withVersion(u, version string) string {
+	return liststate.WithQuery(u, url.Values{versionParam: {version}})
+}
+
+// modifyChain changes a chain of a rule in one transaction, as the REST API
+// does: the rule is locked, its chain read again, then emptied and its tasks
+// inserted again by rank, as change makes them; the product checks every
+// task (a validation error comes back to the form). With a version, the
+// chain must be the one a page showed (errChainChanged otherwise).
+func (h *Handlers) modifyChain(ruleID int64, chain model.Chain, version string,
+	change func([]*model.Task) []*model.Task,
+) error {
+	//nolint:wrapcheck // the caller tells a validation error and a changed chain from the others
 	return h.db.Transaction(func(ses *database.Session) error {
+		var rules model.Rules
+		if err := ses.SelectForUpdate(&rules).Where("id=?", ruleID).Run(); err != nil {
+			return err
+		}
+
+		var current model.Tasks
+		if err := ses.SelectForUpdate(&current).Where("rule_id=? AND chain=?", ruleID, chain).Run(); err != nil {
+			return err
+		}
+
+		slices.SortFunc(current, func(a, b *model.Task) int { return int(a.Rank) - int(b.Rank) })
+
+		if version != "" && versionOf(current) != version {
+			return errChainChanged
+		}
+
 		if err := ses.DeleteAll(&model.Task{}).Where("rule_id=? AND chain=?", ruleID, chain).Run(); err != nil {
 			return err
 		}
 
-		for i, task := range list {
+		for i, task := range change(current) {
 			row := &model.Task{
 				RuleID: ruleID, Chain: chain, Rank: int8(i), Type: task.Type, Args: task.Args, //nolint:gosec // a rank
 			}
@@ -351,7 +412,7 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if user.Write {
-				row.Actions = taskActions(translate, place, row.Unknown, carried)
+				row.Actions = taskActions(translate, place, row.Unknown, versionOf(list), carried)
 			}
 
 			view.Rows = append(view.Rows, row)
@@ -394,39 +455,44 @@ func taskCount(translate gui.Translator, n int) string {
 
 // taskActions: the menu of a task: edit (a known type), move up, move down
 // (the kit has no upward chevron: the stylesheet turns the downward one),
-// delete.
-func taskActions(translate gui.Translator, place *taskPlace, unknown bool, carried string) []gui.Action {
+// delete; each one carries the version of the chain shown.
+func taskActions(translate gui.Translator, place *taskPlace, unknown bool, version, carried string,
+) []gui.Action {
 	var acts []gui.Action
 
+	at := func(suffix string) string {
+		return withRet(withVersion(taskURL(place.ruleID, place.slug, place.rank, suffix), version), carried)
+	}
+
 	if !unknown {
-		acts = append(acts, gui.Action{
-			Icon: "pen", Label: translate("rules.tasks.action.edit"),
-			URL: withRet(taskURL(place.ruleID, place.slug, place.rank, "/edit"), carried),
-		})
+		acts = append(acts, gui.Action{Icon: "pen", Label: translate("rules.tasks.action.edit"), URL: at("/edit")})
 	}
 
 	if place.rank > 0 {
-		acts = append(acts, gui.Action{
-			Icon: "chevron-down", Label: translate("rules.tasks.action.up"),
-			Action: withRet(taskURL(place.ruleID, place.slug, place.rank, "/up"), carried),
-		})
+		acts = append(acts, gui.Action{Icon: "chevron-down", Label: translate("rules.tasks.action.up"), Action: at("/up")})
 	}
 
 	if place.rank < place.count-1 {
 		acts = append(acts, gui.Action{
-			Icon: "chevron-down", Label: translate("rules.tasks.action.down"),
-			Action: withRet(taskURL(place.ruleID, place.slug, place.rank, "/down"), carried),
+			Icon: "chevron-down", Label: translate("rules.tasks.action.down"), Action: at("/down"),
 		})
 	}
 
 	return append(acts, gui.Action{
-		Icon: "trash", Label: translate("rules.tasks.action.delete"),
-		URL: withRet(taskURL(place.ruleID, place.slug, place.rank, "/delete"), carried), Danger: true,
+		Icon: "trash", Label: translate("rules.tasks.action.delete"), URL: at("/delete"), Danger: true,
 	})
 }
 
+// stale answers a change from a page that no longer shows its chain: the
+// tab, with its current state and the notice that nothing was saved.
+func (h *Handlers) stale(w http.ResponseWriter, r *http.Request, ruleID int64) {
+	liststate.RedirectTo(w, r, withRet(tasksTabURL(ruleID), ret(r)), url.Values{doneParam: {doneTaskStale}})
+}
+
 // taskRoute reads the {chain} and, withRank, the {rank} of the route; a chain
-// or a rank the rule does not have renders the "not found" page.
+// or a rank the rule does not have renders the "not found" page. A version
+// in the address must be the one of the chain (the tab otherwise, with its
+// notice); a change to a task (a POST with a rank) must carry one.
 func (h *Handlers) taskRoute(w http.ResponseWriter, r *http.Request, item *entry, withRank bool,
 ) (*taskPlace, []*model.Task, bool) {
 	vars := mux.Vars(r)
@@ -442,6 +508,13 @@ func (h *Handlers) taskRoute(w http.ResponseWriter, r *http.Request, item *entry
 
 		list := chains[chain]
 		rank, rankErr := strconv.Atoi(vars["rank"])
+		version := r.URL.Query().Get(versionParam)
+
+		if (version != "" || withRank && r.Method == http.MethodPost) && version != versionOf(list) {
+			h.stale(w, r, item.rule.ID)
+
+			return nil, nil, false
+		}
 
 		if !withRank || rankErr == nil && rank >= 0 && rank < len(list) {
 			return &taskPlace{ruleID: item.rule.ID, slug: slug, rank: rank, count: len(list)}, list, true
@@ -497,8 +570,16 @@ func (h *Handlers) taskDelete(w http.ResponseWriter, r *http.Request, post bool)
 	label := typeLabel(translate, task.Type)
 
 	if post {
-		next := slices.Delete(slices.Clone(list), place.rank, place.rank+1)
-		if err := h.writeChain(place.ruleID, place.chain(), next); err != nil {
+		err := h.modifyChain(place.ruleID, place.chain(), versionOf(list), func(current []*model.Task) []*model.Task {
+			return slices.Delete(current, place.rank, place.rank+1)
+		})
+
+		switch {
+		case errors.Is(err, errChainChanged):
+			h.stale(w, r, place.ruleID)
+
+			return
+		case err != nil:
 			h.internal(w, "delete a task of the transfer rule", err)
 
 			return
@@ -517,7 +598,7 @@ func (h *Handlers) taskDelete(w http.ResponseWriter, r *http.Request, post bool)
 		Code:      task.Type,
 		Args:      argsOf(translate, task, nil),
 		CancelURL: withRet(tasksTabURL(place.ruleID), carried),
-		Action:    withRet(taskURL(place.ruleID, place.slug, place.rank, "/delete"), carried),
+		Action:    withRet(withVersion(taskURL(place.ruleID, place.slug, place.rank, "/delete"), versionOf(list)), carried),
 	}))
 }
 
@@ -543,10 +624,18 @@ func (h *Handlers) taskMove(w http.ResponseWriter, r *http.Request, step int) {
 	result := url.Values{}
 
 	if target := place.rank + step; target >= 0 && target < len(list) {
-		next := slices.Clone(list)
-		next[place.rank], next[target] = next[target], next[place.rank]
+		err := h.modifyChain(place.ruleID, place.chain(), versionOf(list), func(current []*model.Task) []*model.Task {
+			current[place.rank], current[target] = current[target], current[place.rank]
 
-		if err := h.writeChain(place.ruleID, place.chain(), next); err != nil {
+			return current
+		})
+
+		switch {
+		case errors.Is(err, errChainChanged):
+			h.stale(w, r, place.ruleID)
+
+			return
+		case err != nil:
 			h.internal(w, "move a task of the transfer rule", err)
 
 			return

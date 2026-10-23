@@ -11,8 +11,11 @@ Historique des versions
   est signalé ; les pages d'ajout (le type par famille, puis ses paramètres,
   pour les 28 types de tâches), de modification et de suppression d'une tâche,
   et les actions *Monter* et *Descendre* à la place du glisser-déposer. Chaque
-  changement réécrit la chaîne en une transaction, comme l'API REST ; les cases
-  à cocher et les tâches de chiffrement s'enregistrent telles que saisies, la
+  changement réécrit la chaîne en une transaction, comme l'API REST, et une
+  modification, un déplacement ou une suppression lancés depuis une page qui ne
+  montre plus l'état de la chaîne sont refusés, sans rien enregistrer ; les cases
+  à cocher (une case enregistrée à ``false`` le reste) et les tâches de
+  chiffrement s'enregistrent telles que saisies, la
   tâche ``SENDMESSAGE`` demande son partenaire, son compte et son client, que
   la Gateway exige, et les paramètres que l'écran ne connaît pas sont
   conservés. Les liens « Utilisée par » des clés, des identifiants SMTP et des

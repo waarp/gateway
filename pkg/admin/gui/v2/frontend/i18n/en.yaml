@@ -2009,6 +2009,8 @@ rules:
     task_updated: "Task saved: {name}"
     task_deleted: "Task deleted: {name}"
     task_moved: "Task moved: {name}"
+    task_stale: "Nothing was saved"
+    task_stale_text: "The chain changed since the page showed it: here is its current state."
   empty:
     title: No transfer rule yet
     text: "A rule says in which direction a file is exchanged, between which directories, with which processing and for whom."

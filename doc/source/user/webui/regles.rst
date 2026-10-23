@@ -194,8 +194,9 @@ chaîne. Un paramètre se saisit selon sa nature :
      - Un chemin, une adresse, une liste de fichiers ; les
        :ref:`substitutions <reference-tasks-substitutions>` y sont admises.
    * - Case à cocher
-     - Cochée, le paramètre vaut ``true`` ; décochée, il est omis et la tâche
-       prend sa valeur par défaut.
+     - Cochée, le paramètre vaut ``true`` ; décochée, il vaut ``false`` si la
+       tâche l'avait déjà, sinon il est omis et la tâche prend sa valeur par
+       défaut.
    * - Nombre
      - Un entier, borné quand la tâche le borne (niveau de compression de 0 à
        9), ou un délai en millisecondes.
@@ -226,6 +227,13 @@ REST, par exemple) sont conservés tels quels, et la page le dit.
 voisine. La page de suppression rappelle la tâche et ses paramètres ; les
 tâches suivantes remontent d'un rang. Chaque ajout, modification, déplacement
 ou suppression réécrit la chaîne en une seule transaction, comme l'API REST.
+
+**Chaîne modifiée entre-temps.** Une modification, un déplacement ou une
+suppression portent l'état de la chaîne telle que la page l'affichait. Si elle a
+changé depuis (un autre exploitant, un autre onglet du navigateur), rien n'est
+enregistré : l'onglet revient avec l'état actuel de la chaîne et le dit. Un
+ajout se fait toujours à la fin de la chaîne telle qu'elle est au moment de
+l'enregistrement.
 
 
 Onglet Accès
