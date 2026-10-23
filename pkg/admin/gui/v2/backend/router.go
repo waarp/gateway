@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/users"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/listing"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -41,6 +42,40 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeServersRouter(router, db, logger)
 	MakeClientsRouter(router, db, logger)
 	MakePartnersRouter(router, db, logger)
+	MakeUsersRouter(router, db, logger)
+}
+
+// userRoutes registers the routes of the users screen behind the rights on
+// the users: the pages in reading, the forms behind the write right, the
+// deletion behind the delete right. Every action is a POST.
+type userRoutes struct{ router *mux.Router }
+
+func (u userRoutes) read(path string, handler http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermUsersRead, handler))
+}
+
+func (u userRoutes) write(path string, form, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermUsersWrite, form))
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermUsersWrite, action))
+}
+
+func (u userRoutes) del(path string, form, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermUsersDelete, form))
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermUsersDelete, action))
+}
+
+// MakeUsersRouter registers the "Users" screen: the list and the sheet in
+// reading, the creation, the edition, the deletion.
+func MakeUsersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := users.New(db, logger)
+	routes := userRoutes{router}
+	const userPath = "/users/{id:[0-9]+}"
+
+	routes.read("/users", handlers.List)
+	routes.write("/users/new", handlers.NewForm, handlers.Create)
+	routes.read(userPath, handlers.Detail)
+	routes.write(userPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(userPath+"/delete", handlers.DeleteForm, handlers.Delete)
 }
 
 // MakeHomeRouter registers the home page, the "About" page and the "My

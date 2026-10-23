@@ -7,11 +7,11 @@ package me
 import (
 	"net/http"
 	"net/url"
-	"strings"
 
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rights"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -28,20 +28,11 @@ const (
 
 	doneParam    = "done"
 	donePassword = "password"
-
-	// The right letters of model.Permissions ("rwd").
-	readRight   = 'r'
-	writeRight  = 'w'
-	deleteRight = 'd'
+	// The user just saved their own account from the "Users" screen and no
+	// longer reads the users: their sheet would be refused, this page takes
+	// over.
+	doneAccount = "account"
 )
-
-// right is a domain of the gateway with what the user may do in it.
-type right struct {
-	Label  string
-	Read   bool
-	Write  bool
-	Delete bool
-}
 
 // passwordForm is the form that changes the password: no value is ever
 // rendered back, only the errors.
@@ -57,7 +48,7 @@ type passwordForm struct {
 type pageData struct {
 	Username string
 	Instance string
-	Rights   []right
+	Rights   []rights.Row // the rights of the user by domain, in reading
 	Form     passwordForm
 }
 
@@ -72,34 +63,11 @@ func New(db *database.DB, logger *log.Logger) *Handlers {
 	return &Handlers{db: db, logger: logger, shell: common.NewShell()}
 }
 
-// rights reads the rights of the user, domain by domain, in the order of the
-// product's permission mask.
-func rights(translate gui.Translator, perms model.PermsMask) []right {
-	p := model.MaskToPerms(perms)
-	of := func(key, letters string) right {
-		return right{
-			Label:  translate(key),
-			Read:   strings.ContainsRune(letters, readRight),
-			Write:  strings.ContainsRune(letters, writeRight),
-			Delete: strings.ContainsRune(letters, deleteRight),
-		}
-	}
-
-	return []right{
-		of("me.right.transfers", p.Transfers),
-		of("me.right.servers", p.Servers),
-		of("me.right.partners", p.Partners),
-		of("me.right.rules", p.Rules),
-		of("me.right.users", p.Users),
-		of("me.right.admin", p.Administration),
-	}
-}
-
 func (h *Handlers) data(translate gui.Translator, user *model.User) pageData {
 	return pageData{
 		Username: user.Username,
 		Instance: user.Owner,
-		Rights:   rights(translate, user.Permissions),
+		Rights:   rights.Rows(translate, user.Permissions),
 		Form:     passwordForm{Action: common.WebuiURL(passwordPath), CancelURL: common.WebuiURL(pagePath)},
 	}
 }
@@ -113,8 +81,9 @@ func (h *Handlers) render(w http.ResponseWriter, r *http.Request, data *pageData
 			{Label: translate("home.title"), URL: common.WebuiURL("/home")},
 			{Label: translate("me.title")},
 		},
-		Status:  status,
-		Notices: notices,
+		Status:      status,
+		Notices:     notices,
+		Stylesheets: []string{rights.Stylesheet},
 	}, page(data))
 }
 
@@ -122,6 +91,10 @@ func (h *Handlers) render(w http.ResponseWriter, r *http.Request, data *pageData
 func notices(translate gui.Translator, v url.Values) []gui.Notice {
 	if v.Get(doneParam) == donePassword {
 		return []gui.Notice{{Kind: "ok", Title: translate("me.toast.password")}}
+	}
+
+	if v.Get(doneParam) == doneAccount {
+		return []gui.Notice{{Kind: "ok", Title: translate("me.toast.account")}}
 	}
 
 	return nil

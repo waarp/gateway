@@ -61,7 +61,7 @@ func e2eScreens() []e2eScreen {
 	return []e2eScreen{
 		{path: "/webui/home", outside: true},
 		{path: "/webui/about", outside: true},
-		{path: "/webui/account", tables: 1, outside: true},
+		{path: "/webui/account", outside: true},
 		{path: "/webui/services", tables: 3, tabs: 3, fragment: "fragment=state"},
 		{path: "/webui/servers", tables: 1},
 		{path: "/webui/servers/1"},
@@ -123,6 +123,16 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/partners/1/accounts/1/auth/6/edit"},
 		{path: "/webui/partners/1/accounts/1/auth/6/delete"},
 		{path: "/webui/partners/1/accounts/1/auth/new"},
+		// The users (#718): the list, the sheet of the smoke user (user 2: the
+		// cards of their rights), the pages that add, edit and delete the
+		// viewer (user 3), the refused deletion of the smoke user's own
+		// account.
+		{path: "/webui/users", tables: 1},
+		{path: "/webui/users/2"},
+		{path: "/webui/users/new"},
+		{path: "/webui/users/3/edit"},
+		{path: "/webui/users/3/delete"},
+		{path: "/webui/users/2/delete"},
 	}
 }
 
@@ -313,11 +323,22 @@ func startE2EServer(t *testing.T) string {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(e2ePassword), bcrypt.MinCost)
 	require.NoError(t, err)
-	require.NoError(t, db.Insert(&model.User{
-		Username: e2eUsername, PasswordHash: string(hash),
-		Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete |
-			model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete,
-	}).Run())
+
+	// After the default administrator of a fresh database (user 1): the
+	// smoke user (user 2) and a viewer (user 3) the users screens show, edit
+	// and delete; the screens are visited by identifier.
+	for i, user := range []*model.User{
+		{
+			Username: e2eUsername, PasswordHash: string(hash),
+			Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete |
+				model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete |
+				model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete,
+		},
+		{Username: "viewer", PasswordHash: string(hash), Permissions: model.PermServersRead | model.PermPartnersRead},
+	} {
+		require.NoError(t, db.Insert(user).Run())
+		require.EqualValues(t, i+2, user.ID, "the screens are visited by identifier")
+	}
 
 	servers := []*model.LocalAgent{
 		{Name: "srv-sftp-01", Protocol: "sftp", Address: types.Addr("127.0.0.1", 10022)},
@@ -547,9 +568,22 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	// row opens and closes from the keyboard.
 	if s.count(t, `form[data-autosubmit] details.w-disclose`) > 0 {
 		require.NoError(t, s.page.Locator(`form[data-autosubmit] details.w-disclose > summary`).Click())
-		require.NoError(t, s.page.Locator(`form[data-autosubmit] input[name="protocol"]`).First().Check())
-		require.NoError(t, s.tracker.settle())
-		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] input[name="protocol"]:checked`), "the filter is kept after the reload")
+
+		// A filter is a checkbox (the protocol families) or a select (the
+		// domain of the rights of a user): the first one is changed.
+		if s.count(t, `form[data-autosubmit] input[name="protocol"]`) > 0 {
+			require.NoError(t, s.page.Locator(`form[data-autosubmit] input[name="protocol"]`).First().Check())
+			require.NoError(t, s.tracker.settle())
+			assert.Equal(t, 1, s.count(t, `form[data-autosubmit] input[name="protocol"]:checked`), "the filter is kept after the reload")
+		} else {
+			_, err := s.page.Locator(`form[data-autosubmit] .w-disclose__panel select`).First().
+				SelectOption(playwright.SelectOptionValues{Indexes: playwright.IntSlice(1)})
+			require.NoError(t, err)
+			require.NoError(t, s.tracker.settle())
+			assert.Equal(t, 1, s.count(t, `form[data-autosubmit] .w-disclose__panel select option:nth-child(2):checked`),
+				"the filter is kept after the reload")
+		}
+
 		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] details.w-disclose[open]`), "the filters stay open while one is active")
 	}
 

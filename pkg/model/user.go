@@ -29,7 +29,7 @@ func (*User) Appellation() string { return "user" }
 // role is to check that at least one admin user remains.
 func (u *User) BeforeDelete(db database.Access) error {
 	if u.Permissions&PermUsersWrite != 0 {
-		if n, err := countAdmins(db); err != nil {
+		if n, err := CountAdmins(db); err != nil {
 			return err
 		} else if n <= 1 {
 			return database.NewValidationError("cannot delete the last gateway admin")
@@ -62,7 +62,7 @@ func (u *User) BeforeWrite(db database.Access) error {
 
 // Init inserts the default user in the database when the table is created.
 func userInit(db database.Access) error {
-	if n, err := countAdmins(db); err != nil {
+	if n, err := CountAdmins(db); err != nil {
 		return err
 	} else if n != 0 {
 		return nil // there is already an admin
@@ -86,7 +86,10 @@ func userInit(db database.Access) error {
 	return nil
 }
 
-func countAdmins(db database.ReadAccess) (uint64, error) {
+// CountAdmins counts the administrators: the users holding the write right on
+// the users, the only ones who may manage the users. The last one cannot be
+// deleted; the web interface says so before the action.
+func CountAdmins(db database.ReadAccess) (uint64, error) {
 	n, err := db.Count(&User{}).Where("permissions&? <> 0", PermUsersWrite).Run()
 	if err != nil {
 		return 0, fmt.Errorf("failed to count the number of admins: %w", err)
