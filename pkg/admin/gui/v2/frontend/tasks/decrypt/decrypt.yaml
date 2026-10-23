@@ -8,11 +8,15 @@ outputFile:
 
 outputFileTooltip:
   en: >
-    The output file for the decrypted data. By default, it will be
-    the same path as the encrypted file, with the ".plain" extension added.
+    The output file for the decrypted data. By default, it will be the same path
+    as the encrypted file, with the ".plain" extension added. As a special case,
+    if the encrypted file ends with the ".crypt" extension, the output file will
+    instead just remove that extension instead of adding ".plain".
   fr: >
     Le fichier de destination pour les données déchiffrées. Par défaut, ce sera
     le même chemin que le fichier chiffré, avec l'extension ".plain" ajoutée.
+    Cas particulier, si le fichier chiffré se termine par l'extension ".crypt",
+    le fichier de sortie enlèvera cette extension au lieu d'ajouter ".plain".
 
 keepOriginal:
   en: Keep original file
