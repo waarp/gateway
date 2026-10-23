@@ -1,8 +1,8 @@
 // Local clients screen: how long the automatic retries take, recomputed at each keystroke (decision of 2026-10-20).
-// The sentence, the timeline (SVG) and the table under the retry fields follow the three fields: attempts, delay
+// The sentence, the timeline (SVG) and the list of the attempts under the retry fields follow the three fields: attempts, delay
 // (hours, minutes, seconds) and growth factor. The computation mirrors model.RetryWaits (the pipeline's): the first
 // delay, then each wait multiplied by the factor, truncated to the second, capped; an empty delay is one second.
-// Without JavaScript, the sentence and the table rendered by the server stay. Texts come from the catalogue
+// Without JavaScript, the sentence and the list rendered by the server stay. Texts come from the catalogue
 // (data-retry, placeholders filled here).
 (() => {
   "use strict";
@@ -110,21 +110,17 @@
     });
   };
 
-  const table = (s) => {
+  // The attempts, one item each of the numbered list: the wait before it and its moment since the first failure.
+  const list = (s) => {
     detail.hidden = !s.n;
     rows.replaceChildren(...s.waits.map((w, k) => {
-      const tr = document.createElement("tr");
-      [String(k + 1), span(w), moment(s.at[k])].forEach((v, i) => {
-        const td = document.createElement("td");
-        if (!i) td.className = "w-num";
-        td.textContent = v;
-        tr.append(td);
-      });
-      return tr;
+      const li = document.createElement("li");
+      li.textContent = say("row", { wait: span(w), at: moment(s.at[k]) });
+      return li;
     }));
   };
 
-  const update = () => { const s = read(); text.textContent = sentence(s); draw(s); table(s); };
+  const update = () => { const s = read(); text.textContent = sentence(s); draw(s); list(s); };
   [attempts, factor, dh, dm, ds].forEach((i) => i.addEventListener("input", update));
   if ("ResizeObserver" in window) new ResizeObserver(() => draw(read())).observe(svg);
   update();

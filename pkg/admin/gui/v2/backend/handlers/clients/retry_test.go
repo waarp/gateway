@@ -49,9 +49,9 @@ func TestRetrySentence(t *testing.T) {
 
 	rows := retryTable(spanTranslator, 3, 30, 2)
 	assert.Equal(t, []retryRow{
-		{N: "1", Wait: "delay_seconds n=30", At: "+delay_seconds n=30"},
-		{N: "2", Wait: "delay_minutes n=1", At: "+delay_minutes n=1 delay_seconds n=30"},
-		{N: "3", Wait: "delay_minutes n=2", At: "+delay_minutes n=3 delay_seconds n=30"},
+		{Wait: "delay_seconds n=30", At: "+delay_seconds n=30"},
+		{Wait: "delay_minutes n=1", At: "+delay_minutes n=1 delay_seconds n=30"},
+		{Wait: "delay_minutes n=2", At: "+delay_minutes n=3 delay_seconds n=30"},
 	}, rows)
 	assert.Empty(t, retryTable(spanTranslator, 0, 30, 2))
 

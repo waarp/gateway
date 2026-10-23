@@ -81,9 +81,9 @@ type typeView struct {
 	Open    bool
 	Summary string
 	// Accepted lists the options the storage library accepts beyond the
-	// fields, under the "other options" zone; empty when the library is not
-	// known.
-	Accepted []acceptedView
+	// fields, as the choices of the list to type in under the "other options"
+	// zone; empty when the library is not known.
+	Accepted []gui.ComboGroup
 }
 
 type formData struct {
@@ -511,7 +511,7 @@ func (f *formData) prepare(translate gui.Translator) {
 
 		card.Open = card.Open || missing || set > 0
 		card.Summary = protoform.OptionsSummary(translate, set)
-		card.Accepted = acceptedOf(store)
+		card.Accepted = acceptedChoices(translate, acceptedOf(store))
 
 		if missing {
 			card.Summary = translate("clouds.form.options_required")
@@ -523,6 +523,38 @@ func (f *formData) prepare(translate gui.Translator) {
 	f.Cases = strings.Join(cases, " ")
 	f.AccessSummary = f.accessSummary(translate)
 	f.OtherOpen = f.Fields[fieldOther].Value != "" || f.Fields[fieldOther].Error != ""
+}
+
+// acceptedChoices are the options a storage accepts as the choices of the
+// list to type in that writes them in the "other options" zone (Driss,
+// 2026-10-23, as the TLS suites are suggested): the key, then what the
+// library applies without it, the values it proposes and its help
+// (English); nil when there is none.
+func acceptedChoices(translate gui.Translator, accepted []acceptedView) []gui.ComboGroup {
+	if len(accepted) == 0 {
+		return nil
+	}
+
+	choices := make([]gui.ComboChoice, 0, len(accepted))
+
+	for _, a := range accepted {
+		parts := make([]string, 0, 3) //nolint:mnd // the default, the values, the help
+		if a.Default != "" {
+			parts = append(parts, translate("clouds.form.accepted_default", "value", a.Default))
+		}
+
+		if a.Values != "" {
+			parts = append(parts, translate("clouds.form.accepted_values", "values", a.Values))
+		}
+
+		if a.Help != "" {
+			parts = append(parts, a.Help)
+		}
+
+		choices = append(choices, gui.ComboChoice{Value: a.Key, Label: a.Key, Text: strings.Join(parts, " · ")})
+	}
+
+	return []gui.ComboGroup{{Choices: choices}}
 }
 
 // acceptedOf lists the options the storage library accepts for a storage,
@@ -562,13 +594,22 @@ func (f *formData) accessSummary(translate gui.Translator) string {
 	return translate(authKeyPrefix + authOf(f.Fields[fieldKey].Value, secret, options))
 }
 
+// formScreen is a page of the form: the screen, with the list to type in of
+// the kit (the accepted options).
+func (h *Handlers) formScreen(translate gui.Translator, title, carried string, status int) common.Screen {
+	screen := h.screen(translate, title, carried, status)
+	screen.Head = gui.ComboboxAssets()
+
+	return screen
+}
+
 // NewForm serves GET /webui/clouds/new.
 func (h *Handlers) NewForm(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 	form := h.newForm(translate, nil, carried)
 	form.prepare(translate)
-	h.shell.Render(w, h.logger, r, h.screen(translate, form.Title, carried, 0), formView(form))
+	h.shell.Render(w, h.logger, r, h.formScreen(translate, form.Title, carried, 0), formView(form))
 }
 
 // Create serves POST /webui/clouds/new.
@@ -587,7 +628,7 @@ func (h *Handlers) EditForm(w http.ResponseWriter, r *http.Request) {
 	carried := ret(r)
 	form := h.newForm(translate, &e, carried)
 	form.prepare(translate)
-	h.shell.Render(w, h.logger, r, h.screen(translate, form.Title, carried, 0), formView(form))
+	h.shell.Render(w, h.logger, r, h.formScreen(translate, form.Title, carried, 0), formView(form))
 }
 
 // Update serves POST /webui/clouds/{id}/edit.
@@ -660,6 +701,6 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, e *entry) {
 	}
 
 	form.prepare(translate)
-	screen := h.screen(translate, form.Title, carried, http.StatusUnprocessableEntity)
+	screen := h.formScreen(translate, form.Title, carried, http.StatusUnprocessableEntity)
 	h.shell.Render(w, h.logger, r, screen, formView(form))
 }

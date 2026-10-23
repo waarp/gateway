@@ -420,26 +420,18 @@ templ detailView(d detailData) {
 			if len(d.Infos) == 0 {
 				<p class="w-muted tf-note">{ gui.T(ctx, "transfers.detail.infos_none") }</p>
 			} else {
-				<div class="w-table-wrap">
-					<table class="w-table tf-infos">
-						<caption class="visually-hidden">{ gui.T(ctx, "transfers.detail.infos") }</caption>
-						<thead><tr><th scope="col">{ gui.T(ctx, "transfers.detail.info_name") }</th><th scope="col">{ gui.T(ctx, "transfers.detail.info_value") }</th></tr></thead>
-						<tbody>
-							for _, i := range d.Infos {
-								<tr>
-									<td>
-										if i.Tech != "" {
-											{ i.Name }<span class="tf-sub w-mono">{ i.Tech }</span>
-										} else {
-											<span class="w-mono">{ i.Name }</span>
-										}
-									</td>
-									<td class="w-mono">{ i.Value }</td>
-								</tr>
+				<dl class="w-deflist tf-infos">
+					for _, i := range d.Infos {
+						<dt>
+							if i.Tech != "" {
+								{ i.Name }<span class="tf-sub"><code class="w-code">{ i.Tech }</code></span>
+							} else {
+								<code class="w-code">{ i.Name }</code>
 							}
-						</tbody>
-					</table>
-				</div>
+						</dt>
+						<dd><code class="w-code">{ i.Value }</code></dd>
+					}
+				</dl>
 			}
 		</div>
 	</div>

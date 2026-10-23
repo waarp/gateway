@@ -164,9 +164,9 @@ Historique des versions
   proposait que S3 : les options de chaque type sont des champs nommés, les
   obligatoires marquées et les valeurs par défaut dites, les identifiants
   peuvent venir des variables d'environnement, et une zone libre reçoit les
-  autres réglages de la bibliothèque de stockage, dont elle liste les options
-  acceptées et refuse les options inconnues, imposées par la Gateway ou
-  sensibles. La liste montre le type,
+  autres réglages de la bibliothèque de stockage, dont elle propose les
+  options acceptées à la saisie (l'option choisie s'inscrit dans la zone) et
+  refuse les options inconnues, imposées par la Gateway ou sensibles. La liste montre le type,
   l'emplacement et l'authentification de chaque instance ; la fiche dit le
   chemin à employer et les règles, serveurs et transferts qui nomment
   l'instance ; la page de suppression les liste. Le secret n'est plus jamais
@@ -191,7 +191,7 @@ Historique des versions
   réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
   dernière 15 min 30 s après le premier échec, avec des attentes de 30 s à
   8 min »), une frise qui place chaque tentative au prorata du temps écoulé,
-  et le détail des tentatives en tableau, recalculés à chaque saisie ; la
+  et le détail des tentatives en liste, recalculés à chaque saisie ; la
   fiche du client porte la même phrase. Le calcul est celui du moteur de
   transfert (délai multiplié par le facteur à chaque reprise, tronqué à la
   seconde), désormais partagé ; un délai vide signifie une attente d'une

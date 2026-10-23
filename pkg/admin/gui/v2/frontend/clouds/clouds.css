@@ -14,8 +14,6 @@
 .clouds-usage { margin: 0; padding-left: var(--sp-5); }
 .clouds-usage li { margin-top: var(--sp-1); }
 .clouds-type-hint { margin: 0 0 var(--sp-4); }
-/* The options the storage library accepts, under the "other options" zone: a bounded region that scrolls (it is
-   reachable from the keyboard), its header kept in view, the proposed values under the help. */
-.clouds-accepted { margin-top: var(--sp-4); max-height: 26rem; overflow-y: auto; }
-.clouds-accepted thead th { position: sticky; top: 0; z-index: 1; }
-.clouds-accepted__values { display: block; margin-top: var(--sp-1); font-size: var(--fs-sm); }
+/* The options the storage library accepts, under the "other options" zone: the list to type in of the kit, which
+   writes the chosen one in the zone. */
+.clouds-accepted { margin-top: var(--sp-4); }

@@ -220,10 +220,10 @@ func rows(body string) int { return strings.Count(body, "<tr>") - 1 }
 func accepted(t *testing.T, body, key string) string {
 	t.Helper()
 
-	start := strings.Index(body, `aria-labelledby="accepted-`+key+`"`)
+	start := strings.Index(body, `<select class="w-select" id="accepted-`+key+`"`)
 	require.NotEqualf(t, -1, start, "no list of accepted options for %s", key)
 
-	end := strings.Index(body[start:], "</table>")
+	end := strings.Index(body[start:], "</select>")
 	require.NotEqual(t, -1, end)
 
 	return body[start : start+end]
@@ -507,21 +507,23 @@ func TestNewCloud(t *testing.T) {
 		assert.Contains(t, body, `<textarea class="w-textarea w-mono" id="other" name="other"`)
 
 		list := accepted(t, body, "s3")
-		assert.Contains(t, body, `<div class="w-table-wrap clouds-accepted" data-case="s3" role="region" tabindex="0" aria-labelledby="accepted-s3">`)
-		assert.Contains(t, list, `<caption id="accepted-s3">Options acceptées par Amazon S3 (`)
-		assert.Contains(t, list, `<code class="w-code">storage_class</code>`)
-		assert.Contains(t, list, "Valeurs : private, public-read")
-		assert.Contains(t, list, `<span lang="en">`)
-		assert.Equal(t, strings.Count(list, "<tr>")-1, strings.Count(list, `<tr><td><code class="w-code">`), "one row per option")
+		assert.Contains(t, list, `data-into="other" data-suffix="="`, "the chosen option written in the zone")
+		assert.NotContains(t, list, `name=`, "the list holds no value of the form")
+		assert.Contains(t, list, `<option value="">Options acceptées par Amazon S3 (`)
+		assert.Contains(t, list, `<option value="storage_class" data-label="storage_class" data-text="`)
+		assert.Contains(t, list, "valeurs : private, public-read")
+		assert.Equal(t, strings.Count(list, `<option value="`)-1, strings.Count(list, "data-label="), "one choice per option")
+		assert.Contains(t, body, `src="/webui/static/gui/combobox.js"`, "the list to type in of the kit")
+		assert.NotContains(t, body, "<table", "no table in a card")
 
-		assert.Contains(t, list, `<code class="w-code">list_chunk</code>`, "the gateway sets nothing itself (#701)")
+		assert.Contains(t, list, `<option value="list_chunk"`, "the gateway sets nothing itself (#701)")
 
 		for _, key := range []string{"bucket", "region", "env_auth", "access_key_id", "session_token", "sse_kms_key_id", "memory_pool_flush_time", "ibm_api_key"} {
-			assert.NotContainsf(t, list, `<code class="w-code">`+key+`</code>`,
+			assert.NotContainsf(t, list, `<option value="`+key+`"`,
 				"%s is not offered: a field, a credential, a masked option, obsolete or of another provider", key)
 		}
 
-		assert.Contains(t, accepted(t, body, "onedrive"), `<code class="w-code">list_chunk</code>`, "the list of each storage")
+		assert.Contains(t, accepted(t, body, "onedrive"), `<option value="list_chunk"`, "the list of each storage")
 		assert.NotContains(t, body, "rclone", "the interface names no third-party product")
 		assert.Contains(t, body, `>Valider</button>`)
 		assert.NotContains(t, body, "¿")

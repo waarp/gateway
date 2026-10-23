@@ -881,8 +881,6 @@ clients:
     partners: Partners this client can reach
     partners_hint: "The remote partners of its protocol; a transfer to one of them goes through this client, unless another one is named."
     partners_none: No partner of this protocol yet.
-    col_partner: Remote partner
-    col_address: Address
   retries:
     attempts: Automatic retries after a failure
     attempts_hint: "0: no retry; 127 at most"
@@ -906,10 +904,7 @@ clients:
     more_than_years: "more than {n} years"
     failure: Failure
     details: Details of the attempts
-    details_caption: Attempts, wait before each one and moment since the first failure
-    col_attempt: Attempt
-    col_wait: Wait
-    col_moment: Moment
+    row: "After a {wait} wait, at {at} from the first failure."
     note: "The timeline counts the wait between two attempts from the first failure; the duration of the attempts themselves adds to it."
   new:
     title: New client
@@ -1188,15 +1183,13 @@ clouds:
     options_required: To be given
     other: Other options
     other_label: Settings of the storage library
-    other_hint: "One option per line, as key=value, among the accepted options listed below; no credential, no secret."
+    other_hint: "One option per line, as key=value, among the accepted options suggested below; no credential, no secret."
     other_none: None
     other_some: Set
     accepted: "Options {type} accepts ({n})"
-    accepted_col:
-      option: Option
-      default: Default
-      help: Description
-    accepted_values: "Values: {values}"
+    accepted_add: Add an option
+    accepted_default: "default: {value}"
+    accepted_values: "values: {values}"
     refused: The instance was not saved.
     refused_text: Correct the fields flagged below.
     refused_by_backend: "The storage refused this configuration: {cause} The details are in the log of the gateway."
@@ -2931,8 +2924,6 @@ transfers:
     retries: Retries
     infos: Transfer information
     infos_none: No transfer information.
-    info_name: Information
-    info_value: Value
     progress: Progress
     rule: Rule
     direction: Direction
