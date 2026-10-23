@@ -29,8 +29,51 @@
 .rules-accessitem > div { flex: 1 1 auto; min-width: 0; }
 .rules-accesskind { display: block; font-size: var(--fs-sm); color: var(--ts); }
 .rules-accesstarget { display: block; font-family: var(--fm); font-weight: 700; overflow-wrap: anywhere; }
-.rules-card-actions { display: flex; }
+.rules-card-actions { display: flex; justify-content: flex-end; } /* an action at the right of its space */
 .rules-add { margin-bottom: var(--sp-3); }
 .rules-columns { align-items: start; }
 .rules-block-hint { margin: 0 0 var(--sp-3); }
 .rules-none { margin: 0; }
+/* The Tasks tab: the order hint above the chains; a task, a card of the ordered list of the kit, titled by its type
+   with its tooltip button, its parameters under it (label, then value); "Move up" turns the downward chevron of the
+   kit, which has no upward one. */
+.rules-chains-hint { margin: 0 0 var(--sp-4); }
+.rules-taskname { margin: 0; line-height: 1.5; letter-spacing: .02em; }
+/* The button of an explanation, as an exponent against its word (Driss, 2026-10-23): its icon at the top of a target
+   of 24 px, raised; measured, the centre of the icon 6 to 8 px above the one of the word. */
+.rules-info { position: relative; top: -5px; place-items: start center; width: 24px; height: 24px; border: 0; background: transparent; vertical-align: text-top; }
+.rules-info .i { width: .75rem; height: .75rem; margin-top: 2px; }
+/* A task of a chain, folded: its name and its chevron, the parameters under it once unfolded; the explanation
+   against the name. */
+.rules-taskhead { display: flex; align-items: flex-start; gap: 2px; }
+.rules-taskfold { flex: 0 1 auto; min-width: 0; margin: 0; }
+.rules-taskfold > summary { display: flex; align-items: center; gap: var(--sp-1); list-style: none; cursor: pointer; line-height: 1.5; }
+.rules-taskfold > summary::-webkit-details-marker { display: none; }
+.rules-taskfold > summary > svg.i { flex: none; color: var(--g600); transition: transform var(--duration) var(--ease); }
+.rules-taskfold[open] > summary > svg.i { transform: rotate(90deg); }
+.rules-taskfold--empty { padding-left: calc(1rem + var(--sp-1)); }
+.rules-taskhead > .rules-info { top: 0; margin-top: -6px; }
+.rules-tasklist .rules-args { margin-top: var(--sp-1); font-size: var(--fs-sm); grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+.rules-tasklist .rules-args dd + dt { margin-top: var(--sp-2); }
+.rules-args { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: var(--sp-1) var(--sp-3); margin: 0; }
+.rules-args dt { font-size: var(--fs-sm); color: var(--g600); }
+.rules-args dd { margin: 0; overflow-wrap: anywhere; }
+/* A value in monospace, in the table as on the deletion page (the w-mono of the kit only applies in a table). */
+.rules-value { font-family: var(--fm); font-size: .88em; }
+.w-actions form[action*="/up"] svg.i { transform: rotate(180deg); }
+/* The page of a task: the type chosen under the list; the note of a card; a field over the whole width; a choice in
+   joined buttons and a block a choice shows, without the frame of a fieldset; the only value possible; the box of the
+   copy of the transfer information; "Continue" without JavaScript. */
+.rules-typeinfo { margin: var(--sp-3) 0 0; }
+.rules-note { margin: 0 0 var(--sp-3); }
+.rules-span { grid-column: 1 / -1; }
+.rules-choice, .rules-switched { margin: 0; padding: 0; border: 0; min-width: 0; }
+.rules-choice .w-segmented { margin: var(--sp-1) 0; }
+.rules-fixed { margin: var(--sp-1) 0 0; }
+.rules-copyinfo { margin: 0 0 var(--sp-3); }
+.rules-noscript { margin-top: var(--sp-2); }
+/* Narrow screens: a parameter goes under its label. */
+@media (max-width: 40rem) {
+  .rules-args { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+  .rules-args dd + dt { margin-top: var(--sp-2); }
+}

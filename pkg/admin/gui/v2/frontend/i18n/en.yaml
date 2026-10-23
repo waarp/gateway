@@ -1936,6 +1936,70 @@ rules:
     transfers_link: View these transfers
     watcher: "File watcher “{name}” (command line or API)."
     refused: The rule was not deleted.
+  tasks:
+    add: Add a task
+    back: Back to the tasks
+    none: No task.
+    count_none: no task
+    count_one: 1 task
+    count: "{n} tasks"
+    chain:
+      pre: Before the transfer
+      post: After the transfer
+      error: On error
+    # "New task after the transfer": the chain in lower case.
+    chain_lower:
+      pre: before the transfer
+      post: after the transfer
+      error: on error
+    order_hint: "The tasks of a chain run in order; the first one that fails stops the chain. Before and after the transfer, it also fails the transfer."
+    col:
+      type: Task
+      args: Parameters
+    action:
+      edit: Edit the task
+      up: Move up
+      down: Move down
+      delete: Delete the task
+    ticked: "Yes"
+    unknown_type: "Type unknown to this screen"
+    tip: "{label}: {text}"
+    explain: "Explanation: {name}"
+    missing: "{name} (not found)"
+    missing_status: Not found
+    new_title: "New task ({chain})"
+    edit_title: "Edit task no. {n} ({chain})"
+    delete_title: "Delete task no. {n} ({chain})?"
+    delete_text: "It is removed from the chain; the next tasks move up one rank."
+    type: Task type
+    type_choose: Choose a type
+    type_hint: "Its parameters show as soon as the type is chosen."
+    type_kept: "The type does not change; for another type, delete the task and add one."
+    continue: Continue
+    no_args: This task has no parameter.
+    fixed: the only value possible
+    info_copy: Copy the information of the transfer under way
+    info_copy_hint: Those of the list add to them or replace them.
+    option_none: None
+    keep_unknown: "Parameters kept as they are, which this screen does not know: {names}."
+    refused: The task was not saved.
+    refused_text: Correct the fields marked below.
+    refused_product: "The gateway refuses the task: {cause}"
+    error:
+      required: This field is required.
+      number: Give a whole number.
+      decimal: Give a number.
+      min: "{min} at least."
+      range: "Between {min} and {max}."
+      json: "Give a JSON object, for instance {\"batch\": \"A\"}."
+      pairs: "One line per information, as key=value."
+      type: Choose a type.
+      sens: Choose a direction.
+      icap: "Enter the address of the ICAP server, for example icap://antivirus.example.com:1344/avscan."
+      seconds: Give a number of seconds.
+    not_found:
+      title: Task not found
+      text: This chain has no task at this rank.
   toast:
     created: "Rule “{name}” created"
     updated: "Rule “{name}” saved"
@@ -1943,6 +2007,13 @@ rules:
     access_added: "Access added: {name}"
     access_removed: "Access removed: {name}"
     access_opened: "Rule “{name}” open to all"
+    task_added: "Task added: {name}"
+    task_updated: "Task saved: {name}"
+    task_deleted: "Task deleted: {name}"
+    task_moved: "Task moved: {name}"
+    tasks_ordered: "Order of the tasks saved ({name})"
+    task_stale: "Nothing was saved"
+    task_stale_text: "The chain changed since the page showed it: here is its current state."
   empty:
     title: No transfer rule yet
     text: "A rule says in which direction a file is exchanged, between which directories, with which processing and for whom."
@@ -1955,6 +2026,436 @@ rules:
   error:
     title: The list of the transfer rules could not be loaded.
     text: "An internal error occurred; the detail is in the log of the gateway."
+
+# Tasks tab of the rules (#759): the task types, their families and their arguments, after the tasks module of
+# the current tasks page (labels and help texts corrected); a short title per type, its code as help.
+task_types:
+  family:
+    fileOperations: "File operations"
+    executables: "Executables"
+    transfer: "Transfer"
+    fileAlterations: "File alterations"
+    archiving: "Archiving and compression"
+    network: "Network"
+    crypto: "Cryptography"
+  hint:
+    duration: "A duration: 30s, 5m, 1h30m."
+    millis: "In milliseconds."
+    json: "For instance {\"batch\": \"A\"}."
+    octal: "In octal, for instance 640."
+  choice:
+    send: "Send"
+    receive: "Receive"
+    icap_nothing: "Do nothing"
+    icap_delete: "Delete the file"
+    icap_move: "Move the file"
+    choose: "Choose"
+    async: "Asynchronous"
+    sync: "Synchronous"
+  group:
+    file: "File"
+    exchange: "Exchange"
+    retries: "Retries on error"
+    execution: "Execution"
+    program: "Program"
+    target: "Target"
+    rule_account: "Rule and account"
+    validity: "Validity"
+    files: "Files"
+    archive: "Archive created"
+    icap_server: "ICAP server"
+    refused: "Refused file"
+    sending: "Sending"
+    recipients: "Recipients"
+    recipient: "Recipient"
+    message: "Message"
+    encryption: "Encryption"
+    decryption: "Decryption"
+    signature: "Signature"
+    verification: "Verification"
+    method_keys: "Method and keys"
+    produced: "File produced"
+  copy:
+    label: "Copy the file"
+    text: "Make a copy of the transfer file to another folder. The new file's name will remain identical to the original file."
+    arg:
+      path:
+        label: "Destination folder"
+        hint: "The destination folder of the copied file."
+  copyrename:
+    label: "Copy the file under another name"
+    text: "Make a copy of the transfer file."
+    arg:
+      path:
+        label: "Destination path"
+        hint: "The destination path of the copied file."
+  move:
+    label: "Move the file"
+    text: "Move the transfer file to another folder. The file's name will remain unchanged."
+    arg:
+      path:
+        label: "Destination folder"
+        hint: "The destination folder of the file."
+  moverename:
+    label: "Move and rename the file"
+    text: "Move the transfer file to another folder."
+    arg:
+      path:
+        label: "Destination path"
+        hint: "The destination path of the file."
+  delete:
+    label: "Delete the file"
+    text: "Delete the transfer file."
+  remotedelete:
+    label: "Delete at the partner's"
+    text: "Delete a file or folder on a remote server."
+    arg:
+      path:
+        label: "Path"
+        hint: "The path of the file or folder to delete."
+      recursive:
+        label: "Recursive"
+        hint: "Specifies whether to delete the folder's contents recursively. Note: if this option is false, the server might refuse to delete the folder if it is not empty."
+      timeout:
+        label: "Timeout"
+        hint: "The timeout for the task. If the task takes longer than this duration, it will be considered a failure. By default, there is no timeout."
+  chmod:
+    label: "Change the permissions"
+    text: "Change permissions on the transfer file."
+    arg:
+      perms:
+        label: "Permissions"
+        hint: "The permissions (in octal format) to apply to the transfer file."
+  exec:
+    label: "Run a program"
+    text: "Execute an external program."
+    arg:
+      path:
+        label: "Executable path"
+        hint: "The path of the executable to run. If the executable is in your $PATH, you can just type its name."
+      args:
+        label: "Program arguments"
+        hint: "The program's raw arguments, given as they would be typed in a terminal."
+      delay:
+        label: "Execution timeout"
+        hint: "The program's maximum execution delay. If the program hasn't finished after this duration has elapsed, the program will be stopped, and the task will be considered a failure."
+  execmove:
+    label: "Run a program that moves the file"
+    text: "Execute an external program. The program must move the transfer file during its execution, and must output its new path to the standard output."
+    arg:
+      path:
+        label: "Executable path"
+        hint: "The path of the executable to run. If the executable is in your $PATH, you can just type its name."
+      args:
+        label: "Program arguments"
+        hint: "The program's raw arguments, given as they would be typed in a terminal."
+      delay:
+        label: "Execution timeout"
+        hint: "The program's maximum execution delay. If the program hasn't finished after this duration has elapsed, the program will be stopped, and the task will be considered a failure."
+  execoutput:
+    label: "Run a program and read its output"
+    text: "Execute an external program. If any error occurs during the execution, the program's standard output will be taken as the error message. The program can also move the transfer file. If it does, the last line written by the program to the standard output must start with \"NEWFILENAME:\" followed by the new file's path."
+    arg:
+      path:
+        label: "Executable path"
+        hint: "The path of the executable to run. If the executable is in your $PATH, you can just type its name."
+      args:
+        label: "Program arguments"
+        hint: "The program's raw arguments, given as they would be typed in a terminal."
+      delay:
+        label: "Execution timeout"
+        hint: "The program's maximum execution delay. If the program hasn't finished after this duration has elapsed, the program will be stopped, and the task will be considered a failure."
+  updateconf:
+    label: "Import a configuration"
+    text: "Imports the Waarp Manager generated configuration files from a ZIP archive."
+    arg:
+      zipFile:
+        label: "ZIP archive"
+        hint: "The path of the archive to extract and import. By default, it will be the transfer file."
+  rename:
+    label: "Change the file of the transfer"
+    text: "Change the transfer's target file."
+    arg:
+      path:
+        label: "New transfer file"
+        hint: "The path of the new transfer file."
+  transfer:
+    label: "Start a transfer"
+    text: "Program a new client transfer with the given parameters."
+    sens_label: "Direction"
+    sens_hint: "Send: the gateway drops the file at the partner. Receive: it fetches it there."
+    rule_none: "Choose the direction first"
+    rule_send: "Choose a send rule"
+    rule_receive: "Choose a receive rule"
+    arg:
+      synchronous:
+        label: "Mode"
+        hint: "Asynchronous: the task schedules the transfer and moves on. Synchronous: it waits for its end and fails with it."
+      file:
+        label: "File"
+        hint: "To send, the path of the file, relative to the send folder of the rule; to receive, the name of the file to ask for. The variables of the transfer under way are accepted (#TRUEFULLPATH#…)."
+      output:
+        label: "Name at the destination"
+        hint: "Empty: the same name."
+      to:
+        label: "To the partner (send)"
+        hint: "The partner to send the file to; empty for a reception."
+      from:
+        label: "From the partner (receive)"
+        hint: "The partner to fetch the file from; empty for a sending."
+      as:
+        label: "Account"
+        hint: "The login of the account to use for the transfer."
+      using:
+        label: "Client"
+        hint: "Useful when several clients exist for the same protocol."
+      rule:
+        label: "Rule"
+        hint: "The new transfer follows its folders and runs its tasks."
+      info:
+        label: "Transfer info"
+        hint: "Metadata about the transfer as a JSON object."
+      copyInfo:
+        label: "Copy the information of the transfer under way"
+        hint: "Those of the list add to them or replace them."
+      nbOfAttempts:
+        label: "Retries"
+        hint: "The number of times the transfer will be attempted automatically."
+      firstRetryDelay:
+        label: "First delay (s)"
+        hint: "The delay before the first retry, in seconds."
+      retryIncrementFactor:
+        label: "Increase factor"
+        hint: "The factor by which the delay between each new attempts will be multiplied. Decimal numbers are allowed."
+      timeout:
+        label: "Time limit (s)"
+        hint: "Beyond it, the transfer is interrupted and the task fails. Empty: no limit."
+  preregister:
+    label: "Preregister a transfer"
+    text: "Preregister a new server transfer with the given parameters."
+    arg:
+      file:
+        label: "File"
+        hint: "The path of the file to transfer."
+      isSend:
+        label: "Direction"
+        hint: "The transfer's direction."
+      rule:
+        label: "Rule"
+        hint: "The rule to use for the transfer."
+      server:
+        label: "Server"
+        hint: "The server which will receive the transfer request."
+      account:
+        label: "Account"
+        hint: "The local account which will make the transfer request."
+      validFor:
+        label: "Valid for"
+        hint: "The transfer's validity period. Past this duration, the transfer will be in error. By default, the transfer is valid for an unlimited period."
+      info:
+        label: "Transfer info"
+        hint: "Metadata about the transfer as a JSON object."
+      copyInfo:
+        label: "Copy the information of the transfer under way"
+        hint: "Those of the list add to them or replace them."
+  setinfo:
+    label: "Set transfer information"
+    text: "Set or modify TransferInfo keys. Use this to inject metadata before a transfer (encoding, business ID, reply address, etc.). If a value is empty, the key will be deleted if present. Supports variable substitution (#TRUEFILENAME#, #TI_...#, etc.)."
+    arg:
+      pairs:
+        label: "Transfer information"
+        hint: "One line per information, as key=value; an empty value deletes the key. Variables are substituted."
+  transcode:
+    label: "Change the encoding"
+    text: "Change the transfer file's encoding."
+    arg:
+      fromCharset:
+        label: "From"
+        hint: "The current (source) charset of the file."
+      toCharset:
+        label: "To"
+        hint: "The desired (destination) charset of the file."
+  chnewline:
+    label: "Change the line endings"
+    text: "Change the newline character used in the transfer file."
+    arg:
+      from:
+        label: "From"
+        hint: "The current newline character of the file."
+      to:
+        label: "To"
+        hint: "The desired newline character for the file."
+  archive:
+    label: "Make an archive"
+    text: "Make an archive with the provided files."
+    arg:
+      files:
+        label: "Files"
+        hint: "The comma-separated list of the files to add to the archive."
+      compressionLevel:
+        label: "Compression level"
+        hint: "The compression level on a scale from 0 (no compression) to 9 (maximum compression)."
+      outputPath:
+        label: "Output path"
+        hint: "The path of the archive; its extension sets its format ({extensions})."
+  extract:
+    label: "Extract an archive"
+    text: "Extract the files from an archive."
+    arg:
+      archive:
+        label: "Archive"
+        hint: "The path of the archive to extract. By default, the transfer file will be used."
+      outputDir:
+        label: "Output directory"
+        hint: "The path of the directory to which the files should be extracted."
+  icap:
+    label: "Submit to an ICAP server"
+    text: "Sends the transfer file to an ICAP server, an antivirus scan for instance; the server accepts it, refuses it or modifies it."
+    arg:
+      uploadURL:
+        label: "Upload URL"
+        hint: "The ICAP URL to which the transfer file is uploaded."
+      useTLS:
+        label: "Use TLS"
+        hint: "Connect to the ICAP server over TLS."
+      timeout:
+        label: "Timeout"
+        hint: "The maximum allowed duration for the task."
+      allowFileModifications:
+        label: "Allow file modifications"
+        hint: "Specifies if the ICAP server is allowed to modify the file uploaded to it."
+      onError:
+        label: "On error"
+        hint: "What to do with the file in case the ICAP server refuses the file."
+      onErrorMovePath:
+        label: "Quarantine path"
+        hint: "The path to which the file should be moved if refused by the server."
+  email:
+    label: "Send an email"
+    text: "Send an email to the given recipients, from the given sender, with the given email template."
+    arg:
+      sender:
+        label: "Sender"
+        hint: "The address of the sender; its SMTP credentials must have been saved first."
+      recipients:
+        label: "Recipients"
+        hint: "The addresses of the recipients, separated by commas."
+      template:
+        label: "Template"
+        hint: "The email template; it must have been saved first."
+  sendmessage:
+    label: "Send a PeSIT message"
+    text: "Sends a PeSIT F.MESSAGE to a remote partner, mostly for Store-and-Forward acknowledgments."
+    arg:
+      partner:
+        label: "Partner"
+        hint: "The remote PeSIT partner to send the message to."
+      account:
+        label: "Account"
+        hint: "The remote account the gateway authenticates with at this partner."
+      client:
+        label: "Client"
+        hint: "The PeSIT client through which the gateway sends the message."
+      message:
+        label: "Message"
+        hint: "The content of the F.MESSAGE to send. Supports variable substitution (e.g. #TRUEFILENAME#, #TRANSFERID#). Max 4096 characters."
+  encrypt:
+    label: "Encrypt"
+    text: "Encrypt the transfer file using the provided key."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the encrypted data. By default, it will be the same path as the original file, with the \".crypt\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original plain file or not. By default, the plain file is deleted after encryption."
+      method:
+        label: "Encryption method"
+        hint: "The encryption method to use."
+      keyName:
+        label: "Encryption key"
+        hint: "The key to use for encrypting. Must have been previously registered."
+  decrypt:
+    label: "Decrypt"
+    text: "Decrypt the transfer file using the provided key."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the decrypted data. By default, it will be the same path as the encrypted file, with the \".plain\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original encrypted file or not. By default, the encrypted file is deleted after decryption."
+      method:
+        label: "Decryption method"
+        hint: "The decryption method to use."
+      keyName:
+        label: "Decryption key"
+        hint: "The key to use for decrypting. Must have been previously registered."
+  sign:
+    label: "Sign"
+    text: "Make a cryptographic signature of the transfer file using the provided key."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The file to which the signature will be written."
+      method:
+        label: "Signature method"
+        hint: "The signature method to use."
+      keyName:
+        label: "Signature key"
+        hint: "The key to use for signing. Must have been previously registered."
+  verify:
+    label: "Verify a signature"
+    text: "Verifies the cryptographic signature of the transfer file with the given key."
+    arg:
+      signatureFile:
+        label: "Signature file"
+        hint: "The file containing the signature to verify."
+      method:
+        label: "Signature method"
+        hint: "The signature method used."
+      keyName:
+        label: "Verification key"
+        hint: "The key to use for verifying the signature. Must have been previously registered."
+  encrypt_sign:
+    label: "Encrypt and sign"
+    text: "Encrypt and sign the transfer file using the provided keys."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the encrypted data and signature. By default, it will be the same path as the original file, with the \".crypt\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original plain file or not. By default, the plain file is deleted after encryption."
+      method:
+        label: "Encryption/signature method"
+        hint: "The encryption/signature method to use."
+      encryptKeyName:
+        label: "Encryption key"
+        hint: "The key to use for encrypting. Must have been previously registered."
+      signKeyName:
+        label: "Signature key"
+        hint: "The key to use for signing. Must have been previously registered."
+  decrypt_verify:
+    label: "Decrypt and verify"
+    text: "Decrypt and verify the signature of the transfer file using the provided keys."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the decrypted data. By default, it will be the same path as the encrypted file, with the \".plain\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original encrypted file or not. By default, the encrypted file is deleted after decryption."
+      method:
+        label: "Decryption/verification method"
+        hint: "The decryption/verification method to use."
+      decryptKeyName:
+        label: "Decryption key"
+        hint: "The key to use for decrypting. Must have been previously registered."
+      verifyKeyName:
+        label: "Verification key"
+        hint: "The key to use for verifying the signature. Must have been previously registered."
+
 
 # Rules whose tasks name an object by its name (cryptographic keys, SMTP credentials).
 rule_uses:

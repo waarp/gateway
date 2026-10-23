@@ -82,6 +82,8 @@
 .tf-info-head, .tf-info-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 2rem; gap: var(--sp-2); align-items: center; }
 .tf-info-head { margin: var(--sp-3) 0 var(--sp-1); color: var(--g600); font-size: var(--fs-sm); font-weight: 700; }
 .tf-info-row { margin-bottom: var(--sp-2); }
+/* An action at the right of its space, as every action (Driss, 2026-10-23). */
+.tf-info-actions { display: flex; justify-content: flex-end; }
 
 /* The action pages. */
 .tf-lead { margin: 0 0 var(--sp-4); }

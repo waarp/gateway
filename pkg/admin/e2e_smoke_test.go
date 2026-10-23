@@ -209,6 +209,17 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/rules/2/access"},
 		{path: "/webui/rules/2/access/new"},
 		{path: "/webui/rules/2/access/new?side=out"},
+		// Its Tasks tab (#759): the chains of the rule whose task encrypts
+		// and of the one whose task sends an email (cards, no table), the page
+		// of a new task, with the parameters of a TRANSFER task (the partners,
+		// accounts, clients and rules of the gateway), the pages that edit and
+		// delete the encrypting task (the methods and the keys).
+		{path: "/webui/rules/2/tasks"},
+		{path: "/webui/rules/3/tasks"},
+		{path: "/webui/rules/2/tasks/post/new"},
+		{path: "/webui/rules/2/tasks/post/new?type=TRANSFER"},
+		{path: "/webui/rules/2/tasks/pre/0/edit"},
+		{path: "/webui/rules/2/tasks/pre/0/delete"},
 		// The cryptographic keys (#735): the list, the sheet of the AES key
 		// (the rule whose tasks use it: a table), the sheet of the PGP public
 		// key, the pages that add and edit one, the deletion refused for the
@@ -1151,5 +1162,15 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		landed, err := url.Parse(page.URL())
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/email-templates", landed.Path)
+	})
+
+	// And the former tasks page of a rule, which the historic rules page
+	// still links (#759).
+	t.Run("/webui/tasks?ruleID=2", func(t *testing.T) {
+		session.visit(t, "/webui/tasks?ruleID=2")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/rules/2/tasks", landed.Path)
 	})
 }
