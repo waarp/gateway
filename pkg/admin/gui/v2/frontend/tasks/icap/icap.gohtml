@@ -10,6 +10,14 @@
     "value" .Task.Args.uploadURL
 }}
 
+<!-- Use TLS -->
+{{ template "checkInputRow" dict
+    "label" .Text.useTLS
+    "tooltip" .Text.useTLSTooltip
+    "fieldName" "useTLS"
+    "value" .Task.Args.useTLS
+}}
+
 <!-- Timeout -->
 {{ template "timeInputRow" dict
     "label" .Text.timeout

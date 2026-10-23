@@ -1,23 +1,18 @@
 description:
   en: >
-    Send a PeSIT F.MESSAGE to a remote partner. Typically used for Store-and-Forward
-    acknowledgments. The task can be conditional based on a TransferInfo key.
+    Send a protocole message to a remote partner. Typically used for Store-and-Forward
+    acknowledgments.
   fr: >
-    Envoie un F.MESSAGE PeSIT a un partenaire distant. Utilise principalement pour
-    les acquittements Store-and-Forward. La tache peut etre conditionnelle selon une
-    cle TransferInfo.
+    Envoie un message protocolaire a un partenaire distant. Utilise principalement pour
+    les acquittements Store-and-Forward.
 
 partner:
   en: Partner
   fr: Partenaire
 
 partnerTooltip:
-  en: >
-    The name of the remote PeSIT partner to send the message to.
-    Supports variable substitution (e.g. #TI___ackPartner__#).
-  fr: >
-    Le nom du partenaire PeSIT distant vers lequel envoyer le message.
-    Supporte la substitution de variables (ex: #TI___ackPartner__#).
+  en: The name of the remote PeSIT partner to send the message to.
+  fr: Le nom du partenaire PeSIT distant vers lequel envoyer le message.
 
 partnerPlaceholder:
   en: Partner name or variable
@@ -28,16 +23,24 @@ account:
   fr: Compte
 
 accountTooltip:
-  en: >
-    The login of the remote account to use for authentication.
-    If empty, the first account of the partner is used.
-  fr: >
-    Le login du compte distant a utiliser pour l'authentification.
-    Si vide, le premier compte du partenaire est utilise.
+  en: The login of the remote account to use for authentication.
+  fr: Le login du compte distant a utiliser pour l'authentification.
 
 accountPlaceholder:
-  en: Account login (optional)
-  fr: Login du compte (optionnel)
+  en: Account login
+  fr: Login du compte
+
+client:
+  en: Client
+  fr: Client
+
+clientTooltip:
+  en: The name of the client to use for sending the message.
+  fr: Le nom du client à utiliser pour envoyer le message.
+
+clientPlaceholder:
+  en: Client name
+  fr: Nom du client
 
 message:
   en: Message

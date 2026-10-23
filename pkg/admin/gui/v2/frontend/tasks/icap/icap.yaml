@@ -1,10 +1,6 @@
 description:
-  en: >
-    Make a copy the transfer file to another folder. The new file's name will 
-    remain identical to the original file.
-  fr: >
-    Crée une copie du fichier de transfert dans un autre dossier. Le nom du 
-    nouveau fichier restera identique au fichier d'origine.
+  en: Send the transfer file to an Icap server for processing.
+  fr: Envoie le fichier de transfert à un serveur Icap pour traitement.
 
 uploadURL:
   en: Upload URL
@@ -13,6 +9,14 @@ uploadURL:
 uploadURLTooltip:
   en: The Icap URL to which the transfer file will be uploaded.
   fr: L'URL Icap à laquelle le fichier de transfert sera envoyé.
+
+useTLS:
+  en: Use TLS
+  fr: Utiliser TLS
+
+useTLSTooltip:
+  en: Use TLS when connecting to the Icap server.
+  fr: Utiliser TLS en se connectant au serveur Icap.
 
 timeout:
   en: Timeout
@@ -27,8 +31,12 @@ allowFileModifications:
   fr: Permettre les modifications de fichier
 
 allowFileModificationsTooltip:
-  en: Specifies if the Icap server is allowed to modify the file uploaded to it.
-  fr: Spécifie si le serveur Icap est autorisé à modifier le fichier qui lui est envoyé.
+  en: >
+    Specifies if the Icap server is allowed to modify the file uploaded to it.
+    In which case, the modified file will replace the original file.
+  fr: >
+    Spécifie si le serveur Icap est autorisé à modifier le fichier qui lui est envoyé.
+    Dans ce cas, le fichier modifié remplacera le fichier original.
 
 onError:
   en: On error
@@ -47,8 +55,8 @@ onErrorDelete:
   fr: Supprimer le fichier
 
 onErrorMove:
-  en: Déplacer le fichier
-  fr: Move the file
+  en: Move the file
+  fr: Déplacer le fichier
 
 onErrorMovePath:
   en: Quarantine path
