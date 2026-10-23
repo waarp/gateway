@@ -28,4 +28,8 @@
 .w-retry__lbl { font: 700 var(--fs-micro) var(--fb); fill: var(--tp); }
 .w-retry__num { font: 400 var(--fs-micro) var(--fb); fill: var(--g600); }
 .w-retry__detail summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 700; color: var(--wo-aa); }
-.w-retry__detail .w-table-wrap { margin-top: var(--sp-2); }
+.w-retry__rows { margin: var(--sp-2) 0 0; padding-left: var(--sp-5); }
+.w-retry__rows li + li { margin-top: var(--sp-1); }
+/* The partners a client reaches, a list in its card (no table in a card), as the usages of a cloud instance. */
+.clients-partners { margin: 0; padding-left: var(--sp-5); }
+.clients-partners li + li { margin-top: var(--sp-1); }

@@ -205,17 +205,11 @@ templ detailView(d detailData) {
 			<h2 class="w-card__title">{ gui.T(ctx, "clients.detail.partners") }</h2>
 			<p class="clients-lead">{ gui.T(ctx, "clients.detail.partners_hint") }</p>
 			if len(d.Partners) > 0 {
-				<div class="w-table-wrap">
-					<table class="w-table">
-						<caption class="visually-hidden">{ gui.T(ctx, "clients.detail.partners") }</caption>
-						<thead><tr><th scope="col">{ gui.T(ctx, "clients.detail.col_partner") }</th><th scope="col">{ gui.T(ctx, "clients.detail.col_address") }</th></tr></thead>
-						<tbody>
-							for _, p := range d.Partners {
-								<tr><td><a class="w-cell-title w-nowrap" href={ templ.SafeURL(p.URL) }>{ p.Name }</a></td><td class="w-mono w-nowrap">{ p.Address }</td></tr>
-							}
-						</tbody>
-					</table>
-				</div>
+				<ul class="clients-partners" aria-label={ gui.T(ctx, "clients.detail.partners") }>
+					for _, p := range d.Partners {
+						<li><a class="w-link" href={ templ.SafeURL(p.URL) }>{ p.Name }</a> <code class="w-code">{ p.Address }</code></li>
+					}
+				</ul>
 			} else {
 				<p class="clients-note w-muted">{ gui.T(ctx, "clients.detail.partners_none") }</p>
 			}
@@ -334,19 +328,11 @@ templ formView(d *formData) {
 						<svg class="w-retry__svg" role="img" aria-labelledby="retry-text" focusable="false" hidden></svg>
 						<details class="w-retry__detail" hidden?={ len(d.RetryRows) == 0 }>
 							<summary>{ gui.T(ctx, "clients.retries.details") }</summary>
-							<div class="w-table-wrap">
-								<table class="w-table">
-									<caption class="visually-hidden">{ gui.T(ctx, "clients.retries.details_caption") }</caption>
-									<thead>
-										<tr><th scope="col">{ gui.T(ctx, "clients.retries.col_attempt") }</th><th scope="col">{ gui.T(ctx, "clients.retries.col_wait") }</th><th scope="col">{ gui.T(ctx, "clients.retries.col_moment") }</th></tr>
-									</thead>
-									<tbody class="w-retry__rows">
-										for _, row := range d.RetryRows {
-											<tr><td class="w-num">{ row.N }</td><td>{ row.Wait }</td><td>{ row.At }</td></tr>
-										}
-									</tbody>
-								</table>
-							</div>
+							<ol class="w-retry__rows">
+								for _, row := range d.RetryRows {
+									<li>{ gui.T(ctx, "clients.retries.row", "wait", row.Wait, "at", row.At) }</li>
+								}
+							</ol>
 						</details>
 						<p class="w-form__note clients-note">{ gui.T(ctx, "clients.retries.note") }</p>
 					</div>

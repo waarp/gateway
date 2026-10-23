@@ -3,6 +3,32 @@
 Historique des versions
 =======================
 
+* :feature:`719` L'écran des instances cloud de l'interface web est refondu sur
+  le kit (voir :ref:`le guide de l'interface web <user-webui-clouds>`) et
+  propose les cinq types de stockage de la Gateway (S3, Azure Blob, Azure
+  Files, Google Cloud Storage, OneDrive), alors que l'ancienne page ne
+  proposait que S3 : les options de chaque type sont des champs nommés, les
+  obligatoires marquées et les valeurs par défaut dites, les identifiants
+  peuvent venir des variables d'environnement, et une zone libre reçoit les
+  autres réglages de la bibliothèque de stockage, dont elle propose les
+  options acceptées à la saisie (l'option choisie s'inscrit dans la zone) et
+  refuse les options inconnues, imposées par la Gateway ou sensibles. La liste montre le type,
+  l'emplacement et l'authentification de chaque instance ; la fiche dit le
+  chemin à employer et les règles, serveurs et transferts qui nomment
+  l'instance ; la page de suppression les liste. Le secret n'est plus jamais
+  réaffiché (l'ancienne page le montrait en clair dans sa fenêtre de
+  modification). L'écran remplace l'ancienne page dans la navigation ; elle
+  reste accessible à son adresse jusqu'à la version suivante.
+* :feature:`717` Le formulaire d'un client local de l'interface web refondue
+  dit combien de temps prennent les reprises automatiques : sous les trois
+  réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
+  dernière 15 min 30 s après le premier échec, avec des attentes de 30 s à
+  8 min »), une frise qui place chaque tentative au prorata du temps écoulé,
+  et le détail des tentatives en liste, recalculés à chaque saisie ; la
+  fiche du client porte la même phrase. Le calcul est celui du moteur de
+  transfert (délai multiplié par le facteur à chaque reprise, tronqué à la
+  seconde), désormais partagé ; un délai vide signifie une attente d'une
+  seconde, ce que l'aide du champ dit maintenant.
 * :feature:`759` L'écran des règles de transfert gagne l'onglet *Tâches* (voir
   :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
   des tâches : les trois chaînes (avant le transfert, après, en cas d'erreur)
@@ -147,22 +173,6 @@ Historique des versions
   ou collée, vérifiée avant l'enregistrement, et les hôtes autorisés saisis un
   par ligne, avec la règle de comparaison de chaque type. L'ancienne page, qui
   renvoyait à la ligne de commande, mène désormais à l'écran.
-* :feature:`719` L'écran des instances cloud de l'interface web est refondu sur
-  le kit (voir :ref:`le guide de l'interface web <user-webui-clouds>`) et
-  propose les cinq types de stockage de la Gateway (S3, Azure Blob, Azure
-  Files, Google Cloud Storage, OneDrive), alors que l'ancienne page ne
-  proposait que S3 : les options de chaque type sont des champs nommés, les
-  obligatoires marquées et les valeurs par défaut dites, les identifiants
-  peuvent venir des variables d'environnement, et une zone libre reçoit les
-  autres réglages de la bibliothèque de stockage, dont elle liste les options
-  acceptées et refuse les options inconnues, imposées par la Gateway ou
-  sensibles. La liste montre le type,
-  l'emplacement et l'authentification de chaque instance ; la fiche dit le
-  chemin à employer et les règles, serveurs et transferts qui nomment
-  l'instance ; la page de suppression les liste. Le secret n'est plus jamais
-  réaffiché (l'ancienne page le montrait en clair dans sa fenêtre de
-  modification). L'écran remplace l'ancienne page dans la navigation ; elle
-  reste accessible à son adresse jusqu'à la version suivante.
 * :feature:`718` L'écran des utilisateurs de l'interface web est refondu sur
   le kit (voir :ref:`le guide de l'interface web <user-webui-users>`) : liste
   triée par colonne et filtrée par domaine et par droit, avec les droits de
@@ -174,16 +184,6 @@ Historique des versions
   dernier administrateur et celle de son propre compte sont refusées dans la
   page, comme par l'API. L'écran remplace l'ancienne page dans la navigation ;
   elle reste accessible à son adresse jusqu'à la version suivante.
-* :feature:`717` Le formulaire d'un client local de l'interface web refondue
-  dit combien de temps prennent les reprises automatiques : sous les trois
-  réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
-  dernière 15 min 30 s après le premier échec, avec des attentes de 30 s à
-  8 min »), une frise qui place chaque tentative au prorata du temps écoulé,
-  et le détail des tentatives en tableau, recalculés à chaque saisie ; la
-  fiche du client porte la même phrase. Le calcul est celui du moteur de
-  transfert (délai multiplié par le facteur à chaque reprise, tronqué à la
-  seconde), désormais partagé ; un délai vide signifie une attente d'une
-  seconde, ce que l'aide du champ dit maintenant.
 * :feature:`716` Dans les formulaires de l'interface web refondue, les listes
   d'algorithmes SSH (échange de clés, chiffrement, intégrité) et de suites de
   chiffrement TLS se composent en étiquettes : les algorithmes retenus

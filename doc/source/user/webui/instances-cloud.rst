@@ -66,9 +66,12 @@ Le détail de chaque option, ses valeurs admises et sa valeur par défaut se
 trouvent dans la :ref:`référence des instances cloud <reference-cloud>`. Les
 autres réglages que la bibliothèque de stockage accepte se saisissent dans le
 bloc *Autres options* du formulaire, une option par ligne sous la forme
-``clé=valeur`` ; le bloc liste, pour le type choisi, les options acceptées avec
-leur valeur par défaut et leur description, telles que la bibliothèque les
-donne (en anglais).
+``clé=valeur``. Le champ *Ajouter une option*, sous la zone, propose les options
+que la bibliothèque accepte pour le type choisi, avec leur valeur par défaut et
+leur description telles qu'elle les donne (en anglais) : la saisie filtre sur la
+clé, puis sur la description ; Entrée ou un clic inscrit ``clé=`` sur une
+nouvelle ligne de la zone, qui reste modifiable, et une option déjà inscrite
+n'est plus proposée.
 
 
 La liste

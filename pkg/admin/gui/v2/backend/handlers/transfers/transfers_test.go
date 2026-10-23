@@ -523,7 +523,9 @@ func TestDetail(t *testing.T) {
 		indexes(t, body, "Règle", "releves", "Envoi · client", "Partenaire", "banque-demo", "Compte", "prod",
 			"Client", "cli-sftp", "Protocole", "SFTP", "Identifiant de suivi", "2112951385528143872")
 		indexes(t, body, "Tentatives restantes", "2", "Prochaine tentative", "21/10/2026 à 10:43:02")
-		indexes(t, body, "Informations de transfert", "Identifiant de suivi", "__followID__", "lot", "2026-10-20-B")
+		indexes(t, body, "Informations de transfert", `<dl class="w-deflist tf-infos">`, "Identifiant de suivi", "__followID__",
+			`<dt><code class="w-code">lot</code></dt><dd><code class="w-code">2026-10-20-B</code></dd>`)
+		assert.NotContains(t, body, "<table", "no table in a card")
 	})
 
 	t.Run("Given a done server transfer, read only", func(t *testing.T) {

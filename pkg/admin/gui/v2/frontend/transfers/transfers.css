@@ -73,8 +73,7 @@
 .tf-subtitle { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; margin: var(--sp-2) 0 0; }
 .tf-error-card { border-left: 4px solid var(--ko); }
 .tf-wrap { overflow-wrap: anywhere; }
-.tf-infos { table-layout: fixed; }
-.tf-infos td { overflow-wrap: anywhere; }
+.tf-infos dd { overflow-wrap: anywhere; }   /* the information of a transfer, a list of definitions in its card */
 .tf-inline { display: inline; }
 .tf-note { margin: 0 0 var(--sp-3); }
 

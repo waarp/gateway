@@ -2,7 +2,6 @@ package clients
 
 import (
 	"encoding/json"
-	"strconv"
 	"strings"
 
 	"code.waarp.fr/lib/gui"
@@ -18,9 +17,9 @@ const (
 	daysPerYear   = 365
 )
 
-// retryRow is a line of the table of the retries: the number of the
-// attempt, the wait before it and the moment since the first failure.
-type retryRow struct{ N, Wait, At string }
+// retryRow is an attempt of the numbered list of the retries: the wait
+// before it and the moment since the first failure.
+type retryRow struct{ Wait, At string }
 
 // retrySentence says in one sentence how long the retries take: none, one,
 // the same wait every time, or growing waits; an empty delay says that the
@@ -56,18 +55,18 @@ func retrySentence(translate gui.Translator, attempts int8, delay int32, factor 
 	return out
 }
 
-// retryTable lists the retries: their number, the wait before each one and
-// the moment since the first failure.
+// retryTable lists the retries, in order: the wait before each one and the
+// moment since the first failure.
 func retryTable(translate gui.Translator, attempts int8, delay int32, factor float32) []retryRow {
 	waits := model.RetryWaits(attempts, delay, factor)
 	rows := make([]retryRow, 0, len(waits))
 
 	var at int64
 
-	for i, w := range waits {
+	for _, w := range waits {
 		at += int64(w)
 		rows = append(rows, retryRow{
-			N: strconv.Itoa(i + 1), Wait: formatSpan(translate, int64(w)), At: momentOf(translate, at),
+			Wait: formatSpan(translate, int64(w)), At: momentOf(translate, at),
 		})
 	}
 
@@ -126,7 +125,7 @@ func retryTexts(translate gui.Translator) string {
 	keys := map[string]string{
 		"none": "sentence_none", "one": "sentence_one", "constant": "sentence_constant", "growing": "sentence_growing",
 		"empty": "sentence_empty_delay", "days": "delay_days", "hours": "delay_hours", "minutes": "delay_minutes",
-		"seconds": "delay_seconds", "years": "more_than_years", "failure": "failure",
+		"seconds": "delay_seconds", "years": "more_than_years", "failure": "failure", "row": "row",
 	}
 
 	texts := make(map[string]string, len(keys))
