@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`765` Le corps d'un modèle d'e-mail se charge depuis un fichier
+  HTML (.html, .htm) ou texte (.txt), en UTF-8, de 1 Mo au plus : son contenu
+  remplace le corps, le format suit son extension, et le corps se relit avant
+  validation ; sans JavaScript, le fichier part avec le formulaire. Un fichier
+  d'un autre type, trop gros ou d'un autre encodage est refusé, avec sa raison
+  (voir :ref:`le guide de l'interface web <user-webui-email-templates>`).
+
 * :feature:`764` Les filtres des listes des serveurs locaux, des clients
   locaux et des partenaires distants tiennent sur une ligne : les familles de
   protocole en boutons joints, dont plusieurs peuvent être choisis, puis

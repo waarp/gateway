@@ -1,16 +1,21 @@
 package emailtemplates
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -27,11 +32,24 @@ const (
 	fieldBodyText    = "body_text"
 	fieldBodyHTML    = "body_html"
 	fieldAttachments = "attachments"
+	fieldBodyFile    = "body_file"
+
+	// The size of the largest body file the form reads.
+	maxBodyFile = 1 << 20
+
+	// The files the body field offers to load.
+	bodyFileAccept = ".html,.htm,.txt,text/html,text/plain"
 
 	// The causes the model gives when it refuses a template.
 	causeTaken = "already exists"
 	causeMIME  = "MIME type is invalid"
 )
+
+// bodyFileTypes are the extensions of a body file, and whether the body is
+// HTML.
+//
+//nolint:gochecknoglobals // reference data
+var bodyFileTypes = map[string]bool{".html": true, ".htm": true, ".txt": false}
 
 // tagPattern finds the tags of an HTML body, to tell whether it holds any
 // text.
@@ -62,6 +80,7 @@ type formData struct {
 	BodyText    field
 	BodyHTML    field
 	Attachments field
+	BodyFile    field // the file the body is loaded from; only its error is kept
 
 	Vars    gui.VarListProps
 	Preview *previewData
@@ -177,6 +196,57 @@ func (f *formData) read(values url.Values) {
 	}
 }
 
+// readFile takes the body from the uploaded file when there is one: an HTML
+// file (.html, .htm) or a text file (.txt), in UTF-8, of maxBodyFile at most.
+// The format follows the extension and the content replaces the body of that
+// format; a refused file is said under its field. With JavaScript the page
+// has already loaded the file in the body and sent the form without it.
+func (f *formData) readFile(r *http.Request, translate gui.Translator) {
+	if r.MultipartForm == nil {
+		return
+	}
+
+	file, header, err := r.FormFile(fieldBodyFile)
+	if err != nil {
+		if !errors.Is(err, http.ErrMissingFile) {
+			f.BodyFile.Error = translate("email_templates.form.error.body_file_read")
+		}
+
+		return
+	}
+	defer file.Close() //nolint:errcheck // read only
+
+	toHTML, known := bodyFileTypes[strings.ToLower(filepath.Ext(header.Filename))]
+
+	content, err := io.ReadAll(io.LimitReader(file, maxBodyFile+1))
+
+	switch {
+	case !known:
+		f.BodyFile.Error = translate("email_templates.form.error.body_file_type")
+	case err != nil:
+		f.BodyFile.Error = translate("email_templates.form.error.body_file_read")
+	case len(content) > maxBodyFile:
+		f.BodyFile.Error = translate("email_templates.form.error.body_file_size")
+	case !utf8.Valid(content):
+		f.BodyFile.Error = translate("email_templates.form.error.body_file_encoding")
+	}
+
+	if f.BodyFile.Error != "" {
+		return
+	}
+
+	body := strings.TrimSpace(strings.ReplaceAll(string(content), "\r\n", "\n"))
+	if toHTML {
+		f.Format, f.BodyHTML = f.HTMLCase, field{Value: body}
+	} else {
+		f.Format, f.BodyText = f.Formats[0].Value, field{Value: body}
+	}
+
+	for i := range f.Formats {
+		f.Formats[i].Selected = f.Formats[i].Value == f.Format
+	}
+}
+
 // bodyField is the body of the format chosen.
 func (f *formData) bodyField() *field {
 	if isHTML(f.Format) {
@@ -209,6 +279,10 @@ func (f *formData) template() model.EmailTemplate {
 func (f *formData) validate(translate gui.Translator) bool {
 	fail := func(fld *field, key string, args ...any) {
 		fld.Error = translate(key, args...)
+		f.HasErrors = true
+	}
+
+	if f.BodyFile.Error != "" {
 		f.HasErrors = true
 	}
 
@@ -320,7 +394,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, e *entry) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
-	if err := r.ParseForm(); err != nil {
+	if err := means.ParseForm(r); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 
 		return
@@ -328,6 +402,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, e *entry) {
 
 	form := newForm(translate, e, carried)
 	form.read(r.PostForm)
+	form.readFile(r, translate)
 
 	var uses []ruleuse.Use
 	if e != nil {

@@ -2647,6 +2647,10 @@ email_templates:
     body: Corps
     body_html_hint: "Tapez # à l'endroit voulu : la liste des variables s'ouvre, la frappe suivante la filtre, Entrée insère."
     body_text_hint: "Tapez # pour insérer une variable."
+    body_file: Charger le corps depuis un fichier
+    body_file_hint: "Fichier HTML (.html, .htm) ou texte (.txt), en UTF-8, de 1 Mo au plus : son contenu remplace le corps, et le format suit son extension."
+    body_file_loaded: "« {name} » est chargé dans le corps : relisez-le avant de valider."
+    body_file_refused: "« {name} » n'est pas chargé : choisissez un fichier .html, .htm ou .txt, en UTF-8, de 1 Mo au plus."
     attachments: Un chemin par ligne
     attachments_hint: "Le fichier doit exister au moment de l'envoi ; tapez # pour insérer une variable, par exemple le chemin du fichier transféré."
     locked: "Employé par {rules} : le nom se conserve, les tâches EMAIL le désignent."
@@ -2657,6 +2661,10 @@ email_templates:
       format: Choisissez le format Texte ou HTML.
       markers: "Variables que les tâches ne connaissent pas : {markers}. Tapez # pour choisir dans la liste."
       name_taken: Un autre modèle porte déjà ce nom. Choisissez-en un autre.
+      body_file_type: Choisissez un fichier .html, .htm ou .txt.
+      body_file_size: Le fichier dépasse 1 Mo. Choisissez-en un plus petit.
+      body_file_encoding: "Le fichier n'est pas en UTF-8 : enregistrez-le en UTF-8, puis chargez-le à nouveau."
+      body_file_read: Le fichier n'a pas pu être lu. Chargez-le à nouveau.
   delete:
     title: "Supprimer le modèle « {name} » ?"
     text: Aucune règle ne l'emploie. Il sera supprimé définitivement.

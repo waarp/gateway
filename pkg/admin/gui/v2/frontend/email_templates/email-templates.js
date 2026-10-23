@@ -13,8 +13,9 @@
   let asked = 0;
   const refresh = () => {
     const n = ++asked;
-    // Encodé comme un formulaire HTML (application/x-www-form-urlencoded), ce que le serveur lit.
-    fetch(form.dataset.preview, { method: "POST", body: new URLSearchParams(new FormData(form)), credentials: "same-origin" })
+    // Encodé comme un formulaire HTML (application/x-www-form-urlencoded), ce que le serveur lit ; sans le fichier.
+    const params = new URLSearchParams([...new FormData(form)].filter(([, v]) => typeof v === "string"));
+    fetch(form.dataset.preview, { method: "POST", body: params, credentials: "same-origin" })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
       .then((html) => { if (n === asked) out.innerHTML = html; })
       .catch(() => {});
@@ -43,5 +44,31 @@
       text.value = doc.body.textContent.replace(/​/g, "").replace(/\n{3,}/g, "\n\n").trim();
     }
     wasHTML = nowHTML;
+  });
+
+  // Le corps depuis un fichier (#765) : le fichier choisi remplit le corps, en HTML ou en texte selon son extension, pour
+  // être relu avant validation ; le champ se vide ensuite, pour que le corps relu soit celui envoyé. Sans JavaScript, le
+  // fichier part avec le formulaire et le serveur le lit, avec les mêmes refus.
+  const file = form.querySelector("input[type=file][name=body_file]");
+  const note = document.getElementById("body_file-h");
+  if (!file || !note) return;
+  const say = (key, name) => { note.textContent = note.dataset[key].replace("{name}", name); };
+  file.addEventListener("change", () => {
+    const f = file.files && file.files[0];
+    if (!f) return;
+    const ext = (/\.[^.]+$/.exec(f.name.toLowerCase()) || [""])[0];
+    const clear = () => { file.value = ""; file.dispatchEvent(new Event("change", { bubbles: true })); };
+    if (![".html", ".htm", ".txt"].includes(ext) || f.size > 1048576) { say("refused", f.name); clear(); return; }
+    f.arrayBuffer().then((buf) => {
+      let body;
+      try { body = new TextDecoder("utf-8", { fatal: true }).decode(buf).replace(/\r\n/g, "\n").trim(); } catch { say("refused", f.name); clear(); return; }
+      const toHTML = ext !== ".txt";
+      const option = [...format.options].find((o) => isHTML(o.value) === toHTML);
+      if (option && format.value !== option.value) { format.value = option.value; format.dispatchEvent(new Event("change", { bubbles: true })); }
+      if (toHTML) { if (html.wRte) html.wRte.load(body); else html.value = body; } else text.value = body;
+      say("loaded", f.name);
+      clear();
+      form.dispatchEvent(new Event("input"));
+    });
   });
 })();

@@ -2645,6 +2645,10 @@ email_templates:
     body: Body
     body_html_hint: "Type # where you want it: the list of the variables opens, typing filters it, Enter inserts."
     body_text_hint: "Type # to insert a variable."
+    body_file: Load the body from a file
+    body_file_hint: "An HTML (.html, .htm) or text (.txt) file, in UTF-8, of 1 MB at most: its content replaces the body, and the format follows its extension."
+    body_file_loaded: "“{name}” is loaded in the body: review it before saving."
+    body_file_refused: "“{name}” is not loaded: choose an .html, .htm or .txt file, in UTF-8, of 1 MB at most."
     attachments: One path per line
     attachments_hint: "The file must exist when the email is sent; type # to insert a variable, the path of the transferred file for instance."
     locked: "Used by {rules}: the name stays, the EMAIL tasks name the template by it."
@@ -2655,6 +2659,10 @@ email_templates:
       format: Choose the Text or HTML format.
       markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
       name_taken: Another template already has this name. Choose another one.
+      body_file_type: Choose an .html, .htm or .txt file.
+      body_file_size: The file is larger than 1 MB. Choose a smaller one.
+      body_file_encoding: "The file is not in UTF-8: save it in UTF-8, then load it again."
+      body_file_read: The file could not be read. Load it again.
   delete:
     title: "Delete the template “{name}”?"
     text: No rule uses it. It will be deleted for good.
