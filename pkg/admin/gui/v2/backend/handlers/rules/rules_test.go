@@ -69,6 +69,7 @@ func newSuite(t *testing.T) *suite {
 	r.Path("/rules/{id:[0-9]+}/tasks/{chain}/{rank:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.TaskDeleteForm)
 	r.Path("/rules/{id:[0-9]+}/tasks/{chain}/{rank:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.TaskDelete)
 	r.Path("/rules/{id:[0-9]+}/tasks/{chain}/{rank:[0-9]+}/up").Methods(http.MethodPost).HandlerFunc(h.TaskUp)
+	r.Path("/rules/{id:[0-9]+}/tasks/{chain}/order").Methods(http.MethodPost).HandlerFunc(h.TaskOrder)
 	r.Path("/rules/{id:[0-9]+}/tasks/{chain}/{rank:[0-9]+}/down").Methods(http.MethodPost).HandlerFunc(h.TaskDown)
 	r.Path("/rules/{id:[0-9]+}/access").Methods(http.MethodGet).HandlerFunc(h.AccessTab)
 	r.Path("/rules/{id:[0-9]+}/access/new").Methods(http.MethodGet).HandlerFunc(h.AccessNewForm)

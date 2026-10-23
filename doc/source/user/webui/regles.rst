@@ -153,8 +153,8 @@ consultation requiert le droit de lecture sur les règles ; l'ajout, la
 modification, le déplacement et la suppression d'une tâche, le droit
 d'écriture, comme dans l'API REST.
 
-**Trois chaînes.** Chacune est une section repliable, avec son nombre de
-tâches :
+**Trois chaînes.** Elles sont côte à côte, chacune une carte repliable avec son
+nombre de tâches ; une carte repliée le reste au retour sur l'onglet :
 
 .. list-table::
    :header-rows: 1
@@ -171,9 +171,9 @@ tâches :
      - Quand le transfert est en erreur ; la première tâche en échec arrête la
        chaîne.
 
-Les tâches s'y lisent dans leur ordre d'exécution : le rang, la tâche (son
-libellé et son code, par exemple ``COPY``) et ses paramètres en clair. Une
-case cochée se lit « Oui ». Un objet que la Gateway n'a plus (une clé, un
+Les tâches s'y lisent dans leur ordre d'exécution, chacune une carte : son rang,
+son type (par exemple ``COPY``), dont le bouton ⓘ donne le libellé et ce que
+fait la tâche, puis ses paramètres en clair. Une case cochée se lit « Oui ». Un objet que la Gateway n'a plus (une clé, un
 identifiant SMTP, un modèle d'e-mail supprimé depuis) est marqué
 *Introuvable*, avec un lien vers l'écran où le recréer. Le détail de chaque
 type est dans :ref:`la référence des traitements <reference-tasks>`.
@@ -223,13 +223,19 @@ modification. Son type ne change pas : pour un autre type, supprimer la tâche
 et en ajouter une. Les paramètres que l'écran ne connaît pas (posés par l'API
 REST, par exemple) sont conservés tels quels, et la page le dit.
 
-**Ordre et suppression.** *Monter* et *Descendre* échangent une tâche avec sa
-voisine. La page de suppression rappelle la tâche et ses paramètres ; les
-tâches suivantes remontent d'un rang. Chaque ajout, modification, déplacement
-ou suppression réécrit la chaîne en une seule transaction, comme l'API REST.
+**Ordre et suppression.** Dans une chaîne de deux tâches ou plus, chaque tâche
+a une poignée : on la glisse à sa nouvelle place ou, la poignée sélectionnée au
+clavier, on la déplace avec les flèches haut et bas. Une tâche ne quitte pas sa
+chaîne. Le nouvel ordre ne s'applique qu'avec *Valider l'ordre* ; *Annuler*
+rétablit l'ordre affiché. *Monter* et *Descendre*, dans le menu « ⋯ » de la
+tâche, l'échangent avec sa voisine sans la glisser. La page de suppression
+rappelle la tâche et ses paramètres ; les tâches suivantes remontent d'un rang.
+Chaque ajout, modification, déplacement, nouvel ordre ou suppression réécrit la
+chaîne en une seule transaction, comme l'API REST.
 
-**Chaîne modifiée entre-temps.** Une modification, un déplacement ou une
-suppression portent l'état de la chaîne telle que la page l'affichait. Si elle a
+**Chaîne modifiée entre-temps.** Une modification, un déplacement, un nouvel
+ordre ou une suppression portent l'état de la chaîne telle que la page
+l'affichait. Si elle a
 changé depuis (un autre exploitant, un autre onglet du navigateur), rien n'est
 enregistré : l'onglet revient avec l'état actuel de la chaîne et le dit. Un
 ajout se fait toujours à la fin de la chaîne telle qu'elle est au moment de

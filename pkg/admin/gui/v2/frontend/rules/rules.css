@@ -34,12 +34,15 @@
 .rules-columns { align-items: start; }
 .rules-block-hint { margin: 0 0 var(--sp-3); }
 .rules-none { margin: 0; }
-/* The Tasks tab: the rank and task columns, the code of a task under its label, its parameters one a line (label,
-   then value); "Move up" turns the downward chevron of the kit, which has no upward one. */
-.rules-col-rank { width: 4.5rem; }
-.rules-col-task { width: 28%; }
-.rules-task { display: block; }
-.rules-task-code { display: inline-block; margin-top: var(--sp-1); white-space: nowrap; overflow-wrap: normal; }
+/* The Tasks tab: the order hint above the chains; a task, a card of the ordered list of the kit, titled by its type
+   with its tooltip button, its parameters under it (label, then value); "Move up" turns the downward chevron of the
+   kit, which has no upward one. */
+.rules-chains-hint { margin: 0 0 var(--sp-4); }
+.rules-taskname { margin: 0; line-height: 1.5; letter-spacing: .02em; }
+.rules-info { width: 24px; height: 24px; margin-left: var(--sp-1); vertical-align: -6px; border: 0; }
+.rules-info .i { width: 1rem; height: 1rem; }
+.rules-tasklist .rules-args { margin-top: var(--sp-1); font-size: var(--fs-sm); grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+.rules-tasklist .rules-args dd + dt { margin-top: var(--sp-2); }
 .rules-args { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: var(--sp-1) var(--sp-3); margin: 0; }
 .rules-args dt { font-size: var(--fs-sm); color: var(--g600); }
 .rules-args dd { margin: 0; overflow-wrap: anywhere; }
@@ -48,9 +51,7 @@
 .w-actions form[action*="/up"] svg.i { transform: rotate(180deg); }
 .rules-type { margin-bottom: var(--sp-2); }
 .rules-type-text { margin: 0 0 var(--sp-3); }
-/* Narrow screens: the table of the tasks keeps a readable width and scrolls in its frame; a parameter goes under
-   its label. */
-.rules-tasks { min-width: 30rem; }
+/* Narrow screens: a parameter goes under its label. */
 @media (max-width: 40rem) {
   .rules-args { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
   .rules-args dd + dt { margin-top: var(--sp-2); }

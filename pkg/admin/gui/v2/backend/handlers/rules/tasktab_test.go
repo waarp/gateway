@@ -107,12 +107,16 @@ func TestTasksTab(t *testing.T) {
 
 		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.orders.ID)+`/tasks" aria-current="page">Tâches`)
 		indexes(t, body, "Avant le transfert", "Aucune tâche.", "Après le transfert", "3 tâches",
-			"Copier le fichier", "COPY", "Dossier de destination", "/archives",
-			"Envoyer un e-mail", "Expéditeur", sender,
-			"Déplacer le fichier", "/sortie",
+			"<strong>COPY</strong>", `title="Copier le fichier : `, "Dossier de destination", "/archives",
+			"<strong>EMAIL</strong>", "Envoyer un e-mail", "Expéditeur", sender,
+			"<strong>MOVE</strong>", "Déplacer le fichier", "/sortie",
 			"En cas d&#39;erreur", "1 tâche", "lot", ">A<", "vide")
+		assert.Contains(t, body, `aria-label="Explication : COPY"`, "what a task does, in its tooltip")
+		assert.Contains(t, body, `<div class="w-grid w-grid--3 rules-columns">`, "the chains side by side")
+		assert.Contains(t, body, `data-key="rule-chain-post" open>`, "foldable, their state remembered")
 		assert.NotContains(t, body, "Ajouter une tâche", "no addition without the write right")
 		assert.NotContains(t, body, "Modifier la tâche", "nor a menu")
+		assert.NotContains(t, body, "data-sortable=", "nor an order to change")
 		assert.NotContains(t, body, "Introuvable", "every named object exists")
 	})
 
@@ -130,6 +134,14 @@ func TestTasksTab(t *testing.T) {
 		assert.NotContains(t, body, path(s.orders, "/tasks/post/0/up"), "the first one does not move up")
 		assert.NotContains(t, body, path(s.orders, "/tasks/post/2/down"), "the last one does not move down")
 		assert.Contains(t, body, path(s.orders, "/tasks/post/2/delete"), "the write right removes a task, as in the REST API")
+		assert.NotContains(t, body, "Modifier la règle", "the edition concerns the Details tab")
+
+		order := `id="order-post" method="post" action="` + path(s.orders, "/tasks/post/order") + `?v=` + version + `"`
+		assert.Contains(t, body, order, "the chain is ordered again with the state shown")
+		assert.Contains(t, body, `<ol class="w-sortable rules-tasklist" aria-label="Après le transfert" data-sortable="order-post">`)
+		assert.Contains(t, body, `<input type="hidden" name="rank" value="2" form="order-post">`)
+		assert.Equal(t, 3, strings.Count(body, "data-sortable-grip"), "a grip a task of the chain of three")
+		assert.NotContains(t, body, `id="order-error"`, "a chain of one task has no order to change")
 	})
 
 	t.Run("Given a rule that does not exist", func(t *testing.T) {
@@ -439,6 +451,46 @@ func TestTaskDelete(t *testing.T) {
 	assert.Contains(t, rec.Header().Get("Location"), "done=task_deleted")
 	assert.Equal(t, []string{tasks.Email, tasks.Move}, typesOf(s.chain(t, s.orders, model.ChainPost)),
 		"the next ones move up one rank")
+}
+
+func TestTaskOrder(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	s.taskFixtures(t)
+
+	at := func() string {
+		return path(s.orders, "/tasks/post/order") + "?v=" + versionOf(s.chain(t, s.orders, model.ChainPost))
+	}
+	ranks := func(r ...string) url.Values { return url.Values{orderField: r} }
+
+	rec := s.post(t, permWrite, at(), ranks("2", "0", "1"))
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Contains(t, rec.Header().Get("Location"), "done=tasks_ordered")
+	assert.Equal(t, []string{tasks.Move, tasks.Copy, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)),
+		"the chain in the order dragged")
+
+	for _, tc := range []struct {
+		name string
+		form url.Values
+	}{
+		{"a rank missing", ranks("0", "1")},
+		{"a rank twice", ranks("0", "0", "1")},
+		{"a rank the chain does not have", ranks("0", "1", "3")},
+		{"a rank that is not one", ranks("0", "1", "x")},
+	} {
+		assert.Equal(t, http.StatusBadRequest, s.post(t, permWrite, at(), tc.form).Code, tc.name)
+	}
+
+	assert.Equal(t, http.StatusBadRequest, s.post(t, permWrite, path(s.orders, "/tasks/post/order"), ranks("0", "1", "2")).Code,
+		"an order without the state of the chain shown")
+
+	rec = s.post(t, permWrite, path(s.orders, "/tasks/post/order")+"?v=0123456789abcdef", ranks("1", "0", "2"))
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Contains(t, rec.Header().Get("Location"), "done=task_stale", "a chain changed since the page showed it")
+	assert.Equal(t, []string{tasks.Move, tasks.Copy, tasks.Email}, typesOf(s.chain(t, s.orders, model.ChainPost)),
+		"nothing moved")
 }
 
 func TestTaskMove(t *testing.T) {

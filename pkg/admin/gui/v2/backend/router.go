@@ -348,7 +348,8 @@ func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger
 // MakeRulesRouter registers the "Transfer rules" screen, behind the rights on
 // the rules as the REST API: the list and the sheet in reading, the creation,
 // the edition, the deletion; the Tasks tab in reading, the addition, the
-// edition, the removal and the moves of a task behind the write right; the
+// edition, the removal and the moves of a task, and the order of a chain,
+// behind the write right; the
 // Access tab in reading, the addition and the removal of an access and the
 // opening to all behind the write right. The address of the former tasks
 // page leads to the Tasks tab.
@@ -372,6 +373,7 @@ func MakeRulesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	routes.write(taskPath+"/delete", handlers.TaskDeleteForm, handlers.TaskDelete)
 	routes.act(taskPath+"/up", handlers.TaskUp)
 	routes.act(taskPath+"/down", handlers.TaskDown)
+	routes.act(rulePath+"/tasks/{chain}/order", handlers.TaskOrder)
 	routes.read(rulePath+"/access", handlers.AccessTab)
 	routes.write(rulePath+"/access/new", handlers.AccessNewForm, handlers.AccessCreate)
 	routes.write(rulePath+"/access/open", handlers.AccessOpenForm, handlers.AccessOpen)

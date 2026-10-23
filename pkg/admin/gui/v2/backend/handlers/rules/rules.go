@@ -82,7 +82,7 @@ var (
 	sortKeys  = []string{sortName, sortDirection, sortPath}
 	doneKinds = []string{
 		doneCreated, doneUpdated, doneDeleted, doneAccessAdded, doneAccessRemoved, doneAccessOpened,
-		doneTaskAdded, doneTaskUpdated, doneTaskDeleted, doneTaskMoved,
+		doneTaskAdded, doneTaskUpdated, doneTaskDeleted, doneTaskMoved, doneTasksOrdered,
 	}
 	directions = []string{dirSend, dirReceive}
 

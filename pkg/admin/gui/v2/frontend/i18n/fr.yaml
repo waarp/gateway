@@ -1951,12 +1951,8 @@ rules:
       pre: avant le transfert
       post: après le transfert
       error: en cas d'erreur
-    chain_text:
-      pre: "Exécutées dans l'ordre avant le transfert ; la première en échec arrête la chaîne et met le transfert en erreur."
-      post: "Exécutées dans l'ordre après le transfert ; la première en échec arrête la chaîne et met le transfert en erreur."
-      error: "Exécutées dans l'ordre quand le transfert est en erreur ; la première en échec arrête la chaîne."
+    order_hint: "Les tâches d'une chaîne s'exécutent dans l'ordre ; la première en échec arrête la chaîne. Avant et après le transfert, elle met aussi le transfert en erreur."
     col:
-      rank: N°
       type: Tâche
       args: Paramètres
     action:
@@ -1966,6 +1962,9 @@ rules:
       delete: Supprimer la tâche
     ticked: Oui
     unknown_type: "Type inconnu de cet écran"
+    # L'info-bulle d'une tâche de l'onglet : son intitulé, puis ce qu'elle fait.
+    tip: "{label} : {text}"
+    explain: "Explication : {name}"
     missing: "{name} (introuvable)"
     missing_status: Introuvable
     new_title: "Nouvelle tâche ({chain})"
@@ -2008,6 +2007,7 @@ rules:
     task_updated: "Tâche enregistrée : {name}"
     task_deleted: "Tâche supprimée : {name}"
     task_moved: "Tâche déplacée : {name}"
+    tasks_ordered: "Ordre des tâches enregistré ({name})"
     task_stale: "Rien n'a été enregistré"
     task_stale_text: "La chaîne a changé depuis l'affichage de la page : voici son état actuel."
   empty:

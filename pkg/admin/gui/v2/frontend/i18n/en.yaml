@@ -1952,12 +1952,8 @@ rules:
       pre: before the transfer
       post: after the transfer
       error: on error
-    chain_text:
-      pre: "Run in order before the transfer; the first one that fails stops the chain and fails the transfer."
-      post: "Run in order after the transfer; the first one that fails stops the chain and fails the transfer."
-      error: "Run in order when the transfer fails; the first one that fails stops the chain."
+    order_hint: "The tasks of a chain run in order; the first one that fails stops the chain. Before and after the transfer, it also fails the transfer."
     col:
-      rank: No.
       type: Task
       args: Parameters
     action:
@@ -1967,6 +1963,8 @@ rules:
       delete: Delete the task
     ticked: "Yes"
     unknown_type: "Type unknown to this screen"
+    tip: "{label}: {text}"
+    explain: "Explanation: {name}"
     missing: "{name} (not found)"
     missing_status: Not found
     new_title: "New task ({chain})"
@@ -2009,6 +2007,7 @@ rules:
     task_updated: "Task saved: {name}"
     task_deleted: "Task deleted: {name}"
     task_moved: "Task moved: {name}"
+    tasks_ordered: "Order of the tasks saved ({name})"
     task_stale: "Nothing was saved"
     task_stale_text: "The chain changed since the page showed it: here is its current state."
   empty:

@@ -9,9 +9,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 )
 
-// tasksView: the Tasks tab of a rule: one foldable section per chain (before
-// the transfer, after it, on error), its tasks in order (rank, task with its
-// code, parameters in words, "⋯" menu), then "Add a task" to that chain. No
+// tasksView: the Tasks tab of a rule (prototype validated by Driss on
+// 2026-10-23): the header holds the menu of the rule, not its edition; the
+// three chains (before the transfer, after it, on error) side by side, as
+// foldable cards that stay folded on the next visit; each task a card in its
+// chain, titled by its type, its label and what it does in a tooltip, its
+// parameters under it, its "⋯" menu. "Add a task" heads each chain. No
 // coloured action: three chains, three neutral buttons.
 templ tasksView(d tasksData) {
 	<div class="w-page-header">
@@ -23,74 +26,82 @@ templ tasksView(d tasksData) {
 				@gui.Icon("arrow-left")
 				{ gui.T(ctx, "rules.back") }
 			</a>
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-tasks", Name: d.Title, Items: d.Actions})
+			}
 		</div>
 	</div>
 	@means.TabsNav(gui.T(ctx, "rules.tab.label"), d.Tabs)
-	<div class="w-stack">
+	<p class="rules-hint w-muted rules-chains-hint">{ gui.T(ctx, "rules.tasks.order_hint") }</p>
+	<div class="w-grid w-grid--3 rules-columns">
 		for _, c := range d.Chains {
 			@chainBlock(c)
 		}
 	</div>
 }
 
-// chainBlock: a chain, open, its number of tasks in its head.
+// chainBlock: a chain, its number of tasks in its head, "Add a task", then
+// its tasks in order. With the write right and two tasks or more, each task
+// has its grip and the chain is ordered again by dragging them (or with the
+// arrows on a grip), then saved with "Save the order"; "Move up" and "Move
+// down" stay in the menu of each task, without JavaScript too.
 templ chainBlock(c chainView) {
-	<details class="w-card w-card--fold" id={ "chain-" + c.Slug } open>
-		<summary>@gui.Icon("chevron-right")<h2 class="w-card__title">{ c.Title }</h2><span class="w-fold__meta">{ c.Count }</span></summary>
-		<div class="w-card__body">
-			<p class="rules-hint rules-block-hint w-muted">{ c.Text }</p>
-			if len(c.Rows) == 0 {
-				<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.none") }</p>
-			} else {
-				<div class="w-table-wrap">
-					<table class="w-table rules-tasks">
-						<caption class="visually-hidden">{ c.Title }</caption>
-						<colgroup><col class="rules-col-rank"/><col class="rules-col-task"/><col/><col class="rules-col-actions"/></colgroup>
-						<thead>
-							<tr>
-								<th scope="col" class="w-num">{ gui.T(ctx, "rules.tasks.col.rank") }</th>
-								<th scope="col">{ gui.T(ctx, "rules.tasks.col.type") }</th>
-								<th scope="col">{ gui.T(ctx, "rules.tasks.col.args") }</th>
-								<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "rules.col.actions") }</span></th>
-							</tr>
-						</thead>
-						<tbody>
-							for _, r := range c.Rows {
-								<tr>
-									<td class="w-num">{ strconv.Itoa(r.Rank) }</td>
-									<td>
-										<span class="rules-task">{ r.Label }</span>
-										<code class="w-code rules-task-code">{ r.Code }</code>
-										if r.Unknown {
-											<span class="rules-task-code">@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.unknown_type")})</span>
-										}
-									</td>
-									<td>
-										if len(r.Args) > 0 {
-											@argList(r.Args)
-										}
-									</td>
-									<td>
-										if len(r.Actions) > 0 {
-											@gui.Actions(gui.ActionsProps{ID: "act-" + r.ID, Name: r.Label, Items: r.Actions})
-										}
-									</td>
-								</tr>
+	@ruleFold("chain-"+c.Slug, c.Title, c.Count) {
+		if c.AddURL != "" {
+			<div class="rules-card-actions rules-add">
+				<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "rules.tasks.add") }<span class="visually-hidden">{ " " + c.Lower }</span>
+				</a>
+			</div>
+		}
+		if len(c.Rows) == 0 {
+			<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.none") }</p>
+		} else {
+			if c.OrderURL != "" {
+				@gui.SortableBar(gui.SortableBarProps{ID: c.OrderID, Action: c.OrderURL})
+			}
+			<ol
+				class="w-sortable rules-tasklist"
+				aria-label={ c.Title }
+				if c.OrderURL != "" {
+					data-sortable={ c.OrderID }
+				}
+			>
+				for _, r := range c.Rows {
+					<li class="w-sortable__item" data-sortable-name={ r.Code }>
+						if c.OrderURL != "" {
+							@gui.SortableGrip(r.Code)
+						}
+						<span class="w-sortable__rank" data-sortable-rank>{ strconv.Itoa(r.Rank) }</span>
+						<div class="w-sortable__body">
+							<p class="rules-taskname">
+								<strong>{ r.Code }</strong>
+								if r.Tip != "" {
+									<button class="w-icon-btn rules-info" type="button" title={ r.Tip } aria-label={ gui.T(ctx, "rules.tasks.explain", "name", r.Code) }>
+										@gui.Icon("info")
+									</button>
+								}
+								if r.Unknown {
+									{ " " }
+									@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.unknown_type")})
+								}
+							</p>
+							if len(r.Args) > 0 {
+								@argList(r.Args)
 							}
-						</tbody>
-					</table>
-				</div>
-			}
-			if c.AddURL != "" {
-				<div class="rules-card-actions">
-					<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.AddURL) }>
-						@gui.Icon("plus")
-						{ gui.T(ctx, "rules.tasks.add") }<span class="visually-hidden">{ " " + c.Lower }</span>
-					</a>
-				</div>
-			}
-		</div>
-	</details>
+							if c.OrderURL != "" {
+								<input type="hidden" name={ orderField } value={ strconv.Itoa(r.Rank - 1) } form={ c.OrderID }/>
+							}
+						</div>
+						if len(r.Actions) > 0 {
+							@gui.Actions(gui.ActionsProps{ID: "act-" + r.ID, Name: r.Code, Items: r.Actions})
+						}
+					</li>
+				}
+			</ol>
+		}
+	}
 }
 
 // argList: the parameters of a task, one label and its value a line; an

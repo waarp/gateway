@@ -27,7 +27,8 @@ import (
 // task, and its refusal comes back on the form. A change to a task carries
 // the state of its chain as the page showed it, and is refused when the
 // chain changed since: it never applies to another task than the one shown.
-// The tasks are part of the
+// A chain is ordered again by dragging its tasks on the tab (the ordered list
+// of the kit), then saved in one go. The tasks are part of the
 // rule: the write right on the rules adds, edits, moves and removes them, as
 // in the REST API. A task that names an object the gateway no longer has (a
 // key, an SMTP credential, a template deleted since) says so in its chain,
@@ -40,11 +41,15 @@ const (
 	// The rule of the former tasks page, in its address.
 	formerRuleParam = "ruleID"
 
-	doneTaskAdded   = "task_added"
-	doneTaskUpdated = "task_updated"
-	doneTaskDeleted = "task_deleted"
-	doneTaskMoved   = "task_moved"
-	doneTaskStale   = "task_stale"
+	doneTaskAdded    = "task_added"
+	doneTaskUpdated  = "task_updated"
+	doneTaskDeleted  = "task_deleted"
+	doneTaskMoved    = "task_moved"
+	doneTaskStale    = "task_stale"
+	doneTasksOrdered = "tasks_ordered"
+
+	// The ranks the page showed, in the new order of the chain.
+	orderField = "rank"
 
 	// The state of a chain as a page showed it, in the address of a change.
 	versionParam  = "v"
@@ -340,6 +345,7 @@ type taskRow struct {
 	Rank    int
 	Label   string
 	Code    string
+	Tip     string // the label and what the task does, in its tooltip
 	Unknown bool
 	Args    []argView
 	Actions []gui.Action
@@ -349,16 +355,20 @@ type chainView struct {
 	Slug   string
 	Title  string
 	Lower  string // the chain in a sentence: "Add a task" + " before the transfer"
-	Text   string
 	Count  string
 	AddURL string
-	Rows   []taskRow
+	// The form that saves a new order (empty when the chain cannot be
+	// ordered: no write right, fewer than two tasks) and its id.
+	OrderURL string
+	OrderID  string
+	Rows     []taskRow
 }
 
 type tasksData struct {
 	Title   string
 	Tabs    []means.Tab
 	BackURL string
+	Actions []gui.Action // the menu of the rule: its transfers, its deletion
 	Chains  []chainView
 }
 
@@ -387,9 +397,10 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 	carried := ret(r)
 	user := rightsOf(r)
 	data := tasksData{
-		Title:   translate("rules.detail.title", "name", item.rule.Name),
+		Title:   ruleTitle(translate, item.rule),
 		Tabs:    tabs(translate, &item, tabTasks),
 		BackURL: listURL(carried),
+		Actions: actions(translate, &item, user, true, carried),
 	}
 
 	for _, slug := range chainSlugs {
@@ -397,11 +408,16 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 		list := chains[chain]
 		view := chainView{
 			Slug: slug, Title: translate(chainKeyPrefix + slug), Lower: translate(chainLowerKey + slug),
-			Text: translate("rules.tasks.chain_text." + slug), Count: taskCount(translate, len(list)),
+			Count: taskCount(translate, len(list)),
 		}
 
 		if user.Write {
 			view.AddURL = withRet(newTaskURL(item.rule.ID, slug), carried)
+
+			if len(list) > 1 {
+				view.OrderID = "order-" + slug
+				view.OrderURL = withRet(withVersion(ruleURL(item.rule.ID, "/tasks/"+slug+"/order"), versionOf(list)), carried)
+			}
 		}
 
 		for i, task := range list {
@@ -409,6 +425,11 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 			row := taskRow{
 				ID: slug + "-" + strconv.Itoa(i), Rank: i + 1, Label: typeLabel(translate, task.Type),
 				Code: task.Type, Unknown: specOf(task.Type) == nil, Args: argsOf(translate, task, look),
+			}
+
+			if spec := specOf(task.Type); spec != nil {
+				row.Tip = translate("rules.tasks.tip", "label", row.Label,
+					"text", translate(taskTypesPrefix+spec.Slug+".text"))
 			}
 
 			if user.Write {
@@ -423,6 +444,7 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 
 	screen := h.screen(translate, data.Title, carried, 0)
 	screen.Notices = notices(translate, r.URL.Query())
+	screen.Head = gui.SortableAssets()
 	h.shell.Render(w, h.logger, r, screen, tasksView(data))
 }
 
@@ -600,6 +622,81 @@ func (h *Handlers) taskDelete(w http.ResponseWriter, r *http.Request, post bool)
 		CancelURL: withRet(tasksTabURL(place.ruleID), carried),
 		Action:    withRet(withVersion(taskURL(place.ruleID, place.slug, place.rank, "/delete"), versionOf(list)), carried),
 	}))
+}
+
+// TaskOrder serves POST /webui/rules/{id}/tasks/{chain}/order: the new order
+// of a chain, dragged on the tab, as the ranks the page showed in their new
+// order. The chain, rewritten in one transaction, must be the one the page
+// showed (the tab otherwise, with its notice).
+func (h *Handlers) TaskOrder(w http.ResponseWriter, r *http.Request) {
+	item, ok := h.load(w, r)
+	if !ok {
+		return
+	}
+
+	place, list, ok := h.taskRoute(w, r, &item, false)
+	if !ok {
+		return
+	}
+
+	version := r.URL.Query().Get(versionParam)
+	if err := r.ParseForm(); err != nil || version == "" {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+
+		return
+	}
+
+	order, valid := orderOf(r.PostForm[orderField], len(list))
+	if !valid {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+
+		return
+	}
+
+	err := h.modifyChain(place.ruleID, place.chain(), version, func(current []*model.Task) []*model.Task {
+		ordered := make([]*model.Task, 0, len(current))
+		for _, rank := range order {
+			ordered = append(ordered, current[rank])
+		}
+
+		return ordered
+	})
+
+	switch {
+	case errors.Is(err, errChainChanged):
+		h.stale(w, r, place.ruleID)
+
+		return
+	case err != nil:
+		h.internal(w, "order the tasks of the transfer rule", err)
+
+		return
+	}
+
+	liststate.RedirectTo(w, r, withRet(tasksTabURL(place.ruleID), ret(r)),
+		url.Values{doneParam: {doneTasksOrdered}, nameParam: {h.shell.Translator(r)(chainLowerKey + place.slug)}})
+}
+
+// orderOf reads the posted order of a chain of n tasks: each rank once.
+func orderOf(values []string, n int) ([]int, bool) {
+	if len(values) != n {
+		return nil, false
+	}
+
+	seen := make([]bool, n)
+	order := make([]int, 0, n)
+
+	for _, value := range values {
+		rank, err := strconv.Atoi(value)
+		if err != nil || rank < 0 || rank >= n || seen[rank] {
+			return nil, false
+		}
+
+		seen[rank] = true
+		order = append(order, rank)
+	}
+
+	return order, true
 }
 
 // TaskUp serves POST /webui/rules/{id}/tasks/{chain}/{rank}/up.
