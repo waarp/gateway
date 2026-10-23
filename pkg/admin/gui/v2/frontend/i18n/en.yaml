@@ -1675,15 +1675,6 @@ keys:
     locked: "private key protected by a passphrase"
     empty: "no value"
     type: "unknown type"
-  uses:
-    none: No rule
-    one: 1 rule
-    many: "{n} rules"
-    rule: Rule
-    direction: Direction
-  direction:
-    send: Send
-    receive: Receive
   action:
     detail: View the sheet
     edit: Edit the key
@@ -1777,4 +1768,114 @@ keys:
     text: This key does not exist or has been deleted.
   error:
     title: The list of the cryptographic keys could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# Rules whose tasks name an object by its name (cryptographic keys, SMTP credentials).
+rule_uses:
+  count:
+    none: No rule
+    one: 1 rule
+    many: "{n} rules"
+  direction:
+    send: Send
+    receive: Receive
+
+# "SMTP credentials" screen (#741): the accounts the EMAIL task sends with.
+smtp:
+  title: SMTP credentials
+  add: Add a credential
+  search: Search a credential by sender
+  search_placeholder: Search by sender
+  count: "{total} credentials"
+  count_one: 1 credential
+  count_shown: "{total} credentials · {shown} shown"
+  count_shown_one: "{total} credentials · 1 shown"
+  caption: "SMTP credentials, page {page} of {pages}, sorted by {sort}"
+  pager: "Credentials {from} to {to} of {total}"
+  back: Back to the list
+  back_credential: Back to the credential
+  none_value: "—"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    sender: sender
+    server: server
+  col:
+    sender: Sender
+    server: SMTP server
+    auth: Authentication
+    uses: Used by
+    actions: Actions
+  auth:
+    none: None
+  # The encryption the port implies.
+  tls:
+    implicit: TLS from the start
+    starttls: STARTTLS when the server offers it
+  password:
+    set: Set, never shown
+    none: None
+  action:
+    detail: View the sheet
+    edit: Edit the credential
+    delete: Delete the credential
+  detail:
+    title: "SMTP credential “{name}”"
+    sender: Sender
+    address: Address
+    role: Role
+    role_text: "The address the e-mails are sent from; the EMAIL tasks name the credential by it."
+    server: SMTP server
+    incomplete: The address of the server is incomplete.
+    incomplete_text: "It lacks the host or the port: the EMAIL tasks could not connect. Edit the credential to complete it."
+    connection: Connection
+    auth_none: No authentication
+    login: Login
+    uses: Used by
+    uses_caption: Rules whose EMAIL tasks use the credential
+    uses_none: No rule uses it.
+  new:
+    title: New SMTP credential
+  edit:
+    title: "Edit “{name}”"
+  form:
+    sender: Sender address
+    sender_hint: "Unique; the EMAIL tasks name the credential by this address."
+    host: Host
+    host_hint: Host name or IP address of the SMTP server.
+    port: Port
+    port_hint: "465: TLS from the start; 587 or 25: STARTTLS when the server offers it."
+    login: Login
+    login_hint: "The account on the SMTP server; empty: no authentication."
+    password: Password
+    password_hint: The password of the account on the SMTP server.
+    password_keep: Leave empty to keep the password in place.
+    locked: "Used by {rules}: the address is kept, the EMAIL tasks name it."
+    refused: The credential was not saved.
+    refused_text: "Correct the fields marked below; the password must be typed again."
+    error:
+      required: This field is required.
+      sender: "Give an e-mail address alone, without a display name: alerts@example.org."
+      sender_taken: Another credential already uses this address. Choose another one.
+      host: Give the host.
+      port: Give a port between 1 and 65535.
+      password_without_login: Give the login, or leave the password empty.
+  delete:
+    title: "Delete the credential “{name}”?"
+    text: No rule uses it. It will be deleted for good.
+    used_title: This credential cannot be deleted.
+    used: "It is used by {rules}: first change the sender of their EMAIL tasks, or they would fail at the next transfer."
+  toast:
+    created: "Credential “{name}” created"
+    updated: "Credential “{name}” saved"
+    deleted: "Credential “{name}” deleted"
+  empty:
+    title: No SMTP credential yet
+    text: "The EMAIL tasks of the rules send their e-mails with these accounts."
+  none:
+    title: "No credential starts with “{query}”"
+  not_found:
+    title: Credential not found
+    text: This credential does not exist or has been deleted.
+  error:
+    title: The list of the SMTP credentials could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."

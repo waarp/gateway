@@ -3,6 +3,20 @@
 Historique des versions
 =======================
 
+* :feature:`741` L'interface web propose un écran des identifiants SMTP (voir
+  :ref:`le guide de l'interface web <user-webui-smtp>`), qui n'existait jusqu'ici
+  que par l'API REST et la ligne de commande : liste triée par expéditeur et par
+  serveur, avec l'authentification et le nombre de règles qui emploient chaque
+  identifiant ; fiche en lecture avec la connexion que le port implique (TLS dès
+  la connexion sur le port 465, STARTTLS si le serveur le propose sinon) et les
+  règles dont les traitements EMAIL le désignent, chacune menant à ses
+  traitements ; pages de création, de modification et de suppression, l'hôte et
+  le port en deux champs. Le mot de passe n'est jamais réaffiché et reste
+  inchangé quand on le laisse vide. L'adresse d'un identifiant employé ne se
+  modifie pas, et sa suppression est remplacée par la liste des règles à
+  modifier d'abord. L'ancienne page, qui renvoyait à la ligne de commande, mène
+  désormais à l'écran.
+
 * :feature:`735` L'interface web propose un écran des clés cryptographiques
   (voir :ref:`le guide de l'interface web <user-webui-keys>`), qui n'existait
   jusqu'ici que par l'API REST et la ligne de commande : liste triée par nom et

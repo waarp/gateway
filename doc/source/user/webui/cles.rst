@@ -139,8 +139,8 @@ La fiche d'une clé, adresse ``/webui/keys/<id>``, montre en lecture :
        échéance. *Afficher la clé publique* déplie la valeur d'une clé PGP
        publique, pour la copier.
    * - Utilisée par
-     - Les règles dont les traitements désignent la clé, chacune avec son
-       sens (envoi ou réception) ; le nom de la règle ouvre ses traitements,
+     - Les règles dont les traitements désignent la clé, chacune en carte
+       avec son sens (envoi ou réception) ; le nom de la règle ouvre ses traitements,
        où la clé se change. Une règle qui porte le même nom dans les deux
        sens figure deux fois.
 

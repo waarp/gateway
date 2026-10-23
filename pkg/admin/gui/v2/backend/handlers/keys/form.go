@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -118,7 +119,7 @@ func newForm(translate gui.Translator, e *entry, carried string) *formData {
 		form.Type = e.key.Type
 		form.TypeLabel = e.typeLabel(translate)
 		form.Locked = len(e.uses) > 0
-		form.Rules = usesText(translate, len(e.uses))
+		form.Rules = ruleuse.Count(translate, len(e.uses))
 	}
 
 	return form

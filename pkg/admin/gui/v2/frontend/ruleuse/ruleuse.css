@@ -1,0 +1,6 @@
+/* The rules that name an object (a key, an SMTP credential): each a card on the background of the page, side by side
+   as the width allows, its direction over its name (no table in a card). Tokens only. */
+.ruleuse-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.ruleuse-item { min-width: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--g200); border-radius: var(--rs); background: var(--app-bg); }
+.ruleuse-direction { display: block; font-size: var(--fs-sm); color: var(--ts); }
+.ruleuse-rule { font-family: var(--fm); font-weight: 700; overflow-wrap: anywhere; }
