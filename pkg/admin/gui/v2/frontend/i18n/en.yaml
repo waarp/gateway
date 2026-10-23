@@ -881,8 +881,6 @@ clients:
     partners: Partners this client can reach
     partners_hint: "The remote partners of its protocol; a transfer to one of them goes through this client, unless another one is named."
     partners_none: No partner of this protocol yet.
-    col_partner: Remote partner
-    col_address: Address
   retries:
     attempts: Automatic retries after a failure
     attempts_hint: "0: no retry; 127 at most"
@@ -906,10 +904,7 @@ clients:
     more_than_years: "more than {n} years"
     failure: Failure
     details: Details of the attempts
-    details_caption: Attempts, wait before each one and moment since the first failure
-    col_attempt: Attempt
-    col_wait: Wait
-    col_moment: Moment
+    row: "After a {wait} wait, at {at} from the first failure."
     note: "The timeline counts the wait between two attempts from the first failure; the duration of the attempts themselves adds to it."
   new:
     title: New client
@@ -2929,8 +2924,6 @@ transfers:
     retries: Retries
     infos: Transfer information
     infos_none: No transfer information.
-    info_name: Information
-    info_value: Value
     progress: Progress
     rule: Rule
     direction: Direction

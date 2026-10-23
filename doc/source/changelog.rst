@@ -191,7 +191,7 @@ Historique des versions
   réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
   dernière 15 min 30 s après le premier échec, avec des attentes de 30 s à
   8 min »), une frise qui place chaque tentative au prorata du temps écoulé,
-  et le détail des tentatives en tableau, recalculés à chaque saisie ; la
+  et le détail des tentatives en liste, recalculés à chaque saisie ; la
   fiche du client porte la même phrase. Le calcul est celui du moteur de
   transfert (délai multiplié par le facteur à chaque reprise, tronqué à la
   seconde), désormais partagé ; un délai vide signifie une attente d'une

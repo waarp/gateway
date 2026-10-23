@@ -880,8 +880,6 @@ clients:
     partners: Partenaires joignables par ce client
     partners_hint: "Les partenaires distants de son protocole ; un transfert vers l'un d'eux passe par ce client, sauf à en nommer un autre."
     partners_none: Aucun partenaire de ce protocole pour l'instant.
-    col_partner: Partenaire distant
-    col_address: Adresse
   retries:
     attempts: Tentatives automatiques après un échec
     attempts_hint: "0 : aucune reprise ; 127 au plus"
@@ -905,10 +903,7 @@ clients:
     more_than_years: "plus de {n} ans"
     failure: Échec
     details: Détail des tentatives
-    details_caption: Tentatives, attente avant chacune et moment depuis le premier échec
-    col_attempt: Tentative
-    col_wait: Attente
-    col_moment: Moment
+    row: "Après {wait} d'attente, à {at} du premier échec."
     note: "La frise compte l'attente entre deux tentatives à partir du premier échec ; la durée des tentatives elles-mêmes s'y ajoute."
   new:
     title: Nouveau client
@@ -2931,8 +2926,6 @@ transfers:
     retries: Tentatives
     infos: Informations de transfert
     infos_none: Aucune information de transfert.
-    info_name: Information
-    info_value: Valeur
     progress: Progression
     rule: Règle
     direction: Sens

@@ -551,7 +551,9 @@ func TestEditClient(t *testing.T) {
 		assert.Contains(t, body, `<span class="w-fold__meta">3 tentatives · 1 h 1 min 30 s · ×2</span>`)
 		assert.Contains(t, body, `>3 tentatives : la dernière 7 h 10 min 30 s après le premier échec, avec des attentes de 1 h 1 min 30 s à 4 h 6 min.</p>`,
 			"the sentence says how long the retries take")
-		assert.Contains(t, body, `<tr><td class="w-num">2</td><td>2 h 3 min</td><td>+3 h 4 min 30 s</td></tr>`, "the table of the attempts")
+		assert.Contains(t, body, `<ol class="w-retry__rows"><li>Après 1 h 1 min 30 s d&#39;attente, à +1 h 1 min 30 s du premier échec.</li>`+
+			`<li>Après 2 h 3 min d&#39;attente, à +3 h 4 min 30 s du premier échec.</li>`, "the list of the attempts")
+		assert.NotContains(t, body, "<table", "no table in a card")
 		assert.Contains(t, body, `<option value="diffie-hellman-group-exchange-sha256" selected>`)
 		assert.Contains(t, body, `href="`+s.path(s.sftp, "")+`?ret=page%3D2">`, "cancel goes back to the client")
 	})

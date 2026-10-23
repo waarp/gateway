@@ -113,9 +113,9 @@ func e2eScreens() []e2eScreen {
 		// SFTP partner it reaches: a table), the pages that add, edit and
 		// delete one.
 		{path: "/webui/clients", tables: 1},
-		{path: "/webui/clients/1", tables: 1},
-		{path: "/webui/clients/new", tables: 1}, // the table of the retries
-		{path: "/webui/clients/1/edit", tables: 1},
+		{path: "/webui/clients/1"},
+		{path: "/webui/clients/new"},
+		{path: "/webui/clients/1/edit"},
 		{path: "/webui/clients/1/delete"},
 		// The remote partners (#714): the list, the sheet of the SFTP
 		// partner (its details, the host key the gateway checks, the pages
@@ -259,7 +259,7 @@ func e2eScreens() []e2eScreen {
 		// done one; the pages that add and preregister a transfer, cancel
 		// the failed one and retry the done one.
 		{path: "/webui/transfers", tables: 1, fragment: "fragment=rows"},
-		{path: "/webui/transfers/1", tables: 1},
+		{path: "/webui/transfers/1"},
 		{path: "/webui/transfers/1001"},
 		{path: "/webui/transfers/new"},
 		{path: "/webui/transfers/preregister"},
@@ -890,6 +890,9 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 
 	assert.Equal(t, entries, s.count(t, `nav:not(.w-tabs) a[aria-current="page"]`), "active sidebar entry")
 	assert.Equal(t, screen.tables, s.count(t, "table.w-table"), "tables")
+	// No table in a card (2026-10-23): the items a card holds are cards or a
+	// list; a table stands on the page itself.
+	assert.Zero(t, s.count(t, ".w-card table"), "no table in a card")
 
 	// A sheet shows its tab strip, one tab being the page: a link, or a
 	// plain span on the form of an object not created yet.
@@ -1002,7 +1005,7 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		require.NoError(t, s.page.Locator(`#delay_s`).Fill("30"))
 		require.NoError(t, s.page.Locator(`#factor`).Fill("2"))
 		assert.Equal(t, 5, s.count(t, `.w-retry__mark`), "one mark per attempt")
-		assert.Equal(t, 5, s.count(t, `.w-retry__rows tr`), "one row per attempt")
+		assert.Equal(t, 5, s.count(t, `.w-retry__rows li`), "one item per attempt")
 		sentence, err := s.page.Locator(`.w-retry__text`).TextContent()
 		require.NoError(t, err)
 		assert.True(t, strings.HasPrefix(sentence, "5 "), "the sentence counts the attempts: %q", sentence)
