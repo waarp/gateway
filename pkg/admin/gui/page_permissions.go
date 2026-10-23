@@ -67,8 +67,6 @@ var webuiPermissions = map[string]pagePermissions{
 
 	"/cloud_instance_management": permsFor(model.PermAdminRead, model.PermAdminWrite,
 		model.PermAdminDelete, "deleteCloudInstance"),
-	"/cryptographic_key_management": permsFor(model.PermAdminRead, model.PermAdminWrite,
-		model.PermAdminDelete),
 
 	"/autocompletion/users":                   permsFor(model.PermUsersRead, 0, 0),
 	"/autocompletion/partners":                permsFor(model.PermPartnersRead, 0, 0),
