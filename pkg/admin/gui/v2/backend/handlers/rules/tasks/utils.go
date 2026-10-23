@@ -184,16 +184,13 @@ func parseTaskForm(db database.Access, r *http.Request) (*model.Task, error) {
 
 func insertTask(db database.Access, task *model.Task) error {
 	return db.Transaction(func(db *database.Session) error {
-		var lastTask model.Task
-
-		if err := db.Get(&lastTask, "rule_id=?", task.RuleID).And("chain=?", task.Chain).
-			OrderBy("rank", false).Run(); database.IsNotFound(err) {
-			task.Rank = 0
-		} else if err != nil {
+		if err := db.DeleteAll(task).
+			Where("rule_id=?", task.RuleID).
+			Where("chain=?", task.Chain).
+			Where("rank=?", task.Rank).
+			Run(); err != nil {
 			return common.NewErrorWith(http.StatusInternalServerError,
-				"failed to get last task", err)
-		} else if task.Rank <= lastTask.Rank {
-			task.Rank = lastTask.Rank + 1
+				"failed to delete task", err)
 		}
 
 		if err := db.Insert(task).Run(); err != nil {

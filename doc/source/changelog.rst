@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`748` Correction de problèmes avec les *checkboxes* et menus radios dans
+  les formulaires de tâches de la WebUI. Ces éléments de reprenaient pas leurs
+  valeurs existantes lorsqu'un utilisateur ouvrait le formulaire pour modifier
+  une tâche existante.
 * :bug:`749` Correction des formulaire web pour les tâches ENCRYPT, DECRYPT, SIGN,
    VERIFY, ICAP et SENDMESSAGE dont les formulaires ne correspondaient pas
    exactement aux options attendues par les tâches en question.

@@ -77,8 +77,8 @@ func prepareDB(tb testing.TB, db *database.DB) {
 		RuleID: rule.ID,
 		Chain:  model.ChainPre,
 		Rank:   1,
-		Type:   tasknames.Archive,
-		Args:   map[string]string{"files": "#TRUEFULLPATH#", "outputPath": "/tmp/test.zip"},
+		Type:   tasknames.RemoteDelete,
+		Args:   map[string]string{"path": "#ORIGINALFILENAME#", "recursive": "false"},
 	}
 	require.NoError(tb, db.Insert(pre2).Run())
 
