@@ -24,6 +24,7 @@ restent décrits par l'interface elle-même.
    instances-cloud
    autorites
    snmp
+   surcharges
    etat-des-services
 
 
@@ -93,8 +94,8 @@ requiert les droits sur les serveurs : lecture pour la liste et le détail,
 écriture pour créer, modifier, démarrer et arrêter, suppression pour
 supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
 sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les
-utilisateurs, et les écrans :doc:`instances-cloud`, :doc:`autorites` et
-:doc:`snmp` les droits sur l'administration.
+utilisateurs, et les écrans :doc:`instances-cloud`, :doc:`autorites`,
+:doc:`snmp` et :doc:`surcharges` les droits sur l'administration.
 
 
 Ancienne et nouvelle interface
