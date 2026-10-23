@@ -49,8 +49,17 @@
 /* A value in monospace, in the table as on the deletion page (the w-mono of the kit only applies in a table). */
 .rules-value { font-family: var(--fm); font-size: .88em; }
 .w-actions form[action*="/up"] svg.i { transform: rotate(180deg); }
-.rules-type { margin-bottom: var(--sp-2); }
-.rules-type-text { margin: 0 0 var(--sp-3); }
+/* The page of a task: the type chosen under the list; the note of a card; a field over the whole width; a choice in
+   joined buttons and a block a choice shows, without the frame of a fieldset; the only value possible; the box of the
+   copy of the transfer information; "Continue" without JavaScript. */
+.rules-typeinfo { margin: var(--sp-3) 0 0; }
+.rules-note { margin: 0 0 var(--sp-3); }
+.rules-span { grid-column: 1 / -1; }
+.rules-choice, .rules-switched { margin: 0; padding: 0; border: 0; min-width: 0; }
+.rules-choice .w-segmented { margin: var(--sp-1) 0; }
+.rules-fixed { margin: var(--sp-1) 0 0; }
+.rules-copyinfo { margin: 0 0 var(--sp-3); }
+.rules-noscript { margin-top: var(--sp-2); }
 /* Narrow screens: a parameter goes under its label. */
 @media (max-width: 40rem) {
   .rules-args { grid-template-columns: minmax(0, 1fr); row-gap: 0; }

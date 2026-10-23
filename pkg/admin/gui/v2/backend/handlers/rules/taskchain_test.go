@@ -61,7 +61,7 @@ func TestTaskStale(t *testing.T) {
 			s.post(t, permWrite, s.at(t, s.orders, model.ChainPost, "post", 2, "/up"), url.Values{}).Code)
 
 		assertStale(t, s.get(t, permWrite, page), s.orders)
-		assertStale(t, s.post(t, permWrite, page, url.Values{"arg_path": {"/nouveau"}}), s.orders)
+		assertStale(t, s.post(t, permWrite, page, url.Values{"copy.path": {"/nouveau"}}), s.orders)
 
 		got := s.chain(t, s.orders, model.ChainPost)
 		assert.Equal(t, []string{tasks.Copy, tasks.Move, tasks.Email}, typesOf(got))

@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -55,8 +56,9 @@ func offers(groups []taskGroup, value string) bool {
 //nolint:cyclop // one case per kind of object
 func (h *Handlers) namesOf(kind refKind) ([]taskGroup, error) {
 	var (
-		names []string
-		err   error
+		names     []string
+		protocols map[string]string // the protocols of the clients
+		err       error
 	)
 
 	switch kind {
@@ -80,6 +82,11 @@ func (h *Handlers) namesOf(kind refKind) ([]taskGroup, error) {
 		var list model.Clients
 		err = h.db.Select(&list).Run()
 		names = collect(list, func(c *model.Client) string { return c.Name })
+		protocols = map[string]string{}
+
+		for _, c := range list {
+			protocols[c.Name] = protoform.ProtocolOf(c.Protocol).Label
+		}
 	case refServer:
 		var list model.LocalAgents
 		err = h.db.Select(&list).Run()
@@ -100,10 +107,36 @@ func (h *Handlers) namesOf(kind refKind) ([]taskGroup, error) {
 
 	group := taskGroup{}
 	for _, name := range names {
-		group.Options = append(group.Options, taskOption{Value: name, Label: name})
+		option := taskOption{Value: name, Label: name}
+		if protocol := protocols[name]; protocol != "" {
+			option.Label += " · " + protocol // a client with its protocol, as the page that adds a transfer says it
+		}
+
+		group.Options = append(group.Options, option)
 	}
 
 	return []taskGroup{group}, nil
+}
+
+// ruleNames are the names of the rules by direction ("send", "receive"),
+// sorted: the exchange of a TRANSFER task offers those of its direction.
+func (h *Handlers) ruleNames() (map[string][]string, error) {
+	var list model.Rules
+	if err := h.db.Select(&list).Run(); err != nil {
+		return nil, err //nolint:wrapcheck // logged by the caller with its context
+	}
+
+	out := map[string][]string{}
+	for _, rule := range list {
+		dir := directionOf(rule.IsSend)
+		out[dir] = append(out[dir], rule.Name)
+	}
+
+	for dir := range out {
+		slices.Sort(out[dir])
+	}
+
+	return out, nil
 }
 
 func collect[T any](list []T, name func(T) string) []string {

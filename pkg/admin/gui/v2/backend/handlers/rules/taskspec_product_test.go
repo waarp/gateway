@@ -58,7 +58,7 @@ func sampleArgs(spec *taskSpec) map[string]string {
 
 	for i := range spec.Args {
 		arg := &spec.Args[i]
-		if !arg.Required {
+		if !arg.Required || arg.When != nil {
 			continue
 		}
 
@@ -150,6 +150,24 @@ func TestTaskSpecsRequired(t *testing.T) {
 			} else {
 				assert.Error(t, validate(s.db, spec.Type, partial), "%s requires %s", spec.Type, name)
 			}
+		}
+
+		// An argument required only when another one has a value: the product
+		// requires it then, and only then.
+		for j := range spec.Args {
+			arg := &spec.Args[j]
+			if arg.When == nil || !arg.Required {
+				continue
+			}
+
+			with := maps.Clone(withExtras)
+			with[arg.When.Arg], with[arg.Name] = arg.When.Value, sampleKinds[arg.Kind]
+			assert.NoError(t, validate(s.db, spec.Type, with), "%s accepts %s when %s is %s", spec.Type, arg.Name,
+				arg.When.Arg, arg.When.Value)
+
+			delete(with, arg.Name)
+			assert.Error(t, validate(s.db, spec.Type, with), "%s requires %s when %s is %s", spec.Type, arg.Name,
+				arg.When.Arg, arg.When.Value)
 		}
 	}
 }

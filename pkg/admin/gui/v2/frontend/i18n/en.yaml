@@ -1973,12 +1973,13 @@ rules:
     delete_text: "It is removed from the chain; the next tasks move up one rank."
     type: Task type
     type_choose: Choose a type
-    type_hint: "Choose the type, then its parameters."
+    type_hint: "Its parameters show as soon as the type is chosen."
     type_kept: "The type does not change; for another type, delete the task and add one."
-    type_change: Change the type
     continue: Continue
-    args: Parameters
     no_args: This task has no parameter.
+    fixed: the only value possible
+    info_copy: Copy the information of the transfer under way
+    info_copy_hint: Those of the list add to them or replace them.
     option_none: None
     keep_unknown: "Parameters kept as they are, which this screen does not know: {names}."
     refused: The task was not saved.
@@ -1993,6 +1994,8 @@ rules:
       json: "Give a JSON object, for instance {\"batch\": \"A\"}."
       pairs: "One line per information, as key=value."
       type: Choose a type.
+      sens: Choose a direction.
+      seconds: Give a number of seconds.
     not_found:
       title: Task not found
       text: This chain has no task at this rank.
@@ -2046,6 +2049,31 @@ task_types:
     icap_delete: "Delete the file"
     icap_move: "Move the file"
     choose: "Choose"
+    async: "Asynchronous"
+    sync: "Synchronous"
+  group:
+    file: "File"
+    exchange: "Exchange"
+    retries: "Retries on error"
+    execution: "Execution"
+    program: "Program"
+    target: "Target"
+    rule_account: "Rule and account"
+    validity: "Validity"
+    files: "Files"
+    archive: "Archive created"
+    icap_server: "ICAP server"
+    refused: "Refused file"
+    sending: "Sending"
+    recipients: "Recipients"
+    recipient: "Recipient"
+    message: "Message"
+    encryption: "Encryption"
+    decryption: "Decryption"
+    signature: "Signature"
+    verification: "Verification"
+    method_keys: "Method and keys"
+    produced: "File produced"
   copy:
     label: "Copy the file"
     text: "Make a copy of the transfer file to another folder. The new file's name will remain identical to the original file."
@@ -2153,16 +2181,21 @@ task_types:
   transfer:
     label: "Start a transfer"
     text: "Program a new client transfer with the given parameters."
+    sens_label: "Direction"
+    sens_hint: "Send: the gateway drops the file at the partner. Receive: it fetches it there."
+    rule_none: "Choose the direction first"
+    rule_send: "Choose a send rule"
+    rule_receive: "Choose a receive rule"
     arg:
       synchronous:
-        label: "Synchronous"
-        hint: "In synchronous mode, the task will wait for the transfer to finish before returning. If the transfer fails, the task will be considered a failure too."
+        label: "Mode"
+        hint: "Asynchronous: the task schedules the transfer and moves on. Synchronous: it waits for its end and fails with it."
       file:
         label: "File"
-        hint: "The path of the file to transfer."
+        hint: "To send, the path of the file, relative to the send folder of the rule; to receive, the name of the file to ask for. The variables of the transfer under way are accepted (#TRUEFULLPATH#…)."
       output:
-        label: "Output path"
-        hint: "The output path of the file."
+        label: "Name at the destination"
+        hint: "Empty: the same name."
       to:
         label: "To the partner (send)"
         hint: "The partner to send the file to; empty for a reception."
@@ -2174,28 +2207,28 @@ task_types:
         hint: "The login of the account to use for the transfer."
       using:
         label: "Client"
-        hint: "The client to use for the transfer."
+        hint: "Useful when several clients exist for the same protocol."
       rule:
         label: "Rule"
-        hint: "The rule to use for the transfer."
+        hint: "The new transfer follows its folders and runs its tasks."
       info:
         label: "Transfer info"
         hint: "Metadata about the transfer as a JSON object."
       copyInfo:
-        label: "Copy transfer info"
-        hint: "Copy the current transfer's info onto the new one."
+        label: "Copy the information of the transfer under way"
+        hint: "Those of the list add to them or replace them."
       nbOfAttempts:
-        label: "Number of attempts"
+        label: "Retries"
         hint: "The number of times the transfer will be attempted automatically."
       firstRetryDelay:
-        label: "First retry delay"
-        hint: "The delay between the original attempt and the first retry."
+        label: "First delay (s)"
+        hint: "The delay before the first retry, in seconds."
       retryIncrementFactor:
-        label: "Retry increment factor"
+        label: "Increase factor"
         hint: "The factor by which the delay between each new attempts will be multiplied. Decimal numbers are allowed."
       timeout:
-        label: "Transfer timeout"
-        hint: "The maximum allowed duration for the new transfer (only in synchronous mode)."
+        label: "Time limit (s)"
+        hint: "Beyond it, the transfer is interrupted and the task fails. Empty: no limit."
   preregister:
     label: "Preregister a transfer"
     text: "Preregister a new server transfer with the given parameters."
@@ -2222,8 +2255,8 @@ task_types:
         label: "Transfer info"
         hint: "Metadata about the transfer as a JSON object."
       copyInfo:
-        label: "Copy transfer info"
-        hint: "Copy the current transfer's info onto the new one."
+        label: "Copy the information of the transfer under way"
+        hint: "Those of the list add to them or replace them."
   setinfo:
     label: "Set transfer information"
     text: "Set or modify TransferInfo keys. Use this to inject metadata before a transfer (encoding, business ID, reply address, etc.). If a value is empty, the key will be deleted if present. Supports variable substitution (#TRUEFILENAME#, #TI_...#, etc.)."

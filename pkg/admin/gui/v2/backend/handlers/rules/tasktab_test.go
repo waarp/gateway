@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"html"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -206,7 +207,7 @@ func TestTaskAdd(t *testing.T) {
 	s.fixtures(t)
 	s.taskFixtures(t)
 
-	t.Run("Given the first step", func(t *testing.T) {
+	t.Run("Given the page of a new task", func(t *testing.T) {
 		t.Parallel()
 
 		rec := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?ret=page%3D2")
@@ -214,11 +215,22 @@ func TestTaskAdd(t *testing.T) {
 		body := rec.Body.String()
 
 		assert.Contains(t, body, "Nouvelle tâche (avant le transfert)")
-		assert.Contains(t, body, `method="get" action="`+path(s.orders, "/tasks/pre/new")+`"`)
+		assert.Contains(t, body, `method="post" action="`+path(s.orders, "/tasks/pre/new")+`?ret=page%3D2"`, "one page")
 		assert.Contains(t, body, `<input type="hidden" name="ret" value="page=2">`, "the list state goes along")
-		indexes(t, body, `<optgroup label="Opérations de fichiers">`, `<option value="COPY">Copier le fichier (COPY)</option>`,
-			`<optgroup label="Réseau">`, `<option value="SENDMESSAGE">`, `<optgroup label="Cryptographie">`)
-		assert.Equal(t, len(taskSpecs), strings.Count(body, ")</option>"), "every type, and nothing else")
+		assert.Contains(t, body, `formmethod="get" formaction="`+path(s.orders, "/tasks/pre/new")+`" formnovalidate>Continuer`,
+			"without JavaScript, the page asked again with the type")
+		indexes(t, body, `data-switch="type"`, `<optgroup label="Opérations de fichiers">`,
+			`<option value="COPY">Copier le fichier (COPY)</option>`, `<optgroup label="Réseau">`, `<option value="SENDMESSAGE">`,
+			`<optgroup label="Cryptographie">`)
+
+		for i := range taskSpecs {
+			typ := html.EscapeString(taskSpecs[i].Type)
+			assert.Contains(t, body, `<fieldset class="w-fieldset w-fieldset--wide rules-case" data-case="`+typ+`" data-of="type" hidden disabled>`,
+				"the cards of every type, shown once it is chosen")
+		}
+
+		assert.Contains(t, body, `data-case="TRANSFER PREREGISTER" data-of="type" hidden disabled>`,
+			"one card of the transfer information for both types")
 	})
 
 	t.Run("Given a type the screen does not know", func(t *testing.T) {
@@ -232,28 +244,49 @@ func TestTaskAdd(t *testing.T) {
 			"nor a chain")
 	})
 
-	t.Run("Given the parameters of a type", func(t *testing.T) {
+	t.Run("Given the parameters of TRANSFER", func(t *testing.T) {
 		t.Parallel()
 
 		body := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=TRANSFER").Body.String()
-		assert.Contains(t, body, `<input type="hidden" name="type" value="TRANSFER">`)
-		assert.Contains(t, body, "Changer de type")
-		assert.Contains(t, body, `<input type="checkbox" id="arg_synchronous" name="arg_synchronous" value="true"`)
-		indexes(t, body, `<select class="w-select" id="arg_to" name="arg_to"`, `<option value="">Aucun</option>`,
-			`<option value="banque-demo">banque-demo</option>`)
-		indexes(t, body, `id="arg_as"`, `<option value="">Choisissez</option>`, `<optgroup label="banque-demo">`,
-			`<option value="prod">prod</option>`)
-		indexes(t, body, `id="arg_rule"`, `<option value="commandes">`, `<option value="releves">`)
-		assert.Equal(t, 1, strings.Count(body, `<option value="releves">`), "a rule name once, for both directions")
-		assert.Contains(t, body, `id="arg_nbOfAttempts" name="arg_nbOfAttempts" value="" type="number"`)
-		assert.Contains(t, body, `<textarea class="w-textarea w-mono" id="arg_info"`)
-		assert.Contains(t, body, "Une durée : 30s, 5m, 1h30m.", "a duration says its form")
+		assert.Contains(t, body, `<option value="TRANSFER" selected>`)
+		assert.Contains(t, body, `data-case="TRANSFER" data-of="type">`, "its cards shown")
+		indexes(t, body, "<legend class=\"w-card__title\">Fichier</legend>", "Nom à la destination",
+			"<legend class=\"w-card__title\">Échange</legend>", `name="transfer.sens" value="send" required data-switch="transfer-sens"`,
+			`data-case="send" data-of="transfer-sens"`, `name="transfer.rule_send"`, "Choisir une règle d&#39;envoi",
+			`<option value="releves">releves</option>`,
+			`data-case="receive" data-of="transfer-sens"`, `name="transfer.rule_receive"`, `<option value="commandes">commandes</option>`,
+			`name="transfer.account"`, `<optgroup label="banque-demo"><option value="login=prod&amp;partner=banque-demo">prod</option>`,
+			`name="transfer.using"`, "Le client du protocole du partenaire", "cli-sftp · SFTP",
+			"<legend class=\"w-card__title\">Informations de transfert</legend>", `name="info_copy"`, `data-infos`,
+			"<legend class=\"w-card__title\">Tentatives en cas d&#39;erreur</legend>", "Vides : celles du client.",
+			`name="transfer.nbOfAttempts" value="" type="number" inputmode="numeric" step="1" min="0" max="127"`, "Premier délai (s)",
+			"<legend class=\"w-card__title\">Exécution</legend>", `name="transfer.synchronous" value="" checked data-switch="transfer-synchronous"`,
+			`name="transfer.synchronous" value="true" data-switch="transfer-synchronous"`,
+			`data-case="true" data-of="transfer-synchronous"`, `name="transfer.timeout"`)
+		assert.NotContains(t, body, `name="transfer.to"`, "the direction gives the partner a side")
+		assert.Contains(t, body, `data-case="TRANSFER PREREGISTER" data-of="type">`, "the card of the information shown")
 
 		body = s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=DELETE").Body.String()
-		assert.Contains(t, body, "Cette tâche n&#39;a aucun paramètre.")
+		assert.Contains(t, body, `data-case="DELETE" data-of="type"><legend class="visually-hidden">Supprimer le fichier</legend>`+
+			`<div class="w-stack"><div class="w-card"><fieldset class="w-fieldset w-fieldset--wide"><p class="rules-none w-muted">`+
+			`Cette tâche n&#39;a aucun paramètre.`)
 
 		body = s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=ARCHIVE").Body.String()
 		assert.Contains(t, body, "("+strings.Join(tasks.ArchiveExtensions.Keys(), ", ")+")", "the formats of the product")
+	})
+
+	t.Run("Given the choices of the types", func(t *testing.T) {
+		t.Parallel()
+
+		body := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=ICAP").Body.String()
+		indexes(t, body, `name="icap.onError" value="" checked data-switch="icap-onError"`, "Ne rien faire",
+			`name="icap.onError" value="delete"`, `name="icap.onError" value="move"`,
+			`data-case="move" data-of="icap-onError"`, `name="icap.onErrorMovePath"`)
+		assert.Contains(t, body, `<p class="rules-fixed"><code class="w-code">PGP</code> <span class="w-muted">seule valeur possible</span></p>`+
+			`<input type="hidden" name="encrypt_sign.method" value="PGP">`, "the only method possible, said and sent")
+		assert.Contains(t, body, `name="preregister.isSend" value="true" required>`, "two values as joined buttons")
+		assert.Contains(t, body, `<select class="w-select" id="transcode-fromCharset" name="transcode.fromCharset" required`,
+			"more values, a list")
 	})
 
 	t.Run("Given a task added after the others", func(t *testing.T) {
@@ -263,7 +296,7 @@ func TestTaskAdd(t *testing.T) {
 		require.NoError(t, s.db.Insert(rule).Run())
 
 		rec := s.post(t, permWrite, path(rule, "/tasks/post/new")+"?ret=page%3D2", url.Values{
-			"type": {tasks.Copy}, "arg_path": {" /archives "},
+			"type": {tasks.Copy}, "copy.path": {" /archives "},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		location := rec.Header().Get("Location")
@@ -272,12 +305,12 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, location, "ret=page%3D2")
 
 		rec = s.post(t, permWrite, path(rule, "/tasks/post/new"), url.Values{
-			"type": {tasks.RemoteDelete}, "arg_recursive": {"true"}, "arg_timeout": {""},
+			"type": {tasks.RemoteDelete}, "remotedelete.recursive": {"true"}, "remotedelete.timeout": {""},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 
 		rec = s.post(t, permWrite, path(rule, "/tasks/post/new"), url.Values{
-			"type": {tasks.RemoteDelete}, "arg_recursive": {"on"},
+			"type": {tasks.RemoteDelete}, "remotedelete.recursive": {"on"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 
@@ -300,9 +333,9 @@ func TestTaskAdd(t *testing.T) {
 		keys.keyFixtures(t)
 
 		for _, form := range []url.Values{
-			{"type": {tasks.Encrypt}, "arg_method": {"AES-CFB"}, "arg_keyName": {"aes"}},
-			{"type": {tasks.Sign}, "arg_method": {"HMAC-SHA256"}, "arg_keyName": {"hmac"}},
-			{"type": {tasks.SendMessage}, "arg_partner": {"banque-demo"}, "arg_account": {"prod"}, "arg_client": {"cli-sftp"}},
+			{"type": {tasks.Encrypt}, "encrypt.method": {"AES-CFB"}, "encrypt.keyName": {"aes"}},
+			{"type": {tasks.Sign}, "sign.method": {"HMAC-SHA256"}, "sign.keyName": {"hmac"}},
+			{"type": {tasks.SendMessage}, "sendmessage.partner": {"banque-demo"}, "sendmessage.account": {"prod"}, "sendmessage.client": {"cli-sftp"}},
 		} {
 			rec := keys.post(t, permWrite, path(keys.orders, "/tasks/post/new"), form)
 			assert.Equal(t, http.StatusSeeOther, rec.Code, "%s is saved", form.Get("type"))
@@ -325,22 +358,30 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, "Ce champ est obligatoire.")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
-			"type": {tasks.Archive}, "arg_files": {"*.csv"}, "arg_compressionLevel": {"12"}, "arg_outputPath": {"/a.zip"},
+			"type": {tasks.Archive}, "archive.files": {"*.csv"}, "archive.compressionLevel": {"12"}, "archive.outputPath": {"/a.zip"},
 		}).Body.String()
 		assert.Contains(t, body, "Entre 0 et 9.")
 		assert.Contains(t, body, `value="*.csv"`, "the typed values stay")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
-			"type": {tasks.Transfer}, "arg_file": {"f"}, "arg_as": {"prod"}, "arg_rule": {"releves"},
-			"arg_info": {"[1]"}, "arg_retryIncrementFactor": {"deux"}, "arg_synchronous": {"true"},
+			"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
+			"transfer.account": {accountValue("banque-demo", "prod")}, "info_name": {"lot", ""}, "info_value": {"A", "orpheline"},
+			"transfer.retryIncrementFactor": {"deux"}, "transfer.firstRetryDelay": {"trente"}, "transfer.synchronous": {"true"},
 		}).Body.String()
-		assert.Contains(t, body, "Indiquez un objet JSON")
+		assert.Contains(t, body, "Indiquez le nom de l&#39;information 2.")
 		assert.Contains(t, body, "Indiquez un nombre.")
-		assert.Contains(t, body, `name="arg_synchronous" value="true" checked`, "the ticked box stays ticked")
-		assert.Contains(t, body, `<option value="prod" selected>prod</option>`, "the chosen object stays chosen")
+		assert.Contains(t, body, "Indiquez un nombre de secondes.")
+		assert.Contains(t, body, `name="transfer.synchronous" value="true" checked`, "the mode chosen stays chosen")
+		assert.Contains(t, body, `<option value="login=prod&amp;partner=banque-demo" selected>prod</option>`, "the account stays chosen")
+		assert.Contains(t, body, `name="info_value" value="orpheline"`, "the rows stay as typed")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
-			"type": {tasks.SetInfo}, "arg_pairs": {"lot=A\nsans signe"},
+			"type": {tasks.Transfer}, "transfer.file": {"f"},
+		}).Body.String()
+		assert.Contains(t, body, "Choisissez un sens.")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.SetInfo}, "setinfo.pairs": {"lot=A\nsans signe"},
 		}).Body.String()
 		assert.Contains(t, body, "Une ligne par information, sous la forme clé=valeur.")
 
@@ -351,7 +392,7 @@ func TestTaskAdd(t *testing.T) {
 		t.Parallel()
 
 		rec := s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
-			"type": {tasks.Transcode}, "arg_fromCharset": {"klingon"}, "arg_toCharset": {"UTF-8"},
+			"type": {tasks.Transcode}, "transcode.fromCharset": {"klingon"}, "transcode.toCharset": {"UTF-8"},
 		})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		body := rec.Body.String()
@@ -400,7 +441,7 @@ func TestTaskEdit(t *testing.T) {
 		body := s.get(t, permWrite, path(rule, "/tasks/pre/0/edit")).Body.String()
 		assert.Contains(t, body, "Paramètres conservés tels quels, que cet écran ne connaît pas : ancien.")
 
-		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPre, "pre", 0, "/edit"), url.Values{"type": {"MOVE"}, "arg_path": {"/b"}})
+		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPre, "pre", 0, "/edit"), url.Values{"type": {"MOVE"}, "copy.path": {"/b"}})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		assert.Contains(t, rec.Header().Get("Location"), "done=task_updated")
 
@@ -419,7 +460,7 @@ func TestTaskEdit(t *testing.T) {
 		}).Run())
 
 		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"),
-			url.Values{"arg_pairs": {"lot = B\r\n\r\nvide=\n"}})
+			url.Values{"setinfo.pairs": {"lot = B\r\n\r\nvide=\n"}})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		assert.Equal(t, map[string]string{"lot": "B", "vide": ""}, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args),
 			"the lines replace the keys; an empty value stays (it removes the key when the task runs)")

@@ -99,8 +99,9 @@ func selectedOf(sel *html.Node) string {
 }
 
 // postedForm reads the form of a page as a browser sends it: its action, and
-// the values of its fields (a box when checked, the chosen option of a
-// select, the text of a text area).
+// the values of its fields (a box or a radio button when checked, the chosen
+// option of a select, the text of a text area), but those of a disabled field
+// or fieldset.
 func postedForm(t *testing.T, body string) (string, url.Values) {
 	t.Helper()
 
@@ -129,14 +130,17 @@ func postedForm(t *testing.T, body string) (string, url.Values) {
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
 		name, named := attr(n, "name")
+		_, disabled := attr(n, "disabled")
 
 		switch {
+		case n.Type == html.ElementNode && disabled:
+			return
 		case n.Type != html.ElementNode || !named:
 		case n.Data == "input":
 			value, _ := attr(n, "value")
 			_, checked := attr(n, "checked")
 
-			if typ, _ := attr(n, "type"); typ != "checkbox" || checked {
+			if typ, _ := attr(n, "type"); typ != "checkbox" && typ != "radio" || checked {
 				values.Add(name, value)
 			}
 		case n.Data == "textarea":
@@ -202,4 +206,44 @@ func TestTaskRoundTrip(t *testing.T) {
 				"%s (boxes %s) keeps exactly its arguments", spec.Type, box)
 		}
 	}
+}
+
+// A TRANSFER task written by the REST API (information of every JSON type,
+// durations in minutes) opened and saved without a change keeps its arguments
+// as written; a row changed takes the text typed.
+func TestTaskTransferKeepsItsValues(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	s.taskFixtures(t)
+
+	rule := &model.Rule{Name: "transfert-api", IsSend: true, Path: "transfert-api"}
+	require.NoError(t, s.db.Insert(rule).Run())
+
+	stored := map[string]string{
+		"file": "#TRUEFULLPATH#", "to": "banque-demo", "as": "prod", "rule": "releves", "synchronous": "true",
+		"info": `{"lot":"A","n":3,"ok":true}`, "firstRetryDelay": "1m30s", "timeout": "2m",
+	}
+	require.NoError(t, s.db.Insert(&model.Task{RuleID: rule.ID, Chain: model.ChainPost, Type: tasks.Transfer, Args: stored}).Run())
+
+	body := s.get(t, permWrite, path(rule, "/tasks/post/0/edit")).Body.String()
+	indexes(t, body, `name="info_name" value="lot"`, `name="info_value" value="A"`, `name="info_name" value="n"`,
+		`name="info_value" value="3"`, `name="info_name" value="ok"`, `name="info_value" value="true"`)
+	assert.Contains(t, body, `name="transfer.firstRetryDelay" value="90"`, "a duration in seconds")
+	assert.Contains(t, body, `name="transfer.sens" value="send" checked`, "the direction of the partner")
+
+	action, values := postedForm(t, body)
+	require.Equal(t, http.StatusSeeOther, s.post(t, permWrite, action, values).Code)
+	assert.Equal(t, stored, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args), "saved as written")
+
+	action, values = postedForm(t, s.get(t, permWrite, path(rule, "/tasks/post/0/edit")).Body.String())
+	values["info_value"][1] = "4"
+	values.Set("transfer.firstRetryDelay", "60")
+	require.Equal(t, http.StatusSeeOther, s.post(t, permWrite, action, values).Code)
+
+	got := s.chain(t, rule, model.ChainPost)[0].Args
+	assert.JSONEq(t, `{"lot":"A","n":"4","ok":true}`, got["info"], "the row changed takes the text typed")
+	assert.Equal(t, "60s", got["firstRetryDelay"])
+	assert.Equal(t, "2m", got["timeout"], "the duration not changed stays as written")
 }

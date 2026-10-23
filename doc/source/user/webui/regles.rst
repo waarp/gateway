@@ -179,10 +179,13 @@ identifiant SMTP, un modèle d'e-mail supprimé depuis) est marqué
 type est dans :ref:`la référence des traitements <reference-tasks>`.
 
 **Ajouter une tâche.** Chaque chaîne a son bouton *Ajouter une tâche*. La page
-fait d'abord choisir le type, groupé par famille (opérations de fichiers,
-exécutables, transfert, altérations de fichiers, archivage, réseau,
-cryptographie), puis demande ses paramètres. La tâche s'ajoute à la fin de la
-chaîne. Un paramètre se saisit selon sa nature :
+fait choisir le type, groupé par famille (opérations de fichiers, exécutables,
+transfert, altérations de fichiers, archivage, réseau, cryptographie) ; ses
+paramètres s'affichent aussitôt, sur la même page, une carte par groupe
+(*Fichier*, *Échange*, *Exécution*…), côte à côte quand ils tiennent. Sous la
+liste, le bouton ⓘ du type choisi dit ce que fait la tâche. Sans JavaScript, le
+bouton *Continuer* affiche les paramètres du type choisi. La tâche s'ajoute à
+la fin de la chaîne. Un paramètre se saisit selon sa nature :
 
 .. list-table::
    :header-rows: 1
@@ -197,21 +200,43 @@ chaîne. Un paramètre se saisit selon sa nature :
      - Cochée, le paramètre vaut ``true`` ; décochée, il vaut ``false`` si la
        tâche l'avait déjà, sinon il est omis et la tâche prend sa valeur par
        défaut.
+   * - Boutons joints
+     - Deux ou trois valeurs possibles (le sens d'un pré-enregistrement, le
+       sort d'un fichier refusé par ICAP, une méthode de signature) : un
+       bouton par valeur, le bouton choisi marqué d'une coche. Une seule valeur
+       possible est affichée, sans choix à faire.
    * - Nombre
      - Un entier, borné quand la tâche le borne (niveau de compression de 0 à
        9), ou un délai en millisecondes.
    * - Durée
-     - Sous la forme ``30s``, ``5m`` ou ``1h30m``.
+     - Sous la forme ``30s``, ``5m`` ou ``1h30m`` ; en secondes pour les
+       délais d'une tâche ``TRANSFER``.
    * - Liste
      - Les valeurs que la tâche accepte (méthodes de chiffrement, jeux de
        caractères) ou les objets de la Gateway (clés, identifiants SMTP,
        modèles d'e-mail, partenaires, comptes, clients, serveurs, règles).
-   * - Objet JSON
-     - Les informations de transfert d'une tâche ``TRANSFER`` ou
-       ``PREREGISTER``, par exemple ``{"lot": "A"}``.
+   * - Informations de transfert
+     - Celles d'une tâche ``TRANSFER`` ou ``PREREGISTER`` : une ligne par
+       information (nom, valeur), comme sur la page qui ajoute un transfert,
+       et la case qui copie d'abord celles du transfert en cours. Une valeur
+       enregistrée et non modifiée garde son type (un nombre reste un
+       nombre).
    * - Lignes clé=valeur
      - Les informations de transfert que pose une tâche ``SETINFO``, une par
        ligne ; une valeur vide retire la clé au moment de l'exécution.
+
+Un paramètre qui ne compte que selon un autre ne s'affiche qu'avec lui : le
+dossier où déplacer un fichier refusé par ICAP, la durée limite d'un transfert
+synchrone.
+
+**La tâche TRANSFER.** Sa page reprend celle qui ajoute un transfert : le
+fichier et son nom à la destination ; le sens (envoi ou réception), qui ne
+propose que les règles de ce sens ; le partenaire et son compte, en une seule
+liste ; le client ; les informations de transfert ; les tentatives en cas
+d'erreur, en secondes. Elle garde ce qui lui est propre : la copie des
+informations du transfert en cours, et le mode, asynchrone (la tâche programme
+le transfert et passe à la suite) ou synchrone (elle attend sa fin, avec une
+durée limite facultative).
 
 Le formulaire vérifie ce qu'il peut (paramètres obligatoires, nombres, JSON) ;
 la Gateway contrôle ensuite la tâche (un jeu de caractères, une clé, un

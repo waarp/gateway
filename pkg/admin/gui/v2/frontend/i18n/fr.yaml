@@ -1973,12 +1973,13 @@ rules:
     delete_text: "Elle sera retirée de la chaîne ; les tâches suivantes remontent d'un rang."
     type: Type de tâche
     type_choose: Choisissez un type
-    type_hint: "Choisissez le type, puis ses paramètres."
+    type_hint: "Ses paramètres s'affichent dès que le type est choisi."
     type_kept: "Le type ne change pas ; pour un autre type, supprimez la tâche et ajoutez-en une."
-    type_change: Changer de type
     continue: Continuer
-    args: Paramètres
     no_args: Cette tâche n'a aucun paramètre.
+    fixed: seule valeur possible
+    info_copy: Copier les informations du transfert en cours
+    info_copy_hint: Celles de la liste les complètent ou les remplacent.
     option_none: Aucun
     keep_unknown: "Paramètres conservés tels quels, que cet écran ne connaît pas : {names}."
     refused: La tâche n'a pas été enregistrée.
@@ -1993,6 +1994,8 @@ rules:
       json: "Indiquez un objet JSON, par exemple {\"lot\": \"A\"}."
       pairs: "Une ligne par information, sous la forme clé=valeur."
       type: Choisissez un type.
+      sens: Choisissez un sens.
+      seconds: Indiquez un nombre de secondes.
     not_found:
       title: Tâche introuvable
       text: Cette chaîne n'a pas de tâche à ce rang.
@@ -2046,6 +2049,32 @@ task_types:
     icap_delete: "Supprimer le fichier"
     icap_move: "Déplacer le fichier"
     choose: "Choisissez"
+    async: "Asynchrone"
+    sync: "Synchrone"
+  # Les cartes du formulaire d'une tâche, une par groupe de paramètres.
+  group:
+    file: "Fichier"
+    exchange: "Échange"
+    retries: "Tentatives en cas d'erreur"
+    execution: "Exécution"
+    program: "Programme"
+    target: "Cible"
+    rule_account: "Règle et compte"
+    validity: "Validité"
+    files: "Fichiers"
+    archive: "Archive produite"
+    icap_server: "Serveur ICAP"
+    refused: "Fichier refusé"
+    sending: "Envoi"
+    recipients: "Destinataires"
+    recipient: "Destinataire"
+    message: "Message"
+    encryption: "Chiffrement"
+    decryption: "Déchiffrement"
+    signature: "Signature"
+    verification: "Vérification"
+    method_keys: "Méthode et clés"
+    produced: "Fichier produit"
   copy:
     label: "Copier le fichier"
     text: "Crée une copie du fichier de transfert dans un autre dossier. Le nom du nouveau fichier restera identique au fichier d'origine."
@@ -2153,16 +2182,22 @@ task_types:
   transfer:
     label: "Lancer un transfert"
     text: "Programme un nouveau transfert client avec les paramètres fournis."
+    # Le sens et les règles de chaque sens : l'échange de la tâche, comme sur la page qui ajoute un transfert.
+    sens_label: "Sens"
+    sens_hint: "Envoi : la passerelle dépose le fichier chez le partenaire. Réception : elle va l'y chercher."
+    rule_none: "Choisir d'abord le sens"
+    rule_send: "Choisir une règle d'envoi"
+    rule_receive: "Choisir une règle de réception"
     arg:
       synchronous:
-        label: "Synchrone"
-        hint: "En mode synchrone, la tâche attendra que le transfert se termine avant de renvoyer un résultat. Si le transfert échoue, la tâche sera aussi considérée comme échouée."
+        label: "Mode"
+        hint: "Asynchrone : la tâche programme le transfert et passe à la suite. Synchrone : elle attend sa fin et échoue avec lui."
       file:
         label: "Fichier"
-        hint: "Le chemin du fichier à transférer."
+        hint: "À l'envoi, le chemin du fichier, relatif au dossier d'envoi de la règle ; à la réception, le nom du fichier à demander. Les variables du transfert en cours sont admises (#TRUEFULLPATH#…)."
       output:
-        label: "Chemin de destination"
-        hint: "Le chemin de destination du fichier."
+        label: "Nom à la destination"
+        hint: "Vide : le même nom."
       to:
         label: "Vers le partenaire (envoi)"
         hint: "Le partenaire auquel envoyer le fichier ; vide pour une réception."
@@ -2174,28 +2209,28 @@ task_types:
         hint: "Le compte à utiliser pour le transfert."
       using:
         label: "Client"
-        hint: "Le client à utiliser pour le transfert."
+        hint: "Utile quand plusieurs clients existent pour le même protocole."
       rule:
         label: "Règle"
-        hint: "La règle à utiliser pour le transfert."
+        hint: "Le nouveau transfert suit ses dossiers et exécute ses tâches."
       info:
         label: "Informations de transfert"
         hint: "Informations sur le transfert sous forme d'un objet JSON."
       copyInfo:
-        label: "Copier les informations"
-        hint: "Copie les informations du transfert courant sur le nouveau."
+        label: "Copier les informations du transfert en cours"
+        hint: "Celles de la liste les complètent ou les remplacent."
       nbOfAttempts:
-        label: "Nombre d'essais"
+        label: "Tentatives"
         hint: "Le nombre de fois que le transfert sera tenté automatiquement."
       firstRetryDelay:
-        label: "Délai du premier essai"
-        hint: "Le délai entre le transfert original et la première nouvelle tentative."
+        label: "Premier délai (s)"
+        hint: "Le délai avant la première nouvelle tentative, en secondes."
       retryIncrementFactor:
-        label: "Facteur d'incrément"
+        label: "Facteur d'augmentation"
         hint: "Le facteur par lequel le délai entre chaque nouvelle tentative sera multiplié. Les nombres décimaux sont acceptés."
       timeout:
-        label: "Durée limite de transfert"
-        hint: "La durée limite autorisée pour le nouveau transfert (uniquement en mode synchrone)."
+        label: "Durée limite (s)"
+        hint: "Au-delà, le transfert est interrompu et la tâche échoue. Vide : sans limite."
   preregister:
     label: "Pré-enregistrer un transfert"
     text: "Pré-enregistre un nouveau transfert serveur avec les paramètres fournis."
@@ -2222,8 +2257,8 @@ task_types:
         label: "Informations de transfert"
         hint: "Informations sur le transfert sous forme d'un objet JSON."
       copyInfo:
-        label: "Copier les informations"
-        hint: "Copie les informations du transfert courant sur le nouveau."
+        label: "Copier les informations du transfert en cours"
+        hint: "Celles de la liste les complètent ou les remplacent."
   setinfo:
     label: "Positionner des informations de transfert"
     text: "Positionne ou modifie des clés TransferInfo. Permet d'injecter des métadonnées avant un transfert (encodage, identifiant métier, adresse de retour, etc.). Si la valeur est vide, la clé sera supprimée si elle est présente. Supporte la substitution de variables (#TRUEFILENAME#, #TI_...#, etc.)."

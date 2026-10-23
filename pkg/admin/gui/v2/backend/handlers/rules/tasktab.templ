@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 )
 
 // tasksView: the Tasks tab of a rule (prototype validated by Driss on
@@ -124,9 +125,9 @@ templ argList(args []argView) {
 	</dl>
 }
 
-// taskFormView: the page of a task: first the type, by family (a new task,
-// in a GET form), then its parameters, each as its description says (text,
-// box, number, list of the objects of the gateway, JSON, key=value lines).
+// taskFormView: the page of a task, one page: the type (a new task: a list
+// by family, whose choice shows the cards of its parameters; a task edited:
+// its type in reading), then the cards of the type, then "Cancel" and "Save".
 templ taskFormView(d *taskFormData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
@@ -139,20 +140,49 @@ templ taskFormView(d *taskFormData) {
 			</a>
 		</div>
 	</div>
-	if d.Choose {
-		@typeStep(d)
-	} else {
-		@argsStep(d)
+	if d.HasErrors {
+		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.tasks.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.tasks.refused_text"))})</div>
 	}
-}
-
-// typeStep: the type of a new task, the families as groups of the list.
-templ typeStep(d *taskFormData) {
-	<form class="w-form" method="get" action={ templ.SafeURL(d.Action) } novalidate>
+	<form class="w-form rules-taskform" method="post" action={ templ.SafeURL(d.Action) } novalidate>
 		if d.Ret != "" {
 			<input type="hidden" name="ret" value={ d.Ret }/>
 		}
-		<div class="w-card">
+		<div class="w-stack">
+			@typeCard(d)
+			if d.Unknown != "" {
+				@gui.Banner(gui.BannerProps{Kind: "warn", Title: d.Unknown})
+			}
+			for _, b := range d.Blocks {
+				@typePart(b, b.Before)
+			}
+			if d.Infos != nil {
+				@infosCard(d.Infos)
+			}
+			for _, b := range d.Blocks {
+				if len(b.After) > 0 {
+					@typePart(b, b.After)
+				}
+			}
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: d.Required, Title: d.Title})
+	</form>
+}
+
+// typeCard: the type of the task. A new one: the list by family, which
+// switches the cards of the types (data-switch), "Continue" without
+// JavaScript, and, under the list, the type chosen with what it does in a
+// tooltip. A task edited: its type, kept.
+templ typeCard(d *taskFormData) {
+	<div class="w-card">
+		if d.Edit {
+			<h2 class="w-card__title">{ gui.T(ctx, "rules.tasks.type") }</h2>
+			<p class="rules-taskname">
+				<strong>{ d.Type }</strong>
+				@taskTip(d.Type, d.TypeTip)
+			</p>
+			<p class="rules-none rules-hint w-muted">{ gui.T(ctx, "rules.tasks.type_kept") }</p>
+			<input type="hidden" name={ fieldType } value={ d.Type }/>
+		} else {
 			<div class={ "w-field", templ.KV("is-invalid", d.TypeErr != "") }>
 				<label class="w-field__label" for={ fieldType }>{ gui.T(ctx, "rules.tasks.type") } <span class="w-field__req" aria-hidden="true">*</span></label>
 				<select
@@ -160,6 +190,7 @@ templ typeStep(d *taskFormData) {
 					id={ fieldType }
 					name={ fieldType }
 					required
+					data-switch="type"
 					aria-describedby="type-h"
 					if d.TypeErr != "" {
 						aria-invalid="true"
@@ -169,83 +200,207 @@ templ typeStep(d *taskFormData) {
 					for _, f := range d.Families {
 						<optgroup label={ f.Label }>
 							for _, o := range f.Types {
-								<option value={ o.Value }>{ o.Label }</option>
+								<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
 							}
 						</optgroup>
 					}
 				</select>
 				@protoform.Message("type-h", d.TypeErr, gui.T(ctx, "rules.tasks.type_hint"))
+				<noscript>
+					<button class="w-btn w-btn--outline-dark w-btn--sm rules-noscript" type="submit" formmethod="get" formaction={ templ.SafeURL(d.NewURL) } formnovalidate>{ gui.T(ctx, "rules.tasks.continue") }</button>
+				</noscript>
 			</div>
-		</div>
-		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title, Label: gui.T(ctx, "rules.tasks.continue")})
-	</form>
+			for _, b := range d.Blocks {
+				<p class="rules-taskname rules-typeinfo" data-case={ b.Type } data-of="type" hidden?={ !b.Active }>
+					<strong>{ b.Label }</strong>
+					{ " " }
+					<code class="w-code">{ b.Type }</code>
+					@taskTip(b.Type, b.Tip)
+				</p>
+			}
+		}
+	</div>
 }
 
-// argsStep: the type in reading (a new task can go back to the choice), then
-// the parameters.
-templ argsStep(d *taskFormData) {
-	if d.HasErrors {
-		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.tasks.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.tasks.refused_text"))})</div>
-	}
-	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
-		<input type="hidden" name={ fieldType } value={ d.Type }/>
+// taskTip: the button whose tooltip says what a type of task does.
+templ taskTip(code, tip string) {
+	<button class="w-icon-btn rules-info" type="button" title={ tip } aria-label={ gui.T(ctx, "rules.tasks.explain", "name", code) }>
+		@gui.Icon("info")
+	</button>
+}
+
+// typePart: cards of a type, shown and sent only for the type chosen.
+templ typePart(b typeBlock, groups []groupView) {
+	<fieldset class="w-fieldset w-fieldset--wide rules-case" data-case={ b.Type } data-of="type" hidden?={ !b.Active } disabled?={ !b.Active }>
+		<legend class="visually-hidden">{ b.Label }</legend>
 		<div class="w-stack">
-			<div class="w-card">
-				<h2 class="w-card__title">{ gui.T(ctx, "rules.tasks.type") }</h2>
-				<p class="rules-lead rules-type"><strong>{ d.TypeLabel }</strong> <code class="w-code">{ d.Type }</code></p>
-				<p class="rules-hint w-muted rules-type-text">{ d.TypeText }</p>
-				if d.ChangeURL != "" {
-					<p class="rules-none"><a href={ templ.SafeURL(d.ChangeURL) }>{ gui.T(ctx, "rules.tasks.type_change") }</a></p>
-				} else {
-					<p class="rules-none rules-hint w-muted">{ gui.T(ctx, "rules.tasks.type_kept") }</p>
-				}
-			</div>
-			<div class="w-card">
-				<h2 class="w-card__title">{ gui.T(ctx, "rules.tasks.args") }</h2>
-				if d.Unknown != "" {
-					<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: d.Unknown})</div>
-				}
-				if len(d.Fields) == 0 {
-					<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
-				}
-				for _, f := range d.Fields {
-					@taskField(f)
-				}
-			</div>
+			for _, g := range groups {
+				@groupCard(g)
+			}
 		</div>
-		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: d.Required, Title: d.Title})
-	</form>
+	</fieldset>
+}
+
+// groupCard: a card of parameters, side by side.
+templ groupCard(g groupView) {
+	<div class="w-card">
+		<fieldset class="w-fieldset w-fieldset--wide">
+			if g.Title != "" {
+				<legend class="w-card__title">{ g.Title }</legend>
+			}
+			if g.Note != "" {
+				<p class="w-muted rules-note">{ g.Note }</p>
+			}
+			switch {
+				case g.Empty:
+					<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
+				case g.Exchange != nil:
+					@exchangeFields(g.Exchange)
+				default:
+					<div class={ "w-grid", templ.KV("w-grid--3", g.Columns == threeColumns), templ.KV("w-grid--2", g.Columns != threeColumns) }>
+						for _, f := range g.Fields {
+							@taskField(f)
+						}
+					</div>
+			}
+		</fieldset>
+	</div>
+}
+
+// exchangeFields: the exchange of a TRANSFER task, as the page that adds a
+// transfer asks it: the direction, then the rules of that direction (a list
+// per direction, switched by it), the partner and its account, the client.
+templ exchangeFields(x *exchangeView) {
+	<div class="w-grid w-grid--2">
+		<div class="rules-span">
+			@choiceButtons(fieldView{
+				ID: x.Slug + "-" + exchangeSens, Name: x.Slug + "." + exchangeSens, Label: gui.T(ctx, "task_types.transfer.sens_label"),
+				Hint: gui.T(ctx, "task_types.transfer.sens_hint"), Error: x.SensErr, Required: true, Options: x.Senses,
+				Switch: x.Slug + "-" + exchangeSens,
+			})
+		</div>
+		<div>
+			<fieldset class="w-fieldset rules-switched" data-case="" data-of={ x.Slug + "-" + exchangeSens } hidden disabled>
+				<div class="w-field">
+					<label class="w-field__label" for={ x.Slug + "-rule-none" }>{ gui.T(ctx, "task_types.transfer.arg.rule.label") }@argMark(true, false)</label>
+					<select class="w-select" id={ x.Slug + "-rule-none" } disabled>
+						<option value="">{ gui.T(ctx, "task_types.transfer.rule_none") }</option>
+					</select>
+					<span class="w-field__hint">{ gui.T(ctx, "task_types.transfer.arg.rule.hint") }</span>
+				</div>
+			</fieldset>
+			for _, rc := range x.Rules {
+				<fieldset class="w-fieldset rules-switched" data-case={ rc.Sens } data-of={ x.Slug + "-" + exchangeSens }>
+					@taskField(fieldView{
+						ID: rc.ID, Name: rc.Name, Kind: fieldSelect, Label: gui.T(ctx, "task_types.transfer.arg.rule.label"),
+						Hint: gui.T(ctx, "task_types.transfer.arg.rule.hint"), Error: x.RuleErr, Required: true, None: rc.None, Groups: rc.Groups,
+					})
+				</fieldset>
+			}
+		</div>
+		@taskField(fieldView{
+			ID: x.Slug + "-" + exchangeAccount, Name: x.Slug + "." + exchangeAccount, Kind: fieldSelect,
+			Label: gui.T(ctx, "transfers.form.remote_account"), Hint: gui.T(ctx, "transfers.form.remote_account_hint"),
+			Error: x.AccountErr, Required: true, None: gui.T(ctx, "transfers.form.choose_account"), Groups: x.Accounts,
+		})
+		@taskField(x.Client)
+	</div>
+}
+
+// infosCard: the transfer information of TRANSFER and PREREGISTER, one card
+// for both, shown and sent for them only: the copy of the information of the
+// transfer under way, then the rows of the page that adds a transfer.
+templ infosCard(x *infosView) {
+	<fieldset class="w-fieldset w-fieldset--wide rules-case" data-case={ x.Cases } data-of="type" hidden?={ !x.Active } disabled?={ !x.Active }>
+		<legend class="visually-hidden">{ gui.T(ctx, "transfers.detail.infos") }</legend>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</legend>
+				<div class="w-field rules-copyinfo">
+					<label class="w-check"><input type="checkbox" id="info-copy" name={ fieldInfoCopy } value="true" checked?={ x.Copy } aria-describedby="info-copy-h"/> <span>{ gui.T(ctx, "rules.tasks.info_copy") }</span></label>
+					<span class="w-field__hint" id="info-copy-h">{ gui.T(ctx, "rules.tasks.info_copy_hint") }</span>
+				</div>
+				@transfers.InfoList(x.Rows, x.Error)
+			</fieldset>
+		</div>
+	</fieldset>
 }
 
 // argMark: what follows the label of a parameter: the required star, or
-// "(optional)".
-templ argMark(required bool) {
-	if required {
+// "(optional)"; nothing for a choice always made.
+templ argMark(required, none bool) {
+	if none {
+	} else if required {
 		{ " " }<span class="w-field__req" aria-hidden="true">*</span>
 	} else {
 		{ " " }<span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span>
 	}
 }
 
-// taskField: a parameter of the task, as its kind asks.
+// taskField: a parameter of the task, as its kind asks; a parameter that
+// depends on another one sits in the block that switch shows.
 templ taskField(f fieldView) {
+	if f.CaseOf != "" {
+		<fieldset class={ "w-fieldset", "rules-switched", templ.KV("rules-span", f.Wide) } data-case={ f.CaseValue } data-of={ f.CaseOf }>
+			@argInput(f)
+		</fieldset>
+	} else if f.Wide {
+		<div class="rules-span">
+			@argInput(f)
+		</div>
+	} else {
+		@argInput(f)
+	}
+}
+
+// argInput: the field of a parameter.
+templ argInput(f fieldView) {
 	switch f.Kind {
-		case fieldText, fieldDecimal:
-			@protoform.FieldOf(protoform.FieldProps{ID: f.ID, Label: f.Label, Req: f.Required, F: protoform.Field{Value: f.Value, Error: f.Error}, Hint: f.Hint, Short: f.Kind == fieldDecimal})
-		case fieldNumber:
-			@protoform.FieldOf(protoform.FieldProps{ID: f.ID, Label: f.Label, Req: f.Required, F: protoform.Field{Value: f.Value, Error: f.Error}, Hint: f.Hint, Short: true, Num: true, Min: f.Min, Max: f.Max})
+		case fieldText, fieldDecimal, fieldNumber:
+			<div class={ "w-field", templ.KV("w-field--short", f.Kind != fieldText), templ.KV("is-invalid", f.Error != "") }>
+				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required, false)</label>
+				<input
+					class="w-input"
+					id={ f.ID }
+					name={ f.Name }
+					value={ f.Value }
+					if f.Kind == fieldNumber {
+						type="number"
+						inputmode="numeric"
+						step="1"
+						min={ strconv.Itoa(f.Min) }
+						if f.Max > 0 {
+							max={ strconv.Itoa(f.Max) }
+						}
+					}
+					required?={ f.Required }
+					aria-describedby={ f.ID + "-h" }
+					if f.Error != "" {
+						aria-invalid="true"
+					}
+				/>
+				@protoform.Message(f.ID+"-h", f.Error, f.Hint)
+			</div>
 		case fieldBool:
 			<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
-				<label class="w-check"><input type="checkbox" id={ f.ID } name={ f.ID } value="true" checked?={ f.Checked } aria-describedby={ f.ID + "-h" }/> <span>{ f.Label }</span></label>
+				<label class="w-check"><input type="checkbox" id={ f.ID } name={ f.Name } value="true" checked?={ f.Checked } aria-describedby={ f.ID + "-h" }/> <span>{ f.Label }</span></label>
 				@protoform.Message(f.ID+"-h", f.Error, f.Hint)
+			</div>
+		case fieldChoice:
+			@choiceButtons(f)
+		case fieldFixed:
+			<div class="w-field">
+				<span class="w-field__label">{ f.Label }</span>
+				<p class="rules-fixed"><code class="w-code">{ f.Fixed }</code> <span class="w-muted">{ gui.T(ctx, "rules.tasks.fixed") }</span></p>
+				<input type="hidden" name={ f.Name } value={ f.Value }/>
 			</div>
 		case fieldSelect:
 			<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
-				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required)</label>
+				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required, false)</label>
 				<select
 					class="w-select"
 					id={ f.ID }
-					name={ f.ID }
+					name={ f.Name }
 					required?={ f.Required }
 					aria-describedby={ f.ID + "-h" }
 					if f.Error != "" {
@@ -271,11 +426,11 @@ templ taskField(f fieldView) {
 			</div>
 		default:
 			<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
-				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required)</label>
+				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required, false)</label>
 				<textarea
 					class="w-textarea w-mono"
 					id={ f.ID }
-					name={ f.ID }
+					name={ f.Name }
 					rows={ strconv.Itoa(f.Rows) }
 					spellcheck="false"
 					aria-describedby={ f.ID + "-h" }
@@ -286,6 +441,36 @@ templ taskField(f fieldView) {
 				@protoform.Message(f.ID+"-h", f.Error, f.Hint)
 			</div>
 	}
+}
+
+// choiceButtons: two or three values as joined buttons (w-segmented of the
+// kit): radio buttons, the checked one with its border, its weight and its
+// check; a switch for the fields that depend on it.
+templ choiceButtons(f fieldView) {
+	<fieldset class={ "w-fieldset", "rules-choice", templ.KV("is-invalid", f.Error != "") } aria-describedby={ f.ID + "-h" }>
+		<legend class="w-field__label">{ f.Label }@argMark(f.Required, f.NoMark)</legend>
+		<div class="w-segmented">
+			for _, o := range f.Options {
+				<label>
+					<input
+						type="radio"
+						name={ f.Name }
+						value={ o.Value }
+						checked?={ o.Selected }
+						required?={ f.Required }
+						if f.Switch != "" {
+							data-switch={ f.Switch }
+						}
+					/>
+					<span>
+						@gui.Icon("check")
+						{ o.Label }
+					</span>
+				</label>
+			}
+		</div>
+		@protoform.Message(f.ID+"-h", f.Error, f.Hint)
+	</fieldset>
 }
 
 // taskDeleteView: confirmation page of the removal of a task (decision D10):

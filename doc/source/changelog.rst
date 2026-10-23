@@ -6,14 +6,17 @@ Historique des versions
 * :feature:`759` L'écran des règles de transfert gagne l'onglet *Tâches* (voir
   :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
   des tâches : les trois chaînes (avant le transfert, après, en cas d'erreur)
-  avec, pour chaque tâche, son libellé, son code et ses paramètres en clair ;
-  un objet que la Gateway n'a plus (clé, identifiant SMTP, modèle d'e-mail) y
-  est signalé ; les pages d'ajout (le type par famille, puis ses paramètres,
-  pour les 28 types de tâches), de modification et de suppression d'une tâche,
-  et les actions *Monter* et *Descendre* à la place du glisser-déposer. Chaque
-  changement réécrit la chaîne en une transaction, comme l'API REST, et une
-  modification, un déplacement ou une suppression lancés depuis une page qui ne
-  montre plus l'état de la chaîne sont refusés, sans rien enregistrer ; les cases
+  côte à côte avec, pour chaque tâche, son type, ce qu'elle fait en info-bulle
+  et ses paramètres en clair ; un objet que la Gateway n'a plus (clé,
+  identifiant SMTP, modèle d'e-mail) y est signalé ; la page d'ajout d'une
+  tâche, en une seule page (le type par famille, et ses paramètres aussitôt, une
+  carte par groupe, pour les 28 types de tâches ; la tâche ``TRANSFER`` à
+  l'image de la page qui ajoute un transfert), ses pages de modification et de
+  suppression ; l'ordre d'une chaîne par glisser-déposer ou par les actions
+  *Monter* et *Descendre*. Chaque changement réécrit la chaîne en une
+  transaction, comme l'API REST, et une modification, un déplacement, un nouvel
+  ordre ou une suppression lancés depuis une page qui ne montre plus l'état de
+  la chaîne sont refusés, sans rien enregistrer ; les cases
   à cocher (une case enregistrée à ``false`` le reste) et les tâches de
   chiffrement s'enregistrent telles que saisies, la
   tâche ``SENDMESSAGE`` demande son partenaire, son compte et son client, que

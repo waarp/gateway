@@ -276,7 +276,8 @@ func (l *lookup) missing(translate gui.Translator, arg *argSpec, view *argView) 
 }
 
 // argsOf says the arguments of a task in words: those of its description in
-// its order (a ticked box as "Yes", a choice by its label, a missing object
+// its order (a ticked box as "Yes", or as its mode, a duration asked in
+// seconds in seconds, a choice by its label, a missing object
 // marked when look is given), then the others by name as they are (the keys
 // of a SETINFO task among them).
 func argsOf(translate gui.Translator, task *model.Task, look *lookup) []argView {
@@ -299,8 +300,13 @@ func argsOf(translate gui.Translator, task *model.Task, look *lookup) []argView 
 				continue
 			}
 
-			if arg.Kind == argBool {
+			switch {
+			case arg.Kind == argBool && arg.Modes[1] != "":
+				value = translate(arg.Modes[1])
+			case arg.Kind == argBool:
 				value = translate("rules.tasks.ticked")
+			case arg.Seconds:
+				value = secondsText(value)
 			}
 
 			if arg.Kind == argChoice {

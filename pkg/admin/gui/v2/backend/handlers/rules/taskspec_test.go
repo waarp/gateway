@@ -56,6 +56,36 @@ func argNames(spec *taskSpec) []string {
 // hold every type the product knows, exactly the arguments each task reads,
 // and the texts of the catalogue; TestTaskSpecsRequired checks what each task
 // requires against the product.
+// Every argument of a type has its place in one card of its page, and one
+// only; a card names arguments of its type alone; a dependent argument
+// depends on an argument of its type.
+func TestTaskSpecGroups(t *testing.T) {
+	t.Parallel()
+
+	for i := range taskSpecs {
+		spec := &taskSpecs[i]
+		placed := map[string]int{}
+
+		for j := range spec.Groups {
+			for _, name := range spec.Groups[j].covers() {
+				placed[name]++
+			}
+		}
+
+		for j := range spec.Args {
+			arg := &spec.Args[j]
+			assert.Equal(t, 1, placed[arg.Name], "%s: %s has one place", spec.Type, arg.Name)
+
+			if arg.When != nil {
+				assert.GreaterOrEqual(t, spec.arg(arg.When.Arg), 0, "%s: %s depends on an argument of its type",
+					spec.Type, arg.Name)
+			}
+		}
+
+		assert.Len(t, placed, len(spec.Args), "%s: its cards name its arguments alone", spec.Type)
+	}
+}
+
 func TestTaskSpecs(t *testing.T) {
 	t.Parallel()
 
