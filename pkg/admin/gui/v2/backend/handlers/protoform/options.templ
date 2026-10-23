@@ -307,18 +307,19 @@ templ tlsBlock(b BlockView) {
 	</fieldset>
 }
 
-// ProtoCell: the family of a protocol and, for the TLS variant, the "TLS"
-// badge, in a cell of a list: the badge is aligned from one row to the next
-// whatever the length of the family name (Driss, 2026-10-20).
+// ProtoCell: the family of a protocol and, for the TLS variant, a lock, in a
+// cell of a list: the lock is aligned from one row to the next whatever the
+// length of the family name (2026-10-20; a lock in place of a "TLS" badge,
+// 2026-10-23).
 templ ProtoCell(family string, tls bool) {
-	<span class="proto-cell"><span>{ family }</span>@TLSBadge(tls)</span>
+	<span class="proto-cell"><span>{ family }</span>@TLSLock(tls)</span>
 }
 
-// TLSBadge: the "TLS" badge next to the family of a protocol, when the
-// protocol is the TLS variant.
-templ TLSBadge(on bool) {
+// TLSLock: the lock next to the family of a protocol, when the protocol is the
+// TLS variant; its accessible name and its tooltip say it.
+templ TLSLock(on bool) {
 	if on {
-		{ " " }<span class="w-badge w-badge--neutral">{ gui.T(ctx, "proto.tls_badge") }</span>
+		{ " " }<span class="proto-lock" role="img" aria-label={ gui.T(ctx, "proto.tls_lock") } title={ gui.T(ctx, "proto.tls_lock") }>@gui.Icon("lock")</span>
 	}
 }
 

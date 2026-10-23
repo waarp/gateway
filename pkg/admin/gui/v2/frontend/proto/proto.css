@@ -11,5 +11,7 @@
 .proto-duration__parts { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
 .proto-duration__parts .w-field--short { max-width: 7rem; }
 .proto-duration__parts .w-field__label { font-weight: 400; }
-/* Protocol cell of a list: the family, then the TLS badge aligned from one row to the next (widest family: WebDAV). */
+/* Protocol cell of a list: the family, then the TLS lock aligned from one row to the next (widest family: WebDAV). */
 .proto-cell { display: inline-grid; grid-template-columns: 4.25rem auto; align-items: center; }
+.proto-lock { display: inline-flex; color: var(--ts); }
+.proto-lock .i { width: 1.15em; height: 1.15em; }

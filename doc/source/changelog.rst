@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`763` Dans les listes des serveurs locaux, des clients locaux et des
+  partenaires distants, un cadenas remplace le badge *TLS* à côté de la famille
+  du protocole ; son info-bulle et son nom accessible disent « Chiffré par
+  TLS ».
+
 * :feature:`762` L'interface web ouvre la documentation dans un nouvel onglet,
   sans quitter l'application. Une page de création ou de modification dont le
   formulaire a changé sans être validé demande confirmation avant d'être
