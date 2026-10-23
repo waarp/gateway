@@ -107,7 +107,7 @@ navigateur, comme pour les autres listes.
      - La page des tâches de la règle.
    * - Voir les accès
      - lecture
-     - La page des droits d'usage de la règle.
+     - L'onglet *Accès* de la règle (voir ci-dessous).
    * - Voir les transferts
      - lecture des transferts
      - Le :ref:`suivi des transferts <user-webui-transfers>`, filtré sur la
@@ -141,8 +141,53 @@ L'onglet *Détails* montre en lecture :
      - Le dossier local, le dossier distant et le dossier de réception
        temporaire ; un dossier vide dit ce que la Gateway emploie à sa place.
 
-Les onglets *Tâches* et *Accès*, avec leur nombre, mènent aux pages des tâches
-et des droits d'usage de la règle.
+L'onglet *Tâches*, avec leur nombre, mène à la page des tâches de la règle ;
+l'onglet *Accès* est décrit ci-dessous.
+
+
+Onglet Accès
+============
+
+L'onglet *Accès* de la fiche, adresse ``/webui/rules/<id>/access``, dit qui
+peut employer la règle. Sa consultation requiert le droit de lecture sur les
+règles ; l'ajout et le retrait d'un accès, le droit d'écriture.
+
+**Ouverte à tous ou réservée.** Une règle sans accès est ouverte à tous : tout
+serveur, partenaire ou compte peut l'employer. Dès qu'un accès est donné, elle
+est fermée à tous les autres, des deux côtés :
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Bloc
+     - Contrôlé quand
+   * - Quand un partenaire se connecte
+     - Un partenaire se connecte à un serveur de la Gateway : le serveur ou le
+       compte local doit avoir accès.
+   * - Quand la passerelle se connecte
+     - La Gateway se connecte à un partenaire : le partenaire ou le compte
+       distant doit avoir accès.
+
+Une règle réservée d'un seul côté est donc fermée de l'autre ; l'onglet le
+signale. L'état de la règle, puis les deux côtés, côte à côte, sont des cartes
+repliables : une carte repliée le reste au retour sur l'onglet. Chaque accès y
+est une carte, son type au-dessus de sa cible, avec son menu « ⋯ », qui mène à
+sa page de retrait. Un accès ne porte que sa cible : il ne se modifie pas, on
+retire l'un et on ajoute l'autre.
+
+**Ajouter un accès.** Chaque côté a son bouton : *Ajouter un serveur ou un
+compte local*, *Ajouter un partenaire ou un compte distant*. Il ouvre une page
+où l'on tape ou choisit la cible, dans une liste groupée par type, parmi ceux de
+ce côté : les serveurs et les partenaires avec leur protocole, les comptes avec
+leur serveur ou leur partenaire. La saisie filtre la liste ; le nom d'un serveur
+ou d'un partenaire trouve aussi ses comptes. Les cibles qui ont déjà accès ne
+sont pas proposées. Sur une règle ouverte à tous, la page rappelle que ce
+premier accès la ferme à tous les autres.
+
+**Retirer un accès, rouvrir à tous.** La page de retrait d'un accès dit, pour
+le dernier, que la règle redevient ouverte à tous. Le bouton *Rouvrir à tous*
+retire tous les accès d'une règle réservée, après confirmation.
 
 
 Ajouter ou modifier une règle

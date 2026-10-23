@@ -1809,6 +1809,64 @@ rules:
   access:
     open: Ouverte à tous
     restricted: "Réservée : {n}"
+    add_in: Ajouter un serveur ou un compte local
+    add_out: Ajouter un partenaire ou un compte distant
+    back: Retour aux accès
+    state: État
+    open_text: "tout serveur, partenaire ou compte peut employer la règle."
+    restricted_title: Réservée
+    restricted_text: "seuls les serveurs, partenaires et comptes ci-dessous peuvent l'employer ; tous les autres sont refusés, des deux côtés."
+    one_sided_title: La règle n'est réservée que d'un côté.
+    one_sided_in: "Seuls des serveurs ou des comptes locaux y ont accès : la passerelle ne peut plus employer cette règle quand elle se connecte à un partenaire."
+    one_sided_out: "Seuls des partenaires ou des comptes distants y ont accès : aucun partenaire ne peut plus employer cette règle quand il se connecte à la passerelle."
+    open_action: Rouvrir à tous
+    in: Quand un partenaire se connecte
+    in_text: Les serveurs et les comptes locaux par lesquels un partenaire peut employer la règle.
+    in_none: Aucun serveur ni compte local.
+    out: Quand la passerelle se connecte
+    out_text: Les partenaires et les comptes distants vers lesquels la passerelle peut employer la règle.
+    out_none: Aucun partenaire ni compte distant.
+    side_open: "Aucun accès de ce côté : la règle est ouverte à tous."
+    count: "{n} accès"
+    count_none: aucun accès
+    col:
+      kind: Type
+      target: Cible
+    # Les quatre types d'accès, sous les noms de l'adresse.
+    kind:
+      server: Serveur
+      local_account: Compte local
+      partner: Partenaire
+      remote_account: Compte distant
+    of_server: "{login} (serveur {server})"
+    of_partner: "{login} (partenaire {partner})"
+    unknown: "Objet n° {id} d'une autre passerelle"
+    remove: Retirer l'accès
+    new_title: "Nouvel accès à « {name} »"
+    first_title: La règle est ouverte à tous.
+    first_note: "Dès ce premier accès, elle sera fermée à tous les autres serveurs, partenaires et comptes, des deux côtés."
+    target_choose: Tapez ou choisissez une cible
+    target_hint: "Le nom d'un serveur ou d'un partenaire trouve aussi ses comptes."
+    # Les groupes de la liste des cibles, un par type d'accès.
+    group:
+      server: Serveurs
+      local_account: Comptes locaux
+      partner: Partenaires
+      remote_account: Comptes distants
+    none_left: Tous ont déjà accès à la règle.
+    refused: L'accès n'a pas été ajouté.
+    error:
+      target: Choisissez la cible.
+      granted: Cette cible a déjà accès à la règle.
+    remove_title: "Retirer l'accès de « {name} » ?"
+    remove_text: Elle ne pourra plus employer la règle.
+    last_title: C'est le dernier accès de la règle.
+    last_text: "Une fois retiré, la règle sera de nouveau ouverte à tous les serveurs, partenaires et comptes."
+    open_title: "Rouvrir la règle « {name} » à tous ?"
+    open_confirm: "Ses accès ({n}) seront retirés : tout serveur, partenaire ou compte pourra de nouveau l'employer."
+    not_found:
+      title: Accès introuvable
+      text: Cette règle ne donne pas cet accès.
   action:
     detail: Voir la fiche
     edit: Modifier la règle
@@ -1881,6 +1939,9 @@ rules:
     created: "Règle « {name} » créée"
     updated: "Règle « {name} » enregistrée"
     deleted: "Règle « {name} » supprimée"
+    access_added: "Accès ajouté : {name}"
+    access_removed: "Accès retiré : {name}"
+    access_opened: "Règle « {name} » ouverte à tous"
   empty:
     title: Aucune règle de transfert pour l'instant
     text: "Une règle dit dans quel sens un fichier s'échange, entre quels dossiers, avec quels traitements et pour qui."

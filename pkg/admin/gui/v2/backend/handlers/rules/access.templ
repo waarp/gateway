@@ -1,0 +1,179 @@
+package rules
+
+import (
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// accessView: the Access tab of a rule (prototype validated by Driss on
+// 2026-10-23). The header holds the menu of the rule, not its edition, which
+// concerns the Details tab. The state in words (open to all, or restricted and
+// what that closes), then the two sides side by side: when a partner connects
+// (servers, local accounts) and when the gateway connects (partners, remote
+// accounts), each with its addition and a "⋯" menu to remove an access. The
+// cards fold and stay folded on the next visit.
+templ accessView(d accessData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.back") }
+			</a>
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-access", Name: d.Title, Items: d.Actions})
+			}
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "rules.tab.label"), d.Tabs)
+	<div class="w-stack">
+		@ruleFold("access-state", gui.T(ctx, "rules.access.state"), d.StateMeta) {
+			if d.Open {
+				<p class="rules-lead"><strong>{ gui.T(ctx, "rules.access.open") }</strong> · { gui.T(ctx, "rules.access.open_text") }</p>
+			} else {
+				<p class="rules-lead"><strong>{ gui.T(ctx, "rules.access.restricted_title") }</strong> · { gui.T(ctx, "rules.access.restricted_text") }</p>
+				if d.OneSided != "" {
+					<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.access.one_sided_title"), Text: d.OneSided})</div>
+				}
+				if d.OpenURL != "" {
+					<div class="rules-card-actions"><a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(d.OpenURL) }>{ gui.T(ctx, "rules.access.open_action") }</a></div>
+				}
+			}
+		}
+		<div class="w-grid w-grid--2 rules-columns">
+			@accessBlock("access-in", gui.T(ctx, "rules.access.in"), gui.T(ctx, "rules.access.in_text"), gui.T(ctx, "rules.access.add_in"), d.In)
+			@accessBlock("access-out", gui.T(ctx, "rules.access.out"), gui.T(ctx, "rules.access.out_text"), gui.T(ctx, "rules.access.add_out"), d.Out)
+		</div>
+	</div>
+}
+
+// accessBlock: the access of one side, its addition, or the sentence saying
+// it has none. Each access is a card on the background of the page, its kind
+// over its target, its menu (no table in a card: Driss, 2026-10-23).
+templ accessBlock(key, title, text, add string, side accessSide) {
+	@ruleFold(key, title, side.Count) {
+		<p class="rules-hint rules-block-hint w-muted">{ text }</p>
+		if side.AddURL != "" {
+			<div class="rules-card-actions rules-add">
+				<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(side.AddURL) }>
+					@gui.Icon("plus")
+					{ add }
+				</a>
+			</div>
+		}
+		if len(side.Rows) == 0 {
+			<p class="rules-none w-muted">{ side.None }</p>
+		} else {
+			<ul class="rules-accesslist" aria-label={ title }>
+				for _, r := range side.Rows {
+					<li class="rules-accessitem">
+						<div>
+							<span class="rules-accesskind">{ r.Kind }</span>
+							<strong class="rules-accesstarget">{ r.Label }</strong>
+						</div>
+						if len(r.Actions) > 0 {
+							@gui.Actions(gui.ActionsProps{ID: "act-" + r.ID, Name: r.Label, Items: r.Actions})
+						}
+					</li>
+				}
+			</ul>
+		}
+	}
+}
+
+// accessFormView: the page that adds an access: its target, in the list to
+// type in of the kit, by kind (the servers and partners with their protocol,
+// the accounts with their server or partner; the targets already granted left
+// out), or the sentence saying every one has access.
+templ accessFormView(d *accessForm) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ " " + gui.T(ctx, "rules.access.back") }
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.access.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			if d.Note != "" {
+				<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.access.first_title"), Text: d.Note})</div>
+			}
+			if len(d.Groups) == 0 {
+				<p class="w-muted">{ gui.T(ctx, "rules.access.none_left") }</p>
+			} else {
+				<div class={ "w-field", templ.KV("is-invalid", d.TargetErr != "") }>
+					<label class="w-field__label" for={ fieldTarget }>{ gui.T(ctx, "rules.access.col.target") } <span class="w-field__req" aria-hidden="true">*</span></label>
+					@gui.Combobox(gui.ComboboxProps{
+						ID: fieldTarget, Name: fieldTarget, Groups: d.Groups, Placeholder: gui.T(ctx, "rules.access.target_choose"),
+						Required: true, Invalid: d.TargetErr != "", Describe: "target-h",
+					})
+					@protoform.Message("target-h", d.TargetErr, gui.T(ctx, "rules.access.target_hint"))
+				</div>
+			}
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// removeView: confirmation page of the removal of an access (decision D10),
+// saying when the rule becomes open to all again.
+templ removeView(d removeData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.access.back") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Last {
+			<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.access.last_title"), Text: gui.T(ctx, "rules.access.last_text")})</div>
+		} else {
+			<p class="rules-lead">{ gui.T(ctx, "rules.access.remove_text") }</p>
+		}
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "rules.access.col.kind") }</dt>
+			<dd>{ d.Kind }</dd>
+			<dt>{ gui.T(ctx, "rules.access.col.target") }</dt>
+			<dd><code class="w-code">{ d.Label }</code></dd>
+		</dl>
+		<form class="rules-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+	</div>
+}
+
+// openView: confirmation page that opens the rule to all again: every access
+// removed.
+templ openView(d openData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.access.back") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		<p class="rules-lead">{ gui.T(ctx, "rules.access.open_confirm", "n", strconv.Itoa(d.Count)) }</p>
+		<form class="rules-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Title: d.Title})</form>
+	</div>
+}

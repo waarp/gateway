@@ -21,3 +21,16 @@
 .rules-holds { margin: var(--sp-4) 0 0; padding-left: var(--sp-5); }
 .rules-holds li + li { margin-top: var(--sp-1); }
 .rules-form-actions { margin-top: var(--sp-5); }
+/* The Access tab: the button that opens the rule to all keeps its width; a block says what it holds in one line.
+   The two sides side by side keep their own height. Each access a card on the background of the page, as the tasks:
+   its kind over its target, its menu (no table in a card). */
+.rules-accesslist { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.rules-accessitem { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--g200); border-radius: var(--rs); background: var(--app-bg); }
+.rules-accessitem > div { flex: 1 1 auto; min-width: 0; }
+.rules-accesskind { display: block; font-size: var(--fs-sm); color: var(--ts); }
+.rules-accesstarget { display: block; font-family: var(--fm); font-weight: 700; overflow-wrap: anywhere; }
+.rules-card-actions { display: flex; }
+.rules-add { margin-bottom: var(--sp-3); }
+.rules-columns { align-items: start; }
+.rules-block-hint { margin: 0 0 var(--sp-3); }
+.rules-none { margin: 0; }
