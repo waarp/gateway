@@ -61,7 +61,7 @@ func e2eScreens() []e2eScreen {
 	return []e2eScreen{
 		{path: "/webui/home", outside: true},
 		{path: "/webui/about", outside: true},
-		{path: "/webui/account", tables: 1, outside: true},
+		{path: "/webui/account", outside: true},
 		{path: "/webui/services", tables: 3, tabs: 3, fragment: "fragment=state"},
 		{path: "/webui/servers", tables: 1},
 		{path: "/webui/servers/1"},
@@ -124,15 +124,15 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/partners/1/accounts/1/auth/6/delete"},
 		{path: "/webui/partners/1/accounts/1/auth/new"},
 		// The users (#718): the list, the sheet of the smoke user (user 2: the
-		// table of their rights), the pages that add, edit and delete the
+		// cards of their rights), the pages that add, edit and delete the
 		// viewer (user 3), the refused deletion of the smoke user's own
 		// account.
 		{path: "/webui/users", tables: 1},
-		{path: "/webui/users/2", tables: 1},
-		{path: "/webui/users/new", tables: 1}, // the table of the rights to grant
-		{path: "/webui/users/3/edit", tables: 1},
-		{path: "/webui/users/3/delete", tables: 1},
-		{path: "/webui/users/2/delete", tables: 1},
+		{path: "/webui/users/2"},
+		{path: "/webui/users/new"},
+		{path: "/webui/users/3/edit"},
+		{path: "/webui/users/3/delete"},
+		{path: "/webui/users/2/delete"},
 	}
 }
 

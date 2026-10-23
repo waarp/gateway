@@ -2,7 +2,7 @@
 // screens that show them: the "My account" page (the rights of the signed-in
 // user) and the "Users" screen (the rights of every user). One source for
 // the domains of the product's permission mask, their labels and their
-// rendering as a table.
+// rendering as cards.
 package rights
 
 import (
@@ -21,7 +21,12 @@ const (
 	deleteLetter = 'd'
 	noLetter     = '-'
 
-	labelKeyPrefix = "rights.domain."
+	labelKeyPrefix   = "rights.domain."
+	grantedKeyPrefix = "rights.granted."
+
+	// Stylesheet is the stylesheet of the cards of the rights (List, the
+	// checkboxes of the users form), for the screens that show them.
+	Stylesheet = "/static_v2/rights/rights.css"
 )
 
 // Domain is a domain of the permission mask: what the user may read, write
@@ -77,13 +82,17 @@ func (d Domain) Count(perms model.PermsMask) int {
 	return len(letters) - strings.Count(letters, string(noLetter))
 }
 
-// Row is a domain with what a user may do in it, translated.
+// Row is a domain with what a user may do in it, translated: each right,
+// and all of them in words ("Lecture et écriture"), None when they hold none.
 type Row struct {
 	Key   string
 	Label string
 
 	Read, Write, Delete bool
 	NoDelete            bool
+
+	Granted string
+	None    bool
 }
 
 // Rows reads the rights of a user, domain by domain, in the order of the
@@ -92,6 +101,11 @@ func Rows(translate gui.Translator, perms model.PermsMask) []Row {
 	rows := make([]Row, 0, len(Domains))
 
 	for _, d := range Domains {
+		held := strings.ReplaceAll(d.Letters(perms), string(noLetter), "")
+		if held == "" {
+			held = "none"
+		}
+
 		rows = append(rows, Row{
 			Key:      d.Key,
 			Label:    translate(d.LabelKey()),
@@ -99,6 +113,8 @@ func Rows(translate gui.Translator, perms model.PermsMask) []Row {
 			Write:    perms.HasPermission(d.Write),
 			Delete:   d.Delete != 0 && perms.HasPermission(d.Delete),
 			NoDelete: d.NoDelete,
+			Granted:  translate(grantedKeyPrefix + held),
+			None:     held == "none",
 		})
 	}
 

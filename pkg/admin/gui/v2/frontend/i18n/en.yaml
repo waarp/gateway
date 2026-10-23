@@ -614,13 +614,19 @@ about:
 # Rights of a user by domain: the table shared by "My account" and the "Users" screen.
 rights:
   col:
-    domain: Domain
     read: Read
     write: Write
     delete: Delete
-  "yes": "Yes"
-  "no": "No"
-  na: "—"
+  # What a user may do in a domain, in words, from the notation (r, w, d).
+  granted:
+    r: Read
+    w: Write
+    d: Delete
+    rw: Read and write
+    rd: Read and delete
+    wd: Write and delete
+    rwd: Read, write and delete
+    none: No right
   domain:
     transfers: Transfers
     servers: Local servers and clients
@@ -1030,7 +1036,6 @@ users:
     password_keep: "Empty: unchanged. 72 characters at most."
     confirm: Password, once more
     rights_caption: "Rights to grant, by domain: read, write, delete"
-    right_of: "{right} on {domain}"
     transfers_delete: Transfers cannot be deleted.
     self: "This is your own account: your rights apply as soon as it is saved."
     self_last_admin: "You are the last administrator: if you drop your write right on the users, nobody will be able to manage the users any more."

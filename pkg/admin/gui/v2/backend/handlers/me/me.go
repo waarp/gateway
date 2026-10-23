@@ -81,8 +81,9 @@ func (h *Handlers) render(w http.ResponseWriter, r *http.Request, data *pageData
 			{Label: translate("home.title"), URL: common.WebuiURL("/home")},
 			{Label: translate("me.title")},
 		},
-		Status:  status,
-		Notices: notices,
+		Status:      status,
+		Notices:     notices,
+		Stylesheets: []string{rights.Stylesheet},
 	}, page(data))
 }
 

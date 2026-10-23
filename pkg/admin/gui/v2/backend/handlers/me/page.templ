@@ -28,7 +28,7 @@ templ page(d *pageData) {
 		</div>
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "me.rights") }</h2>
-			@rights.Table(gui.T(ctx, "me.rights_caption"), d.Rights)
+			@rights.List(gui.T(ctx, "me.rights_caption"), d.Rights)
 			<p class="w-form__note me-note">{ gui.T(ctx, "me.rights_hint") }</p>
 		</div>
 		<div class="w-card">

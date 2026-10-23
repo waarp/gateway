@@ -143,8 +143,9 @@ La fiche d'un utilisateur, adresse ``/webui/users/<id>``, montre en lecture :
        l'utilisateur est le seul à détenir l'écriture sur les utilisateurs, la
        mention *Dernier administrateur*.
    * - Droits
-     - Un tableau, le même que sur la page *Mon compte* : pour chaque domaine,
-       *Oui* ou *Non* en lecture, en écriture et en suppression.
+     - Une carte par domaine, comme sur la page *Mon compte* : ce que
+       l'utilisateur peut y faire, en toutes lettres (*Lecture et écriture*,
+       *Aucun droit*).
 
 Le bouton *Modifier l'utilisateur* et le menu « ⋯ » (supprimer) sont sur la
 fiche ; *Retour à la liste* ramène à la liste telle qu'on l'a quittée.
@@ -170,7 +171,7 @@ de deux blocs :
        passe actuel. Le mot de passe n'est jamais réaffiché, même quand le
        formulaire est refusé.
    * - Droits
-     - Un tableau de cases à cocher : pour chaque domaine, la lecture,
+     - Une carte par domaine, avec ses cases à cocher : la lecture,
        l'écriture et la suppression (les transferts n'ont pas de droit de
        suppression). Une case décochée retire le droit.
 

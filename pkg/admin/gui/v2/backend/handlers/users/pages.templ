@@ -128,7 +128,7 @@ templ youBadge(self bool) {
 
 // detailView: the sheet of a user, in reading: the login (marked "You" for
 // the signed-in user, "last administrator" when they are the only one who
-// may manage the users) and the rights by domain, the table shared with "My
+// may manage the users) and the rights by domain, the cards shared with "My
 // account". Breadcrumb and a "Back to the list" button (decision D10);
 // "Edit" as the main action, the deletion in a "⋯" menu.
 templ detailView(d detailData) {
@@ -165,7 +165,7 @@ templ detailView(d detailData) {
 		</div>
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "users.detail.rights") }</h2>
-			@rights.Table(d.Caption, d.Rights)
+			@rights.List(d.Caption, d.Rights)
 		</div>
 	</div>
 }
@@ -195,45 +195,31 @@ templ selfWarning(d *formData) {
 	}
 }
 
-// rightCheck: one checkbox of the rights table, named after its domain with
-// the letter of the right as its value, as the product writes the rights;
-// its accessible name says the right and the domain.
-templ rightCheck(key, letter string, checked bool, name string) {
-	<input class="users-check" type="checkbox" id={ key + "-" + letter } name={ key } value={ letter } checked?={ checked } aria-label={ name }/>
+// rightCheck: one checkbox of the rights, named after its domain with the
+// letter of the right as its value, as the product writes the rights; its
+// label says the right, the legend of its card the domain.
+templ rightCheck(key, letter string, checked bool, label string) {
+	<label class="w-check"><input type="checkbox" id={ key + "-" + letter } name={ key } value={ letter } checked?={ checked }/> <span>{ label }</span></label>
 }
 
-// rightsChecks: the rights to grant, as a table: one row per domain, a
-// checkbox for the read, write and delete rights; the transfers have no
-// delete right (the product never checks it), the cell says so.
+// rightsChecks: the rights to grant, one card per domain as on the sheet (no
+// table in a card: Driss, 2026-10-23), a checkbox for the read, write and
+// delete rights; the transfers have no delete right (the product never
+// checks it), the note under the cards says so.
 templ rightsChecks(d *formData) {
-	<div class="w-table-wrap">
-		<table class="w-table users-checks">
-			<caption class="visually-hidden">{ gui.T(ctx, "users.form.rights_caption") }</caption>
-			<thead>
-				<tr>
-					<th scope="col">{ gui.T(ctx, "rights.col.domain") }</th>
-					<th scope="col">{ gui.T(ctx, "rights.col.read") }</th>
-					<th scope="col">{ gui.T(ctx, "rights.col.write") }</th>
-					<th scope="col">{ gui.T(ctx, "rights.col.delete") }</th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, row := range d.Rights {
-					<tr>
-						<th scope="row"><span class="w-cell-title">{ row.Label }</span></th>
-						<td>@rightCheck(row.Key, "r", row.Read, gui.T(ctx, "users.form.right_of", "right", gui.T(ctx, "rights.col.read"), "domain", row.Label))</td>
-						<td>@rightCheck(row.Key, "w", row.Write, gui.T(ctx, "users.form.right_of", "right", gui.T(ctx, "rights.col.write"), "domain", row.Label))</td>
-						<td>
-							if row.NoDelete {
-								<span class="w-muted">{ gui.T(ctx, "rights.na") }</span>
-							} else {
-								@rightCheck(row.Key, "d", row.Delete, gui.T(ctx, "users.form.right_of", "right", gui.T(ctx, "rights.col.delete"), "domain", row.Label))
-							}
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
+	<div class="rights-list" role="group" aria-label={ gui.T(ctx, "users.form.rights_caption") }>
+		for _, row := range d.Rights {
+			<fieldset class="rights-item">
+				<legend class="rights-domain">{ row.Label }</legend>
+				<div class="w-checks">
+					@rightCheck(row.Key, "r", row.Read, gui.T(ctx, "rights.col.read"))
+					@rightCheck(row.Key, "w", row.Write, gui.T(ctx, "rights.col.write"))
+					if !row.NoDelete {
+						@rightCheck(row.Key, "d", row.Delete, gui.T(ctx, "rights.col.delete"))
+					}
+				</div>
+			</fieldset>
+		}
 	</div>
 	<p class="w-form__note users-note">{ gui.T(ctx, "users.form.transfers_delete") }</p>
 }
@@ -241,7 +227,7 @@ templ rightsChecks(d *formData) {
 // formView: creation and edition of a user, one page (decision D10), one
 // card per block: the identity (login, password entered twice and checked by
 // the server, never rendered back; optional on edition, empty meaning
-// unchanged) and the rights as a table of checkboxes. Refused form: a
+// unchanged) and the rights, a card of checkboxes per domain. Refused form: a
 // banner, the login and the checkboxes kept, a message under each faulty
 // field (422).
 templ formView(d *formData) {
@@ -309,7 +295,7 @@ templ deleteView(d deleteData) {
 			<dd><code class="w-code">{ d.Name }</code></dd>
 		</dl>
 		<h2 class="w-card__title users-subtitle">{ gui.T(ctx, "users.detail.rights") }</h2>
-		@rights.Table(d.Caption, d.Rights)
+		@rights.List(d.Caption, d.Rights)
 		if d.Blocked {
 			<div class="w-form__actions users-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "users.back_user") }</a></div>
 		} else {

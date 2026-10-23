@@ -42,14 +42,19 @@ func TestRows(t *testing.T) {
 	rows := Rows(translate, model.PermServersRead|model.PermServersWrite|model.PermUsersDelete)
 	require.Len(t, rows, 6)
 
-	assert.Equal(t, Row{Key: "transfers", Label: "<rights.domain.transfers>", NoDelete: true}, rows[0])
-	assert.Equal(t, Row{Key: "servers", Label: "<rights.domain.servers>", Read: true, Write: true}, rows[1])
-	assert.Equal(t, Row{Key: "users", Label: "<rights.domain.users>", Delete: true}, rows[4])
+	assert.Equal(t, Row{
+		Key: "transfers", Label: "<rights.domain.transfers>", NoDelete: true, Granted: "<rights.granted.none>", None: true,
+	}, rows[0])
+	assert.Equal(t, Row{
+		Key: "servers", Label: "<rights.domain.servers>", Read: true, Write: true, Granted: "<rights.granted.rw>",
+	}, rows[1])
+	assert.Equal(t, Row{Key: "users", Label: "<rights.domain.users>", Delete: true, Granted: "<rights.granted.d>"}, rows[4])
 	assert.Equal(t, "admin", rows[5].Key)
 
 	all := Rows(translate, model.PermAll)
-	assert.Equal(t, Row{Key: "transfers", Label: "<rights.domain.transfers>", Read: true, Write: true, NoDelete: true}, all[0],
-		"no delete right on the transfers, even with every right")
+	assert.Equal(t, Row{
+		Key: "transfers", Label: "<rights.domain.transfers>", Read: true, Write: true, NoDelete: true, Granted: "<rights.granted.rw>",
+	}, all[0], "no delete right on the transfers, even with every right")
 
 	for _, row := range all[1:] {
 		assert.True(t, row.Read && row.Write && row.Delete, row.Key)

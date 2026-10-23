@@ -7,7 +7,8 @@ Historique des versions
   le kit (voir :ref:`le guide de l'interface web <user-webui-users>`) : liste
   triée par colonne et filtrée par domaine et par droit, avec les droits de
   chaque utilisateur dans la notation de l'API (``rwd``) ; fiche en lecture
-  avec les droits en toutes lettres, le même tableau que « Mon compte » ;
+  avec les droits en toutes lettres, une carte par domaine comme sur « Mon
+  compte » ;
   pages de création, de modification et de suppression, le mot de passe saisi
   deux fois et vérifié par le serveur, jamais réaffiché. La suppression du
   dernier administrateur et celle de son propre compte sont refusées dans la

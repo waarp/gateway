@@ -1,0 +1,16 @@
+package rights
+
+// List: the rights of a user, in reading, one card per domain on the
+// background of the page (no table in a card: Driss, 2026-10-23): the domain
+// over what the user may do in it, in words. The caption says whose rights
+// they are; the screen links Stylesheet.
+templ List(caption string, rows []Row) {
+	<ul class="rights-list" aria-label={ caption }>
+		for _, rt := range rows {
+			<li class="rights-item">
+				<strong class="rights-domain">{ rt.Label }</strong>
+				<span class={ "rights-granted", templ.KV("w-muted", rt.None) }>{ rt.Granted }</span>
+			</li>
+		}
+	</ul>
+}

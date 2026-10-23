@@ -613,13 +613,19 @@ about:
 # Droits d'un utilisateur par domaine : le tableau partagé par « Mon compte » et l'écran « Utilisateurs ».
 rights:
   col:
-    domain: Domaine
     read: Lecture
     write: Écriture
     delete: Suppression
-  "yes": Oui
-  "no": Non
-  na: "—"
+  # Ce qu'un utilisateur peut faire dans un domaine, en toutes lettres, d'après la notation (r, w, d).
+  granted:
+    r: Lecture
+    w: Écriture
+    d: Suppression
+    rw: Lecture et écriture
+    rd: Lecture et suppression
+    wd: Écriture et suppression
+    rwd: Lecture, écriture et suppression
+    none: Aucun droit
   domain:
     transfers: Transferts
     servers: Serveurs et clients locaux
@@ -1029,7 +1035,6 @@ users:
     password_keep: "Vide : inchangé. 72 caractères au plus."
     confirm: Mot de passe, une seconde fois
     rights_caption: "Droits à accorder, par domaine : lecture, écriture, suppression"
-    right_of: "{right} sur {domain}"
     transfers_delete: Les transferts ne se suppriment pas.
     self: "C'est votre compte : vos droits s'appliquent dès l'enregistrement."
     self_last_admin: "Vous êtes le dernier administrateur : si vous retirez votre droit d'écriture sur les utilisateurs, plus personne ne pourra gérer les utilisateurs."
