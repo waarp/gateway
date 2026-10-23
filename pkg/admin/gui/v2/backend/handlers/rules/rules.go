@@ -3,8 +3,7 @@
 // direction, sorted and paged) with their path, the number of tasks of each
 // chain and their access, the sheet of a rule, and the pages that create,
 // edit and delete one, with its Tasks tab (the chains of tasks) and its
-// Access tab (who may use it). The package also holds GetRule, which the
-// former tasks page reads its rule with.
+// Access tab (who may use it).
 //
 // A rule is named by its name and its direction together. The screen does
 // what the historic page did, and avoids what it can of the product's known

@@ -129,6 +129,25 @@ func TestTasksTab(t *testing.T) {
 	})
 }
 
+// The address of the former tasks page leads to the Tasks tab of its rule,
+// or to the list without a valid rule.
+func TestFormerTasksPage(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+
+	for target, location := range map[string]string{
+		"/webui/tasks?ruleID=12": "/webui/rules/12/tasks",
+		"/webui/tasks":           "/webui/rules",
+		"/webui/tasks?ruleID=x":  "/webui/rules",
+		"/webui/tasks?ruleID=-3": "/webui/rules",
+	} {
+		rec := s.get(t, permRead, target)
+		assert.Equal(t, http.StatusMovedPermanently, rec.Code, target)
+		assert.Equal(t, location, rec.Header().Get("Location"), target)
+	}
+}
+
 func TestTasksTabMissingObject(t *testing.T) {
 	t.Parallel()
 

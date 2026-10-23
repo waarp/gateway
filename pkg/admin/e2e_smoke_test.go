@@ -1163,4 +1163,14 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/email-templates", landed.Path)
 	})
+
+	// And the former tasks page of a rule, which the historic rules page
+	// still links (#759).
+	t.Run("/webui/tasks?ruleID=2", func(t *testing.T) {
+		session.visit(t, "/webui/tasks?ruleID=2")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/rules/2/tasks", landed.Path)
+	})
 }

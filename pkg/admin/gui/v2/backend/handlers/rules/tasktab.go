@@ -30,6 +30,9 @@ const (
 	fieldType = "type"
 	argPrefix = "arg_"
 
+	// The rule of the former tasks page, in its address.
+	formerRuleParam = "ruleID"
+
 	doneTaskAdded   = "task_added"
 	doneTaskUpdated = "task_updated"
 	doneTaskDeleted = "task_deleted"
@@ -73,6 +76,18 @@ func chainOf(slug string) (model.Chain, bool) {
 }
 
 func tasksTabURL(id int64) string { return ruleURL(id, "/tasks") }
+
+// FormerTasksPage serves GET /webui/tasks: the address of the former tasks
+// page of a rule (?ruleID=), which links and bookmarks may still hold, leads
+// to its Tasks tab; without a valid rule, to the list.
+func FormerTasksPage(w http.ResponseWriter, r *http.Request) {
+	target := common.WebuiURL(pagePath)
+	if id, err := strconv.ParseInt(r.URL.Query().Get(formerRuleParam), 10, 64); err == nil && id > 0 {
+		target = tasksTabURL(id)
+	}
+
+	http.Redirect(w, r, target, http.StatusMovedPermanently)
+}
 
 func newTaskURL(id int64, slug string) string { return ruleURL(id, "/tasks/"+slug+"/new") }
 

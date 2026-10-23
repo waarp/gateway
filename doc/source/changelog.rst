@@ -16,7 +16,8 @@ Historique des versions
   tâche ``SENDMESSAGE`` demande son partenaire, son compte et son client, que
   la Gateway exige, et les paramètres que l'écran ne connaît pas sont
   conservés. Les liens « Utilisée par » des clés, des identifiants SMTP et des
-  modèles d'e-mail mènent à cet onglet.
+  modèles d'e-mail mènent à cet onglet, comme l'adresse de l'ancienne page des
+  tâches, dont le module est retiré.
 
 * :feature:`758` L'écran des règles de transfert gagne l'onglet *Accès* (voir
   :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
