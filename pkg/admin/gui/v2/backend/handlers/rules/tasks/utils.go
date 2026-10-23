@@ -184,13 +184,16 @@ func parseTaskForm(db database.Access, r *http.Request) (*model.Task, error) {
 
 func insertTask(db database.Access, task *model.Task) error {
 	return db.Transaction(func(db *database.Session) error {
-		if err := db.DeleteAll(task).
-			Where("rule_id=?", task.RuleID).
-			Where("chain=?", task.Chain).
-			Where("rank=?", task.Rank).
-			Run(); err != nil {
+		var lastTask model.Task
+
+		if err := db.Get(&lastTask, "rule_id=?", task.RuleID).And("chain=?", task.Chain).
+			OrderBy("rank", false).Run(); database.IsNotFound(err) {
+			task.Rank = 0
+		} else if err != nil {
 			return common.NewErrorWith(http.StatusInternalServerError,
-				"failed to delete task", err)
+				"failed to get last task", err)
+		} else if task.Rank <= lastTask.Rank {
+			task.Rank = lastTask.Rank + 1
 		}
 
 		if err := db.Insert(task).Run(); err != nil {
@@ -225,10 +228,20 @@ func deleteTask(db database.Access, task *model.Task) error {
 type reorderBody struct {
 	RuleID int64       `json:"ruleID"`
 	Chain  model.Chain `json:"chain"`
-	Ranks  []int8      `json:"ranks"`
+	Ranks  []int       `json:"ranks"`
 }
 
 func reorderTasks(db database.Access, tasks model.Tasks, body reorderBody) error {
+	if len(body.Ranks) != len(tasks) {
+		return common.NewError(http.StatusBadRequest, "invalid ranks")
+	}
+
+	for _, rank := range body.Ranks {
+		if rank < 0 || rank >= len(tasks) {
+			return common.NewErrorf(http.StatusBadRequest, `invalid rank value "%d"`, rank)
+		}
+	}
+
 	return db.Transaction(func(db *database.Session) error {
 		if err := db.DeleteAll(&model.Task{}).
 			Where("rule_id=?", body.RuleID).

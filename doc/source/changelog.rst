@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`750` Correction de certains *edge cases* pouvant causer un mauvais
+  ordonnancement des tâches ajoutées via la WebUI.
 * :bug:`747` Correction d'un bug Javascript empêchant l'ajout de tâches
   cryptographiques via l'interface Web.
 * :bug:`756` Le fichier d'import/export prend désormais bien en compte les
