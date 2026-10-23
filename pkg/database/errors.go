@@ -21,9 +21,7 @@ func (v *ValidationError) Error() string {
 func (v *ValidationError) Unwrap() error { return errors.Unwrap(v.err) }
 
 func IsValidationError(err error) bool {
-	var ve *ValidationError
-
-	return errors.As(err, &ve)
+	return isError[*ValidationError](err)
 }
 
 // InternalError is the error encapsulating the database driver errors.
@@ -38,6 +36,10 @@ func (i *InternalError) Error() string {
 
 // Unwrap returns the wrapped error.
 func (i *InternalError) Unwrap() error { return i.cause }
+
+func IsInternalError(err error) bool {
+	return isError[*InternalError](err)
+}
 
 // NotFoundError is the error returned when the requested element in a 'Get',
 // 'Update' or 'Delete' command could not be found.

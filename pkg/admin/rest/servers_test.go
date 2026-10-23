@@ -25,8 +25,6 @@ import (
 const testServersURI = "http://localhost:8080/api/servers/"
 
 func TestListServers(t *testing.T) {
-	t.Parallel()
-
 	check := func(w *httptest.ResponseRecorder, expected map[string][]*OutServer) {
 		Convey("Then the response body should contain an array "+
 			"of the requested agents in JSON format", func() {
@@ -158,8 +156,6 @@ func TestListServers(t *testing.T) {
 }
 
 func TestGetServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the server get handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_get_test")
 		db := database.TestDatabase(c)
@@ -248,8 +244,6 @@ func TestGetServer(t *testing.T) {
 }
 
 func TestCreateServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the server creation handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_create_logger")
 		db := database.TestDatabase(c)
@@ -337,8 +331,6 @@ func TestCreateServer(t *testing.T) {
 }
 
 func TestDeleteServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the server deletion handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_delete_test")
 		db := database.TestDatabase(c)
@@ -429,8 +421,6 @@ func TestDeleteServer(t *testing.T) {
 }
 
 func TestUpdateServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the agent updating handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_server_update_logger")
 		db := database.TestDatabase(c)
@@ -538,8 +528,6 @@ func TestUpdateServer(t *testing.T) {
 }
 
 func TestReplaceServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the agent replacing handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_replace_logger")
 		db := database.TestDatabase(c)
@@ -697,8 +685,6 @@ func TestEnableDisableServer(t *testing.T) {
 }
 
 func TestStartServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the server start handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
@@ -749,8 +735,6 @@ func TestStartServer(t *testing.T) {
 }
 
 func TestStopServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the server stop handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)
@@ -801,8 +785,6 @@ func TestStopServer(t *testing.T) {
 }
 
 func TestRestartServer(t *testing.T) {
-	t.Parallel()
-
 	Convey("Given the server stop handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_agent_update_logger")
 		db := database.TestDatabase(c)

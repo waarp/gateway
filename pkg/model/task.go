@@ -87,6 +87,10 @@ func (t *Task) validateTasks(db database.ReadAccess) error {
 		}
 	case TaskValidatorDB:
 		if err := validator.ValidateDB(db, t.Args); err != nil {
+			if database.IsInternalError(err) {
+				return fmt.Errorf("task validation failed: %w", err)
+			}
+
 			return database.NewValidationErrorf("invalid task: %w", err)
 		}
 	default:

@@ -74,37 +74,32 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return false
 	}
 
-	var nf *notFoundError
-	if errors.As(err, &nf) {
-		http.Error(w, nf.Error(), http.StatusNotFound)
-
-		return true
-	}
-
-	var dbNF *database.NotFoundError
-	if errors.As(err, &dbNF) {
-		http.Error(w, dbNF.Error(), http.StatusNotFound)
-
-		return true
-	}
-
-	var br *badRequestError
-	if errors.As(err, &br) {
+	if br, ok := errors.AsType[*badRequestError](err); ok {
 		http.Error(w, br.Error(), http.StatusBadRequest)
 
 		return true
 	}
 
-	var val *database.ValidationError
-	if errors.As(err, &val) {
+	if nf, ok := errors.AsType[*notFoundError](err); ok {
+		http.Error(w, nf.Error(), http.StatusNotFound)
+
+		return true
+	}
+
+	if fo, ok := errors.AsType[*forbidden](err); ok {
+		http.Error(w, fo.Error(), http.StatusForbidden)
+
+		return true
+	}
+
+	if val, ok := errors.AsType[*database.ValidationError](err); ok {
 		http.Error(w, val.Error(), http.StatusBadRequest)
 
 		return true
 	}
 
-	var fo *forbidden
-	if errors.As(err, &fo) {
-		http.Error(w, fo.Error(), http.StatusForbidden)
+	if dbNF, ok := errors.AsType[*database.NotFoundError](err); ok {
+		http.Error(w, dbNF.Error(), http.StatusNotFound)
 
 		return true
 	}
