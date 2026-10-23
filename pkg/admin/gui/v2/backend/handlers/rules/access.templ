@@ -9,11 +9,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 )
 
-// accessView: the Access tab of a rule. The state in words (open to all, or
-// restricted and what that closes), then the access in two blocks: when a
-// partner connects (servers, local accounts) and when the gateway connects
-// (partners, remote accounts), each with a "⋯" menu to remove it. One
-// coloured action: "Add an access".
+// accessView: the Access tab of a rule (prototype validated by Driss on
+// 2026-10-23). The header holds the menu of the rule, not its edition, which
+// concerns the Details tab. The state in words (open to all, or restricted and
+// what that closes), then the two sides side by side: when a partner connects
+// (servers, local accounts) and when the gateway connects (partners, remote
+// accounts), each with its addition and a "⋯" menu to remove an access. The
+// cards fold and stay folded on the next visit.
 templ accessView(d accessData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
@@ -24,18 +26,14 @@ templ accessView(d accessData) {
 				@gui.Icon("arrow-left")
 				{ gui.T(ctx, "rules.back") }
 			</a>
-			if d.AddURL != "" {
-				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
-					@gui.Icon("plus")
-					{ gui.T(ctx, "rules.access.add") }
-				</a>
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-access", Name: d.Title, Items: d.Actions})
 			}
 		</div>
 	</div>
 	@means.TabsNav(gui.T(ctx, "rules.tab.label"), d.Tabs)
 	<div class="w-stack">
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "rules.access.state") }</h2>
+		@ruleFold("access-state", gui.T(ctx, "rules.access.state"), d.StateMeta) {
 			if d.Open {
 				<p class="rules-lead"><strong>{ gui.T(ctx, "rules.access.open") }</strong> · { gui.T(ctx, "rules.access.open_text") }</p>
 			} else {
@@ -47,21 +45,29 @@ templ accessView(d accessData) {
 					<div class="rules-card-actions"><a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(d.OpenURL) }>{ gui.T(ctx, "rules.access.open_action") }</a></div>
 				}
 			}
-		</div>
-		if !d.Open {
-			@accessBlock(gui.T(ctx, "rules.access.in"), gui.T(ctx, "rules.access.in_text"), gui.T(ctx, "rules.access.in_none"), d.In)
-			@accessBlock(gui.T(ctx, "rules.access.out"), gui.T(ctx, "rules.access.out_text"), gui.T(ctx, "rules.access.out_none"), d.Out)
 		}
+		<div class="w-grid w-grid--2 rules-columns">
+			@accessBlock("access-in", gui.T(ctx, "rules.access.in"), gui.T(ctx, "rules.access.in_text"), gui.T(ctx, "rules.access.add_in"), d.In)
+			@accessBlock("access-out", gui.T(ctx, "rules.access.out"), gui.T(ctx, "rules.access.out_text"), gui.T(ctx, "rules.access.add_out"), d.Out)
+		</div>
 	</div>
 }
 
-// accessBlock: the access of one side, or the sentence saying it has none.
-templ accessBlock(title, text, none string, rows []accessRow) {
-	<div class="w-card">
-		<h2 class="w-card__title">{ title }</h2>
+// accessBlock: the access of one side, its addition, or the sentence saying
+// it has none.
+templ accessBlock(key, title, text, add string, side accessSide) {
+	@ruleFold(key, title, side.Count) {
 		<p class="rules-hint rules-block-hint w-muted">{ text }</p>
-		if len(rows) == 0 {
-			<p class="rules-none w-muted">{ none }</p>
+		if side.AddURL != "" {
+			<div class="rules-card-actions rules-add">
+				<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(side.AddURL) }>
+					@gui.Icon("plus")
+					{ add }
+				</a>
+			</div>
+		}
+		if len(side.Rows) == 0 {
+			<p class="rules-none w-muted">{ side.None }</p>
 		} else {
 			<div class="w-table-wrap">
 				<table class="w-table">
@@ -75,7 +81,7 @@ templ accessBlock(title, text, none string, rows []accessRow) {
 						</tr>
 					</thead>
 					<tbody>
-						for _, r := range rows {
+						for _, r := range side.Rows {
 							<tr>
 								<td class="w-nowrap">{ r.Kind }</td>
 								<td class="w-mono">{ r.Label }</td>
@@ -90,7 +96,7 @@ templ accessBlock(title, text, none string, rows []accessRow) {
 				</table>
 			</div>
 		}
-	</div>
+	}
 }
 
 // accessFormView: the page that adds an access: the kind, then the target of

@@ -1809,7 +1809,8 @@ rules:
   access:
     open: Ouverte à tous
     restricted: "Réservée : {n}"
-    add: Ajouter un accès
+    add_in: Ajouter un serveur ou un compte local
+    add_out: Ajouter un partenaire ou un compte distant
     back: Retour aux accès
     state: État
     open_text: "tout serveur, partenaire ou compte peut employer la règle."
@@ -1825,6 +1826,9 @@ rules:
     out: Quand la passerelle se connecte
     out_text: Les partenaires et les comptes distants vers lesquels la passerelle peut employer la règle.
     out_none: Aucun partenaire ni compte distant.
+    side_open: "Aucun accès de ce côté : la règle est ouverte à tous."
+    count: "{n} accès"
+    count_none: aucun accès
     col:
       kind: Type
       target: Cible

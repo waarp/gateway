@@ -1810,7 +1810,8 @@ rules:
   access:
     open: Open to all
     restricted: "Restricted: {n}"
-    add: Add an access
+    add_in: Add a server or a local account
+    add_out: Add a partner or a remote account
     back: Back to the access
     state: State
     open_text: any server, partner or account can use the rule.
@@ -1826,6 +1827,9 @@ rules:
     out: When the gateway connects
     out_text: The partners and the remote accounts towards which the gateway can use the rule.
     out_none: No partner and no remote account.
+    side_open: "No access on this side: the rule is open to all."
+    count: "{n} granted"
+    count_none: none granted
     col:
       kind: Type
       target: Target

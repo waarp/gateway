@@ -170,13 +170,16 @@ est fermée à tous les autres, des deux côtés :
        distant doit avoir accès.
 
 Une règle réservée d'un seul côté est donc fermée de l'autre ; l'onglet le
-signale. Chaque accès a son menu « ⋯ », qui mène à sa page de retrait.
+signale. L'état de la règle, puis les deux côtés, côte à côte, sont des cartes
+repliables : une carte repliée le reste au retour sur l'onglet. Chaque accès a
+son menu « ⋯ », qui mène à sa page de retrait.
 
-**Ajouter un accès.** Le bouton *Ajouter un accès* ouvre une page où l'on
-choisit le type (serveur, compte local, partenaire, compte distant) puis la
-cible ; les comptes sont groupés par serveur ou par partenaire, et les cibles
-qui ont déjà accès ne sont pas proposées. Sur une règle ouverte à tous, la page
-rappelle que ce premier accès la ferme à tous les autres.
+**Ajouter un accès.** Chaque côté a son bouton : *Ajouter un serveur ou un
+compte local*, *Ajouter un partenaire ou un compte distant*. Il ouvre une page
+où l'on choisit le type, parmi ceux de ce côté, puis la cible ; les comptes sont
+groupés par serveur ou par partenaire, et les cibles qui ont déjà accès ne sont
+pas proposées. Sur une règle ouverte à tous, la page rappelle que ce premier
+accès la ferme à tous les autres.
 
 **Retirer un accès, rouvrir à tous.** La page de retrait d'un accès dit, pour
 le dernier, que la règle redevient ouverte à tous. Le bouton *Rouvrir à tous*

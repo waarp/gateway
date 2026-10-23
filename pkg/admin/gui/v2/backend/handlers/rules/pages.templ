@@ -200,6 +200,22 @@ templ detailView(d detailData) {
 	</div>
 }
 
+// ruleFold: a reading card of the sheet of a rule that folds, open by
+// default; folded by the user, it stays so on the next visit (data-key, kit
+// 0.14.0). The head says what the card holds (meta).
+templ ruleFold(key, title, meta string) {
+	<details class="w-card w-card--fold" id={ key } data-key={ "rule-" + key } open>
+		<summary>
+			@gui.Icon("chevron-right")
+			<h2 class="w-card__title">{ title }</h2>
+			<span class="w-fold__meta">{ meta }</span>
+		</summary>
+		<div class="w-card__body">
+			{ children... }
+		</div>
+	</details>
+}
+
 // backLabel: the back button of the form: to the rule on edition, to the
 // list on creation.
 templ backLabel(edit bool) {

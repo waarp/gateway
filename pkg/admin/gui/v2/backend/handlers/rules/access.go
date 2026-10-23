@@ -32,6 +32,12 @@ const (
 
 	fieldKind = "kind"
 
+	// The side of the tab an addition comes from: its form offers the kinds
+	// of that side only.
+	sideParam = "side"
+	sideIn    = "in"
+	sideOut   = "out"
+
 	doneAccessAdded   = "access_added"
 	doneAccessRemoved = "access_removed"
 	doneAccessOpened  = "access_opened"
@@ -47,6 +53,33 @@ var accessKinds = []string{kindServer, kindLocalAccount, kindPartner, kindRemote
 // incoming says whether a kind of access is checked when a partner connects
 // (a server, a local account), rather than when the gateway connects.
 func incoming(kind string) bool { return kind == kindServer || kind == kindLocalAccount }
+
+// kindsOf are the kinds of access of a side of the tab: when a partner
+// connects (in), when the gateway connects (out), or all of them.
+func kindsOf(side string) []string {
+	switch side {
+	case sideIn:
+		return []string{kindServer, kindLocalAccount}
+	case sideOut:
+		return []string{kindPartner, kindRemoteAccount}
+	default:
+		return accessKinds
+	}
+}
+
+// sideOf reads the side of the tab an addition comes from, "" for none.
+func sideOf(r *http.Request) string {
+	if side := r.URL.Query().Get(sideParam); side == sideIn || side == sideOut {
+		return side
+	}
+
+	return ""
+}
+
+// addURL is the page that adds an access from a side of the tab.
+func addURL(id int64, side, carried string) string {
+	return withRet(liststate.WithQuery(accessURL(id, "/new"), url.Values{sideParam: {side}}), carried)
+}
 
 // grant is an access of a rule: its kind, the ID of its target and what the
 // screen shows of it.
@@ -225,15 +258,25 @@ type accessRow struct {
 }
 
 type accessData struct {
-	Title    string
-	Name     string
-	Tabs     []means.Tab
-	BackURL  string
-	AddURL   string
-	OpenURL  string
-	Open     bool
-	OneSided string // the note of a rule restricted on one side only
-	In, Out  []accessRow
+	Title     string
+	Name      string
+	Tabs      []means.Tab
+	BackURL   string
+	Actions   []gui.Action // the menu of the rule: its transfers, its deletion
+	OpenURL   string
+	Open      bool
+	OneSided  string // the note of a rule restricted on one side only
+	In, Out   accessSide
+	StateMeta string // open to all, or restricted, in the head of the state card
+}
+
+// accessSide is one side of the tab: its access, how many, the page that
+// adds one (empty without the write right) and what it says when empty.
+type accessSide struct {
+	Rows   []accessRow
+	Count  string
+	AddURL string
+	None   string
 }
 
 // AccessTab serves GET /webui/rules/{id}/access: who may use the rule.
@@ -262,15 +305,17 @@ func (h *Handlers) AccessTab(w http.ResponseWriter, r *http.Request) {
 	carried := ret(r)
 	user := rightsOf(r)
 	data := accessData{
-		Title:   translate("rules.detail.title", "name", item.rule.Name),
+		Title:   ruleTitle(translate, item.rule),
 		Name:    item.rule.Name,
 		Tabs:    tabs(translate, &item, tabAccess),
 		BackURL: listURL(carried),
+		Actions: actions(translate, &item, user, true, carried),
 		Open:    len(grants) == 0,
 	}
 
 	if user.Write {
-		data.AddURL = withRet(accessURL(item.rule.ID, "/new"), carried)
+		data.In.AddURL = addURL(item.rule.ID, sideIn, carried)
+		data.Out.AddURL = addURL(item.rule.ID, sideOut, carried)
 		if !data.Open {
 			data.OpenURL = withRet(accessURL(item.rule.ID, "/open"), carried)
 		}
@@ -290,22 +335,41 @@ func (h *Handlers) AccessTab(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if incoming(g.Kind) {
-			data.In = append(data.In, row)
+			data.In.Rows = append(data.In.Rows, row)
 		} else {
-			data.Out = append(data.Out, row)
+			data.Out.Rows = append(data.Out.Rows, row)
 		}
 	}
 
+	data.In.Count, data.Out.Count = accessCount(translate, len(data.In.Rows)), accessCount(translate, len(data.Out.Rows))
+	data.StateMeta = translate("rules.access.restricted_title")
+	data.In.None, data.Out.None = translate("rules.access.in_none"), translate("rules.access.out_none")
+
+	if data.Open {
+		data.StateMeta = translate("rules.access.open")
+		data.In.None = translate("rules.access.side_open")
+		data.Out.None = data.In.None
+	}
+
 	switch {
-	case len(data.In) > 0 && len(data.Out) == 0:
+	case len(data.In.Rows) > 0 && len(data.Out.Rows) == 0:
 		data.OneSided = translate("rules.access.one_sided_in")
-	case len(data.Out) > 0 && len(data.In) == 0:
+	case len(data.Out.Rows) > 0 && len(data.In.Rows) == 0:
 		data.OneSided = translate("rules.access.one_sided_out")
 	}
 
 	screen := h.screen(translate, data.Title, carried, 0)
 	screen.Notices = notices(translate, r.URL.Query())
 	h.shell.Render(w, h.logger, r, screen, accessView(data))
+}
+
+// accessCount says how many access a side gives, in the head of its card.
+func accessCount(translate gui.Translator, n int) string {
+	if n == 0 {
+		return translate("rules.access.count_none")
+	}
+
+	return translate("rules.access.count", "n", n)
 }
 
 // option is a target offered by the form, in its group (the server or the
@@ -343,6 +407,7 @@ type accessForm struct {
 	Note      string // the rule is open: the first access closes it
 
 	targetID int64
+	side     string // the side of the tab the addition comes from, "" for both
 }
 
 // choices builds the kinds of access and their targets, the ones already
@@ -352,7 +417,7 @@ func choices(translate gui.Translator, known *targets, granted []grant, form *ac
 		return slices.ContainsFunc(granted, func(g grant) bool { return g.Kind == kind && g.ID == id })
 	}
 
-	for _, kind := range accessKinds {
+	for _, kind := range kindsOf(form.side) {
 		c := kindChoice{Value: kind, Label: translate(accessKindKeyPrefix + kind), Selected: form.Kind == kind}
 		groups := map[string][]option{}
 
@@ -435,10 +500,16 @@ func (h *Handlers) accessForm(w http.ResponseWriter, r *http.Request, post bool)
 		return
 	}
 
+	side := sideOf(r)
 	form := &accessForm{
 		Title:     translate("rules.access.new_title", "name", item.rule.Name),
 		Action:    withRet(accessURL(item.rule.ID, "/new"), carried),
+		side:      side,
 		CancelURL: withRet(accessURL(item.rule.ID, ""), carried),
+	}
+
+	if side != "" {
+		form.Action = addURL(item.rule.ID, side, carried)
 	}
 
 	if len(granted) == 0 {
@@ -491,7 +562,7 @@ func (h *Handlers) accessForm(w http.ResponseWriter, r *http.Request, post bool)
 // chosen kind holds the target.
 func (f *accessForm) read(translate gui.Translator, r *http.Request, t *targets) (model.AccessTarget, string, bool) {
 	f.Kind = r.PostFormValue(fieldKind)
-	if !slices.Contains(accessKinds, f.Kind) {
+	if !slices.Contains(kindsOf(f.side), f.Kind) {
 		f.Kind = ""
 		f.KindErr = translate("rules.access.error.kind")
 		f.HasErrors = true

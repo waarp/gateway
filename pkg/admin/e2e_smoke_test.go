@@ -208,6 +208,7 @@ func e2eScreens() []e2eScreen {
 		// Its Access tab (#758), open to all, and the page that adds one.
 		{path: "/webui/rules/2/access"},
 		{path: "/webui/rules/2/access/new"},
+		{path: "/webui/rules/2/access/new?side=out"},
 		// The cryptographic keys (#735): the list, the sheet of the AES key
 		// (the rule whose tasks use it: a table), the sheet of the PGP public
 		// key, the pages that add and edit one, the deletion refused for the
