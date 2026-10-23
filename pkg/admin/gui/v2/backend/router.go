@@ -36,7 +36,7 @@ func MakeListingRouter(router *mux.Router, db *database.DB, logger *log.Logger) 
 	)
 
 	router.Path("/listing/servers").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermPartnersRead, listing.ListServers(db, logger)),
+		withPermissions(model.PermServersRead, listing.ListServers(db, logger)),
 	)
 
 	router.Path("/listing/partners").Methods(http.MethodGet).Handler(
@@ -44,7 +44,7 @@ func MakeListingRouter(router *mux.Router, db *database.DB, logger *log.Logger) 
 	)
 
 	router.Path("/listing/local_accounts").Methods(http.MethodGet).Handler(
-		withPermissions(model.PermPartnersRead, listing.ListLocalAccounts(db, logger)),
+		withPermissions(model.PermServersRead, listing.ListLocalAccounts(db, logger)),
 	)
 
 	router.Path("/listing/remote_accounts").Methods(http.MethodGet).Handler(

@@ -26,6 +26,10 @@ func GetRule(db database.ReadAccess, r *http.Request) (*model.Rule, error) {
 
 	var rule model.Rule
 	if err := db.Get(&rule, "id=?", ruleID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, common.NewError(http.StatusNotFound, "rule not found")
+		}
+
 		return nil, common.NewErrorWith(http.StatusInternalServerError, "failed to get rule", err)
 	}
 
