@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`755` Insérer une tâche via REST contenant un élément de configuration
+  inconnu renverra désormais un code 400 au lieu d'un code 404.
 * :bug:`748` Correction de problèmes avec les *checkboxes* et menus radios dans
   les formulaires de tâches de la WebUI. Ces éléments de reprenaient pas leurs
   valeurs existantes lorsqu'un utilisateur ouvrait le formulaire pour modifier

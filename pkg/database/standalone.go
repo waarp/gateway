@@ -51,8 +51,7 @@ func (db *DB) TransactionWithTimeout(dur time.Duration, fun TransactionFunc) err
 		}
 
 		// if internal error, return as-is
-		if isError[*NotFoundError](err) || isError[*ValidationError](err) ||
-			isError[*InternalError](err) {
+		if IsNotFound(err) || IsValidationError(err) || IsInternalError(err) {
 			return err
 		}
 
