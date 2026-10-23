@@ -1770,6 +1770,131 @@ keys:
     title: The list of the cryptographic keys could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
 
+# "Transfer rules" screen (#757): the list, the sheet (Details tab) and the action pages; the Tasks and Access tabs
+# lead to the current pages until their own screens.
+rules:
+  title: Transfer rules
+  add: Add a rule
+  search: Search a rule by its name or its path
+  search_placeholder: Search by name or path
+  filters_direction: Direction
+  count: "{total} rules"
+  count_one: 1 rule
+  count_shown: "{total} rules · {shown} shown"
+  count_shown_one: "{total} rules · 1 shown"
+  caption: "Transfer rules, page {page} of {pages}, sorted by {sort}"
+  pager: "Rules {from} to {to} of {total}"
+  back: Back to the list
+  back_rule: Back to the rule
+  tasks_tip: "Before the transfer: {pre} · after the transfer: {post} · on error: {error}"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    direction: direction
+    path: path
+  col:
+    name: Rule
+    direction: Direction
+    path: Path
+    tasks: Tasks
+    tasks_tip: "Number of tasks before the transfer · after the transfer · on error"
+    access: Access
+    comment: Comment
+    actions: Actions
+  # The two directions; the lower-case form completes "Another … rule".
+  direction:
+    send: Send
+    receive: Receive
+    send_lower: sending
+    receive_lower: receiving
+  access:
+    open: Open to all
+    restricted: "Restricted: {n}"
+  action:
+    detail: View the sheet
+    edit: Edit the rule
+    tasks: View the tasks
+    access: View the access
+    transfers: View the transfers
+    delete: Delete the rule
+  tab:
+    label: Tabs of the rule
+    details: Details
+    tasks: Tasks
+    access: Access
+  dir:
+    local: Local directory
+    remote: Remote directory
+    tmp: Temporary receive directory
+    local_empty: "Not set: the server's, otherwise the gateway's."
+    remote_empty: "Not set: the partner receives the file under its name alone."
+    tmp_empty: "Not set: a directory the gateway chooses (the rule's or the server's)."
+  detail:
+    title_send: "Send rule “{name}”"
+    title_receive: "Receive rule “{name}”"
+    card: Rule
+    folders: Directories
+    no_comment: No comment
+    path_hint: "SFTP, FTP, WebDAV, AS2 and standard PeSIT servers recognise the rule by this path; in R66, HTTP and non-standard PeSIT, the partner names it."
+    open_hint: Any server, partner or account can use it.
+  new:
+    title: New transfer rule
+  edit:
+    title: "Edit “{name}”"
+  form:
+    name: Name
+    name_hint: "Unique in a direction, without “/”; the history names the rule by it."
+    path: Path
+    path_hint: "What SFTP, FTP, WebDAV, AS2 and standard PeSIT servers recognise the rule by. Empty: the name of the rule."
+    direction_hint: The direction no longer changes once the rule exists.
+    direction_kept: "The direction does not change: the tasks and the access of the rule depend on it. For the other direction, create a rule."
+    direction_text:
+      send: "The gateway sends the file: a client sends it to a partner, or a partner fetches it from a server."
+      receive: "The gateway receives the file: a partner drops it on a server, or a client fetches it."
+    local_hint: "Where the file is read (send) or dropped (receive): an absolute path, a path relative to the directory of the server or of the gateway, or a cloud instance."
+    remote_hint: "Where the file goes at the partner's, for a transfer the gateway starts. Towards a Gateway in SFTP or FTP: the path of its receiving rule."
+    tmp_hint: Where the file waits for the end of its reception; a local directory.
+    refused: The rule was not saved.
+    refused_text: Correct the fields marked below.
+    history_title: The history names this rule by its name.
+    history_text: "After a rename, the transfers made under the name “{name}” can no longer be restarted."
+    history_confirm: Save again to rename the rule.
+    error:
+      required: This field is required.
+      slash: "The name cannot hold “/”: the API could no longer reach the rule."
+      too_long: "{n} characters at most."
+      direction: Choose a direction.
+      name_taken: "Another {direction} rule already has this name."
+      path_taken: "Another {direction} rule already has this path."
+      path_under: "This path lies under the path of another {direction} rule: choose a path of its own."
+      path_above: "Another {direction} rule has a path under this one: choose a path of its own."
+      tmp_local: "The temporary receive directory must be local, not a cloud instance."
+  delete:
+    title: "Delete the rule “{name}”?"
+    gone: "Its tasks ({tasks}) and its access ({access}) are deleted with it. The history of its transfers stays, under its name."
+    held_title: This rule cannot be deleted.
+    held_text: "Transfers or file watchers still name it: cancel or finish these transfers, change or delete these file watchers, then come back."
+    transfers: "Transfers that still name it: {n} (running, planned, paused or failed)."
+    transfers_link: View these transfers
+    watcher: "File watcher “{name}” (command line or API)."
+    refused: The rule was not deleted.
+  toast:
+    created: "Rule “{name}” created"
+    updated: "Rule “{name}” saved"
+    deleted: "Rule “{name}” deleted"
+  empty:
+    title: No transfer rule yet
+    text: "A rule says in which direction a file is exchanged, between which directories, with which processing and for whom."
+  none:
+    title: "No rule matches “{query}”"
+    filters: No rule matches the filters.
+  not_found:
+    title: Rule not found
+    text: This rule does not exist or was deleted.
+  error:
+    title: The list of the transfer rules could not be loaded.
+    text: "An internal error occurred; the detail is in the log of the gateway."
+
 # Rules whose tasks name an object by its name (cryptographic keys, SMTP credentials).
 rule_uses:
   count:

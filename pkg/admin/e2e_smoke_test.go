@@ -193,6 +193,18 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/overrides/new"},
 		{path: "/webui/overrides/edit?target=127.0.0.1"},
 		{path: "/webui/overrides/delete?target=127.0.0.1"},
+		// The transfer rules (#757): the list, the sheet of the rule whose
+		// tasks encrypt (its tabs lead to the tasks and access pages), of the
+		// rule that reads a cloud instance, the pages that add and edit one,
+		// the deletion refused for the rule the transfers name and confirmed
+		// for the other one.
+		{path: "/webui/rules", tables: 1},
+		{path: "/webui/rules/2"},
+		{path: "/webui/rules/1"},
+		{path: "/webui/rules/new"},
+		{path: "/webui/rules/2/edit"},
+		{path: "/webui/rules/4/delete"},
+		{path: "/webui/rules/1/delete"},
 		// The cryptographic keys (#735): the list, the sheet of the AES key
 		// (the rule whose tasks use it: a table), the sheet of the PGP public
 		// key, the pages that add and edit one, the deletion refused for the

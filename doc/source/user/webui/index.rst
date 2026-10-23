@@ -20,6 +20,7 @@ restent décrits par l'interface elle-même.
    serveurs-locaux
    clients-locaux
    partenaires-distants
+   regles
    cles
    smtp
    modeles

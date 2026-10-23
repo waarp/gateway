@@ -1,0 +1,348 @@
+package rules
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the transfer rules (Treatments). Presentation only: the handler
+// searches, filters, sorts and pages the rows, builds the row actions from
+// the rights and translates the texts. One coloured action ("Add a rule");
+// the direction filter applied as soon as it changes; three sortable
+// headers; the direction as its icon and its word; the tasks of each chain
+// and the access in words; a "⋯" menu per row; rows per page in the foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "rules.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "rules.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.error.title"), Text: gui.T(ctx, "rules.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "list", Title: gui.T(ctx, "rules.empty.title"), Text: gui.T(ctx, "rules.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "rules.add"))})
+	} else {
+		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+			for _, h := range liststate.SortedHidden(d.Hidden) {
+				<input type="hidden" name={ h.Name } value={ h.Value }/>
+			}
+			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "rules.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "rules.search_placeholder") } list="rules-names" autocomplete="off"/></label>
+			<datalist id="rules-names">
+				for _, n := range d.Names {
+					<option value={ n }></option>
+				}
+			</datalist>
+			<details class="w-disclose" open?={ d.FiltersOpen }>
+				<summary class="w-btn w-btn--outline-dark w-btn--sm">
+					@gui.Icon("filter")
+					{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+				</summary>
+				<div class="w-disclose__panel">
+					@filterBoxes(gui.T(ctx, "rules.filters_direction"), d.Directions)
+					@gui.FiltersFoot(d.ResetURL)
+				</div>
+			</details>
+			<span class="w-toolbar__spacer"></span>
+			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
+		</form>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table rules-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="rules-col-name"/><col class="rules-col-direction"/><col class="rules-col-path"/><col class="rules-col-tasks"/><col class="rules-col-access"/><col/><col class="rules-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "rules.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "rules.col.direction"), Key: "direction", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "rules.col.path"), Key: "path", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col" title={ gui.T(ctx, "rules.col.tasks_tip") }>{ gui.T(ctx, "rules.col.tasks") }</th>
+							<th scope="col">{ gui.T(ctx, "rules.col.access") }</th>
+							<th scope="col">{ gui.T(ctx, "rules.col.comment") }</th>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "rules.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td><a class="w-cell-title w-mono w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+								<td class="w-nowrap">
+									<span class="rules-direction">
+										@gui.Icon(r.DirIcon)
+										{ r.Direction }
+									</span>
+								</td>
+								<td class="w-mono rules-path"><span class="w-truncate" title={ r.Path }>{ r.Path }</span></td>
+								<td class="w-num w-nowrap" title={ r.TasksTip }>{ r.Tasks }</td>
+								<td class={ "w-nowrap", templ.KV("rules-restricted", r.Restricted) }>{ r.Access }</td>
+								<td class="rules-comment">
+									if r.Comment != "" {
+										<span class="w-truncate" title={ r.Comment }>{ r.Comment }</span>
+									}
+								</td>
+								<td>
+									if len(r.Actions) > 0 {
+										@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name + " · " + r.Direction, Items: r.Actions})
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="rules-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	}
+}
+
+// filterBoxes: the checkboxes of one filter of the list, under its legend.
+templ filterBoxes(legend string, boxes []box) {
+	<fieldset class="w-fieldset w-field w-field--wide">
+		<legend class="w-fieldset__legend">{ legend }</legend>
+		<div class="w-checks">
+			for _, b := range boxes {
+				<label class="w-check"><input type="checkbox" name={ b.Name } value={ b.Value } checked?={ b.Checked }/> <span>{ b.Label }</span></label>
+			}
+		</div>
+	</fieldset>
+}
+
+// detailView: the sheet of a rule, tab Details: the rule (direction, path
+// and how the servers use it, comment, access) and its three directories,
+// each with what an empty one means. The Tasks and Access tabs lead to the
+// current pages.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "rules.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name + " · " + d.Direction, Items: d.Actions})
+			}
+		</div>
+	</div>
+	@means.TabsNav(gui.T(ctx, "rules.tab.label"), d.Tabs)
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "rules.detail.card") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "rules.col.direction") }</dt>
+				<dd>
+					<span class="rules-direction">
+						@gui.Icon(d.DirIcon)
+						{ d.Direction }
+					</span>
+				</dd>
+				<dt>{ gui.T(ctx, "rules.col.path") }</dt>
+				<dd>
+					<div class="rules-line"><code class="w-code">{ d.Path }</code></div>
+					<div class="rules-line rules-hint w-muted">{ d.PathHint }</div>
+				</dd>
+				<dt>{ gui.T(ctx, "rules.col.comment") }</dt>
+				<dd>
+					if d.Comment != "" {
+						{ d.Comment }
+					} else {
+						<span class="w-muted">{ gui.T(ctx, "rules.detail.no_comment") }</span>
+					}
+				</dd>
+				<dt>{ gui.T(ctx, "rules.col.access") }</dt>
+				<dd>
+					<div class="rules-line">{ d.Access }</div>
+					if !d.Restricted {
+						<div class="rules-line rules-hint w-muted">{ gui.T(ctx, "rules.detail.open_hint") }</div>
+					}
+				</dd>
+			</dl>
+		</div>
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "rules.detail.folders") }</h2>
+			<dl class="w-deflist">
+				for _, f := range d.Folders {
+					<dt>{ f.Label }</dt>
+					<dd>
+						if f.Value != "" {
+							<code class="w-code">{ f.Value }</code>
+						} else {
+							<span class="w-muted">{ f.Empty }</span>
+						}
+					</dd>
+				}
+			</dl>
+		</div>
+	</div>
+}
+
+// backLabel: the back button of the form: to the rule on edition, to the
+// list on creation.
+templ backLabel(edit bool) {
+	if edit {
+		{ " " + gui.T(ctx, "rules.back_rule") }
+	} else {
+		{ " " + gui.T(ctx, "rules.back") }
+	}
+}
+
+// directionField: the direction of the rule, two cards to choose from on
+// creation; in reading on edition, with why it stays.
+templ directionField(d *formData) {
+	if d.Edit {
+		<dl class="w-deflist rules-kept">
+			<dt>{ gui.T(ctx, "rules.col.direction") }</dt>
+			<dd>
+				<div class="rules-line">{ d.DirLabel }</div>
+				<div class="rules-line rules-hint w-muted">{ gui.T(ctx, "rules.form.direction_kept") }</div>
+			</dd>
+		</dl>
+	} else {
+		<fieldset class={ "w-fieldset", "w-fieldset--wide", templ.KV("is-invalid", d.DirErr != "") } aria-describedby="direction-h">
+			<legend class="w-field__label">{ gui.T(ctx, "rules.col.direction") } <span class="w-field__req" aria-hidden="true">*</span></legend>
+			<div class="w-choices">
+				for _, c := range d.Directions {
+					<label class="w-choice">
+						<input type="radio" name={ fieldDirection } value={ c.Value } checked?={ c.Checked } required/>
+						<span>
+							<span class="w-choice__title">{ c.Label }</span>
+							<span class="w-choice__desc">{ c.Text }</span>
+						</span>
+					</label>
+				}
+			</div>
+			@protoform.Message("direction-h", d.DirErr, gui.T(ctx, "rules.form.direction_hint"))
+		</fieldset>
+	}
+}
+
+// formView: creation and edition of a rule, one page (decision D10), one
+// card per block: the rule (name, direction, path, comment), its
+// directories. Refused form: a banner, the values kept, a message under each
+// faulty field (422). A rename the history would lose is asked once more:
+// a banner, the new name kept in a hidden field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				@backLabel(d.Edit)
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.form.refused_text"))})</div>
+	}
+	if d.Renaming {
+		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.form.history_title"), Text: gui.T(ctx, "rules.form.history_text", "name", d.stored.Name) + " " + gui.T(ctx, "rules.form.history_confirm")})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		if d.Renaming {
+			<input type="hidden" name={ fieldConfirmName } value={ d.Name.Value }/>
+		}
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "rules.detail.card") }</legend>
+				<div class="w-grid w-grid--2">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldName, Label: gui.T(ctx, "rules.form.name"), Req: true, F: d.Name, Hint: gui.T(ctx, "rules.form.name_hint")})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldPath, Label: gui.T(ctx, "rules.form.path"), F: d.Path, Hint: gui.T(ctx, "rules.form.path_hint")})
+				</div>
+				@directionField(d)
+				<div class="w-field w-field--wide">
+					<label class="w-field__label" for={ fieldComment }>{ gui.T(ctx, "rules.col.comment") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+					<textarea class="w-textarea" id={ fieldComment } name={ fieldComment } rows="3">{ d.Comment.Value }</textarea>
+				</div>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "rules.detail.folders") }</legend>
+				@protoform.FieldOf(protoform.FieldProps{ID: fieldLocal, Label: gui.T(ctx, "rules.dir.local"), F: d.Local, Hint: gui.T(ctx, "rules.form.local_hint")})
+				@protoform.FieldOf(protoform.FieldProps{ID: fieldRemote, Label: gui.T(ctx, "rules.dir.remote"), F: d.Remote, Hint: gui.T(ctx, "rules.form.remote_hint")})
+				@protoform.FieldOf(protoform.FieldProps{ID: fieldTmp, Label: gui.T(ctx, "rules.dir.tmp"), F: d.Tmp, Hint: gui.T(ctx, "rules.form.tmp_hint")})
+			</fieldset>
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// deleteView: confirmation page of the deletion of a rule (decision D10: a
+// page, not a dialog), "Cancel" then "Delete" bottom right (D12), saying what
+// goes with the rule and what stays. For a rule that transfers or file
+// watchers name, the "action impossible" page: why, what to change first,
+// "Close" alone.
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "rules.back_rule") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		if d.Held {
+			<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "rules.delete.held_title"), Text: gui.T(ctx, "rules.delete.held_text")})</div>
+		} else if d.Refused != "" {
+			<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.delete.refused"), Text: d.Refused})</div>
+		} else {
+			<p class="rules-lead">{ d.Gone }</p>
+		}
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "rules.col.name") }</dt>
+			<dd><code class="w-code">{ d.Name }</code></dd>
+			<dt>{ gui.T(ctx, "rules.col.direction") }</dt>
+			<dd>{ d.Direction }</dd>
+			<dt>{ gui.T(ctx, "rules.col.path") }</dt>
+			<dd><code class="w-code">{ d.Path }</code></dd>
+		</dl>
+		if d.Held {
+			<ul class="rules-holds">
+				if d.Transfers != "" {
+					<li>
+						{ d.Transfers }
+						if d.TransfersURL != "" {
+							{ " " }<a href={ templ.SafeURL(d.TransfersURL) }>{ gui.T(ctx, "rules.delete.transfers_link") }</a>
+						}
+					</li>
+				}
+				for _, w := range d.Watchers {
+					<li>{ gui.T(ctx, "rules.delete.watcher", "name", w) }</li>
+				}
+			</ul>
+			<div class="w-form__actions rules-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.close") }</a></div>
+		} else {
+			<form class="rules-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+		}
+	</div>
+}

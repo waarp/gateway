@@ -1,0 +1,23 @@
+/* Transfer rules screen: what the kit does not decide (column widths of the list, the direction with its icon, the
+   path and the comment cut on one line, spacing of the list foot, of the banners and of the action pages, the hints
+   under a value of the sheet). Tokens only. */
+.rules-col-name { width: 18%; }
+.rules-col-direction { width: 11%; }
+.rules-col-path { width: 18%; }
+.rules-col-tasks { width: 8%; }
+.rules-col-access { width: 13%; }
+.rules-col-actions { width: 72px; }
+.rules-direction { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.rules-direction svg.i { flex: none; width: 1.25rem; height: 1.25rem; color: var(--ts); }
+.rules-path, .rules-comment { max-width: 0; }
+.rules-path .w-truncate, .rules-comment .w-truncate { display: block; }
+.rules-pager { margin-top: var(--sp-3); }
+.rules-banner { margin-bottom: var(--sp-4); }
+.rules-lead { margin: 0 0 var(--sp-4); }
+.rules-hint { font-size: var(--fs-sm); }
+/* A value and its hint, one under the other: the definitions of the kit lay their content in a row. */
+.rules-line { flex-basis: 100%; }
+.rules-kept { margin: var(--sp-2) 0 var(--sp-4); }
+.rules-holds { margin: var(--sp-4) 0 0; padding-left: var(--sp-5); }
+.rules-holds li + li { margin-top: var(--sp-1); }
+.rules-form-actions { margin-top: var(--sp-5); }
