@@ -2,8 +2,9 @@
 // (Treatments): the list of the rules (searched by name or path, filtered by
 // direction, sorted and paged) with their path, the number of tasks of each
 // chain and their access, the sheet of a rule, and the pages that create,
-// edit and delete one. The Tasks and Access tabs of the sheet lead to the
-// current pages until their own screens. The package also holds GetRule,
+// edit and delete one, with its Access tab (who may use it). The Tasks tab
+// of the sheet leads to the current page until its own screen. The package
+// also holds GetRule,
 // which the tasks page reads its rule with.
 //
 // A rule is named by its name and its direction together. The screen does
@@ -43,11 +44,14 @@ const (
 	docPage  = "user/webui/regles"
 	pagePath = "/rules"
 
-	// The pages of the tasks and of the access of a rule, which the tabs of
-	// the sheet lead to until their own screens, and the transfer monitoring.
+	// The page of the tasks of a rule, which the Tasks tab of the sheet leads
+	// to until its own screen, and the transfer monitoring.
 	tasksPage     = "/tasks?ruleID="
-	accessPage    = "/management_usage_rights_rules?ruleID="
 	transfersPage = "/transfers"
+
+	// The tabs of the sheet.
+	tabDetails = "details"
+	tabAccess  = "access"
 
 	// The cookie that keeps the state of the list for the browser session.
 	stateCookie = "webui_rules_list"
@@ -79,7 +83,7 @@ const (
 //nolint:gochecknoglobals // reference data of the screen
 var (
 	sortKeys   = []string{sortName, sortDirection, sortPath}
-	doneKinds  = []string{doneCreated, doneUpdated, doneDeleted}
+	doneKinds  = []string{doneCreated, doneUpdated, doneDeleted, doneAccessAdded, doneAccessRemoved, doneAccessOpened}
 	directions = []string{dirSend, dirReceive}
 
 	counter = liststate.Counter{
@@ -236,8 +240,7 @@ func ruleURL(id int64, suffix string) string {
 	return common.WebuiURL(pagePath + "/" + strconv.FormatInt(id, 10) + suffix)
 }
 
-func tasksURL(id int64) string  { return common.WebuiURL(tasksPage + strconv.FormatInt(id, 10)) }
-func accessURL(id int64) string { return common.WebuiURL(accessPage + strconv.FormatInt(id, 10)) }
+func tasksURL(id int64) string { return common.WebuiURL(tasksPage + strconv.FormatInt(id, 10)) }
 
 // transfersURL is the transfer monitoring filtered on the rule.
 func transfersURL(rule *model.Rule) string {
@@ -540,7 +543,9 @@ func actions(translate gui.Translator, item *entry, user rights, onSheet bool, c
 
 		acts = append(acts,
 			gui.Action{Icon: "list", Label: translate("rules.action.tasks"), URL: tasksURL(item.rule.ID)},
-			gui.Action{Icon: "shield", Label: translate("rules.action.access"), URL: accessURL(item.rule.ID)},
+			gui.Action{
+				Icon: "shield", Label: translate("rules.action.access"), URL: withRet(accessURL(item.rule.ID, ""), carried),
+			},
 		)
 	}
 
@@ -637,15 +642,18 @@ func (h *Handlers) load(w http.ResponseWriter, r *http.Request) (entry, bool) {
 	return entry{}, false
 }
 
-// tabs is the tab strip of the sheet: Details, then Tasks and Access, which
-// lead to the current pages until their own screens.
-func tabs(translate gui.Translator, e *entry) []means.Tab {
+// tabs is the tab strip of the sheet: Details, Tasks (the current page of
+// the tasks until its own screen) and Access; current is the tab shown.
+func tabs(translate gui.Translator, e *entry, current string) []means.Tab {
 	tasks, access := uint64(e.tasks()), uint64(e.access) //nolint:gosec // counts
 
 	return []means.Tab{
-		{Label: translate("rules.tab.details"), URL: ruleURL(e.rule.ID, ""), Current: true},
+		{Label: translate("rules.tab.details"), URL: ruleURL(e.rule.ID, ""), Current: current == tabDetails},
 		{Label: translate("rules.tab.tasks"), URL: tasksURL(e.rule.ID), Count: tasks, HasCount: true},
-		{Label: translate("rules.tab.access"), URL: accessURL(e.rule.ID), Count: access, HasCount: true},
+		{
+			Label: translate("rules.tab.access"), URL: accessURL(e.rule.ID, ""), Count: access, HasCount: true,
+			Current: current == tabAccess,
+		},
 	}
 }
 
@@ -716,7 +724,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Folders:    folders(translate, item.rule),
 		Access:     item.accessText(translate),
 		Restricted: item.access > 0,
-		Tabs:       tabs(translate, &item),
+		Tabs:       tabs(translate, &item, tabDetails),
 		BackURL:    listURL(carried),
 		Actions:    actions(translate, &item, user, true, carried),
 	}

@@ -39,6 +39,8 @@ type suite struct {
 	partner *model.RemoteAgent
 	account *model.RemoteAccount
 	client  *model.Client
+	server  *model.LocalAgent
+	local   *model.LocalAccount
 
 	send, receive, orders *model.Rule
 }
@@ -58,12 +60,19 @@ func newSuite(t *testing.T) *suite {
 	r.Path("/rules/{id:[0-9]+}/edit").Methods(http.MethodPost).HandlerFunc(h.Update)
 	r.Path("/rules/{id:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.DeleteForm)
 	r.Path("/rules/{id:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.Delete)
+	r.Path("/rules/{id:[0-9]+}/access").Methods(http.MethodGet).HandlerFunc(h.AccessTab)
+	r.Path("/rules/{id:[0-9]+}/access/new").Methods(http.MethodGet).HandlerFunc(h.AccessNewForm)
+	r.Path("/rules/{id:[0-9]+}/access/new").Methods(http.MethodPost).HandlerFunc(h.AccessCreate)
+	r.Path("/rules/{id:[0-9]+}/access/open").Methods(http.MethodGet).HandlerFunc(h.AccessOpenForm)
+	r.Path("/rules/{id:[0-9]+}/access/open").Methods(http.MethodPost).HandlerFunc(h.AccessOpen)
+	r.Path("/rules/{id:[0-9]+}/access/{kind}/{target:[0-9]+}/delete").Methods(http.MethodGet).HandlerFunc(h.AccessDeleteForm)
+	r.Path("/rules/{id:[0-9]+}/access/{kind}/{target:[0-9]+}/delete").Methods(http.MethodPost).HandlerFunc(h.AccessDelete)
 
 	return s
 }
 
-// fixtures inserts a partner with its account and a client, and three
-// rules: "releves" in both directions, the sending one with a task before
+// fixtures inserts a partner with its account and a client, a server with
+// its account, and three rules: "releves" in both directions, the sending one with a task before
 // the transfer, one on error and an access for the partner; "commandes",
 // receiving, under the path "depot/commandes", with a comment.
 func (s *suite) fixtures(t *testing.T) {
@@ -77,6 +86,12 @@ func (s *suite) fixtures(t *testing.T) {
 
 	s.client = &model.Client{Name: "cli-sftp", Protocol: "sftp"}
 	require.NoError(t, s.db.Insert(s.client).Run())
+
+	s.server = &model.LocalAgent{Name: "srv-sftp", Protocol: "sftp", Address: types.Addr("0.0.0.0", 2222)}
+	require.NoError(t, s.db.Insert(s.server).Run())
+
+	s.local = &model.LocalAccount{LocalAgentID: s.server.ID, Login: "filiale-sud"}
+	require.NoError(t, s.db.Insert(s.local).Run())
 
 	s.send = &model.Rule{Name: "releves", IsSend: true, Path: "releves-envoi"}
 	s.receive = &model.Rule{Name: "releves", IsSend: false, Path: "releves-reception"}
@@ -190,7 +205,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, "Ajouter une règle")
 		assert.Contains(t, body, "Supprimer la règle")
 		assert.Contains(t, body, "/webui/tasks?ruleID=", "the menu leads to the tasks")
-		assert.Contains(t, body, "/webui/management_usage_rights_rules?ruleID=", "and to the access")
+		assert.Contains(t, body, "/access", "and to the Access tab")
 	})
 
 	t.Run("Given a search on the path and a filter on the direction", func(t *testing.T) {
@@ -229,7 +244,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "Règle d&#39;envoi « releves »", "the title says the direction")
 		assert.Contains(t, body, `href="/webui/rules/`+id+`" aria-current="page">Détails</a>`)
 		assert.Contains(t, body, `href="/webui/tasks?ruleID=`+id+`">Tâches <span class="w-tabs__count">2</span>`)
-		assert.Contains(t, body, `href="/webui/management_usage_rights_rules?ruleID=`+id+`">Accès <span class="w-tabs__count">1</span>`)
+		assert.Contains(t, body, `href="/webui/rules/`+id+`/access">Accès <span class="w-tabs__count">1</span>`)
 		assert.Contains(t, body, "releves-envoi")
 		assert.Contains(t, body, "Non défini : celui du serveur, sinon celui de la passerelle.", "an empty directory says what is used")
 		assert.NotContains(t, body, "Modifier la règle", "no edition without the write right")
