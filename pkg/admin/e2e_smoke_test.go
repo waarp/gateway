@@ -161,8 +161,8 @@ func e2eScreens() []e2eScreen {
 		// sheet of the OneDrive instance (its token never shown).
 		{path: "/webui/clouds", tables: 1},
 		{path: "/webui/clouds/1"},
-		{path: "/webui/clouds/new", tables: 5}, // the options the storage library accepts, one list per storage
-		{path: "/webui/clouds/1/edit", tables: 5},
+		{path: "/webui/clouds/new"},
+		{path: "/webui/clouds/1/edit"},
 		{path: "/webui/clouds/1/delete"},
 		{path: "/webui/clouds/2"},
 		// The authentication authorities (#722): the list, the sheet of the

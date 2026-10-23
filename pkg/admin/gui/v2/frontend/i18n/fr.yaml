@@ -1187,15 +1187,13 @@ clouds:
     options_required: À renseigner
     other: Autres options
     other_label: Réglages de la bibliothèque de stockage
-    other_hint: "Une option par ligne, sous la forme clé=valeur, parmi les options acceptées listées ci-dessous ; ni identifiant ni secret."
+    other_hint: "Une option par ligne, sous la forme clé=valeur, parmi les options acceptées proposées ci-dessous ; ni identifiant ni secret."
     other_none: Aucune
     other_some: Renseignées
     accepted: "Options acceptées par {type} ({n})"
-    accepted_col:
-      option: Option
-      default: Par défaut
-      help: Description (en anglais)
-    accepted_values: "Valeurs : {values}"
+    accepted_add: Ajouter une option
+    accepted_default: "par défaut : {value}"
+    accepted_values: "valeurs : {values}"
     refused: L'instance n'a pas été enregistrée.
     refused_text: Corrigez les champs signalés ci-dessous.
     refused_by_backend: "Le stockage a refusé cette configuration : {cause} Le détail est dans le journal de la passerelle."

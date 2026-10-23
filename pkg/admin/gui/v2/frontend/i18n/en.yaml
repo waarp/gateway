@@ -1188,15 +1188,13 @@ clouds:
     options_required: To be given
     other: Other options
     other_label: Settings of the storage library
-    other_hint: "One option per line, as key=value, among the accepted options listed below; no credential, no secret."
+    other_hint: "One option per line, as key=value, among the accepted options suggested below; no credential, no secret."
     other_none: None
     other_some: Set
     accepted: "Options {type} accepts ({n})"
-    accepted_col:
-      option: Option
-      default: Default
-      help: Description
-    accepted_values: "Values: {values}"
+    accepted_add: Add an option
+    accepted_default: "default: {value}"
+    accepted_values: "values: {values}"
     refused: The instance was not saved.
     refused_text: Correct the fields flagged below.
     refused_by_backend: "The storage refused this configuration: {cause} The details are in the log of the gateway."

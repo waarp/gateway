@@ -453,7 +453,7 @@ templ formView(d *formData) {
 				</fieldset>
 				for _, c := range d.Cards {
 					if len(c.Accepted) > 0 {
-						@acceptedTable(c)
+						@acceptedField(c)
 					}
 				}
 			</div>
@@ -462,43 +462,22 @@ templ formView(d *formData) {
 	</form>
 }
 
-// acceptedTable: the options the storage library accepts for a storage,
-// beyond the fields, shown for the chosen type (data-case) under the "other
-// options" zone: the key, what the library applies without it, its help in
-// the words of the library (English), the values it proposes when they are
-// few. A bounded region that scrolls, reachable from the keyboard.
-templ acceptedTable(c typeView) {
-	<div class="w-table-wrap clouds-accepted" data-case={ c.Key } role="region" tabindex="0" aria-labelledby={ "accepted-" + c.Key }>
-		<table class="w-table">
-			<caption id={ "accepted-" + c.Key }>{ gui.T(ctx, "clouds.form.accepted", "type", c.Label, "n", len(c.Accepted)) }</caption>
-			<thead>
-				<tr>
-					<th scope="col">{ gui.T(ctx, "clouds.form.accepted_col.option") }</th>
-					<th scope="col">{ gui.T(ctx, "clouds.form.accepted_col.default") }</th>
-					<th scope="col">{ gui.T(ctx, "clouds.form.accepted_col.help") }</th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, a := range c.Accepted {
-					<tr>
-						<td><code class="w-code">{ a.Key }</code></td>
-						<td>
-							if a.Default != "" {
-								<code class="w-code">{ a.Default }</code>
-							} else {
-								<span class="w-muted">{ gui.T(ctx, "clouds.location_none") }</span>
-							}
-						</td>
-						<td>
-							<span lang="en">{ a.Help }</span>
-							if a.Values != "" {
-								<span class="clouds-accepted__values w-muted">{ gui.T(ctx, "clouds.form.accepted_values", "values", a.Values) }</span>
-							}
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
+// acceptedField: the options the storage library accepts for a storage,
+// beyond the fields, for the chosen type (data-case), under the "other
+// options" zone: the list to type in of the kit writes the chosen key and
+// "=" on a new line of the zone, which stays editable (no table in a card:
+// Driss, 2026-10-23); each option with what the library applies without it,
+// the values it proposes and its help (English). Without JavaScript, the
+// list of the keys.
+templ acceptedField(c typeView) {
+	<div class="clouds-accepted" data-case={ c.Key }>
+		<div class="w-field">
+			<label class="w-field__label" for={ "accepted-" + c.Key }>{ gui.T(ctx, "clouds.form.accepted_add") }</label>
+			@gui.Combobox(gui.ComboboxProps{
+				ID: "accepted-" + c.Key, Into: fieldOther, Suffix: "=", Groups: c.Accepted,
+				Placeholder: gui.T(ctx, "clouds.form.accepted", "type", c.Label, "n", len(c.Accepted[0].Choices)),
+			})
+		</div>
 	</div>
 }
 
