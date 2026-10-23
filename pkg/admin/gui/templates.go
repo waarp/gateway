@@ -299,9 +299,4 @@ var (
 			Funcs(funcs).
 			ParseFS(webFS, index, header, sidebar, "front-end/html/cloud_instance_management_page.html"),
 	)
-	EmailTemplateManagementTemplate = template.Must(
-		template.New("email_templates_management_page.html").
-			Funcs(funcs).
-			ParseFS(webFS, index, header, sidebar, "front-end/html/email_templates_management_page.html"),
-	)
 )

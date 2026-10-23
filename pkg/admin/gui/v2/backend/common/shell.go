@@ -55,6 +55,9 @@ type Screen struct {
 	// and at the end of <body>.
 	Stylesheets []string
 	Scripts     []string
+	// Editor loads the rich text field and the variables list of the kit
+	// (gui.EditorAssets), for the screens that use them.
+	Editor bool
 	// Status is the HTTP status of the page: 0 (200 OK) for a page, 422 for a
 	// form rendered again with its errors, 404 for a localised "not found".
 	Status int
@@ -132,18 +135,22 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		Nav:        makeNav(translate, user.Permissions, screen.Section, screen.Menu),
 		Crumbs:     screen.Crumbs,
 		Notices:    screen.Notices,
-		Head:       headOf(screen.Stylesheets),
+		Head:       headOf(screen.Stylesheets, screen.Editor),
 		Scripts:    scriptsOf(screen.Scripts),
 	}
 }
 
-// headOf links the stylesheets of a screen in <head>; nil without any.
-func headOf(paths []string) templ.Component {
-	if len(paths) == 0 {
+// headOf links the stylesheets of a screen in <head>, after the files of the
+// editor of the kit when the screen uses it; nil without any.
+func headOf(paths []string, editor bool) templ.Component {
+	switch {
+	case editor:
+		return templ.Join(gui.EditorAssets(), Stylesheets(paths))
+	case len(paths) == 0:
 		return nil
+	default:
+		return Stylesheets(paths)
 	}
-
-	return Stylesheets(paths)
 }
 
 // scriptsOf loads the scripts of a screen at the end of <body>; nil without any.
