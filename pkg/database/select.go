@@ -102,6 +102,39 @@ func (s *SelectQuery) Count() (uint64, error) {
 	return countQuery.Run()
 }
 
+// CountBy counts the entries of the query for each value of the given column
+// ('SELECT column, COUNT(*) ... GROUP BY column'): one reading where a count
+// per value would read the table as many times. The conditions apply; the
+// order, the limit and the offset do not. The column is written from
+// constants of the caller, never from a user input.
+func (s *SelectQuery) CountBy(column string) (map[string]uint64, error) {
+	logger := s.db.getLogger()
+	query := s.db.getUnderlying().Table(s.bean.TableName())
+	addOwnerCond(query, s.all, s.bean, s.db.getOwner())
+
+	for _, cond := range s.conds {
+		query.Where(cond.sql, cond.args...)
+	}
+
+	var groups []struct {
+		Grp string `gorm:"column:grp"`
+		Cnt int64  `gorm:"column:cnt"`
+	}
+
+	if err := query.Select(column + " AS grp, COUNT(*) AS cnt").Group(column).Scan(&groups).Error; err != nil {
+		logger.Errorf("Failed to count the %s entries by %s: %v", s.bean.Elem(), column, err)
+
+		return nil, NewInternalError(err)
+	}
+
+	counts := make(map[string]uint64, len(groups))
+	for _, group := range groups {
+		counts[group.Grp] = uint64(group.Cnt)
+	}
+
+	return counts, nil
+}
+
 // Run executes the 'SELECT' query.
 func (s *SelectQuery) Run() error {
 	logger := s.db.getLogger()

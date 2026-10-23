@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
@@ -226,7 +227,60 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/email-templates/1/edit"},
 		{path: "/webui/email-templates/1/delete"},
 		{path: "/webui/email-templates/2/delete"},
+		// The transfer monitoring (#745): the list, refreshed on its own; the
+		// sheet of the failed transfer (its information: a table), of the
+		// done one; the pages that add and preregister a transfer, cancel
+		// the failed one and retry the done one.
+		{path: "/webui/transfers", tables: 1, fragment: "fragment=rows"},
+		{path: "/webui/transfers/1", tables: 1},
+		{path: "/webui/transfers/1001"},
+		{path: "/webui/transfers/new"},
+		{path: "/webui/transfers/preregister"},
+		{path: "/webui/transfers/1/cancel"},
+		{path: "/webui/transfers/1001/retry"},
 	}
+}
+
+// insertE2ETransfers inserts, for a sending rule of the SFTP partner, a
+// failed transfer with its transfer information, a running one and a planned
+// one, and a done entry of the history. The screens are visited by
+// identifier.
+func insertE2ETransfers(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	rule := &model.Rule{Name: "releves", IsSend: true, Path: "releves"}
+	require.NoError(t, db.Insert(rule).Run())
+
+	start := time.Now().Add(-time.Hour)
+
+	for i, trans := range []*model.Transfer{
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "releve-20102026.pdf", DestFilename: "releve-20102026.pdf", Start: start, Status: types.StatusError,
+			Step: types.StepSetup, ErrCode: types.TeForbidden, ErrDetails: "failed to make transfer request: FICHIER DEJA RECU",
+			RemainingTries: 2, Filesize: 302114, TransferInfo: map[string]any{"lot": "2026-10-20-B"},
+		},
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "paie-octobre.xml", DestFilename: "paie-octobre.xml", Start: start.Add(time.Minute),
+			Status: types.StatusRunning, Step: types.StepData, Filesize: 1228800, Progress: 786432,
+		},
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "rapport-mensuel.pdf", DestFilename: "rapport-mensuel.pdf", Start: start.Add(2 * time.Hour),
+			Status: types.StatusPlanned, Filesize: model.UnknownSize,
+		},
+	} {
+		require.NoError(t, db.Insert(trans).Run())
+		require.EqualValues(t, i+1, trans.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.HistoryEntry{
+		Identifier: model.ID(1001), RemoteTransferID: "e2e-1001", IsSend: true, Rule: "releves", Account: "gateway-prod",
+		Agent: "part-sftp-01", Client: "cli-sftp", Protocol: "sftp", SrcFilename: "accuse-0456.xml",
+		DestFilename: "accuse-0456.xml", Filesize: 2048, Progress: 2048, Start: start.Add(-time.Hour),
+		Stop: start.Add(-time.Hour + time.Second), Status: types.StatusDone,
+	}).Run())
 }
 
 // insertE2EEmailTemplates inserts an HTML template with attachments, used by
@@ -596,7 +650,8 @@ func startE2EServer(t *testing.T) string {
 				model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete |
 				model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete |
 				model.PermAdminRead | model.PermAdminWrite | model.PermAdminDelete |
-				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete, // the SMTP credentials (#741), the email templates (#744)
+				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete | // the SMTP credentials (#741), the email templates (#744)
+				model.PermTransfersRead | model.PermTransfersWrite, // the transfer monitoring (#745)
 		},
 		{Username: "viewer", PasswordHash: string(hash), Permissions: model.PermServersRead | model.PermPartnersRead},
 	} {
@@ -687,6 +742,7 @@ func startE2EServer(t *testing.T) string {
 	insertE2EKeys(t, db)
 	insertE2ESMTP(t, db)
 	insertE2EEmailTemplates(t, db)
+	insertE2ETransfers(t, db)
 
 	// The gateway runs as a node of a cluster, with its own override file
 	// and one address indirection (#730).

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -58,27 +59,100 @@ func (q *TransferListQuery) File(file string) *TransferListQuery {
 	return q
 }
 
+// likeEscape is the escape character of the LIKE patterns of the file
+// searches.
+const likeEscape = "\033"
+
+// likePattern is the LIKE pattern that matches any text containing the
+// substring, its wildcards escaped.
+func likePattern(substring string) string {
+	replacer := strings.NewReplacer(
+		"%", likeEscape+"%",
+		"_", likeEscape+"_",
+	)
+
+	return "%" + replacer.Replace(substring) + "%"
+}
+
 // FilePattern adds a condition which will match any transfer whose filename
 // contains the provided substring.
 func (q *TransferListQuery) FilePattern(substring string) *TransferListQuery {
-	const escapeChar = "\033"
-
-	replacer := strings.NewReplacer(
-		"%", escapeChar+"%",
-		"_", escapeChar+"_",
-	)
-
-	substring = replacer.Replace(substring)
-	substring = "%" + substring + "%"
+	pattern := likePattern(substring)
 
 	q.query.Where("src_filename LIKE ? ESCAPE ? OR dest_filename LIKE ? ESCAPE ?",
-		substring, escapeChar, substring, escapeChar)
+		pattern, likeEscape, pattern, likeEscape)
+
+	return q
+}
+
+// Search adds a condition which will match any transfer whose filename
+// contains the text, or whose follow ID is the text (the condition of the
+// followID filter of the REST API).
+func (q *TransferListQuery) Search(text string) *TransferListQuery {
+	pattern := likePattern(text)
+
+	q.query.Where("(src_filename LIKE ? ESCAPE ? OR dest_filename LIKE ? ESCAPE ? OR "+
+		"id IN (SELECT COALESCE(transfer_id, history_id) FROM transfer_info WHERE name=? AND value=?))",
+		pattern, likeEscape, pattern, likeEscape, model.FollowID, text)
+
+	return q
+}
+
+// RuleName adds a condition on the name of the rule, in both directions.
+func (q *TransferListQuery) RuleName(name string) *TransferListQuery {
+	q.query.Where("rule=?", name)
+
+	return q
+}
+
+// Direction adds a condition on the direction of the transfers.
+func (q *TransferListQuery) Direction(isSend bool) *TransferListQuery {
+	q.query.Where("is_send=?", isSend)
+
+	return q
+}
+
+// Protocols adds a condition on the protocol of the transfers: one of the
+// given ones.
+func (q *TransferListQuery) Protocols(protocols ...string) *TransferListQuery {
+	q.query.In("protocol", utils.AsAny(protocols)...)
+
+	return q
+}
+
+// StartedFrom adds a condition on the start date: at or after the given time.
+func (q *TransferListQuery) StartedFrom(from time.Time) *TransferListQuery {
+	q.query.Where("start>=?", from.UTC())
+
+	return q
+}
+
+// StartedUntil adds a condition on the start date: at or before the given
+// time.
+func (q *TransferListQuery) StartedUntil(to time.Time) *TransferListQuery {
+	q.query.Where("start<=?", to.UTC())
 
 	return q
 }
 
 func (q *TransferListQuery) Count() (uint64, error) {
 	return q.query.Count()
+}
+
+// CountByStatus counts the transfers of the query for each status, in one
+// reading of the transfers.
+func (q *TransferListQuery) CountByStatus() (map[types.TransferStatus]uint64, error) {
+	counts, err := q.query.CountBy("status")
+	if err != nil {
+		return nil, fmt.Errorf("failed to count the transfers by status: %w", err)
+	}
+
+	byStatus := make(map[types.TransferStatus]uint64, len(counts))
+	for status, n := range counts {
+		byStatus[types.TransferStatus(status)] = n
+	}
+
+	return byStatus, nil
 }
 
 func (q *TransferListQuery) Limit(limit, offset int) *TransferListQuery {
@@ -105,7 +179,7 @@ func GetTransfer(db database.ReadAccess, id int64) (*model.Transfer, error) {
 
 func StartTransferQuery(db database.ReadAccess, orderBy string, asc bool) *TransferListQuery {
 	list := &TransferListQuery{}
-	list.query = db.Select(&list.transfers).Owner().OrderBy(orderBy, asc)
+	list.query = db.Select(&list.transfers).OrderBy(orderBy, asc)
 
 	return list
 }

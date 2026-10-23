@@ -1,0 +1,751 @@
+package transfers
+
+import (
+	"fmt"
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the transfer monitoring screen (Supervision). Presentation only:
+// the handler counts, filters, sorts, pages and translates. The row of the
+// states, the count and the table are the two parts of a live list of the
+// kit (live.js): the page comes as a frame, the parts are read at once and in
+// parallel, then every few seconds; a state, a sort or a page loads in place,
+// the next and previous pages are read ahead. Without JavaScript, the whole
+// list (?full=1). The toolbar applies the search and the filters as they
+// change (kit.js), carrying the state and the sort.
+templ listView(d listData) {
+	<div data-live data-live-period={ strconv.Itoa(d.RefreshSeconds) }>
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "transfers.title") }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<span class="w-live" id="transfers-live" role="status" aria-live="polite" data-live-status data-live={ gui.T(ctx, "transfers.live") } data-refreshing={ gui.T(ctx, "transfers.refreshing") } data-live-time={ d.RefreshedAt }>
+				if d.Pending {
+					{ gui.T(ctx, "transfers.refreshing") }
+				} else {
+					{ gui.T(ctx, "transfers.live", "time", d.RefreshedAt) }
+				}
+			</span>
+			<a class="w-btn w-btn--outline-dark" id="transfers-refresh" href={ templ.SafeURL(d.FragmentURL) } data-live-refresh>
+				@gui.Icon("rotate")
+				{ gui.T(ctx, "action.refresh") }
+			</a>
+			if d.AddURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "transfers.add") }
+				</a>
+				@gui.Actions(gui.ActionsProps{ID: "act-page", Name: gui.T(ctx, "transfers.title"), Items: []gui.Action{{Icon: "upload", Label: gui.T(ctx, "transfers.preregister.title"), URL: d.PreregisterURL}}, Menu: true})
+			}
+		</div>
+	</div>
+	@statesRow(d)
+	<div class="tf-bar">
+	<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-hold data-live-carry="state sort dir size">
+		for _, h := range liststate.SortedHidden(d.Hidden) {
+			<input type="hidden" name={ h.Name } value={ h.Value }/>
+		}
+		<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "transfers.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "transfers.search_placeholder") } autocomplete="off"/></label>
+		<details class="w-disclose" open?={ d.FiltersOpen }>
+			<summary class="w-btn w-btn--outline-dark w-btn--sm">
+				@gui.Icon("filter")
+				{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+			</summary>
+			<div class="w-disclose__panel">
+				@filtersPanel(d.Filters)
+				@gui.FiltersFoot(d.ResetURL)
+			</div>
+		</details>
+		<span class="w-toolbar__spacer"></span>
+		@countSpan(d)
+	</form>
+	@pagerTop(d)
+	</div>
+	@tableRegion(d)
+	<template data-live-error>@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.refresh_error.title"), Text: gui.T(ctx, "transfers.refresh_error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.FragmentURL}})</template>
+	</div>
+}
+
+// liveHead: the live list of the kit; the frame sends a browser without
+// JavaScript to the whole list (the whole list itself must not, or it would
+// load itself again without end).
+templ liveHead(fullURL string, frame bool) {
+	@gui.LiveAssets()
+	if frame {
+		<noscript><meta http-equiv="refresh" content={ "0;url=" + fullURL }/></noscript>
+	}
+}
+
+// countsPart: the part of the counts, for ?fragment=counts.
+templ countsPart(d listData) {
+	@statesRow(d)
+	@countSpan(d)
+}
+
+// rowsPart: the part of the rows, which changes with the page, for
+// ?fragment=rows.
+templ rowsPart(d listData) {
+	@pagerTop(d)
+	@tableRegion(d)
+}
+
+// statesRow: every state with its count, as tabs underlined on one line
+// (variant A chosen by Driss on 2026-10-22); the state shown is marked
+// (aria-current, a thick underline and bold: not by the colour alone), the
+// failed transfers carry the shape of the error status when there are any.
+templ statesRow(d listData) {
+	<nav class="tf-states" id="transfers-states" aria-label={ gui.T(ctx, "transfers.states.label") } data-live-part="counts" data-live-time={ d.RefreshedAt } data-live-pending?={ d.Pending }>
+		if d.Pending {
+			<span class="w-skeleton tf-states-wait"></span>
+		}
+		for _, s := range d.States {
+			<a
+				class="tf-state"
+				href={ templ.SafeURL(s.URL) }
+				title={ s.Hint }
+				if s.Current {
+					aria-current="true"
+				}
+			>
+				if s.Alert {
+					<span class="w-status w-status--ko">{ s.Label }</span>
+				} else {
+					<span>{ s.Label }</span>
+				}
+				<span class="tf-count">{ s.Count }</span>
+			</a>
+		}
+	</nav>
+}
+
+// countSpan: the count of the list, in the toolbar, when the list holds on
+// one page; the foot at the top says it when there are several.
+templ countSpan(d listData) {
+	<span class="w-toolbar__count" id="transfers-count" aria-live="polite" data-live-part="counts" data-live-pending?={ d.Pending }>
+		if d.CountShown {
+			{ d.Count }
+		}
+	</span>
+}
+
+// filtersPanel: the criteria of the list; each applies as soon as it changes
+// (kit.js).
+templ filtersPanel(f filterView) {
+	<div class="w-field">
+		<label class="w-field__label" for="f-rule">{ gui.T(ctx, "transfers.filter.rule") }</label>
+		<select class="w-select" id="f-rule" name={ paramRule }>
+			<option value="">{ gui.T(ctx, "transfers.filter.rule_all") }</option>
+			for _, name := range f.Rules {
+				<option value={ name } selected?={ name == f.Rule }>{ name }</option>
+			}
+		</select>
+	</div>
+	<div class="w-field">
+		<label class="w-field__label" for="f-direction">{ gui.T(ctx, "transfers.filter.direction") }</label>
+		<select class="w-select" id="f-direction" name={ paramDir }>
+			<option value="">{ gui.T(ctx, "transfers.filter.direction_all") }</option>
+			<option value={ dirSend } selected?={ f.Dir == dirSend }>{ gui.T(ctx, "transfers.dir.send") }</option>
+			<option value={ dirReceive } selected?={ f.Dir == dirReceive }>{ gui.T(ctx, "transfers.dir.receive") }</option>
+		</select>
+	</div>
+	<div class="w-field">
+		<label class="w-field__label" for="f-partner">{ gui.T(ctx, "transfers.filter.partner") }</label>
+		<select class="w-select" id="f-partner" name={ paramPartner }>
+			<option value="">{ gui.T(ctx, "transfers.filter.partner_all") }</option>
+			if f.PartnerExtra != "" {
+				<option value={ f.PartnerExtra } selected>{ f.PartnerExtra }</option>
+			}
+			if len(f.Partners) > 0 {
+				<optgroup label={ gui.T(ctx, "transfers.filter.partners") }>
+					for _, name := range f.Partners {
+						<option value={ name } selected?={ name == f.Partner }>{ name }</option>
+					}
+				</optgroup>
+			}
+			if len(f.Servers) > 0 {
+				<optgroup label={ gui.T(ctx, "transfers.filter.servers") }>
+					for _, name := range f.Servers {
+						<option value={ name } selected?={ name == f.Partner }>{ name }</option>
+					}
+				</optgroup>
+			}
+		</select>
+	</div>
+	<div class="w-field">
+		<label class="w-field__label" for="f-account">{ gui.T(ctx, "transfers.filter.account") }</label>
+		<select class="w-select" id="f-account" name={ paramAccount }>
+			<option value="">{ gui.T(ctx, "transfers.filter.account_all") }</option>
+			if f.AccountExtra != "" {
+				<option value={ f.AccountExtra } selected>{ f.AccountExtra }</option>
+			}
+			for i, group := range f.Accounts {
+				<optgroup label={ group.Agent }>
+					for _, login := range group.Logins {
+						<option value={ login } selected?={ i == f.AccountGroup && login == f.Account }>{ login }</option>
+					}
+				</optgroup>
+			}
+		</select>
+	</div>
+	<div class="w-field">
+		<label class="w-field__label" for="f-protocol">{ gui.T(ctx, "transfers.filter.protocol") }</label>
+		<select class="w-select" id="f-protocol" name={ paramProtocol }>
+			<option value="">{ gui.T(ctx, "transfers.filter.protocol_all") }</option>
+			for _, p := range f.Protocols {
+				<option value={ p.Value } selected?={ p.Value == f.Protocol }>{ p.Label }</option>
+			}
+		</select>
+	</div>
+	<div class="w-field">
+		<label class="w-field__label" for="f-from">{ gui.T(ctx, "transfers.filter.from") }</label>
+		<input class="w-input" id="f-from" name={ paramFrom } type="datetime-local" value={ f.From }/>
+	</div>
+	<div class="w-field">
+		<label class="w-field__label" for="f-to">{ gui.T(ctx, "transfers.filter.to") }</label>
+		<input class="w-input" id="f-to" name={ paramTo } type="datetime-local" value={ f.To }/>
+	</div>
+}
+
+// tableRegion: the table and its foot, or what replaces them: the reading
+// error, no transfer at all, none matching.
+templ tableRegion(d listData) {
+	<div id="transfers-table" data-live-part="rows" data-live-paged data-live-time={ d.RefreshedAt } data-live-pending?={ d.Pending }>
+		if d.Error {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.load_error.title"), Text: gui.T(ctx, "transfers.load_error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+		} else if d.Empty {
+			@gui.Empty(gui.EmptyProps{Icon: "clock", Title: gui.T(ctx, "transfers.empty.title"), Text: gui.T(ctx, "transfers.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "transfers.add"))})
+		} else if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap tf-list">
+				<table class="w-table w-table--one-line tf-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner tf-x"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-progress"/><col class="tf-col-size"/><col class="tf-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.direction") }</span></th>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.id"), Key: sortID, Sort: d.Sort, Dir: d.Dir, Base: d.Base, Num: true})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.state"), Key: sortState, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.file"), Key: sortFile, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.rule"), Key: sortRule, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col" class="tf-x">{ gui.T(ctx, "transfers.col.partner") }</th>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.start"), Key: sortStart, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.stop"), Key: sortStop, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "transfers.col.progress") }</th>
+							<th scope="col" class="w-num">{ gui.T(ctx, "transfers.col.size") }</th>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						if d.Pending {
+							@gui.SkeletonRows(gui.SkeletonRowsProps{Rows: 10, Cols: 11})
+						}
+						for _, r := range d.Rows {
+							<tr>
+								<td class="tf-dir" title={ r.DirTip }>
+									@gui.Icon(r.DirIcon)
+									<span class="visually-hidden">{ r.DirTip }</span>
+								</td>
+								<td class="w-num tf-num">{ strconv.FormatInt(r.ID, 10) }</td>
+								<td
+									if r.StatusTip != "" {
+										title={ r.StatusTip }
+									}
+								>
+									@gui.StatusOf(r.Status)
+								</td>
+								<td><a class="tf-file w-truncate w-truncate--start" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }><bdi>{ r.File }</bdi></a></td>
+								<td class="w-mono" title={ r.RuleTip }>{ r.Rule }</td>
+								<td class="tf-x" title={ r.PartnerTip }>{ r.Partner }</td>
+								<td class="tf-time">@momentCell(r.Start)</td>
+								<td class="tf-time">
+									if r.Next {
+										<span class="tf-next" title={ r.End.Title }>
+											@gui.Icon("rotate")
+											<span>{ r.End.Text }</span>
+										</span>
+									} else {
+										@momentCell(r.End)
+									}
+								</td>
+								<td>@progressInline(r.Progress)</td>
+								<td
+									class="w-num"
+									if r.SizeTitle != "" {
+										title={ r.SizeTitle }
+									}
+								>
+									if r.Size != "" {
+										{ r.Size }
+									} else {
+										<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_size") }</span>
+									}
+								</td>
+								<td>@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="tf-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	</div>
+}
+
+// pagerTop: the list foot repeated above the table, without the rows per
+// page, so that changing pages needs no scrolling (Driss, 2026-10-22).
+templ pagerTop(d listData) {
+	<div class="tf-pager-top" id="transfers-pager-top" data-live-part="rows" data-live-paged>
+		if d.Pager != nil {
+			@gui.Pager(d.Pager.Props(d.TopHidden, nil, d.Size))
+		}
+	</div>
+}
+
+// momentCell: a moment, its date and its time to the second, the sentence as
+// a tooltip; a dash for none.
+templ momentCell(m moment) {
+	if m.Text == "" {
+		<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_stop") }</span>
+	} else {
+		<span title={ m.Title }>{ m.Text }</span>
+	}
+}
+
+// progressInline: the progress in a line of the list, the size as a
+// tooltip.
+templ progressInline(p progressView) {
+	if p.None {
+		<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_progress") }</span>
+	} else {
+		if p.Bar {
+			<span class="tf-gauge">
+				<progress class="tf-progress" max="100" value={ strconv.Itoa(p.Pct) } aria-label={ gui.T(ctx, "transfers.progress_label", "pct", p.Pct) }>{ p.Label }</progress>
+				<span class="tf-gauge__pct" aria-hidden="true">{ p.Label }</span>
+			</span>
+		} else {
+			{ p.Label }
+		}
+	}
+}
+
+// progressCell: a bar and the percentage when the size is known (a native
+// progress element: its value is read out), the bytes otherwise; the size
+// under it. The sheet uses it.
+templ progressCell(p progressView) {
+	if p.None {
+		<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ gui.T(ctx, "transfers.no_progress") }</span>
+	} else {
+		if p.Bar {
+			<progress class="tf-progress" max="100" value={ strconv.Itoa(p.Pct) } aria-label={ gui.T(ctx, "transfers.progress_label", "pct", p.Pct) }>{ p.Label }</progress>
+		}
+		<span class="tf-pct">{ p.Label }</span>
+	}
+	if p.Size != "" {
+		<span class="tf-sub">{ p.Size }</span>
+	}
+}
+
+// detailView: the sheet of a transfer, in reading: the file as title, its
+// state and number under it; the error first when there is one; then the
+// transfer, the file, the run, the retries and the transfer information.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title tf-title">{ d.File }</h1>
+			<p class="tf-subtitle">@gui.StatusOf(d.Status)<span class="w-muted">{ d.Number }</span></p>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "transfers.back") }
+			</a>
+			for _, b := range d.Buttons {
+				<form class="tf-inline" method="post" action={ templ.SafeURL(b.Action) }>
+					<button type="submit" class={ buttonClass(b.Primary) }>
+						@gui.Icon(b.Icon)
+						{ b.Label }
+					</button>
+				</form>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.File, Items: d.Actions, Menu: true})
+			}
+		</div>
+	</div>
+	<div class="w-stack">
+		if d.Error != nil {
+			<div class="w-card tf-error-card">
+				<h2 class="w-card__title">{ gui.T(ctx, "transfers.detail.error") }</h2>
+				<dl class="w-deflist">
+					<dt>{ gui.T(ctx, "transfers.detail.cause") }</dt>
+					<dd><strong>{ d.Error.Cause }</strong> <code class="w-code">{ d.Error.Code }</code></dd>
+					if d.Error.Message != "" {
+						<dt>{ gui.T(ctx, "transfers.detail.message") }</dt>
+						<dd><span class="w-mono tf-wrap">{ d.Error.Message }</span></dd>
+					}
+					if d.Error.Step != "" {
+						<dt>{ gui.T(ctx, "transfers.detail.error_step") }</dt>
+						<dd>{ d.Error.Step }</dd>
+					}
+				</dl>
+			</div>
+		}
+		@deflistCard(gui.T(ctx, "transfers.detail.transfer"), d.Transfer)
+		@deflistCard(gui.T(ctx, "transfers.detail.file"), d.Files)
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "transfers.detail.run") }</h2>
+			<dl class="w-deflist">
+				for _, k := range d.Run {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+				<dt>{ gui.T(ctx, "transfers.detail.progress") }</dt>
+				<dd>@progressCell(d.Progress)</dd>
+			</dl>
+		</div>
+		if d.Retries != nil {
+			@deflistCard(gui.T(ctx, "transfers.detail.retries"), d.Retries)
+		}
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</h2>
+			if len(d.Infos) == 0 {
+				<p class="w-muted tf-note">{ gui.T(ctx, "transfers.detail.infos_none") }</p>
+			} else {
+				<div class="w-table-wrap">
+					<table class="w-table tf-infos">
+						<caption class="visually-hidden">{ gui.T(ctx, "transfers.detail.infos") }</caption>
+						<thead><tr><th scope="col">{ gui.T(ctx, "transfers.detail.info_name") }</th><th scope="col">{ gui.T(ctx, "transfers.detail.info_value") }</th></tr></thead>
+						<tbody>
+							for _, i := range d.Infos {
+								<tr>
+									<td>
+										if i.Tech != "" {
+											{ i.Name }<span class="tf-sub w-mono">{ i.Tech }</span>
+										} else {
+											<span class="w-mono">{ i.Name }</span>
+										}
+									</td>
+									<td class="w-mono">{ i.Value }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+// buttonClass: the main action of the sheet is the coloured one.
+func buttonClass(primary bool) string {
+	if primary {
+		return "w-btn w-btn--primary"
+	}
+
+	return "w-btn w-btn--outline-dark"
+}
+
+// deflistCard: a card of key/value rows under its title.
+templ deflistCard(title string, rows []kv) {
+	<div class="w-card">
+		<h2 class="w-card__title">{ title }</h2>
+		<dl class="w-deflist">
+			for _, k := range rows {
+				<dt>{ k.Label }</dt>
+				<dd>@protoform.ValueOf(k)</dd>
+			}
+		</dl>
+	</div>
+}
+
+// cancelView: the confirmation of the cancellation (decision D10: a page,
+// not a dialog), which names the transfer, its file and its state, "Cancel"
+// then "Cancel the transfer" bottom right.
+templ cancelView(d cancelData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title tf-title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "transfers.back_transfer") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		<p class="tf-lead">
+			if d.Running {
+				{ gui.T(ctx, "transfers.cancel.text_running") }
+			} else {
+				{ gui.T(ctx, "transfers.cancel.text") }
+			}
+		</p>
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "transfers.col.file") }</dt>
+			<dd><span class="w-mono tf-wrap">{ d.File }</span></dd>
+			<dt>{ gui.T(ctx, "transfers.detail.transfer") }</dt>
+			<dd>{ d.Number }</dd>
+			<dt>{ gui.T(ctx, "transfers.col.state") }</dt>
+			<dd>@gui.StatusOf(d.Status)</dd>
+			<dt>{ gui.T(ctx, "transfers.col.rule") }</dt>
+			<dd><span class="w-mono">{ d.Rule }</span> · { d.Direction }</dd>
+			<dt>{ gui.T(ctx, "transfers.col.partner") }</dt>
+			<dd>{ d.Partner }</dd>
+		</dl>
+		<form class="tf-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title, Label: gui.T(ctx, "transfers.action.cancel")})</form>
+	</div>
+}
+
+// retryView: the retry page: a new transfer, now or at a date.
+templ retryView(d *retryData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title tf-title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "transfers.back_transfer") }
+			</a>
+		</div>
+	</div>
+	if d.Refused != "" {
+		<div class="tf-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.retry.refused"), Text: d.Refused})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<p class="tf-lead">{ gui.T(ctx, "transfers.retry.text", "number", d.Number) }</p>
+			@dateField(fieldDate, gui.T(ctx, "transfers.retry.date"), d.Date, gui.T(ctx, "transfers.form.start_hint"), false)
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Title: d.Title, Label: gui.T(ctx, "transfers.action.retry")})
+	</form>
+}
+
+// dateField: a date and time in the time zone of the gateway.
+templ dateField(id, label string, f field, hint string, required bool) {
+	<div class={ "w-field", "w-field--medium", templ.KV("is-invalid", f.Error != "") }>
+		<label class="w-field__label" for={ id }>{ label }@protoform.ReqMark(required)
+			if !required {
+				{ " " }<span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span>
+			}
+		</label>
+		<input
+			class="w-input"
+			id={ id }
+			name={ id }
+			type="datetime-local"
+			value={ f.Value }
+			required?={ required }
+			aria-describedby={ id + "-h" }
+			if f.Error != "" {
+				aria-invalid="true"
+			}
+		/>
+		@protoform.Message(id+"-h", f.Error, hint)
+	</div>
+}
+
+// selectField: a select of grouped choices, with an empty first choice.
+templ selectField(id, label string, f field, groups []optGroup, empty, hint string) {
+	<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
+		<label class="w-field__label" for={ id }>{ label }@protoform.ReqMark(true)</label>
+		<select
+			class="w-select"
+			id={ id }
+			name={ id }
+			required
+			aria-describedby={ id + "-h" }
+			if f.Error != "" {
+				aria-invalid="true"
+			}
+		>
+			<option value="">{ empty }</option>
+			for _, g := range groups {
+				if len(g.Options) > 0 {
+					<optgroup label={ g.Label }>
+						for _, o := range g.Options {
+							<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+						}
+					</optgroup>
+				}
+			}
+		</select>
+		@protoform.Message(id+"-h", f.Error, hint)
+	</div>
+}
+
+// formView: the page that adds a client transfer or preregisters a server
+// one (decision D10: a page), one card per block. Refused form: a banner, the
+// values kept, a message under each faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "transfers.back") }
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="tf-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "transfers.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		if d.Server {
+			<div class="w-card"><p class="tf-lead">{ gui.T(ctx, "transfers.preregister.text") }</p></div>
+		}
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.file") }</legend>
+				<div class="w-grid w-grid--2">
+					if d.Server {
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldFile, Label: gui.T(ctx, "transfers.form.file"), Req: true, F: d.File, Hint: gui.T(ctx, "transfers.form.file_server_hint")})
+					} else {
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldFile, Label: gui.T(ctx, "transfers.form.file"), Req: true, F: d.File, Hint: gui.T(ctx, "transfers.form.file_hint")})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldOutput, Label: gui.T(ctx, "transfers.form.output"), F: d.Output, Hint: gui.T(ctx, "transfers.form.output_hint")})
+					}
+				</div>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "transfers.form.exchange") }</legend>
+				<div class="w-grid w-grid--2">
+					@selectField(fieldRule, gui.T(ctx, "transfers.col.rule"), d.Rule, d.Rules, gui.T(ctx, "transfers.form.choose_rule"), gui.T(ctx, "transfers.form.rule_hint"))
+					if d.Server {
+						@selectField(fieldAccount, gui.T(ctx, "transfers.form.local_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.local_account_hint"))
+						@dateField(fieldStart, gui.T(ctx, "transfers.detail.due"), d.Start, gui.T(ctx, "transfers.form.due_hint"), true)
+					} else {
+						@selectField(fieldAccount, gui.T(ctx, "transfers.form.remote_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.remote_account_hint"))
+						<div class={ "w-field", templ.KV("is-invalid", d.Client.Error != "") }>
+							<label class="w-field__label" for={ fieldClient }>{ gui.T(ctx, "transfers.detail.client") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+							<select
+								class="w-select"
+								id={ fieldClient }
+								name={ fieldClient }
+								aria-describedby="client-h"
+								if d.Client.Error != "" {
+									aria-invalid="true"
+								}
+							>
+								<option value="">{ gui.T(ctx, "transfers.form.client_default") }</option>
+								for _, o := range d.Clients {
+									<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+								}
+							</select>
+							@protoform.Message("client-h", d.Client.Error, gui.T(ctx, "transfers.form.client_hint"))
+						</div>
+						@dateField(fieldStart, gui.T(ctx, "transfers.form.start"), d.Start, gui.T(ctx, "transfers.form.start_hint"), false)
+					}
+				</div>
+			</fieldset>
+		</div>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</legend>
+				@protoform.Message("info-h", d.InfoError, gui.T(ctx, "transfers.form.info_hint"))
+				<div
+					class="tf-info-list"
+					data-infos
+					data-label-name={ gui.T(ctx, "transfers.form.info_name_n") }
+					data-label-value={ gui.T(ctx, "transfers.form.info_value_n") }
+					data-label-remove={ gui.T(ctx, "transfers.form.info_remove_n") }
+				>
+					<div class="tf-info-head" aria-hidden="true"><span>{ gui.T(ctx, "transfers.form.info_name") }</span><span>{ gui.T(ctx, "transfers.form.info_value") }</span></div>
+					for i, p := range d.Infos {
+						@infoField(i+1, p)
+					}
+				</div>
+				<template id="tf-info-row">@infoField(0, infoPair{})</template>
+				<button class="w-btn w-btn--outline-dark w-btn--sm" type="submit" name={ fieldInfoAdd } value="1" formnovalidate data-info-add>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "transfers.form.info_add") }
+				</button>
+			</fieldset>
+		</div>
+		if !d.Server {
+			<div class="w-card">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="w-card__title">{ gui.T(ctx, "transfers.form.retries") }</legend>
+					<p class="w-muted tf-note">{ gui.T(ctx, "transfers.form.retries_hint") }</p>
+					<div class="w-grid w-grid--3">
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldTries, Label: gui.T(ctx, "transfers.retries.attempts"), F: d.Tries, Short: true, Num: true, Max: maxTries})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldDelay, Label: gui.T(ctx, "transfers.form.delay"), F: d.Delay, Short: true, Num: true})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldFactor, Label: gui.T(ctx, "transfers.retries.factor"), F: d.Factor, Short: true})
+					</div>
+				</fieldset>
+			</div>
+		}
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// infoField: a row of the transfer information, numbered from 1 (0 in the
+// template the script copies, which numbers the rows again): the name, the
+// value, the button that removes the row (shown by the script; without it,
+// emptying the row is enough).
+templ infoField(n int, p infoPair) {
+	<div class="tf-info-row">
+		<label class="visually-hidden" for={ fmt.Sprintf("info-name-%d", n) }>{ gui.T(ctx, "transfers.form.info_name_n", "n", n) }</label>
+		<input
+			class="w-input w-mono"
+			id={ fmt.Sprintf("info-name-%d", n) }
+			name={ fieldInfoName }
+			value={ p.Name }
+			autocomplete="off"
+			spellcheck="false"
+			aria-describedby="info-h"
+			if p.Invalid {
+				aria-invalid="true"
+			}
+		/>
+		<label class="visually-hidden" for={ fmt.Sprintf("info-value-%d", n) }>{ gui.T(ctx, "transfers.form.info_value_n", "n", n) }</label>
+		<input class="w-input w-mono" id={ fmt.Sprintf("info-value-%d", n) } name={ fieldInfoValue } value={ p.Value } autocomplete="off" spellcheck="false"/>
+		<button class="w-icon-btn" type="button" hidden data-info-remove aria-label={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) } title={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) }>@gui.Icon("xmark")</button>
+	</div>
+}
+
+// refusedView: an action the state of the transfer does not allow: why, the
+// transfer, the way back (409), never a raw error.
+templ refusedView(d refusedData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title tf-title">{ d.Title }</h1>
+		</div>
+	</div>
+	<div class="w-card">
+		<div class="tf-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "transfers.refused.title"), Text: d.Reason})</div>
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "transfers.col.file") }</dt>
+			<dd><span class="w-mono tf-wrap">{ d.File }</span></dd>
+			<dt>{ gui.T(ctx, "transfers.detail.transfer") }</dt>
+			<dd>{ d.Number }</dd>
+			<dt>{ gui.T(ctx, "transfers.col.state") }</dt>
+			<dd>@gui.StatusOf(d.Status)</dd>
+		</dl>
+		<div class="w-form__actions tf-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>{ gui.T(ctx, "action.close") }</a></div>
+	</div>
+}
+
+// notFoundView: a transfer that does not exist: localised 404 in the chrome,
+// with the way back to the list as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.Title, Text: d.Text, Action: &gui.Link{Label: gui.T(ctx, "transfers.back"), URL: d.BackURL, Icon: "arrow-left"}})
+}

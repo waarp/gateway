@@ -2055,3 +2055,325 @@ email_templates:
     zone: fuseau horaire
     offset: "décalage horaire (+02:00)"
     offset_short: "décalage horaire (+0200)"
+
+# Écran « Suivi des transferts » (Supervision) : les transferts et l'historique ensemble, la fiche d'un transfert, ses
+# actions et les pages d'ajout et de pré-enregistrement.
+transfers:
+  title: Suivi des transferts
+  live: "Actualisé à {time}"
+  refreshing: Actualisation…
+  add: Ajouter un transfert
+  search: Rechercher un transfert par son fichier ou son identifiant de suivi
+  search_placeholder: Fichier ou identifiant de suivi
+  refresh_error:
+    title: Le suivi n'a pas pu être actualisé
+    text: "Dernière lecture réussie à {time}. Les transferts affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."
+  load_error:
+    title: La liste des transferts n'a pas pu être chargée
+    text: La base de données n'a pas répondu. Réessayez dans un instant.
+  empty:
+    title: Aucun transfert pour l'instant
+    text: Un transfert est l'échange d'un fichier selon une règle, avec un partenaire ou pour un partenaire.
+  none:
+    query: "Aucun transfert ne correspond à « {query} »"
+    state: "Aucun transfert « {state} »"
+    all_states: Voir tous les transferts
+    filters: Aucun transfert ne correspond aux filtres
+  count_one: 1 transfert
+  count: "{total} transferts"
+  caption: "Transferts, page {page} sur {pages}, triés par {sort}"
+  sort:
+    id: numéro
+    start: début
+    file: fichier
+    state: statut
+    rule: règle
+    stop: fin
+  pager: "Transferts {from} à {to} sur {total}"
+  # Un statut par transfert, puis la rangée des statuts (au pluriel).
+  state:
+    running: En cours
+    error: En erreur
+    planned: Planifié
+    paused: En pause
+    interrupted: Interrompu
+    available: Attendu
+    done: Terminé
+    cancelled: Annulé
+  states:
+    label: Statuts des transferts
+    all: Tous
+    running: En cours
+    error: En erreur
+    planned: Planifiés
+    paused: En pause
+    interrupted: Interrompus
+    available: Attendus
+    done: Terminés
+    cancelled: Annulés
+  # Ce que dit chaque statut, en infobulle de la rangée des statuts.
+  hint:
+    all: Tous les transferts, à venir, en cours et passés
+    running: Le transfert s'exécute
+    error: Le transfert a échoué ; il peut être retenté, repris ou relancé
+    planned: La passerelle lancera elle-même le transfert à l'heure prévue
+    paused: Le transfert a été mis en pause par un utilisateur
+    interrupted: Le transfert a été interrompu de façon inattendue, par un arrêt de la passerelle par exemple
+    available: "Transfert pré-enregistré : la passerelle attend que le partenaire se connecte pour l'échanger, jusqu'à la date limite"
+    done: Le transfert s'est terminé sans erreur, traitements compris
+    cancelled: Le transfert a été annulé par un utilisateur
+  filter:
+    rule: Règle
+    rule_all: Toutes les règles
+    direction: Sens
+    direction_all: Envoi et réception
+    partner: Partenaire ou serveur
+    partner_all: Tous les partenaires et serveurs
+    partners: Partenaires distants
+    servers: Serveurs locaux
+    account: Compte
+    account_all: Tous les comptes
+    protocol: Protocole
+    protocol_all: Tous les protocoles
+    from: Début à partir du
+    to: Début jusqu'au
+  dir:
+    send: Envoi
+    receive: Réception
+  role:
+    client: client
+    server: serveur
+  col:
+    id: N°
+    file: Fichier
+    state: Statut
+    direction: Sens
+    rule: Règle
+    partner: Partenaire
+    progress: Progression
+    size: Taille
+    start: Début
+    stop: Fin
+    actions: Actions
+  error_tip: "{cause} : {message}"
+  # Le sens et le rôle de la passerelle, dans les mots de l'écran historique.
+  dir_tip:
+    client_send: Envoi depuis le client vers le serveur
+    client_receive: Réception sur le client depuis le serveur
+    server_send: Envoi depuis le serveur vers le client
+    server_receive: Réception sur le serveur depuis le client
+  partner_tip: "{partner} · compte {account}"
+  due_title: "Attendu jusqu'au {date}"
+  next_title: "Prochaine tentative le {date}"
+  no_stop: Pas encore terminé
+  no_progress: Aucune progression
+  no_size: Taille inconnue
+  percent: "{pct} %"
+  progress_label: "Progression {pct} %"
+  # Dates et nombres (disposition Go pour la date).
+  date: 02/01/2006
+  date_time: "{date} à {time}"
+  # Un moment de la liste : la date et l'heure à la seconde, sur chaque ligne.
+  date_cell: "{date} {time}"
+  thousands: " "
+  decimal: ","
+  size:
+    byte: "{n} octet"
+    bytes: "{n} octets"
+    kb: "{n} Ko"
+    mb: "{n} Mo"
+    gb: "{n} Go"
+    tb: "{n} To"
+  # Libellé de chaque code d'erreur du produit ; le code technique reste affiché en aide.
+  code:
+    TeUnknown: Erreur inconnue
+    TeInternal: Erreur interne de la passerelle
+    TeUnimplemented: Fonction non prise en charge par le partenaire
+    TeConnection: Connexion impossible
+    TeConnectionReset: Connexion interrompue
+    TeUnknownRemote: Partenaire inconnu ou en erreur
+    TeExceededLimit: Limite atteinte
+    TeBadAuthentication: Authentification refusée
+    TeDataTransfer: Erreur pendant le transfert des données
+    TeIntegrity: Contrôle d'intégrité en échec
+    TeFinalization: Erreur à la finalisation
+    TeExternalOperation: Erreur d'un traitement
+    TeWarning: Avertissement d'un traitement
+    TeStopped: Transfert arrêté
+    TeCanceled: Transfert annulé
+    TeFileNotFound: Fichier introuvable
+    TeForbidden: Accès refusé
+    TeBadSize: Taille du fichier refusée
+    TeShuttingDown: Arrêt de la passerelle ou du partenaire
+    TeExpired: Date limite dépassée
+  step:
+    StepSetup: Préparation du transfert
+    StepPreTasks: Traitements avant transfert
+    StepData: Transfert des données
+    StepPostTasks: Traitements après transfert
+    StepErrorTasks: Traitements d'erreur
+    StepFinalization: Finalisation
+  action:
+    detail: Voir le transfert
+    pause: Mettre en pause
+    resume: Reprendre
+    retry: Relancer
+    cancel: Annuler le transfert
+  back: Retour à la liste
+  back_transfer: Retour au transfert
+  toast:
+    paused: "Transfert « {name} » mis en pause"
+    resumed: "Transfert « {name} » repris"
+    cancelled: "Transfert « {name} » annulé"
+    retried: "Nouveau transfert n° {name} planifié"
+    added: "Transfert n° {name} planifié"
+    preregistered: "Transfert n° {name} pré-enregistré"
+  not_found:
+    title: Transfert introuvable
+    text: Ce transfert n'existe pas, ou plus. Revenez à la liste pour le retrouver par son fichier.
+  detail:
+    number: "Transfert n° {id}"
+    error: Erreur
+    cause: Cause
+    message: Message
+    error_step: Étape
+    transfer: Transfert
+    file: Fichier
+    run: Déroulement
+    retries: Tentatives
+    infos: Informations de transfert
+    infos_none: Aucune information de transfert.
+    info_name: Information
+    info_value: Valeur
+    progress: Progression
+    rule: Règle
+    direction: Sens
+    partner: Partenaire
+    server: Serveur
+    account: Compte
+    client: Client
+    protocol: Protocole
+    remote_id: Identifiant distant
+    follow_id: Identifiant de suivi
+    src: Nom à la source
+    dest: Nom à la destination
+    local_path: Chemin sur la passerelle
+    remote_path: Chemin chez le partenaire
+    expected_local: Chemin prévu sur la passerelle
+    expected_remote: Chemin prévu chez le partenaire
+    size: Taille
+    size_unknown: Inconnue
+    size_bytes: "{bytes} octets ({size})"
+    start: Début
+    start_planned: Départ prévu
+    due: Date limite
+    stop: Fin
+    step: Étape
+    task: Tâche en cours
+  retries:
+    attempts: Tentatives
+    remaining: Tentatives restantes
+    none: Aucune
+    next: Prochaine tentative
+    delay: Délai avant la prochaine
+    seconds: "{n} s"
+    factor: Facteur d'augmentation
+  refused:
+    title: Action impossible
+    elsewhere: Ce transfert s'exécute sur un autre nœud de la grappe. Agissez depuis l'interface de ce nœud.
+    pause_title: "« {name} » ne peut pas être mis en pause"
+    pause: "Seul un transfert en cours, ou planifié par la passerelle, se met en pause. Statut du transfert : {state}."
+    resume_title: "« {name} » ne peut pas reprendre"
+    resume: "Seul un transfert en pause, interrompu ou en erreur reprend. Statut du transfert : {state}."
+    resume_server: Un transfert serveur reprend à l'initiative du partenaire, quand il se reconnecte.
+    resume_sync: "Ce transfert fait partie du transfert n° {parent} : reprenez celui-ci."
+    cancel_title: "« {name} » ne peut pas être annulé"
+    cancel: "Un transfert terminé ou annulé ne s'annule plus. Statut du transfert : {state}."
+    retry_title: "« {name} » ne peut pas être relancé"
+    retry: "Un transfert planifié, disponible ou en cours ne se relance pas. Statut du transfert : {state}."
+    retry_server: Un transfert serveur se relance à l'initiative du partenaire.
+  cancel:
+    title: "Annuler le transfert « {name} » ?"
+    text: Le transfert passe à l'historique, au statut « Annulé » ; il ne sera plus retenté. Pour le refaire, il faudra le relancer.
+    text_running: Le transfert en cours est interrompu, puis passe à l'historique, au statut « Annulé ». Pour le refaire, il faudra le relancer.
+  retry:
+    title: "Relancer « {name} »"
+    text: "Un nouveau transfert est créé, avec la même règle, le même partenaire, le même compte et le même fichier. Le {number} reste tel quel. Pour continuer un transfert là où il s'est arrêté, utilisez plutôt « Reprendre »."
+    date: Départ
+    refused: La relance n'a pas été créée
+    gone: La règle, le partenaire, le compte ou le client de ce transfert n'existe plus.
+  new:
+    title: Nouveau transfert
+  preregister:
+    title: Pré-enregistrer un transfert
+    text: Le transfert attend que le partenaire se connecte au serveur pour l'échanger, jusqu'à la date limite ; il apparaît au statut « Attendu ».
+  form:
+    refused: Le transfert n'a pas été créé
+    refused_text: Corrigez les champs signalés.
+    exchange: Échange
+    file: Fichier
+    file_hint: "À l'envoi, le chemin du fichier, relatif au dossier d'envoi de la règle ; à la réception, le nom du fichier à demander."
+    file_server_hint: Le nom du fichier que le partenaire enverra ou demandera.
+    output: Nom à la destination
+    output_hint: "Vide : le même nom."
+    rules_send: Envoi
+    rules_receive: Réception
+    choose_rule: Choisir une règle
+    rule_hint: "La règle fixe le sens : envoi ou réception."
+    remote_account: Partenaire et compte
+    remote_account_hint: Le compte avec lequel la passerelle se connecte chez le partenaire.
+    local_account: Serveur et compte
+    local_account_hint: Le compte avec lequel le partenaire se connectera au serveur.
+    choose_account: Choisir un compte
+    client_default: Le client du protocole du partenaire
+    client_hint: Utile quand plusieurs clients existent pour le même protocole.
+    start: Départ
+    start_hint: "Heure de la passerelle ; vide : maintenant."
+    due_hint: Heure de la passerelle. Passé ce moment, le partenaire ne peut plus échanger le fichier.
+    info_name: Nom
+    info_value: Valeur
+    info_name_n: "Nom de l'information {n}"
+    info_value_n: "Valeur de l'information {n}"
+    info_remove_n: "Retirer l'information {n}"
+    info_add: Ajouter une information
+    info_hint: Facultatives. Les traitements de la règle peuvent les lire.
+    retries: Tentatives en cas d'erreur
+    retries_hint: "Vides : celles du client."
+    delay: Premier délai (s)
+    error:
+      required: Indiquez une valeur.
+      choose: Choisissez une valeur dans la liste.
+      date: "Indiquez une date et une heure. Format attendu : 21/10/2026 18:00"
+      due_past: Indiquez une date limite à venir.
+      info_name: "Indiquez le nom de l'information {n}."
+      info_twice: "L'information « {name} » est indiquée deux fois."
+      tries: "Indiquez un nombre de 0 à {max}."
+      delay: Indiquez un nombre de secondes, 0 ou plus.
+      factor: "Indiquez un nombre, 0 ou plus (1,5 par exemple)."
+      client: "Plusieurs clients existent pour le protocole {protocol} : choisissez-en un."
+  # Noms des informations de transfert réservées du produit ; une clé sans entrée garde son nom technique.
+  info_key:
+    __followID__: Identifiant de suivi
+    __syncTransferID__: Transfert synchrone parent
+    __syncTransferRank__: Rang dans le transfert synchrone
+    __ackExpected__: Acquittement attendu
+    __ackSent__: Acquittement envoyé
+    __ackSentTo__: Acquittement envoyé à
+    __ackSentAs__: Acquittement envoyé en tant que
+    __ackSentOn__: Acquittement envoyé le
+    __ackWaitSince__: Attente de l'acquittement depuis
+    __ackWaitTimeout__: Délai d'attente de l'acquittement
+    __ackReceived__: Acquittement reçu
+    __ackReceivedOn__: Acquittement reçu le
+    __fileEncoding__: Codage des données
+    __fileType__: Type de fichier
+    __organization__: Organisation du fichier
+    __customerID__: Identifiant client
+    __bankID__: Identifiant banque
+    __clientConnFreetext__: Message libre de connexion du client
+    __clientTransFreetext__: Message libre de transfert du client
+    __serverConnFreetext__: Message libre de connexion du serveur
+    __serverTransFreetext__: Message libre de transfert du serveur
+    __articlesLengths__: Longueurs des articles
+    __articlesFormat__: Format des articles
+    __articlesSeparator__: Séparateur des articles

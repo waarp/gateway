@@ -1,0 +1,89 @@
+/* Transfer monitoring screen: what the kit does not decide (the row of the states, the list on one line, the progress
+   bar, the sheet and the action pages). Tokens only. */
+
+/* The row of the states (variant A, 2026-10-22): tabs underlined on one line, without a frame, the count in a pill,
+   scrolling sideways on a narrow screen. The state shown has a thick underline and bold text: not the colour alone. */
+.tf-states { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: 0 0 var(--sp-3); border-bottom: 1px solid var(--g200); }   /* 12 px: on one line at 1440 px with seven-digit counts (measured: 1 111 px needed for 1 096 at 16 px) */
+.tf-state { display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0; margin-bottom: -1px; border-bottom: 3px solid transparent; color: var(--tp); font-size: var(--fs-body); text-decoration: none; white-space: nowrap; }
+.tf-state:hover { border-bottom-color: var(--g300); }
+.tf-states-wait { width: 40rem; max-width: 100%; height: 1.5rem; margin: var(--sp-2) 0; }   /* the row of the states still read */
+.tf-state .w-status { color: inherit; font-size: inherit; font-weight: inherit; }
+.tf-count { min-width: 1.75rem; padding: 0 var(--sp-2); border-radius: var(--r-full); background: var(--g100); color: var(--g600); font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.5; text-align: center; }
+.tf-state[aria-current="true"] { border-bottom-color: var(--wo-aa); font-weight: 700; }
+.tf-state[aria-current="true"] .tf-count { background: var(--wo-bg); color: var(--wo-aa); }
+.tf-state:focus-visible { outline: 2px solid var(--wo); outline-offset: 2px; }
+@media (max-width: 700px) {
+  .tf-states { flex-wrap: nowrap; overflow-x: auto; }
+}
+
+/* The toolbar and the list foot at the top on one row. */
+.tf-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin: 0 0 var(--sp-3); }
+.tf-bar .w-toolbar { flex: 1 1 28rem; margin: 0; }
+.tf-pager-top:empty { display: none; }
+.tf-pager { margin-top: var(--sp-3); }
+
+/* The list (2026-10-22): one line per transfer (w-table--one-line of the kit, since 0.10.0), on the whole width of
+   the screen, the cap of the kit lifted for this screen alone, whatever the state of the list (rows, no match, empty,
+   error); what does not fit ends with "…" and reads in the tooltip. The columns follow the historic screen (Driss,
+   2026-10-22): the direction as an icon first, then the number, the state, the file, the rule, the partner, the start,
+   the end, the progress and the size. Every column but the file has its width: the file takes the rest of the line.
+   Under 1 500 px of width, the partner folds into the tooltip of the rule; under 1 000 px, the table scrolls in its
+   frame. */
+.w-main__inner:has(#transfers-table) { max-width: none; }
+.tf-list { container-type: inline-size; }
+.tf-table .w-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tf-col-dir { width: 2.5rem; }
+.tf-col-id { width: 5rem; }   /* seven digits (Driss, 2026-10-22) */
+.tf-col-state { width: 7.5rem; }
+.tf-col-rule { width: 12%; }
+.tf-col-partner { width: 10%; }
+.tf-col-date { width: 9.5rem; }
+.tf-col-progress { width: 7.75rem; }   /* the header "Progression" whole */
+.tf-col-size { width: 5.5rem; }
+.tf-col-actions { width: 52px; }
+.tf-table td.tf-dir { padding-left: var(--sp-2); padding-right: var(--sp-2); color: var(--ts); }
+.tf-dir svg.i { display: block; width: 1.5rem; height: 1.5rem; margin: 0 auto; }   /* 24 px, the grid of the drawing: a sharp 2 px line */
+.tf-num { color: var(--g600); font-size: var(--fs-sm); }
+.tf-file { color: var(--tp); font-weight: 700; }
+.tf-time { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }   /* the date and the time to the second, smaller */
+.tf-next { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--g600); }
+@container (max-width: 1499px) {
+  .tf-table .tf-x { display: none; }
+  .tf-col-state { width: 6.75rem; }
+}
+@container (max-width: 999px) {
+  .tf-table { width: 70rem; }
+}
+
+/* The progress: a native bar (its value is read out). In the list, the percentage is written in the bar, taller for it
+   (Driss, 2026-10-22); the fill, --ok at 78 % over the surface, keeps the text --tp at 4.8:1 and stands at 3.1:1 from
+   the track --g50. On the sheet, the percentage beside the bar. */
+.tf-progress { width: 3.25rem; height: .5rem; border: 1px solid var(--g300); border-radius: var(--r-full); background: var(--g50); vertical-align: middle; overflow: hidden; appearance: none; }
+.tf-progress::-webkit-progress-bar { background: var(--g50); }
+.tf-progress::-webkit-progress-value { background: color-mix(in srgb, var(--ok) 78%, var(--surface)); }
+.tf-progress::-moz-progress-bar { background: color-mix(in srgb, var(--ok) 78%, var(--surface)); }
+.tf-gauge { position: relative; display: block; width: 4.5rem; }   /* a block: inline, it would make its line taller than the others */
+.tf-gauge .tf-progress { display: block; box-sizing: border-box; width: 100%; height: 1.15rem; }
+.tf-gauge__pct { position: absolute; inset: 0; display: grid; place-items: center; color: var(--tp); font-size: var(--fs-micro); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.tf-pct { margin-left: var(--sp-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tf-sub { display: block; margin-top: 2px; color: var(--g600); font-size: var(--fs-micro); font-weight: 400; }
+
+/* The sheet: the file as title, the state and the number under it; the error first. */
+.tf-title { overflow-wrap: anywhere; }
+.tf-subtitle { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; margin: var(--sp-2) 0 0; }
+.tf-error-card { border-left: 4px solid var(--ko); }
+.tf-wrap { overflow-wrap: anywhere; }
+.tf-infos { table-layout: fixed; }
+.tf-infos td { overflow-wrap: anywhere; }
+.tf-inline { display: inline; }
+.tf-note { margin: 0 0 var(--sp-3); }
+
+/* The transfer information of the form: a name and a value per row, the button that removes the row. */
+.tf-info-head, .tf-info-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 2rem; gap: var(--sp-2); align-items: center; }
+.tf-info-head { margin: var(--sp-3) 0 var(--sp-1); color: var(--g600); font-size: var(--fs-sm); font-weight: 700; }
+.tf-info-row { margin-bottom: var(--sp-2); }
+
+/* The action pages. */
+.tf-lead { margin: 0 0 var(--sp-4); }
+.tf-banner { margin-bottom: var(--sp-4); }
+.tf-form-actions { margin-top: var(--sp-5); }
