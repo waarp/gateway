@@ -182,6 +182,13 @@ func prepareDB(tb testing.TB, db *database.DB) {
 
 	locAcc2 := &model.LocalAccount{LocalAgentID: server2.ID, Login: "locAcc2"}
 	require.NoError(tb, db.Insert(locAcc2).Run())
+
+	key := model.CryptoKey{
+		Name: "aes_key",
+		Type: model.CryptoKeyTypeAES,
+		Key:  "0123456789abcdefghijklmnopqrstuv",
+	}
+	require.NoError(tb, db.Insert(&key).Run())
 }
 
 func testHandler(db *database.DB, logger *log.Logger) http.HandlerFunc {

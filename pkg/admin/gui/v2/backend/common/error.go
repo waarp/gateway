@@ -19,6 +19,10 @@ func NewError(code int, message string) *Error {
 	return &Error{Message: message, Code: code}
 }
 
+func NewErrorf(code int, message string, args ...any) *Error {
+	return &Error{Message: fmt.Sprintf(message, args...), Code: code}
+}
+
 func NewErrorWith(code int, message string, cause error) *Error {
 	if database.IsValidationError(cause) {
 		code = http.StatusBadRequest

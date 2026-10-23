@@ -25,8 +25,9 @@ function onSubmitForm(form) {
     });
 
     const formData = new FormData(form)
+    const formMethod = form.getAttribute('method')
 
-    fetch(form.action, {method: form.method, body: formData})
+    fetch(form.action, {method: formMethod, body: formData})
         .then(resp => {
             if (!resp.ok) return Promise.reject(resp)
             window.location.reload()
