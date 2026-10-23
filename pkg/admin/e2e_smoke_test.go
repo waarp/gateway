@@ -1136,6 +1136,20 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		_, err = s.page.WaitForFunction(`document.querySelector("#et-preview-out").textContent.includes("Transfert 1234")`,
 			nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)})
 		require.NoError(t, err, "the preview follows the typing, with the example values")
+
+		// A body file (#765): an HTML file fills the body and the preview,
+		// then the file field empties, the body read being the one sent.
+		require.NoError(t, s.page.Locator(`#body_file`).SetInputFiles([]playwright.InputFile{{
+			Name: "message.html", MimeType: "text/html", Buffer: []byte("<p>Chargé depuis #TRUEFILENAME#.</p>"),
+		}}))
+		// The body shows in the sandboxed frame of the preview, its srcdoc.
+		_, err = s.page.WaitForFunction(`document.querySelector("#et-preview-out").innerHTML.includes("Chargé depuis")`,
+			nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)})
+		require.NoError(t, err, "the file fills the body and the preview")
+
+		files, err := s.page.Locator(`#body_file`).Evaluate("f => f.files.length", nil)
+		require.NoError(t, err)
+		assert.Equal(t, 0, files, "the file field empties once the file is loaded")
 	}
 
 	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests")
