@@ -526,6 +526,7 @@ type e2eTracker struct {
 	baseURL  string
 	screen   string
 	inFlight map[playwright.Request]struct{}
+	opener   playwright.Request // the navigation of the main frame whose document is not committed yet
 	last     time.Time
 	failures map[string][]string
 }
@@ -536,6 +537,7 @@ func trackRequests(page playwright.Page, baseURL string) *e2eTracker {
 		baseURL:  baseURL,
 		screen:   "",
 		inFlight: make(map[playwright.Request]struct{}),
+		opener:   nil,
 		last:     time.Time{},
 		failures: make(map[string][]string),
 	}
@@ -544,6 +546,7 @@ func trackRequests(page playwright.Page, baseURL string) *e2eTracker {
 	page.OnResponse(tracker.onResponse)
 	page.OnRequestFinished(tracker.onDone)
 	page.OnRequestFailed(tracker.onFailed)
+	page.OnFrameNavigated(tracker.onNavigated)
 
 	return tracker
 }
@@ -560,8 +563,41 @@ func (tr *e2eTracker) onRequest(req playwright.Request) {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
 
+	if req.IsNavigationRequest() && isMainFrame(req.Frame()) {
+		tr.opener = req
+	}
+
 	tr.inFlight[req] = struct{}{}
 	tr.last = time.Now()
+}
+
+// onNavigated forgets, once the main frame has committed the document a
+// navigation of its own opened, every request in flight: they belong to the
+// documents it left (the page left goes on loading until then), and the
+// browser cancels them without always reporting their end (2026-10-23: a
+// page left before it had loaded held the next screen 30 s on its
+// stylesheets). A navigation within the document, as the address the kit
+// keeps in step with a list, has no request and forgets nothing.
+func (tr *e2eTracker) onNavigated(frame playwright.Frame) {
+	if !isMainFrame(frame) {
+		return
+	}
+
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if tr.opener == nil {
+		return
+	}
+
+	tr.opener = nil
+	clear(tr.inFlight)
+}
+
+// isMainFrame says whether frame is the main frame of the page, not one of
+// its inner frames.
+func isMainFrame(frame playwright.Frame) bool {
+	return frame != nil && frame.ParentFrame() == nil
 }
 
 // onResponse records every response of the backend that is an error, pages
@@ -581,6 +617,14 @@ func (tr *e2eTracker) onFailed(req playwright.Request) {
 
 	tr.record(req, fmt.Sprintf("failed: %v", req.Failure()))
 	tr.onDone(req)
+
+	// A navigation that fails, as a download, opens no document.
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if req == tr.opener {
+		tr.opener = nil
+	}
 }
 
 func (tr *e2eTracker) onDone(req playwright.Request) {
@@ -1110,6 +1154,19 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 	for _, screen := range e2eScreens() {
 		t.Run(screen.path, func(t *testing.T) { session.check(t, screen) })
 	}
+
+	// A page left before it has loaded: the browser cancels its requests and
+	// does not always report their end; the next screen is not held for them.
+	t.Run("a page left before it has loaded", func(t *testing.T) {
+		for range 5 {
+			_, err := page.Goto(baseURL+"/webui/rules", playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateCommit})
+			require.NoError(t, err)
+
+			start := time.Now()
+			session.visit(t, "/webui/home")
+			assert.Less(t, time.Since(start), e2eSettleTimeout/2, "the requests of the page left do not hold the next one")
+		}
+	})
 
 	// The historic page of the authorities, which only pointed to the
 	// command line, leads to the screen (#722).
