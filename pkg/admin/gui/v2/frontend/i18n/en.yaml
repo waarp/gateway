@@ -1549,3 +1549,73 @@ snmp:
   error:
     title: The SNMP configuration could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Configuration overrides" screen (#730): the addresses replaced on a node of a cluster.
+overrides:
+  title: Configuration overrides
+  node: Node
+  add: Add an address
+  intro: "On this node of the cluster, these addresses replace those of the shared configuration: to listen (administration, local servers) and to connect to the partners."
+  caption: "Replaced addresses, page {page} of {pages}, sorted by {sort}"
+  pager: "Addresses {from} to {to} of {total}"
+  back: Back to the overrides
+  timing: "Taken into account: at the next start of the local servers concerned; at once for the connections to the partners; at the next start of the gateway for the administration."
+  admin_warning: "At the next start of the gateway, the API and the web interface will listen on the address of this node."
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    target: configured address
+  col:
+    target: Configured address
+    real: Address on this node
+    scope: Scope
+    uses: Concerns
+    actions: Actions
+  scope:
+    port: Host and port
+    host: Host only, port kept
+  # What a rule replaces in the shared configuration.
+  uses:
+    none: Nothing yet
+    server: "Server “{name}”"
+    servers: "{n} local servers"
+    partner: "Partner “{name}”"
+    partners: "{n} partners"
+    admin: Administration
+  action:
+    edit: Edit the rule
+    delete: Delete the rule
+  new:
+    title: New replaced address
+  edit:
+    title: "Edit the replaced address “{name}”"
+  form:
+    card: Rule
+    configured_hint: "As in the shared configuration: a host, or a host and its port."
+    replacement_hint: "Same form: with a port if the configured address has one, without a port otherwise."
+    refused: The rule was not saved.
+    refused_text: Correct the fields marked below.
+    error:
+      required: This field is required.
+      address: "Give a host name or an IP address, followed by :port if needed (an IPv6 address in brackets)."
+      port: Give a port from 1 to 65535.
+      form: "Both addresses must have the same form: both with a port, or both without."
+      exists: "This address is already replaced: edit its rule."
+  delete:
+    title: "Delete the rule “{name}”?"
+    text: "On this node, the configured address will be used as is again: at the next start of the local servers concerned, at once for the connections to the partners, at the next start of the gateway for the administration."
+  toast:
+    created: "Address “{name}” replaced"
+    updated: "Rule “{name}” saved"
+    deleted: "Rule “{name}” deleted"
+  empty:
+    title: No address replaced on this node
+    text: "This node uses the addresses of the shared configuration as they are."
+  disabled:
+    title: This instance does not run in a cluster
+    text: "The overrides belong to a node of a cluster: they require starting the gateway with an instance name and a file of that name next to the configuration file."
+  not_found:
+    title: Rule not found
+    text: "This rule does not exist or has been deleted, or this instance does not run in a cluster."
+  error:
+    title: The overrides could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."

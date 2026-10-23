@@ -18,6 +18,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -35,6 +36,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
@@ -180,6 +182,14 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/snmp/monitors/1/delete"},
 		{path: "/webui/snmp/agent/edit"},
 		{path: "/webui/snmp/agent/delete"},
+		// The configuration overrides (#730): the gateway runs as a node of
+		// a cluster with one rule (the host of the servers and partners of
+		// the smoke test); the list, the pages that add, edit and delete a
+		// rule.
+		{path: "/webui/overrides", tables: 1},
+		{path: "/webui/overrides/new"},
+		{path: "/webui/overrides/edit?target=127.0.0.1"},
+		{path: "/webui/overrides/delete?target=127.0.0.1"},
 	}
 }
 
@@ -568,6 +578,12 @@ func startE2EServer(t *testing.T) string {
 	insertE2EAuthorities(t, db)
 	insertE2ESNMP(t, db)
 
+	// The gateway runs as a node of a cluster, with its own override file
+	// and one address indirection (#730).
+	db.Config.NodeID = "noeud-smoke"
+	db.Config.Overrides = conf.NewOverride(filepath.Join(t.TempDir(), "noeud-smoke.ini"))
+	require.NoError(t, db.Config.Overrides.AddIndirection("127.0.0.1", "10.0.0.5"))
+
 	registerE2EServices(t)
 
 	server := httptest.NewServer(admin.MakeHandler(testhelpers.GetTestLogger(t), db))
@@ -895,5 +911,14 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		landed, err := url.Parse(page.URL())
 		require.NoError(t, err)
 		assert.Equal(t, "/webui/snmp", landed.Path)
+	})
+
+	// And the historic page of the configuration overrides (#730).
+	t.Run("/webui/managing_configuration_overrides", func(t *testing.T) {
+		session.visit(t, "/webui/managing_configuration_overrides")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/overrides", landed.Path)
 	})
 }

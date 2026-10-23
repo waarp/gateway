@@ -1548,3 +1548,73 @@ snmp:
   error:
     title: La configuration SNMP n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Surcharges de configuration » (#730) : les adresses remplacées sur un nœud de grappe.
+overrides:
+  title: Surcharges de configuration
+  node: Nœud
+  add: Ajouter une adresse
+  intro: "Sur ce nœud de la grappe, ces adresses remplacent celles de la configuration commune : pour l'écoute de l'administration et des serveurs locaux, et pour les connexions vers les partenaires."
+  caption: "Adresses remplacées, page {page} sur {pages}, triées par {sort}"
+  pager: "Adresses {from} à {to} sur {total}"
+  back: Retour aux surcharges
+  timing: "Prise en compte : au prochain démarrage des serveurs locaux concernés ; aussitôt pour les connexions vers les partenaires ; au prochain démarrage de la passerelle pour l'administration."
+  admin_warning: "Au prochain démarrage de la passerelle, l'API et l'interface web écouteront sur l'adresse de ce nœud."
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    target: adresse configurée
+  col:
+    target: Adresse configurée
+    real: Adresse sur ce nœud
+    scope: Portée
+    uses: Concerne
+    actions: Actions
+  scope:
+    port: Hôte et port
+    host: Hôte seul, port conservé
+  # Ce qu'une règle remplace dans la configuration commune.
+  uses:
+    none: Rien pour l'instant
+    server: "Serveur « {name} »"
+    servers: "{n} serveurs locaux"
+    partner: "Partenaire « {name} »"
+    partners: "{n} partenaires"
+    admin: Administration
+  action:
+    edit: Modifier la règle
+    delete: Supprimer la règle
+  new:
+    title: Nouvelle adresse remplacée
+  edit:
+    title: "Modifier l'adresse remplacée « {name} »"
+  form:
+    card: Règle
+    configured_hint: "Telle qu'elle figure dans la configuration commune : un hôte, ou un hôte et son port."
+    replacement_hint: "Même forme : avec un port si l'adresse configurée en a un, sans port sinon."
+    refused: La règle n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      address: "Indiquez un nom d'hôte ou une adresse IP, suivi au besoin de :port (une adresse IPv6 entre crochets)."
+      port: Indiquez un port de 1 à 65535.
+      form: "Les deux adresses doivent avoir la même forme : avec un port toutes les deux, ou sans port."
+      exists: "Cette adresse est déjà remplacée : modifiez sa règle."
+  delete:
+    title: "Supprimer la règle « {name} » ?"
+    text: "Sur ce nœud, l'adresse configurée sera de nouveau employée telle quelle : au prochain démarrage des serveurs locaux concernés, aussitôt pour les connexions vers les partenaires, au prochain démarrage de la passerelle pour l'administration."
+  toast:
+    created: "Adresse « {name} » remplacée"
+    updated: "Règle « {name} » enregistrée"
+    deleted: "Règle « {name} » supprimée"
+  empty:
+    title: Aucune adresse remplacée sur ce nœud
+    text: "Ce nœud emploie les adresses de la configuration commune telles quelles."
+  disabled:
+    title: Cette instance ne fonctionne pas en grappe
+    text: "Les surcharges sont propres à un nœud de grappe : elles demandent de démarrer la passerelle avec un nom d'instance et un fichier portant ce nom à côté du fichier de configuration."
+  not_found:
+    title: Règle introuvable
+    text: "Cette règle n'existe pas ou a été supprimée, ou cette instance ne fonctionne pas en grappe."
+  error:
+    title: Les surcharges n'ont pas pu être chargées.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."

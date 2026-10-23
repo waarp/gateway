@@ -1,0 +1,201 @@
+package overrides
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the configuration overrides (Administration). Presentation only:
+// the handler reads the rules of the node, computes what each one concerns,
+// sorts and pages them, builds the actions from the rights and translates
+// the texts. The name of the node in the header (in a cluster, the page shows
+// the rules of the node that serves it); one coloured action ("Add an
+// address"); one sentence that says what a rule does (21/10/2026: a node of a
+// cluster is not an obvious notion); a "⋯" menu per row; the warning of a
+// rule that concerns the administration. On an instance started without an
+// instance name, the explanation alone.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "overrides.title") }</h1>
+		</div>
+		if d.Enabled {
+			<div class="w-page-header__actions">
+				<span class="overrides-node">{ gui.T(ctx, "overrides.node") } <code class="w-code">{ d.Node }</code></span>
+				if d.AddURL != "" {
+					<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+						@gui.Icon("plus")
+						{ gui.T(ctx, "overrides.add") }
+					</a>
+				}
+			</div>
+		}
+	</div>
+	if !d.Enabled {
+		@gui.Empty(gui.EmptyProps{Icon: "sliders", Title: gui.T(ctx, "overrides.disabled.title"), Text: gui.T(ctx, "overrides.disabled.text")})
+	} else if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "overrides.error.title"), Text: gui.T(ctx, "overrides.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else {
+		<p class="overrides-intro">{ gui.T(ctx, "overrides.intro") }</p>
+		if d.Empty {
+			@gui.Empty(gui.EmptyProps{Icon: "sliders", Title: gui.T(ctx, "overrides.empty.title"), Text: gui.T(ctx, "overrides.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "overrides.add"))})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col/><col/><col class="overrides-col-scope"/><col/><col class="overrides-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "overrides.col.target"), Key: "target", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "overrides.col.real") }</th>
+							<th scope="col">{ gui.T(ctx, "overrides.col.scope") }</th>
+							<th scope="col">{ gui.T(ctx, "overrides.col.uses") }</th>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "overrides.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for i, r := range d.Rows {
+							<tr>
+								<td class="w-mono">{ r.Target }</td>
+								<td class="w-mono">{ r.Real }</td>
+								<td>{ r.Scope }</td>
+								<td>@usesCell(r.Uses)</td>
+								<td>
+									if len(r.Actions) > 0 {
+										@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", i), Name: r.Target, Items: r.Actions})
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="overrides-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+			if d.AdminWarn {
+				<p class="overrides-note">
+					@gui.StatusOf(gui.Status{State: stateWarn, Label: gui.T(ctx, "overrides.uses.admin")})
+					<span>{ gui.T(ctx, "overrides.admin_warning") }</span>
+				</p>
+			}
+		}
+	}
+}
+
+// usesCell: what a rule concerns: links to the local server and the
+// partner, counts, the administration as a warning; or "nothing yet".
+templ usesCell(uses []use) {
+	if len(uses) == 0 {
+		<span class="w-muted">{ gui.T(ctx, "overrides.uses.none") }</span>
+	} else {
+		for i, u := range uses {
+			if i > 0 {
+				{ " · " }
+			}
+			if u.Warn {
+				@gui.StatusOf(gui.Status{State: stateWarn, Label: u.Label})
+			} else if u.URL != "" {
+				<a class="w-link" href={ templ.SafeURL(u.URL) }>{ u.Label }</a>
+			} else {
+				{ u.Label }
+			}
+		}
+	}
+}
+
+// formView: the creation and the edition of a rule, one page (decision D10):
+// the configured address (an input on creation; on edition, the key of the
+// rule, in reading, with what it concerns) and the address on this node,
+// each with an example and its hint; under the form, when a rule applies.
+// Refused form: a banner, the values kept, a message under each faulty field
+// (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "overrides.back") }
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="overrides-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "overrides.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "overrides.form.refused_text"))})</div>
+	}
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ gui.T(ctx, "overrides.form.card") }</legend>
+				if d.Edit {
+					<dl class="w-deflist">
+						<dt>{ gui.T(ctx, "overrides.col.target") }</dt>
+						<dd><code class="w-code">{ d.Configured.Value }</code></dd>
+						<dt>{ gui.T(ctx, "overrides.col.uses") }</dt>
+						<dd>@usesCell(d.Uses)</dd>
+					</dl>
+					if d.AdminWarn {
+						<p class="overrides-note">{ gui.T(ctx, "overrides.admin_warning") }</p>
+					}
+				}
+				<div class="w-grid w-grid--2">
+					if !d.Edit {
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldConfigured, Label: gui.T(ctx, "overrides.col.target"), Req: true, F: d.Configured, Hint: gui.T(ctx, "overrides.form.configured_hint"), Placeholder: "lb.example.org", Autocomplete: "off"})
+					}
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldReplacement, Label: gui.T(ctx, "overrides.col.real"), Req: true, F: d.Replacement, Hint: gui.T(ctx, "overrides.form.replacement_hint"), Placeholder: "10.0.0.5", Autocomplete: "off"})
+				</div>
+			</fieldset>
+		</div>
+		<p class="overrides-note w-muted">{ gui.T(ctx, "overrides.timing") }</p>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+	</form>
+}
+
+// deleteView: the confirmation page of the deletion of a rule (decision D10:
+// a page, not a dialog). The title names the rule, the card recalls it with
+// what it concerns, the text says the consequence and when it applies;
+// "Cancel" then "Delete" bottom right (D12).
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "overrides.back") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		<p class="overrides-lead">{ gui.T(ctx, "overrides.delete.text") }</p>
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "overrides.col.target") }</dt>
+			<dd><code class="w-code">{ d.Target }</code></dd>
+			<dt>{ gui.T(ctx, "overrides.col.real") }</dt>
+			<dd><code class="w-code">{ d.Real }</code></dd>
+			<dt>{ gui.T(ctx, "overrides.col.scope") }</dt>
+			<dd>{ d.Scope }</dd>
+			<dt>{ gui.T(ctx, "overrides.col.uses") }</dt>
+			<dd>@usesCell(d.Uses)</dd>
+		</dl>
+		<form class="overrides-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+	</div>
+}
+
+// notFoundView: a rule that does not exist, or an instance without
+// overrides: localised 404 in the chrome, with the way back to the list.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "sliders", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}
