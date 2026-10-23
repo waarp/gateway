@@ -27,7 +27,7 @@ func TestOverridesRouter(t *testing.T) {
 	db := dbtest.TestDatabase(t)
 	db.Config.NodeID = "noeud-1"
 	db.Config.Overrides = conf.NewOverride(filepath.Join(t.TempDir(), "noeud-1.ini"))
-	require.NoError(t, db.Config.Overrides.AddIndirection("lb.example.org", "10.0.0.5"))
+	require.NoError(t, db.Config.Overrides.AddIndirection("127.0.0.3", "10.0.0.5"))
 
 	router := mux.NewRouter()
 	MakeOverridesRouter(router, db, testhelpers.GetTestLogger(t))
@@ -43,7 +43,7 @@ func TestOverridesRouter(t *testing.T) {
 		return rec.Code
 	}
 
-	const rule = "?target=lb.example.org"
+	const rule = "?target=127.0.0.3"
 
 	read := model.PermAdminRead
 	write := read | model.PermAdminWrite

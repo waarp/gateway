@@ -256,15 +256,31 @@ func TestCreate(t *testing.T) {
 		s := newSuite(t, true)
 
 		q := redirected(t, s.post(t, "/webui/overrides/new", url.Values{
-			fieldConfigured: {"lb.example.org:2222"}, fieldReplacement: {"10.0.0.5:22222"},
+			fieldConfigured: {"127.0.0.2:2222"}, fieldReplacement: {"10.0.0.5:22222"},
 		}))
 		assert.Equal(t, doneCreated, q.Get(doneParam))
-		assert.Equal(t, "lb.example.org:2222", q.Get(nameParam))
-		assert.Equal(t, "10.0.0.5:22222", s.db.Config.Overrides.GetIndirection("lb.example.org:2222"))
+		assert.Equal(t, "127.0.0.2:2222", q.Get(nameParam))
+		assert.Equal(t, "10.0.0.5:22222", s.db.Config.Overrides.GetIndirection("127.0.0.2:2222"))
 
 		content, err := os.ReadFile(s.file)
 		require.NoError(t, err)
-		assert.Contains(t, string(content), "IndirectAddress = lb.example.org:2222 -> 10.0.0.5:22222")
+		assert.Contains(t, string(content), "IndirectAddress = 127.0.0.2:2222 -> 10.0.0.5:22222")
+	})
+
+	// The product resolves the addresses of a rule (#731): one it cannot
+	// resolve is refused, the cause in the banner.
+	t.Run("Refused by the product: an address it cannot resolve", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t, true)
+
+		rec := s.post(t, "/webui/overrides/new", url.Values{
+			fieldConfigured: {"absent.invalid:2222"}, fieldReplacement: {"10.0.0.5:22222"},
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		assert.Contains(t, rec.Body.String(), "La règle n&#39;a pas été enregistrée.")
+		assert.Contains(t, rec.Body.String(), "absent.invalid", "the cause the product gives")
+		assert.Empty(t, s.db.Config.Overrides.GetIndirection("absent.invalid:2222"))
 	})
 
 	t.Run("IPv6 addresses in brackets", func(t *testing.T) {

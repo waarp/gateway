@@ -1,7 +1,6 @@
 package overrides
 
 import (
-	"errors"
 	"net"
 	"net/http"
 	"net/url"
@@ -152,15 +151,11 @@ func (f *formData) validate(translate gui.Translator, overrides *conf.ConfigOver
 	return !f.HasErrors
 }
 
-// refuse marks the form with the refusal of the product: the forms of the
-// two addresses, else the banner.
-func (f *formData) refuse(translate gui.Translator, err error) {
-	if errors.Is(err, conf.ErrIndirectionWithPort) || errors.Is(err, conf.ErrIndirectionNoPort) {
-		f.Replacement.Error = translate(errorKeyPrefix + "form")
-	} else {
-		f.Refused = err.Error()
-	}
-
+// refuse marks the form with the refusal of the product, in the banner with
+// its cause: the form checks the two addresses and their form itself; the
+// product refuses besides an address it cannot resolve (#731).
+func (f *formData) refuse(err error) {
+	f.Refused = err.Error()
 	f.HasErrors = true
 }
 
@@ -249,7 +244,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, overrides *conf.
 		}
 
 		h.logger.Warningf("failed to save the address indirection %q: %v", form.Configured.Value, err)
-		form.refuse(translate, err)
+		form.refuse(err)
 	}
 
 	h.render(w, r, form, http.StatusUnprocessableEntity)
