@@ -90,7 +90,7 @@ proto:
   tls_lock: Secured by TLS
   described_tls: "{family}, secured by TLS ({name})"
   filter_tls: TLS encryption
-  filter_tls_all: With or without TLS
+  filter_tls_all: All
   filter_tls_yes: With TLS
   filter_tls_no: Without TLS
   options: "{protocol} options"

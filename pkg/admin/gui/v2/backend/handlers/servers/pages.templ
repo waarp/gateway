@@ -52,22 +52,7 @@ templ listView(d listData) {
 					{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
 				</summary>
 				<div class="w-disclose__panel">
-					<fieldset class="w-fieldset w-field w-field--wide">
-						<legend class="w-fieldset__legend">{ gui.T(ctx, "servers.filters") }</legend>
-						<div class="w-checks">
-							for _, f := range d.Filters {
-								<label class="w-check"><input type="checkbox" name="protocol" value={ f.Key } checked?={ f.Checked }/> <span>{ f.Label }</span></label>
-							}
-						</div>
-					</fieldset>
-					<div class="w-field w-field--short">
-						<label class="w-field__label" for="tls">{ gui.T(ctx, "proto.filter_tls") }</label>
-						<select class="w-select" id="tls" name="tls">
-							for _, c := range d.TLSFilter {
-								<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
-							}
-						</select>
-					</div>
+					@protoform.FiltersPanel(gui.T(ctx, "servers.filters"), d.Filters, d.TLSFilter)
 					@gui.FiltersFoot(d.ResetURL)
 				</div>
 			</details>

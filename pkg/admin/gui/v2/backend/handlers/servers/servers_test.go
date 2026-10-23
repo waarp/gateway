@@ -264,7 +264,8 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `<input type="search" name="q" value="" placeholder="Rechercher par nom" list="servers-names"`)
 		assert.Contains(t, body, `<option value="srv-pesit-01"></option><option value="srv-r66-01"></option><option value="srv-sftp-01"></option>`)
 		assert.Equal(t, 7, strings.Count(body, `type="checkbox" name="protocol"`), "seven families")
-		assert.Contains(t, body, `<select class="w-select" id="tls" name="tls"><option value="" selected>Avec ou sans TLS</option>`)
+		assert.Contains(t, body, `<input type="radio" name="tls" value="" checked>`, "all, with and without TLS")
+		assert.Equal(t, 3, strings.Count(body, `type="radio" name="tls"`))
 		assert.Contains(t, body, `<details class="w-disclose">`, "the filters are closed when none is active")
 		assert.Contains(t, body, `aria-live="polite">3 serveurs</span>`)
 

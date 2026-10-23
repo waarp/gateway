@@ -104,7 +104,8 @@ func (f *Filter) Boxes() []FilterBox {
 	return boxes
 }
 
-// TLSChoices is the "with or without TLS" select of the filters panel.
+// TLSChoices are the "All", "With TLS" and "Without TLS" buttons of the
+// filters panel.
 func (f *Filter) TLSChoices(translate gui.Translator) []Choice {
 	return pick([][2]string{
 		{"", translate("proto.filter_tls_all")},
