@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clouds"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/keys"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/overrides"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/partners"
@@ -51,6 +52,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeAuthoritiesRouter(router, db, logger)
 	MakeSNMPRouter(router, db, logger)
 	MakeOverridesRouter(router, db, logger)
+	MakeKeysRouter(router, db, logger)
 }
 
 // adminRoutes registers the routes of a screen behind the rights on the
@@ -398,4 +400,18 @@ func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger
 	routes.write("/overrides/new", handlers.NewForm, handlers.Create)
 	routes.write("/overrides/edit", handlers.EditForm, handlers.Update)
 	routes.del("/overrides/delete", handlers.DeleteForm, handlers.Delete)
+}
+
+// MakeKeysRouter registers the "Cryptographic keys" screen: the list and the
+// sheet in reading, the creation, the edition, the deletion.
+func MakeKeysRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := keys.New(db, logger)
+	routes := adminRoutes{router}
+	const keyPath = "/keys/{id:[0-9]+}"
+
+	routes.read("/keys", handlers.List)
+	routes.write("/keys/new", handlers.NewForm, handlers.Create)
+	routes.read(keyPath, handlers.Detail)
+	routes.write(keyPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(keyPath+"/delete", handlers.DeleteForm, handlers.Delete)
 }

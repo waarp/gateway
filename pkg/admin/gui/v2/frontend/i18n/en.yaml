@@ -1619,3 +1619,162 @@ overrides:
   error:
     title: The overrides could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Cryptographic keys" screen (#735): the keys of the encryption and signature tasks.
+keys:
+  title: Cryptographic keys
+  add: Add a key
+  search: Search a key by name
+  search_placeholder: Search by name
+  filters_type: Types
+  count: "{total} keys"
+  count_one: 1 key
+  count_shown: "{total} keys · {shown} shown"
+  count_shown_one: "{total} keys · 1 shown"
+  caption: "Cryptographic keys, page {page} of {pages}, sorted by {sort}"
+  pager: "Keys {from} to {to} of {total}"
+  back: Back to the list
+  back_key: Back to the key
+  secret_set: Set, never shown
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    type: type
+  col:
+    name: Key
+    type: Type
+    detail: Detail
+    state: State
+    uses: Used by
+    actions: Actions
+  # The four types, under the keys of the product.
+  type:
+    AES: AES
+    HMAC: HMAC
+    PGP-PUBLIC: PGP public
+    PGP-PRIVATE: PGP private
+  # What the key does, in one sentence, on its sheet.
+  role:
+    AES: "Encrypts and decrypts the files; both partners use the same key."
+    HMAC: "Signs the files and verifies their signature; both partners share the same secret."
+    PGP-PUBLIC: "Encrypts the files meant for its holder and verifies the signatures it makes."
+    PGP-PRIVATE: "Decrypts the files received and signs the files sent; it also encrypts and verifies, as its public key does."
+  state:
+    ok: Usable
+    warn: "Expires on {date}"
+    expired: "Expired on {date}"
+    revoked: Revoked
+    unusable: "Unusable: {cause}"
+  # Why the tasks cannot use a stored key.
+  cause:
+    aes: "the value is not an AES key in base64"
+    hmac: "the value is not an HMAC secret in base64"
+    pgp: "the value is not a readable PGP key"
+    not_private: "the value is not a private key"
+    not_public: "the value is not a public key"
+    locked: "private key protected by a passphrase"
+    empty: "no value"
+    type: "unknown type"
+  uses:
+    none: No rule
+    one: 1 rule
+    many: "{n} rules"
+    rule: Rule
+    direction: Direction
+  direction:
+    send: Send
+    receive: Receive
+  action:
+    detail: View the sheet
+    edit: Edit the key
+    delete: Delete the key
+  detail:
+    title: "Key “{name}”"
+    card: Key
+    type: Type
+    role: Role
+    value: Value
+    state: State
+    size: Size
+    bits: "{n} bits"
+    secret: Secret set
+    unreadable: Unreadable
+    identities: Identities
+    identities_none: None
+    fingerprint: Fingerprint
+    key_id: Key ID
+    algorithm: Algorithm
+    created: Created on
+    expires: Expiry
+    never: None
+    show_public: Show the public key
+    uses: Used by
+    uses_caption: Rules whose tasks use the key
+    uses_none: No rule uses it.
+  new:
+    title: New cryptographic key
+  edit:
+    title: "Edit “{name}”"
+  form:
+    name: Name
+    name_hint: "Unique; the tasks name the key by it."
+    type: Type
+    type_choose: Choose a type
+    type_hint: "The type says which tasks can use the key."
+    type_hint_edit: "Changing the type asks for the value of the new type."
+    to_give: To fill in
+    locked: "Used by {rules}: the name and the type are kept, the tasks name them."
+    value:
+      aes: AES key
+      hmac: HMAC secret
+      pgp_public: PGP public key
+      pgp_private: PGP private key
+    paste:
+      pgp_public: or paste the public key
+      pgp_private: or paste the private key
+    example:
+      pgp_public: "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+      pgp_private: "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+    hint:
+      aes: "The key in base64: 24 characters for AES-128, 32 for AES-192, 44 for AES-256."
+      hmac: "The secret shared with the partner, in base64."
+      pgp_public: "The key exported in ASCII armour (.asc file)."
+      pgp_private: "The key exported in ASCII armour (.asc file), without a passphrase."
+    keep:
+      aes: Leave empty to keep the key in place.
+      hmac: Leave empty to keep the secret in place.
+      pgp_public: "Uploading or pasting a new key replaces it; otherwise the key in place is kept."
+      pgp_private: "Uploading or pasting a new key replaces it; otherwise the key in place is kept."
+    refused: The key was not saved.
+    refused_text: "Correct the fields marked below; the secrets must be typed again."
+    error:
+      required: This field is required.
+      name_taken: Another key already has this name. Choose another one.
+      type: Choose a type.
+      aes: "Give the key in base64: 24 characters for AES-128, 32 for AES-192, 44 for AES-256."
+      hmac: Give the secret in base64.
+      pgp: "This content is not a PGP key readable in ASCII armour."
+      not_private: "This is a public key; choose the “PGP public” type or give the private key."
+      not_public: "This is a private key; choose the “PGP private” type or give the public key."
+      locked: "This private key is protected by a passphrase: the gateway cannot use it. Export it without a passphrase."
+  delete:
+    title: "Delete the key “{name}”?"
+    text: No rule uses it. It will be deleted for good.
+    used_title: This key cannot be deleted.
+    used: "It is used by {rules}: first change the key of their tasks, or they would fail at the next transfer."
+  toast:
+    created: "Key “{name}” created"
+    updated: "Key “{name}” saved"
+    deleted: "Key “{name}” deleted"
+  empty:
+    title: No cryptographic key yet
+    text: "The encryption, decryption, signature and verification tasks of the rules use these keys."
+  none:
+    title: "No key starts with “{query}”"
+    filters: No key matches the filters.
+  not_found:
+    title: Key not found
+    text: This key does not exist or has been deleted.
+  error:
+    title: The list of the cryptographic keys could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."

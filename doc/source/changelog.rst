@@ -3,6 +3,24 @@
 Historique des versions
 =======================
 
+* :feature:`735` L'interface web propose un écran des clés cryptographiques
+  (voir :ref:`le guide de l'interface web <user-webui-keys>`), qui n'existait
+  jusqu'ici que par l'API REST et la ligne de commande : liste triée par nom et
+  par type et filtrée par type, avec la taille d'une clé AES, l'identité d'une
+  clé PGP, son état (utilisable, échéance dans les 30 jours, expirée,
+  inutilisable avec la cause) et le nombre de règles qui l'emploient ; fiche en
+  lecture avec le résumé d'une clé PGP et les règles dont les traitements la
+  désignent, chacune menant à ses traitements ; pages de création, de
+  modification et de suppression, la clé PGP déposée en fichier ou collée. Les
+  valeurs secrètes ne sont jamais réaffichées et restent inchangées quand on
+  les laisse vides. Le formulaire refuse une clé que les traitements ne
+  pourraient pas lire (clé AES hors base64 de 16, 24 ou 32 octets, secret HMAC
+  hors base64, clé PGP privée
+  protégée par une phrase secrète) ; le nom et le type d'une clé employée ne se
+  modifient pas, et sa suppression est remplacée par la liste des règles à
+  modifier d'abord. L'ancienne page, qui renvoyait à la ligne de commande, mène
+  désormais à l'écran.
+
 * :feature:`730` L'interface web propose un écran des surcharges de
   configuration (voir :ref:`le guide de l'interface web <user-webui-overrides>`),
   qui n'existait jusqu'ici que par l'API REST et la ligne de commande : la liste
