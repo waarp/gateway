@@ -42,7 +42,7 @@ func navigation() []navGroup {
 			{constants.SidebarMenuPartners, "globe", "nav.partners", "/partners", model.PermPartnersRead},
 		}},
 		{section: constants.SidebarSectionTreatments, key: "nav.treatments", entries: []navEntry{
-			{constants.SidebarMenuRules, "list", "nav.rules", "/transfer_rules_management", model.PermRulesRead},
+			{constants.SidebarMenuRules, "list", "nav.rules", "/rules", model.PermRulesRead},
 			{constants.SidebarMenuCryptoKeys, "key", "nav.keys", "/keys", model.PermAdminRead},
 			{constants.SidebarMenuSMTPCreds, "envelope", "nav.smtp", "/smtp", model.PermRulesRead},
 			{constants.SidebarMenuEmailTemplates, "envelope", "nav.email_templates", "/email-templates", model.PermRulesRead},

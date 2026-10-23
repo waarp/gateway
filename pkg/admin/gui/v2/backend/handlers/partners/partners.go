@@ -45,7 +45,7 @@ const (
 	// deletion) and the historic page of the transfer rules (where the
 	// accesses of a partner are managed).
 	transfersPath = "/transfers"
-	rulesPath     = "/transfer_rules_management"
+	rulesPath     = "/rules"
 
 	// The cookie that keeps the state of the list for the browser session.
 	stateCookie = "webui_partners_list"
