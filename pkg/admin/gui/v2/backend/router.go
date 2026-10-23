@@ -19,6 +19,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/rules/tasks"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/servers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/smtp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/users"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/listing"
@@ -53,6 +54,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeSNMPRouter(router, db, logger)
 	MakeOverridesRouter(router, db, logger)
 	MakeKeysRouter(router, db, logger)
+	MakeSMTPCredentialsRouter(router, db, logger)
 }
 
 // adminRoutes registers the routes of a screen behind the rights on the
@@ -414,4 +416,38 @@ func MakeKeysRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	routes.read(keyPath, handlers.Detail)
 	routes.write(keyPath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(keyPath+"/delete", handlers.DeleteForm, handlers.Delete)
+}
+
+// ruleRoutes registers the routes of a screen behind the rights on the
+// rules: the pages in reading, the forms behind the write right, the
+// deletion behind the delete right. Every action is a POST.
+type ruleRoutes struct{ router *mux.Router }
+
+func (u ruleRoutes) read(path string, handler http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermRulesRead, handler))
+}
+
+func (u ruleRoutes) write(path string, form, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermRulesWrite, form))
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermRulesWrite, action))
+}
+
+func (u ruleRoutes) del(path string, form, action http.HandlerFunc) {
+	u.router.Path(path).Methods(http.MethodGet).Handler(withPermissions(model.PermRulesDelete, form))
+	u.router.Path(path).Methods(http.MethodPost).Handler(withPermissions(model.PermRulesDelete, action))
+}
+
+// MakeSMTPCredentialsRouter registers the "SMTP credentials" screen, behind
+// the rights on the rules as the REST API of the credentials: the list and
+// the sheet in reading, the creation, the edition, the deletion.
+func MakeSMTPCredentialsRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := smtp.New(db, logger)
+	routes := ruleRoutes{router}
+	const credPath = "/smtp/{id:[0-9]+}"
+
+	routes.read("/smtp", handlers.List)
+	routes.write("/smtp/new", handlers.NewForm, handlers.Create)
+	routes.read(credPath, handlers.Detail)
+	routes.write(credPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(credPath+"/delete", handlers.DeleteForm, handlers.Delete)
 }

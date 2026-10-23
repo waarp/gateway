@@ -21,6 +21,7 @@ restent décrits par l'interface elle-même.
    clients-locaux
    partenaires-distants
    cles
+   smtp
    utilisateurs
    instances-cloud
    autorites
@@ -96,7 +97,8 @@ requiert les droits sur les serveurs : lecture pour la liste et le détail,
 supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
 sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les
 utilisateurs, et les écrans :doc:`instances-cloud`, :doc:`autorites`,
-:doc:`snmp`, :doc:`surcharges` et :doc:`cles` les droits sur l'administration.
+:doc:`snmp`, :doc:`surcharges` et :doc:`cles` les droits sur l'administration ;
+l'écran :doc:`smtp` requiert les droits sur les règles, comme l'API REST.
 
 
 Ancienne et nouvelle interface

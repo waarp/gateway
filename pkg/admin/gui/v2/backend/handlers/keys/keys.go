@@ -29,6 +29,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -146,7 +147,7 @@ type entry struct {
 	key  *model.CryptoKey
 	kind *kind
 	info keyInfo
-	uses []use
+	uses []ruleuse.Use
 }
 
 func (e *entry) typeLabel(translate gui.Translator) string {
@@ -186,18 +187,6 @@ func (e *entry) summary(translate gui.Translator) string {
 	}
 
 	return text + " · " + code
-}
-
-// usesText says in a cell how many rules use a key.
-func usesText(translate gui.Translator, n int) string {
-	switch n {
-	case 0:
-		return translate("keys.uses.none")
-	case 1:
-		return translate("keys.uses.one")
-	default:
-		return translate("keys.uses.many", "n", n)
-	}
 }
 
 // filter is the state of the filter of the list: the types.
@@ -288,7 +277,7 @@ func (h *Handlers) all() ([]entry, error) {
 	return entries, nil
 }
 
-func entryOf(k *model.CryptoKey, now time.Time, uses map[string][]use) entry {
+func entryOf(k *model.CryptoKey, now time.Time, uses map[string][]ruleuse.Use) entry {
 	e := entry{key: k, info: infoOf(k, now), uses: uses[k.Name]}
 	e.kind, _ = kindOf(k.Type)
 
@@ -297,26 +286,8 @@ func entryOf(k *model.CryptoKey, now time.Time, uses map[string][]use) entry {
 
 // uses reads the tasks that read a key and their rules: for every key name,
 // the rules that use it.
-func (h *Handlers) uses() (map[string][]use, error) {
-	var (
-		list  model.Tasks
-		rules model.Rules
-	)
-
-	types := make([]any, 0, len(keyParams))
-	for typ := range keyParams {
-		types = append(types, typ)
-	}
-
-	if err := h.db.Select(&list).In("type", types...).Run(); err != nil {
-		return nil, err //nolint:wrapcheck // logged by the caller with its context
-	}
-
-	if err := h.db.Select(&rules).Run(); err != nil {
-		return nil, err //nolint:wrapcheck // logged by the caller with its context
-	}
-
-	return usesOf(list, rules), nil
+func (h *Handlers) uses() (map[string][]ruleuse.Use, error) {
+	return ruleuse.Read(h.db, keyParams) //nolint:wrapcheck // logged by the caller with its context
 }
 
 type row struct {
@@ -466,7 +437,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			URL:     withRet(keyURL(e.key.ID, ""), carried),
 			Type:    e.typeLabel(translate),
 			State:   e.info.state(translate, now),
-			Uses:    usesText(translate, len(e.uses)),
+			Uses:    ruleuse.Count(translate, len(e.uses)),
 			Actions: actions(translate, e, user, false, carried),
 		})
 		data.Rows[len(data.Rows)-1].Detail, data.Rows[len(data.Rows)-1].Code = e.detail(translate)
@@ -559,7 +530,7 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Doc:         docPage,
 		Crumbs:      crumbs(translate, title, carried),
 		Status:      status,
-		Stylesheets: []string{stylesheet},
+		Stylesheets: []string{stylesheet, ruleuse.Stylesheet},
 	}
 }
 
@@ -581,7 +552,7 @@ func (h *Handlers) key(w http.ResponseWriter, r *http.Request) (entry, bool) {
 
 	err := h.db.Get(&k, "id=?", id).Run()
 	if parseErr == nil && err == nil {
-		var uses map[string][]use
+		var uses map[string][]ruleuse.Use
 		if uses, err = h.uses(); err == nil {
 			return entryOf(&k, h.now(), uses), true
 		}
@@ -608,32 +579,6 @@ func (h *Handlers) key(w http.ResponseWriter, r *http.Request) (entry, bool) {
 	return entry{}, false
 }
 
-// useRow is a rule whose tasks name a key, ready to render: a link to the
-// tasks of the rule, where the key is changed, and its direction.
-type useRow struct {
-	Rule      string
-	URL       string
-	Direction string
-}
-
-func useRows(translate gui.Translator, uses []use) []useRow {
-	out := make([]useRow, 0, len(uses))
-	for _, u := range uses {
-		direction := translate("keys.direction.receive")
-		if u.Send {
-			direction = translate("keys.direction.send")
-		}
-
-		out = append(out, useRow{
-			Rule:      u.Rule,
-			URL:       common.WebuiURL("/tasks") + "?" + url.Values{"ruleID": {strconv.FormatInt(u.RuleID, 10)}}.Encode(),
-			Direction: direction,
-		})
-	}
-
-	return out
-}
-
 type detailData struct {
 	Name      string
 	TypeLabel string
@@ -646,7 +591,7 @@ type detailData struct {
 	State     gui.Status
 	Created   string
 	Expires   string
-	Uses      []useRow
+	Uses      []ruleuse.Row
 	BackURL   string
 	EditURL   string
 	Actions   []gui.Action
@@ -671,7 +616,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		TypeKey:   item.key.Type,
 		Info:      item.info,
 		State:     item.info.state(translate, h.now()),
-		Uses:      useRows(translate, item.uses),
+		Uses:      ruleuse.Rows(translate, item.uses),
 		BackURL:   listURL(carried),
 		Actions:   actions(translate, &item, user, true, carried),
 		AESBits:   item.info.Bits,
@@ -707,7 +652,7 @@ type deleteData struct {
 	Name      string
 	TypeLabel string
 	Detail    string
-	Uses      []useRow
+	Uses      []ruleuse.Row
 	Used      bool
 	Rules     string // how many rules use it
 	CancelURL string
@@ -735,9 +680,9 @@ func (h *Handlers) renderDelete(w http.ResponseWriter, r *http.Request, item *en
 		Name:      item.key.Name,
 		TypeLabel: item.typeLabel(translate),
 		Detail:    item.summary(translate),
-		Uses:      useRows(translate, item.uses),
+		Uses:      ruleuse.Rows(translate, item.uses),
 		Used:      len(item.uses) > 0,
-		Rules:     usesText(translate, len(item.uses)),
+		Rules:     ruleuse.Count(translate, len(item.uses)),
 		CancelURL: withRet(keyURL(item.key.ID, ""), carried),
 		Action:    withRet(keyURL(item.key.ID, "/delete"), carried),
 	}))

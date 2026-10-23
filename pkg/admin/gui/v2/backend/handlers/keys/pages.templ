@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
 )
 
 // listView: the cryptographic keys (Treatments). Presentation only: the
@@ -191,7 +192,7 @@ templ detailView(d detailData) {
 		</div>
 		<div class="w-card">
 			<h2 class="w-card__title">{ gui.T(ctx, "keys.detail.uses") }</h2>
-			@usesTable(d.Uses)
+			@usesList(d.Uses)
 		</div>
 	</div>
 }
@@ -209,32 +210,13 @@ templ identities(list []string) {
 	}
 }
 
-// usesTable: the rules whose tasks name the key, each a link to the tasks of
-// the rule (where the key is changed), with its direction; or the sentence
+// usesList: the rules whose tasks name the key (ruleuse), or the sentence
 // saying no rule uses it.
-templ usesTable(uses []useRow) {
-	if len(uses) == 0 {
+templ usesList(rows []ruleuse.Row) {
+	if len(rows) == 0 {
 		<p class="keys-note w-muted">{ gui.T(ctx, "keys.detail.uses_none") }</p>
 	} else {
-		<div class="w-table-wrap keys-uses">
-			<table class="w-table">
-				<caption class="visually-hidden">{ gui.T(ctx, "keys.detail.uses_caption") }</caption>
-				<thead>
-					<tr>
-						<th scope="col">{ gui.T(ctx, "keys.uses.rule") }</th>
-						<th scope="col">{ gui.T(ctx, "keys.uses.direction") }</th>
-					</tr>
-				</thead>
-				<tbody>
-					for _, u := range uses {
-						<tr>
-							<td><a class="w-link w-mono" href={ templ.SafeURL(u.URL) }>{ u.Rule }</a></td>
-							<td>{ u.Direction }</td>
-						</tr>
-					}
-				</tbody>
-			</table>
-		</div>
+		<div class="keys-uses">@ruleuse.List(gui.T(ctx, "keys.detail.uses_caption"), rows)</div>
 	}
 }
 
@@ -404,7 +386,7 @@ templ deleteView(d deleteData) {
 		</dl>
 		if d.Used {
 			<h2 class="w-card__title keys-subtitle">{ gui.T(ctx, "keys.detail.uses") }</h2>
-			@usesTable(d.Uses)
+			@usesList(d.Uses)
 			<div class="w-form__actions keys-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "action.close") }</a></div>
 		} else {
 			<form class="keys-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
