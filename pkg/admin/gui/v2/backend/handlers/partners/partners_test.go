@@ -230,7 +230,7 @@ func TestList(t *testing.T) {
 		assert.NotContains(t, body, "Supprimer le partenaire")
 		assert.Contains(t, body, `<td class="w-num">2</td>`, "the accounts of the SFTP partner")
 		assert.Contains(t, body, "Aucun</span>", "a partner without any account carries the warning")
-		assert.Contains(t, body, `<span class="w-badge w-badge--neutral">TLS</span>`)
+		assert.Contains(t, body, `<span class="proto-lock" role="img" aria-label="Chiffré par TLS" title="Chiffré par TLS">`)
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">127.0.0.1:10022</td>`)
 
 		body = s.get(t, permAll, "/webui/partners").Body.String()

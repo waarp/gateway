@@ -42,8 +42,9 @@ La liste
        états sont ceux de l'écran :doc:`etat-des-services`.
    * - Protocole
      - La famille du protocole (R66, HTTP, SFTP, FTP, PeSIT, WebDAV, AS2) et,
-       pour une variante sécurisée, le badge *TLS* : R66-TLS se lit « R66 »
-       suivi de *TLS*, HTTPS « HTTP » suivi de *TLS*.
+       pour une variante sécurisée, un cadenas, dont l'info-bulle dit
+       « Chiffré par TLS » : R66-TLS se lit « R66 » suivi du cadenas, HTTPS
+       « HTTP » suivi du cadenas.
    * - Adresse locale
      - L'adresse ``hôte:port`` depuis laquelle le client sort, ou
        *Automatique* quand le système choisit l'interface et le port.
