@@ -351,6 +351,7 @@ type taskRow struct {
 	Rank    int
 	Label   string
 	Code    string
+	Missing bool   // an object the task names that the gateway no longer has
 	Tip     string // the label and what the task does, in its tooltip
 	Unknown bool
 	Args    []argView
@@ -432,6 +433,8 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 				ID: slug + "-" + strconv.Itoa(i), Rank: i + 1, Label: typeLabel(translate, task.Type),
 				Code: task.Type, Unknown: specOf(task.Type) == nil, Args: argsOf(translate, task, look),
 			}
+
+			row.Missing = slices.ContainsFunc(row.Args, func(a argView) bool { return a.Missing })
 
 			if spec := specOf(task.Type); spec != nil {
 				row.Tip = translate("rules.tasks.tip", "label", row.Label,

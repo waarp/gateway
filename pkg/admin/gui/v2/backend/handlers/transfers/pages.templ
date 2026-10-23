@@ -696,10 +696,12 @@ templ InfoList(rows []InfoPair, errText string) {
 		}
 	</div>
 	<template id="tf-info-row">@infoField(0, InfoPair{})</template>
-	<button class="w-btn w-btn--outline-dark w-btn--sm" type="submit" name={ fieldInfoAdd } value="1" formnovalidate data-info-add>
-		@gui.Icon("plus")
-		{ gui.T(ctx, "transfers.form.info_add") }
-	</button>
+	<div class="tf-info-actions">
+		<button class="w-btn w-btn--outline-dark w-btn--sm" type="submit" name={ fieldInfoAdd } value="1" formnovalidate data-info-add>
+			@gui.Icon("plus")
+			{ gui.T(ctx, "transfers.form.info_add") }
+		</button>
+	</div>
 }
 
 // infoField: a row of the transfer information, numbered from 1 (0 in the

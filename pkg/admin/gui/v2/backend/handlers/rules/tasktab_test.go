@@ -108,11 +108,13 @@ func TestTasksTab(t *testing.T) {
 
 		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.orders.ID)+`/tasks" aria-current="page">Tâches`)
 		indexes(t, body, "Avant le transfert", "Aucune tâche.", "Après le transfert", "3 tâches",
-			"<strong>COPY</strong>", `title="Copier le fichier : `, "Dossier de destination", "/archives",
-			"<strong>EMAIL</strong>", "Envoyer un e-mail", "Expéditeur", sender,
-			"<strong>MOVE</strong>", "Déplacer le fichier", "/sortie",
+			`<details class="rules-taskfold"><summary>`, `<strong class="rules-taskname">COPY</strong>`, "Dossier de destination",
+			"/archives", `title="Copier le fichier : `,
+			`<strong class="rules-taskname">EMAIL</strong>`, "Expéditeur", sender, "Envoyer un e-mail",
+			`<strong class="rules-taskname">MOVE</strong>`, "/sortie", "Déplacer le fichier",
 			"En cas d&#39;erreur", "1 tâche", "lot", ">A<", "vide")
 		assert.Contains(t, body, `aria-label="Explication : COPY"`, "what a task does, in its tooltip")
+		assert.NotContains(t, body, `<details class="rules-taskfold" open`, "the tasks folded on arrival")
 		assert.Contains(t, body, `<div class="w-grid w-grid--3 rules-columns">`, "the chains side by side")
 		assert.Contains(t, body, `data-key="rule-chain-post" open>`, "foldable, their state remembered")
 		assert.NotContains(t, body, "Ajouter une tâche", "no addition without the write right")
@@ -180,9 +182,9 @@ func TestTasksTabMissingObject(t *testing.T) {
 	require.NoError(t, s.db.Delete(cred).Run())
 
 	body := s.get(t, permRead, path(s.orders, "/tasks")).Body.String()
-	indexes(t, body, sender, `<span class="w-status w-status--warn">Introuvable</span>`,
-		`<a href="/webui/smtp">Identifiants SMTP</a>`, template)
-	assert.Equal(t, 1, strings.Count(body, "Introuvable"), "the template is still there")
+	indexes(t, body, `<strong class="rules-taskname">EMAIL</strong>`, `<span class="w-status w-status--warn">Introuvable</span>`,
+		sender, `<span class="w-status w-status--warn">Introuvable</span>`, `<a href="/webui/smtp">Identifiants SMTP</a>`, template)
+	assert.Equal(t, 2, strings.Count(body, "Introuvable"), "said on the folded task and at its parameter; the template is still there")
 
 	screens := map[string]bool{}
 	for _, section := range common.Screens(model.PermAll) {
@@ -250,17 +252,17 @@ func TestTaskAdd(t *testing.T) {
 		body := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=TRANSFER").Body.String()
 		assert.Contains(t, body, `<option value="TRANSFER" selected>`)
 		assert.Contains(t, body, `data-case="TRANSFER" data-of="type">`, "its cards shown")
-		indexes(t, body, "<legend class=\"w-card__title\">Fichier</legend>", "Nom à la destination",
-			"<legend class=\"w-card__title\">Échange</legend>", `name="transfer.sens" value="send" required data-switch="transfer-sens"`,
+		indexes(t, body, `<details class="w-card w-card--fold" open><summary>`, "<h2 class=\"w-card__title\">Fichier</h2>",
+			"Nom à la destination", "<h2 class=\"w-card__title\">Échange</h2>", `name="transfer.sens" value="send" required data-switch="transfer-sens"`,
 			`data-case="send" data-of="transfer-sens"`, `name="transfer.rule_send"`, "Choisir une règle d&#39;envoi",
 			`<option value="releves">releves</option>`,
 			`data-case="receive" data-of="transfer-sens"`, `name="transfer.rule_receive"`, `<option value="commandes">commandes</option>`,
 			`name="transfer.account"`, `<optgroup label="banque-demo"><option value="login=prod&amp;partner=banque-demo">prod</option>`,
 			`name="transfer.using"`, "Le client du protocole du partenaire", "cli-sftp · SFTP",
-			"<legend class=\"w-card__title\">Informations de transfert</legend>", `name="info_copy"`, `data-infos`,
-			"<legend class=\"w-card__title\">Tentatives en cas d&#39;erreur</legend>", "Vides : celles du client.",
+			"<h2 class=\"w-card__title\">Informations de transfert</h2>", `name="info_copy"`, `data-infos`,
+			"<h2 class=\"w-card__title\">Tentatives en cas d&#39;erreur</h2>", "Vides : celles du client.",
 			`name="transfer.nbOfAttempts" value="" type="number" inputmode="numeric" step="1" min="0" max="127"`, "Premier délai (s)",
-			"<legend class=\"w-card__title\">Exécution</legend>", `name="transfer.synchronous" value="" checked data-switch="transfer-synchronous"`,
+			"<h2 class=\"w-card__title\">Exécution</h2>", `name="transfer.synchronous" value="" checked data-switch="transfer-synchronous"`,
 			`name="transfer.synchronous" value="true" data-switch="transfer-synchronous"`,
 			`data-case="true" data-of="transfer-synchronous"`, `name="transfer.timeout"`)
 		assert.NotContains(t, body, `name="transfer.to"`, "the direction gives the partner a side")

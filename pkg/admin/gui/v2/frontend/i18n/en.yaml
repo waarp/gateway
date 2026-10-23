@@ -1995,6 +1995,7 @@ rules:
       pairs: "One line per information, as key=value."
       type: Choose a type.
       sens: Choose a direction.
+      icap: "Enter the address of the ICAP server, for example icap://antivirus.example.com:1344/avscan."
       seconds: Give a number of seconds.
     not_found:
       title: Task not found

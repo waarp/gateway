@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"code.waarp.fr/lib/gui"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
@@ -27,6 +29,7 @@ const (
 	argChoice                  // one of the values of Choices
 	argRef                     // the name of an object of the gateway (Ref)
 	argJSON                    // a JSON object
+	argICAP                    // the address of an ICAP server, "icap://" optional (the gateway adds it)
 	argPairs                   // free keys and values, one "key=value" a line (SETINFO)
 )
 
@@ -73,7 +76,8 @@ type argWhen struct {
 // argSpec is an argument of a task. Seconds: a duration the form asks in
 // seconds, stored as "30s". Modes: a box asked as two buttons, the catalogue
 // keys of the labels of "" and of "true". Wide: over the whole width of its
-// card.
+// card. Check: the type the kit checks a text against (the durations and the
+// permissions take theirs from their kind).
 type argSpec struct {
 	Name     string
 	Kind     argKind
@@ -86,6 +90,7 @@ type argSpec struct {
 	Modes    [2]string
 	When     *argWhen
 	Wide     bool
+	Check    gui.Check
 }
 
 // groupKind is what a card of the form of a task holds.
@@ -326,7 +331,8 @@ var taskSpecs = []taskSpec{
 		textArg("archive", false), textArg("outputDir", true),
 	}, Groups: []argGroup{group("", "archive", "outputDir")}},
 	{Type: tasks.Icap, Slug: "icap", Family: familyNetwork, Args: []argSpec{
-		wideArg("uploadURL", true), boolArg("useTLS"), durationArg("timeout"), boolArg("allowFileModifications"),
+		{Name: "uploadURL", Kind: argICAP, Required: true, Wide: true},
+		boolArg("useTLS"), durationArg("timeout"), boolArg("allowFileModifications"),
 		{Name: "onError", Kind: argChoice, None: "task_types.choice.icap_nothing", Choices: func() []choiceValue {
 			return []choiceValue{
 				{tasks.IcapOnErrorDelete, "task_types.choice.icap_delete"},
@@ -342,7 +348,9 @@ var taskSpecs = []taskSpec{
 		group("refused", "onError", "onErrorMovePath"),
 	}},
 	{Type: tasks.Email, Slug: "email", Family: familyNetwork, Args: []argSpec{
-		refArg("sender", refSMTP, true), wideArg("recipients", true), refArg("template", refTemplate, true),
+		refArg("sender", refSMTP, true),
+		{Name: "recipients", Kind: argText, Required: true, Wide: true, Check: gui.CheckEmails},
+		refArg("template", refTemplate, true),
 	}, Groups: []argGroup{group("sending", "sender", "template"), group("recipients", "recipients")}},
 	{Type: tasks.SendMessage, Slug: "sendmessage", Family: familyNetwork, Args: []argSpec{
 		refArg("partner", refPartner, true), refArg("account", refRemoteAccount, true), refArg("client", refClient, true),
@@ -378,6 +386,21 @@ var taskSpecs = []taskSpec{
 	}, Groups: []argGroup{
 		group("method_keys", "method", "decryptKeyName", "verifyKeyName"), group("produced", "outputFile", "keepOriginal"),
 	}},
+}
+
+// check is the type the kit checks an argument against: its own, or the one
+// of its kind (a duration not asked in seconds, permissions).
+func (a *argSpec) check() gui.Check {
+	switch {
+	case a.Check != "":
+		return a.Check
+	case a.Kind == argDuration && !a.Seconds:
+		return gui.CheckDuration
+	case a.Kind == argOctal:
+		return gui.CheckOctal
+	}
+
+	return ""
 }
 
 // specOf is the description of a type of task, nil for a type the screen

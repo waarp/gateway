@@ -171,18 +171,19 @@ nombre de tâches ; une carte repliée le reste au retour sur l'onglet :
      - Quand le transfert est en erreur ; la première tâche en échec arrête la
        chaîne.
 
-Les tâches s'y lisent dans leur ordre d'exécution, chacune une carte : son rang,
-son type (par exemple ``COPY``), dont le bouton ⓘ donne le libellé et ce que
-fait la tâche, puis ses paramètres en clair. Une case cochée se lit « Oui ». Un objet que la Gateway n'a plus (une clé, un
+Les tâches s'y lisent dans leur ordre d'exécution, chacune une carte pliée :
+son rang et son type (par exemple ``COPY``), dont le bouton ⓘ donne le libellé
+et ce que fait la tâche. Le chevron déplie ses paramètres en clair. Une case
+cochée se lit « Oui ». Un objet que la Gateway n'a plus (une clé, un
 identifiant SMTP, un modèle d'e-mail supprimé depuis) est marqué
-*Introuvable*, avec un lien vers l'écran où le recréer. Le détail de chaque
+*Introuvable*, dès la carte pliée, avec un lien vers l'écran où le recréer. Le détail de chaque
 type est dans :ref:`la référence des traitements <reference-tasks>`.
 
 **Ajouter une tâche.** Chaque chaîne a son bouton *Ajouter une tâche*. La page
 fait choisir le type, groupé par famille (opérations de fichiers, exécutables,
 transfert, altérations de fichiers, archivage, réseau, cryptographie) ; ses
-paramètres s'affichent aussitôt, sur la même page, une carte par groupe
-(*Fichier*, *Échange*, *Exécution*…), côte à côte quand ils tiennent. Sous la
+paramètres s'affichent aussitôt, sur la même page, une carte repliable par
+groupe (*Fichier*, *Échange*, *Exécution*…), côte à côte quand ils tiennent. Sous la
 liste, le bouton ⓘ du type choisi dit ce que fait la tâche. Sans JavaScript, le
 bouton *Continuer* affiche les paramètres du type choisi. La tâche s'ajoute à
 la fin de la chaîne. Un paramètre se saisit selon sa nature :
@@ -238,8 +239,12 @@ informations du transfert en cours, et le mode, asynchrone (la tâche programme
 le transfert et passe à la suite) ou synchrone (elle attend sa fin, avec une
 durée limite facultative).
 
-Le formulaire vérifie ce qu'il peut (paramètres obligatoires, nombres, JSON) ;
-la Gateway contrôle ensuite la tâche (un jeu de caractères, une clé, un
+Le formulaire vérifie ce qu'il peut (paramètres obligatoires, nombres, JSON),
+et un paramètre typé dès que l'on quitte son champ : des adresses e-mail (un
+vrai nom d'hôte après « @ », plus strict que la Gateway, qui admet
+``banque@banque?fr``), une durée, des droits en octal, l'adresse d'un serveur
+ICAP. Une valeur enregistrée et laissée telle quelle n'est pas rejugée. La
+Gateway contrôle ensuite la tâche (un jeu de caractères, une clé, un
 partenaire qu'elle ne connaît pas) et son refus s'affiche sur la page, sans
 rien enregistrer.
 

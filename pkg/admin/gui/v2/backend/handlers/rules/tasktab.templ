@@ -42,10 +42,12 @@ templ tasksView(d tasksData) {
 }
 
 // chainBlock: a chain, its number of tasks in its head, "Add a task", then
-// its tasks in order. With the write right and two tasks or more, each task
-// has its grip and the chain is ordered again by dragging them (or with the
-// arrows on a grip), then saved with "Save the order"; "Move up" and "Move
-// down" stay in the menu of each task, without JavaScript too.
+// its tasks in order, folded (Driss, 2026-10-23: the name alone on arrival;
+// the chevron shows the parameters; an object the gateway no longer has is
+// said on the folded task). With the write right and two tasks or more, each
+// task has its grip and the chain is ordered again by dragging them (or with
+// the arrows on a grip), then saved with "Save the order"; "Move up" and
+// "Move down" stay in the menu of each task, without JavaScript too.
 templ chainBlock(c chainView) {
 	@ruleFold("chain-"+c.Slug, c.Title, c.Count) {
 		if c.AddURL != "" {
@@ -75,21 +77,22 @@ templ chainBlock(c chainView) {
 							@gui.SortableGrip(r.Code)
 						}
 						<span class="w-sortable__rank" data-sortable-rank>{ strconv.Itoa(r.Rank) }</span>
-						<div class="w-sortable__body">
-							<p class="rules-taskname">
-								<strong>{ r.Code }</strong>
-								if r.Tip != "" {
-									<button class="w-icon-btn rules-info" type="button" title={ r.Tip } aria-label={ gui.T(ctx, "rules.tasks.explain", "name", r.Code) }>
-										@gui.Icon("info")
-									</button>
-								}
-								if r.Unknown {
-									{ " " }
-									@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.unknown_type")})
-								}
-							</p>
+						<div class="w-sortable__body rules-taskhead">
 							if len(r.Args) > 0 {
-								@argList(r.Args)
+								<details class="rules-taskfold">
+									<summary>
+										@gui.Icon("chevron-right")
+										@taskName(r)
+									</summary>
+									@argList(r.Args)
+								</details>
+							} else {
+								<p class="rules-taskfold rules-taskfold--empty">
+									@taskName(r)
+								</p>
+							}
+							if r.Tip != "" {
+								@taskTip(r.Code, r.Tip)
 							}
 							if c.OrderURL != "" {
 								<input type="hidden" name={ orderField } value={ strconv.Itoa(r.Rank - 1) } form={ c.OrderID }/>
@@ -102,6 +105,21 @@ templ chainBlock(c chainView) {
 				}
 			</ol>
 		}
+	}
+}
+
+// taskName: the name of a task in its chain, its type, with what the folded
+// task must say: a type this screen does not know, an object the gateway no
+// longer has.
+templ taskName(r taskRow) {
+	<strong class="rules-taskname">{ r.Code }</strong>
+	if r.Unknown {
+		{ " " }
+		@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.unknown_type")})
+	}
+	if r.Missing {
+		{ " " }
+		@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.missing_status")})
 	}
 }
 
@@ -241,30 +259,49 @@ templ typePart(b typeBlock, groups []groupView) {
 	</fieldset>
 }
 
-// groupCard: a card of parameters, side by side.
+// groupCard: a card of parameters, side by side; a titled card folds (Driss,
+// 2026-10-23), open as the page comes, so that nothing typed nor refused is
+// ever hidden from the user.
 templ groupCard(g groupView) {
-	<div class="w-card">
-		<fieldset class="w-fieldset w-fieldset--wide">
-			if g.Title != "" {
-				<legend class="w-card__title">{ g.Title }</legend>
-			}
-			if g.Note != "" {
-				<p class="w-muted rules-note">{ g.Note }</p>
-			}
-			switch {
-				case g.Empty:
-					<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
-				case g.Exchange != nil:
-					@exchangeFields(g.Exchange)
-				default:
-					<div class={ "w-grid", templ.KV("w-grid--3", g.Columns == threeColumns), templ.KV("w-grid--2", g.Columns != threeColumns) }>
-						for _, f := range g.Fields {
-							@taskField(f)
-						}
-					</div>
-			}
-		</fieldset>
-	</div>
+	if g.Title == "" {
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				@groupContent(g)
+			</fieldset>
+		</div>
+	} else {
+		<details class="w-card w-card--fold" open>
+			<summary>
+				@gui.Icon("chevron-right")
+				<h2 class="w-card__title">{ g.Title }</h2>
+			</summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ g.Title }</legend>
+					@groupContent(g)
+				</fieldset>
+			</div>
+		</details>
+	}
+}
+
+// groupContent: what a card of parameters holds.
+templ groupContent(g groupView) {
+	if g.Note != "" {
+		<p class="w-muted rules-note">{ g.Note }</p>
+	}
+	switch {
+		case g.Empty:
+			<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
+		case g.Exchange != nil:
+			@exchangeFields(g.Exchange)
+		default:
+			<div class={ "w-grid", templ.KV("w-grid--3", g.Columns == threeColumns), templ.KV("w-grid--2", g.Columns != threeColumns) }>
+				for _, f := range g.Fields {
+					@taskField(f)
+				}
+			</div>
+	}
 }
 
 // exchangeFields: the exchange of a TRANSFER task, as the page that adds a
@@ -313,16 +350,19 @@ templ exchangeFields(x *exchangeView) {
 templ infosCard(x *infosView) {
 	<fieldset class="w-fieldset w-fieldset--wide rules-case" data-case={ x.Cases } data-of="type" hidden?={ !x.Active } disabled?={ !x.Active }>
 		<legend class="visually-hidden">{ gui.T(ctx, "transfers.detail.infos") }</legend>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</legend>
+		<details class="w-card w-card--fold" open>
+			<summary>
+				@gui.Icon("chevron-right")
+				<h2 class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</h2>
+			</summary>
+			<div class="w-card__body">
 				<div class="w-field rules-copyinfo">
 					<label class="w-check"><input type="checkbox" id="info-copy" name={ fieldInfoCopy } value="true" checked?={ x.Copy } aria-describedby="info-copy-h"/> <span>{ gui.T(ctx, "rules.tasks.info_copy") }</span></label>
 					<span class="w-field__hint" id="info-copy-h">{ gui.T(ctx, "rules.tasks.info_copy_hint") }</span>
 				</div>
 				@transfers.InfoList(x.Rows, x.Error)
-			</fieldset>
-		</div>
+			</div>
+		</details>
 	</fieldset>
 }
 
@@ -377,6 +417,10 @@ templ argInput(f fieldView) {
 					aria-describedby={ f.ID + "-h" }
 					if f.Error != "" {
 						aria-invalid="true"
+					}
+					if f.Check != "" {
+						{ f.Check.Attributes(ctx)... }
+						data-hint={ f.Hint }
 					}
 				/>
 				@protoform.Message(f.ID+"-h", f.Error, f.Hint)

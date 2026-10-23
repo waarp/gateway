@@ -58,6 +58,9 @@ const (
 	exchangeRule    = "rule_"
 	exchangeAccount = "account"
 
+	// The scheme of the address of an ICAP server, which the gateway adds.
+	icapScheme = "icap://"
+
 	// The parts of the value of a partner and its account.
 	accountPartner = "partner"
 	accountLogin   = "login"
@@ -108,6 +111,7 @@ type fieldView struct {
 	Switch    string
 	CaseOf    string
 	CaseValue string
+	Check     gui.Check // the type the page checks as soon as the user leaves the field
 }
 
 type familyView struct {
@@ -287,7 +291,7 @@ func fields(translate gui.Translator, spec *taskSpec, input *taskInput, found na
 			ID: argID(spec, arg.Name), Name: argName(spec, arg.Name), Kind: fieldText,
 			Label: translate(argKey(spec, arg.Name, "label")), Error: input.errors[arg.Name],
 			Hint: translate(argKey(spec, arg.Name, "hint"), "extensions", extensions), Value: value,
-			Required: arg.Required, Wide: arg.Wide,
+			Required: arg.Required, Wide: arg.Wide, Check: arg.check(),
 		}
 
 		if arg.When != nil {
@@ -598,15 +602,10 @@ func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored 
 		input.values[arg.Name] = raw
 		old, had := stored[arg.Name]
 
-		switch {
-		case arg.When != nil && posted(arg.When.Arg) != arg.When.Value:
+		if keptAsStored(arg, raw, old, had, posted) {
 			if had {
 				args[arg.Name] = old
 			}
-
-			continue
-		case arg.Seconds && had && raw != "" && secondsText(old) == raw:
-			args[arg.Name] = old
 
 			continue
 		}
@@ -633,6 +632,23 @@ func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored 
 	}
 
 	return args, input, valid
+}
+
+// keptAsStored says whether an argument keeps what the task stored: one that
+// only matters with another one that does not have its value, or a value the
+// user left as the product saved it (a number of seconds that says the
+// stored duration among them), which is not judged again.
+func keptAsStored(arg *argSpec, raw, old string, had bool, posted func(string) string) bool {
+	switch {
+	case arg.When != nil && posted(arg.When.Arg) != arg.When.Value:
+		return true
+	case !had:
+		return false
+	case arg.Seconds && raw != "" && secondsText(old) == raw:
+		return true
+	}
+
+	return raw == old && arg.Kind != argPairs
 }
 
 // readInfos reads the card of the transfer information: the copy of the
@@ -733,6 +749,10 @@ func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[strin
 		return ""
 	}
 
+	if check := arg.check(); !check.Valid(raw) {
+		return translate("check." + string(check))
+	}
+
 	switch arg.Kind {
 	case argInt, argMillis:
 		if msg := checkNumber(translate, arg, raw); msg != "" {
@@ -756,12 +776,29 @@ func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[strin
 		if err := json.Unmarshal([]byte(raw), &object); err != nil {
 			return translate("rules.tasks.error.json")
 		}
+	case argICAP:
+		if !icapAddress(raw) {
+			return translate("rules.tasks.error.icap")
+		}
 	case argText, argBool, argOctal, argChoice, argRef, argPairs:
 	}
 
 	args[arg.Name] = raw
 
 	return ""
+}
+
+// icapAddress says whether a value is the address of an ICAP server as the
+// gateway reads it: "icap://" added when it is not there, then a host, its
+// port and its service.
+func icapAddress(raw string) bool {
+	if !strings.HasPrefix(raw, icapScheme) {
+		raw = icapScheme + raw
+	}
+
+	address, err := url.Parse(raw)
+
+	return err == nil && address.Hostname() != "" && !strings.ContainsAny(address.Hostname(), "/:@")
 }
 
 // checkNumber checks a whole number against the bounds of its argument.
@@ -960,6 +997,8 @@ func (h *Handlers) taskForm(w http.ResponseWriter, r *http.Request, edit, post b
 	}
 
 	screen := h.screen(translate, form.Title, carried, status)
+	screen.Head = gui.CheckAssets() // the typed fields checked as soon as the user leaves them
+
 	if form.Infos != nil {
 		screen.Stylesheets = append(screen.Stylesheets, transfers.InfoStylesheet)
 		screen.Scripts = append(screen.Scripts, transfers.InfoScript)

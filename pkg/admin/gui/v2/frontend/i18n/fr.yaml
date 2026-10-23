@@ -1995,6 +1995,7 @@ rules:
       pairs: "Une ligne par information, sous la forme clé=valeur."
       type: Choisissez un type.
       sens: Choisissez un sens.
+      icap: "Indiquez l'adresse du serveur ICAP, par exemple icap://antivirus.exemple.fr:1344/avscan."
       seconds: Indiquez un nombre de secondes.
     not_found:
       title: Tâche introuvable
