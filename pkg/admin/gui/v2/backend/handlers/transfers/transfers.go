@@ -37,8 +37,14 @@ import (
 const (
 	stylesheet = "/static_v2/transfers/transfers.css"
 	script     = "/static_v2/transfers/transfers.js" // the refresh without reload of the list
-	docPage    = "user/webui/suivi-des-transferts"
-	pagePath   = "/transfers"
+
+	// InfoStylesheet and InfoScript: what the rows of the transfer information
+	// (InfoList) need on another screen.
+	InfoStylesheet = stylesheet
+	InfoScript     = script
+
+	docPage  = "user/webui/suivi-des-transferts"
+	pagePath = "/transfers"
 
 	// The cookie that keeps the state of the list for the browser session, so
 	// that coming back through the sidebar finds the list as it was left.
