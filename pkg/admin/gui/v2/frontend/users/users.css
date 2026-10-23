@@ -1,0 +1,13 @@
+/* Users screen: what the kit does not decide (column widths of the list, the legend of the notation, spacing of the
+   list foot, of the banners and of the action pages); the cards of the rights are those of rights.css. Tokens only. */
+.users-col-name { width: 22%; }
+.users-col-rights { width: 11%; }
+.users-col-actions { width: 72px; }
+.users-legend { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); }
+.users-pager { margin-top: var(--sp-3); }
+.users-banner { margin-bottom: var(--sp-4); }
+.users-lead { margin: 0 0 var(--sp-4); }
+.users-note { margin: var(--sp-3) 0 0; }
+.users-deflist { margin-top: var(--sp-4); }
+.users-subtitle { margin-top: var(--sp-5); }
+.users-form-actions { margin-top: var(--sp-5); }

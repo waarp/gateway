@@ -55,7 +55,7 @@ func navigation() []navGroup {
 			{constants.SidebarMenuTransfers, "clock", "nav.transfers", "/transfer_monitoring", model.PermTransfersRead},
 		}},
 		{section: constants.SidebarSectionAdministration, key: "nav.administration", entries: []navEntry{
-			{constants.SidebarMenuUsers, "users", "nav.users", "/user_management", model.PermUsersRead},
+			{constants.SidebarMenuUsers, "users", "nav.users", "/users", model.PermUsersRead},
 			{
 				constants.SidebarMenuAuthorities, "shield", "nav.authorities", "/managing_authentication_authorities",
 				model.PermAdminRead,

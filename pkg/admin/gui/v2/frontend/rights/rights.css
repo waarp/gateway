@@ -1,0 +1,8 @@
+/* The rights of a user: one card per domain on the background of the page, side by side as the width allows, the
+   domain over what the user may do in it (no table in a card); the form of the users puts its checkboxes in the same
+   cards, the domain as the legend of each. Tokens only. */
+.rights-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.rights-item { min-width: 0; margin: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--g200); border-radius: var(--rs); background: var(--app-bg); }
+.rights-domain { display: block; float: left; width: 100%; padding: 0; font-weight: 700; }
+.rights-granted { display: block; clear: both; font-size: var(--fs-sm); color: var(--ts); }
+.rights-item > .w-checks { clear: both; padding-top: var(--sp-1); }
