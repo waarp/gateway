@@ -39,9 +39,10 @@
    kit, which has no upward one. */
 .rules-chains-hint { margin: 0 0 var(--sp-4); }
 .rules-taskname { margin: 0; line-height: 1.5; letter-spacing: .02em; }
-/* The button of an explanation, as an exponent against its word (Driss, 2026-10-23). */
-.rules-info { width: 20px; height: 20px; margin-left: 2px; border: 0; background: transparent; vertical-align: text-top; }
-.rules-info .i { width: .9rem; height: .9rem; }
+/* The button of an explanation, as an exponent against its word (Driss, 2026-10-23): its icon at the top of a target
+   of 24 px, raised; measured, the centre of the icon 6 to 8 px above the one of the word. */
+.rules-info { position: relative; top: -5px; place-items: start center; width: 24px; height: 24px; border: 0; background: transparent; vertical-align: text-top; }
+.rules-info .i { width: .75rem; height: .75rem; margin-top: 2px; }
 /* A task of a chain, folded: its name and its chevron, the parameters under it once unfolded; the explanation
    against the name. */
 .rules-taskhead { display: flex; align-items: flex-start; gap: 2px; }
@@ -51,7 +52,7 @@
 .rules-taskfold > summary > svg.i { flex: none; color: var(--g600); transition: transform var(--duration) var(--ease); }
 .rules-taskfold[open] > summary > svg.i { transform: rotate(90deg); }
 .rules-taskfold--empty { padding-left: calc(1rem + var(--sp-1)); }
-.rules-taskhead > .rules-info { margin-top: 1px; }
+.rules-taskhead > .rules-info { top: 0; margin-top: -6px; }
 .rules-tasklist .rules-args { margin-top: var(--sp-1); font-size: var(--fs-sm); grid-template-columns: minmax(0, 1fr); row-gap: 0; }
 .rules-tasklist .rules-args dd + dt { margin-top: var(--sp-2); }
 .rules-args { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: var(--sp-1) var(--sp-3); margin: 0; }
