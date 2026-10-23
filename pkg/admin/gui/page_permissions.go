@@ -57,8 +57,6 @@ var webuiPermissions = map[string]pagePermissions{
 		model.PermRulesDelete, "deleteRule"),
 	"/management_usage_rights_rules": permsFor(model.PermRulesRead, model.PermRulesWrite,
 		model.PermRulesWrite),
-	"/email_templates_management": permsFor(model.PermRulesRead, model.PermRulesWrite,
-		model.PermRulesDelete),
 
 	"/transfer_monitoring": permsFor(model.PermTransfersRead, model.PermTransfersWrite,
 		model.PermTransfersWrite),

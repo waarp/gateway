@@ -83,7 +83,10 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 	// this page, which only pointed to the command line (#730).
 	secureRouter.Handle("/managing_configuration_overrides",
 		http.RedirectHandler("overrides", http.StatusMovedPermanently))
-	handlePage(secureRouter, "/email_templates_management", EmailTemplateManagementPage(logger)).Methods("GET", "POST")
+	// The email templates screen of the reworked interface replaces this page,
+	// which only pointed to the command line (#744).
+	secureRouter.Handle("/email_templates_management",
+		http.RedirectHandler("email-templates", http.StatusMovedPermanently))
 	// The SMTP credentials screen of the reworked interface replaces this
 	// page, which only pointed to the command line (#741).
 	secureRouter.Handle("/smtp_credentials_management",

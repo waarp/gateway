@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/mail"
 	"path"
+	"slices"
 
 	"gopkg.in/gomail.v2"
 
@@ -152,4 +153,30 @@ func (m *emailTask) replaceTemplateVars(transCtx *model.TransferContext) error {
 	}
 
 	return nil
+}
+
+// EmailMessage is an e-mail template as the EMAIL task sends it for a
+// transfer: the markers of its subject, of its body and of the paths of its
+// attachments substituted.
+type EmailMessage struct {
+	Subject     string
+	Body        string
+	Attachments []string
+}
+
+// RenderEmail substitutes the markers of a template for a transfer as the
+// EMAIL task does before sending it, so that a preview shows what the task
+// sends; the template is left unchanged. A marker the tasks do not implement
+// returns the error the task would fail with.
+func RenderEmail(template *model.EmailTemplate, transCtx *model.TransferContext) (*EmailMessage, error) {
+	task := &emailTask{template: *template}
+	task.template.Attachments = slices.Clone(template.Attachments)
+
+	if err := task.replaceTemplateVars(transCtx); err != nil {
+		return nil, err
+	}
+
+	return &EmailMessage{
+		Subject: task.template.Subject, Body: task.template.Body, Attachments: task.template.Attachments,
+	}, nil
 }

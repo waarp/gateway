@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/authorities"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clouds"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/emailtemplates"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/keys"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/me"
@@ -55,6 +56,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeOverridesRouter(router, db, logger)
 	MakeKeysRouter(router, db, logger)
 	MakeSMTPCredentialsRouter(router, db, logger)
+	MakeEmailTemplatesRouter(router, db, logger)
 }
 
 // adminRoutes registers the routes of a screen behind the rights on the
@@ -450,4 +452,22 @@ func MakeSMTPCredentialsRouter(router *mux.Router, db *database.DB, logger *log.
 	routes.read(credPath, handlers.Detail)
 	routes.write(credPath+"/edit", handlers.EditForm, handlers.Update)
 	routes.del(credPath+"/delete", handlers.DeleteForm, handlers.Delete)
+}
+
+// MakeEmailTemplatesRouter registers the "Email templates" screen, behind the
+// rights on the rules as the REST API of the templates: the list and the
+// sheet in reading, the preview of the template a form holds (a POST that
+// writes nothing), the creation, the edition, the deletion.
+func MakeEmailTemplatesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := emailtemplates.New(db, logger)
+	routes := ruleRoutes{router}
+	const templatePath = "/email-templates/{id:[0-9]+}"
+
+	routes.read("/email-templates", handlers.List)
+	routes.write("/email-templates/new", handlers.NewForm, handlers.Create)
+	router.Path("/email-templates/preview").Methods(http.MethodPost).
+		Handler(withPermissions(model.PermRulesRead, http.HandlerFunc(handlers.Preview)))
+	routes.read(templatePath, handlers.Detail)
+	routes.write(templatePath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(templatePath+"/delete", handlers.DeleteForm, handlers.Delete)
 }

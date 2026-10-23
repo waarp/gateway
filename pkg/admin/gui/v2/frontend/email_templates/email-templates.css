@@ -1,0 +1,31 @@
+/* Email templates screen: what the kit does not decide (column widths of the list, spacing of the list foot, of the
+   banners and of the action pages, the preview of the message). Tokens only. */
+.et-col-name { width: 22%; }
+.et-col-format { width: 9%; }
+.et-col-files { width: 13%; }
+.et-col-uses { width: 12%; }
+.et-col-actions { width: 72px; }
+.et-wrap { overflow-wrap: anywhere; }
+.et-pager { margin-top: var(--sp-3); }
+.et-banner { margin-bottom: var(--sp-4); }
+.et-lead { margin: 0 0 var(--sp-4); }
+.et-note { margin: var(--sp-2) 0 var(--sp-4); }
+.et-subtitle { margin-top: var(--sp-5); }
+.et-form-actions { margin-top: var(--sp-5); }
+.et-uses { margin-top: var(--sp-2); }
+.et-files { margin: var(--sp-2) 0 0; padding-left: var(--sp-5); }
+.et-files li + li { margin-top: var(--sp-1); }
+
+/* Preview: the choice of the values, then the message as the recipient receives it. */
+.et-preview__controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-5); margin-top: var(--sp-3); }
+.et-preview__values { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); min-width: 0; }
+.et-preview__values .w-field__label { margin: 0; }
+.et-preview__values .w-select { max-width: 30rem; min-width: 0; }
+.et-mail { border: 1px solid var(--g300); border-radius: var(--rs); overflow: hidden; background: var(--surface); }
+.et-mail__head { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4); margin: 0; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--g200); background: var(--g50); font-size: var(--fs-sm); }
+.et-mail__head dt { color: var(--g600); font-weight: 700; }
+.et-mail__head dd { margin: 0; min-width: 0; overflow-wrap: anywhere; color: var(--tp); }
+.et-mail__body { display: block; width: 100%; height: 16rem; border: 0; background: var(--surface); }
+.et-file { display: inline-block; margin: 0 var(--sp-2) var(--sp-1) 0; padding: 0 var(--sp-2); border: 1px solid var(--g300); border-radius: var(--r-xs); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+/* A value of a variable: a badge (border, bold, tinted background), seen at once even without the colour. */
+.et-mark { padding: 0 var(--sp-1); border: 1px solid var(--wo-aa); border-radius: var(--r-xs); background: var(--wo-bg); color: var(--wo-aa); font-weight: 700; }

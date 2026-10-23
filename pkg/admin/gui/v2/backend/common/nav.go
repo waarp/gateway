@@ -45,10 +45,7 @@ func navigation() []navGroup {
 			{constants.SidebarMenuRules, "list", "nav.rules", "/transfer_rules_management", model.PermRulesRead},
 			{constants.SidebarMenuCryptoKeys, "key", "nav.keys", "/keys", model.PermAdminRead},
 			{constants.SidebarMenuSMTPCreds, "envelope", "nav.smtp", "/smtp", model.PermRulesRead},
-			{
-				constants.SidebarMenuEmailTemplates, "envelope", "nav.email_templates", "/email_templates_management",
-				model.PermRulesRead,
-			},
+			{constants.SidebarMenuEmailTemplates, "envelope", "nav.email_templates", "/email-templates", model.PermRulesRead},
 		}},
 		{section: constants.SidebarSectionMonitoring, key: "nav.supervision", entries: []navEntry{
 			{constants.SidebarMenuStatus, "shield", "nav.services", "/services", 0},

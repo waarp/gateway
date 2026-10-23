@@ -20,7 +20,7 @@ type replacersMap map[string]replacer
 
 //nolint:funlen //cannot split function without adding complexity and hurting readability
 func getReplacers() replacersMap {
-	return replacersMap{
+	replacers := replacersMap{
 		"#TRUEFULLPATH#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return ctx.Transfer.LocalPath, nil
 		},
@@ -60,7 +60,6 @@ func getReplacers() replacersMap {
 		"#INPATH#":   makeInDir,
 		"#OUTPATH#":  makeOutDir,
 		"#WORKPATH#": makeTmpDir,
-		"#ARCHPATH#": notImplemented("#ARCHPATH#"),
 		"#HOMEPATH#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return ctx.Paths.GatewayHome, nil
 		},
@@ -89,10 +88,8 @@ func getReplacers() replacersMap {
 
 			return formatTime(format, ctx.Transfer.Start), nil
 		},
-		"#REMOTEHOST#":   getRemote,
-		"#REMOTEHOSTIP#": notImplemented("#REMOTEHOSTIP#"),
-		"#LOCALHOST#":    getLocal,
-		"#LOCALHOSTIP#":  notImplemented("#LOCALHOSTIP#"),
+		"#REMOTEHOST#": getRemote,
+		"#LOCALHOST#":  getLocal,
 		"#TRANSFERID#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return utils.FormatInt(ctx.Transfer.ID), nil
 		},
@@ -115,8 +112,6 @@ func getReplacers() replacersMap {
 
 			return fmt.Sprintf("%d_%s_%s", ctx.Transfer.ID, client, server), nil
 		},
-		"#RANKTRANSFER#": notImplemented("#RANKTRANSFER#"),
-		"#BLOCKSIZE#":    notImplemented("#BLOCKSIZE#"),
 		"#ERRORMSG#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return ctx.Transfer.ErrDetails, nil
 		},
@@ -126,9 +121,13 @@ func getReplacers() replacersMap {
 		"#ERRORSTRCODE#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return ctx.Transfer.ErrDetails, nil
 		},
-		"#NOWAIT#":    notImplemented("#NOWAIT#"),
-		"#LOCALEXEC#": notImplemented("#LOCALEXEC#"),
 	}
+
+	for _, word := range unimplementedMarkers {
+		replacers[word] = notImplemented(word)
+	}
+
+	return replacers
 }
 
 func replaceInfo(val any) replacer {
