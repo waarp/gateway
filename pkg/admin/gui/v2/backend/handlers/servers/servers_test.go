@@ -281,8 +281,8 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `w-status w-status--ko">Erreur<`)
 		assert.Contains(t, body, `w-status w-status--off">Hors ligne<`)
 		assert.Contains(t, body, `<span class="w-cell-sub w-mono">`+bindReason+`</span>`)
-		assert.Contains(t, body, `<td><span class="proto-cell"><span>R66</span> <span class="w-badge w-badge--neutral">TLS</span></span></td>`,
-			"the family and TLS as a badge, aligned from one row to the next")
+		assert.Contains(t, body, `<td><span class="proto-cell"><span>R66</span> <span class="proto-lock" role="img" aria-label="Chiffré par TLS" title="Chiffré par TLS">`,
+			"the family and TLS as a lock, aligned from one row to the next")
 		assert.Contains(t, body, `<td><span class="proto-cell"><span>PeSIT</span></span></td>`)
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">0.0.0.0:10022</td>`)
 		assert.Contains(t, body, `<td class="w-mono w-nowrap">10.20.30.40:5000</td>`)

@@ -87,7 +87,7 @@ proto:
   tls: Secure the connection with TLS
   tls_hint: "Offered for the protocols that exist with and without TLS; SFTP is secured by SSH"
   tls_title: TLS encryption
-  tls_badge: TLS
+  tls_lock: Secured by TLS
   described_tls: "{family}, secured by TLS ({name})"
   filter_tls: TLS encryption
   filter_tls_all: With or without TLS

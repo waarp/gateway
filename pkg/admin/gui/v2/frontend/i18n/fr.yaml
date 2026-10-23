@@ -86,7 +86,7 @@ proto:
   tls: Chiffrer la connexion par TLS
   tls_hint: "Proposé pour les protocoles qui existent avec et sans TLS ; SFTP est chiffré par SSH"
   tls_title: Chiffrement TLS
-  tls_badge: TLS
+  tls_lock: Chiffré par TLS
   described_tls: "{family}, chiffré par TLS ({name})"
   filter_tls: Chiffrement TLS
   filter_tls_all: Avec ou sans TLS

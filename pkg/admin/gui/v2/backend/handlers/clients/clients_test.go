@@ -267,7 +267,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `w-status w-status--ok">En ligne<`)
 		assert.Contains(t, body, `w-status w-status--ko">Erreur<`)
 		assert.Contains(t, body, `<span class="w-cell-sub w-mono">no network</span>`)
-		assert.Contains(t, body, `<td><span class="proto-cell"><span>R66</span> <span class="w-badge w-badge--neutral">TLS</span></span></td>`)
+		assert.Contains(t, body, `<td><span class="proto-cell"><span>R66</span> <span class="proto-lock" role="img" aria-label="Chiffré par TLS" title="Chiffré par TLS">`)
 		assert.Contains(t, body, `<td><span class="proto-cell"><span>SFTP</span></span></td>`)
 		assert.Contains(t, body, `<span class="w-mono w-nowrap">10.20.30.40:6000</span>`)
 		assert.Equal(t, 2, strings.Count(body, `<span class="w-muted">Automatique</span>`), "two clients without a local address")
