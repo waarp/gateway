@@ -186,10 +186,18 @@ templ taskFormView(d *taskFormData) {
 	</form>
 }
 
-// typeCard: the type of the task. A new one: the list by family, which
-// switches the cards of the types (data-switch), "Continue" without
-// JavaScript, and, under the list, the type chosen with what it does in a
-// tooltip. A task edited: its type, kept.
+// taskFormHead: what the page of a task loads besides the kit: the list to
+// type in (the type), the typed fields.
+templ taskFormHead() {
+	@gui.ComboboxAssets()
+	@gui.CheckAssets()
+}
+
+// typeCard: the type of the task. A new one: the list to type in, by family,
+// each type with its label in bold, its code and what it does, which switches
+// the cards of the types (data-switch); "Continue" without JavaScript; under
+// the list, the type chosen with what it does in a tooltip. A task edited:
+// its type, kept.
 templ typeCard(d *taskFormData) {
 	<div class="w-card">
 		if d.Edit {
@@ -203,26 +211,10 @@ templ typeCard(d *taskFormData) {
 		} else {
 			<div class={ "w-field", templ.KV("is-invalid", d.TypeErr != "") }>
 				<label class="w-field__label" for={ fieldType }>{ gui.T(ctx, "rules.tasks.type") } <span class="w-field__req" aria-hidden="true">*</span></label>
-				<select
-					class="w-select"
-					id={ fieldType }
-					name={ fieldType }
-					required
-					data-switch="type"
-					aria-describedby="type-h"
-					if d.TypeErr != "" {
-						aria-invalid="true"
-					}
-				>
-					<option value="">{ gui.T(ctx, "rules.tasks.type_choose") }</option>
-					for _, f := range d.Families {
-						<optgroup label={ f.Label }>
-							for _, o := range f.Types {
-								<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
-							}
-						</optgroup>
-					}
-				</select>
+				@gui.Combobox(gui.ComboboxProps{
+					ID: fieldType, Name: fieldType, Groups: d.Families, Placeholder: gui.T(ctx, "rules.tasks.type_choose"),
+					Required: true, Invalid: d.TypeErr != "", Describe: "type-h", Switch: "type",
+				})
 				@protoform.Message("type-h", d.TypeErr, gui.T(ctx, "rules.tasks.type_hint"))
 				<noscript>
 					<button class="w-btn w-btn--outline-dark w-btn--sm rules-noscript" type="submit" formmethod="get" formaction={ templ.SafeURL(d.NewURL) } formnovalidate>{ gui.T(ctx, "rules.tasks.continue") }</button>

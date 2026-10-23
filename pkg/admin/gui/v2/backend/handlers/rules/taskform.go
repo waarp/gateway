@@ -114,11 +114,6 @@ type fieldView struct {
 	Check     gui.Check // the type the page checks as soon as the user leaves the field
 }
 
-type familyView struct {
-	Label string
-	Types []taskOption
-}
-
 // groupView is a card of the page: its title, its note, its fields side by
 // side, or the exchange of a TRANSFER task; Empty, the card of a type without
 // parameter.
@@ -184,7 +179,7 @@ type taskFormData struct {
 	Ret       string // the state of the list, carried by "Continue" without JavaScript
 	NewURL    string // where "Continue" asks the page again, with the type
 	Edit      bool
-	Families  []familyView
+	Families  []gui.ComboGroup // the types by family, for the list to type in
 	Type      string
 	TypeErr   string
 	TypeTip   string // the type of a task edited: its label and what it does
@@ -865,24 +860,26 @@ func unknownArgs(spec *taskSpec, stored map[string]string) []string {
 	return out
 }
 
-// typeChoices are the types to choose from, by family, the chosen one
-// selected.
-func typeChoices(translate gui.Translator, chosen string) []familyView {
-	out := make([]familyView, 0, len(families))
+// typeChoices are the types to choose from, by family, each with its label,
+// its code and what it does (Driss, 2026-10-23: the label in bold and its
+// explanation, found by typing), the chosen one selected.
+func typeChoices(translate gui.Translator, chosen string) []gui.ComboGroup {
+	out := make([]gui.ComboGroup, 0, len(families))
 
 	for _, family := range families {
-		view := familyView{Label: translate(taskTypesPrefix + "family." + family)}
+		group := gui.ComboGroup{Label: translate(taskTypesPrefix + "family." + family)}
 
 		for i := range taskSpecs {
-			if taskSpecs[i].Family == family {
-				view.Types = append(view.Types, taskOption{
-					Value: taskSpecs[i].Type, Label: typeLabel(translate, taskSpecs[i].Type) + " (" + taskSpecs[i].Type + ")",
-					Selected: taskSpecs[i].Type == chosen,
+			spec := &taskSpecs[i]
+			if spec.Family == family {
+				group.Choices = append(group.Choices, gui.ComboChoice{
+					Value: spec.Type, Label: typeLabel(translate, spec.Type), Code: spec.Type,
+					Text: translate(taskTypesPrefix + spec.Slug + ".text"), Selected: spec.Type == chosen,
 				})
 			}
 		}
 
-		out = append(out, view)
+		out = append(out, group)
 	}
 
 	return out
@@ -997,7 +994,7 @@ func (h *Handlers) taskForm(w http.ResponseWriter, r *http.Request, edit, post b
 	}
 
 	screen := h.screen(translate, form.Title, carried, status)
-	screen.Head = gui.CheckAssets() // the typed fields checked as soon as the user leaves them
+	screen.Head = taskFormHead()
 
 	if form.Infos != nil {
 		screen.Stylesheets = append(screen.Stylesheets, transfers.InfoStylesheet)
