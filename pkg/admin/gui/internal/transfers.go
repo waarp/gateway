@@ -59,16 +59,16 @@ func (q *TransferListQuery) File(file string) *TransferListQuery {
 	return q
 }
 
-// likeEscape is the escape character of the LIKE patterns of the file
+// LikeEscape is the escape character of the LIKE patterns of the file
 // searches.
-const likeEscape = "\033"
+const LikeEscape = "\033"
 
 // likePattern is the LIKE pattern that matches any text containing the
 // substring, its wildcards escaped.
 func likePattern(substring string) string {
 	replacer := strings.NewReplacer(
-		"%", likeEscape+"%",
-		"_", likeEscape+"_",
+		"%", LikeEscape+"%",
+		"_", LikeEscape+"_",
 	)
 
 	return "%" + replacer.Replace(substring) + "%"
@@ -80,20 +80,22 @@ func (q *TransferListQuery) FilePattern(substring string) *TransferListQuery {
 	pattern := likePattern(substring)
 
 	q.query.Where("src_filename LIKE ? ESCAPE ? OR dest_filename LIKE ? ESCAPE ?",
-		pattern, likeEscape, pattern, likeEscape)
+		pattern, LikeEscape, pattern, LikeEscape)
 
 	return q
 }
 
-// Search adds a condition which will match any transfer whose filename
-// contains the text, or whose follow ID is the text (the condition of the
-// followID filter of the REST API).
-func (q *TransferListQuery) Search(text string) *TransferListQuery {
-	pattern := likePattern(text)
+// Search adds a condition which will match any transfer whose file name or
+// path (the local and the remote ones, which the lists show) matches the
+// LIKE pattern (escaped with LikeEscape), case aside, or whose follow ID is
+// the text (the condition of the followID filter of the REST API).
+func (q *TransferListQuery) Search(pattern, text string) *TransferListQuery {
+	pattern = strings.ToLower(pattern)
 
-	q.query.Where("(src_filename LIKE ? ESCAPE ? OR dest_filename LIKE ? ESCAPE ? OR "+
+	q.query.Where("(LOWER(src_filename) LIKE ? ESCAPE ? OR LOWER(dest_filename) LIKE ? ESCAPE ? OR "+
+		"LOWER(local_path) LIKE ? ESCAPE ? OR LOWER(remote_path) LIKE ? ESCAPE ? OR "+
 		"id IN (SELECT COALESCE(transfer_id, history_id) FROM transfer_info WHERE name=? AND value=?))",
-		pattern, likeEscape, pattern, likeEscape, model.FollowID, text)
+		pattern, LikeEscape, pattern, LikeEscape, pattern, LikeEscape, pattern, LikeEscape, model.FollowID, text)
 
 	return q
 }

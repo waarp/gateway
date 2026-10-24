@@ -406,13 +406,6 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	h.shell.Render(w, h.logger, r, screen, listView(data))
 }
 
-// matches says whether a rule answers the search: a part of its name or of
-// its path, regardless of case.
-func matches(e *entry, needle string) bool {
-	return needle == "" || strings.Contains(strings.ToLower(e.rule.Name), needle) ||
-		strings.Contains(strings.ToLower(e.rule.Path), needle)
-}
-
 // buildList computes the list page: search, filter, sort, page, toolbar
 // state, row actions according to the rights.
 func buildList(translate gui.Translator, all []entry, query *listQuery, user rights) listData {
@@ -437,7 +430,6 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 
 	names := make([]string, 0, len(all))
 	kept := make([]entry, 0, len(all))
-	needle := strings.ToLower(query.Q)
 
 	for i := range all {
 		e := &all[i]
@@ -445,7 +437,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			names = append(names, e.rule.Name)
 		}
 
-		if !matches(e, needle) {
+		if !query.Search.Matches(e.rule.Name) && !query.Search.Matches(e.rule.Path) {
 			continue
 		}
 

@@ -59,7 +59,7 @@ La liste
 
 Les colonnes *Expéditeur* et *Serveur SMTP* se trient d'un clic sur leur
 en-tête (par défaut, l'expéditeur croissant). La recherche filtre les
-identifiants dont l'adresse commence par le texte saisi et propose les
+identifiants par leur adresse (:ref:`règle commune <user-webui-search>`) et propose les
 adresses existantes. Le compteur, à droite, indique le nombre d'identifiants
 et, quand une recherche est active, le nombre affiché.
 

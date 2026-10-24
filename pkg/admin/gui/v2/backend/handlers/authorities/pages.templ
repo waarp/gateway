@@ -40,7 +40,7 @@ templ listView(d listData) {
 				for _, h := range liststate.SortedHidden(d.Hidden) {
 					<input type="hidden" name={ h.Name } value={ h.Value }/>
 				}
-				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "authorities.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "authorities.search_placeholder") } list="authorities-names" autocomplete="off"/></label>
+				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "authorities.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "authorities.search_placeholder") } title={ gui.T(ctx, "lists.search_hint") } list="authorities-names" autocomplete="off"/></label>
 				<datalist id="authorities-names">
 					for _, n := range d.Names {
 						<option value={ n }></option>

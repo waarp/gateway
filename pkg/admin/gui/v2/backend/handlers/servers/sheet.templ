@@ -51,7 +51,7 @@ templ accountsView(d accountsListData) {
 				for _, h := range liststate.SortedHidden(d.List.Hidden) {
 					<input type="hidden" name={ h.Name } value={ h.Value }/>
 				}
-				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "accounts.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.List.Q } placeholder={ gui.T(ctx, "accounts.search_placeholder") } list="accounts-names" autocomplete="off"/></label>
+				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "accounts.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.List.Q } placeholder={ gui.T(ctx, "accounts.search_placeholder") } title={ gui.T(ctx, "lists.search_hint") } list="accounts-names" autocomplete="off"/></label>
 				<datalist id="accounts-names">
 					for _, n := range d.List.Names {
 						<option value={ n }></option>

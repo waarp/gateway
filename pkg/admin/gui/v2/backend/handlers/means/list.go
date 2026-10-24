@@ -85,12 +85,11 @@ func buildList(translate gui.Translator, own *Owner, creds []*model.Credential, 
 	}
 
 	views := make([]view, 0, len(creds))
-	needle := strings.ToLower(query.Q)
 
 	for _, c := range creds {
 		data.List.Names = append(data.List.Names, c.Name)
 
-		if needle == "" || strings.HasPrefix(strings.ToLower(c.Name), needle) {
+		if query.Search.Matches(c.Name) {
 			views = append(views, viewOf(c))
 		}
 	}

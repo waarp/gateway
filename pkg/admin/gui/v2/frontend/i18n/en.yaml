@@ -245,6 +245,7 @@ lists:
   refresh_error:
     title: The list could not be refreshed.
     text: "Try again; if the error persists, the detail is in the log of the gateway."
+  search_hint: "Matched anywhere, case and accents aside; * stands for any text, ? for one character, ^ and $ anchor the search at the beginning or at the end"
 
 servers:
   title: Local servers
@@ -2761,6 +2762,7 @@ transfers:
   add: Add a transfer
   search: Search a transfer by its file or its follow ID
   search_placeholder: File or follow ID
+  search_hint: "File name or path, matched anywhere, case aside, or exact follow ID; * stands for any text, ? for one character, ^ and $ anchor the search at the beginning or at the end"
   refresh_error:
     title: The monitoring could not be refreshed
     text: "Last successful read at {time}. The transfers shown date from that read; a new attempt is made every {seconds} s."

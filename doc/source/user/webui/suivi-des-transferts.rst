@@ -26,8 +26,10 @@ statut : *Tous*, *En cours*, *En erreur*, *Planifiés*, *En pause*,
 n'affiche que ses transferts ; le statut choisi est souligné et en gras. Une
 infobulle sur chaque statut dit ce qu'il signifie.
 
-La barre d'outils recherche un transfert par une partie du nom de son
-fichier, ou par son identifiant de suivi. Le bouton *Filtres* ouvre les
+La barre d'outils recherche un transfert par le nom ou le chemin de son
+fichier, tels que la colonne *Fichier* les affiche (:ref:`règle commune
+<user-webui-search>`, majuscules et minuscules confondues, accents compris),
+ou par son identifiant de suivi exact. Le bouton *Filtres* ouvre les
 critères : règle, sens (envoi ou réception), partenaire ou serveur (une liste en
 deux groupes, partenaires distants et serveurs locaux), compte (les comptes de
 chaque partenaire ou serveur, ceux du seul partenaire choisi quand il l'est),

@@ -341,12 +341,11 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 
 	names := make([]string, 0, len(all))
 	kept := make([]entry, 0, len(all))
-	needle := strings.ToLower(query.Q)
 
 	for _, e := range all {
 		names = append(names, e.agent.Name)
 
-		if needle != "" && !strings.HasPrefix(strings.ToLower(e.agent.Name), needle) {
+		if !query.Search.Matches(e.agent.Name) {
 			continue
 		}
 
