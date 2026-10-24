@@ -177,5 +177,14 @@ func (p *Pages) Auth(w http.ResponseWriter, r *http.Request, own *Owner, notices
 	}
 
 	data.Tabs = tabs
-	p.Shell.Render(w, p.Logger, r, own.screen(data.Title, "", 0, notices), authView(data))
+
+	if liststate.IsListFragment(r) {
+		p.Shell.RenderFragment(w, p.Logger, r, authFragment(data))
+
+		return
+	}
+
+	screen := own.screen(data.Title, "", 0, notices)
+	screen.Head = gui.LiveAssets()
+	p.Shell.Render(w, p.Logger, r, screen, authView(data))
 }
