@@ -1,11 +1,13 @@
 // Package config is the "Configuration import and export" screen of the
-// Administration section: one page, two cards. The export downloads the
-// configuration, all or by category, as JSON or YAML; the import reads such
-// a file and simulates or applies it, in one transaction, with the options
-// of the REST API (categories, reset of the categories, restart of the
-// services). The screen calls the backup package as the REST API does; the
-// rights are those of the API: reading for the page and the export, writing
-// for the import.
+// Administration section: one page, one form, three cards. The categories
+// of the configuration are chosen once, for the export as for the import.
+// The export downloads the configuration as JSON or YAML, the secrets and
+// the certificates in clear or replaced by the markers of the migration
+// tooling; the import reads such a file and simulates or applies it, in one
+// transaction, with the options of the REST API (reset of the categories,
+// restart of the services). The screen calls the backup package as the REST
+// API does; the rights are those of the API: reading for the page and the
+// export, writing for the import. Both actions are logged with their user.
 package config
 
 import (
@@ -56,6 +58,7 @@ const (
 
 	fieldTarget       = "target"
 	fieldFormat       = "format"
+	fieldRedact       = "redact"
 	fieldFile         = "file"
 	fieldRestart      = "restart"
 	fieldReset        = "reset"
@@ -76,12 +79,12 @@ const (
 	doneImported    = "imported"
 
 	stateOK = "ok"
-	stateKO = "ko"
 
 	// The start of the name of a downloaded file: the instance and the time
-	// follow.
-	filePrefix = "waarp-gateway"
-	timeLayout = "20060102-150405"
+	// follow, then "-markers" when the secrets are replaced.
+	filePrefix    = "waarp-gateway"
+	markersSuffix = "-markers"
+	timeLayout    = "20060102-150405"
 )
 
 // categories are the parts of the configuration, named as the REST API
@@ -114,7 +117,7 @@ func New(db *database.DB, logger *log.Logger) *Handlers {
 	return &Handlers{db: db, logger: logger, shell: common.NewShell()}
 }
 
-// category is a part of the configuration as a checkbox of a card.
+// category is a part of the configuration as a checkbox of the first card.
 type category struct {
 	Key     string
 	Label   string
@@ -128,30 +131,33 @@ type choice struct {
 	Selected bool
 }
 
-// importForm is the card of the import: its fields, their errors, and the
+// importForm is the card of the import: its options, their errors, and the
 // refusal of the product when the simulation or the import failed.
 type importForm struct {
-	Categories      []category
-	Restart         bool
-	Reset           bool
-	ResetConfirm    bool
-	FileError       string
-	CategoriesError string
-	ConfirmError    string
+	Restart      bool
+	Reset        bool
+	ResetConfirm bool
+	FileError    string
+	ConfirmError string
 	// Refused is the message of the product when it refused the file or the
 	// import: shown as is, as the REST API answers it.
 	Refused string
 }
 
-// pageData is the page: the export card, the import card, the rights.
+// pageData is the page: the categories, the export card, the import card,
+// the rights.
 type pageData struct {
 	ExportURL  string
 	ImportURL  string
 	Write      bool
-	Categories []category // the export card, every category checked
-	Formats    []choice
-	// ExportError says why the export did not start (no category chosen,
-	// or the product failed to build the file).
+	Categories []category
+	// CategoriesError says that no category is chosen, for the export as for
+	// the import.
+	CategoriesError string
+	Formats         []choice
+	Redact          bool
+	// ExportError says why the export did not start: the product failed to
+	// build the file.
 	ExportError string
 	Import      importForm
 }
@@ -165,8 +171,8 @@ func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 	h.shell.Render(w, h.logger, r, screen, pageView(h.newPage(translate, r)))
 }
 
-// newPage is the page as it opens: every category checked on both cards,
-// JSON, nothing asked of the import.
+// newPage is the page as it opens: every category checked, JSON, the
+// secrets in clear, nothing asked of the import.
 func (h *Handlers) newPage(translate gui.Translator, r *http.Request) pageData {
 	return pageData{
 		ExportURL:  common.WebuiURL(exportPath),
@@ -174,40 +180,61 @@ func (h *Handlers) newPage(translate gui.Translator, r *http.Request) pageData {
 		Write:      common.GetUser(r).Permissions.HasPermission(model.PermAdminWrite),
 		Categories: allCategories(translate, nil),
 		Formats:    formats(translate, formatJSON),
-		Import:     importForm{Categories: allCategories(translate, nil)},
 	}
 }
 
 // Export downloads the configuration of the chosen categories, in the
-// chosen format. The file is built whole before it is sent, so that a
-// failure renders the page with its cause instead of a cut file.
+// chosen format, the secrets and the certificates in clear or replaced by
+// markers. The file is built whole before it is sent, so that a failure
+// renders the page with its cause instead of a cut file. The export is
+// logged with its user: a file in clear carries every secret.
 func (h *Handlers) Export(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := r.URL.Query()
 	targets := chosen(query[fieldTarget])
 	format := formatOf(query.Get(fieldFormat))
+	redact := query.Get(fieldRedact) != ""
 
 	if len(targets) == 0 {
 		data := h.newPage(translate, r)
 		data.Categories = allCategories(translate, append([]string{}, query[fieldTarget]...))
 		data.Formats = formats(translate, format)
-		data.ExportError = translate("config.export.none")
+		data.Redact = redact
+		data.CategoriesError = translate("config.categories_none")
 		h.shell.Render(w, h.logger, r, h.screen(translate, http.StatusUnprocessableEntity), pageView(data))
 
 		return
 	}
 
-	name := fileName(common.GetUser(r).Owner, format, time.Now())
+	user := common.GetUser(r)
+	name := fileName(user.Owner, format, redact, time.Now())
 
-	var buf bytes.Buffer
-	if err := backup.Export(h.db, h.logger, namedWriter{&buf, name}, targets); err != nil {
+	data, err := backup.Collect(h.db, h.logger, targets)
+	if err != nil {
 		h.logger.Errorf("failed to export the configuration: %v", err)
-
-		data := h.newPage(translate, r)
-		data.ExportError = translate("config.export.failed")
-		h.shell.Render(w, h.logger, r, h.screen(translate, http.StatusInternalServerError), pageView(data))
+		h.exportFailed(w, r, translate)
 
 		return
+	}
+
+	if redact {
+		redactSecrets(data)
+	}
+
+	var buf bytes.Buffer
+	if serr := backup.Serialize(data, namedWriter{&buf, name}); serr != nil {
+		h.logger.Errorf("failed to export the configuration: %v", serr)
+		h.exportFailed(w, r, translate)
+
+		return
+	}
+
+	if redact {
+		h.logger.Infof("Configuration exported by user %q with the secrets and the certificates "+
+			"replaced by markers: %s", user.Username, strings.Join(targets, ", "))
+	} else {
+		h.logger.Warningf("Configuration exported in clear by user %q, secrets included: %s",
+			user.Username, strings.Join(targets, ", "))
 	}
 
 	w.Header().Set("Content-Type", mimeOf(format))
@@ -215,41 +242,52 @@ func (h *Handlers) Export(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
 	w.WriteHeader(http.StatusOK)
 
-	if _, err := w.Write(buf.Bytes()); err != nil {
-		h.logger.Warningf("failed to send the exported configuration: %v", err)
+	if _, werr := w.Write(buf.Bytes()); werr != nil {
+		h.logger.Warningf("failed to send the exported configuration: %v", werr)
 	}
+}
+
+// exportFailed renders the page when the product could not build the file.
+func (h *Handlers) exportFailed(w http.ResponseWriter, r *http.Request, translate gui.Translator) {
+	data := h.newPage(translate, r)
+	data.ExportError = translate("config.export.failed")
+	h.shell.Render(w, h.logger, r, h.screen(translate, http.StatusInternalServerError), pageView(data))
 }
 
 // Import reads the uploaded file and the options, then simulates or applies
 // the import; the page comes back with its errors (422), or the screen
 // loads again with the result (Post/Redirect/Get). A file that cannot be
-// read is an error of the form, never a failure of the server.
+// read is an error of the form, never a failure of the server; a file that
+// still carries markers is refused. The import is logged with its user.
 func (h *Handlers) Import(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload+formOverhead)
 
-	form, data, ok := h.readImport(translate, r)
+	data, posted, ok := h.readImport(translate, r)
 	if !ok {
-		h.refuse(w, r, translate, form)
+		h.refuse(w, r, translate, &posted)
 
 		return
 	}
 
 	targets := chosen(r.Form[fieldTarget])
 	dry := r.FormValue(fieldAction) != actionImport
-	restart := form.Restart && !dry
+	restart := posted.Import.Restart && !dry
 
-	if err := backup.Import(h.db, h.logger, data, targets, dry, form.Reset, restart); err != nil {
-		form.Refused = err.Error()
-		h.refuse(w, r, translate, form)
+	if err := backup.Import(h.db, h.logger, data, targets, dry, posted.Import.Reset, restart); err != nil {
+		posted.Import.Refused = err.Error()
+		h.refuse(w, r, translate, &posted)
 
 		return
 	}
 
-	done := doneImported
+	done, verb := doneImported, "applied"
 	if dry {
-		done = doneSimulated
+		done, verb = doneSimulated, "simulated"
 	}
+
+	h.logger.Infof("Configuration import %s by user %q: %s (reset %t, restart %t)",
+		verb, common.GetUser(r).Username, strings.Join(targets, ", "), posted.Import.Reset, restart)
 
 	result := url.Values{doneParam: {done}, categoriesParam: {labels(translate, targets)}}
 	if restart {
@@ -259,42 +297,61 @@ func (h *Handlers) Import(w http.ResponseWriter, r *http.Request) {
 	liststate.RedirectTo(w, r, common.WebuiURL(pagePath), result)
 }
 
-// readImport takes the posted fields and the file into the form, and
-// parses the file; false, with the form carrying its errors, when something
-// is missing or wrong.
-func (h *Handlers) readImport(translate gui.Translator, r *http.Request) (importForm, *file.Data, bool) {
-	form := importForm{Categories: allCategories(translate, nil)}
+// readImport takes the posted fields and the file into the page, and parses
+// the file; false, with the page carrying its errors, when something is
+// missing or wrong.
+func (h *Handlers) readImport(translate gui.Translator, r *http.Request) (*file.Data, pageData, bool) {
+	posted := h.newPage(translate, r)
 
 	if err := r.ParseMultipartForm(formMemory); err != nil {
 		var tooBig *http.MaxBytesError
 
 		switch {
 		case errors.As(err, &tooBig):
-			form.FileError = translate("config.import.file_size")
+			posted.Import.FileError = translate("config.import.file_size")
 		case errors.Is(err, http.ErrNotMultipart), errors.Is(err, http.ErrMissingBoundary):
-			form.FileError = translate("config.import.file_missing")
+			posted.Import.FileError = translate("config.import.file_missing")
 		default:
-			form.FileError = translate("config.import.file_read")
+			posted.Import.FileError = translate("config.import.file_read")
 		}
 
-		return form, nil, false
+		return nil, posted, false
 	}
 
 	// Posted without any category is not the page as it opens: nothing
 	// checked.
-	form.Categories = allCategories(translate, append([]string{}, r.Form[fieldTarget]...))
-	form.Restart = r.FormValue(fieldRestart) != ""
-	form.Reset = r.FormValue(fieldReset) != ""
-	form.ResetConfirm = r.FormValue(fieldResetConfirm) != ""
+	posted.Categories = allCategories(translate, append([]string{}, r.Form[fieldTarget]...))
+	posted.Import.Restart = r.FormValue(fieldRestart) != ""
+	posted.Import.Reset = r.FormValue(fieldReset) != ""
+	posted.Import.ResetConfirm = r.FormValue(fieldResetConfirm) != ""
 
 	if len(chosen(r.Form[fieldTarget])) == 0 {
-		form.CategoriesError = translate("config.import.none")
+		posted.CategoriesError = translate("config.categories_none")
 	}
 
-	if form.Reset && !form.ResetConfirm {
-		form.ConfirmError = translate("config.import.confirm_required")
+	if posted.Import.Reset && !posted.Import.ResetConfirm {
+		posted.Import.ConfirmError = translate("config.import.confirm_required")
 	}
 
+	content, name, ok := h.readFile(translate, r, &posted.Import)
+	if !ok || posted.CategoriesError != "" || posted.Import.ConfirmError != "" {
+		return nil, posted, false
+	}
+
+	data, err := backup.ParseData(namedReader{bytes.NewReader(content), name})
+	if err != nil {
+		posted.Import.FileError = translate("config.import.unreadable")
+		posted.Import.Refused = err.Error()
+
+		return nil, posted, false
+	}
+
+	return data, posted, true
+}
+
+// readFile takes the uploaded file: present, of a known type, within the
+// bound, and free of the markers of a redacted export.
+func (h *Handlers) readFile(translate gui.Translator, r *http.Request, form *importForm) ([]byte, string, bool) {
 	upload, header, err := r.FormFile(fieldFile)
 	if err != nil {
 		form.FileError = translate("config.import.file_missing")
@@ -302,35 +359,37 @@ func (h *Handlers) readImport(translate gui.Translator, r *http.Request) (import
 			form.FileError = translate("config.import.file_read")
 		}
 
-		return form, nil, false
+		return nil, "", false
 	}
 	defer upload.Close() //nolint:errcheck // read only
 
 	if !slices.Contains(fileTypes, strings.ToLower(filepath.Ext(header.Filename))) {
 		form.FileError = translate("config.import.file_type")
+
+		return nil, "", false
 	}
 
-	if form.FileError != "" || form.CategoriesError != "" || form.ConfirmError != "" {
-		return form, nil, false
+	content, err := io.ReadAll(io.LimitReader(upload, maxUpload+1))
+
+	switch {
+	case err != nil:
+		form.FileError = translate("config.import.file_read")
+	case len(content) > maxUpload:
+		form.FileError = translate("config.import.file_size")
+	case hasMarkers(content):
+		form.FileError = translate("config.import.markers")
 	}
 
-	data, err := backup.ParseData(namedReader{upload, header.Filename})
-	if err != nil {
-		form.FileError = translate("config.import.unreadable")
-		form.Refused = err.Error()
-
-		return form, nil, false
+	if form.FileError != "" {
+		return nil, "", false
 	}
 
-	return form, data, true
+	return content, header.Filename, true
 }
 
-// refuse renders the page again with the import card as posted and its
-// errors.
-func (h *Handlers) refuse(w http.ResponseWriter, r *http.Request, translate gui.Translator, form importForm) {
-	data := h.newPage(translate, r)
-	data.Import = form
-	h.shell.Render(w, h.logger, r, h.screen(translate, http.StatusUnprocessableEntity), pageView(data))
+// refuse renders the page again as posted, with its errors.
+func (h *Handlers) refuse(w http.ResponseWriter, r *http.Request, translate gui.Translator, posted *pageData) {
+	h.shell.Render(w, h.logger, r, h.screen(translate, http.StatusUnprocessableEntity), pageView(*posted))
 }
 
 // screen is the page of the screen: the chrome around the cards.
@@ -432,14 +491,19 @@ func mimeOf(format string) string {
 }
 
 // fileName names a downloaded file after the instance and the time:
-// "waarp-gateway-<instance>-<date>-<time>.<format>".
-func fileName(instance, format string, now time.Time) string {
+// "waarp-gateway-<instance>-<date>-<time>[-markers].<format>".
+func fileName(instance, format string, redact bool, now time.Time) string {
 	instance = strings.Trim(unsafeInName.ReplaceAllString(instance, "-"), "-")
 	if instance == "" {
 		instance = "gateway"
 	}
 
-	return fmt.Sprintf("%s-%s-%s.%s", filePrefix, instance, now.Format(timeLayout), format)
+	suffix := ""
+	if redact {
+		suffix = markersSuffix
+	}
+
+	return fmt.Sprintf("%s-%s-%s%s.%s", filePrefix, instance, now.Format(timeLayout), suffix, format)
 }
 
 // namedWriter and namedReader give the backup package the name it reads the

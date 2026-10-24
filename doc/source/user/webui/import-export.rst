@@ -17,31 +17,69 @@ commandes ``waarp-gatewayd export`` et ``import`` et de la ligne de commande
 ``waarp-gateway updateconf``. Le déploiement d'une configuration par Waarp
 Manager passe par la tâche ``UPDATECONF`` et n'est pas concerné.
 
-La page tient en deux cartes.
+La page tient en trois cartes : les catégories, choisies une fois pour l'export
+comme pour l'import, puis l'export et l'import.
 
 
-Exporter la configuration
-=========================
+Catégories
+==========
 
 Les catégories sont cochées, toutes par défaut : serveurs locaux (avec leurs
 comptes et leur authentification), partenaires distants (de même), clients
 locaux, règles de transfert, utilisateurs, instances cloud, SNMP, autorités
 d'authentification, clés cryptographiques, e-mail (identifiants SMTP et
-modèles), surveillances de partenaires. Le format est JSON ou YAML.
-*Exporter la configuration* télécharge le fichier
+modèles), surveillances de partenaires. À l'export, seules les catégories
+cochées sont écrites ; à l'import, seules les catégories cochées sont lues,
+et celles que le fichier ne porte pas sont ignorées.
+
+
+Exporter la configuration
+=========================
+
+Le format est JSON ou YAML. *Exporter la configuration* télécharge le fichier
 ``waarp-gateway-<instance>-<date>-<heure>.json`` (ou ``.yaml``).
 
 **Le fichier contient les secrets en clair** : mots de passe des comptes, clés
 privées, secrets des instances cloud, mots de passe SMTP. Seuls les mots de
 passe des utilisateurs n'y sont qu'en hachage. Il se range comme un secret.
+Chaque export est consigné dans le journal de la passerelle, avec
+l'utilisateur et les catégories ; un export en clair l'est en avertissement.
+
+L'option *Remplacer les secrets et les certificats par des repères* produit
+un fichier qui peut circuler : chaque secret est remplacé par un repère qui
+dit où il va, dans la forme des outils de remplissage des migrations.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - Repère
+     - Remplace
+     - Exemple
+   * - ``__PWD__<objet>:<champ>``
+     - Mots de passe des comptes et de la pré-connexion PeSIT, secrets des
+       instances cloud, communautés et phrases SNMP, mots de passe SMTP
+     - ``__PWD__partners/banque-demo/prod:password``
+   * - ``__KEY__$GWPKIDIR/<objet>/<nom>.key``
+     - Clés privées (TLS, SSH, R66 historique) et matière des clés
+       cryptographiques
+     - ``__KEY__$GWPKIDIR/servers/srv-sftp/cert.key``
+   * - ``__PEM__$GWPKIDIR/<objet>/<nom>.pem``
+     - Certificats, clés publiques, autorités
+     - ``__PEM__$GWPKIDIR/authorities/ca-interne.pem``
+
+Le nom du fichier porte alors ``-markers``. Les hachages des mots de passe
+des utilisateurs restent : ce ne sont pas des secrets en clair, et l'import
+ne connaît rien d'autre d'un utilisateur. Un tel fichier ne s'importe pas tel
+quel : la page refuse un fichier qui porte encore un repère, parce qu'un
+repère importé deviendrait un mot de passe.
 
 
 Importer une configuration
 ==========================
 
 Le fichier (``.json``, ``.yaml`` ou ``.yml``, 64 Mo au plus) est le seul champ
-obligatoire. Les catégories cochées sont les seules importées ; celles que le
-fichier ne porte pas sont ignorées.
+obligatoire ; les catégories sont celles de la première carte.
 
 Deux options :
 
@@ -54,7 +92,9 @@ Deux options :
   devient *Vider et importer*.
 
 *Simuler l'import* joue l'import dans une transaction puis l'annule : il dit si
-le fichier passerait, sans rien changer. *Importer* l'applique.
+le fichier passerait, sans rien changer. *Importer* l'applique. L'un comme
+l'autre sont consignés dans le journal de la passerelle, avec l'utilisateur,
+les catégories, le vidage et le redémarrage demandés.
 
 L'import est tout ou rien : la première erreur annule l'ensemble, et la page
 l'affiche telle que le produit la formule (un nom de règle vide, une autorité

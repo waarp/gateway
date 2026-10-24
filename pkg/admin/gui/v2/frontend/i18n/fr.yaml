@@ -3082,6 +3082,8 @@ transfers:
 config:
   title: Import et export de la configuration
   categories_legend: Catégories
+  categories_hint: "Pour l'export comme pour l'import ; à l'import, les catégories que le fichier ne porte pas sont ignorées"
+  categories_none: Choisissez au moins une catégorie
   categories:
     servers: Serveurs locaux, avec leurs comptes et leur authentification
     partners: Partenaires distants, avec leurs comptes et leur authentification
@@ -3102,8 +3104,9 @@ config:
     secrets_title: Le fichier contient les secrets en clair.
     secrets: " Mots de passe des comptes, clés privées, secrets des instances cloud et mots de passe SMTP ; les mots de passe des utilisateurs n'y sont qu'en hachage."
     same_format: Même format que les commandes waarp-gatewayd export et import, et que la ligne de commande waarp-gateway updateconf.
+    redact: Remplacer les secrets et les certificats par des repères
+    redact_hint: "Pour un fichier qui circule : mots de passe et secrets deviennent __PWD__, clés privées __KEY__, certificats et clés publiques __PEM__, avec l'objet et le champ ; les outils de remplissage les complètent avant l'import. Les hachages des mots de passe des utilisateurs restent."
     action: Exporter la configuration
-    none: Choisissez au moins une catégorie
     failed: "La configuration n'a pas pu être exportée ; le détail est dans le journal de la passerelle."
   import:
     title: Importer une configuration
@@ -3114,8 +3117,7 @@ config:
     file_size: Le fichier dépasse 64 Mo
     file_read: Le fichier n'a pas pu être lu
     unreadable: Le fichier n'est pas un JSON ou un YAML valide.
-    categories_hint: Les catégories que le fichier ne porte pas sont ignorées
-    none: Choisissez au moins une catégorie
+    markers: "Le fichier porte encore des repères de secrets (__PWD__, __KEY__, __PEM__) : remplissez-les avant l'import"
     all_or_nothing: "L'import est tout ou rien : la première erreur annule l'ensemble."
     options: Options
     restart: Redémarrer les services concernés (serveurs locaux, clients, surveillances)

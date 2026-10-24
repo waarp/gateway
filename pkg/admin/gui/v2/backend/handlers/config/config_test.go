@@ -21,12 +21,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 const (
 	permRead  = model.PermAdminRead
 	permWrite = model.PermAdminRead | model.PermAdminWrite
+
+	// The secrets of the fixtures: never in a redacted export.
+	secretPassword = "partner-password-never-shown"
+	secretSMTP     = "smtp-password-never-shown"
 )
 
 // suite is a database, the handlers on it and the router that names their
@@ -50,7 +56,8 @@ func newSuite(t *testing.T) *suite {
 	return s
 }
 
-// fixtures: two rules, so that the export has something to carry.
+// fixtures: two rules, a server with its TLS certificate, a partner whose
+// account has a password, an SMTP credential: something in clear to export.
 func (s *suite) fixtures(t *testing.T) {
 	t.Helper()
 
@@ -60,6 +67,26 @@ func (s *suite) fixtures(t *testing.T) {
 	} {
 		require.NoError(t, s.db.Insert(rule).Run())
 	}
+
+	server := &model.LocalAgent{Name: "srv-https", Protocol: "https", Address: types.Addr("localhost", 8443)}
+	require.NoError(t, s.db.Insert(server).Run())
+	require.NoError(t, s.db.Insert(&model.Credential{
+		LocalAgentID: server.NullableID(), Name: "cert-localhost", Type: auth.TLSCertificate,
+		Value: testhelpers.LocalhostCert, Value2: testhelpers.LocalhostKey,
+	}).Run())
+
+	partner := &model.RemoteAgent{Name: "banque-demo", Protocol: "sftp", Address: types.Addr("localhost", 10022)}
+	require.NoError(t, s.db.Insert(partner).Run())
+	account := &model.RemoteAccount{RemoteAgentID: partner.ID, Login: "prod"}
+	require.NoError(t, s.db.Insert(account).Run())
+	require.NoError(t, s.db.Insert(&model.Credential{
+		RemoteAccountID: account.NullableID(), Name: "password", Type: auth.Password, Value: secretPassword,
+	}).Run())
+
+	require.NoError(t, s.db.Insert(&model.SMTPCredential{
+		EmailAddress: "noreply@example.org", ServerAddress: types.Addr("smtp.example.org", 587),
+		Login: "noreply", Password: secretSMTP,
+	}).Run())
 }
 
 func (s *suite) request(t *testing.T, perms model.PermsMask, method, target string, body *bytes.Buffer,
@@ -169,22 +196,26 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `<li><span>Administration</span></li><li><span aria-current="page">Import et export de la configuration</span></li>`)
 		assert.Contains(t, body, `href="/webui/config" aria-current="page"`, "the entry of the sidebar")
 
-		// The export card: every category checked, JSON, the secrets said,
-		// an outline button.
-		assert.Contains(t, body, `<form class="w-form cfg-form" method="get" action="/webui/config/export" id="cfg-export">`)
-		assert.Equal(t, 2*len(categories), strings.Count(body, `name="target" value="`), "every category on both cards")
-		assert.Len(t, regexp.MustCompile(`id="cfg-(export|import)-[a-z]+" name="target" value="[a-z]+" checked>`).FindAllString(body, -1),
-			2*len(categories), "all checked on both cards")
-		assert.Contains(t, body, `<input type="checkbox" id="cfg-export-servers" name="target" value="servers" checked> <span>Serveurs locaux, avec leurs comptes et leur authentification</span>`)
+		// One form for the three cards, not guarded against leaving; the
+		// categories once, all checked.
+		assert.Contains(t, body, `<form class="w-form cfg-form" method="post" action="/webui/config/import" enctype="multipart/form-data" id="cfg-form" data-noguard>`)
+		assert.Equal(t, 1, strings.Count(body, `<form class="w-form cfg-form"`), "one form for the three cards")
+		assert.Len(t, regexp.MustCompile(`id="cfg-cat-[a-z]+" name="target" value="[a-z]+" checked aria-describedby="cfg-cat-h">`).FindAllString(body, -1),
+			len(categories), "every category once, checked")
+		assert.Contains(t, body, `<input type="checkbox" id="cfg-cat-servers" name="target" value="servers" checked aria-describedby="cfg-cat-h"> <span>Serveurs locaux, avec leurs comptes et leur authentification</span>`)
+
+		// The export card: JSON, the secrets in clear and said, an outline
+		// button that names its route.
 		assert.Contains(t, body, `<input type="radio" name="format" value="json" checked>`)
 		assert.Contains(t, body, `<input type="radio" name="format" value="yaml">`)
+		assert.Contains(t, body, `<input type="checkbox" name="redact" value="1" id="cfg-redact" aria-describedby="cfg-redact-h"> <span>Remplacer les secrets et les certificats par des repères</span>`)
 		assert.Contains(t, body, `<strong>Le fichier contient les secrets en clair.</strong>`)
-		assert.Contains(t, body, `<button class="w-btn w-btn--outline-dark" type="submit" id="cfg-export-go">Exporter la configuration</button>`)
+		assert.Contains(t, body, `<button class="w-btn w-btn--outline-dark" type="submit" formaction="/webui/config/export" formmethod="get" formnovalidate id="cfg-export-go">Exporter la configuration</button>`)
 
 		// The import card: the file, the options, the simulation first, one
 		// primary action.
-		assert.Contains(t, body, `<form class="w-form cfg-form" method="post" action="/webui/config/import" enctype="multipart/form-data" id="cfg-import" data-noguard>`, "not guarded against leaving: the export is a submission of the other form")
-		assert.Contains(t, body, `<input type="file" id="cfg-file" name="file" accept=".json,.yaml,.yml,application/json,application/yaml" required aria-describedby="cfg-file-h">`)
+		assert.Contains(t, body, `<input type="file" id="cfg-file" name="file" accept=".json,.yaml,.yml,application/json,application/yaml" aria-describedby="cfg-file-h">`)
+		assert.NotContains(t, body, `name="file" accept=".json,.yaml,.yml,application/json,application/yaml" required`, "the export must submit without a file")
 		assert.Contains(t, body, `L&#39;import est tout ou rien : la première erreur annule l&#39;ensemble.`)
 		assert.Contains(t, body, `<input type="checkbox" name="restart" value="1"> <span>Redémarrer les services concernés (serveurs locaux, clients, surveillances)</span>`)
 		assert.Contains(t, body, `<input type="checkbox" name="reset" value="1" id="cfg-reset"> <span>Vider ces catégories avant l&#39;import</span>`)
@@ -202,8 +233,8 @@ func TestPage(t *testing.T) {
 		s := newSuite(t)
 		body := s.get(t, permRead, "/webui/config").Body.String()
 
-		assert.Contains(t, body, `id="cfg-export">`, "the export is for the reader")
-		assert.NotContains(t, body, `id="cfg-import">`, "no import form")
+		assert.Contains(t, body, `id="cfg-export-go">`, "the export is for the reader")
+		assert.NotContains(t, body, `id="cfg-file"`, "no import form")
 		assert.Contains(t, body, `<p class="w-empty__title">L&#39;import demande le droit d&#39;écriture sur l&#39;administration.</p>`)
 	})
 
@@ -257,23 +288,51 @@ func TestExport(t *testing.T) {
 		assert.NotContains(t, data, "users")
 	})
 
+	t.Run("Given the secrets in clear, then replaced by markers", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		clear := s.get(t, permRead, "/webui/config/export?target=servers&target=partners&target=email").Body.String()
+		assert.Contains(t, clear, secretPassword)
+		assert.Contains(t, clear, secretSMTP)
+		assert.Contains(t, clear, "BEGIN CERTIFICATE")
+		assert.NotContains(t, clear, "__PWD__")
+
+		rec := s.get(t, permRead, "/webui/config/export?target=servers&target=partners&target=email&redact=1")
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Regexp(t, `-markers\.json"$`, rec.Header().Get("Content-Disposition"), "the file says it")
+		body := rec.Body.String()
+		assert.NotContains(t, body, secretPassword)
+		assert.NotContains(t, body, secretSMTP)
+		assert.NotContains(t, body, "BEGIN CERTIFICATE")
+		assert.NotContains(t, body, "PRIVATE KEY")
+		assert.Contains(t, body, `"__PWD__partners/banque-demo/prod:password"`)
+		assert.Contains(t, body, `"__PEM__$GWPKIDIR/servers/srv-https/cert-localhost.pem"`)
+		assert.Contains(t, body, `"__KEY__$GWPKIDIR/servers/srv-https/cert-localhost.key"`)
+		assert.Contains(t, body, `"__PWD__smtp/noreply@example.org:password"`)
+		assert.Contains(t, body, `"name": "srv-https"`, "the rest of the configuration is whole")
+	})
+
 	t.Run("Given no category", func(t *testing.T) {
 		t.Parallel()
 
 		s := newSuite(t)
 
-		for _, target := range []string{"", "?target=bogus&format=yaml"} {
+		for _, target := range []string{"", "?target=bogus&format=yaml&redact=1"} {
 			rec := s.get(t, permRead, "/webui/config/export"+target)
 			require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 			body := rec.Body.String()
-			assert.Contains(t, body, `<span class="w-field__error" id="cfg-export-cat-h">`)
+			assert.Contains(t, body, `<span class="w-field__error" id="cfg-cat-h">`)
 			assert.Contains(t, body, `Choisissez au moins une catégorie`)
 			assert.Contains(t, body, `<h1 class="w-page-header__title">Import et export de la configuration</h1>`, "the page comes back")
 		}
 
-		body := s.get(t, permRead, "/webui/config/export?target=bogus&format=yaml").Body.String()
+		body := s.get(t, permRead, "/webui/config/export?target=bogus&format=yaml&redact=1").Body.String()
 		assert.Contains(t, body, `<input type="radio" name="format" value="yaml" checked>`, "the format posted stays")
-		assert.NotContains(t, body, ` checked> <span>Serveurs locaux`, "the categories posted stay")
+		assert.Contains(t, body, `id="cfg-redact" checked`, "the option posted stays")
+		assert.NotContains(t, body, `value="servers" checked`, "the categories posted stay")
 	})
 }
 
@@ -323,17 +382,20 @@ func TestImport(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
+		yamlRule := []byte("rules:\n- name: imported\n  isSend: true\n  path: imported\n")
 		fields := url.Values{fieldTarget: {"rules"}, fieldAction: {actionImport}, fieldReset: {"1"}}
-		rec := s.upload(t, fields, "conf.yaml", []byte("rules:\n- name: imported\n  isSend: true\n  path: imported\n"))
+		rec := s.upload(t, fields, "conf.yaml", yamlRule)
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "without the confirmation")
 		body := rec.Body.String()
 		assert.Contains(t, body, `<span class="w-field__error" id="cfg-confirm-h">`)
 		assert.Contains(t, body, `Confirmez la suppression pour vider les catégories`)
 		assert.Contains(t, body, `name="reset" value="1" id="cfg-reset" checked>`, "the options posted stay")
+		assert.Contains(t, body, `id="cfg-cat-rules" name="target" value="rules" checked`, "the categories posted stay")
+		assert.NotContains(t, body, `id="cfg-cat-users" name="target" value="users" checked`)
 		assert.Equal(t, []string{"commandes", "releves"}, s.rules(t), "nothing changed")
 
 		fields.Set(fieldResetConfirm, "1")
-		query := redirected(t, s.upload(t, fields, "conf.yaml", []byte("rules:\n- name: imported\n  isSend: true\n  path: imported\n")))
+		query := redirected(t, s.upload(t, fields, "conf.yaml", yamlRule))
 		assert.Equal(t, doneImported, query.Get(doneParam))
 		assert.Equal(t, []string{"imported"}, s.rules(t), "the rules of the instance are gone")
 	})
@@ -380,6 +442,25 @@ func TestImport(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), `Choisissez le fichier à importer`)
 	})
 
+	t.Run("Given a file that still carries markers", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		fields := url.Values{fieldTarget: {"partners"}, fieldAction: {actionImport}}
+		marked := []byte(`{"remotes": [{"name": "banque-demo", "protocol": "sftp", "address": "localhost:10022",` +
+			` "accounts": [{"login": "prod", "credentials": [{"name": "password", "type": "password",` +
+			` "value": "__PWD__partners/banque-demo/prod:password"}]}]}]}`)
+		rec := s.upload(t, fields, "marked.json", marked)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		assert.Contains(t, rec.Body.String(), `Le fichier porte encore des repères de secrets`)
+
+		var cred model.Credential
+		require.NoError(t, s.db.Get(&cred, "name=?", "password").Run())
+		assert.Equal(t, secretPassword, cred.Value, "the marker did not become the password")
+	})
+
 	t.Run("Given no category", func(t *testing.T) {
 		t.Parallel()
 
@@ -387,9 +468,9 @@ func TestImport(t *testing.T) {
 		rec := s.upload(t, url.Values{fieldAction: {actionSimulate}}, "conf.json", newRule)
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		body := rec.Body.String()
-		assert.Contains(t, body, `<span class="w-field__error" id="cfg-import-cat-h">`)
+		assert.Contains(t, body, `<span class="w-field__error" id="cfg-cat-h">`)
 		assert.Contains(t, body, `Choisissez au moins une catégorie`)
-		assert.NotContains(t, body, `id="cfg-import-rules" name="target" value="rules" checked>`, "the categories posted stay")
+		assert.NotContains(t, body, `id="cfg-cat-rules" name="target" value="rules" checked`, "the categories posted stay")
 	})
 }
 
@@ -397,7 +478,8 @@ func TestFileName(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, time.October, 24, 18, 30, 5, 0, time.FixedZone("CEST", 2*3600))
-	assert.Equal(t, "waarp-gateway-gw-prod-20261024-183005.json", fileName("gw-prod", formatJSON, now))
-	assert.Equal(t, "waarp-gateway-Passerelle-de-recette-20261024-183005.yaml", fileName("Passerelle de recette !", formatYAML, now))
-	assert.Equal(t, "waarp-gateway-gateway-20261024-183005.json", fileName("///", formatJSON, now))
+	assert.Equal(t, "waarp-gateway-gw-prod-20261024-183005.json", fileName("gw-prod", formatJSON, false, now))
+	assert.Equal(t, "waarp-gateway-gw-prod-20261024-183005-markers.yaml", fileName("gw-prod", formatYAML, true, now))
+	assert.Equal(t, "waarp-gateway-Passerelle-de-recette-20261024-183005.yaml", fileName("Passerelle de recette !", formatYAML, false, now))
+	assert.Equal(t, "waarp-gateway-gateway-20261024-183005.json", fileName("///", formatJSON, false, now))
 }

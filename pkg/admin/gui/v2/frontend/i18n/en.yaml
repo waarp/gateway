@@ -3080,6 +3080,8 @@ transfers:
 config:
   title: Configuration import and export
   categories_legend: Categories
+  categories_hint: "For the export as for the import; on import, the categories the file does not carry are ignored"
+  categories_none: Choose at least one category
   categories:
     servers: Local servers, with their accounts and authentication
     partners: Remote partners, with their accounts and authentication
@@ -3100,8 +3102,9 @@ config:
     secrets_title: The file carries the secrets in clear.
     secrets: " Account passwords, private keys, cloud secrets and SMTP passwords; the passwords of the users are hashed only."
     same_format: Same format as the waarp-gatewayd export and import commands, and as the waarp-gateway updateconf command line.
+    redact: Replace the secrets and the certificates by markers
+    redact_hint: "For a file that travels: passwords and secrets become __PWD__, private keys __KEY__, certificates and public keys __PEM__, with the object and the field; the filling tools complete them before the import. The hashes of the users' passwords stay."
     action: Export the configuration
-    none: Choose at least one category
     failed: "The configuration could not be exported; the detail is in the log of the gateway."
   import:
     title: Import a configuration
@@ -3112,8 +3115,7 @@ config:
     file_size: The file exceeds 64 MB
     file_read: The file could not be read
     unreadable: The file is not a valid JSON or YAML.
-    categories_hint: The categories the file does not carry are ignored
-    none: Choose at least one category
+    markers: "The file still carries markers of secrets (__PWD__, __KEY__, __PEM__): fill them before the import"
     all_or_nothing: "The import is all or nothing: the first error cancels the whole."
     options: Options
     restart: Restart the services concerned (local servers, clients, watchers)
