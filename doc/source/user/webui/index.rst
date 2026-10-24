@@ -70,7 +70,9 @@ Navigation
    * - Barre latérale
      - Les écrans, groupés par section : Connexions, Traitements,
        Supervision, Administration. Un groupe se replie d'un clic sur son
-       titre ; l'état de repli est mémorisé.
+       titre. Le bouton de l'en-tête replie la barre en une colonne
+       d'icônes ; le libellé d'un écran s'affiche alors au survol ou au
+       focus. Les états de repli sont mémorisés.
    * - Fil d'Ariane
      - Le chemin de l'écran courant, depuis l'accueil.
    * - Contenu
