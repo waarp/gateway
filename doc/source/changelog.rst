@@ -3,14 +3,18 @@
 Historique des versions
 =======================
 
-* :feature:`766` Les filtres des listes des serveurs locaux, des clients locaux
-  et des partenaires distants s'appliquent sans recharger la page : la liste,
-  son compteur et le nombre de filtres se mettent à jour en place (en fondu sur
-  les navigateurs qui le permettent), l'adresse suit, le panneau des filtres,
-  la position de défilement et le focus ne bougent pas ; plusieurs changements
+* :feature:`766` Les filtres et la recherche des listes de l'interface web
+  s'appliquent sans recharger la page : serveurs locaux, clients locaux,
+  partenaires distants, comptes locaux d'un serveur, comptes distants d'un
+  partenaire, moyens d'authentification, règles de transfert, clés
+  cryptographiques, identifiants SMTP, modèles d'e-mail, suivi des transferts,
+  utilisateurs, autorités d'authentification et instances cloud. La liste, son
+  compteur et le nombre de filtres se mettent à jour en place (en fondu sur les
+  navigateurs qui le permettent), l'adresse suit, le panneau des filtres, la
+  position de défilement et le focus ne bougent pas ; plusieurs changements
   rapprochés ne font qu'une lecture. Le tri et la pagination de ces listes
-  passent de même en place. Sans JavaScript, le formulaire s'envoie comme
-  avant. Les autres listes suivront de la même façon.
+  passent de même en place. Sans JavaScript, les formulaires s'envoient comme
+  avant.
 
 * :feature:`765` Le corps d'un modèle d'e-mail se charge depuis un fichier
   HTML (.html, .htm) ou texte (.txt), en UTF-8, de 1 Mo au plus : son contenu
