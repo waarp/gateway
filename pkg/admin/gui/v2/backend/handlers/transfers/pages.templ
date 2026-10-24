@@ -113,11 +113,7 @@ templ statesRow(d listData) {
 					aria-current="true"
 				}
 			>
-				if s.Alert {
-					<span class="w-status w-status--ko">{ s.Label }</span>
-				} else {
-					<span>{ s.Label }</span>
-				}
+				<span>{ s.Label }</span>
 				<span class="tf-count">{ s.Count }</span>
 			</a>
 		}
