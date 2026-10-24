@@ -3,6 +3,16 @@
 Historique des versions
 =======================
 
+* :feature:`770` La recherche des listes de l'interface web suit une seule
+  règle : le texte est cherché n'importe où dans le nom (ou l'identifiant,
+  l'adresse, le nom de fichier selon la liste), majuscules, minuscules et
+  accents confondus ; ``*`` remplace un texte, ``?`` un caractère, ``^`` et
+  ``$`` calent la recherche au début ou à la fin. Treize listes ne cherchaient
+  qu'au début du nom. Le suivi des transferts applique la même règle au nom
+  et au chemin du fichier, tels que la liste les affiche, majuscules et
+  minuscules confondues, et garde l'identifiant de suivi exact. L'info-bulle de chaque champ de recherche rappelle la règle
+  (voir :ref:`le guide de l'interface web <user-webui-search>`).
+
 * :bug:`771` Dans le suivi des transferts, le pied de liste répété au-dessus
   du tableau reste sur la ligne de la recherche et du bouton *Filtres* quand
   le panneau des filtres s'ouvre ; le panneau s'ouvre sous les deux.

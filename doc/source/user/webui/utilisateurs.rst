@@ -86,8 +86,8 @@ La liste
 
 Les sept colonnes se trient d'un clic sur leur en-tête (par défaut,
 l'identifiant croissant ; une colonne de droits se trie du moins au plus de
-droits). La recherche filtre les utilisateurs dont l'identifiant commence par
-le texte saisi et propose les identifiants existants ; le bouton *Filtres*
+droits). La recherche filtre les utilisateurs par leur identifiant (:ref:`règle
+commune <user-webui-search>`) et propose les identifiants existants ; le bouton *Filtres*
 ouvre deux listes, le *Domaine* et le *Droit*, appliquées dès qu'elles
 changent : un domaine seul garde les utilisateurs qui y ont un droit, un droit
 seul ceux qui le détiennent dans un domaine quelconque, *Aucun droit* ceux qui

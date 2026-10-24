@@ -244,6 +244,7 @@ lists:
   refresh_error:
     title: La liste n'a pas pu être actualisée.
     text: "Réessayez ; si l'erreur persiste, le détail est dans le journal de la passerelle."
+  search_hint: "Cherché n'importe où, majuscules, minuscules et accents confondus ; * remplace un texte, ? un caractère, ^ et $ calent la recherche au début ou à la fin"
 
 servers:
   title: Serveurs locaux
@@ -2763,6 +2764,7 @@ transfers:
   add: Ajouter un transfert
   search: Rechercher un transfert par son fichier ou son identifiant de suivi
   search_placeholder: Fichier ou identifiant de suivi
+  search_hint: "Nom ou chemin du fichier, cherché n'importe où, majuscules et minuscules confondues, ou identifiant de suivi exact ; * remplace un texte, ? un caractère, ^ et $ calent la recherche au début ou à la fin"
   refresh_error:
     title: Le suivi n'a pas pu être actualisé
     text: "Dernière lecture réussie à {time}. Les transferts affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."

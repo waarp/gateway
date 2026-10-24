@@ -74,8 +74,8 @@ La liste
      - Le menu « ⋯ » de la ligne (voir ci-dessous).
 
 Les colonnes *Clé* et *Type* se trient d'un clic sur leur en-tête (par
-défaut, le nom croissant). La recherche filtre les clés dont le nom commence
-par le texte saisi et propose les noms existants ; le bouton *Filtres* ouvre
+défaut, le nom croissant). La recherche filtre les clés par leur nom
+(:ref:`règle commune <user-webui-search>`) et propose les noms existants ; le bouton *Filtres* ouvre
 les cases des types, appliquées dès qu'elles changent, et *Réinitialiser*
 revient à la liste complète. Le compteur, à droite, indique le nombre de clés
 et, quand une recherche ou un filtre est actif, le nombre affiché.

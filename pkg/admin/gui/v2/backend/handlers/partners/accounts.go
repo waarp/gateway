@@ -163,12 +163,11 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 	}
 
 	kept := make([]accountEntry, 0, len(entries))
-	needle := strings.ToLower(query.Q)
 
 	for _, entry := range entries {
 		data.List.Names = append(data.List.Names, entry.acc.Login)
 
-		if needle == "" || strings.HasPrefix(strings.ToLower(entry.acc.Login), needle) {
+		if query.Search.Matches(entry.acc.Login) {
 			kept = append(kept, entry)
 		}
 	}

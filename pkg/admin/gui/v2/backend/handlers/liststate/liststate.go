@@ -98,6 +98,7 @@ type Spec struct {
 // Query is the state of a list asked by a URL.
 type Query struct {
 	Q       string
+	Search  Search // the search read from Q
 	Sort    string
 	Dir     string
 	Page    int
@@ -119,6 +120,7 @@ func Parse(v url.Values, sorts []string, sizes []int) *Query {
 		Q: strings.TrimSpace(v.Get(QueryParam)), Sort: sorts[0], Dir: DirAsc, Page: 1, Size: sizes[0],
 		sorts: sorts, sizes: sizes,
 	}
+	query.Search = NewSearch(query.Q)
 
 	if slices.Contains(sorts, v.Get(SortParam)) {
 		query.Sort = v.Get(SortParam)

@@ -66,7 +66,7 @@ La liste
 Les colonnes *Autorité*, *Type*, *Validité* et *Hôtes autorisés* se trient
 d'un clic sur leur en-tête (par défaut, le nom croissant) ; le tri par
 validité place en tête le certificat qui expire le premier. La recherche
-filtre les autorités dont le nom commence par le texte saisi et propose les
+filtre les autorités par leur nom (:ref:`règle commune <user-webui-search>`) et propose les
 noms existants ; le bouton *Filtres* ouvre les cases des types et des états
 de validité, appliquées dès qu'elles changent, et *Réinitialiser* revient à
 la liste complète. Le compteur, à droite, indique le nombre d'autorités et,

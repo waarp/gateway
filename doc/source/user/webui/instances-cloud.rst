@@ -99,8 +99,8 @@ La liste
      - Le menu « ⋯ » de la ligne (voir ci-dessous).
 
 Les quatre colonnes se trient d'un clic sur leur en-tête (par défaut, le nom
-croissant). La recherche filtre les instances dont le nom commence par le
-texte saisi et propose les noms existants ; le bouton *Filtres* ouvre les
+croissant). La recherche filtre les instances par leur nom (:ref:`règle commune
+<user-webui-search>`) et propose les noms existants ; le bouton *Filtres* ouvre les
 cases des types de stockage, appliquées dès qu'elles changent, et
 *Réinitialiser* revient à la liste complète. Le compteur, à droite, indique le
 nombre d'instances et, quand une recherche ou un filtre est actif, le nombre
