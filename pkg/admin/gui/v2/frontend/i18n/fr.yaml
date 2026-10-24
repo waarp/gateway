@@ -714,14 +714,25 @@ partners:
     address: Adresse
     accounts: Comptes distants
     rules_title: Règles de transfert autorisées
-    rules_all: Toutes les règles de transfert de la passerelle.
-    rules_none: Aucune règle ne l'autorise pour l'instant.
+    rules_reserved_none: Aucune règle ne lui est réservée.
+    rules_open: "Il peut aussi utiliser les {n} règles sans restriction, comme tout partenaire."
+    rules_open_one: "Il peut aussi utiliser la règle sans restriction, comme tout partenaire."
+    rules_open_all: "Toutes les règles de la passerelle ({n}) sont sans restriction : il peut les utiliser, comme tout partenaire."
+    rules_open_none: Aucune règle sans restriction.
+    rules_meta: "{reserved} réservées · {open} sans restriction"
     rules_hint: "Les accès aux règles se gèrent depuis l'écran des règles de transfert."
     rules_link: Voir les règles de transfert
+    rule_col_name: Règle
+    rule_col_dir: Sens
+    rule_col_via: Accordée à
+    rule_via_partner: Au partenaire
+    rule_via_account: "Au compte « {login} »"
     rule_send: envoi
     rule_receive: réception
   client:
     title: Client utilisé
+    meta_none: Aucun
+    meta_many: "{n} clients"
     one: "Les transferts vers ce partenaire passent par le client « {name} »."
     many: "{n} clients {protocol} existent : chaque transfert vers ce partenaire doit nommer le sien."
     none: "Aucun client {protocol} : la passerelle en créera un, nommé « {name} », au premier transfert."

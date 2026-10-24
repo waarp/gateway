@@ -128,59 +128,86 @@ templ listFragment(d listData) {
 // through: the one of the protocol (linked), one of several (listed), none
 // yet (the gateway creates one on the first transfer; "Add a client" for
 // those who may).
+// clientCardView: the client the transfers go through, a foldable card
+// whose summary names it.
 templ clientCardView(c clientCard) {
-	<div class="w-card">
-		<h2 class="w-card__title">
-			@gui.Icon("arrows")
-			{ gui.T(ctx, "partners.client.title") }
-		</h2>
-		<p class="partners-text">{ c.Text }</p>
-		if len(c.Links) > 0 {
-			<ul class="partners-links">
-				for _, l := range c.Links {
-					<li><a class="w-link" href={ templ.SafeURL(l.URL) }>{ l.Label }</a></li>
-				}
-			</ul>
-		}
-		if c.AddURL != "" {
-			<div class="w-card__foot">
-				<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.AddURL) }>
-					@gui.Icon("plus")
-					{ gui.T(ctx, "partners.client.add") }
-				</a>
-			</div>
-		}
-	</div>
+	<details class="w-card w-card--fold" open>
+		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "partners.client.title") }</span><span class="w-fold__meta">{ c.Meta }</span></summary>
+		<div class="w-card__body">
+			<p class="partners-text">{ c.Text }</p>
+			if len(c.Links) > 0 {
+				<ul class="partners-links">
+					for _, l := range c.Links {
+						<li><a class="w-link" href={ templ.SafeURL(l.URL) }>{ l.Label }</a></li>
+					}
+				</ul>
+			}
+			if c.AddURL != "" {
+				<div class="w-card__foot">
+					<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.AddURL) }>
+						@gui.Icon("plus")
+						{ gui.T(ctx, "partners.client.add") }
+					</a>
+				</div>
+			}
+		</div>
+	</details>
 }
 
-// rulesCardView: the transfer rules the partner may use, in reading: every
-// rule, or the ones that name it; the accesses are managed on the rules
-// screen.
+// rulesCardView: the transfer rules reserved to the partner (a table: the
+// rule, its direction, who the access was granted to), then the rules
+// without any restriction in one sentence; a foldable card whose summary
+// counts both. The accesses are managed on the rules screen.
 templ rulesCardView(c rulesCard) {
-	<div class="w-card">
-		<h2 class="w-card__title">
-			@gui.Icon("list")
-			{ gui.T(ctx, "partners.detail.rules_title") }
-		</h2>
-		if c.All {
-			<p class="partners-text">{ gui.T(ctx, "partners.detail.rules_all") }</p>
-		} else if len(c.Rules) == 0 {
-			<p class="partners-text">{ gui.T(ctx, "partners.detail.rules_none") }</p>
-		} else {
-			<ul class="partners-links">
-				for _, r := range c.Rules {
-					<li>{ r }</li>
+	<details class="w-card w-card--fold" open>
+		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "partners.detail.rules_title") }</span><span class="w-fold__meta">{ c.Meta }</span></summary>
+		<div class="w-card__body">
+			if len(c.Reserved) == 0 {
+				<p class="partners-text">{ gui.T(ctx, "partners.detail.rules_reserved_none") }</p>
+			} else {
+				<div class="w-table-wrap">
+					<table class="w-table">
+						<caption class="visually-hidden">{ gui.T(ctx, "partners.detail.rules_title") }</caption>
+						<thead>
+							<tr>
+								<th scope="col">{ gui.T(ctx, "partners.detail.rule_col_name") }</th>
+								<th scope="col">{ gui.T(ctx, "partners.detail.rule_col_dir") }</th>
+								<th scope="col">{ gui.T(ctx, "partners.detail.rule_col_via") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, r := range c.Reserved {
+								<tr>
+									<td><a class="w-cell-title" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
+									<td>{ r.Direction }</td>
+									<td>{ r.Via }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+			<p class="partners-text">
+				switch {
+					case c.Open == 0:
+						{ gui.T(ctx, "partners.detail.rules_open_none") }
+					case c.Open == c.Total:
+						{ gui.T(ctx, "partners.detail.rules_open_all", "n", c.Total) }
+					case c.Open == 1:
+						{ gui.T(ctx, "partners.detail.rules_open_one") }
+					default:
+						{ gui.T(ctx, "partners.detail.rules_open", "n", c.Open) }
 				}
-			</ul>
-		}
-		<p class="w-form__note sheet-note">{ gui.T(ctx, "partners.detail.rules_hint") }</p>
-		<div class="w-card__foot">
-			<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.URL) }>
-				@gui.Icon("list")
-				{ gui.T(ctx, "partners.detail.rules_link") }
-			</a>
+			</p>
+			<p class="w-form__note sheet-note">{ gui.T(ctx, "partners.detail.rules_hint") }</p>
+			<div class="w-card__foot">
+				<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(c.URL) }>
+					@gui.Icon("list")
+					{ gui.T(ctx, "partners.detail.rules_link") }
+				</a>
+			</div>
 		</div>
-	</div>
+	</details>
 }
 
 // detailView: the "Details" tab of the sheet of a partner, in reading: the
@@ -222,20 +249,22 @@ templ detailView(d detailData) {
 		</div>
 		@clientCardView(d.Client)
 		@rulesCardView(d.Rules)
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
-			for _, g := range protoform.Grouped(d.Options) {
-				if g.Title != "" {
-					<h3 class="proto-section__title">{ g.Title }</h3>
-				}
-				<dl class="w-deflist">
-					for _, k := range g.Rows {
-						<dt>{ k.Label }</dt>
-						<dd>@protoform.ValueOf(k)</dd>
+		<details class="w-card w-card--fold" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</span></summary>
+			<div class="w-card__body">
+				for _, g := range protoform.Grouped(d.Options) {
+					if g.Title != "" {
+						<h3 class="proto-section__title">{ g.Title }</h3>
 					}
-				</dl>
-			}
-		</div>
+					<dl class="w-deflist">
+						for _, k := range g.Rows {
+							<dt>{ k.Label }</dt>
+							<dd>@protoform.ValueOf(k)</dd>
+						}
+					</dl>
+				}
+			</div>
+		</details>
 	</div>
 }
 
