@@ -250,6 +250,30 @@ func path(cloud *model.CloudInstance, suffix string) string {
 	return fmt.Sprintf("/webui/clouds/%d%s", cloud.ID, suffix)
 }
 
+// TestListFragment: the region of the list alone, for the live list of the kit (#766):
+// the elements of the part "list", with the ids of the page, no shell; the
+// page itself declares the live region and its filters form.
+func TestListFragment(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+
+	rec := s.get(t, permAll, "/webui/clouds?fragment=list")
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	body := rec.Body.String()
+	assert.NotContains(t, body, "<html", "no shell around a fragment")
+	assert.Contains(t, body, `<span class="w-toolbar__count" id="clouds-count" data-live-part="list" aria-live="polite">`)
+	assert.Contains(t, body, `<div id="clouds-list" data-live-part="list" data-live-paged>`)
+
+	body = s.get(t, permAll, "/webui/clouds").Body.String()
+	assert.Contains(t, body, `<div data-live data-live-period="0">`, "read on the user's actions only")
+	assert.Contains(t, body, `data-autosubmit data-live-filter>`, "the filters apply in place")
+	assert.Contains(t, body, `<template data-live-error>`)
+	assert.Contains(t, body, `live.js`)
+}
+
 func TestList(t *testing.T) {
 	t.Parallel()
 

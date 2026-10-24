@@ -131,6 +131,37 @@ func (s *suite) credCount(t *testing.T, owner model.CredOwnerTable) uint64 {
 // The kinds the screen offers are the ones the model accepts for the owner
 // and the protocol: the table of the screen never offers what the model
 // refuses.
+// TestAccountsFragment: the region of the list alone, for the live list of the kit (#766):
+// the elements of the part "list", with the ids of the page, no shell; the
+// page itself declares the live region and its filters form.
+func TestAccountsFragment(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.sheet(t)
+
+	rec := s.get(t, permAll, s.path(s.sftp, "/accounts") + "?fragment=list")
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	body := rec.Body.String()
+	assert.NotContains(t, body, "<html", "no shell around a fragment")
+	assert.Contains(t, body, `<span class="w-toolbar__count" id="accounts-count" data-live-part="list" aria-live="polite">`)
+	assert.Contains(t, body, `<div id="accounts-list" data-live-part="list" data-live-paged>`)
+
+	body = s.get(t, permAll, s.path(s.sftp, "/accounts")).Body.String()
+	assert.Contains(t, body, `<div data-live data-live-period="0">`, "read on the user's actions only")
+	assert.Contains(t, body, `data-autosubmit data-live-filter>`, "the filters apply in place")
+	assert.Contains(t, body, `<template data-live-error>`)
+	assert.Contains(t, body, `live.js`)
+
+	// The "Authentication" tab (the means) is a live list of the same kind.
+	rec = s.get(t, permAll, s.path(s.sftp, "/auth")+"?fragment=list")
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.NotContains(t, rec.Body.String(), "<html")
+	assert.Contains(t, rec.Body.String(), `<div id="auth-list" data-live-part="list" data-live-paged>`)
+	assert.Contains(t, s.get(t, permAll, s.path(s.sftp, "/auth")).Body.String(), `data-autosubmit data-live-filter>`)
+}
+
 func TestServerAuthTab(t *testing.T) {
 	t.Parallel()
 

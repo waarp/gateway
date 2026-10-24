@@ -238,6 +238,13 @@ proto:
     as2_handle_async_mdn_hint: "La passerelle les reçoit elle-même ; sinon, un service tiers les traite"
 
 # Écran « Serveurs locaux » (Connexions) : liste, détail, formulaire, suppression, démarrage et arrêt.
+# Listes mises à jour en place par la liste vive du kit (#766) : l'erreur d'une lecture, pour les listes sans
+# bandeau d'erreur propre (comptes d'un serveur ou d'un partenaire, moyens d'authentification).
+lists:
+  refresh_error:
+    title: La liste n'a pas pu être actualisée.
+    text: "Réessayez ; si l'erreur persiste, le détail est dans le journal de la passerelle."
+
 servers:
   title: Serveurs locaux
   add: Ajouter un serveur

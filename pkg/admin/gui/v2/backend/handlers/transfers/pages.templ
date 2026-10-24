@@ -47,7 +47,7 @@ templ listView(d listData) {
 	</div>
 	@statesRow(d)
 	<div class="tf-bar">
-	<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-hold data-live-carry="state sort dir size">
+	<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-filter data-live-hold data-live-carry="state sort dir size">
 		for _, h := range liststate.SortedHidden(d.Hidden) {
 			<input type="hidden" name={ h.Name } value={ h.Value }/>
 		}

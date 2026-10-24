@@ -34,19 +34,31 @@ templ listView(d listData) {
 	} else if d.Empty {
 		@gui.Empty(gui.EmptyProps{Icon: "envelope", Title: gui.T(ctx, "email_templates.empty.title"), Text: gui.T(ctx, "email_templates.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "email_templates.add"))})
 	} else {
-		<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
-			for _, h := range liststate.SortedHidden(d.Hidden) {
-				<input type="hidden" name={ h.Name } value={ h.Value }/>
-			}
-			<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "email_templates.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "email_templates.search_placeholder") } list="email-template-names" autocomplete="off"/></label>
-			<datalist id="email-template-names">
-				for _, n := range d.Names {
-					<option value={ n }></option>
+		<div data-live data-live-period="0">
+			<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-filter>
+				for _, h := range liststate.SortedHidden(d.Hidden) {
+					<input type="hidden" name={ h.Name } value={ h.Value }/>
 				}
-			</datalist>
-			<span class="w-toolbar__spacer"></span>
-			<span class="w-toolbar__count" aria-live="polite">{ d.Count }</span>
-		</form>
+				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "email_templates.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "email_templates.search_placeholder") } list="email-template-names" autocomplete="off"/></label>
+				<datalist id="email-template-names">
+					for _, n := range d.Names {
+						<option value={ n }></option>
+					}
+				</datalist>
+				<span class="w-toolbar__spacer"></span>
+				<span class="w-toolbar__count" id="email-templates-count" data-live-part="list" aria-live="polite">{ d.Count }</span>
+			</form>
+			@listRegion(d)
+			<template data-live-error>@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "email_templates.error.title"), Text: gui.T(ctx, "email_templates.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.Action}})</template>
+		</div>
+	}
+}
+
+// listRegion: the region of the list, the part "list" of the live list of
+// the kit (with the count of the toolbar): read and put in place as the
+// filters, the sort or the page change (#766).
+templ listRegion(d listData) {
+	<div id="email-templates-list" data-live-part="list" data-live-paged>
 		if d.NoMatch {
 			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
 		} else {
@@ -86,7 +98,14 @@ templ listView(d listData) {
 				<div class="et-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
 			}
 		}
-	}
+	</div>
+}
+
+// listFragment: what ?fragment=list serves to the live list of the kit: the
+// elements of the part "list", with the ids of the page, without the shell.
+templ listFragment(d listData) {
+	<span class="w-toolbar__count" id="email-templates-count" data-live-part="list" aria-live="polite">{ d.Count }</span>
+	@listRegion(d)
 }
 
 // detailView: the sheet of a template, in reading: the message (subject and
