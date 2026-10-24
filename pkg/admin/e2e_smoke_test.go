@@ -309,6 +309,18 @@ func insertE2ETransfers(t *testing.T, db *database.DB) {
 		DestFilename: "accuse-0456.xml", Filesize: 2048, Progress: 2048, Start: start.Add(-time.Hour),
 		Stop: start.Add(-time.Hour + time.Second), Status: types.StatusDone,
 	}).Run())
+
+	// Eight more entries of the history, so that the list exceeds one page
+	// and shows its pager (#767).
+	for i := range int64(8) {
+		file := fmt.Sprintf("accuse-%04d.xml", 457+i)
+		done := start.Add(-2*time.Hour - time.Duration(i)*time.Minute)
+		require.NoError(t, db.Insert(&model.HistoryEntry{
+			Identifier: model.ID(1002 + i), RemoteTransferID: fmt.Sprintf("e2e-%d", 1002+i), IsSend: true, Rule: "releves",
+			Account: "gateway-prod", Agent: "part-sftp-01", Client: "cli-sftp", Protocol: "sftp", SrcFilename: file,
+			DestFilename: file, Filesize: 2048, Progress: 2048, Start: done, Stop: done.Add(time.Second), Status: types.StatusDone,
+		}).Run())
+	}
 }
 
 // insertE2EEmailTemplates inserts an HTML template with attachments, used by
@@ -1371,5 +1383,21 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		assert.Equal(t, "_blank", attribute(t, doc, "target"))
 		assert.Contains(t, attribute(t, doc, "rel"), "noopener")
 		assert.Contains(t, attribute(t, doc, "aria-label"), "(")
+	})
+
+	// The page field of the pager is sized to the digits of the number of
+	// pages (#767): the kit says them on the field, the stylesheet widens it.
+	t.Run("the page field of the pager follows its digits", func(t *testing.T) {
+		session.visit(t, "/webui/transfers?size=10") // twelve rows: two pages
+
+		field := page.Locator("#transfers-pager-top .w-pager__page")
+		text, err := field.TextContent()
+		require.NoError(t, err)
+		pages := text[strings.LastIndex(strings.TrimSpace(text), " ")+1:] // "Page … sur 2"
+		assert.Equal(t, fmt.Sprint(len(strings.TrimSpace(pages))), attribute(t, field, "data-digits"), "the digits of the number of pages")
+
+		box, err := field.Locator("input").BoundingBox()
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, box.Width, 57.0, "3.6 rem at least")
 	})
 }

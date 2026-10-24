@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`767` Le champ *Page* du pied des listes de l'interface web s'élargit
+  avec le nombre de pages : un numéro de quatre chiffres ou plus s'affiche en
+  entier, il était tronqué au-delà de 999 pages.
+
 * :feature:`770` La recherche des listes de l'interface web suit une seule
   règle : le texte est cherché n'importe où dans le nom (ou l'identifiant,
   l'adresse, le nom de fichier selon la liste), majuscules, minuscules et
