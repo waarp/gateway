@@ -208,9 +208,15 @@ passent les transferts vers ce partenaire, selon la règle de la Gateway :
        transfert ; la carte propose d'en ajouter un (droit d'écriture sur les
        serveurs).
 
-La carte *Règles de transfert autorisées* liste les règles que le partenaire
-peut utiliser, ou indique que toutes les règles de la Gateway le sont. Les
-accès aux règles se gèrent depuis l'écran des règles de transfert.
+La carte *Règles de transfert autorisées* liste les règles réservées au
+partenaire, c'est-à-dire celles dont un accès le nomme, lui ou l'un de ses
+comptes distants (la carte dit lequel), avec leur sens ; chaque règle mène à
+sa fiche. Les règles sans aucune restriction, que tout partenaire peut
+utiliser, ne sont pas listées : une phrase les compte. Les accès aux règles
+se gèrent depuis l'écran des règles de transfert.
+
+Les cartes de la fiche se replient, sauf la première : le résumé de chaque
+carte repliée reste visible (le client utilisé, le compte des règles).
 
 
 Moyens d'authentification

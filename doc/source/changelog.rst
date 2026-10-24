@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`775` La fiche d'un partenaire distant ne liste plus que les règles de
+  transfert qui lui sont réservées (un accès au partenaire ou à l'un de ses
+  comptes, dit lequel), chacune menant à sa fiche, et résume en une phrase
+  les règles sans restriction, que tout partenaire peut utiliser : avec des
+  centaines de règles, la liste ne s'allonge plus de celles qui ne lui sont
+  pas propres. Les cartes de la fiche se replient, sauf la première.
+
 * :feature:`774` Un écran *Surveillances de partenaires* dans la section
   Traitements de l'interface web : la liste des surveillances avec l'état de
   leur service, la recherche, les filtres par partenaire et par état, le tri
