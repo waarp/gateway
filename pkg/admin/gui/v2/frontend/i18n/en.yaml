@@ -239,6 +239,13 @@ proto:
     as2_handle_async_mdn_hint: "The gateway receives them itself; otherwise a third-party service handles them"
 
 # "Local servers" screen (Connections): list, details, form, deletion, start and stop.
+# Lists refreshed in place by the live list of the kit (#766): the error of a reading, for the lists without an
+# error banner of their own (accounts of a server or a partner, authentication means).
+lists:
+  refresh_error:
+    title: The list could not be refreshed.
+    text: "Try again; if the error persists, the detail is in the log of the gateway."
+
 servers:
   title: Local servers
   add: Add a server
