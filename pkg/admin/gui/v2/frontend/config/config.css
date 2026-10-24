@@ -1,0 +1,22 @@
+/* Configuration import and export screen: what the kit does not decide (the card of the categories over the two
+   cards of the actions, side by side when the width allows, the grid of the categories, the notes, the reason of a
+   refusal, the reset of the import revealed from the state of its checkbox, the red button that replaces "Import"
+   then, the warning on the secrets hidden once they are replaced). Tokens only. */
+.cfg-form { max-width: none; }
+.cfg-cats { margin-bottom: var(--sp-4); }
+/* Two columns from 2 × 26 rem of width, one under (the minimum never exceeds the width: no horizontal scrolling at
+   390 px). */
+.cfg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(26rem, 100%), 1fr)); gap: var(--sp-4); align-items: start; }
+.cfg-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr)); gap: var(--sp-2) var(--sp-4); }
+.cfg-note { margin: 0 0 var(--sp-3); color: var(--ts); font-size: var(--fs-sm); }
+.cfg-options .w-check, .cfg-redact .w-check { display: flex; margin: var(--sp-2) 0; }
+.cfg-reset__more { display: none; margin: var(--sp-3) 0 0 var(--sp-5); }
+.cfg-reset:has(> .w-check > input:checked) > .cfg-reset__more { display: block; }
+.cfg-form:has(#cfg-redact:checked) .cfg-secrets { display: none; }
+.cfg-refused { margin: var(--sp-3) 0; }
+.cfg-reason { margin: var(--sp-2) 0 0; padding: var(--sp-3); border: 1px solid var(--g200); border-radius: var(--rs); background: var(--g50); font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* "Import" or "Empty and import": the one that fits the reset, the other hidden (both post the same action; the
+   server decides from the reset and its confirmation). */
+.cfg-go-reset { display: none; }
+.cfg-form:has(#cfg-reset:checked) .cfg-go { display: none; }
+.cfg-form:has(#cfg-reset:checked) .cfg-go-reset { display: inline-flex; }

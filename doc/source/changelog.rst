@@ -3,6 +3,21 @@
 Historique des versions
 =======================
 
+* :feature:`773` Un écran *Import et export de la configuration* dans la
+  section Administration de l'interface web : l'export télécharge tout ou
+  partie de la configuration en JSON ou en YAML, les secrets en clair (le
+  fichier le dit, le journal aussi) ou remplacés par les repères des outils de
+  remplissage (``__PWD__``, ``__KEY__``, ``__PEM__``) ; l'import lit un tel
+  fichier, le simule ou l'applique, en une seule transaction, avec le choix
+  des catégories, le redémarrage des services concernés et, sur confirmation,
+  le vidage des catégories avant l'import ; un fichier qui porte encore des
+  repères est refusé. Chaque export et chaque import sont consignés dans le
+  journal avec leur utilisateur. Mêmes droits et même format que l'API REST
+  ``/api/updateconf`` et que la ligne de commande (voir :ref:`le guide de
+  l'interface web <user-webui-config>`). Le paquet ``backup`` sépare
+  l'extraction (``Collect``) de l'écriture (``Serialize``), sans changement
+  pour ``Export``.
+
 * :feature:`772` La barre latérale de l'interface web, repliée, garde les
   icônes de ses écrans en une colonne étroite : le libellé s'affiche au
   survol et au focus, l'écran courant reste marqué, le contenu prend la

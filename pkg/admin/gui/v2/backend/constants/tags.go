@@ -22,4 +22,5 @@ const (
 	SidebarMenuUsers             = "users"
 	SidebarMenuAuthorities       = "authorities"
 	SidebarMenuOverrides         = "overrides"
+	SidebarMenuConfig            = "config"
 )

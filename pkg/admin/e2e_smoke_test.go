@@ -194,6 +194,7 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/overrides/new"},
 		{path: "/webui/overrides/edit?target=127.0.0.1"},
 		{path: "/webui/overrides/delete?target=127.0.0.1"},
+		{path: "/webui/config"},
 		// The transfer rules (#757): the list, the sheet of the rule whose
 		// tasks encrypt (its tabs lead to the tasks and access pages), of the
 		// rule that reads a cloud instance, the pages that add and edit one,
@@ -1444,5 +1445,36 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		require.NoError(t, page.Locator(".w-nav-toggle").Click())
 		require.NoError(t, page.Locator(".w-shell:not(.is-nav-collapsed)").WaitFor())
 		assert.Zero(t, session.count(t, ".w-navgroup a[title]"), "expanded, the labels read in place")
+	})
+
+	// The configuration import and export (#773): the export downloads the
+	// file of the instance, the simulation of its import passes, in place of
+	// the page, with its notification.
+	t.Run("the configuration exports and its import simulates", func(t *testing.T) {
+		session.visit(t, "/webui/config")
+
+		download, err := page.ExpectDownload(func() error { return page.Locator("#cfg-export-go").Click() })
+		require.NoError(t, err)
+		assert.Regexp(t, `^waarp-gateway-.+\.json$`, download.SuggestedFilename())
+		// Saved under its name: Playwright keeps a download without an extension,
+		// and the screen reads the format on it.
+		path := filepath.Join(t.TempDir(), download.SuggestedFilename())
+		require.NoError(t, download.SaveAs(path))
+
+		require.NoError(t, page.Locator("#cfg-file").SetInputFiles(path))
+		require.NoError(t, page.Locator("#cfg-simulate").Click())
+		// The screen loads again with the result, or the page comes back with the
+		// refusal of the product: said in the failure, so that the cause reads.
+		require.NoError(t, page.Locator(".w-toast--ok, .cfg-refused, .w-field__error").First().WaitFor())
+		if session.count(t, ".cfg-reason, .w-field__error") > 0 {
+			reason, _ := page.Locator(".cfg-reason, .w-field__error").First().TextContent()
+			require.Failf(t, "the simulation of the export was refused", "%s", reason)
+		}
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/config?")+".*done=simulated")))
+		require.NoError(t, session.tracker.settle())
+		toast, err := page.Locator(".w-toast--ok").TextContent()
+		require.NoError(t, err)
+		assert.Regexp(t, `(?i)\bvalide?\b`, toast, "the file is valid, in the language of the session")
 	})
 }
