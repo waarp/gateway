@@ -250,7 +250,7 @@ func TestList(t *testing.T) {
 			return label + `</span> <span class="tf-count">` + strconv.Itoa(n) + `</span>`
 		}
 		indexes(t, body, `id="transfers-states"`, `aria-current="true"><span>`+count("Tous", 6),
-			"<span>"+count("En cours", 1), `<span class="w-status w-status--ko">`+count("En erreur", 1),
+			"<span>"+count("En cours", 1), "<span>"+count("En erreur", 1),
 			"<span>"+count("Planifiés", 1), "<span>"+count("En pause", 0),
 			"<span>"+count("Interrompus", 0), "<span>"+count("Attendus", 1),
 			"<span>"+count("Terminés", 1), "<span>"+count("Annulés", 1), "</nav>")
@@ -341,7 +341,7 @@ func TestList(t *testing.T) {
 		body := s.get(t, permRead, "/webui/transfers?full=1&state=error").Body.String()
 		assert.Equal(t, 1, rows(body))
 		assert.Contains(t, body, "<bdi>releve-20102026.pdf</bdi></a>")
-		assert.Contains(t, body, `href="/webui/transfers?state=error" title="Le transfert a échoué ; il peut être retenté, repris ou relancé" aria-current="true"><span class="w-status w-status--ko">En erreur</span>`)
+		assert.Contains(t, body, `href="/webui/transfers?state=error" title="Le transfert a échoué ; il peut être retenté, repris ou relancé" aria-current="true"><span>En erreur</span>`)
 		assert.Contains(t, body, `<input type="hidden" name="state" value="error">`, "a search keeps the state")
 		assert.Contains(t, body, `aria-live="polite" data-live-part="counts">1 transfert</span>`)
 
