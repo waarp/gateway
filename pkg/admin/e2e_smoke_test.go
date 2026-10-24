@@ -1051,6 +1051,28 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		}
 
 		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] details.w-disclose[open]`), "the filters stay open while one is active")
+	} else if s.count(t, `form[data-live-filter] input[type="search"]`) > 0 {
+		// A list searched by name only (no filters panel), applied in place
+		// (#766): a search without a match, sent by Enter, keeps the page,
+		// goes into the address and shows "no match"; cleared, the rows
+		// come back.
+		before, search := s.page.URL(), s.page.Locator(`form[data-live-filter] input[type="search"]`)
+		_, err := s.page.Evaluate(`window.wFilterMark = true`)
+		require.NoError(t, err)
+		require.NoError(t, search.Fill("zz-no-such-name"))
+		require.NoError(t, search.Press("Enter"))
+		require.NoError(t, s.tracker.settle())
+
+		kept, err := s.page.Evaluate(`window.wFilterMark === true`)
+		require.NoError(t, err)
+		assert.Equal(t, true, kept, "the search applied in place, without reloading the page")
+		assert.NotEqual(t, before, s.page.URL(), "the address carries the search")
+		assert.Equal(t, 1, s.count(t, `[data-live-part="list"] .w-empty`), "no match, in the live region")
+
+		require.NoError(t, search.Fill(""))
+		require.NoError(t, search.Press("Enter"))
+		require.NoError(t, s.tracker.settle())
+		assert.Zero(t, s.count(t, `[data-live-part="list"] .w-empty`), "the rows come back once the search is cleared")
 	}
 
 	if s.count(t, `button[popovertarget]`) > 0 {
