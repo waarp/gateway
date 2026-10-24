@@ -1,0 +1,113 @@
+package config
+
+import (
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// pageView: the configuration import and export (Administration), two cards
+// on one page. Presentation only: the handler computes the categories, the
+// formats, the rights, the errors of the forms and the messages. One
+// coloured action on the page, "Import" (red "Empty and import" once the
+// reset is asked); the export is an outline button. The import form posts as
+// multipart; its reset reveals a warning and a confirmation, shown by the
+// stylesheet from the state of the checkbox (no JavaScript); without the
+// write right, the card says what is missing instead of a disabled form.
+// The import form is not guarded against leaving (data-noguard): its only
+// unsaved state is a chosen file, and the guard of the kit would otherwise
+// stop the export, a submission of the other form of the page.
+templ pageView(d pageData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "config.title") }</h1>
+		</div>
+	</div>
+	<div class="cfg-grid">
+		<section class="w-card cfg-card" aria-labelledby="cfg-export-title">
+			<h2 class="w-card__title" id="cfg-export-title">{ gui.T(ctx, "config.export.title") }</h2>
+			<form class="w-form cfg-form" method="get" action={ templ.SafeURL(d.ExportURL) } id="cfg-export">
+				<fieldset class={ "w-fieldset", templ.KV("is-invalid", d.ExportError != "") }>
+					<legend class="w-fieldset__legend">{ gui.T(ctx, "config.categories_legend") }</legend>
+					@categoryChecks("cfg-export-", d.Categories)
+					@protoform.Message("cfg-export-cat-h", d.ExportError, "")
+				</fieldset>
+				<fieldset class="w-fieldset">
+					<legend class="w-fieldset__legend">{ gui.T(ctx, "config.export.format") }</legend>
+					<div class="w-segmented">
+						for _, f := range d.Formats {
+							<label>
+								<input type="radio" name="format" value={ f.Value } checked?={ f.Selected }/>
+								<span>
+									@gui.Icon("check")
+									{ f.Label }
+								</span>
+							</label>
+						}
+					</div>
+				</fieldset>
+				@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "config.export.secrets_title"), Text: gui.T(ctx, "config.export.secrets")})
+				<p class="cfg-note">{ gui.T(ctx, "config.export.same_format") }</p>
+				<div class="w-form__actions">
+					<button class="w-btn w-btn--outline-dark" type="submit" id="cfg-export-go">{ gui.T(ctx, "config.export.action") }</button>
+				</div>
+			</form>
+		</section>
+		<section class="w-card cfg-card" aria-labelledby="cfg-import-title">
+			<h2 class="w-card__title" id="cfg-import-title">{ gui.T(ctx, "config.import.title") }</h2>
+			if !d.Write {
+				@gui.Empty(gui.EmptyProps{Icon: "lock", Title: gui.T(ctx, "config.import.no_write")})
+			} else {
+				<form class="w-form cfg-form" method="post" action={ templ.SafeURL(d.ImportURL) } enctype="multipart/form-data" id="cfg-import" data-noguard>
+					<div class={ "w-field", templ.KV("is-invalid", d.Import.FileError != "") }>
+						<label class="w-field__label" for="cfg-file">{ gui.T(ctx, "config.import.file") }@protoform.ReqMark(true)</label>
+						@gui.File(gui.FileProps{ID: "cfg-file", Name: "file", Accept: ".json,.yaml,.yml,application/json,application/yaml", Describe: "cfg-file-h", Required: true})
+						@protoform.Message("cfg-file-h", d.Import.FileError, gui.T(ctx, "config.import.file_hint"))
+					</div>
+					<fieldset class={ "w-fieldset", templ.KV("is-invalid", d.Import.CategoriesError != "") }>
+						<legend class="w-fieldset__legend">{ gui.T(ctx, "config.categories_legend") }</legend>
+						@categoryChecks("cfg-import-", d.Import.Categories)
+						@protoform.Message("cfg-import-cat-h", d.Import.CategoriesError, gui.T(ctx, "config.import.categories_hint"))
+					</fieldset>
+					<p class="cfg-note">{ gui.T(ctx, "config.import.all_or_nothing") }</p>
+					<fieldset class="w-fieldset cfg-options">
+						<legend class="w-fieldset__legend">{ gui.T(ctx, "config.import.options") }</legend>
+						<label class="w-check"><input type="checkbox" name="restart" value="1" checked?={ d.Import.Restart }/> <span>{ gui.T(ctx, "config.import.restart") }</span></label>
+						<div class="cfg-reset">
+							<label class="w-check"><input type="checkbox" name="reset" value="1" id="cfg-reset" checked?={ d.Import.Reset }/> <span>{ gui.T(ctx, "config.import.reset") }</span></label>
+							<div class="cfg-reset__more">
+								@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "config.import.reset_warning_title"), Text: gui.T(ctx, "config.import.reset_warning")})
+								<div class={ "w-field", templ.KV("is-invalid", d.Import.ConfirmError != "") }>
+									<label class="w-check"><input type="checkbox" name="reset_confirm" value="1" id="cfg-reset-confirm" checked?={ d.Import.ResetConfirm } aria-describedby="cfg-confirm-h"/> <span>{ gui.T(ctx, "config.import.reset_confirm") }</span></label>
+									@protoform.Message("cfg-confirm-h", d.Import.ConfirmError, "")
+								</div>
+							</div>
+						</div>
+					</fieldset>
+					if d.Import.Refused != "" {
+						<div class="cfg-refused" role="alert">
+							@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "config.import.refused")})
+							<pre class="cfg-reason"><code>{ d.Import.Refused }</code></pre>
+						</div>
+					}
+					<div class="w-form__actions">
+						<span class="w-form__note"><span class="w-field__req">*</span> { gui.T(ctx, "form.required") }</span>
+						<button class="w-btn w-btn--outline-dark" type="submit" name="action" value="simulate" id="cfg-simulate">{ gui.T(ctx, "config.import.simulate") }</button>
+						<button class="w-btn w-btn--primary cfg-go" type="submit" name="action" value="import" id="cfg-import-go">{ gui.T(ctx, "config.import.action") }</button>
+						<button class="w-btn w-btn--danger cfg-go-reset" type="submit" name="action" value="import" id="cfg-import-reset-go">{ gui.T(ctx, "config.import.reset_action") }</button>
+					</div>
+				</form>
+			}
+		</section>
+	</div>
+}
+
+// categoryChecks: the categories of a card as checkboxes, in the order of
+// the sidebar.
+templ categoryChecks(prefix string, list []category) {
+	<div class="cfg-checks">
+		for _, c := range list {
+			<label class="w-check"><input type="checkbox" id={ prefix + c.Key } name="target" value={ c.Key } checked?={ c.Checked }/> <span>{ c.Label }</span></label>
+		}
+	</div>
+}

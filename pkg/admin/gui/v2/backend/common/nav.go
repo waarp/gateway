@@ -65,6 +65,7 @@ func navigation() []navGroup {
 				constants.SidebarMenuOverrides, "sliders", "nav.overrides", "/overrides",
 				model.PermAdminRead,
 			},
+			{constants.SidebarMenuConfig, "download", "nav.config", "/config", model.PermAdminRead},
 		}},
 	}
 }

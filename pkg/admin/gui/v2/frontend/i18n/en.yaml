@@ -23,6 +23,7 @@ nav:
   clouds: Cloud instances
   snmp: SNMP
   overrides: Configuration overrides
+  config: Import and export
   footer: "{product} {version}"
 
 # Screen "Service status" (Monitoring).
@@ -610,6 +611,7 @@ home:
     clouds: Remote storages, origin or destination
     snmp: SNMP agent and alerts
     overrides: Values specific to one node of a cluster
+    config: Back up and restore the configuration
 # "About" (dialog of the account menu and its fallback page): the sentences of the product; the frame and its
 # labels come from the kit (about.title, about.version…).
 about:
@@ -3073,3 +3075,58 @@ transfers:
     __articlesLengths__: Record lengths
     __articlesFormat__: Record format
     __articlesSeparator__: Record separator
+
+# "Configuration import and export" screen (Administration): two cards, the export and the import.
+config:
+  title: Configuration import and export
+  categories_legend: Categories
+  categories:
+    servers: Local servers, with their accounts and authentication
+    partners: Remote partners, with their accounts and authentication
+    clients: Local clients
+    rules: Transfer rules
+    users: Users
+    clouds: Cloud instances
+    snmp: SNMP
+    authorities: Authentication authorities
+    keys: Cryptographic keys
+    email: Email, SMTP credentials and templates
+    filewatchers: Partner watchers
+  export:
+    title: Export the configuration
+    format: Format
+    json: JSON
+    yaml: YAML
+    secrets_title: The file carries the secrets in clear.
+    secrets: " Account passwords, private keys, cloud secrets and SMTP passwords; the passwords of the users are hashed only."
+    same_format: Same format as the waarp-gatewayd export and import commands, and as the waarp-gateway updateconf command line.
+    action: Export the configuration
+    none: Choose at least one category
+    failed: "The configuration could not be exported; the detail is in the log of the gateway."
+  import:
+    title: Import a configuration
+    file: Configuration file
+    file_hint: JSON or YAML, in the format of the export, 64 MB at most
+    file_missing: Choose the file to import
+    file_type: Choose a .json, .yaml or .yml file
+    file_size: The file exceeds 64 MB
+    file_read: The file could not be read
+    unreadable: The file is not a valid JSON or YAML.
+    categories_hint: The categories the file does not carry are ignored
+    none: Choose at least one category
+    all_or_nothing: "The import is all or nothing: the first error cancels the whole."
+    options: Options
+    restart: Restart the services concerned (local servers, clients, watchers)
+    reset: Empty these categories before the import
+    reset_warning_title: The current objects of these categories are deleted before the import.
+    reset_warning: " And what depends on them with them: the accounts and authentication of a server or a partner, the accesses of a rule."
+    reset_confirm: I confirm the deletion
+    confirm_required: Confirm the deletion to empty the categories
+    simulate: Simulate the import
+    action: Import
+    reset_action: Empty and import
+    simulated: "The file is valid: the import would go through ({categories})."
+    imported: Configuration imported ({categories}).
+    restarted: The services concerned have been restarted.
+    refused: The import was refused.
+    no_write: The import needs the write right on the administration.

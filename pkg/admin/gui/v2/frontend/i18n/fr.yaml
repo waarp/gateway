@@ -23,6 +23,7 @@ nav:
   clouds: Instances cloud
   snmp: SNMP
   overrides: Surcharges de configuration
+  config: Import et export
   footer: "{product} {version}"
 
 # Écran « État des services » (Supervision).
@@ -609,6 +610,7 @@ home:
     clouds: Stockages distants, origine ou destination
     snmp: Agent et alertes SNMP
     overrides: Valeurs propres à un nœud de grappe
+    config: Sauvegarde et reprise de la configuration
 # « À propos » (dialogue du menu du compte et page de repli) : les phrases du produit ; le cadre et ses libellés
 # viennent du kit (about.title, about.version…).
 about:
@@ -3075,3 +3077,58 @@ transfers:
     __articlesLengths__: Longueurs des articles
     __articlesFormat__: Format des articles
     __articlesSeparator__: Séparateur des articles
+
+# Écran « Import et export de la configuration » (Administration) : deux cartes, l'export et l'import.
+config:
+  title: Import et export de la configuration
+  categories_legend: Catégories
+  categories:
+    servers: Serveurs locaux, avec leurs comptes et leur authentification
+    partners: Partenaires distants, avec leurs comptes et leur authentification
+    clients: Clients locaux
+    rules: Règles de transfert
+    users: Utilisateurs
+    clouds: Instances cloud
+    snmp: SNMP
+    authorities: Autorités d'authentification
+    keys: Clés cryptographiques
+    email: E-mail, identifiants SMTP et modèles
+    filewatchers: Surveillances de partenaires
+  export:
+    title: Exporter la configuration
+    format: Format
+    json: JSON
+    yaml: YAML
+    secrets_title: Le fichier contient les secrets en clair.
+    secrets: " Mots de passe des comptes, clés privées, secrets des instances cloud et mots de passe SMTP ; les mots de passe des utilisateurs n'y sont qu'en hachage."
+    same_format: Même format que les commandes waarp-gatewayd export et import, et que la ligne de commande waarp-gateway updateconf.
+    action: Exporter la configuration
+    none: Choisissez au moins une catégorie
+    failed: "La configuration n'a pas pu être exportée ; le détail est dans le journal de la passerelle."
+  import:
+    title: Importer une configuration
+    file: Fichier de configuration
+    file_hint: JSON ou YAML, au format de l'export, 64 Mo au plus
+    file_missing: Choisissez le fichier à importer
+    file_type: Choisissez un fichier .json, .yaml ou .yml
+    file_size: Le fichier dépasse 64 Mo
+    file_read: Le fichier n'a pas pu être lu
+    unreadable: Le fichier n'est pas un JSON ou un YAML valide.
+    categories_hint: Les catégories que le fichier ne porte pas sont ignorées
+    none: Choisissez au moins une catégorie
+    all_or_nothing: "L'import est tout ou rien : la première erreur annule l'ensemble."
+    options: Options
+    restart: Redémarrer les services concernés (serveurs locaux, clients, surveillances)
+    reset: Vider ces catégories avant l'import
+    reset_warning_title: Les objets actuels de ces catégories seront supprimés avant l'import.
+    reset_warning: " Et avec eux ce qui en dépend : comptes et authentification d'un serveur ou d'un partenaire, accès d'une règle."
+    reset_confirm: Je confirme la suppression
+    confirm_required: Confirmez la suppression pour vider les catégories
+    simulate: Simuler l'import
+    action: Importer
+    reset_action: Vider et importer
+    simulated: "Le fichier est valide : l'import passerait ({categories})."
+    imported: Configuration importée ({categories}).
+    restarted: Les services concernés ont été redémarrés.
+    refused: L'import a été refusé.
+    no_write: L'import demande le droit d'écriture sur l'administration.
