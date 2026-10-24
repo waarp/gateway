@@ -1416,4 +1416,33 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 			before, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(15000)})
 		require.NoError(t, err, "the time changes after one period")
 	})
+
+	// Collapsed, the sidebar keeps the icons of its entries in a rail, each
+	// label as a tooltip (#772); expanded again, the labels come back.
+	t.Run("the sidebar collapses to a rail", func(t *testing.T) {
+		session.visit(t, "/webui/home")
+		require.NoError(t, page.Locator(".w-nav-toggle").Click())
+		require.NoError(t, page.Locator(".w-shell.is-nav-collapsed").WaitFor())
+
+		_, err := page.WaitForFunction(`document.querySelector(".w-sidebar").getBoundingClientRect().width < 80`, nil,
+			playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)})
+		require.NoError(t, err, "a rail, once the 250 ms of its animation are over")
+		labelled, err := page.Evaluate(`[...document.querySelectorAll(".w-navgroup a")].every((a) =>
+			(a.getAttribute("title") || a.dataset.wTitle || "").trim() === a.querySelector("span").textContent.trim())`)
+		require.NoError(t, err)
+		assert.Equal(t, true, labelled, "every entry carries its label as a tooltip")
+
+		second := page.Locator(".w-navgroup a").Nth(1)
+		require.NoError(t, second.Hover())
+		require.NoError(t, page.Locator("#w-tip:not([hidden])").WaitFor())
+		label, err := second.Locator("span").TextContent()
+		require.NoError(t, err)
+		tip, err := page.Locator("#w-tip").TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(label), strings.TrimSpace(tip), "the tooltip is the label")
+
+		require.NoError(t, page.Locator(".w-nav-toggle").Click())
+		require.NoError(t, page.Locator(".w-shell:not(.is-nav-collapsed)").WaitFor())
+		assert.Zero(t, session.count(t, ".w-navgroup a[title]"), "expanded, the labels read in place")
+	})
 }
