@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`771` Dans le suivi des transferts, le pied de liste répété au-dessus
+  du tableau reste sur la ligne de la recherche et du bouton *Filtres* quand
+  le panneau des filtres s'ouvre ; le panneau s'ouvre sous les deux.
+
 * :bug:`769` Dans la ligne des états du suivi des transferts, *En erreur* ne
   porte plus le losange du statut d'erreur : chaque état s'affiche de la même
   façon, son libellé et son nombre. Le losange reste sur le statut de chaque

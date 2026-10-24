@@ -17,9 +17,12 @@
   .tf-states { flex-wrap: nowrap; overflow-x: auto; }
 }
 
-/* The toolbar and the list foot at the top on one row. */
+/* The toolbar and the list foot at the top on one row. The toolbar lays out nothing itself (display: contents,
+   2026-10-24): its controls, its count and the list foot are the items of one flex row, and the filters panel,
+   which the kit sends to a row of its own (flex 1 0 100 %, order 9), opens under them all: the list foot stays
+   on the first row when the panel opens. */
 .tf-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin: 0 0 var(--sp-3); }
-.tf-bar .w-toolbar { flex: 1 1 28rem; margin: 0; }
+.tf-bar .w-toolbar { display: contents; }
 .tf-pager-top:empty { display: none; }
 .tf-pager { margin-top: var(--sp-3); }
 
