@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :feature:`766` Les filtres des listes des serveurs locaux, des clients locaux
+  et des partenaires distants s'appliquent sans recharger la page : la liste,
+  son compteur et le nombre de filtres se mettent à jour en place (en fondu sur
+  les navigateurs qui le permettent), l'adresse suit, le panneau des filtres,
+  la position de défilement et le focus ne bougent pas ; plusieurs changements
+  rapprochés ne font qu'une lecture. Le tri et la pagination de ces listes
+  passent de même en place. Sans JavaScript, le formulaire s'envoie comme
+  avant. Les autres listes suivront de la même façon.
+
 * :feature:`765` Le corps d'un modèle d'e-mail se charge depuis un fichier
   HTML (.html, .htm) ou texte (.txt), en UTF-8, de 1 Mo au plus : son contenu
   remplace le corps, le format suit son extension, et le corps se relit avant

@@ -1022,7 +1022,13 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 
 		// A filter is a checkbox (the protocol families, the storage types)
 		// or a select (the domain of the rights of a user): the first one is
-		// changed.
+		// changed. A list whose filters apply in place (#766) keeps its page:
+		// a mark set on the window survives, and the address carries the
+		// filter.
+		inPlace, before := s.count(t, `form[data-autosubmit][data-live-filter]`) > 0, s.page.URL()
+		_, err := s.page.Evaluate(`window.wFilterMark = true`)
+		require.NoError(t, err)
+
 		if s.count(t, `form[data-autosubmit] .w-disclose__panel input[type="checkbox"]`) > 0 {
 			require.NoError(t, s.page.Locator(`form[data-autosubmit] .w-disclose__panel input[type="checkbox"]`).First().Check())
 			require.NoError(t, s.tracker.settle())
@@ -1035,6 +1041,13 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 			require.NoError(t, s.tracker.settle())
 			assert.Equal(t, 1, s.count(t, `form[data-autosubmit] .w-disclose__panel select option:nth-child(2):checked`),
 				"the filter is kept after the reload")
+		}
+
+		if inPlace {
+			kept, err := s.page.Evaluate(`window.wFilterMark === true`)
+			require.NoError(t, err)
+			assert.Equal(t, true, kept, "the filter applied in place, without reloading the page")
+			assert.NotEqual(t, before, s.page.URL(), "the address carries the filter")
 		}
 
 		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] details.w-disclose[open]`), "the filters stay open while one is active")

@@ -199,6 +199,33 @@ func (s *suite) partnerOf(t *testing.T, name string) *model.RemoteAgent {
 	return &agent
 }
 
+// TestListFragment: the region of the list alone, for the live list of the
+// kit (#766): the three elements of the part, with the ids of the page, no
+// shell; the page itself declares the live region and its filters form.
+func TestListFragment(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+
+	rec := s.get(t, permRead, "/webui/partners?protocol=sftp&fragment=list")
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	body := rec.Body.String()
+	assert.NotContains(t, body, "<html", "no shell around a fragment")
+	assert.Contains(t, body, `<span id="partners-filters" data-live-part="list">Filtres · 1</span>`)
+	assert.Contains(t, body, `<span class="w-toolbar__count" id="partners-count" data-live-part="list" aria-live="polite">`)
+	assert.Contains(t, body, `<div id="partners-list" data-live-part="list" data-live-paged>`)
+	assert.Contains(t, body, `<table class="w-table">`)
+
+	body = s.get(t, permRead, "/webui/partners").Body.String()
+	assert.Contains(t, body, `<div data-live data-live-period="0">`, "read on the user's actions only")
+	assert.Contains(t, body, `data-autosubmit data-live-filter>`, "the filters apply in place")
+	assert.Contains(t, body, `<template data-live-error>`)
+	assert.Contains(t, body, `live.js`)
+	assert.Equal(t, 1, strings.Count(body, `id="partners-list"`))
+}
+
 func TestList(t *testing.T) {
 	t.Parallel()
 

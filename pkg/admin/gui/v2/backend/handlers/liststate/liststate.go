@@ -33,6 +33,12 @@ const (
 	// search").
 	ResetParam = "reset"
 
+	// FragmentParam names the part of a page the live list of the kit reads
+	// (?fragment=); ListFragment is the region of a list (count, filters
+	// count, table or no match, foot).
+	FragmentParam = "fragment"
+	ListFragment  = "list"
+
 	DirAsc  = "asc"
 	DirDesc = "desc"
 
@@ -317,6 +323,13 @@ func (s *Spec) ExplicitListURL(v url.Values) string {
 	}
 
 	return s.ListURLOf(v)
+}
+
+// IsListFragment says whether the request reads the region of the list alone
+// (?fragment=list), for the live list of the kit: the handler then renders
+// the fragment without the shell and never redirects to a kept state.
+func IsListFragment(r *http.Request) bool {
+	return r.URL.Query().Get(FragmentParam) == ListFragment
 }
 
 // HasParams tells whether the request says anything about the state of the
