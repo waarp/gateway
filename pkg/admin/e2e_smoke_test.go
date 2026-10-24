@@ -1400,4 +1400,20 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, box.Width, 57.0, "3.6 rem at least")
 	})
+
+	// The time of the last reading of the transfer monitoring follows every
+	// reading (#768): it changes within one period, the focus away from the
+	// toolbar.
+	t.Run("the time of the last reading follows the readings", func(t *testing.T) {
+		session.visit(t, "/webui/transfers")
+
+		live := page.Locator("#transfers-live")
+		before, err := live.TextContent()
+		require.NoError(t, err)
+		require.NotEmpty(t, strings.TrimSpace(before), "the time of the first reading")
+
+		_, err = page.WaitForFunction(`(t) => document.querySelector("#transfers-live").textContent !== t`,
+			before, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(15000)})
+		require.NoError(t, err, "the time changes after one period")
+	})
 }

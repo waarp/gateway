@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`768` Dans le suivi des transferts, l'heure *Actualisé à* suit chaque
+  lecture de la liste ; elle restait à celle de la première. Les lectures
+  périodiques ne sont plus suspendues quand le focus est sur le bouton
+  *Filtres* ou un autre contrôle de la barre d'outils, seulement pendant une
+  saisie dans un champ de texte.
+
 * :bug:`767` Le champ *Page* du pied des listes de l'interface web s'élargit
   avec le nombre de pages : un numéro de quatre chiffres ou plus s'affiche en
   entier, il était tronqué au-delà de 999 pages.
