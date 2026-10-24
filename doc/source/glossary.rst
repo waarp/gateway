@@ -133,9 +133,11 @@ Glossaire
       contenir soit une clé privée, soit une clé publique (voir même parfois les
       deux). Le format de la clé dépend également du type de la clé.
 
+   surveillance de partenaire
    filewatcher
-   (*filewatcher*)
-      Un *filewatcher* est un service de Gateway dont la mission est de surveiller
-      un dossier. Lorsqu'un fichier est déposé dans ce dossier, si ce fichier
-      match le paterne du filewatcher, alors un transfert sera automatiquement
-      créé pour ce fichier.
+   (*partner watcher*)
+      Une surveillance de partenaire (*filewatcher* dans l'API et la ligne de
+      commande) est un service de Gateway qui interroge, à intervalle
+      régulier, un dossier chez un partenaire distant. Pour chaque fichier
+      trouvé dont le nom correspond au motif de la surveillance, un transfert
+      de réception est créé automatiquement, sous la règle de la surveillance.

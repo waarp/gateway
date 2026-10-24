@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`774` Un écran *Surveillances de partenaires* dans la section
+  Traitements de l'interface web : la liste des surveillances avec l'état de
+  leur service, la recherche, les filtres par partenaire et par état, le tri
+  et la pagination ; la création et la modification en une page (compte
+  distant par partenaire, client du même protocole, règle de réception,
+  motif, intervalle en minutes ou en heures) ; la suppression ; le
+  démarrage, l'arrêt et le lancement d'un passage depuis la liste, la
+  notification disant combien de transferts le passage a créés. Mêmes droits
+  que l'API REST ``/api/filewatchers`` (ceux des serveurs) et que la ligne de
+  commande (voir :ref:`le guide de l'interface web <user-webui-watchers>`).
+
 * :feature:`773` Un écran *Import et export de la configuration* dans la
   section Administration de l'interface web : l'export télécharge tout ou
   partie de la configuration en JSON ou en YAML, les secrets en clair (le

@@ -179,8 +179,9 @@ func specOfKey(key string) (stateSpec, bool) {
 	return stateSpec{}, false
 }
 
-// statusOf is the status shown for a transfer: its shape and its label.
-func statusOf(translate gui.Translator, status types.TransferStatus) gui.Status {
+// StatusOf is the state of a transfer as the kit shows it: shape, colour and
+// label; the sheets of other screens that list transfers use it too.
+func StatusOf(translate gui.Translator, status types.TransferStatus) gui.Status {
 	spec := specOfStatus(status)
 
 	return gui.Status{State: spec.shape, Label: translate(stateKeyPrefix + spec.key)}

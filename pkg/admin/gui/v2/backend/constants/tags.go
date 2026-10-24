@@ -9,6 +9,7 @@ const (
 
 	SidebarSectionTreatments  = "treatments"
 	SidebarMenuRules          = "rules"
+	SidebarMenuWatchers       = "watchers"
 	SidebarMenuCryptoKeys     = "crypto_keys"
 	SidebarMenuSMTPCreds      = "smtp_creds"
 	SidebarMenuEmailTemplates = "email_templates"

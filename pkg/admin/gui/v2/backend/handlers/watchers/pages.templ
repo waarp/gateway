@@ -1,0 +1,452 @@
+package watchers
+
+import (
+	"fmt"
+
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// listView: the partner watchers (Treatments). Presentation only: the
+// handler searches, filters, sorts and pages the rows, reads the state of
+// each service, builds the row actions from the rights and translates the
+// texts. One coloured action ("Add a watcher"); the partner and state
+// filters applied as soon as they change (live list of the kit); three
+// sortable headers; the state as a status (shape and words, the reason as
+// a tooltip); a "⋯" menu per row; rows per page in the foot.
+templ listView(d listData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "watchers.title") }</h1>
+		</div>
+		if d.AddURL != "" {
+			<div class="w-page-header__actions">
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+					@gui.Icon("plus")
+					{ gui.T(ctx, "watchers.add") }
+				</a>
+			</div>
+		}
+	</div>
+	if d.Error {
+		@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "watchers.error.title"), Text: gui.T(ctx, "watchers.error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.RetryURL}})
+	} else if d.Empty {
+		@gui.Empty(gui.EmptyProps{Icon: "eye", Title: gui.T(ctx, "watchers.empty.title"), Text: gui.T(ctx, "watchers.empty.text"), Action: liststate.AddLink(d.AddURL, gui.T(ctx, "watchers.add"))})
+	} else {
+		<div data-live data-live-period="0">
+			<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-filter>
+				for _, h := range liststate.SortedHidden(d.Hidden) {
+					<input type="hidden" name={ h.Name } value={ h.Value }/>
+				}
+				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "watchers.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "watchers.search_placeholder") } title={ gui.T(ctx, "lists.search_hint") } list="watchers-names" autocomplete="off"/></label>
+				<datalist id="watchers-names">
+					for _, n := range d.Names {
+						<option value={ n }></option>
+					}
+				</datalist>
+				<details class="w-disclose" open?={ d.FiltersOpen }>
+					<summary class="w-btn w-btn--outline-dark w-btn--sm">
+						@gui.Icon("filter")
+						<span id="watchers-filters" data-live-part="list">{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }</span>
+					</summary>
+					<div class="w-disclose__panel">
+						if len(d.Partners) > 0 {
+							@filterBoxes(gui.T(ctx, "watchers.filters_partner"), d.Partners)
+						}
+						@filterBoxes(gui.T(ctx, "watchers.filters_state"), d.States)
+						@gui.FiltersFoot(d.ResetURL)
+					</div>
+				</details>
+				<span class="w-toolbar__spacer"></span>
+				<span class="w-toolbar__count" id="watchers-count" data-live-part="list" aria-live="polite">{ d.Count }</span>
+			</form>
+			@listRegion(d)
+			<template data-live-error>@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "lists.refresh_error.title"), Text: gui.T(ctx, "lists.refresh_error.text"), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.Action}})</template>
+		</div>
+	}
+}
+
+// listRegion: the region of the list, the part "list" of the live list of
+// the kit (with the count of the toolbar): read and put in place as the
+// filters, the sort or the page change.
+templ listRegion(d listData) {
+	<div id="watchers-list" data-live-part="list" data-live-paged>
+		if d.NoMatch {
+			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
+		} else {
+			<div class="w-table-wrap">
+				<table class="w-table">
+					<caption class="visually-hidden">{ d.Caption }</caption>
+					<colgroup><col class="wt-col-name"/><col class="wt-col-partner"/><col/><col/><col class="wt-col-pattern"/><col class="wt-col-interval"/><col class="wt-col-state"/><col class="wt-col-actions"/></colgroup>
+					<thead>
+						<tr>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "watchers.col.name"), Key: "name", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "watchers.col.partner"), Key: "partner", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "watchers.col.client") }</th>
+							@gui.Th(gui.ThProps{Label: gui.T(ctx, "watchers.col.rule"), Key: "rule", Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "watchers.col.pattern") }</th>
+							<th scope="col">{ gui.T(ctx, "watchers.col.interval") }</th>
+							<th scope="col">{ gui.T(ctx, "watchers.col.state") }</th>
+							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "watchers.col.actions") }</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.Rows {
+							<tr>
+								<td>
+									if r.URL != "" {
+										<a class="w-cell-title w-nowrap" href={ templ.SafeURL(r.URL) }>{ r.Name }</a>
+									} else {
+										<span class="w-cell-title w-nowrap">{ r.Name }</span>
+									}
+								</td>
+								<td class="w-nowrap">{ r.Partner } <span class="wt-account">· { r.Account }</span></td>
+								<td class="w-nowrap">{ r.Client }</td>
+								<td class="w-nowrap">{ r.Rule }</td>
+								<td class="w-mono">{ r.Pattern }</td>
+								<td class="w-nowrap">{ r.Interval }</td>
+								<td class="wt-state">
+									if r.Reason != "" {
+										<span title={ r.Reason }>@gui.StatusOf(r.State)</span>
+									} else {
+										@gui.StatusOf(r.State)
+									}
+								</td>
+								<td>
+									if len(r.Actions) > 0 {
+										@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("act-%d", r.ID), Name: r.Name, Items: r.Actions})
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			if d.Pager != nil {
+				<div class="wt-pager">@gui.Pager(d.Pager.Props(d.PagerHidden, d.Sizes, d.Size))</div>
+			}
+		}
+	</div>
+}
+
+// listFragment: what ?fragment=list serves to the live list of the kit: the
+// elements of the part "list", with the ids of the page, without the shell.
+templ listFragment(d listData) {
+	<span id="watchers-filters" data-live-part="list">{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }</span>
+	<span class="w-toolbar__count" id="watchers-count" data-live-part="list" aria-live="polite">{ d.Count }</span>
+	@listRegion(d)
+}
+
+// filterBoxes: the checkboxes of one filter of the list, under its legend.
+templ filterBoxes(legend string, boxes []box) {
+	<fieldset class="w-fieldset w-field w-field--wide">
+		<legend class="w-fieldset__legend">{ legend }</legend>
+		<div class="w-checks">
+			for _, b := range boxes {
+				<label class="w-check"><input type="checkbox" name={ b.Name } value={ b.Value } checked?={ b.Checked }/> <span>{ b.Label }</span></label>
+			}
+		</div>
+	</fieldset>
+}
+
+// selectField: a select of the form, its label, its error and its hint.
+templ selectField(id, label string, f field, hint string, groups []accountGroup, options []choice, placeholder string) {
+	<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
+		<label class="w-field__label" for={ id }>{ label }@protoform.ReqMark(true)</label>
+		<select
+			class="w-select"
+			id={ id }
+			name={ id }
+			aria-describedby={ id + "-h" }
+			if f.Error != "" {
+				aria-invalid="true"
+			}
+		>
+			<option value="" selected?={ f.Value == "" }>{ placeholder }</option>
+			for _, g := range groups {
+				<optgroup label={ g.Partner }>
+					for _, o := range g.Options {
+						<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+					}
+				</optgroup>
+			}
+			for _, o := range options {
+				<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+			}
+		</select>
+		@protoform.Message(id+"-h", f.Error, hint)
+	</div>
+}
+
+// protocolBlockView: the account and the client of one protocol, shown
+// when the protocol is chosen (data-case; every block rendered without
+// JavaScript, the server reads the one of the chosen protocol).
+templ protocolBlockView(b protocolBlock) {
+	<fieldset class="w-fieldset w-fieldset--wide wt-proto" data-case={ b.Key }>
+		<legend class="visually-hidden">{ b.Label }</legend>
+		if b.NoAccounts {
+			<p class="w-form__note wt-note">{ gui.T(ctx, "watchers.form.no_accounts_proto", "protocol", b.Label) }</p>
+		} else {
+			<div class="w-grid w-grid--2">
+				@selectField(accountField(b.Key), gui.T(ctx, "watchers.form.account"), b.Account, gui.T(ctx, "watchers.form.account_hint"), b.Accounts, nil, gui.T(ctx, "watchers.form.choose"))
+				if b.NoClients {
+					<p class="w-form__note wt-note">{ gui.T(ctx, "watchers.form.no_clients_proto", "protocol", b.Label) }</p>
+				} else {
+					@selectField(clientField(b.Key), gui.T(ctx, "watchers.form.client"), b.Client, gui.T(ctx, "watchers.form.client_hint"), nil, b.Clients, gui.T(ctx, "watchers.form.choose"))
+				}
+			</div>
+		}
+	</fieldset>
+}
+
+// formView: creation and edition of a watcher, one page (decision D10),
+// one card per block: the identity (name, pattern, interval, the files
+// already transferred, the start), the partner (the protocol among those
+// that list files, then the remote account by partner and the client of
+// that protocol), the receive rule. The partner and the rule cards fold,
+// their summary saying what is chosen. Refused form: a banner, every value
+// kept, a message under each faulty field (422).
+templ formView(d *formData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ " " + gui.T(ctx, "watchers.back") }
+			</a>
+		</div>
+	</div>
+	if d.HasErrors {
+		<div class="wt-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "watchers.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "watchers.form.refused_text"))})</div>
+	}
+	if d.NoAccounts {
+		@gui.Empty(gui.EmptyProps{Icon: "globe", Title: gui.T(ctx, "watchers.form.no_accounts_title"), Text: gui.T(ctx, "watchers.form.no_accounts_text"), Action: &gui.Link{Label: gui.T(ctx, "nav.partners"), URL: d.PartnersURL}})
+	} else {
+		<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+			<div class="w-card">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="w-card__title">{ gui.T(ctx, "watchers.form.card_identity") }</legend>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldName, Label: gui.T(ctx, "watchers.form.name"), Req: true, F: d.Name, Hint: gui.T(ctx, "watchers.form.name_hint")})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldPattern, Label: gui.T(ctx, "watchers.form.pattern"), F: d.Pattern, Hint: gui.T(ctx, "watchers.form.pattern_hint")})
+					</div>
+					<div class={ "w-field wt-interval", templ.KV("is-invalid", d.Interval.Error != "") }>
+						<label class="w-field__label" for={ fieldInterval }>{ gui.T(ctx, "watchers.form.interval") }@protoform.ReqMark(true)</label>
+						<div class="wt-interval__row">
+							<input
+								class="w-input wt-interval__number"
+								id={ fieldInterval }
+								name={ fieldInterval }
+								type="number"
+								min="1"
+								step="1"
+								inputmode="numeric"
+								value={ d.Interval.Value }
+								aria-describedby="interval-h"
+								if d.Interval.Error != "" {
+									aria-invalid="true"
+								}
+							/>
+							<select class="w-select wt-interval__unit" name={ fieldUnit } aria-label={ gui.T(ctx, "watchers.form.unit") }>
+								for _, u := range d.Units {
+									<option value={ u.Value } selected?={ u.Selected }>{ u.Label }</option>
+								}
+							</select>
+						</div>
+						@protoform.Message("interval-h", d.Interval.Error, gui.T(ctx, "watchers.form.interval_hint"))
+					</div>
+					<label class="w-check wt-check"><input type="checkbox" name={ fieldSkip } value="1" checked?={ d.Skip }/> <span>{ gui.T(ctx, "watchers.form.skip") }</span></label>
+					<label class="w-check wt-check"><input type="checkbox" name={ fieldEnabled } value="1" checked?={ d.Enabled }/> <span>{ gui.T(ctx, "watchers.form.enabled") }</span></label>
+					<p class="wt-hint">{ gui.T(ctx, "watchers.form.enabled_hint") }</p>
+				</fieldset>
+			</div>
+			<details class="w-card w-card--fold" open?={ d.PartnerOpen }>
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "watchers.form.card_partner") }</span><span class="w-fold__meta">{ d.PartnerMeta }</span></summary>
+				<div class="w-card__body">
+					<fieldset class="w-fieldset w-fieldset--wide">
+						<legend class="visually-hidden">{ gui.T(ctx, "watchers.form.card_partner") }</legend>
+						<div class="w-grid w-grid--2">
+							<div class={ "w-field", templ.KV("is-invalid", d.Protocol.Error != "") }>
+								<label class="w-field__label" for={ fieldProtocol }>{ gui.T(ctx, "watchers.form.protocol") }@protoform.ReqMark(true)</label>
+								<select
+									class="w-select"
+									id={ fieldProtocol }
+									name={ fieldProtocol }
+									data-switch
+									aria-describedby="protocol-h"
+									if d.Protocol.Error != "" {
+										aria-invalid="true"
+									}
+								>
+									<option value="" selected?={ d.Protocol.Value == "" }>{ gui.T(ctx, "watchers.form.choose") }</option>
+									for _, o := range d.Protocols {
+										<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+									}
+								</select>
+								@protoform.Message("protocol-h", d.Protocol.Error, gui.T(ctx, "watchers.form.protocol_hint"))
+							</div>
+						</div>
+						for _, b := range d.Blocks {
+							@protocolBlockView(b)
+						}
+					</fieldset>
+				</div>
+			</details>
+			<details class="w-card w-card--fold" open?={ d.RuleOpen }>
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "watchers.form.card_rule") }</span><span class="w-fold__meta">{ d.RuleMeta }</span></summary>
+				<div class="w-card__body">
+					<fieldset class="w-fieldset w-fieldset--wide">
+						<legend class="visually-hidden">{ gui.T(ctx, "watchers.form.card_rule") }</legend>
+						<div class="w-grid w-grid--2">
+							@selectField(fieldRule, gui.T(ctx, "watchers.form.rule"), d.Rule, gui.T(ctx, "watchers.form.rule_hint"), nil, d.Rules, gui.T(ctx, "watchers.form.choose"))
+						</div>
+					</fieldset>
+				</div>
+			</details>
+			if d.Edit {
+				<p class="wt-note">{ gui.T(ctx, "watchers.form.edit_note") }</p>
+			}
+			@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+		</form>
+	}
+}
+
+// detailView: the sheet of a watcher: what it is and the state of its
+// service (first card), the last files it received (foldable card), with
+// the way to every transfer of the watcher. The edition is the button of the
+// header; start, stop, run and delete are its menu.
+templ detailView(d detailData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "watchers.detail.title", "name", d.Name) }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "watchers.back") }
+			</a>
+			if d.EditURL != "" {
+				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
+					@gui.Icon("pen")
+					{ gui.T(ctx, "watchers.action.edit") }
+				</a>
+			}
+			if len(d.Actions) > 0 {
+				@gui.Actions(gui.ActionsProps{ID: "act-detail", Name: d.Name, Items: d.Actions, Menu: true})
+			}
+		</div>
+	</div>
+	<div class="w-stack">
+		<div class="w-card">
+			<h2 class="w-card__title">{ gui.T(ctx, "watchers.detail.card") }</h2>
+			<dl class="w-deflist">
+				<dt>{ gui.T(ctx, "watchers.detail.state") }</dt>
+				<dd class="wt-state">
+					@gui.StatusOf(d.State)
+					if d.Reason != "" {
+						<span class="wt-reason">{ d.Reason }</span>
+					}
+				</dd>
+				for _, row := range d.Identity {
+					<dt>{ row.Label }</dt>
+					<dd>
+						if row.URL != "" {
+							<a href={ templ.SafeURL(row.URL) }>{ row.Value }</a>
+						} else if row.Code {
+							<code class="w-code">{ row.Value }</code>
+						} else {
+							{ row.Value }
+						}
+					</dd>
+				}
+			</dl>
+		</div>
+		<details class="w-card w-card--fold" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "watchers.detail.files") }</span><span class="w-fold__meta">{ d.FilesCount }</span></summary>
+			<div class="w-card__body">
+				<p class="wt-lead">{ d.FilesText }</p>
+				if len(d.Files) == 0 {
+					<p class="wt-note">{ gui.T(ctx, "watchers.detail.files_none") }</p>
+				} else {
+					<div class="w-table-wrap">
+						<table class="w-table">
+							<caption class="visually-hidden">{ gui.T(ctx, "watchers.detail.files") }</caption>
+							<thead>
+								<tr>
+									<th scope="col">{ gui.T(ctx, "watchers.detail.col.file") }</th>
+									<th scope="col">{ gui.T(ctx, "watchers.detail.col.date") }</th>
+									<th scope="col">{ gui.T(ctx, "watchers.detail.col.time") }</th>
+									<th scope="col">{ gui.T(ctx, "watchers.detail.col.state") }</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, f := range d.Files {
+									<tr>
+										<td><a class="w-cell-title w-mono" href={ templ.SafeURL(f.URL) }>{ f.Name }</a></td>
+										<td class="w-nowrap">{ f.Date }</td>
+										<td class="w-nowrap w-num">{ f.Time }</td>
+										<td>@gui.StatusOf(f.Status)</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+				<div class="w-card__foot">
+					<a class="w-btn w-btn--outline-dark w-btn--sm" href={ templ.SafeURL(d.TransfersURL) }>
+						@gui.Icon("list")
+						{ gui.T(ctx, "watchers.detail.files_link") }
+					</a>
+				</div>
+			</div>
+		</details>
+	</div>
+}
+
+// deleteView: confirmation page of the deletion of a watcher (decision D10:
+// a page, not a dialog), "Cancel" then "Delete" bottom right (D12).
+templ deleteView(d deleteData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ " " + gui.T(ctx, "watchers.back") }
+			</a>
+		</div>
+	</div>
+	<div class="w-card">
+		<p class="wt-lead">{ gui.T(ctx, "watchers.delete.text") }</p>
+		<dl class="w-deflist">
+			<dt>{ gui.T(ctx, "watchers.col.name") }</dt>
+			<dd><code class="w-code">{ d.Name }</code></dd>
+			<dt>{ gui.T(ctx, "watchers.col.partner") }</dt>
+			<dd>{ d.Partner }</dd>
+			<dt>{ gui.T(ctx, "watchers.col.rule") }</dt>
+			<dd>{ d.Rule }</dd>
+			<dt>{ gui.T(ctx, "watchers.col.pattern") }</dt>
+			<dd><code class="w-code">{ d.Pattern }</code></dd>
+			<dt>{ gui.T(ctx, "watchers.col.interval") }</dt>
+			<dd>{ d.Interval }</dd>
+		</dl>
+		<p class="wt-note">{ gui.T(ctx, "watchers.delete.consequence") }</p>
+		<form class="wt-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: d.Title})</form>
+	</div>
+}
+
+// notFoundView: a watcher that does not exist: localised 404 in the chrome,
+// with the way back to the list as the user left it.
+templ notFoundView(d notFoundData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ d.Title }</h1>
+		</div>
+	</div>
+	@gui.Empty(gui.EmptyProps{Icon: "eye", Title: d.Text, Action: &gui.Link{Label: d.BackLabel, URL: d.BackURL, Icon: "arrow-left"}})
+}

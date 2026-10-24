@@ -222,6 +222,14 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/rules/2/tasks/post/new?type=TRANSFER"},
 		{path: "/webui/rules/2/tasks/pre/0/edit"},
 		{path: "/webui/rules/2/tasks/pre/0/delete"},
+		// The partner watchers: the list (the state of the service of each
+		// one), the sheet of the watcher of the SFTP partner (no file received
+		// yet), the pages that add, edit and delete it.
+		{path: "/webui/watchers", tables: 1},
+		{path: "/webui/watchers/1"},
+		{path: "/webui/watchers/new"},
+		{path: "/webui/watchers/1/edit"},
+		{path: "/webui/watchers/1/delete"},
 		// The cryptographic keys (#735): the list, the sheet of the AES key
 		// (the rule whose tasks use it: a table), the sheet of the PGP public
 		// key, the pages that add and edit one, the deletion refused for the
@@ -274,6 +282,31 @@ func e2eScreens() []e2eScreen {
 // failed transfer with its transfer information, a running one and a planned
 // one, and a done entry of the history. The screens are visited by
 // identifier.
+// insertE2EWatchers inserts a watcher of the SFTP partner: its account
+// "gateway-prod", the SFTP client, the receive rule "pull-archive", every
+// hour. Its service is not started: the list shows it stopped; a run from
+// the list reaches the partner, which does not answer. The screens are
+// visited by identifier.
+func insertE2EWatchers(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	var account model.RemoteAccount
+	require.NoError(t, db.Get(&account, "login=?", "gateway-prod").Run())
+
+	var client model.Client
+	require.NoError(t, db.Get(&client, "name=?", "cli-sftp").Run())
+
+	var rule model.Rule
+	require.NoError(t, db.Get(&rule, "name=? AND is_send=?", "pull-archive", false).Run())
+
+	watcher := &model.FileWatcher{
+		Flow: "releves-banque", Pattern: "*.csv", Interval: time.Hour,
+		RemoteAccount: account, Client: client, Rule: rule,
+	}
+	require.NoError(t, db.Insert(watcher).Run())
+	require.EqualValues(t, 1, watcher.ID, "the screens are visited by identifier")
+}
+
 func insertE2ETransfers(t *testing.T, db *database.DB) {
 	t.Helper()
 
@@ -828,6 +861,7 @@ func startE2EServer(t *testing.T) string {
 	insertE2ESMTP(t, db)
 	insertE2EEmailTemplates(t, db)
 	insertE2ETransfers(t, db)
+	insertE2EWatchers(t, db)
 
 	// The gateway runs as a node of a cluster, with its own override file
 	// and one address indirection (#730).
@@ -1476,5 +1510,25 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		toast, err := page.Locator(".w-toast--ok").TextContent()
 		require.NoError(t, err)
 		assert.Regexp(t, `(?i)\bvalide?\b`, toast, "the file is valid, in the language of the session")
+	})
+
+	// The partner watchers: a run from the row menu comes back to the list
+	// with its notification. The partner of the smoke test does not answer:
+	// the run fails and the notification says why; a run that passes (no
+	// new file) is reported too, not judged.
+	t.Run("a run of a partner watcher reports its result", func(t *testing.T) {
+		session.visit(t, "/webui/watchers")
+
+		require.NoError(t, page.Locator(`button[popovertarget="act-1"]`).Click())
+		require.NoError(t, page.Locator(`#act-1 form[action*="/fire"] button`).Click())
+		require.NoError(t, page.Locator(".w-toast--ok, .w-toast--ko").First().WaitFor())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/watchers?")+".*(done=fired|failed=fire)")))
+		require.NoError(t, session.tracker.settle())
+
+		toast, err := page.Locator(".w-toast--ok, .w-toast--ko").First().TextContent()
+		require.NoError(t, err)
+		t.Logf("run of the watcher: %s", strings.Join(strings.Fields(toast), " "))
+		assert.Contains(t, toast, "releves-banque", "the notification names the watcher")
 	})
 }

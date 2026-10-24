@@ -11,6 +11,7 @@ nav:
   partners: Remote partners
   treatments: Processing
   rules: Transfer rules
+  watchers: Partner watchers
   keys: Cryptographic keys
   smtp: SMTP credentials
   email_templates: Email templates
@@ -601,6 +602,7 @@ home:
     clients: Outgoing identities towards the partners
     partners: Remote servers and their accounts
     rules: Direction, paths and processing
+    watchers: Partner folders polled at a regular interval
     keys: Encryption and signature for the tasks
     smtp: Sending accounts of the EMAIL task
     email_templates: Message templates of the EMAIL task
@@ -1624,6 +1626,152 @@ overrides:
     text: "An internal error occurred; the details are in the log of the gateway."
 
 # "Cryptographic keys" screen (#735): the keys of the encryption and signature tasks.
+# "Partner watchers" screen (Treatments).
+watchers:
+  title: Partner watchers
+  add: Add a watcher
+  search: Search a watcher by its name
+  search_placeholder: Search by name
+  filters_partner: Partners
+  filters_state: States
+  count: "{total} watchers"
+  count_one: 1 watcher
+  count_shown: "{total} watchers · {shown} shown"
+  count_shown_one: "{total} watchers · 1 shown"
+  caption: "Partner watchers, page {page} of {pages}, sorted by {sort}"
+  pager: "Watchers {from} to {to} of {total}"
+  back: Back to the list
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    partner: partner
+    rule: rule
+  col:
+    name: Watcher
+    partner: Partner · account
+    client: Client
+    rule: Rule
+    pattern: Pattern
+    interval: Interval
+    state: State
+    actions: Actions
+  # The state of the service of the watcher, in the list and in the filter.
+  state:
+    running: Running
+    stopped: Stopped
+    error: Error
+  # The interval in days, hours and minutes ("1 h 30 min").
+  interval:
+    never: Never
+    days: "{n} d"
+    hours: "{n} h"
+    minutes: "{n} min"
+  action:
+    detail: View the sheet
+    start: Start
+    stop: Stop
+    fire: Run once
+    edit: Edit
+    delete: Delete
+  detail:
+    title: "Watcher “{name}”"
+    card: Watcher
+    state: State of the service
+    partner: Partner · account
+    client: Client
+    rule: Receive rule
+    pattern: Pattern
+    interval: Interval
+    skip: Files already transferred skipped
+    enabled: Started with the gateway
+    yes: "Yes"
+    "no": "No"
+    files: Files received
+    files_count: "{n} files"
+    files_count_one: 1 file
+    files_none_short: None
+    files_text: "The last {n} receive transfers of this rule for this partner and this account, the latest first."
+    files_none: No file received yet.
+    files_link: See every transfer
+    col:
+      file: File
+      date: Date
+      time: Time
+      state: State
+  none:
+    title: "No watcher matches “{query}”"
+    filters: No watcher matches the filters
+  empty:
+    title: No watcher yet
+    text: A watcher polls a folder of a partner at a regular interval and creates a receive transfer for each file found.
+  error:
+    title: The list of the watchers could not be loaded.
+    text: "Try again in a moment; if the error persists, see the log of the gateway."
+  not_found:
+    title: Watcher not found
+    text: This watcher does not exist or has been deleted.
+  new:
+    title: New partner watcher
+  edit:
+    title: "Edit “{name}”"
+  form:
+    card_identity: Watcher
+    card_partner: Partner
+    card_rule: Rule
+    name: Name
+    name_hint: "Unique; the name designates the watcher in the list, the log and the API."
+    pattern: Pattern
+    pattern_hint: "The files of the folder whose name matches the pattern, with * and ? as wildcards; empty, every file."
+    interval: Interval
+    interval_hint: The time between two polls of the folder, one minute at least.
+    unit: Unit of the interval
+    unit_minutes: minutes
+    unit_hours: hours
+    skip: Skip the files already transferred
+    enabled: Start with the gateway
+    enabled_hint: "Unticked, the watcher is saved stopped; it starts from the list."
+    protocol: Protocol
+    protocol_hint: "The protocols that know how to list a folder at the partner. PeSIT, HTTP and AS2 do not: their partners cannot be watched."
+    no_accounts_proto: "No {protocol} partner has a remote account. Add the partner and its account first."
+    no_clients_proto: "No {protocol} client. Add a client of that protocol first."
+    account: Remote account
+    account_hint: "The account the gateway connects with at the partner, by partner."
+    client: Local client
+    client_hint: The client of the gateway, of the protocol of the partner.
+    rule: Receive rule
+    rule_hint: The rule under which each file found is received.
+    choose: Choose
+    no_accounts_title: No partner can be watched
+    no_accounts_text: "A watcher needs a remote account at a partner whose protocol lists folders (SFTP, FTP, R66, WebDAV). Add that partner and its account first."
+    edit_note: A running watcher starts again on its new configuration as soon as it is saved.
+    refused: The watcher has not been saved.
+    refused_text: Correct the fields reported below.
+    error:
+      required: This field is required.
+      name_taken: Another watcher already has this name. Choose another one.
+      interval: Give an interval of one minute at least, as a whole number.
+      pattern: "This pattern is not valid: use * and ? as wildcards, [ ] for a set of characters."
+      protocol: Choose a protocol that knows how to list a folder.
+      account: Choose a remote account.
+      account_protocol: The account must be one of a partner of the chosen protocol.
+      client: Choose a client whose protocol lists folders.
+      client_protocol: The client must be of the protocol of the partner.
+      rule: Choose a receive rule.
+  delete:
+    title: "Delete the watcher “{name}”?"
+    text: The watcher stops and leaves the list.
+    consequence: "The transfers already created stay; none will be created for this folder any more."
+  toast:
+    created: "Watcher “{name}” created"
+    updated: "Watcher “{name}” saved"
+    deleted: "Watcher “{name}” deleted"
+    started: "Watcher “{name}” started"
+    stopped: "Watcher “{name}” stopped"
+    fired: "Run of “{name}” done: {count} transfers created"
+    fired_one: "Run of “{name}” done: 1 transfer created"
+    fired_none: "Run of “{name}” done: no new file"
+    fire_failed: "The run of “{name}” failed."
+
 keys:
   title: Cryptographic keys
   add: Add a key
