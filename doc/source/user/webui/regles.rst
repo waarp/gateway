@@ -81,8 +81,8 @@ La liste
      - Le menu « ⋯ » de la ligne (voir ci-dessous).
 
 Les colonnes *Règle*, *Sens* et *Chemin* se trient d'un clic sur leur en-tête
-(par défaut, le nom croissant). La recherche filtre les règles dont le nom ou
-le chemin contient le texte saisi ; le bouton *Filtres* ouvre les cases des
+(par défaut, le nom croissant). La recherche filtre les règles par leur nom ou
+leur chemin (:ref:`règle commune <user-webui-search>`) ; le bouton *Filtres* ouvre les cases des
 sens, appliquées dès qu'elles changent, et *Réinitialiser* revient à la liste
 complète. Le pied de liste permet de changer de page et de choisir le nombre
 de lignes par page. La recherche, les filtres, le tri et la page sont portés

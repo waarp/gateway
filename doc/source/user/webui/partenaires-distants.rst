@@ -43,8 +43,8 @@ La liste
      - Le menu « ⋯ » de la ligne (voir ci-dessous).
 
 Les quatre colonnes se trient d'un clic sur leur en-tête (par défaut, le nom
-croissant). La recherche filtre les partenaires dont le nom commence par le
-texte saisi et propose les noms existants ; le bouton *Filtres* ouvre les familles de protocole, en boutons joints dont plusieurs peuvent être
+croissant). La recherche filtre les partenaires par leur nom (:ref:`règle commune
+<user-webui-search>`) et propose les noms existants ; le bouton *Filtres* ouvre les familles de protocole, en boutons joints dont plusieurs peuvent être
 choisis, et le choix *Tous*, *Avec TLS* ou *Sans TLS*, sur une seule ligne
 quand la largeur le permet, appliqués dès qu'ils changent, sans recharger la page (la liste se met
 à jour en place et l'adresse suit), et *Réinitialiser* revient à la liste complète. Le compteur,

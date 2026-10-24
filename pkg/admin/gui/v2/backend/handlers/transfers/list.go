@@ -151,7 +151,7 @@ func (h *Handlers) selectQuery(q *liststate.Query, crit *filters, status types.T
 	query := internal.StartTransferQuery(h.db, sortExpression(q.Sort), q.Dir == liststate.DirAsc)
 
 	if q.Q != "" {
-		query.Search(q.Q)
+		query.Search(q.Search.Like(internal.LikeEscape), q.Q)
 	}
 
 	if status != "" {

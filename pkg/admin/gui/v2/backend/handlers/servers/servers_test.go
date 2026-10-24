@@ -288,7 +288,7 @@ func TestList(t *testing.T) {
 		// One coloured action, the search with its suggestions, thirteen protocol filters, the count.
 		assert.Equal(t, 1, strings.Count(body, "w-btn--primary"))
 		assert.Contains(t, body, `class="w-btn w-btn--primary" href="/webui/servers/new">`)
-		assert.Contains(t, body, `<input type="search" name="q" value="" placeholder="Rechercher par nom" list="servers-names"`)
+		assert.Contains(t, body, `<input type="search" name="q" value="" placeholder="Rechercher par nom" title=`)
 		assert.Contains(t, body, `<option value="srv-pesit-01"></option><option value="srv-r66-01"></option><option value="srv-sftp-01"></option>`)
 		assert.Equal(t, 7, strings.Count(body, `type="checkbox" name="protocol"`), "seven families")
 		assert.Contains(t, body, `<input type="radio" name="tls" value="" checked>`, "all, with and without TLS")
@@ -408,11 +408,19 @@ func TestList(t *testing.T) {
 		s.fixtures(t)
 
 		body := s.get(t, permAll, "/webui/servers?q=SRV-s").Body.String()
-		assert.Equal(t, 1, rows(body), "the search is a case-insensitive prefix")
+		assert.Equal(t, 1, rows(body), "the search is case-insensitive")
 		assert.Contains(t, body, "srv-sftp-01")
 		assert.Contains(t, body, `aria-live="polite">3 serveurs · 1 affiché</span>`)
 		assert.Contains(t, body, `<input type="search" name="q" value="SRV-s"`)
 		assert.Contains(t, body, `href="/webui/servers?q=SRV-s&amp;sort=state&amp;dir=asc"`, "the sort links keep the search")
+
+		body = s.get(t, permAll, "/webui/servers?q=ftp-0").Body.String()
+		assert.Equal(t, 1, rows(body), "the search matches anywhere in the name")
+		assert.Contains(t, body, "srv-sftp-01")
+
+		body = s.get(t, permAll, "/webui/servers?q=%5Esrv-s*01%24").Body.String()
+		assert.Equal(t, 1, rows(body), "the wildcards and the anchors")
+		assert.Contains(t, body, "srv-sftp-01")
 
 		body = s.get(t, permAll, "/webui/servers?protocol=sftp&protocol=pesit").Body.String()
 		assert.Equal(t, 2, rows(body))

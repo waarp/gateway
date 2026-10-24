@@ -142,6 +142,9 @@ func (s *suite) fixtures(t *testing.T) {
 	s.cancelled = &model.HistoryEntry{
 		Identifier: model.ID(1002), RemoteTransferID: "r-1002", IsSend: true, Rule: "releves", Account: "prod", Agent: "banque-demo",
 		Client: "cli-sftp", Protocol: "sftp", SrcFilename: "virements.xml", DestFilename: "virements.xml",
+		// A sending: the list shows the remote path, equal to the name; the
+		// search knows the local path too.
+		LocalPath: "/data/out/virements.xml", RemotePath: "virements.xml",
 		Filesize: model.UnknownSize, Start: at(10, 12, 40), Stop: at(10, 13, 2), Status: types.StatusCancelled,
 	}
 
@@ -362,6 +365,20 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `<span>Tous</span> <span class="tf-count">1</span>`, "the states count what the search finds")
 		assert.Contains(t, body, `<span>En erreur</span> <span class="tf-count">0</span>`,
 			"no error shape without a failed transfer")
+
+		body = s.get(t, permRead, "/webui/transfers?full=1&q=PAIE*XML").Body.String()
+		assert.Equal(t, 1, rows(body), "by wildcards, case aside")
+		assert.Contains(t, body, "<bdi>paie-octobre.xml</bdi></a>")
+
+		body = s.get(t, permRead, "/webui/transfers?full=1&q=%5Epaie-octobre.xml%24").Body.String()
+		assert.Equal(t, 1, rows(body), "anchored at both ends")
+
+		body = s.get(t, permRead, "/webui/transfers?full=1&q=data/out").Body.String()
+		assert.Equal(t, 1, rows(body), "by a part of the local path")
+		assert.Contains(t, body, "<bdi>virements.xml</bdi></a>")
+
+		body = s.get(t, permRead, "/webui/transfers?full=1&q=%5Eoctobre").Body.String()
+		assert.Contains(t, body, "Aucun transfert ne correspond à « ^octobre »", "anchored at the beginning")
 
 		body = s.get(t, permRead, "/webui/transfers?full=1&q=2112951385528143872").Body.String()
 		assert.Equal(t, 1, rows(body), "by the follow ID")
@@ -754,7 +771,7 @@ func TestForms(t *testing.T) {
 
 		rec = s.post(t, permWrite, "/webui/transfers/new?ret=state%3Dplanned", url.Values{
 			fieldFile: {"sortie/releve.pdf"}, fieldRule: {strconv.FormatInt(s.send.ID, 10)},
-			fieldAccount: {strconv.FormatInt(s.prod.ID, 10)},
+			fieldAccount:  {strconv.FormatInt(s.prod.ID, 10)},
 			fieldInfoName: {"lot", "", " flux "}, fieldInfoValue: {"B", "", "paie"},
 			fieldTries: {"3"}, fieldDelay: {"60"}, fieldFactor: {"1,5"},
 		})

@@ -81,6 +81,40 @@ Le lien « Aller au contenu », premier élément atteint par la touche
 :kbd:`Tab`, mène directement au contenu de l'écran.
 
 
+.. _user-webui-search:
+
+Recherche dans les listes
+=========================
+
+Le champ de recherche d'une liste cherche le texte saisi n'importe où dans le
+nom, l'identifiant ou l'adresse qu'il indique, majuscules, minuscules et
+accents confondus : « prod » trouve « Banque-PROD » comme « production ».
+Quatre caractères ont un sens particulier.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Caractère
+     - Effet
+   * - ``*``
+     - Remplace un texte quelconque, même vide : ``sftp*prod`` trouve
+       « sftp-banque-prod ».
+   * - ``?``
+     - Remplace un caractère, exactement un : ``v?rements`` trouve
+       « virements ».
+   * - ``^``
+     - En tête, cale la recherche au début : ``^srv`` trouve les noms qui
+       commencent par « srv ».
+   * - ``$``
+     - En queue, cale la recherche à la fin : ``prod$`` trouve les noms qui
+       finissent par « prod ».
+
+Dans le suivi des transferts, la recherche porte sur le nom et le chemin du
+fichier, tels que la liste les affiche, majuscules et minuscules confondues
+mais accents compris, et sur l'identifiant de suivi, exact.
+
+
 Pages de création et de modification
 ====================================
 

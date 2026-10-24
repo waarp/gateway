@@ -44,8 +44,8 @@ La liste
        d'écriture), le supprimer (droit de suppression).
 
 Les colonnes *Modèle* et *Objet* se trient d'un clic sur leur en-tête (par
-défaut, le nom croissant). La recherche filtre les modèles dont le nom commence
-par le texte saisi et propose les noms existants. Le pied de liste permet de
+défaut, le nom croissant). La recherche filtre les modèles par leur nom
+(:ref:`règle commune <user-webui-search>`) et propose les noms existants. Le pied de liste permet de
 changer de page et de choisir le nombre de lignes par page. La recherche, le
 tri et la page sont conservés pour la durée de la session du navigateur, comme
 pour les autres listes.

@@ -75,7 +75,7 @@ templ table(d listData) {
 				for _, h := range liststate.SortedHidden(d.List.Hidden) {
 					<input type="hidden" name={ h.Name } value={ h.Value }/>
 				}
-				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "auth.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.List.Q } placeholder={ gui.T(ctx, "auth.search_placeholder") } list="auth-names" autocomplete="off"/></label>
+				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "auth.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.List.Q } placeholder={ gui.T(ctx, "auth.search_placeholder") } title={ gui.T(ctx, "lists.search_hint") } list="auth-names" autocomplete="off"/></label>
 				<datalist id="auth-names">
 					for _, n := range d.List.Names {
 						<option value={ n }></option>
