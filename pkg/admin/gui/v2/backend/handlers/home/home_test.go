@@ -61,7 +61,7 @@ func TestHomePage(t *testing.T) {
 		assert.NotContains(t, body, "w-btn--primary", "no action")
 		assert.Contains(t, body, `<a href="/webui/about" data-dialog="w-about">`, "the About entry opens the dialog")
 		assert.Contains(t, body, `<dialog class="w-dialog w-dialog--wide" id="w-about"`)
-		assert.Contains(t, body, `href="https://doc.waarp.org/waarp-gateway/latest/fr/" aria-label="Documentation"`)
+		assert.Contains(t, body, `href="https://doc.waarp.org/waarp-gateway/latest/fr/" target="_blank" rel="noopener" aria-label="Documentation (nouvel onglet)"`)
 		assert.NotContains(t, body, "¿")
 	})
 
