@@ -13,6 +13,7 @@ package partners
 
 import (
 	"cmp"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -582,6 +583,7 @@ func formStylesheets() []string { return []string{protoStylesheet, means.Stylesh
 // one, named after the protocol, on the first transfer).
 type clientCard struct {
 	Text   string
+	Meta   string     // the summary of the folded card: the client, or how many
 	Links  []gui.Link // the clients of the protocol, linked to their sheet
 	AddURL string     // "Add a client", when there is none and the user may
 }
@@ -600,40 +602,149 @@ func clientCardOf(translate gui.Translator, e entry, clients []*model.Client, ca
 	switch len(clients) {
 	case 0:
 		card.Text = translate("partners.client.none", "protocol", family, "name", e.agent.Protocol)
+		card.Meta = translate("partners.client.meta_none")
+
 		if canAdd {
 			card.AddURL = common.WebuiURL("/clients/new")
 		}
 	case 1:
 		card.Text = translate("partners.client.one", "name", clients[0].Name)
+		card.Meta = clients[0].Name
 	default:
 		card.Text = translate("partners.client.many", "n", len(clients), "protocol", family)
+		card.Meta = translate("partners.client.meta_many", "n", len(clients))
 	}
 
 	return card
 }
 
-// rulesCard lists the transfer rules the partner may use: every rule, or
-// the ones that name it in their accesses; the accesses are managed on the
-// rules screen.
+// rulesCard lists the transfer rules reserved to the partner (the accesses
+// that name it, or one of its accounts) and counts the rules without any
+// restriction, which every partner may use: with hundreds of rules, the
+// sheet names what is the partner's, not everything it may use. The
+// accesses are managed on the rules screen.
 type rulesCard struct {
-	All   bool
-	Rules []string
-	URL   string
+	Reserved []ruleRow
+	Open     int    // the rules without any restriction
+	Total    int    // the rules of the gateway
+	Meta     string // the summary of the folded card
+	URL      string
 }
 
-func rulesCardOf(translate gui.Translator, rules []*model.Rule, total uint64) rulesCard {
-	card := rulesCard{All: uint64(len(rules)) == total, URL: rulesURL()}
+// ruleRow is a rule reserved to the partner: its name, its direction and
+// who the access was granted to (the partner, or one of its accounts).
+type ruleRow struct {
+	Name      string
+	Direction string
+	Via       string
+	URL       string
+}
 
-	for _, rule := range rules {
-		direction := translate("partners.detail.rule_receive")
-		if rule.IsSend {
-			direction = translate("partners.detail.rule_send")
+// reservedRule is a rule with an access that names the partner (via "") or
+// one of its accounts (via the login).
+type reservedRule struct {
+	rule *model.Rule
+	via  string
+}
+
+func rulesCardOf(translate gui.Translator, reserved []reservedRule, open, total int) rulesCard {
+	card := rulesCard{Open: open, Total: total, URL: rulesURL()}
+
+	for _, r := range reserved {
+		row := ruleRow{
+			Name:      r.rule.Name,
+			Direction: translate("partners.detail.rule_receive"),
+			Via:       translate("partners.detail.rule_via_partner"),
+			URL:       common.WebuiURL(rulesPath + "/" + strconv.FormatInt(r.rule.ID, 10)),
 		}
 
-		card.Rules = append(card.Rules, rule.Name+" ("+direction+")")
+		if r.rule.IsSend {
+			row.Direction = translate("partners.detail.rule_send")
+		}
+
+		if r.via != "" {
+			row.Via = translate("partners.detail.rule_via_account", "login", r.via)
+		}
+
+		card.Reserved = append(card.Reserved, row)
 	}
 
+	card.Meta = translate("partners.detail.rules_meta", "reserved", len(reserved), "open", open)
+
 	return card
+}
+
+// reservedRules reads the rules whose accesses name the partner or one of
+// its accounts, by name; an access to the partner wins over one to an
+// account.
+func (h *Handlers) reservedRules(agentID int64) ([]reservedRule, error) {
+	var accounts model.RemoteAccounts
+	if err := h.db.Select(&accounts).Where("remote_agent_id=?", agentID).Run(); err != nil {
+		return nil, fmt.Errorf("failed to list the accounts of the partner: %w", err)
+	}
+
+	logins := make(map[int64]string, len(accounts))
+	ids := make([]int64, 0, len(accounts))
+
+	for _, a := range accounts {
+		logins[a.ID] = a.Login
+		ids = append(ids, a.ID)
+	}
+
+	var accesses model.Slice[*model.RuleAccess]
+
+	query := h.db.Select(&accesses).Where("remote_agent_id=?", agentID)
+	if len(ids) > 0 {
+		query = h.db.Select(&accesses).Where("remote_agent_id=? OR remote_account_id IN ?", agentID, ids)
+	}
+
+	if err := query.Run(); err != nil {
+		return nil, fmt.Errorf("failed to list the accesses of the partner: %w", err)
+	}
+
+	via := map[int64]string{}
+
+	for _, a := range accesses {
+		if a.RemoteAgentID.Valid {
+			via[a.RuleID] = ""
+		} else if _, done := via[a.RuleID]; !done {
+			via[a.RuleID] = logins[a.RemoteAccountID.Int64]
+		}
+	}
+
+	if len(via) == 0 {
+		return nil, nil
+	}
+
+	ruleIDs := make([]any, 0, len(via))
+	for id := range via {
+		ruleIDs = append(ruleIDs, id)
+	}
+
+	var rules model.Rules
+	if err := h.db.Select(&rules).In("id", ruleIDs...).OrderBy("name", true).Run(); err != nil {
+		return nil, fmt.Errorf("failed to list the rules of the partner: %w", err)
+	}
+
+	reserved := make([]reservedRule, 0, len(rules))
+	for _, rule := range rules {
+		reserved = append(reserved, reservedRule{rule: rule, via: via[rule.ID]})
+	}
+
+	return reserved, nil
+}
+
+// openRules counts the rules without any access restriction: every partner
+// may use them.
+func (h *Handlers) openRules() (int, error) {
+	open := fmt.Sprintf("(SELECT COUNT(*) FROM %s WHERE rule_id = %s.id) = 0", model.TableRuleAccesses, model.TableRules)
+
+	n, err := h.db.Count(&model.Rule{}).Where(open).Run()
+	if err != nil {
+		return 0, fmt.Errorf("failed to count the open rules: %w", err)
+	}
+
+	return int(n), nil
 }
 
 type detailData struct {
@@ -668,9 +779,17 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rules, err := ptn.agent.GetAuthorizedRules(h.db)
+	reserved, err := h.reservedRules(ptn.agent.ID)
 	if err != nil {
-		h.logger.Errorf("failed to list the rules of the partner %d: %v", ptn.agent.ID, err)
+		h.logger.Errorf("partner %d: %v", ptn.agent.ID, err)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+
+		return
+	}
+
+	open, err := h.openRules()
+	if err != nil {
+		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
 		return
@@ -707,7 +826,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 			{Label: translate("partners.detail.accounts"), Value: ptn.accountsText(translate)},
 		},
 		Client:  clientCardOf(translate, ptn, clients, canAddClient),
-		Rules:   rulesCardOf(translate, rules, total),
+		Rules:   rulesCardOf(translate, reserved, open, int(total)),
 		Options: protoform.Rows(translate, protoform.RolePartner, ptn.proto, ptn.agent.ProtoConfig),
 	}
 

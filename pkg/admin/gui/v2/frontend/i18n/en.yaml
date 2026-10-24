@@ -715,14 +715,25 @@ partners:
     address: Address
     accounts: Remote accounts
     rules_title: Authorized transfer rules
-    rules_all: Every transfer rule of the gateway.
-    rules_none: No rule authorizes it for now.
+    rules_reserved_none: No rule is reserved to it.
+    rules_open: "It may also use the {n} rules without any restriction, as any partner."
+    rules_open_one: "It may also use the rule without any restriction, as any partner."
+    rules_open_all: "Every rule of the gateway ({n}) is without restriction: it may use them, as any partner."
+    rules_open_none: No rule without restriction.
+    rules_meta: "{reserved} reserved · {open} unrestricted"
     rules_hint: "The accesses to the rules are managed on the transfer rules screen."
     rules_link: See the transfer rules
+    rule_col_name: Rule
+    rule_col_dir: Direction
+    rule_col_via: Granted to
+    rule_via_partner: The partner
+    rule_via_account: "The account “{login}”"
     rule_send: send
     rule_receive: receive
   client:
     title: Client used
+    meta_none: None
+    meta_many: "{n} clients"
     one: "Transfers to this partner go through the client \"{name}\"."
     many: "{n} {protocol} clients exist: each transfer to this partner must name its own."
     none: "No {protocol} client: the gateway will create one, named \"{name}\", on the first transfer."

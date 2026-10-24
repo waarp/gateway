@@ -312,7 +312,13 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Comptes distants</dt><dd>2</dd>")
 		assert.Contains(t, body, "Les transferts vers ce partenaire passent par le client « cli-sftp »")
 		assert.Contains(t, body, `href="/webui/clients/`+strconv.FormatInt(s.cliSFTP.ID, 10)+`">cli-sftp</a>`)
-		assert.Contains(t, body, "Toutes les règles de transfert de la passerelle.", "the restricted rule names it: every rule")
+		assert.Contains(t, body, `<td><a class="w-cell-title" href="/webui/rules/`+strconv.FormatInt(s.receive.ID, 10)+`">reception</a></td><td>réception</td><td>Au partenaire</td>`,
+			"the rule reserved to the partner, with its direction and who it was granted to")
+		assert.NotContains(t, body, ">envoi</a>", "the open rule is not listed: it is summarised")
+		assert.Contains(t, body, "Il peut aussi utiliser la règle sans restriction, comme tout partenaire.")
+		assert.Contains(t, body, `<span class="w-fold__meta">1 réservées · 1 sans restriction</span>`)
+		assert.Contains(t, body, `<span class="w-fold__meta">cli-sftp</span>`, "the client card folds, its summary names the client")
+		assert.Equal(t, 3, strings.Count(body, `<details class="w-card w-card--fold" open>`), "every card but the first folds")
 		assert.Contains(t, body, "<dt>Lire la taille du fichier avant de le recevoir</dt><dd>Activé</dd>")
 		assert.Contains(t, body, "<dt>Lecture parallèle</dt><dd>Activé</dd>", "an absent flag reads as the product default")
 		assert.Contains(t, body, `<span class="w-tabs__count">2</span>`, "the accounts tab counts them")
@@ -327,12 +333,28 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "2 clients R66 existent : chaque transfert vers ce partenaire doit nommer le sien.")
 		assert.Contains(t, body, ">cli-r66-a</a>")
 		assert.Contains(t, body, ">cli-r66-b</a>")
-		assert.Contains(t, body, "<li>envoi (envoi)</li>", "the open rule only: the other one names the SFTP partner")
-		assert.NotContains(t, body, "<li>reception")
+		assert.Contains(t, body, "Aucune règle ne lui est réservée.", "the other rule names the SFTP partner")
+		assert.NotContains(t, body, ">reception</a>")
+		assert.Contains(t, body, "Il peut aussi utiliser la règle sans restriction, comme tout partenaire.")
+		assert.Contains(t, body, `<span class="w-fold__meta">2 clients</span>`)
 		assert.Contains(t, body, "<dt>Identifiant présenté par le serveur</dt><dd><code class=\"w-code\">waarp</code></dd>")
 		assert.Contains(t, body, "<dt>Version TLS minimale</dt><dd>TLS 1.2</dd>")
 		assert.NotContains(t, body, "legacy-secret", "the deprecated password never shows")
 		assert.Contains(t, body, "Supprimer le partenaire")
+	})
+
+	t.Run("a rule granted to one of the accounts", func(t *testing.T) {
+		t.Parallel()
+
+		via := newSuite(t)
+		via.fixtures(t)
+		require.NoError(t, via.db.Insert(&model.RuleAccess{RuleID: via.send.ID, RemoteAccountID: via.test.NullableID()}).Run())
+
+		body := via.get(t, permRead, via.path(via.sftp, "")).Body.String()
+		assert.Contains(t, body, `>envoi</a></td><td>envoi</td><td>Au compte « test »</td>`, "granted through the account")
+		assert.Contains(t, body, `>reception</a></td><td>réception</td><td>Au partenaire</td>`)
+		assert.Contains(t, body, "Aucune règle sans restriction.")
+		assert.Contains(t, body, `<span class="w-fold__meta">2 réservées · 0 sans restriction</span>`)
 	})
 
 	t.Run("no client yet, three-state options", func(t *testing.T) {
