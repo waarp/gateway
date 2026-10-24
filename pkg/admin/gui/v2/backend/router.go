@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/authorities"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clouds"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/emailtemplates"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/keys"
@@ -52,6 +53,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeAuthoritiesRouter(router, db, logger)
 	MakeSNMPRouter(router, db, logger)
 	MakeOverridesRouter(router, db, logger)
+	MakeConfigRouter(router, db, logger)
 	MakeRulesRouter(router, db, logger)
 	MakeKeysRouter(router, db, logger)
 	MakeSMTPCredentialsRouter(router, db, logger)
@@ -343,6 +345,18 @@ func MakeOverridesRouter(router *mux.Router, db *database.DB, logger *log.Logger
 	routes.write("/overrides/new", handlers.NewForm, handlers.Create)
 	routes.write("/overrides/edit", handlers.EditForm, handlers.Update)
 	routes.del("/overrides/delete", handlers.DeleteForm, handlers.Delete)
+}
+
+// MakeConfigRouter registers the "Configuration import and export" screen:
+// the page and the export behind the read right, the import behind the
+// write right, as the REST API asks.
+func MakeConfigRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := config.New(db, logger)
+	routes := adminRoutes{router}
+
+	routes.read("/config", handlers.Page)
+	routes.read("/config/export", handlers.Export)
+	routes.act("/config/import", handlers.Import)
 }
 
 // MakeRulesRouter registers the "Transfer rules" screen, behind the rights on

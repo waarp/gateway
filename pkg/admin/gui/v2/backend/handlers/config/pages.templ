@@ -1,0 +1,113 @@
+package config
+
+import (
+	"code.waarp.fr/lib/gui"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+)
+
+// pageView: the configuration import and export (Administration). One form,
+// three cards: the categories, chosen once for both actions; the export; the
+// import. Presentation only: the handler computes the categories, the
+// formats, the rights, the errors and the messages. Each button names its
+// route: the export is a GET of its own (formaction, formmethod,
+// formnovalidate), the import buttons use the form's POST. One coloured
+// action on the page, "Import" (red "Empty and import" once the reset is
+// asked); the export is an outline button. The reset reveals a warning and a
+// confirmation, the "replace the secrets" option hides the warning on the
+// secrets: both from the state of a checkbox, by the stylesheet (no
+// JavaScript). Without the write right, the import card says what is missing
+// instead of a disabled form. The form is not guarded against leaving
+// (data-noguard): its only unsaved state is a chosen file.
+templ pageView(d pageData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "config.title") }</h1>
+		</div>
+	</div>
+	<form class="w-form cfg-form" method="post" action={ templ.SafeURL(d.ImportURL) } enctype="multipart/form-data" id="cfg-form" data-noguard>
+		<section class="w-card cfg-card cfg-cats" aria-labelledby="cfg-cat-title">
+			<h2 class="w-card__title" id="cfg-cat-title">{ gui.T(ctx, "config.categories_legend") }</h2>
+			<div class={ "w-field", templ.KV("is-invalid", d.CategoriesError != "") }>
+				<div class="cfg-checks">
+					for _, c := range d.Categories {
+						<label class="w-check"><input type="checkbox" id={ "cfg-cat-" + c.Key } name="target" value={ c.Key } checked?={ c.Checked } aria-describedby="cfg-cat-h"/> <span>{ c.Label }</span></label>
+					}
+				</div>
+				@protoform.Message("cfg-cat-h", d.CategoriesError, gui.T(ctx, "config.categories_hint"))
+			</div>
+		</section>
+		<div class="cfg-grid">
+			<section class="w-card cfg-card" aria-labelledby="cfg-export-title">
+				<h2 class="w-card__title" id="cfg-export-title">{ gui.T(ctx, "config.export.title") }</h2>
+				<fieldset class="w-fieldset">
+					<legend class="w-fieldset__legend">{ gui.T(ctx, "config.export.format") }</legend>
+					<div class="w-segmented">
+						for _, f := range d.Formats {
+							<label>
+								<input type="radio" name="format" value={ f.Value } checked?={ f.Selected }/>
+								<span>
+									@gui.Icon("check")
+									{ f.Label }
+								</span>
+							</label>
+						}
+					</div>
+				</fieldset>
+				<div class="w-field cfg-redact">
+					<label class="w-check"><input type="checkbox" name="redact" value="1" id="cfg-redact" checked?={ d.Redact } aria-describedby="cfg-redact-h"/> <span>{ gui.T(ctx, "config.export.redact") }</span></label>
+					@protoform.Message("cfg-redact-h", "", gui.T(ctx, "config.export.redact_hint"))
+				</div>
+				<div class="cfg-secrets">
+					@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "config.export.secrets_title"), Text: gui.T(ctx, "config.export.secrets")})
+				</div>
+				if d.ExportError != "" {
+					@gui.Banner(gui.BannerProps{Kind: "ko", Title: d.ExportError})
+				}
+				<p class="cfg-note">{ gui.T(ctx, "config.export.same_format") }</p>
+				<div class="w-form__actions">
+					<button class="w-btn w-btn--outline-dark" type="submit" formaction={ templ.SafeURL(d.ExportURL) } formmethod="get" formnovalidate id="cfg-export-go">{ gui.T(ctx, "config.export.action") }</button>
+				</div>
+			</section>
+			<section class="w-card cfg-card" aria-labelledby="cfg-import-title">
+				<h2 class="w-card__title" id="cfg-import-title">{ gui.T(ctx, "config.import.title") }</h2>
+				if !d.Write {
+					@gui.Empty(gui.EmptyProps{Icon: "lock", Title: gui.T(ctx, "config.import.no_write")})
+				} else {
+					<div class={ "w-field", templ.KV("is-invalid", d.Import.FileError != "") }>
+						<label class="w-field__label" for="cfg-file">{ gui.T(ctx, "config.import.file") }@protoform.ReqMark(true)</label>
+						@gui.File(gui.FileProps{ID: "cfg-file", Name: "file", Accept: ".json,.yaml,.yml,application/json,application/yaml", Describe: "cfg-file-h"})
+						@protoform.Message("cfg-file-h", d.Import.FileError, gui.T(ctx, "config.import.file_hint"))
+					</div>
+					<p class="cfg-note">{ gui.T(ctx, "config.import.all_or_nothing") }</p>
+					<fieldset class="w-fieldset cfg-options">
+						<legend class="w-fieldset__legend">{ gui.T(ctx, "config.import.options") }</legend>
+						<label class="w-check"><input type="checkbox" name="restart" value="1" checked?={ d.Import.Restart }/> <span>{ gui.T(ctx, "config.import.restart") }</span></label>
+						<div class="cfg-reset">
+							<label class="w-check"><input type="checkbox" name="reset" value="1" id="cfg-reset" checked?={ d.Import.Reset }/> <span>{ gui.T(ctx, "config.import.reset") }</span></label>
+							<div class="cfg-reset__more">
+								@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "config.import.reset_warning_title"), Text: gui.T(ctx, "config.import.reset_warning")})
+								<div class={ "w-field", templ.KV("is-invalid", d.Import.ConfirmError != "") }>
+									<label class="w-check"><input type="checkbox" name="reset_confirm" value="1" id="cfg-reset-confirm" checked?={ d.Import.ResetConfirm } aria-describedby="cfg-confirm-h"/> <span>{ gui.T(ctx, "config.import.reset_confirm") }</span></label>
+									@protoform.Message("cfg-confirm-h", d.Import.ConfirmError, "")
+								</div>
+							</div>
+						</div>
+					</fieldset>
+					if d.Import.Refused != "" {
+						<div class="cfg-refused" role="alert">
+							@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "config.import.refused")})
+							<pre class="cfg-reason"><code>{ d.Import.Refused }</code></pre>
+						</div>
+					}
+					<div class="w-form__actions">
+						<span class="w-form__note"><span class="w-field__req">*</span> { gui.T(ctx, "form.required") }</span>
+						<button class="w-btn w-btn--outline-dark" type="submit" name="action" value="simulate" id="cfg-simulate">{ gui.T(ctx, "config.import.simulate") }</button>
+						<button class="w-btn w-btn--primary cfg-go" type="submit" name="action" value="import" id="cfg-import-go">{ gui.T(ctx, "config.import.action") }</button>
+						<button class="w-btn w-btn--danger cfg-go-reset" type="submit" name="action" value="import" id="cfg-import-reset-go">{ gui.T(ctx, "config.import.reset_action") }</button>
+					</div>
+				}
+			</section>
+		</div>
+	</form>
+}

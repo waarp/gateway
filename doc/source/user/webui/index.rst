@@ -29,6 +29,7 @@ restent décrits par l'interface elle-même.
    autorites
    snmp
    surcharges
+   import-export
    etat-des-services
    suivi-des-transferts
 
@@ -150,7 +151,8 @@ requiert les droits sur les serveurs : lecture pour la liste et le détail,
 supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
 sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les
 utilisateurs, et les écrans :doc:`instances-cloud`, :doc:`autorites`,
-:doc:`snmp`, :doc:`surcharges` et :doc:`cles` les droits sur l'administration ;
+:doc:`snmp`, :doc:`surcharges`, :doc:`import-export` et :doc:`cles` les droits
+sur l'administration ;
 les écrans :doc:`smtp` et :doc:`modeles` requièrent les droits sur les règles,
 comme l'API REST. L'écran :doc:`suivi-des-transferts` requiert les droits sur
 les transferts : lecture pour la liste et la fiche, écriture pour toute
