@@ -639,7 +639,7 @@ func TestActions(t *testing.T) {
 		body := rec.Body.String()
 		indexes(t, body, "Annuler le transfert « releve-20102026.pdf » ?", "passe à l&#39;historique",
 			"releve-20102026.pdf", "En erreur", "releves", "banque-demo",
-			`<a class="w-btn w-btn--outline-dark" href="`+pathOf(s.failed.ID, "")+`">Annuler</a>`,
+			`<a class="w-btn w-btn--outline-dark" href="`+pathOf(s.failed.ID, "")+`" data-leave>Annuler</a>`,
 			`class="w-btn w-btn--danger"`, "Annuler le transfert</button>")
 
 		rec = s.post(t, permWrite, pathOf(s.failed.ID, "/cancel?from=sheet"), nil)
