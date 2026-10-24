@@ -246,7 +246,14 @@ func (h *Handlers) Accounts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	own := owner{srv: srv}
+	if liststate.IsListFragment(r) {
+		h.shell.RenderFragment(w, h.logger, r, accountsFragment(data))
+
+		return
+	}
+
 	screen := h.sheetScreen(translate, data.Title, own, "", carried, 0, notices(translate, r.URL.Query()))
+	screen.Head = gui.LiveAssets()
 	h.shell.Render(w, h.logger, r, screen, accountsView(data))
 }
 

@@ -277,7 +277,8 @@ type listData struct {
 
 // List serves GET /webui/clouds.
 func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
-	if listSpec.Restore(w, r) {
+	fragment := liststate.IsListFragment(r)
+	if !fragment && listSpec.Restore(w, r) {
 		return
 	}
 
@@ -286,10 +287,17 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	screen := h.screen(translate, translate("clouds.title"), "", 0)
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
+	screen.Head = gui.LiveAssets()
 
 	clouds, err := internal.ListClouds(h.db, "name", true, 0, 0)
 	if err != nil {
 		h.logger.Errorf("failed to list the cloud instances: %v", err)
+
+		if fragment {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
 
 		screen.Status = http.StatusInternalServerError
 		h.shell.Render(w, h.logger, r, screen,
@@ -303,7 +311,14 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		entries = append(entries, entryOf(cloud))
 	}
 
-	h.shell.Render(w, h.logger, r, screen, listView(buildList(translate, entries, query, rightsOf(r))))
+	data := buildList(translate, entries, query, rightsOf(r))
+	if fragment {
+		h.shell.RenderFragment(w, h.logger, r, listFragment(data))
+
+		return
+	}
+
+	h.shell.Render(w, h.logger, r, screen, listView(data))
 }
 
 // buildList computes the list page: filter (name prefix, types), sort, page,

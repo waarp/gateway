@@ -46,8 +46,8 @@ Les quatre colonnes se trient d'un clic sur leur en-tête (par défaut, le nom
 croissant). La recherche filtre les partenaires dont le nom commence par le
 texte saisi et propose les noms existants ; le bouton *Filtres* ouvre les familles de protocole, en boutons joints dont plusieurs peuvent être
 choisis, et le choix *Tous*, *Avec TLS* ou *Sans TLS*, sur une seule ligne
-quand la largeur le permet, appliqués dès
-qu'ils changent, et *Réinitialiser* revient à la liste complète. Le compteur,
+quand la largeur le permet, appliqués dès qu'ils changent, sans recharger la page (la liste se met
+à jour en place et l'adresse suit), et *Réinitialiser* revient à la liste complète. Le compteur,
 à droite, indique le nombre de partenaires et, quand une recherche ou un
 filtre est actif, le nombre affiché.
 

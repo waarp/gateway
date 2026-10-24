@@ -255,7 +255,8 @@ type listData struct {
 
 // List serves GET /webui/partners.
 func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
-	if listSpec.Restore(w, r) {
+	fragment := liststate.IsListFragment(r)
+	if !fragment && listSpec.Restore(w, r) {
 		return
 	}
 
@@ -268,6 +269,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, "", ""),
 		Notices: notices(translate, r.URL.Query()),
+		Head:    gui.LiveAssets(),
 
 		Stylesheets: sheetStylesheets(),
 	}
@@ -284,6 +286,12 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Errorf("failed to list the partners: %v", err)
 
+		if fragment {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
 		screen.Status = http.StatusInternalServerError
 		h.shell.Render(w, h.logger, r, screen,
 			listView(listData{Error: true, RetryURL: listSpec.ListURLOf(query.WithPage(query.Page))}))
@@ -296,7 +304,14 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		entries = append(entries, entryOf(agent, counts[agent.ID]))
 	}
 
-	h.shell.Render(w, h.logger, r, screen, listView(buildList(translate, entries, query, rightsOf(r))))
+	data := buildList(translate, entries, query, rightsOf(r))
+	if fragment {
+		h.shell.RenderFragment(w, h.logger, r, listFragment(data))
+
+		return
+	}
+
+	h.shell.Render(w, h.logger, r, screen, listView(data))
 }
 
 // buildList computes the list page: filter (name prefix, protocols), sort,
