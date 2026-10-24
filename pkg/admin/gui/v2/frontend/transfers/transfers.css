@@ -2,12 +2,13 @@
    bar, the sheet and the action pages). Tokens only. */
 
 /* The row of the states (variant A, 2026-10-22): tabs underlined on one line, without a frame, the count in a pill,
-   scrolling sideways on a narrow screen. The state shown has a thick underline and bold text: not the colour alone. */
+   scrolling sideways on a narrow screen. The state shown has a thick underline and bold text: not the colour alone.
+   Every state reads the same way, its label and its count (2026-10-24): the shape of a status stays on the
+   transfers of the list and on the sheet. */
 .tf-states { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: 0 0 var(--sp-3); border-bottom: 1px solid var(--g200); }   /* 12 px: on one line at 1440 px with seven-digit counts (measured: 1 111 px needed for 1 096 at 16 px) */
 .tf-state { display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0; margin-bottom: -1px; border-bottom: 3px solid transparent; color: var(--tp); font-size: var(--fs-body); text-decoration: none; white-space: nowrap; }
 .tf-state:hover { border-bottom-color: var(--g300); }
 .tf-states-wait { width: 40rem; max-width: 100%; height: 1.5rem; margin: var(--sp-2) 0; }   /* the row of the states still read */
-.tf-state .w-status { color: inherit; font-size: inherit; font-weight: inherit; }
 .tf-count { min-width: 1.75rem; padding: 0 var(--sp-2); border-radius: var(--r-full); background: var(--g100); color: var(--g600); font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.5; text-align: center; }
 .tf-state[aria-current="true"] { border-bottom-color: var(--wo-aa); font-weight: 700; }
 .tf-state[aria-current="true"] .tf-count { background: var(--wo-bg); color: var(--wo-aa); }

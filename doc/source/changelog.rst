@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`769` Dans la ligne des états du suivi des transferts, *En erreur* ne
+  porte plus le losange du statut d'erreur : chaque état s'affiche de la même
+  façon, son libellé et son nombre. Le losange reste sur le statut de chaque
+  transfert dans la liste et sur sa fiche.
+
 * :feature:`766` Les filtres et la recherche des listes de l'interface web
   s'appliquent sans recharger la page : serveurs locaux, clients locaux,
   partenaires distants, comptes locaux d'un serveur, comptes distants d'un
