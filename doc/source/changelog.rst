@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`772` La barre latérale de l'interface web, repliée, garde les
+  icônes de ses écrans en une colonne étroite : le libellé s'affiche au
+  survol et au focus, l'écran courant reste marqué, le contenu prend la
+  largeur. Chaque écran a son icône : les identifiants SMTP, l'état des
+  services et SNMP en changent.
+
 * :bug:`768` Dans le suivi des transferts, l'heure *Actualisé à* suit chaque
   lecture de la liste ; elle restait à celle de la première. Les lectures
   périodiques ne sont plus suspendues quand le focus est sur le bouton

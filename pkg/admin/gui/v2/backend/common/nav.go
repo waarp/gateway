@@ -33,7 +33,9 @@ type navGroup struct {
 const navKeyPrefix = "nav."
 
 // navigation is the screen map of the web interface, in the order of the
-// glossary. The screens not reworked yet lead to their historic page.
+// glossary. The screens not reworked yet lead to their historic page. Every
+// screen has an icon of its own: the rail of the collapsed sidebar shows
+// nothing else (#772).
 func navigation() []navGroup {
 	return []navGroup{
 		{section: constants.SidebarSectionConnection, key: "nav.connections", entries: []navEntry{
@@ -44,11 +46,11 @@ func navigation() []navGroup {
 		{section: constants.SidebarSectionTreatments, key: "nav.treatments", entries: []navEntry{
 			{constants.SidebarMenuRules, "list", "nav.rules", "/rules", model.PermRulesRead},
 			{constants.SidebarMenuCryptoKeys, "key", "nav.keys", "/keys", model.PermAdminRead},
-			{constants.SidebarMenuSMTPCreds, "envelope", "nav.smtp", "/smtp", model.PermRulesRead},
+			{constants.SidebarMenuSMTPCreds, "at", "nav.smtp", "/smtp", model.PermRulesRead},
 			{constants.SidebarMenuEmailTemplates, "envelope", "nav.email_templates", "/email-templates", model.PermRulesRead},
 		}},
 		{section: constants.SidebarSectionMonitoring, key: "nav.supervision", entries: []navEntry{
-			{constants.SidebarMenuStatus, "shield", "nav.services", "/services", 0},
+			{constants.SidebarMenuStatus, "pulse", "nav.services", "/services", 0},
 			{constants.SidebarMenuTransfers, "clock", "nav.transfers", "/transfers", model.PermTransfersRead},
 		}},
 		{section: constants.SidebarSectionAdministration, key: "nav.administration", entries: []navEntry{
@@ -58,7 +60,7 @@ func navigation() []navGroup {
 				model.PermAdminRead,
 			},
 			{constants.SidebarMenuClouds, "cloud", "nav.clouds", "/clouds", model.PermAdminRead},
-			{constants.SidebarMenuSNMP, "sliders", "nav.snmp", "/snmp", model.PermAdminRead},
+			{constants.SidebarMenuSNMP, "chart", "nav.snmp", "/snmp", model.PermAdminRead},
 			{
 				constants.SidebarMenuOverrides, "sliders", "nav.overrides", "/overrides",
 				model.PermAdminRead,
