@@ -1,0 +1,133 @@
+package dashboard
+
+import (
+	"strconv"
+
+	"code.waarp.fr/lib/gui"
+)
+
+// page: the dashboard (Monitoring). Presentation only: the handler reads and
+// counts, builds the tiles, the chart and the rows and translates the texts.
+// The body (everything under the page header) is also served alone
+// (?fragment=body) and refreshed in place by dashboard.js; without
+// JavaScript, "Refresh" reloads the page.
+templ page(d pageData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title">{ gui.T(ctx, "dashboard.title") }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<span class="w-live" id="tdb-live" role="status" aria-live="polite" data-live={ gui.T(ctx, "dashboard.live") } data-refreshing={ gui.T(ctx, "dashboard.refreshing") }>{ gui.T(ctx, "dashboard.live", "time", d.RefreshedAt) }</span>
+			<a class="w-btn w-btn--outline-dark" id="tdb-refresh" href={ templ.SafeURL(gui.URL(ctx, pagePath)) }>{ gui.T(ctx, "action.refresh") }</a>
+		</div>
+	</div>
+	@body(d)
+	<template id="tdb-error">@gui.Banner(gui.BannerProps{Kind: stateKO, Title: gui.T(ctx, "dashboard.error.title"), Text: gui.T(ctx, "dashboard.error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: gui.URL(ctx, pagePath)}})</template>
+}
+
+// body: the figures, the part refreshed in place. Each part replaced on its
+// own carries data-tdb-part, so that the values section keeps its state and
+// the kit its listeners.
+templ body(d pageData) {
+	<div id="tdb-body" data-fragment-url={ gui.URL(ctx, pagePath) } data-refresh-seconds={ strconv.Itoa(d.RefreshSeconds) } data-refreshed-at={ d.RefreshedAt }>
+		<div id="tdb-notice" data-tdb-part>
+			if d.Degraded != nil {
+				@gui.Banner(*d.Degraded)
+			}
+		</div>
+		<h2 class="w-section-title">{ d.Node }</h2>
+		<div class="w-grid w-grid--3" id="tdb-services" data-tdb-part>
+			for _, tile := range d.Services {
+				@gui.Tile(tile)
+			}
+		</div>
+		if d.Figures {
+			<h2 class="w-section-title">{ gui.T(ctx, "dashboard.transfers") }</h2>
+			<div class="w-grid w-grid--3" id="tdb-transfers" data-tdb-part>
+				for _, tile := range d.Tiles {
+					@gui.Tile(tile)
+				}
+			</div>
+			<div class="w-grid w-grid--2 w-grid--start tdb-sections">
+				<section aria-labelledby="tdb-activity-title">
+					<h2 class="w-section-title" id="tdb-activity-title">{ gui.T(ctx, "dashboard.activity.title") }</h2>
+					<div class="w-card" id="tdb-activity" data-tdb-part>
+						if d.Chart != nil {
+							@gui.Chart(*d.Chart)
+						} else {
+							@gui.Empty(gui.EmptyProps{Icon: "chart", Title: gui.T(ctx, "dashboard.empty.title"), Text: gui.T(ctx, "dashboard.empty.text")})
+						}
+					</div>
+					if d.Chart != nil {
+						<details class="w-fold tdb-values" data-key="tdb-values">
+							<summary>@gui.Icon("chevron-right")<h3 class="w-fold__title">{ gui.T(ctx, "dashboard.values.title") }</h3><span class="w-fold__meta" id="tdb-values-meta" data-tdb-part>{ d.ValuesMeta }</span></summary>
+							<div class="w-table-wrap" id="tdb-values" data-tdb-part>
+								<table class="w-table">
+									<caption class="visually-hidden">{ gui.T(ctx, "dashboard.values.caption") }</caption>
+									<thead><tr><th scope="col">{ gui.T(ctx, "dashboard.values.hour") }</th><th scope="col" class="w-num">{ gui.T(ctx, "dashboard.values.done") }</th><th scope="col" class="w-num">{ gui.T(ctx, "dashboard.values.error") }</th></tr></thead>
+									<tbody>
+										for _, v := range d.Values {
+											<tr><td class="w-mono">{ v.Hour }</td><td class="w-num">{ v.Done }</td><td class="w-num">{ v.Failed }</td></tr>
+										}
+									</tbody>
+								</table>
+							</div>
+						</details>
+					}
+				</section>
+				<section aria-labelledby="tdb-errors-title">
+					<h2 class="w-section-title" id="tdb-errors-title">{ gui.T(ctx, "dashboard.errors.title") }</h2>
+					<div id="tdb-errors" data-tdb-part>
+						if len(d.Errors) > 0 {
+							@errorsTable(d)
+							<p class="tdb-foot"><a class="w-link" href={ templ.SafeURL(d.ErrorsURL) }>{ d.ErrorsAll }</a></p>
+						} else {
+							@gui.Empty(gui.EmptyProps{Icon: "check", Title: gui.T(ctx, "dashboard.errors.none")})
+						}
+					</div>
+				</section>
+			</div>
+		}
+	</div>
+}
+
+// errorsTable: the latest failed transfers, the most recent first.
+templ errorsTable(d pageData) {
+	<div class="w-table-wrap">
+		<table class="w-table tdb-errors">
+			<caption class="visually-hidden">{ gui.T(ctx, "dashboard.errors.caption") }</caption>
+			<colgroup><col class="tdb-col-time"/><col class="tdb-col-transfer"/><col/><col class="tdb-col-actions"/></colgroup>
+			<thead><tr><th scope="col">{ gui.T(ctx, "dashboard.errors.col.time") }</th><th scope="col">{ gui.T(ctx, "dashboard.errors.col.transfer") }</th><th scope="col">{ gui.T(ctx, "dashboard.errors.col.error") }</th><th scope="col"><span class="visually-hidden">{ gui.T(ctx, "dashboard.errors.col.actions") }</span></th></tr></thead>
+			<tbody>
+				for _, r := range d.Errors {
+					<tr>
+						<td>@moment(r)</td>
+						<td><div class="w-cell-stack"><span class="w-cell-title"><a class="w-link" href={ templ.SafeURL(r.URL) }>{ r.File }</a></span><span class="w-cell-sub">{ r.Sub }</span></div></td>
+						<td>@cause(r)</td>
+						<td>@gui.Actions(gui.ActionsProps{ID: "tdb-act-" + strconv.FormatInt(r.ID, 10), Name: r.File, Items: r.Actions})</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// moment: the time a failed transfer started, its date under it when it is
+// not today.
+templ moment(r errorRow) {
+	if r.Date != "" {
+		<div class="w-cell-stack"><span class="w-mono">{ r.Time }</span><span class="w-cell-sub">{ r.Date }</span></div>
+	} else {
+		<span class="w-mono">{ r.Time }</span>
+	}
+}
+
+// cause: the cause of a failure, its detail under it on one line, whole in
+// its tooltip (the sheet of the transfer holds it in full).
+templ cause(r errorRow) {
+	if r.Detail != "" {
+		<div class="w-cell-stack"><span class="tdb-cause">{ r.Cause }</span><span class="w-cell-sub tdb-detail" title={ r.Detail }>{ r.Detail }</span></div>
+	} else {
+		<span class="tdb-cause">{ r.Cause }</span>
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clients"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/clouds"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/dashboard"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/emailtemplates"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/home"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/keys"
@@ -45,6 +46,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	)
 
 	MakeHomeRouter(router, db, logger)
+	MakeDashboardRouter(router, db, logger)
 	MakeServicesRouter(router, logger)
 	MakeServersRouter(router, db, logger)
 	MakeClientsRouter(router, db, logger)
@@ -160,6 +162,16 @@ func MakeKitStaticRouter(router *mux.Router) {
 			http.FileServerFS(gui.Static),
 		),
 	)
+}
+
+// MakeDashboardRouter registers the "Dashboard" screen: one page, open to any
+// authenticated user as the service status; the blocks about the transfers
+// follow the rights on the transfers inside the page.
+func MakeDashboardRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := dashboard.New(db, logger, internal.ListServices)
+
+	router.Path("/dashboard").Methods(http.MethodGet).
+		Handler(withPermissions(permAuthenticated, http.HandlerFunc(handlers.Page)))
 }
 
 // MakeServicesRouter registers the "Service status" screen. As the historic

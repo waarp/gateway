@@ -19,6 +19,9 @@ const (
 	// KitStaticPrefix is where the files of the GUI kit (styles, scripts,
 	// fonts, icons) are served, under WebuiPrefix.
 	KitStaticPrefix = "/static/gui/"
+	// DashboardPath is the page of the dashboard under WebuiPrefix, where
+	// an action of the transfers asked from it comes back.
+	DashboardPath = "/dashboard"
 
 	// LanguageParam is the query parameter that selects the language of the
 	// interface; the language middleware then stores it in a cookie.
