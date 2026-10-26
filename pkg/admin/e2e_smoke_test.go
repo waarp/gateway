@@ -283,15 +283,21 @@ func e2eScreens() []e2eScreen {
 // one, and a done entry of the history. The screens are visited by
 // identifier.
 // insertE2EWatchers inserts a watcher of the SFTP partner: its account
-// "gateway-prod", the SFTP client, the receive rule "pull-archive", every
-// hour. Its service is not started: the list shows it stopped; a run from
-// the list reaches the partner, which does not answer. The screens are
-// visited by identifier.
+// "releves" of its own partner, the SFTP client, the receive rule
+// "pull-archive", every hour. Its service is not started: the list shows it
+// stopped; a run from the list reaches the partner, which refuses the
+// connection at once: a loopback address the cluster indirection of the test
+// (127.0.0.1 to 10.0.0.5) leaves alone, on a port nobody listens to (a dial of
+// 10.0.0.5 timed out after a minute on the runner). The screens are visited by
+// identifier.
 func insertE2EWatchers(t *testing.T, db *database.DB) {
 	t.Helper()
 
-	var account model.RemoteAccount
-	require.NoError(t, db.Get(&account, "login=?", "gateway-prod").Run())
+	partner := &model.RemoteAgent{Name: "part-sftp-ferme", Protocol: "sftp", Address: types.Addr("127.0.0.4", 9)}
+	require.NoError(t, db.Insert(partner).Run())
+
+	account := model.RemoteAccount{RemoteAgentID: partner.ID, Login: "releves"}
+	require.NoError(t, db.Insert(&account).Run())
 
 	var client model.Client
 	require.NoError(t, db.Get(&client, "name=?", "cli-sftp").Run())
