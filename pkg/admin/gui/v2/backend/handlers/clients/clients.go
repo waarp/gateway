@@ -152,14 +152,15 @@ func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
 // servers (the product has no right of its own for the clients): reading is
 // implied by reaching the screen; writing and deleting are checked again by
 // the router on each action. The templates hide what the rights forbid.
-type rights struct{ Write, Delete bool }
+type rights struct{ Write, Delete, Transfers bool }
 
 func rightsOf(r *http.Request) rights {
 	perms := common.GetUser(r).Permissions
 
 	return rights{
-		Write:  perms.HasPermission(model.PermServersWrite),
-		Delete: perms.HasPermission(model.PermServersDelete),
+		Write:     perms.HasPermission(model.PermServersWrite),
+		Delete:    perms.HasPermission(model.PermServersDelete),
+		Transfers: perms.HasPermission(model.PermTransfersRead),
 	}
 }
 
@@ -477,12 +478,19 @@ func boolCmp(a, b bool) int {
 	}
 }
 
+// transfersOf is the transfer monitoring filtered on the client (#782).
+func transfersOf(client string) string {
+	v := url.Values{"client": {client}}
+
+	return common.WebuiURL("/transfers") + "?" + v.Encode()
+}
+
 // actions is the "⋯" menu of a client, in the list (with "View details" and
 // "Edit") and on the details page (without: the buttons are there). Entries
 // follow the rights; the destructive one comes last. Every URL carries the
 // list state.
-func actions(translate gui.Translator, e *entry, user rights, onDetail bool, carried string) []gui.Action {
-	clientID := e.client.ID
+func actions(translate gui.Translator, item *entry, user rights, onDetail bool, carried string) []gui.Action {
+	clientID := item.client.ID
 
 	var acts []gui.Action
 	if !onDetail {
@@ -492,7 +500,7 @@ func actions(translate gui.Translator, e *entry, user rights, onDetail bool, car
 	}
 
 	if user.Write {
-		if e.running() {
+		if item.running() {
 			acts = append(acts, gui.Action{
 				Icon: "stop", Label: translate("clients.action.stop"), Action: withRet(clientURL(clientID, "/stop"), carried),
 			})
@@ -507,6 +515,12 @@ func actions(translate gui.Translator, e *entry, user rights, onDetail bool, car
 				Icon: "pen", Label: translate("clients.action.edit"), URL: withRet(clientURL(clientID, "/edit"), carried),
 			})
 		}
+	}
+
+	if user.Transfers {
+		acts = append(acts, gui.Action{
+			Icon: "clock", Label: translate("clients.action.transfers"), URL: transfersOf(item.client.Name),
+		})
 	}
 
 	if user.Delete {

@@ -116,19 +116,31 @@ func New(db *database.DB, logger *log.Logger) *Handlers {
 }
 
 func transfersURL() string { return common.WebuiURL(transfersPath) }
-func rulesURL() string     { return common.WebuiURL(rulesPath) }
+
+// transfersOf is the transfer monitoring filtered on the partner and, when
+// given, on one of its accounts (#782).
+func transfersOf(partner, account string) string {
+	v := url.Values{"partner": {partner}}
+	if account != "" {
+		v.Set("account", account)
+	}
+
+	return transfersURL() + "?" + v.Encode()
+}
+func rulesURL() string { return common.WebuiURL(rulesPath) }
 
 // rights of the current user on the partners: reading is implied by reaching
 // the screen; writing and deleting are checked again by the router on each
 // action. The templates hide what the rights forbid.
-type rights struct{ Write, Delete bool }
+type rights struct{ Write, Delete, Transfers bool }
 
 func rightsOf(r *http.Request) rights {
 	perms := common.GetUser(r).Permissions
 
 	return rights{
-		Write:  perms.HasPermission(model.PermPartnersWrite),
-		Delete: perms.HasPermission(model.PermPartnersDelete),
+		Write:     perms.HasPermission(model.PermPartnersWrite),
+		Delete:    perms.HasPermission(model.PermPartnersDelete),
+		Transfers: perms.HasPermission(model.PermTransfersRead),
 	}
 }
 
@@ -456,6 +468,12 @@ func actions(translate gui.Translator, e entry, user rights, onDetail bool, carr
 				Icon: "pen", Label: translate("partners.action.edit"), URL: withRet(partnerURL(id, editSuffix), carried),
 			})
 		}
+	}
+
+	if user.Transfers {
+		acts = append(acts, gui.Action{
+			Icon: "clock", Label: translate("partners.action.transfers"), URL: transfersOf(e.agent.Name, ""),
+		})
 	}
 
 	if user.Delete {

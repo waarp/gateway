@@ -41,6 +41,13 @@ func (q *TransferListQuery) Requested(name string) *TransferListQuery {
 	return q
 }
 
+// Client keeps the transfers made through a local client, by its name.
+func (q *TransferListQuery) Client(name string) *TransferListQuery {
+	q.query.Where("client=?", name)
+
+	return q
+}
+
 func (q *TransferListQuery) Rule(name string, isSend bool) *TransferListQuery {
 	q.query.Where("rule=?", name).Where("is_send=?", isSend)
 

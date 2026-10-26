@@ -282,6 +282,7 @@ servers:
     accounts: Comptes locaux
     edit: Modifier le serveur
     delete: Supprimer le serveur
+    transfers: Voir les transferts
   detail:
     title: "Serveur « {name} »"
     card: Serveur
@@ -576,6 +577,7 @@ accounts:
     detail: Voir le compte
     edit: Modifier le compte
     delete: Supprimer le compte
+    transfers: Voir les transferts
   new:
     title: Nouveau compte
   edit:
@@ -727,6 +729,7 @@ partners:
     detail: Voir la fiche
     edit: Modifier le partenaire
     delete: Supprimer le partenaire
+    transfers: Voir les transferts
   tabs: Onglets de la fiche
   tab:
     details: Détails
@@ -833,6 +836,7 @@ remote_accounts:
     detail: Voir le compte
     edit: Modifier le compte
     delete: Supprimer le compte
+    transfers: Voir les transferts
   new:
     title: Nouveau compte distant
   edit:
@@ -914,6 +918,7 @@ clients:
     stop: Arrêter le client
     edit: Modifier le client
     delete: Supprimer le client
+    transfers: Voir les transferts
   detail:
     title: "Client « {name} »"
     card: Client
@@ -3019,6 +3024,8 @@ transfers:
     servers: Serveurs locaux
     account: Compte
     account_all: Tous les comptes
+    client: Client
+    client_all: Tous les clients
     protocol: Protocole
     protocol_all: Tous les protocoles
     from: Début à partir du

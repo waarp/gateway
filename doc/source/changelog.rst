@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`782` Les fiches des partenaires distants, des serveurs locaux,
+  des clients locaux et de leurs comptes mènent au suivi des transferts filtré
+  sur l'objet (menu « ⋯ », avec le droit de lecture des transferts) ; le suivi
+  gagne un filtre sur le client local.
 * :feature:`783` Sur la fiche d'un transfert, la règle, le partenaire ou le
   serveur, le compte et le client mènent à leur fiche tant qu'ils existent ;
   un objet supprimé depuis garde son nom, sans lien.

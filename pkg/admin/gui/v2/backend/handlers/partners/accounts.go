@@ -116,7 +116,10 @@ type accountsListData struct {
 
 // accountActions is the "⋯" menu of an account: view and edit in the list,
 // delete (delete right) everywhere.
-func accountActions(translate gui.Translator, pid, aid int64, user rights, onDetail bool, carried string) []gui.Action {
+func accountActions(translate gui.Translator, agent string, pid int64, acc *model.RemoteAccount, user rights,
+	onDetail bool, carried string,
+) []gui.Action {
+	aid := acc.ID
 	var acts []gui.Action
 
 	if !onDetail {
@@ -133,6 +136,12 @@ func accountActions(translate gui.Translator, pid, aid int64, user rights, onDet
 		}
 	}
 
+	if user.Transfers {
+		acts = append(acts, gui.Action{
+			Icon: "clock", Label: translate("remote_accounts.action.transfers"), URL: transfersOf(agent, acc.Login),
+		})
+	}
+
 	if user.Delete {
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
@@ -147,14 +156,14 @@ func accountActions(translate gui.Translator, pid, aid int64, user rights, onDet
 
 // buildAccountsList computes the "Remote accounts" tab: the accounts
 // searched by login, sorted by login or by their means, paged.
-func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry, query *listQuery,
+func buildAccountsList(translate gui.Translator, item entry, entries []accountEntry, query *listQuery,
 	user rights, carried string,
 ) accountsListData {
-	pid := e.agent.ID
+	pid := item.agent.ID
 	base := partnerURL(pid, accountsSuffix)
 	data := accountsListData{
 		List:    liststate.NewTabList(base, query, carried),
-		Title:   translate("partners.detail.title", "name", e.agent.Name),
+		Title:   translate("partners.detail.title", "name", item.agent.Name),
 		BackURL: listURL(carried),
 	}
 
@@ -199,7 +208,7 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 			Login:   entry.acc.Login,
 			Auth:    entry.authText(translate),
 			URL:     withRet(accountURL(pid, entry.acc.ID, ""), carried),
-			Actions: accountActions(translate, pid, entry.acc.ID, user, false, carried),
+			Actions: accountActions(translate, item.agent.Name, pid, entry.acc, user, false, carried),
 		}
 
 		if len(entry.types) == 0 {
@@ -314,7 +323,7 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 		Title:   own.title(translate),
 		Login:   own.acc.Login,
 		BackURL: withRet(partnerURL(pid, accountsSuffix), carried),
-		Actions: accountActions(translate, pid, aid, user, true, carried),
+		Actions: accountActions(translate, own.ptn.agent.Name, pid, own.acc, user, true, carried),
 		Identity: []kv{
 			{Label: translate("remote_account.detail.partner"), Value: own.ptn.agent.Name + " (" + own.ptn.proto.Label + ")"},
 			{Label: translate("remote_account.detail.login"), Value: own.acc.Login, Mono: true},

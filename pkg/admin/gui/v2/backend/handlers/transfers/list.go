@@ -29,6 +29,7 @@ const (
 	paramDir      = "direction" // "dir" is the order of the sort
 	paramPartner  = "partner"
 	paramAccount  = "account"
+	paramClient   = "client"
 	paramProtocol = "protocol"
 	paramFrom     = "from"
 	paramTo       = "to"
@@ -43,7 +44,7 @@ const (
 
 //nolint:gochecknoglobals // reference data of the screen
 var filterParams = []string{
-	paramState, paramRule, paramDir, paramPartner, paramAccount, paramProtocol, paramFrom, paramTo,
+	paramState, paramRule, paramDir, paramPartner, paramAccount, paramClient, paramProtocol, paramFrom, paramTo,
 }
 
 // filters is the part of the state of the list that belongs to the screen.
@@ -53,6 +54,7 @@ type filters struct {
 	Dir      string // dirSend, dirReceive or ""
 	Partner  string // the remote partner or the local server
 	Account  string
+	Client   string // the local client of the transfers
 	Protocol string // a protocol family of the gateway, which covers its TLS variant
 	From     string // datetime-local values (localLayout)
 	To       string
@@ -65,6 +67,7 @@ func parseFilters(v url.Values) *filters {
 		Rule:    strings.TrimSpace(v.Get(paramRule)),
 		Partner: strings.TrimSpace(v.Get(paramPartner)),
 		Account: strings.TrimSpace(v.Get(paramAccount)),
+		Client:  strings.TrimSpace(v.Get(paramClient)),
 	}
 
 	if _, ok := specOfKey(v.Get(paramState)); ok {
@@ -104,7 +107,7 @@ func parseLocal(value string) (time.Time, bool) {
 func (f *filters) criteria() map[string]string {
 	return map[string]string{
 		paramState: f.State, paramRule: f.Rule, paramDir: f.Dir, paramPartner: f.Partner,
-		paramAccount: f.Account, paramProtocol: f.Protocol, paramFrom: f.From, paramTo: f.To,
+		paramAccount: f.Account, paramClient: f.Client, paramProtocol: f.Protocol, paramFrom: f.From, paramTo: f.To,
 	}
 }
 
@@ -172,6 +175,10 @@ func (h *Handlers) selectQuery(q *liststate.Query, crit *filters, status types.T
 
 	if crit.Account != "" {
 		query.Requester(crit.Account)
+	}
+
+	if crit.Client != "" {
+		query.Client(crit.Client)
 	}
 
 	if crit.Protocol != "" {
@@ -350,6 +357,9 @@ type filterView struct {
 	PartnerExtra string
 	AccountExtra string
 	AccountGroup int // the group that carries the chosen account: a login under several partners is chosen once
+	Client       string
+	Clients      []string // the local clients
+	ClientExtra  string
 	Protocol     string
 	Protocols    []gui.Choice
 	From         string
@@ -641,8 +651,8 @@ func countText(translate gui.Translator, n uint64) string {
 // these names anyway).
 func (h *Handlers) filterView(crit *filters) filterView {
 	view := filterView{
-		Rule: crit.Rule, Dir: crit.Dir, Partner: crit.Partner, Account: crit.Account, Protocol: crit.Protocol,
-		From: crit.From, To: crit.To,
+		Rule: crit.Rule, Dir: crit.Dir, Partner: crit.Partner, Account: crit.Account, Client: crit.Client,
+		Protocol: crit.Protocol, From: crit.From, To: crit.To,
 	}
 
 	if rules, err := internal.ListRules(h.db, "name", true, 0, 0); err == nil {
@@ -665,6 +675,18 @@ func (h *Handlers) filterView(crit *filters) filterView {
 
 	if crit.Account != "" && view.AccountGroup < 0 {
 		view.AccountExtra = crit.Account
+	}
+
+	if clients, err := internal.ListClients(h.db, "name", true, 0, 0); err == nil {
+		for _, client := range clients {
+			view.Clients = append(view.Clients, client.Name)
+		}
+	} else {
+		h.logger.Warningf("failed to list the clients for the filters: %v", err)
+	}
+
+	if crit.Client != "" && !slices.Contains(view.Clients, crit.Client) {
+		view.ClientExtra = crit.Client
 	}
 
 	// The families, each covering its TLS variant, as the filters of the

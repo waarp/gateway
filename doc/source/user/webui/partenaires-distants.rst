@@ -78,6 +78,10 @@ selon les droits de l'utilisateur :
      - lecture
      - L'onglet *Comptes distants* de la fiche : les identités que la Gateway
        présente au partenaire.
+   * - Voir les transferts
+     - lecture des transferts
+     - Le suivi des transferts, filtré sur le partenaire ; depuis un compte
+       distant, filtré sur ce compte.
    * - Modifier le partenaire
      - écriture
      - Le formulaire du partenaire, pré-rempli.

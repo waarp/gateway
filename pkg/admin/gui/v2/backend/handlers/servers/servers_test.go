@@ -1094,3 +1094,22 @@ func TestListQuery(t *testing.T) {
 	assert.Equal(t, "/webui/servers?q=srv", listURL("q=srv&bogus=1&page=1"), "unknown parameters are dropped")
 	assert.Equal(t, "/webui/servers/new?ret=q%3Dsrv", withRet("/webui/servers/new", "q=srv"))
 }
+
+// TestTransfersLinks: the sheet and the accounts of a server lead to the
+// transfer monitoring filtered on them, for whoever reads the transfers (#782).
+func TestTransfersLinks(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	f := s.sheet(t)
+	perms := permRead | model.PermTransfersRead
+
+	body := s.get(t, perms, s.path(s.sftp, "")).Body.String()
+	assert.Contains(t, body, `href="/webui/transfers?partner=srv-sftp-01"`, "the sheet of the server")
+	assert.Contains(t, body, "Voir les transferts")
+	assert.NotContains(t, s.get(t, permRead, s.path(s.sftp, "")).Body.String(), "Voir les transferts",
+		"nothing without the right to read the transfers")
+
+	body = s.get(t, perms, s.accountPath(f.partner, "")).Body.String()
+	assert.Contains(t, body, `href="/webui/transfers?account=partner&amp;partner=srv-sftp-01"`, "the sheet of an account")
+}
