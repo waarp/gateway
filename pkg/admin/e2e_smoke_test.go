@@ -1332,15 +1332,20 @@ func (s *e2eSession) checkAccessibility(t *testing.T) {
 		t.Skip("AXE_CORE_JS is not set: run ./helpers/playwright-bootstrap.sh and source .playwright/env.sh")
 	}
 
-	// The pointer, left where the last click was, may hover an element whose
-	// tooltip is fading in when the rules run (its colours blended meanwhile):
-	// moved away, and the tooltip closed, before the rules run.
+	// The tooltip of the kit may be open when the rules run: under the pointer,
+	// left where the last click was, or on the focused element, where the focus
+	// came back from a menu closed with Escape (the pointer, already away, does
+	// not move then). The focus dropped and the pointer moved away, the tooltip
+	// closes before the rules run: fading in, its blended colours would fail the
+	// contrast rule.
+	_, err := s.page.Evaluate(`document.activeElement && document.activeElement.blur()`)
+	require.NoError(t, err)
 	require.NoError(t, s.page.Mouse().Move(0, 0))
 	require.NoError(t, s.page.Locator("#w-tip").WaitFor(playwright.LocatorWaitForOptions{
 		State: playwright.WaitForSelectorStateHidden, Timeout: playwright.Float(5000),
 	}))
 
-	_, err := s.page.AddScriptTag(playwright.PageAddScriptTagOptions{Path: playwright.String(path)})
+	_, err = s.page.AddScriptTag(playwright.PageAddScriptTagOptions{Path: playwright.String(path)})
 	require.NoError(t, err)
 
 	violations, err := s.page.Evaluate(`async () => {
