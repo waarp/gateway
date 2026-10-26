@@ -25,7 +25,9 @@ la liste des hôtes qu'elle est habilitée à certifier.
      - Identité publique
      - Effet
    * - Autorité de certification TLS (``tls_authority``)
-     - Le certificat de l'autorité, au format PEM.
+     - Le certificat de l'autorité, au format PEM : la racine seule, ou la
+       racine et ses intermédiaires collés, pour les partenaires qui ne
+       présentent que leur certificat.
      - Les certificats qu'elle signe sont acceptés pour les connexions TLS,
        sans être enregistrés au préalable.
    * - Autorité de certification SSH (``ssh_cert_authority``)

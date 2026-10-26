@@ -50,6 +50,9 @@ type view struct {
 	Name string
 	Type string
 	certinfo.Info
+	// Chain is every certificate of a chain, the certificate first; Info
+	// sums up the first one.
+	Chain []certinfo.Info
 	// The PeSIT pre-connection: its login (not a secret) and whether it
 	// holds a password (never the password).
 	Login       string
@@ -63,8 +66,8 @@ func viewOf(c *model.Credential) view {
 	case auth.TLSCertificate, auth.TLSTrustedCertificate:
 		// One that cannot be read leaves nothing: the means is summarised
 		// as "set".
-		if info, ok := certinfo.Certificate(c.Value); ok {
-			v.Info = info
+		if chain := certinfo.Chain(c.Value); len(chain) > 0 {
+			v.Info, v.Chain = chain[0], chain
 		}
 	case sftp.AuthSSHPrivateKey:
 		if signer, err := ssh.ParsePrivateKey([]byte(c.Value)); err == nil {
@@ -93,7 +96,20 @@ func (v *view) expiry(translate gui.Translator, now time.Time) gui.Status {
 		return gui.Status{}
 	}
 
-	return v.Expiry(translate, now)
+	// A chain is valid as long as every certificate of it is.
+	nearest := certinfo.Nearest(v.Chain)
+
+	return nearest.Expiry(translate, now)
+}
+
+// chainText says how many certificates a chain holds, after the summary;
+// nothing for a certificate alone.
+func (v *view) chainText(translate gui.Translator) string {
+	if len(v.Chain) <= 1 {
+		return ""
+	}
+
+	return " · " + translate("auth.content.chain", "n", len(v.Chain))
 }
 
 // summary is the non-secret content shown in the list.
@@ -102,9 +118,9 @@ func (v *view) summary(translate gui.Translator) string {
 	case v.Type == auth.Password:
 		return translate("auth.content.secret")
 	case v.Type == auth.TLSCertificate && v.Subject != "":
-		return translate("auth.content.cert_key", "subject", v.Subject)
+		return translate("auth.content.cert_key", "subject", v.Subject) + v.chainText(translate)
 	case v.Type == auth.TLSTrustedCertificate && v.Subject != "":
-		return v.Subject
+		return v.Subject + v.chainText(translate)
 	case v.Type == sftp.AuthSSHPrivateKey && v.KeyType != "":
 		return translate("auth.content.private_key", "type", v.KeyType)
 	case v.Type == sftp.AuthSSHPublicKey && v.KeyType != "":

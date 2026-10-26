@@ -496,11 +496,7 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 
 	switch values.Get(kindParam) {
 	case kindCred:
-		if slices.Contains(doneKinds, done) {
-			return []gui.Notice{{Kind: stateOK, Title: translate("auth.toast."+done, "name", name)}}
-		}
-
-		return nil
+		return means.Notices(translate, values)
 	case kindAccount:
 		if slices.Contains(doneKinds, done) {
 			return []gui.Notice{{Kind: stateOK, Title: translate("remote_accounts.toast."+done, "login", name)}}

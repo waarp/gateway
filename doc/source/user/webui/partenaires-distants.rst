@@ -267,6 +267,15 @@ la :ref:`fiche d'un serveur <user-webui-server-sheet>` : un contenu lisible
 qui ne révèle jamais le secret, le dépôt ou le collage d'un fichier PEM, un
 champ laissé vide à la modification qui conserve la valeur en place.
 
+Un *certificat TLS de confiance* se garde seul : déposé avec ses
+intermédiaires, seul le certificat du partenaire est conservé, et le
+formulaire le dit. Pour faire confiance à l'autorité du partenaire plutôt
+qu'à son certificat, déclarez-la dans :doc:`autorites`, racine seule, ou
+racine et intermédiaires collés quand le partenaire ne présente que son
+certificat. Le certificat qu'un *compte distant* présente au partenaire se
+dépose, lui, avec sa chaîne, comme celui d'un :ref:`serveur local
+<user-webui-server-sheet>`.
+
 La *pré-connexion PeSIT* est ce que la Gateway envoie au partenaire avant la
 connexion PeSIT, quand il l'attend : un identifiant et un mot de passe,
 facultatifs l'un et l'autre, de huit caractères ASCII au plus chacun. La

@@ -196,7 +196,7 @@ templ accountFormView(d *accountFormData) {
 				</fieldset>
 			</div>
 		}
-		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title, NeedsNote: gui.T(ctx, "auth.form.needs")})
 	</form>
 }
 
