@@ -411,7 +411,7 @@ func TestCredDetail(t *testing.T) {
 		assert.Contains(t, body, "Clé publique SSH pour le compte « partner » du serveur « srv-sftp-01 »")
 		assert.Contains(t, body, `<dt>Type de clé</dt><dd><code class="w-code">ssh-rsa</code></dd>`)
 		assert.Contains(t, body, `<dt>Empreinte SHA-256</dt><dd><code class="w-code">SHA256:`)
-		assert.Contains(t, body, "Clé publique</h2>")
+		assert.Contains(t, body, "Clé publique</span>", "the public key card folds")
 		assert.Contains(t, body, "ssh-rsa AAAAB3NzaC1yc2E")
 		assert.NotContains(t, body, "/edit")
 	})

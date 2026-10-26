@@ -436,6 +436,7 @@ auth:
     pre_no_login: No login
     pre_password: password set, not shown
     pre_no_password: no password
+    chain: "chain of {n} certificates"
   new:
     title: New authentication means
   edit:
@@ -453,11 +454,11 @@ auth:
     password_hint: "The partner presents it when connecting; it is stored hashed, nobody can read it back"
     password_keep: Leave empty to keep the current password
     file: File
-    file_hint: Certificate, public key or private key in PEM format
+    file_hint: "A certificate, a public key or a private key in PEM format. A trusted certificate is kept alone: its intermediates, given with it, are not kept."
     keep_file: "Uploading a new file replaces it; otherwise the content in place is kept"
     paste: or paste the PEM content
-    cert: Certificate
-    cert_hint: The certificate the server presents, in PEM format
+    cert: Certificate and its intermediates
+    cert_hint: "The certificate and its intermediates, given together: several PEM files chosen at once, in any order, or pasted one after the other. Signed by a private authority? Register its root among the authentication authorities first."
     paste_cert: or paste the certificate
     key: Private key
     key_hint: "The private key of the certificate; it is never shown again"
@@ -470,13 +471,21 @@ auth:
     pre_password_hint: "Empty: no password is sent; stored encrypted, never shown again"
     pre_password_keep: leave empty to keep it as it is
     refused: The authentication means was not saved.
-    refused_text: Correct the fields flagged below.
+    refused_text: "Correct the fields flagged below; a file uploaded is to be chosen again, its public content is kept in the paste field."
+    needs: The content required is to be uploaded or pasted before saving.
     error:
       required: Give the content of the authentication means.
       type: Choose a kind the protocol allows.
       unique: "A means of this kind already exists; edit or delete it first."
       name_taken: Another means already has this name. Choose another one.
       invalid: "The content was not accepted: {reason}"
+      unrelated: "The certificate “{name}” does not belong to this chain: remove it."
+      no_leaf: "Every certificate given signs another one: the certificate itself is missing."
+      issuer_unknown: "“{subject}” is signed by “{issuer}”, which the gateway does not know. Give the intermediate certificate of “{issuer}” with it, or register “{issuer}” among the authentication authorities if it is the root."
+  # What the form did with the certificates given beyond the chain, said after the save.
+  note:
+    root_dropped: "The root “{root}” given with the chain is not kept: a root is declared among the authentication authorities."
+    trusted_leaf_only: "The trust bears on the certificate alone; the other certificates given are not kept. To trust its authority, register it among the authentication authorities."
   detail:
     title: "Means “{name}”"
     card: "{type} for {owner}"
@@ -497,6 +506,18 @@ auth:
     pre_password: Pre-connection password
     pre_no_password: None
     pem: Certificate (PEM)
+    chain: Certificate chain
+    chain_pem: Certificate chain (PEM)
+    chain_note: "The chain saved, in the order the gateway presents it: the certificate, then its intermediates. The root is not presented; it is declared among the authentication authorities."
+    chain_role:
+      leaf: Certificate
+      intermediate: Intermediate
+    chain_col:
+      role: Role
+      subject: Subject
+      issuer: Issuer
+      validity: Validity
+      state: State
     public_key: Public key
     public_note: "Public part only: it can be given to the partner."
   delete:
@@ -1380,7 +1401,7 @@ authorities:
       tls_authority: Certificate of the authority
       ssh_cert_authority: Public key of the authority
     identity_hint:
-      tls_authority: "The certificate of the certificate authority, in PEM format (a .pem, .crt or .cer file)."
+      tls_authority: "The certificate of the certification authority, in PEM format (.pem, .crt or .cer file): the root alone, or the root and its intermediates together, for the partners that present their certificate alone."
       ssh_cert_authority: "The public key of the authority, in authorized_keys format (a .pub file)."
     identity_example:
       tls_authority: "-----BEGIN CERTIFICATE-----"

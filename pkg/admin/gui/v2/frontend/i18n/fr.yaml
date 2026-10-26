@@ -435,6 +435,7 @@ auth:
     pre_no_login: Sans identifiant
     pre_password: mot de passe défini, non affiché
     pre_no_password: sans mot de passe
+    chain: "chaîne de {n} certificats"
   new:
     title: Nouveau moyen d'authentification
   edit:
@@ -452,11 +453,11 @@ auth:
     password_hint: "Le partenaire le présente à la connexion ; il est conservé haché, personne ne pourra le relire"
     password_keep: Laissez vide pour conserver le mot de passe actuel
     file: Fichier
-    file_hint: Certificat, clé publique ou clé privée au format PEM
+    file_hint: "Certificat, clé publique ou clé privée au format PEM. Un certificat de confiance se garde seul : ses intermédiaires, déposés avec lui, ne sont pas conservés."
     keep_file: "Déposer un nouveau fichier le remplace ; sinon le contenu en place est conservé"
     paste: ou coller le contenu PEM
-    cert: Certificat
-    cert_hint: Le certificat que le serveur présente, au format PEM
+    cert: Certificat et ses intermédiaires
+    cert_hint: "Le certificat et ses intermédiaires, déposés ensemble : plusieurs fichiers PEM choisis en une fois, dans n'importe quel ordre, ou collés à la suite. Signé par une autorité privée ? Enregistrez d'abord sa racine dans Autorités d'authentification."
     paste_cert: ou coller le certificat
     key: Clé privée
     key_hint: "La clé privée du certificat ; elle n'est jamais réaffichée"
@@ -469,13 +470,21 @@ auth:
     pre_password_hint: "Vide : aucun mot de passe n'est envoyé ; conservé chiffré, jamais réaffiché"
     pre_password_keep: laissez vide pour ne pas en changer
     refused: Le moyen d'authentification n'a pas été enregistré.
-    refused_text: Corrigez les champs signalés ci-dessous.
+    refused_text: "Corrigez les champs signalés ci-dessous ; un fichier déposé est à choisir de nouveau, son contenu public est repris dans la zone de collage."
+    needs: Le contenu demandé est à déposer ou à coller avant de valider.
     error:
       required: Indiquez le contenu du moyen d'authentification.
       type: Choisissez un type admis par le protocole.
       unique: "Un moyen de ce type existe déjà ; modifiez-le ou supprimez-le d'abord."
       name_taken: Un autre moyen porte déjà ce nom. Choisissez-en un autre.
       invalid: "Le contenu n'a pas été accepté : {reason}"
+      unrelated: "Le certificat « {name} » n'appartient pas à cette chaîne : retirez-le."
+      no_leaf: "Chaque certificat déposé en signe un autre : le certificat lui-même manque."
+      issuer_unknown: "« {subject} » est signé par « {issuer} », que la passerelle ne connaît pas. Déposez le certificat intermédiaire de « {issuer} » avec lui, ou enregistrez « {issuer} » dans Autorités d'authentification si c'est la racine."
+  # Ce que le formulaire a fait des certificats déposés au-delà de la chaîne, dit après l'enregistrement.
+  note:
+    root_dropped: "La racine « {root} » déposée avec la chaîne n'est pas conservée : une racine se déclare dans Autorités d'authentification."
+    trusted_leaf_only: "La confiance porte sur le certificat seul ; les autres certificats déposés ne sont pas conservés. Pour faire confiance à son autorité, enregistrez-la dans Autorités d'authentification."
   detail:
     title: "Moyen « {name} »"
     card: "{type} pour {owner}"
@@ -496,6 +505,18 @@ auth:
     pre_password: Mot de passe de pré-connexion
     pre_no_password: Aucun
     pem: Certificat (PEM)
+    chain: Chaîne de certification
+    chain_pem: Chaîne de certification (PEM)
+    chain_note: "La chaîne enregistrée, dans l'ordre où la passerelle la présente : le certificat, puis ses intermédiaires. La racine ne se présente pas ; elle se déclare dans Autorités d'authentification."
+    chain_role:
+      leaf: Certificat
+      intermediate: Intermédiaire
+    chain_col:
+      role: Rôle
+      subject: Sujet
+      issuer: Émetteur
+      validity: Validité
+      state: État
     public_key: Clé publique
     public_note: "Partie publique seulement : elle peut se transmettre au partenaire."
   delete:
@@ -1379,7 +1400,7 @@ authorities:
       tls_authority: Certificat de l'autorité
       ssh_cert_authority: Clé publique de l'autorité
     identity_hint:
-      tls_authority: "Le certificat de l'autorité de certification, au format PEM (fichier .pem, .crt ou .cer)."
+      tls_authority: "Le certificat de l'autorité de certification, au format PEM (fichier .pem, .crt ou .cer) : la racine seule, ou la racine et ses intermédiaires collés, pour les partenaires qui ne présentent que leur certificat."
       ssh_cert_authority: "La clé publique de l'autorité, au format authorized_keys (fichier .pub)."
     identity_example:
       tls_authority: "-----BEGIN CERTIFICATE-----"

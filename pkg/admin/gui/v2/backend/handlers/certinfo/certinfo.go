@@ -50,6 +50,43 @@ func Certificate(pemText string) (Info, bool) {
 		return Info{}, false
 	}
 
+	return Of(cert), true
+}
+
+// Chain reads every certificate of a PEM text, in the order written (the
+// certificate first, then its intermediates, as the product stores a chain);
+// nil when the first one cannot be read. Blocks that are not certificates
+// are skipped.
+func Chain(pemText string) []Info {
+	var infos []Info
+
+	rest := []byte(pemText)
+
+	for {
+		var block *pem.Block
+
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			break
+		}
+
+		infos = append(infos, Of(cert))
+	}
+
+	return infos
+}
+
+// Of sums up a parsed certificate.
+func Of(cert *x509.Certificate) Info {
 	sum := sha256.Sum256(cert.Raw)
 
 	return Info{
@@ -60,7 +97,24 @@ func Certificate(pemText string) (Info, bool) {
 		NotBefore:   cert.NotBefore,
 		NotAfter:    cert.NotAfter,
 		Public:      string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})),
-	}, true
+	}
+}
+
+// Nearest is the certificate of a chain that expires first: the validity of
+// the chain is the one of that certificate.
+func Nearest(chain []Info) Info {
+	if len(chain) == 0 {
+		return Info{}
+	}
+
+	nearest := 0
+	for i := range chain {
+		if chain[i].NotAfter.Before(chain[nearest].NotAfter) {
+			nearest = i
+		}
+	}
+
+	return chain[nearest]
 }
 
 // Key reads the type and the fingerprint of a public key.

@@ -200,7 +200,7 @@ templ CredFields(f *Form) {
 			<legend class="w-fieldset__legend">{ gui.T(ctx, "auth.form.file") }</legend>
 			<div class={ "w-field", templ.KV("is-invalid", f.Pem.Error != "") }>
 				<label class="w-field__label" for={ f.Prefix + "file" }>{ gui.T(ctx, "auth.form.file") }@protoform.ReqMark(!f.Edit)</label>
-				@gui.File(gui.FileProps{ID: f.Prefix + "file", Name: f.Prefix + "file", Current: f.CurrentFile, Accept: ".pem,.crt,.cer,.key,.pub", Describe: f.Prefix + "file-h"})
+				@gui.File(gui.FileProps{ID: f.Prefix + "file", Name: f.Prefix + "file", Current: f.CurrentFile, Accept: ".pem,.crt,.cer,.key,.pub", Describe: f.Prefix + "file-h", Multiple: true, Needed: !f.Edit, Paste: f.Prefix + "pem"})
 				@protoform.Message(f.Prefix+"file-h", f.Pem.Error, gui.T(ctx, keyIf(f.Edit, "auth.form.keep_file", "auth.form.file_hint")))
 			</div>
 			<div class="w-field">
@@ -221,14 +221,14 @@ templ CredFields(f *Form) {
 			<div class="w-grid w-grid--2">
 				<div class={ "w-field", templ.KV("is-invalid", f.PemCert.Error != "") }>
 					<label class="w-field__label" for={ f.Prefix + "cert_file" }>{ gui.T(ctx, "auth.form.cert") }@protoform.ReqMark(!f.Edit)</label>
-					@gui.File(gui.FileProps{ID: f.Prefix + "cert_file", Name: f.Prefix + "cert_file", Current: f.CurrentCert, Accept: ".pem,.crt,.cer", Describe: f.Prefix + "cert-h"})
+					@gui.File(gui.FileProps{ID: f.Prefix + "cert_file", Name: f.Prefix + "cert_file", Current: f.CurrentCert, Accept: ".pem,.crt,.cer", Describe: f.Prefix + "cert-h", Multiple: true, Needed: !f.Edit, Paste: f.Prefix + "cert_pem"})
 					@protoform.Message(f.Prefix+"cert-h", f.PemCert.Error, gui.T(ctx, keyIf(f.Edit, "auth.form.keep_file", "auth.form.cert_hint")))
 					<label class="w-field__label sheet-paste" for={ f.Prefix + "cert_pem" }>{ gui.T(ctx, "auth.form.paste_cert") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
 					<textarea class="w-textarea w-mono" id={ f.Prefix + "cert_pem" } name={ f.Prefix + "cert_pem" } rows="4" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----">{ f.PemCert.Value }</textarea>
 				</div>
 				<div class={ "w-field", templ.KV("is-invalid", f.PemKey.Error != "") }>
 					<label class="w-field__label" for={ f.Prefix + "key_file" }>{ gui.T(ctx, "auth.form.key") }@protoform.ReqMark(!f.Edit)</label>
-					@gui.File(gui.FileProps{ID: f.Prefix + "key_file", Name: f.Prefix + "key_file", Current: f.CurrentKey, Accept: ".pem,.key", Describe: f.Prefix + "key-h"})
+					@gui.File(gui.FileProps{ID: f.Prefix + "key_file", Name: f.Prefix + "key_file", Current: f.CurrentKey, Accept: ".pem,.key", Describe: f.Prefix + "key-h", Needed: !f.Edit, Paste: f.Prefix + "key_pem"})
 					@protoform.Message(f.Prefix+"key-h", f.PemKey.Error, gui.T(ctx, keyIf(f.Edit, "auth.form.keep_file", "auth.form.key_hint")))
 					<label class="w-field__label sheet-paste" for={ f.Prefix + "key_pem" }>{ gui.T(ctx, "auth.form.paste_key") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
 					<textarea class="w-textarea w-mono" id={ f.Prefix + "key_pem" } name={ f.Prefix + "key_pem" } rows="4" spellcheck="false" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
@@ -397,7 +397,7 @@ templ formView(d *Form) {
 				@CredFields(d)
 			</fieldset>
 		</div>
-		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title, NeedsNote: gui.T(ctx, "auth.form.needs")})
 	</form>
 }
 
@@ -443,12 +443,47 @@ templ detailView(d detailData) {
 				}
 			</dl>
 		</div>
+		if len(d.Chain) > 1 {
+			<details class="w-card w-card--fold" open>
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "auth.detail.chain") }</span><span class="w-fold__meta">{ gui.T(ctx, "auth.content.chain", "n", len(d.Chain)) }</span></summary>
+				<div class="w-card__body">
+					<div class="w-table-wrap">
+						<table class="w-table">
+							<caption class="visually-hidden">{ gui.T(ctx, "auth.detail.chain") }</caption>
+							<thead>
+								<tr>
+									<th scope="col">{ gui.T(ctx, "auth.detail.chain_col.role") }</th>
+									<th scope="col">{ gui.T(ctx, "auth.detail.chain_col.subject") }</th>
+									<th scope="col">{ gui.T(ctx, "auth.detail.chain_col.issuer") }</th>
+									<th scope="col">{ gui.T(ctx, "auth.detail.chain_col.validity") }</th>
+									<th scope="col">{ gui.T(ctx, "auth.detail.chain_col.state") }</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, c := range d.Chain {
+									<tr>
+										<td>{ c.Role }</td>
+										<td class="w-mono">{ c.Subject }</td>
+										<td class="w-mono">{ c.Issuer }</td>
+										<td class="w-nowrap">{ c.Validity }</td>
+										<td>@gui.StatusOf(c.Expiry)</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+					<p class="w-form__note sheet-note">{ gui.T(ctx, "auth.detail.chain_note") }</p>
+				</div>
+			</details>
+		}
 		if d.Public != "" {
-			<div class="w-card">
-				<h2 class="w-card__title">{ d.PublicTitle }</h2>
-				<pre class="w-code sheet-pem">{ d.Public }</pre>
-				<p class="w-form__note sheet-note">{ gui.T(ctx, "auth.detail.public_note") }</p>
-			</div>
+			<details class="w-card w-card--fold" open>
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ d.PublicTitle }</span></summary>
+				<div class="w-card__body">
+					<pre class="w-code sheet-pem">{ d.Public }</pre>
+					<p class="w-form__note sheet-note">{ gui.T(ctx, "auth.detail.public_note") }</p>
+				</div>
+			</details>
 		}
 	</div>
 }

@@ -54,6 +54,14 @@ const (
 	// (liststate.KindParam), so that the owner's screen renders the right
 	// notification.
 	KindCred = "cred"
+	// NoteParam carries what the form did with the certificates given
+	// beyond the chain (a root set apart, intermediates of a trusted
+	// certificate not kept); RootParam names the root.
+	NoteParam = "note"
+	RootParam = "root"
+
+	noteRootDropped     = "root_dropped"
+	noteTrustedLeafOnly = "trusted_leaf_only"
 
 	// Prefix of the fields of the form of a means inside the form of an
 	// account ("means_type").

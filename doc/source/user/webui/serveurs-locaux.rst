@@ -260,6 +260,18 @@ montre la partie publique (certificat au format PEM, ligne de clé publique)
 qui peut être transmise au partenaire. Un mot de passe ou une clé privée ne
 sont jamais réaffichés, pas même à leur auteur.
 
+Un certificat signé par une autorité privée se dépose **avec ses certificats
+intermédiaires, ensemble** : plusieurs fichiers choisis en une fois, dans
+n'importe quel ordre, ou collés à la suite (le produit vérifie la chaîne entière
+à l'enregistrement, on ne peut pas la compléter après coup). Le formulaire les
+remet dans l'ordre attendu (le certificat, puis ses
+intermédiaires), écarte une racine déposée par erreur et le dit, refuse un
+certificat étranger à la chaîne en le nommant. La racine, elle, se déclare
+d'abord dans :doc:`autorites` ; sinon la chaîne est refusée, et le formulaire
+nomme le certificat qui la termine et son signataire, avec ce qu'il reste à
+faire. La liste dit alors « chaîne de n certificats » ; la fiche du moyen
+détaille chaque certificat de la chaîne et porte l'échéance la plus proche.
+
 *Ajouter un moyen d'authentification* ouvre un formulaire en deux blocs : le
 nom et le type, puis le contenu du type choisi. Un fichier PEM (certificat,
 clé) se dépose depuis le poste ou se colle dans le champ prévu à côté ; le
