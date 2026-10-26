@@ -22,8 +22,9 @@ import (
 // PKI is the chain made for a test.
 type PKI struct {
 	Root, Inter, Leaf, Stranger *x509.Certificate
-	// LeafKey is the private key of the leaf, PEM, as a form posts it.
-	LeafKey string
+	// LeafKey is the private key of the leaf, PEM, as a form posts it;
+	// StrangerKey the one of the stranger: a key that is not the leaf's.
+	LeafKey, StrangerKey string
 }
 
 // New makes the chain, valid for a day.
@@ -58,13 +59,20 @@ func New(t *testing.T) *PKI {
 		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign,
 	}, nil, strangerKey, strangerKey)
 
-	der, err := x509.MarshalECPrivateKey(leafKey)
-	require.NoError(t, err)
-
 	return &PKI{
 		Root: root, Inter: inter, Leaf: leaf, Stranger: stranger,
-		LeafKey: string(pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: der})),
+		LeafKey: keyPEM(t, leafKey), StrangerKey: keyPEM(t, strangerKey),
 	}
+}
+
+// keyPEM writes the key as a form posts it.
+func keyPEM(t *testing.T, key *ecdsa.PrivateKey) string {
+	t.Helper()
+
+	der, err := x509.MarshalECPrivateKey(key)
+	require.NoError(t, err)
+
+	return string(pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: der}))
 }
 
 // PEM writes the certificates, one block each, in the order given.

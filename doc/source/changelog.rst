@@ -9,7 +9,10 @@ Historique des versions
   attendu, une racine déposée par erreur est écartée et dite, un certificat
   étranger est refusé et nommé ; quand la chaîne n'atteint aucune autorité
   connue, le refus nomme le certificat qui la termine et son signataire, et
-  dit quoi faire. Un certificat de confiance garde le certificat seul. La
+  dit quoi faire (si la racine a été déposée avec la chaîne, qu'elle n'est pas
+  enregistrée). Une clé privée qui n'est pas celle du certificat, un certificat
+  déposé à la place de la clé ou une clé illisible sont dits en clair, sur le
+  champ de la clé. Un certificat de confiance garde le certificat seul. La
   fiche d'un moyen montre chaque certificat de la chaîne et porte l'échéance
   la plus proche ; la liste dit « chaîne de n certificats ». Ni l'API ni le
   modèle ne changent : la valeur enregistrée est le PEM attendu par la ligne

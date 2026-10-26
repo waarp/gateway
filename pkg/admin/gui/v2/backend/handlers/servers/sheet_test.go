@@ -648,7 +648,8 @@ func TestEditCred(t *testing.T) {
 
 		rec = s.post(t, permWrite, s.path(f.https, fmt.Sprintf("/auth/%d/edit", f.cert.ID)), url.Values{"name": {"cert-renamed"}, "cert_pem": {testhelpers.ClientFooCert}})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "a certificate that does not match the key in place")
-		assert.Contains(t, rec.Body.String(), "Le contenu n&#39;a pas été accepté")
+		assert.Contains(t, rec.Body.String(), "La clé privée n&#39;est pas celle du certificat déposé : donnez la clé de ce certificat.",
+			"said on the key field, in the words of the user")
 	})
 }
 

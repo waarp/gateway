@@ -481,6 +481,10 @@ auth:
       unrelated: "Le certificat « {name} » n'appartient pas à cette chaîne : retirez-le."
       no_leaf: "Chaque certificat déposé en signe un autre : le certificat lui-même manque."
       issuer_unknown: "« {subject} » est signé par « {issuer} », que la passerelle ne connaît pas. Déposez le certificat intermédiaire de « {issuer} » avec lui, ou enregistrez « {issuer} » dans Autorités d'authentification si c'est la racine."
+      root_unknown: "La racine « {root} » déposée avec la chaîne n'est pas enregistrée dans Autorités d'authentification : enregistrez-la d'abord, puis déposez de nouveau le certificat et ses intermédiaires."
+      key_is_cert: "Le contenu déposé comme clé privée est un certificat : donnez la clé privée du certificat, un bloc « PRIVATE KEY »."
+      key_mismatch: "La clé privée n'est pas celle du certificat déposé : donnez la clé de ce certificat."
+      key_unreadable: "Le contenu déposé comme clé privée n'est pas une clé PEM lisible."
   # Ce que le formulaire a fait des certificats déposés au-delà de la chaîne, dit après l'enregistrement.
   note:
     root_dropped: "La racine « {root} » déposée avec la chaîne n'est pas conservée : une racine se déclare dans Autorités d'authentification."

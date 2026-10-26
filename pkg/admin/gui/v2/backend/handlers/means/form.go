@@ -1,6 +1,7 @@
 package means
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -41,9 +42,15 @@ const (
 	// A PEM file weighs a few kilobytes: the limit of an upload.
 	maxUpload = 4 << 20
 
-	// The cause the product gives when a chain does not reach an authority
-	// it knows.
+	// The causes the product gives, worded for a developer, that the form
+	// says in the words of the user: a chain that reaches no authority the
+	// gateway knows; a certificate given in place of the private key, a key
+	// that is not the one of the certificate, a key that cannot be read.
 	causeUnknownAuthority = "signed by unknown authority"
+	causeKeyIsCert        = "found a certificate rather than a key"
+	causeKeyMismatch      = "does not match public key"
+	causeKeyUnreadable    = "failed to parse private key"
+	causeKeyEmpty         = "failed to find any PEM data in key input"
 )
 
 // Form is the form of a means: its identity (name, kind) and the content of
@@ -393,14 +400,7 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 		f.TypeError = translate("auth.form.error.unique")
 	case strings.Contains(msg, "failed to validate authentication value"):
 		_, reason, _ := strings.Cut(msg, "failed to validate authentication value: ")
-		text := translate("auth.form.error.invalid", "reason", reason)
-
-		// The chain does not reach an authority the gateway knows: say
-		// which certificate ends it and who signed it, what to do with it.
-		if f.chain != nil && strings.Contains(reason, causeUnknownAuthority) {
-			subject, issuer := f.chain.Unknown()
-			text = translate("auth.form.error.issuer_unknown", "subject", subject, "issuer", issuer)
-		}
+		text, onKey := f.explain(translate, reason)
 
 		switch f.Family {
 		case familyPassword:
@@ -408,7 +408,11 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 		case familyFile:
 			f.Pem.Error = text
 		case familyTwoFile:
-			f.PemCert.Error = text
+			if onKey {
+				f.PemKey.Error = text
+			} else {
+				f.PemCert.Error = text
+			}
 		case familyPair:
 			f.refusePreConnection(reason, text)
 		default:
@@ -419,6 +423,33 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 	}
 
 	f.HasErrors = true
+}
+
+// explain says a refusal of the product in the words of the user: the chain
+// reaches no authority the gateway knows (when the root came with the chain,
+// it is that root which is not registered: said alone, nothing else to give);
+// a certificate was given in place of the private key; the key is not the one
+// of the certificate; the key cannot be read. Any other cause is shown as the
+// product says it. The second value says whether the cause concerns the
+// private key field.
+func (f *Form) explain(translate gui.Translator, reason string) (text string, onKey bool) {
+	switch {
+	case f.chain != nil && strings.Contains(reason, causeUnknownAuthority):
+		subject, issuer := f.chain.Unknown()
+		if root := f.chain.Root; root != nil && bytes.Equal(f.chain.Last().RawIssuer, root.RawSubject) {
+			return translate("auth.form.error.root_unknown", "root", issuer), false
+		}
+
+		return translate("auth.form.error.issuer_unknown", "subject", subject, "issuer", issuer), false
+	case strings.Contains(reason, causeKeyIsCert):
+		return translate("auth.form.error.key_is_cert"), true
+	case strings.Contains(reason, causeKeyMismatch):
+		return translate("auth.form.error.key_mismatch"), true
+	case strings.Contains(reason, causeKeyUnreadable), strings.Contains(reason, causeKeyEmpty):
+		return translate("auth.form.error.key_unreadable"), true
+	default:
+		return translate("auth.form.error.invalid", "reason", reason), false
+	}
 }
 
 // refusePreConnection puts the refusal of a PeSIT pre-connection on the

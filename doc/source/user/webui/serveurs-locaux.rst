@@ -269,7 +269,10 @@ intermédiaires), écarte une racine déposée par erreur et le dit, refuse un
 certificat étranger à la chaîne en le nommant. La racine, elle, se déclare
 d'abord dans :doc:`autorites` ; sinon la chaîne est refusée, et le formulaire
 nomme le certificat qui la termine et son signataire, avec ce qu'il reste à
-faire. La liste dit alors « chaîne de n certificats » ; la fiche du moyen
+faire ; si la racine a été déposée avec la chaîne, il dit qu'elle n'est pas
+enregistrée et où le faire. Une clé privée qui n'est pas celle du certificat,
+un certificat déposé à la place de la clé ou une clé illisible sont dits en
+clair, sur le champ de la clé. La liste dit alors « chaîne de n certificats » ; la fiche du moyen
 détaille chaque certificat de la chaîne et porte l'échéance la plus proche.
 
 *Ajouter un moyen d'authentification* ouvre un formulaire en deux blocs : le

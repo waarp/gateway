@@ -99,9 +99,49 @@ func TestCertificateChain(t *testing.T) {
 		assert.Contains(t, body, "un fichier déposé est à choisir de nouveau")
 	})
 
+	t.Run("the root given with the chain is not registered: the refusal names it alone", func(t *testing.T) {
+		rec := s.post(t, permWrite, s.path(srv, "/auth/new"), form("racine-inconnue", chaintest.PEM(pki.Leaf, pki.Inter, pki.Root)))
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+
+		body := rec.Body.String()
+		assert.Contains(t, body, "La racine « Test root » déposée avec la chaîne n&#39;est pas enregistrée dans Autorités "+
+			"d&#39;authentification : enregistrez-la d&#39;abord, puis déposez de nouveau le certificat et ses intermédiaires.")
+		assert.NotContains(t, body, "Déposez le certificat intermédiaire", "nothing to give: the root is in hand")
+	})
+
 	require.NoError(t, s.db.Insert(&model.Authority{
 		Name: "racine-test", Type: auth.AuthorityTLS, PublicIdentity: chaintest.PEM(pki.Root),
 	}).Run())
+
+	// The refusals of the private key, said on its field (after its textarea),
+	// in the words of the user: the product's words stay inside.
+	keyRefusal := func(t *testing.T, name, key, expected string) {
+		t.Helper()
+
+		values := form(name, chaintest.PEM(pki.Leaf, pki.Inter))
+		values.Set("key_pem", key)
+		rec := s.post(t, permWrite, s.path(srv, "/auth/new"), values)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+
+		body := rec.Body.String()
+		assert.Contains(t, body, `<span class="w-field__error" id="key-h">`, "the error of the key field")
+		assert.Greater(t, strings.Index(body, expected), strings.Index(body, `id="key-h">`), "the words follow it")
+		assert.Less(t, strings.Index(body, expected), strings.Index(body, `name="key_pem"`), "before the paste field of the key")
+		assert.NotContains(t, body, "tls: ", "the product's words stay inside")
+	}
+
+	t.Run("a certificate given as the private key", func(t *testing.T) {
+		keyRefusal(t, "cle-certificat", chaintest.PEM(pki.Leaf),
+			"Le contenu déposé comme clé privée est un certificat : donnez la clé privée du certificat")
+	})
+
+	t.Run("a key that is not the one of the certificate", func(t *testing.T) {
+		keyRefusal(t, "mauvaise-cle", pki.StrangerKey, "La clé privée n&#39;est pas celle du certificat déposé")
+	})
+
+	t.Run("a key that cannot be read", func(t *testing.T) {
+		keyRefusal(t, "cle-illisible", "pas une clé", "Le contenu déposé comme clé privée n&#39;est pas une clé PEM lisible")
+	})
 
 	t.Run("the certificate alone, its intermediate missing", func(t *testing.T) {
 		rec := s.post(t, permWrite, s.path(srv, "/auth/new"), form("seul", chaintest.PEM(pki.Leaf)))

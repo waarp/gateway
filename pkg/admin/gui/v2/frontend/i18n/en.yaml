@@ -482,6 +482,10 @@ auth:
       unrelated: "The certificate “{name}” does not belong to this chain: remove it."
       no_leaf: "Every certificate given signs another one: the certificate itself is missing."
       issuer_unknown: "“{subject}” is signed by “{issuer}”, which the gateway does not know. Give the intermediate certificate of “{issuer}” with it, or register “{issuer}” among the authentication authorities if it is the root."
+      root_unknown: "The root “{root}” given with the chain is not registered among the authentication authorities: register it first, then give the certificate and its intermediates again."
+      key_is_cert: "The content given as the private key is a certificate: give the private key of the certificate, a “PRIVATE KEY” block."
+      key_mismatch: "The private key is not the one of the certificate given: give the key of this certificate."
+      key_unreadable: "The content given as the private key is not a readable PEM key."
   # What the form did with the certificates given beyond the chain, said after the save.
   note:
     root_dropped: "The root “{root}” given with the chain is not kept: a root is declared among the authentication authorities."
