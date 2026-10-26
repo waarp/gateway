@@ -88,7 +88,7 @@ func detailOf(translate gui.Translator, has func(string) bool, trans *model.Norm
 	data := detailData{
 		ID:       trans.ID,
 		File:     fileName(trans),
-		Status:   statusOf(translate, trans.Status),
+		Status:   StatusOf(translate, trans.Status),
 		Number:   translate("transfers.detail.number", "id", trans.ID),
 		BackURL:  listURL(carried),
 		Progress: progressOf(translate, trans),

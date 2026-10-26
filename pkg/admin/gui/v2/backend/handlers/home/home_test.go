@@ -47,7 +47,7 @@ func TestHomePage(t *testing.T) {
 		assert.Contains(t, body, "<title>Accueil · gw-test · Waarp Gateway</title>")
 		assert.Contains(t, body, `<h1 class="w-page-header__title">Accueil</h1>`)
 		assert.Equal(t, 4, strings.Count(body, `<section class="w-card"`), "one card per section")
-		assert.Equal(t, 15, strings.Count(body, `class="w-card w-link-card"`), "one link card per screen")
+		assert.Equal(t, 16, strings.Count(body, `class="w-card w-link-card"`), "one link card per screen")
 		assert.Contains(t, body, `href="/webui/config"`, "the configuration import and export too (#773)")
 		assert.Contains(t, body, `<span class="w-link-card__text">Sauvegarde et reprise de la configuration</span>`)
 		assert.Contains(t, body, `<h2 class="w-card__title" id="home-connection">Connexions</h2>`)
@@ -72,9 +72,11 @@ func TestHomePage(t *testing.T) {
 
 		body := serve(t, page, model.PermServersRead, "en", "/webui/home").Body.String()
 		assert.Contains(t, body, "<title>Home · gw-test · Waarp Gateway</title>")
-		assert.Equal(t, 2, strings.Count(body, `<section class="w-card"`), "connections and monitoring only")
-		assert.Equal(t, 3, strings.Count(body, `class="w-card w-link-card"`), "servers, clients and the service status")
+		assert.Equal(t, 3, strings.Count(body, `<section class="w-card"`), "connections, treatments and monitoring")
+		assert.Equal(t, 4, strings.Count(body, `class="w-card w-link-card"`),
+			"servers, clients, the partner watchers and the service status")
 		assert.Contains(t, body, `<span class="w-link-card__label">Local servers</span>`)
+		assert.Contains(t, body, `<span class="w-link-card__label">Partner watchers</span>`, "the watchers follow the servers right")
 		assert.NotContains(t, body, "Remote partners", "no partners without the partners right")
 		assert.NotContains(t, body, `id="home-admin"`, "an empty section is not rendered")
 		assert.Contains(t, body, "State of the services, servers and clients")

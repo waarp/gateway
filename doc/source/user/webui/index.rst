@@ -21,6 +21,7 @@ restent décrits par l'interface elle-même.
    clients-locaux
    partenaires-distants
    regles
+   surveillances
    cles
    smtp
    modeles
@@ -145,8 +146,8 @@ de ce que l'interface affiche ; une requête non autorisée reçoit le code 403.
 L':doc:`accueil` et l'écran :doc:`etat-des-services` ne requièrent aucun
 droit particulier : tout utilisateur authentifié peut les consulter ;
 l'accueil ne propose que les écrans que l'utilisateur a le droit de lire.
-L'écran :doc:`serveurs-locaux`
-requiert les droits sur les serveurs : lecture pour la liste et le détail,
+Les écrans :doc:`serveurs-locaux` et :doc:`surveillances`
+requièrent les droits sur les serveurs : lecture pour la liste et le détail,
 écriture pour créer, modifier, démarrer et arrêter, suppression pour
 supprimer. L'écran :doc:`partenaires-distants` requiert de même les droits
 sur les partenaires, l'écran :doc:`utilisateurs` les droits sur les

@@ -11,6 +11,7 @@ nav:
   partners: Partenaires distants
   treatments: Traitements
   rules: Règles de transfert
+  watchers: Surveillances de partenaires
   keys: Clés cryptographiques
   smtp: Identifiants SMTP
   email_templates: Modèles d'e-mail
@@ -600,6 +601,7 @@ home:
     clients: Identités sortantes vers les partenaires
     partners: Serveurs distants et leurs comptes
     rules: Sens, chemins et traitements
+    watchers: Dossiers de partenaires interrogés à intervalle régulier
     keys: Chiffrement et signature des tâches
     smtp: Comptes d'envoi de la tâche EMAIL
     email_templates: Modèles de message de la tâche EMAIL
@@ -1623,6 +1625,152 @@ overrides:
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
 
 # Écran « Clés cryptographiques » (#735) : les clés des tâches de chiffrement et de signature.
+# Écran « Surveillances de partenaires » (Traitements).
+watchers:
+  title: Surveillances de partenaires
+  add: Ajouter une surveillance
+  search: Rechercher une surveillance par son nom
+  search_placeholder: Rechercher par nom
+  filters_partner: Partenaires
+  filters_state: États
+  count: "{total} surveillances"
+  count_one: 1 surveillance
+  count_shown: "{total} surveillances · {shown} affichées"
+  count_shown_one: "{total} surveillances · 1 affichée"
+  caption: "Surveillances de partenaires, page {page} sur {pages}, triées par {sort}"
+  pager: "Surveillances {from} à {to} sur {total}"
+  back: Retour à la liste
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    partner: partenaire
+    rule: règle
+  col:
+    name: Surveillance
+    partner: Partenaire · compte
+    client: Client
+    rule: Règle
+    pattern: Motif
+    interval: Intervalle
+    state: État
+    actions: Actions
+  # L'état du service de la surveillance, dans la liste et dans le filtre.
+  state:
+    running: En ligne
+    stopped: Arrêtée
+    error: Erreur
+  # L'intervalle en jours, heures et minutes (« 1 h 30 min »).
+  interval:
+    never: Jamais
+    days: "{n} j"
+    hours: "{n} h"
+    minutes: "{n} min"
+  action:
+    detail: Voir la fiche
+    start: Démarrer
+    stop: Arrêter
+    fire: Lancer un passage
+    edit: Modifier
+    delete: Supprimer
+  detail:
+    title: "Surveillance « {name} »"
+    card: Surveillance
+    state: État du service
+    partner: Partenaire · compte
+    client: Client
+    rule: Règle de réception
+    pattern: Motif
+    interval: Intervalle
+    skip: Fichiers déjà transférés ignorés
+    enabled: Démarrée avec la passerelle
+    yes: Oui
+    "no": Non
+    files: Fichiers reçus
+    files_count: "{n} fichiers"
+    files_count_one: 1 fichier
+    files_none_short: Aucun
+    files_text: "Les {n} derniers transferts de réception de cette règle pour ce partenaire et ce compte, les plus récents d'abord."
+    files_none: Aucun fichier reçu pour l'instant.
+    files_link: Voir tous les transferts
+    col:
+      file: Fichier
+      date: Date
+      time: Heure
+      state: État
+  none:
+    title: "Aucune surveillance ne correspond à « {query} »"
+    filters: Aucune surveillance ne correspond aux filtres
+  empty:
+    title: Aucune surveillance pour l'instant
+    text: Une surveillance interroge un dossier d'un partenaire à intervalle régulier et crée un transfert de réception par fichier trouvé.
+  error:
+    title: La liste des surveillances n'a pas pu être chargée.
+    text: "Réessayez dans un instant ; si l'erreur persiste, consultez le journal de la passerelle."
+  not_found:
+    title: Surveillance introuvable
+    text: Cette surveillance n'existe pas ou a été supprimée.
+  new:
+    title: Nouvelle surveillance de partenaire
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    card_identity: Surveillance
+    card_partner: Partenaire
+    card_rule: Règle
+    name: Nom
+    name_hint: "Unique ; le nom désigne la surveillance dans la liste, le journal et l'API."
+    pattern: Motif
+    pattern_hint: "Les fichiers du dossier dont le nom correspond au motif, avec * et ? comme jokers ; vide, tous les fichiers."
+    interval: Intervalle
+    interval_hint: Le temps entre deux interrogations du dossier, une minute au moins.
+    unit: Unité de l'intervalle
+    unit_minutes: minutes
+    unit_hours: heures
+    skip: Ignorer les fichiers déjà transférés
+    enabled: Démarrer avec la passerelle
+    enabled_hint: "Décochée, la surveillance est enregistrée arrêtée ; elle se démarre depuis la liste."
+    protocol: Protocole
+    protocol_hint: "Les protocoles qui savent lister un dossier chez le partenaire. PeSIT, HTTP et AS2 ne le savent pas : leurs partenaires ne peuvent pas être surveillés."
+    no_accounts_proto: "Aucun partenaire {protocol} n'a de compte distant. Ajoutez d'abord le partenaire et son compte."
+    no_clients_proto: "Aucun client {protocol}. Ajoutez d'abord un client de ce protocole."
+    account: Compte distant
+    account_hint: "Le compte avec lequel la passerelle se connecte chez le partenaire, par partenaire."
+    client: Client local
+    client_hint: Le client de la passerelle, du même protocole que le partenaire.
+    rule: Règle de réception
+    rule_hint: La règle sous laquelle chaque fichier trouvé est reçu.
+    choose: Choisissez
+    no_accounts_title: Aucun partenaire ne peut être surveillé
+    no_accounts_text: "Une surveillance demande un compte distant chez un partenaire dont le protocole liste les dossiers (SFTP, FTP, R66, WebDAV). Ajoutez d'abord ce partenaire et son compte."
+    edit_note: Une surveillance en ligne redémarre sur sa nouvelle configuration dès l'enregistrement.
+    refused: La surveillance n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Une autre surveillance porte déjà ce nom. Choisissez-en un autre.
+      interval: Indiquez un intervalle d'une minute au moins, en nombre entier.
+      pattern: "Ce motif n'est pas valide : employez * et ? comme jokers, [ ] pour un jeu de caractères."
+      protocol: Choisissez un protocole qui sait lister un dossier.
+      account: Choisissez un compte distant.
+      account_protocol: Le compte doit être celui d'un partenaire du protocole choisi.
+      client: Choisissez un client dont le protocole liste les dossiers.
+      client_protocol: Le client doit être du même protocole que le partenaire.
+      rule: Choisissez une règle de réception.
+  delete:
+    title: "Supprimer la surveillance « {name} » ?"
+    text: La surveillance s'arrête et disparaît de la liste.
+    consequence: "Les transferts déjà créés restent ; plus aucun ne sera créé pour ce dossier."
+  toast:
+    created: "Surveillance « {name} » créée"
+    updated: "Surveillance « {name} » enregistrée"
+    deleted: "Surveillance « {name} » supprimée"
+    started: "Surveillance « {name} » démarrée"
+    stopped: "Surveillance « {name} » arrêtée"
+    fired: "Passage de « {name} » lancé : {count} transferts créés"
+    fired_one: "Passage de « {name} » lancé : 1 transfert créé"
+    fired_none: "Passage de « {name} » lancé : aucun fichier nouveau"
+    fire_failed: "Le passage de « {name} » a échoué."
+
 keys:
   title: Clés cryptographiques
   add: Ajouter une clé
