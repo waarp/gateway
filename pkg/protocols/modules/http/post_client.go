@@ -244,14 +244,11 @@ func (p *postClient) Send(file protocol.SendFile) *pipeline.Error {
 		//nolint:errcheck,gosec //error is irrelevant here
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusCreated {
-			return getRemoteStatus(resp.Header, resp.Body, p.pip)
-		}
+		return getResponseStatus(resp, p.pip)
 	default:
+		return p.wrapAndSendError(copyErr, types.TeDataTransfer,
+			"failed to write to remote HTTP file")
 	}
-
-	return p.wrapAndSendError(copyErr, types.TeDataTransfer,
-		"failed to write to remote HTTP file")
 }
 
 func (p *postClient) EndTransfer() *pipeline.Error {
@@ -265,17 +262,10 @@ func (p *postClient) EndTransfer() *pipeline.Error {
 	case err := <-p.reqErr:
 		return p.wrapAndSendError(err, types.TeDataTransfer, "HTTP transfer failed")
 	case resp := <-p.resp:
-		if resp.StatusCode != http.StatusCreated {
-			//nolint:errcheck,gosec //error is irrelevant here
-			defer resp.Body.Close()
+		defer resp.Body.Close()
 
-			return getRemoteStatus(resp.Header, resp.Body, p.pip)
-		} else {
-			p.discardResponse()
-		}
+		return getResponseStatus(resp, p.pip)
 	}
-
-	return nil
 }
 
 func (p *postClient) SendError(code types.TransferErrorCode, details string) {

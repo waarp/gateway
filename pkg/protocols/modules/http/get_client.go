@@ -79,7 +79,7 @@ func (g *getClient) Request() *pipeline.Error {
 
 		return nil
 	default:
-		return getRemoteStatus(g.resp.Header, g.resp.Body, g.pip)
+		return getResponseStatus(g.resp, g.pip)
 	}
 }
 

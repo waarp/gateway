@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`777` Les transferts client HTTP tombent désormais correctement en erreur
+  lorsque le partenaire renvoie un code HTTP non-attendu.
 * :bug:`780` Les *filewatchers* distants rechargent désormais correctement leur
   configuration depuis la base de données lors de leur démarrage.
 * :bug:`751` Correction d'une mauvaise gestion des droits qui empêchait le listage
