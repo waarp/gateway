@@ -268,21 +268,25 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, `class="w-num" aria-sort="descending"><a href="/webui/transfers?sort=id&amp;dir=asc">N°</a>`)
 		// One line per transfer, in the order of the columns of the historic screen: the direction as an icon, the
 		// number, the state (strong), the file, the rule, the partner, the start, the end, the progress, the size;
-		// what does not fit goes to the tooltips; a failed transfer says "Failed" alone.
+		// what does not fit goes to the tooltips; a failed transfer says "Failed" alone. The partner never folds
+		// (#781): the size does, so the progress carries it in its tooltip.
 		indexes(t, body, `<td class="tf-dir" title="Envoi depuis le client vers le serveur">`,
 			`<td class="w-num tf-num">`+strconv.FormatInt(s.failed.ID, 10)+`</td>`,
 			`title="Accès refusé : failed to make transfer request: FICHIER DEJA RECU"`,
 			`<span class="w-status w-status--ko w-status--strong">En erreur</span>`,
 			`title="releve-20102026.pdf"><bdi>releve-20102026.pdf</bdi></a>`,
 			`title="releves · banque-demo · compte prod · SFTP">releves</td>`,
-			`<td class="tf-x" title="banque-demo · compte prod · SFTP">banque-demo</td>`,
+			`<td title="banque-demo · compte prod · SFTP">banque-demo</td>`,
 			`title="21/10/2026 à 10:38:02">21/10/2026 10:38:02</span>`,
 			`<span class="tf-next" title="Prochaine tentative le 21/10/2026 à 10:43:02">`, "<span>21/10/2026 10:43:02</span>")
 		assert.NotContains(t, body, "tf-cause", "no part of the error under the state")
 		assert.NotContains(t, body, "tf-sub", "no second line in the list")
 		assert.NotContains(t, body, `title="prod">prod</td>`, "the account in the tooltip of the partner only")
 		indexes(t, body, "<bdi>paie-octobre.xml</bdi></a>", `<span class="tf-gauge"><progress class="tf-progress" max="100" value="64"`,
-			`<span class="tf-gauge__pct" aria-hidden="true">64 %</span>`, `<td class="w-num" title="1 228 800 octets">1,2 Mo</td>`)
+			`<span class="tf-gauge__pct" aria-hidden="true">64 %</span>`, `<td class="w-num tf-x" title="1 228 800 octets">1,2 Mo</td>`)
+		assert.Contains(t, body, `<td title="1,2 Mo (1 228 800 octets)"><span class="tf-gauge">`, "the size in the tooltip of the progress")
+		assert.Contains(t, body, `<th scope="col" class="w-num tf-x">Taille</th>`, "the size column folds, not the partner")
+		assert.NotContains(t, body, `<th scope="col" class="tf-x">Partenaire</th>`)
 		indexes(t, body, "Attendu</span>", "<bdi>inventaire.csv</bdi></a>", "srv-sftp",
 			`title="Attendu jusqu&#39;au 21/10/2026 à 23:00:00">21/10/2026 23:00:00</span>`)
 		indexes(t, body, "Planifié</span>", "<bdi>rapport-mensuel.pdf</bdi></a>",

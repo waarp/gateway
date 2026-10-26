@@ -79,17 +79,18 @@ dans l'infobulle de sa cellule, comme les informations secondaires.
        prochaine tentative, précédée de l'icône de reprise.
    * - Progression
      - Une barre qui porte le pourcentage quand la taille du fichier est
-       connue, les octets transférés sinon.
+       connue, les octets transférés sinon ; en infobulle, la taille du
+       fichier, lisible et à l'octet près.
    * - Taille
      - La taille du fichier une fois connue (« 1,2 Mo ») ; en infobulle, la
        taille à l'octet près.
 
 Les colonnes suivent l'ordre de l'écran historique. Les dates s'écrivent
 partout de la même façon, à la seconde (« 21/10/2026 18:00:00 ») ; l'infobulle
-les répète en toutes lettres. Quand la largeur utile est inférieure à
-1 500 pixels environ, la colonne *Partenaire* se replie : le partenaire et le
-compte se lisent dans l'infobulle de la règle. Sur un écran étroit, le tableau
-défile dans son cadre.
+les répète en toutes lettres. Sur un écran de moins de 1 500 pixels de large,
+la colonne *Taille* se replie : la taille se lit dans l'infobulle de la
+progression. La colonne *Partenaire*, elle, reste toujours visible. Sur un
+écran étroit, le tableau défile dans son cadre.
 
 Par défaut, les derniers transferts créés viennent en premier : le tri se
 fait sur le numéro, décroissant. Les colonnes *N°*, *Fichier*, *Statut*,
