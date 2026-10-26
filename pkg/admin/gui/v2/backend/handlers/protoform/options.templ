@@ -326,6 +326,15 @@ templ TLSLock(on bool) {
 // ValueOf: the value of a key/value row of a details page, in monospace
 // when technical.
 templ ValueOf(k KV) {
+	if k.URL != "" {
+		<a class="w-link" href={ templ.SafeURL(k.URL) }>@valueText(k)</a>
+	} else {
+		@valueText(k)
+	}
+}
+
+// valueText: the value, in code when it is an identifier.
+templ valueText(k KV) {
 	if k.Mono {
 		<code class="w-code">{ k.Value }</code>
 	} else {

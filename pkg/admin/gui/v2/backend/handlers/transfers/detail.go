@@ -9,8 +9,10 @@ import (
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
@@ -74,7 +76,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 
 	translate := h.shell.Translator(r)
 	carried := ret(r)
-	data := detailOf(translate, h.shell.Catalog().Has, trans, canWrite(r), carried)
+	data := detailOf(translate, h.shell.Catalog().Has, trans, canWrite(r), carried, h.sheetLinks(trans))
 	data.Files = append(data.Files, h.expectedRows(translate, trans)...)
 
 	screen := h.screen(data.File, crumbs(translate, data.Number, carried), 0)
@@ -84,7 +86,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 
 // detailOf lays out the sheet of a transfer.
 func detailOf(translate gui.Translator, has func(string) bool, trans *model.NormalizedTransferView,
-	write bool, carried string,
+	write bool, carried string, links sheetLinks,
 ) detailData {
 	data := detailData{
 		ID:       trans.ID,
@@ -93,7 +95,7 @@ func detailOf(translate gui.Translator, has func(string) bool, trans *model.Norm
 		Number:   translate("transfers.detail.number", "id", trans.ID),
 		BackURL:  listURL(carried),
 		Progress: progressOf(translate, trans),
-		Transfer: transferRows(translate, trans),
+		Transfer: transferRows(translate, trans, links),
 		Files:    fileRows(translate, trans),
 		Run:      runRows(translate, trans),
 		Infos:    infoRows(translate, has, trans.TransferInfo),
@@ -157,23 +159,83 @@ func (h *Handlers) expectedRows(translate gui.Translator, view *model.Normalized
 	return rows
 }
 
+// sheetLinks are the sheets a transfer leads to: its rule, its partner or
+// server, its account, its client (#783). Empty when the object no longer
+// exists: the name stays, without a link.
+type sheetLinks struct{ Rule, Agent, Account, Client string }
+
+// sheetLinks finds the objects of the transfer by their names, as the REST
+// API does: the view of a transfer carries names, a history entry outlives
+// the objects it names.
+func (h *Handlers) sheetLinks(trans *model.NormalizedTransferView) sheetLinks {
+	var links sheetLinks
+
+	var rule model.Rule
+	if h.found(h.db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend).Run()) {
+		links.Rule = common.WebuiURL("/rules/" + strconv.FormatInt(rule.ID, 10))
+	}
+
+	if trans.IsServer {
+		var server model.LocalAgent
+		if h.found(h.db.Get(&server, "name=?", trans.Agent).Run()) {
+			links.Agent = common.WebuiURL("/servers/" + strconv.FormatInt(server.ID, 10))
+
+			var account model.LocalAccount
+			if h.found(h.db.Get(&account, "local_agent_id=? AND login=?", server.ID, trans.Account).Run()) {
+				links.Account = links.Agent + "/accounts/" + strconv.FormatInt(account.ID, 10)
+			}
+		}
+	} else {
+		var partner model.RemoteAgent
+		if h.found(h.db.Get(&partner, "name=?", trans.Agent).Run()) {
+			links.Agent = common.WebuiURL("/partners/" + strconv.FormatInt(partner.ID, 10))
+
+			var account model.RemoteAccount
+			if h.found(h.db.Get(&account, "remote_agent_id=? AND login=?", partner.ID, trans.Account).Run()) {
+				links.Account = links.Agent + "/accounts/" + strconv.FormatInt(account.ID, 10)
+			}
+		}
+	}
+
+	if trans.Client != "" {
+		var client model.Client
+		if h.found(h.db.Get(&client, "name=?", trans.Client).Run()) {
+			links.Client = common.WebuiURL("/clients/" + strconv.FormatInt(client.ID, 10))
+		}
+	}
+
+	return links
+}
+
+// found says whether a lookup by name succeeded; an absent object is the
+// ordinary case of a history entry, any other error is logged.
+func (h *Handlers) found(err error) bool {
+	if err != nil && !database.IsNotFound(err) {
+		h.logger.Warningf("failed to find an object of the transfer: %v", err)
+	}
+
+	return err == nil
+}
+
 // transferRows are the transfer: the rule and its direction, the partner or
-// the server and the account, the client, the protocol, the identifiers.
-func transferRows(translate gui.Translator, trans *model.NormalizedTransferView) []kv {
+// the server and the account, the client, the protocol, the identifiers;
+// each object a link to its sheet while it exists.
+func transferRows(translate gui.Translator, trans *model.NormalizedTransferView, links sheetLinks) []kv {
 	agent := "transfers.detail.partner"
 	if trans.IsServer {
 		agent = "transfers.detail.server"
 	}
 
 	rows := []kv{
-		{Label: translate("transfers.detail.rule"), Value: trans.Rule, Mono: true},
+		{Label: translate("transfers.detail.rule"), Value: trans.Rule, Mono: true, URL: links.Rule},
 		{Label: translate("transfers.detail.direction"), Value: direction(translate, trans)},
-		{Label: translate(agent), Value: trans.Agent},
-		{Label: translate("transfers.detail.account"), Value: trans.Account, Mono: true},
+		{Label: translate(agent), Value: trans.Agent, URL: links.Agent},
+		{Label: translate("transfers.detail.account"), Value: trans.Account, Mono: true, URL: links.Account},
 	}
 
 	if trans.Client != "" {
-		rows = append(rows, kv{Label: translate("transfers.detail.client"), Value: trans.Client, Mono: true})
+		rows = append(rows,
+			kv{Label: translate("transfers.detail.client"), Value: trans.Client, Mono: true, URL: links.Client})
 	}
 
 	rows = append(rows, kv{Label: translate("transfers.detail.protocol"), Value: protocolLabel(trans.Protocol)})

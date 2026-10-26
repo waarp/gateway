@@ -198,6 +198,9 @@ sont affichés dessous. La fiche réunit :
    * - Transfert
      - La règle et le sens, le partenaire ou le serveur, le compte, le
        client, le protocole, l'identifiant distant et l'identifiant de suivi.
+       La règle, le partenaire ou le serveur, le compte et le client sont des
+       liens vers leur fiche tant qu'ils existent ; un objet supprimé depuis
+       garde son nom, sans lien.
    * - Fichier
      - Les noms à la source et à la destination, le chemin sur la Gateway et
        le chemin chez le partenaire, la taille. Pour un transfert qui n'a pas
