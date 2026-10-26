@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`783` Sur la fiche d'un transfert, la règle, le partenaire ou le
+  serveur, le compte et le client mènent à leur fiche tant qu'ils existent ;
+  un objet supprimé depuis garde son nom, sans lien.
 * :bug:`786` Les fiches des serveurs locaux et des partenaires distants
   affichent les tailles de leurs options avec leur unité : « 10 Mo
   (10 485 760 octets) » pour l'intervalle entre deux points de synchronisation

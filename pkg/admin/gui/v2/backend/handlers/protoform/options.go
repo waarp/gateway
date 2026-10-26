@@ -664,6 +664,9 @@ type KV struct {
 	Label string
 	Value string
 	Mono  bool
+	// URL leads to the sheet of the value when it has one (the rule, the
+	// partner of a transfer); empty, the value is text.
+	URL string
 	// Section is the theme of the row, translated, when the family names
 	// one: the details page groups its rows by it (Grouped).
 	Section string
