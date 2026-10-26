@@ -558,6 +558,8 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 		return nil
 	}
 
+	t.pip.SetInterruptionHandlers(nil, nil, nil)
+
 	go func(pip *pipeline.Pipeline) {
 		if err := pip.PostTasks(); err != nil {
 			pip.Logger.Errorf("Transfer post-tasks failed: %v", err)

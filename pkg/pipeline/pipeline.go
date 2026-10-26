@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
@@ -44,7 +45,7 @@ type Pipeline struct {
 	snmp     *snmp.Service
 
 	machine      *statemachine.Machine
-	interruption interruption
+	interruption atomic.Pointer[interruption]
 	updTicker    *time.Ticker
 
 	storedErr *Error
@@ -66,6 +67,8 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		updTicker: time.NewTicker(TransferUpdateInterval),
 		Runner:    tasks.NewTaskRunner(db, logger, transCtx),
 	}
+
+	pipeline.interruption.Store(&interruption{})
 
 	if err := pipeline.setFilePaths(); err != nil {
 		return nil, NewErrorWith(err, types.TeInternal, "failed to build the file paths")
@@ -133,11 +136,11 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 func (p *Pipeline) SetInterruptionHandlers(
 	pause, interrupt, cancel func(context.Context) error,
 ) {
-	p.interruption = interruption{
+	p.interruption.Store(&interruption{
 		Pause:     pause,
 		Interrupt: interrupt,
 		Cancel:    cancel,
-	}
+	})
 }
 
 func (p *Pipeline) SetProtocolAgent(agent any) {
@@ -404,7 +407,7 @@ func (p *Pipeline) Pause(ctx context.Context) error {
 		p.Trace.OnPause()
 	}
 
-	return p.halt(ctx, errPause, types.StatusPaused, p.interruption.Pause)
+	return p.halt(ctx, errPause, types.StatusPaused, p.interruption.Load().Pause)
 }
 
 // Interrupt stops the pipeline and interrupts the transfer.
@@ -413,7 +416,7 @@ func (p *Pipeline) Interrupt(ctx context.Context) error {
 		p.Trace.OnInterruption()
 	}
 
-	return p.halt(ctx, errInterrupted, types.StatusInterrupted, p.interruption.Interrupt)
+	return p.halt(ctx, errInterrupted, types.StatusInterrupted, p.interruption.Load().Interrupt)
 }
 
 func (p *Pipeline) halt(ctx context.Context, err *Error, status types.TransferStatus,
@@ -460,8 +463,8 @@ func (p *Pipeline) Cancel(ctx context.Context) error {
 			p.Trace.OnCancel()
 		}
 
-		if p.interruption.Cancel != nil {
-			if err := p.interruption.Cancel(ctx); err != nil {
+		if cancel := p.interruption.Load().Cancel; cancel != nil {
+			if err := cancel(ctx); err != nil {
 				p.Logger.Warningf("Failed to cancel transfer: %v", err)
 				cancelErr = fmt.Errorf("failed to cancel transfer: %w", err)
 			}
