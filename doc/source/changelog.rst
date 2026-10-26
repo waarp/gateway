@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`789` Ajout de l'écran Tableau de bord de l'interface web
+  (section Supervision) : les services du nœud, les transferts en cours et
+  en erreur, l'activité des 24 dernières heures heure par heure, les cinq
+  dernières erreurs avec leurs actions ; chaque chiffre mène à l'écran qui le
+  détaille, filtré ; la page s'actualise toutes les 30 secondes et garde ses
+  derniers chiffres, datés, quand la base de données ne répond plus (voir
+  :ref:`le guide de l'interface web <user-webui-dashboard>`).
 * :bug:`796` Sur la fiche d'un partenaire distant, les règles de transfert qui
   lui sont réservées sont présentées en liste dans leur carte, chacune avec
   son sens et à qui l'accès est accordé, et non plus en tableau.

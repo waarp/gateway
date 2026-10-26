@@ -79,6 +79,9 @@ type e2eScreen struct {
 	tabs     int
 	fragment string
 	outside  bool // the screen has no entry in the sidebar (the home page)
+	// refresh is the button that asks the fragment, for a screen whose period
+	// exceeds the wait (the dashboard, every 30 seconds).
+	refresh string
 }
 
 func e2eScreens() []e2eScreen {
@@ -86,6 +89,9 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/home", outside: true},
 		{path: "/webui/about", outside: true},
 		{path: "/webui/account", outside: true},
+		// The dashboard: the values of the chart and the latest errors (the
+		// failed transfer), refreshed on the button.
+		{path: "/webui/dashboard", tables: 2, fragment: "fragment=body", refresh: "#tdb-refresh"},
 		{path: "/webui/services", tables: 3, tabs: 3, fragment: "fragment=state"},
 		{path: "/webui/servers", tables: 1},
 		{path: "/webui/servers/1"},
@@ -1123,7 +1129,13 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 	if screen.fragment != "" {
 		response, err := s.page.ExpectResponse(func(res playwright.Response) bool {
 			return strings.Contains(res.URL(), screen.fragment)
-		}, func() error { return nil }, playwright.PageExpectResponseOptions{Timeout: playwright.Float(e2eRefreshMs)})
+		}, func() error {
+			if screen.refresh == "" {
+				return nil
+			}
+
+			return s.page.Locator(screen.refresh).Click()
+		}, playwright.PageExpectResponseOptions{Timeout: playwright.Float(e2eRefreshMs)})
 		require.NoError(t, err, "the screen must refresh its fragment on its own")
 		assert.Equal(t, http.StatusOK, response.Status())
 		require.NoError(t, s.tracker.settle())

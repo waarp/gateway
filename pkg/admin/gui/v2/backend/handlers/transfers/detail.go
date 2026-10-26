@@ -80,7 +80,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.Files = append(data.Files, h.expectedRows(translate, trans)...)
 
 	screen := h.screen(data.File, crumbs(translate, data.Number, carried), 0)
-	screen.Notices = notices(translate, r.URL.Query())
+	screen.Notices = Notices(translate, r.URL.Query())
 	h.shell.Render(w, h.logger, r, screen, detailView(data))
 }
 
@@ -105,7 +105,7 @@ func detailOf(translate gui.Translator, has func(string) bool, trans *model.Norm
 		data.File = data.Number
 	}
 
-	if label := errorLabel(translate, trans.ErrCode); label != "" {
+	if label := ErrorLabel(translate, trans.ErrCode); label != "" {
 		data.Error = &errorView{
 			Cause: label, Code: trans.ErrCode.String(), Message: trans.ErrDetails, Step: stepLabel(translate, trans.Step),
 		}

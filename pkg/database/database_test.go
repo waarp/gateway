@@ -296,6 +296,24 @@ func testSelect(db *DB) {
 			So(err, ShouldBeNil)
 			So(counts, ShouldResemble, map[string]uint64{"str1": 1, "str2": 1, "str3": 1})
 		})
+
+		Convey("When summing a column", func() {
+			total, err := query.Sum("id")
+			So(err, ShouldBeNil)
+			So(total, ShouldEqual, 15)
+		})
+
+		Convey("When summing a column with a condition and a limit", func() {
+			total, err := query.Where("id>?", 2).Limit(1, 0).Sum("id")
+			So(err, ShouldBeNil)
+			So(total, ShouldEqual, 12)
+		})
+
+		Convey("When summing a column over no entry", func() {
+			total, err := query.Where("id>?", 99).Sum("id")
+			So(err, ShouldBeNil)
+			So(total, ShouldEqual, 0)
+		})
 	}
 
 	Convey("When executing a 'SELECT' query", func() {

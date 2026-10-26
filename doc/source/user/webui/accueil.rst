@@ -14,7 +14,7 @@ par section. Chaque écran est une tuile, avec son icône, son nom et une
 phrase qui dit ce qu'il contient ; la tuile entière mène à l'écran. Seuls les
 écrans que l'utilisateur a le droit de lire sont proposés, et une section
 sans écran accessible n'apparaît pas : un utilisateur sans aucun droit ne
-voit que l'écran :doc:`etat-des-services`.
+voit que le :doc:`tableau-de-bord` et l'écran :doc:`etat-des-services`.
 
 Les écrans déjà refondus mènent à leur nouvelle page ; les autres mènent à
 leur page historique, jusqu'à leur refonte.

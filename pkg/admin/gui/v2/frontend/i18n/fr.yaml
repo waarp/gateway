@@ -16,6 +16,7 @@ nav:
   smtp: Identifiants SMTP
   email_templates: Modèles d'e-mail
   supervision: Supervision
+  dashboard: Tableau de bord
   services: État des services
   transfers: Suivi des transferts
   administration: Administration
@@ -80,6 +81,84 @@ services:
 # Protocoles, partagés par les serveurs locaux, les clients locaux et les partenaires distants : la famille
 # (R66, HTTP, SFTP, FTP, PeSIT, WebDAV, AS2), TLS comme attribut à l'écran (Driss, 19/10/2026 ; le produit
 # garde une clé par variante), les options de chaque famille.
+# Écran « Tableau de bord » (Supervision) : les services du nœud, les transferts
+# en cours et en erreur, l'activité des 24 dernières heures, les dernières
+# erreurs. Les états, les causes et les actions des transferts reprennent les
+# clés de l'écran du suivi.
+dashboard:
+  title: Tableau de bord
+  live: "Actualisé à {time}"
+  refreshing: Actualisation…
+  node: "Services du nœud {node}"
+  transfers: Transferts
+  tile:
+    running: Transferts en cours
+    error: Transferts en erreur
+    done: Terminés sur 24 h
+  foot:
+    planned: "{n} planifiés"
+    planned_one: 1 planifié
+    paused: "{n} en pause"
+    paused_one: 1 en pause
+    interrupted: "{n} interrompus"
+    interrupted_one: 1 interrompu
+    available: "{n} attendus"
+    available_one: 1 attendu
+    recent_errors: "{n} depuis une heure"
+    recent_errors_one: 1 depuis une heure
+    volume: "{volume} transférés"
+    cancelled: "{n} annulés"
+    cancelled_one: 1 annulé
+  sr:
+    running: "{n} transferts en cours"
+    running_one: 1 transfert en cours
+    error: "{n} transferts en erreur"
+    error_one: 1 transfert en erreur
+    done: "{n} transferts terminés sur les 24 dernières heures"
+    done_one: 1 transfert terminé sur les 24 dernières heures
+  activity:
+    title: Activité des 24 dernières heures
+    chart: "Transferts par heure sur les 24 dernières heures : terminés et encore en erreur"
+    desc: Les valeurs exactes figurent dans le tableau « Valeurs par heure » qui suit le graphique.
+    hour: "{hour}h"
+  legend:
+    done: Terminés
+    error: Encore en erreur (hachuré, chiffre au-dessus)
+  unit:
+    done: terminés
+    error: en erreur
+  values:
+    title: Valeurs par heure
+    total_done: "{n} terminés"
+    total_done_one: 1 terminé
+    total_error: "{n} en erreur"
+    total_error_one: 1 en erreur
+    caption: Transferts terminés et encore en erreur, par heure de début, sur les 24 dernières heures
+    hour: Heure de début
+    done: Terminés
+    error: Encore en erreur
+  errors:
+    title: Dernières erreurs
+    caption: Derniers transferts en erreur
+    col:
+      time: Heure
+      transfer: Transfert
+      error: Erreur
+      actions: Actions
+    all: "Voir les {n} transferts en erreur"
+    all_one: Voir le transfert en erreur
+    none: Aucun transfert en erreur
+  empty:
+    title: Aucun transfert sur les 24 dernières heures
+    text: Le graphique apparaît dès le premier transfert terminé ou en erreur.
+  degraded:
+    title: "La base de données ne répond plus depuis {time}."
+    text: "Les chiffres affichés datent de {time}. Les services continuent de fonctionner ; l'activité sera rattrapée au retour de la base."
+    none: "Aucun chiffre n'a encore pu être lu. Les services continuent de fonctionner ; l'activité apparaîtra au retour de la base."
+  error:
+    title: Le tableau de bord n'a pas pu être actualisé.
+    text: "Dernière lecture réussie à {time}. Les chiffres affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."
+
 proto:
   label: Protocole
   choose: Choisissez un protocole
@@ -632,6 +711,7 @@ home:
     keys: Chiffrement et signature des tâches
     smtp: Comptes d'envoi de la tâche EMAIL
     email_templates: Modèles de message de la tâche EMAIL
+    dashboard: Services du nœud, transferts du jour et erreurs à traiter
     services: État des services, serveurs et clients
     transfers: Transferts en cours et historique
     users: Comptes d'accès et leurs droits

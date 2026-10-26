@@ -1,0 +1,21 @@
+/* Dashboard screen: what the kit does not decide (the two sections side by side under the tiles, their titles level
+   with the ones above, the values per hour folded under the card of the chart and the foot link of the latest errors;
+   the columns of the latest errors in a half-width section: a fixed layout, the detail of an error on one line, cut
+   with an ellipsis, the whole text in its tooltip, since a cell is a short label and the sheet holds the detail).
+   No table stands in a card (2026-10-23). Tokens only. */
+.tdb-sections { margin-top: var(--sp-6); }
+.tdb-sections .w-section-title { margin-top: 0; }
+.tdb-values { margin-top: var(--sp-4); }
+.tdb-foot { margin: var(--sp-3) 0 0; }
+.tdb-errors { table-layout: fixed; min-width: 28rem; }
+.tdb-errors td { overflow: hidden; }
+.tdb-cause { overflow-wrap: anywhere; }
+.tdb-col-time { width: 6.5rem; }
+.tdb-col-transfer { width: 40%; }
+.tdb-col-actions { width: 3rem; }
+.tdb-errors .w-cell-stack { align-items: stretch; min-width: 0; }
+.tdb-errors .w-cell-title { overflow-wrap: anywhere; }
+.tdb-detail { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* The two sections stand side by side from 1100 px (screen sheet); under it, the latest errors keep their columns and
+   their wrap scrolls sideways when the screen is narrower than the table. */
+@media (max-width: 1100px) { .tdb-sections { grid-template-columns: minmax(0, 1fr); } }

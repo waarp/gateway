@@ -135,6 +135,32 @@ func (s *SelectQuery) CountBy(column string) (map[string]uint64, error) {
 	return counts, nil
 }
 
+// Sum adds the values of the given column over the entries of the query
+// ('SELECT SUM(column) ...'), 0 without any entry. The conditions apply; the
+// order, the limit and the offset do not. The column is written from
+// constants of the caller, never from a user input.
+func (s *SelectQuery) Sum(column string) (int64, error) {
+	logger := s.db.getLogger()
+	query := s.db.getUnderlying().Table(s.bean.TableName())
+	addOwnerCond(query, s.all, s.bean, s.db.getOwner())
+
+	for _, cond := range s.conds {
+		query.Where(cond.sql, cond.args...)
+	}
+
+	var total struct {
+		Total int64 `gorm:"column:total"`
+	}
+
+	if err := query.Select("COALESCE(SUM(" + column + "), 0) AS total").Scan(&total).Error; err != nil {
+		logger.Errorf("Failed to sum the %s of the %s entries: %v", column, s.bean.Elem(), err)
+
+		return 0, NewInternalError(err)
+	}
+
+	return total.Total, nil
+}
+
 // Run executes the 'SELECT' query.
 func (s *SelectQuery) Run() error {
 	logger := s.db.getLogger()

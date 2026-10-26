@@ -16,6 +16,7 @@ nav:
   smtp: SMTP credentials
   email_templates: Email templates
   supervision: Monitoring
+  dashboard: Dashboard
   services: Service status
   transfers: Transfer monitoring
   administration: Administration
@@ -81,6 +82,84 @@ services:
 # Protocols, shared by the local servers, the local clients and the remote partners: the family (R66, HTTP,
 # SFTP, FTP, PeSIT, WebDAV, AS2), TLS as an attribute at the screen (Driss, 2026-10-19; the product keeps one
 # key per variant), the options of each family.
+# "Dashboard" screen (Monitoring): the services of the node, the running and
+# failed transfers, the activity of the last 24 hours, the latest errors. The
+# states, the causes and the actions of the transfers reuse the keys of the
+# monitoring screen.
+dashboard:
+  title: Dashboard
+  live: "Refreshed at {time}"
+  refreshing: Refreshing…
+  node: "Services of node {node}"
+  transfers: Transfers
+  tile:
+    running: Running transfers
+    error: Failed transfers
+    done: Done in 24 h
+  foot:
+    planned: "{n} planned"
+    planned_one: 1 planned
+    paused: "{n} paused"
+    paused_one: 1 paused
+    interrupted: "{n} interrupted"
+    interrupted_one: 1 interrupted
+    available: "{n} expected"
+    available_one: 1 expected
+    recent_errors: "{n} in the last hour"
+    recent_errors_one: 1 in the last hour
+    volume: "{volume} transferred"
+    cancelled: "{n} cancelled"
+    cancelled_one: 1 cancelled
+  sr:
+    running: "{n} running transfers"
+    running_one: 1 running transfer
+    error: "{n} failed transfers"
+    error_one: 1 failed transfer
+    done: "{n} transfers done in the last 24 hours"
+    done_one: 1 transfer done in the last 24 hours
+  activity:
+    title: Activity of the last 24 hours
+    chart: "Transfers per hour over the last 24 hours: done and still failed"
+    desc: The exact values are in the “Values per hour” table after the chart.
+    hour: "{hour}:00"
+  legend:
+    done: Done
+    error: Still failed (hatched, figure above)
+  unit:
+    done: done
+    error: failed
+  values:
+    title: Values per hour
+    total_done: "{n} done"
+    total_done_one: 1 done
+    total_error: "{n} failed"
+    total_error_one: 1 failed
+    caption: Done and still failed transfers, by start hour, over the last 24 hours
+    hour: Start hour
+    done: Done
+    error: Still failed
+  errors:
+    title: Latest errors
+    caption: Latest failed transfers
+    col:
+      time: Time
+      transfer: Transfer
+      error: Error
+      actions: Actions
+    all: "View the {n} failed transfers"
+    all_one: View the failed transfer
+    none: No failed transfer
+  empty:
+    title: No transfer in the last 24 hours
+    text: The chart appears with the first done or failed transfer.
+  degraded:
+    title: "The database has not answered since {time}."
+    text: "The figures shown date from {time}. The services keep running; the activity catches up when the database is back."
+    none: "No figure could be read yet. The services keep running; the activity appears when the database is back."
+  error:
+    title: The dashboard could not be refreshed.
+    text: "Last successful reading at {time}. The figures shown date from that reading; a new attempt is made every {seconds} s."
+
 proto:
   label: Protocol
   choose: Choose a protocol
@@ -633,6 +712,7 @@ home:
     keys: Encryption and signature for the tasks
     smtp: Sending accounts of the EMAIL task
     email_templates: Message templates of the EMAIL task
+    dashboard: Node services, today's transfers and errors to handle
     services: State of the services, servers and clients
     transfers: Running and past transfers
     users: Access accounts and their rights

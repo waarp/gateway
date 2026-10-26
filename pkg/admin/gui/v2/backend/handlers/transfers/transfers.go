@@ -104,6 +104,13 @@ var (
 	}
 )
 
+// The keys of the states another screen (the dashboard) filters the list on.
+const (
+	StateRunning = "running"
+	StateError   = "error"
+	StateDone    = "done"
+)
+
 // stateSpec is a state of a transfer as the screen shows it: the key of the
 // row of the states and of the filter, the status of the product, the shape
 // of its status.
@@ -117,13 +124,13 @@ type stateSpec struct {
 // needs attention first, then what waits, then what is over.
 func stateSpecs() []stateSpec {
 	return []stateSpec{
-		{"running", types.StatusRunning, stateOK},
-		{"error", types.StatusError, stateKO},
+		{StateRunning, types.StatusRunning, stateOK},
+		{StateError, types.StatusError, stateKO},
 		{"planned", types.StatusPlanned, stateOff},
 		{"paused", types.StatusPaused, stateOff},
 		{"interrupted", types.StatusInterrupted, stateWrn},
 		{"available", types.StatusAvailable, stateOff},
-		{"done", types.StatusDone, stateOK},
+		{StateDone, types.StatusDone, stateOK},
 		{"cancelled", types.StatusCancelled, stateOff},
 	}
 }
@@ -213,7 +220,13 @@ func canWrite(r *http.Request) bool {
 // file on the gateway when it is known, else the name at the source, else
 // the name at the destination (as the page this screen replaces).
 func fileName(trans *model.NormalizedTransferView) string {
-	for _, name := range []string{trans.LocalPath, trans.SrcFilename, trans.DestFilename} {
+	return FileNameOf(trans.LocalPath, trans.SrcFilename, trans.DestFilename)
+}
+
+// FileNameOf is the name of a file from the paths of a transfer (see
+// fileName); the dashboard shares it.
+func FileNameOf(local, src, dest string) string {
+	for _, name := range []string{local, src, dest} {
 		if name != "" {
 			return path.Base(strings.ReplaceAll(name, "\\", "/"))
 		}
@@ -264,9 +277,9 @@ func protocolLabel(key string) string {
 	return protoform.ProtocolOf(key).Label
 }
 
-// errorLabel is the readable label of an error code, the technical code
-// staying as a hint; "" without error.
-func errorLabel(translate gui.Translator, code types.TransferErrorCode) string {
+// ErrorLabel is the readable label of an error code, the technical code
+// staying as a hint; "" without error. The dashboard shares it.
+func ErrorLabel(translate gui.Translator, code types.TransferErrorCode) string {
 	if code == types.TeOk || !code.IsValid() {
 		return ""
 	}
@@ -278,6 +291,9 @@ func errorLabel(translate gui.Translator, code types.TransferErrorCode) string {
 func transferURL(id int64, suffix string) string {
 	return common.WebuiURL(pagePath + "/" + strconv.FormatInt(id, 10) + suffix)
 }
+
+// SheetURL is the sheet of a transfer, for the screens that lead to it.
+func SheetURL(id int64) string { return transferURL(id, "") }
 
 // The list state carried by a request, the list as the user left it, and a
 // URL carrying the state: the shared mechanics, on the spec of this list.
@@ -320,9 +336,10 @@ func (h *Handlers) screen(title string, crumbs []gui.Crumb, status int) common.S
 //nolint:gochecknoglobals // reference data of the screen
 var doneKinds = []string{"paused", "resumed", "cancelled", "retried", "added", "preregistered"}
 
-// notices turns the result of the previous action, carried by the
-// redirection, into a notification.
-func notices(translate gui.Translator, values url.Values) []gui.Notice {
+// Notices turns the result of the previous action, carried by the
+// redirection, into a notification; the dashboard, where an action may come
+// back, shows them too.
+func Notices(translate gui.Translator, values url.Values) []gui.Notice {
 	if done := values.Get(liststate.DoneParam); slices.Contains(doneKinds, done) {
 		return []gui.Notice{{
 			Kind: stateOK, Title: translate(toastKeyPrefix+done, "name", values.Get(liststate.NameParam)),

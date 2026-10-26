@@ -424,3 +424,23 @@ func totalText(n int) string {
 
 	return strconv.Itoa(n)
 }
+
+// Tiles sums up the three groups of services for another screen (the
+// dashboard): the tiles of this screen, each a link to its group here, without
+// the tab it controls here. One source of truth for the figures of the
+// services.
+func Tiles(translate gui.Translator, has func(key string) bool, list Lister) []gui.TileProps {
+	core, servers, clients := list()
+	lists := [][]internal.Service{core, servers, clients}
+	specs := groupSpecs()
+	tiles := make([]gui.TileProps, 0, len(specs))
+
+	for i, spec := range specs {
+		rows := makeRows(translate, has, spec.core, lists[i])
+		tile := makeTile(translate, translate("services.group."+spec.id), spec.id, rows)
+		tile.Controls = ""
+		tiles = append(tiles, tile)
+	}
+
+	return tiles
+}
