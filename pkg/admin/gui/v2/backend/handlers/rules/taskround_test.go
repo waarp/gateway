@@ -46,6 +46,9 @@ func fullArgs(spec *taskSpec, boxValue string) map[string]string {
 			args[arg.Name] = sampleRefs[arg.Ref]
 		default:
 			args[arg.Name] = sampleKinds[arg.Kind]
+			if arg.Millis {
+				args[arg.Name] = "1000" // the whole milliseconds the product reads (#784)
+			}
 		}
 
 		if value, ok := sampleOverrides[spec.Type][arg.Name]; ok {

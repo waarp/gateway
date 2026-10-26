@@ -23,7 +23,6 @@ const (
 	argBool                    // a box: "true" when ticked, nothing otherwise
 	argInt                     // a whole number, between Min and Max
 	argDecimal                 // a decimal number
-	argMillis                  // a whole number of milliseconds
 	argDuration                // a duration: 30s, 5m, 1h30m
 	argOctal                   // permissions in octal: 640
 	argChoice                  // one of the values of Choices
@@ -74,10 +73,13 @@ type argWhen struct {
 }
 
 // argSpec is an argument of a task. Seconds: a duration the form asks in
-// seconds, stored as "30s". Modes: a box asked as two buttons, the catalogue
-// keys of the labels of "" and of "true". Wide: over the whole width of its
-// card. Check: the type the kit checks a text against (the durations and the
-// permissions take theirs from their kind).
+// seconds, stored as "30s". Millis: a duration the form asks as "30s, 5m,
+// 1h30m", stored as the whole number of milliseconds the product reads; empty,
+// no limit. Summary: shown on the folded line of the task, with its type.
+// Modes: a box asked as two buttons, the catalogue keys of the labels of ""
+// and of "true". Wide: over the whole width of its card. Check: the type the
+// kit checks a text against (the durations and the permissions take theirs
+// from their kind).
 type argSpec struct {
 	Name     string
 	Kind     argKind
@@ -87,6 +89,8 @@ type argSpec struct {
 	None     string // the catalogue key of the empty choice of an optional argument; "": "None"
 	Ref      refKind
 	Seconds  bool
+	Millis   bool
+	Summary  bool
 	Modes    [2]string
 	When     *argWhen
 	Wide     bool
@@ -206,8 +210,13 @@ func keysOf(keys func() []string) func() []choiceValue {
 	return func() []choiceValue { return choiceValues(keys()) }
 }
 
+// execArgs: the program, its arguments, its time limit; the program and the
+// limit make the folded line of the task (#784).
 func execArgs() []argSpec {
-	return []argSpec{pathArg(true), wideArg("args", false), {Name: "delay", Kind: argMillis, Min: 0, Max: 0}}
+	program := pathArg(true)
+	program.Summary = true
+
+	return []argSpec{program, wideArg("args", false), {Name: "delay", Kind: argDuration, Millis: true, Summary: true}}
 }
 
 func execGroups() []argGroup {

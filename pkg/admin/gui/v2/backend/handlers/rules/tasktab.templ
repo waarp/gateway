@@ -113,6 +113,9 @@ templ chainBlock(c chainView) {
 // longer has.
 templ taskName(r taskRow) {
 	<strong class="rules-taskname">{ r.Code }</strong>
+	if r.Meta != "" {
+		<span class="rules-taskmeta">{ r.Meta }</span>
+	}
 	if r.Unknown {
 		{ " " }
 		@gui.StatusOf(gui.Status{State: "warn", Label: gui.T(ctx, "rules.tasks.unknown_type")})

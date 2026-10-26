@@ -2154,6 +2154,7 @@ rules:
       down: Move down
       delete: Delete the task
     ticked: "Yes"
+    no_limit: No limit
     unknown_type: "Type unknown to this screen"
     tip: "{label}: {text}"
     explain: "Explanation: {name}"
@@ -2232,7 +2233,6 @@ task_types:
     crypto: "Cryptography"
   hint:
     duration: "A duration: 30s, 5m, 1h30m."
-    millis: "In milliseconds."
     json: "For instance {\"batch\": \"A\"}."
     octal: "In octal, for instance 640."
   choice:
@@ -2329,8 +2329,8 @@ task_types:
         label: "Program arguments"
         hint: "The program's raw arguments, given as they would be typed in a terminal."
       delay:
-        label: "Execution timeout"
-        hint: "The program's maximum execution delay. If the program hasn't finished after this duration has elapsed, the program will be stopped, and the task will be considered a failure."
+        label: "Maximum running time"
+        hint: "Past it, the program is interrupted and the transfer fails. Empty: no limit."
   execmove:
     label: "Run a program that moves the file"
     text: "Execute an external program. The program must move the transfer file during its execution, and must output its new path to the standard output."
@@ -2342,8 +2342,8 @@ task_types:
         label: "Program arguments"
         hint: "The program's raw arguments, given as they would be typed in a terminal."
       delay:
-        label: "Execution timeout"
-        hint: "The program's maximum execution delay. If the program hasn't finished after this duration has elapsed, the program will be stopped, and the task will be considered a failure."
+        label: "Maximum running time"
+        hint: "Past it, the program is interrupted and the transfer fails. Empty: no limit."
   execoutput:
     label: "Run a program and read its output"
     text: "Execute an external program. If any error occurs during the execution, the program's standard output will be taken as the error message. The program can also move the transfer file. If it does, the last line written by the program to the standard output must start with \"NEWFILENAME:\" followed by the new file's path."
@@ -2355,8 +2355,8 @@ task_types:
         label: "Program arguments"
         hint: "The program's raw arguments, given as they would be typed in a terminal."
       delay:
-        label: "Execution timeout"
-        hint: "The program's maximum execution delay. If the program hasn't finished after this duration has elapsed, the program will be stopped, and the task will be considered a failure."
+        label: "Maximum running time"
+        hint: "Past it, the program is interrupted and the transfer fails. Empty: no limit."
   updateconf:
     label: "Import a configuration"
     text: "Imports the Waarp Manager generated configuration files from a ZIP archive."

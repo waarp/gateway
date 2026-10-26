@@ -39,6 +39,7 @@
    kit, which has no upward one. */
 .rules-chains-hint { margin: 0 0 var(--sp-4); }
 .rules-taskname { margin: 0; line-height: 1.5; letter-spacing: .02em; }
+.rules-taskmeta { color: var(--g600); font-size: var(--fs-sm); }   /* the program and its limit, folded (#784) */
 /* The button of an explanation, as an exponent against its word (Driss, 2026-10-23): its icon at the top of a target
    of 24 px, raised; measured, the centre of the icon 6 to 8 px above the one of the word. */
 .rules-info { position: relative; top: -5px; place-items: start center; width: 24px; height: 24px; border: 0; background: transparent; vertical-align: text-top; }
