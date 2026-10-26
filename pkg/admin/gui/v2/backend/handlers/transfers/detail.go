@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -193,8 +194,8 @@ func transferRows(translate gui.Translator, trans *model.NormalizedTransferView)
 func fileRows(translate gui.Translator, trans *model.NormalizedTransferView) []kv {
 	size := translate("transfers.detail.size_unknown")
 	if trans.Filesize >= 0 {
-		size = translate("transfers.detail.size_bytes", "bytes", groupDigits(translate, uint64(trans.Filesize)),
-			"size", formatSize(translate, trans.Filesize))
+		size = translate("transfers.detail.size_bytes", "bytes", format.GroupDigits(translate, uint64(trans.Filesize)),
+			"size", format.Bytes(translate, trans.Filesize))
 	}
 
 	rows := []kv{}
@@ -258,7 +259,8 @@ func retryRows(translate gui.Translator, trans *model.NormalizedTransferView) []
 
 	rows = append(rows, kv{
 		Label: translate("transfers.retries.delay"),
-		Value: translate("transfers.retries.seconds", "n", groupDigits(translate, uint64(max(trans.NextRetryDelay, 0)))),
+		Value: translate("transfers.retries.seconds", "n",
+			format.GroupDigits(translate, uint64(max(trans.NextRetryDelay, 0)))),
 	})
 
 	if trans.RetryIncrementFactor > 0 {

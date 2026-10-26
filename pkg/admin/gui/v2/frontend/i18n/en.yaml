@@ -3059,15 +3059,6 @@ transfers:
   date_time: "{date} {time}"
   # A moment of the list: the date and the time to the second, on every line.
   date_cell: "{date} {time}"
-  thousands: ","
-  decimal: "."
-  size:
-    byte: "{n} byte"
-    bytes: "{n} bytes"
-    kb: "{n} KB"
-    mb: "{n} MB"
-    gb: "{n} GB"
-    tb: "{n} TB"
   # Label of each error code of the product; the technical code stays as a hint.
   code:
     TeUnknown: Unknown error
@@ -3316,3 +3307,14 @@ config:
     restarted: The services concerned have been restarted.
     refused: The import was refused.
     no_write: The import needs the write right on the administration.
+# Numbers and sizes, written as the language reads them, for every screen (package handlers/format).
+format:
+  thousands: ","
+  decimal: "."
+  size:
+    byte: "{n} byte"
+    bytes: "{n} bytes"
+    kb: "{n} KB"
+    mb: "{n} MB"
+    gb: "{n} GB"
+    tb: "{n} TB"
