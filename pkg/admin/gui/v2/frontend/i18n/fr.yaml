@@ -697,6 +697,16 @@ me:
   toast:
     password: Mot de passe modifié
     account: Compte enregistré
+# Page de connexion (#787) : le titre sert aussi de libellé au bouton ; un seul message de refus, que le compte existe
+# ou non et qu'il soit verrouillé ou non ; la fin de session dite par l'adresse (?reason=).
+login:
+  title: Se connecter
+  username: Identifiant
+  password: Mot de passe
+  refused: Identifiant ou mot de passe incorrect. Vérifiez votre saisie, puis réessayez.
+  unavailable: La connexion n'a pas pu être vérifiée. Réessayez dans un instant.
+  expired: Votre session a pris fin. Reconnectez-vous pour continuer.
+  signed_out: Vous êtes déconnecté.
 # Écran « Partenaires distants » (Connexions, #714) : liste, fiche à onglets, formulaire, suppression.
 partners:
   title: Partenaires distants

@@ -16,6 +16,7 @@ restent décrits par l'interface elle-même.
 .. toctree::
    :maxdepth: 1
 
+   connexion
    accueil
    serveurs-locaux
    clients-locaux
@@ -35,26 +36,17 @@ restent décrits par l'interface elle-même.
    suivi-des-transferts
 
 
-Connexion
-=========
+Connexion et langue
+===================
 
 L'interface demande un identifiant et un mot de passe : ceux d'un
 :ref:`utilisateur <user-webui-users>` de la Gateway, les mêmes que pour l'API
-REST et la ligne de commande. Après 5 échecs pour un même compte depuis une
-même adresse, les tentatives sont refusées pendant 1 minute (section
-``[security]`` de la configuration).
-
-La session reste ouverte tant que l'utilisateur agit ; elle expire après 20
-minutes sans action et, dans tous les cas, après 24 heures. Le menu du compte,
-en haut à droite, permet de se déconnecter.
-
-
-Langue
-======
+REST et la ligne de commande. La page :doc:`connexion` décrit la connexion, le
+refus et le verrouillage, la session et la déconnexion.
 
 L'interface existe en français et en anglais. Le sélecteur de langue se trouve
-dans l'en-tête ; le choix est conservé dans un cookie. Sans choix, la langue
-est celle du navigateur.
+dans l'en-tête, et en haut à droite de la page de connexion ; le choix est
+conservé dans un cookie. Sans choix, la langue est celle du navigateur.
 
 
 Navigation

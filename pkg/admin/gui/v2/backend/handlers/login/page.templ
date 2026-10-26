@@ -1,0 +1,35 @@
+package login
+
+import "code.waarp.fr/lib/gui"
+
+// page: the sign-in page (screen sheet validated on 2026-10-26, the look of
+// the historic page kept): the banner, then a card with the title, the
+// username (kept after a refusal, the focus on it), the password with the
+// button that shows it, the full-width button; under it, the refusal (an
+// alert, shaken once by the kit) or the information about the session that
+// ended (a status). The form posts to its own address, so that the page asked
+// for (?redirect=) follows; the language switcher of the plain page keeps it
+// too.
+templ page(d Data) {
+	<img class="w-plain__brand" src={ templ.SafeURL(gui.StaticURL(ctx, "waarp-banner.png")) } alt="Waarp" width="480" height="231"/>
+	<div class="w-card w-plain__card">
+		<h1 class="w-plain__title">{ gui.T(ctx, "login.title") }</h1>
+		<form class="w-form" method="post">
+			<div class="w-field">
+				<label class="w-field__label" for="username">{ gui.T(ctx, "login.username") }</label>
+				<input class="w-input" type="text" id="username" name="username" value={ d.Username } required autofocus autocomplete="username" autocapitalize="none" spellcheck="false"/>
+			</div>
+			<div class="w-field">
+				<label class="w-field__label" for="password">{ gui.T(ctx, "login.password") }</label>
+				@gui.Password(gui.PasswordProps{ID: "password", Name: "password", Autocomplete: "current-password", Required: true})
+			</div>
+			<button class="w-btn w-btn--primary w-plain__submit" type="submit">{ gui.T(ctx, "login.title") }</button>
+			if d.Error != "" {
+				@gui.Banner(gui.BannerProps{Kind: "ko", Title: d.Error})
+			}
+			if d.Info != "" {
+				@gui.Banner(gui.BannerProps{Kind: "info", Icon: "info", Title: d.Info})
+			}
+		</form>
+	</div>
+}

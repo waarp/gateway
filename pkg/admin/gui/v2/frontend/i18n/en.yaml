@@ -698,6 +698,16 @@ me:
   toast:
     password: Password changed
     account: Account saved
+# Sign-in page (#787): the title is the label of the button too; one refusal, whether the account exists or not and
+# whether it is locked or not; the end of a session said by the address (?reason=).
+login:
+  title: Sign in
+  username: Username
+  password: Password
+  refused: Incorrect username or password. Check what you typed, then try again.
+  unavailable: The sign-in could not be checked. Try again in a moment.
+  expired: Your session has ended. Sign in again to continue.
+  signed_out: You are signed out.
 # "Remote partners" screen (Connections, #714): list, tabbed sheet, form, deletion.
 partners:
   title: Remote partners
