@@ -190,6 +190,18 @@ templ filtersPanel(f filterView) {
 		</select>
 	</div>
 	<div class="w-field">
+		<label class="w-field__label" for="f-client">{ gui.T(ctx, "transfers.filter.client") }</label>
+		<select class="w-select" id="f-client" name={ paramClient }>
+			<option value="">{ gui.T(ctx, "transfers.filter.client_all") }</option>
+			if f.ClientExtra != "" {
+				<option value={ f.ClientExtra } selected>{ f.ClientExtra }</option>
+			}
+			for _, name := range f.Clients {
+				<option value={ name } selected?={ name == f.Client }>{ name }</option>
+			}
+		</select>
+	</div>
+	<div class="w-field">
 		<label class="w-field__label" for="f-protocol">{ gui.T(ctx, "transfers.filter.protocol") }</label>
 		<select class="w-select" id="f-protocol" name={ paramProtocol }>
 			<option value="">{ gui.T(ctx, "transfers.filter.protocol_all") }</option>

@@ -87,6 +87,9 @@ les droits de l'utilisateur :
        **Arrêter un client interrompt ses transferts en cours.** Le résultat
        s'affiche en notification ; si le client ne démarre pas, la
        notification donne la raison et reste affichée.
+   * - Voir les transferts
+     - lecture des transferts
+     - Le suivi des transferts, filtré sur le client.
    * - Modifier le client
      - écriture
      - Le formulaire du client, pré-rempli.

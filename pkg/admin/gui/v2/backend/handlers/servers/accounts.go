@@ -97,7 +97,10 @@ type accountsListData struct {
 
 // accountActions is the "⋯" menu of an account: view and edit in the list,
 // delete (delete right) everywhere.
-func accountActions(translate gui.Translator, sid, aid int64, user rights, onDetail bool, carried string) []gui.Action {
+func accountActions(translate gui.Translator, agent string, sid int64, acc *model.LocalAccount, user rights,
+	onDetail bool, carried string,
+) []gui.Action {
+	aid := acc.ID
 	var acts []gui.Action
 
 	if !onDetail {
@@ -110,6 +113,12 @@ func accountActions(translate gui.Translator, sid, aid int64, user rights, onDet
 				Icon: "pen", Label: translate("accounts.action.edit"), URL: withRet(accountURL(sid, aid, editSuffix), carried),
 			})
 		}
+	}
+
+	if user.Transfers {
+		acts = append(acts, gui.Action{
+			Icon: "clock", Label: translate("accounts.action.transfers"), URL: transfersOf(agent, acc.Login),
+		})
 	}
 
 	if user.Delete {
@@ -126,14 +135,14 @@ func accountActions(translate gui.Translator, sid, aid int64, user rights, onDet
 
 // buildAccountsList computes the "Local accounts" tab: the accounts searched
 // by login, sorted by login or by their means, paged.
-func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry, query *listQuery,
+func buildAccountsList(translate gui.Translator, item entry, entries []accountEntry, query *listQuery,
 	user rights, carried string,
 ) accountsListData {
-	sid := e.agent.ID
+	sid := item.agent.ID
 	base := serverURL(sid, accountsSuffix)
 	data := accountsListData{
 		List:    liststate.NewTabList(base, query, carried),
-		Title:   translate("servers.detail.title", "name", e.agent.Name),
+		Title:   translate("servers.detail.title", "name", item.agent.Name),
 		BackURL: listURL(carried),
 	}
 
@@ -178,7 +187,7 @@ func buildAccountsList(translate gui.Translator, e entry, entries []accountEntry
 			Login:   entry.acc.Login,
 			Auth:    entry.authText(translate),
 			URL:     withRet(accountURL(sid, entry.acc.ID, ""), carried),
-			Actions: accountActions(translate, sid, entry.acc.ID, user, false, carried),
+			Actions: accountActions(translate, item.agent.Name, sid, entry.acc, user, false, carried),
 		}
 
 		if len(entry.types) == 0 {
@@ -311,7 +320,7 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 		Title:   own.title(translate),
 		Login:   own.acc.Login,
 		BackURL: withRet(serverURL(sid, accountsSuffix), carried),
-		Actions: accountActions(translate, sid, aid, user, true, carried),
+		Actions: accountActions(translate, own.srv.agent.Name, sid, own.acc, user, true, carried),
 		Identity: []kv{
 			{Label: translate("account.detail.server"), Value: own.srv.agent.Name + " (" + own.srv.proto.Label + ")"},
 			{Label: translate("account.detail.login"), Value: own.acc.Login, Mono: true},

@@ -90,6 +90,10 @@ les droits de l'utilisateur :
      - lecture
      - L'onglet *Comptes locaux* de la fiche : les comptes avec lesquels les
        partenaires se connectent au serveur.
+   * - Voir les transferts
+     - lecture des transferts
+     - Le suivi des transferts, filtré sur le serveur ; depuis un compte
+       local, filtré sur ce compte.
    * - Modifier le serveur
      - écriture
      - Le formulaire du serveur, pré-rempli.
