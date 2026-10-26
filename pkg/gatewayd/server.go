@@ -228,7 +228,7 @@ func (wg *WG) startClients() error {
 
 func (wg *WG) startFilewatchers() error {
 	var dbFWs model.FileWatchers
-	if err := wg.DBService.Select(&dbFWs).Run(); err != nil {
+	if err := wg.DBService.Select(&dbFWs).Eager().Run(); err != nil {
 		return fmt.Errorf("failed to retrieve filewatchers from the database: %w", err)
 	}
 

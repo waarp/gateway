@@ -16,12 +16,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func init() {
 	model.Protocols[sftp.SFTP] = sftp.Module{}
+	features.Register(sftp.SFTP, sftp.Module{}.OptionalFeatures()...)
 }
 
 func TestListSFTP(t *testing.T) {
