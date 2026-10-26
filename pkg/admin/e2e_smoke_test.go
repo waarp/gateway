@@ -969,13 +969,89 @@ func (s *e2eSession) login(t *testing.T) {
 
 	expectURL(t, s.page, s.baseURL+"/webui/home")
 	require.NoError(t, s.tracker.settle())
+	assert.Empty(t, s.tracker.failuresOf("/webui/login"), "failed requests of the sign-in page")
+}
 
-	// The sign-in page is a historic one, checked once reworked: its failed
-	// requests are reported, not judged. The home page it lands on is a
-	// reworked screen, checked like every other one.
-	if failures := s.tracker.failuresOf("/webui/login"); len(failures) > 0 {
-		t.Logf("failed requests of the historic sign-in page: %v", failures)
-	}
+// checkSignIn checks the sign-in page (#787) before the session: the page
+// says its language and labels its fields, the focus starts in the username,
+// the button shows and hides the password, the fields keep their width at
+// 390 px, the language switcher keeps the page asked for, a refused sign-in
+// is said in place with the username kept; no serious accessibility violation.
+func (s *e2eSession) checkSignIn(t *testing.T) {
+	t.Helper()
+
+	const asked = "/webui/services"
+	s.visit(t, "/webui/login?redirect="+url.QueryEscape(asked))
+
+	lang, err := s.page.Evaluate(`document.documentElement.lang`)
+	require.NoError(t, err)
+	assert.Contains(t, []any{"fr", "en"}, lang, "the page says its language")
+	assert.Equal(t, 1, s.count(t, "main#contenu"), "main landmark")
+	assert.Equal(t, 1, s.count(t, "h1.w-plain__title"), "page title")
+	assert.Equal(t, 1, s.count(t, `label[for="username"]`), "the username is labelled")
+	assert.Equal(t, 1, s.count(t, `label[for="password"]`), "the password is labelled")
+	assert.Zero(t, s.count(t, "a.w-skip"), "nothing to skip on the sign-in page")
+
+	focused, err := s.page.Evaluate(`document.activeElement.id`)
+	require.NoError(t, err)
+	assert.Equal(t, "username", focused, "the focus starts in the username")
+
+	// The button shows the password, then hides it.
+	toggle := s.page.Locator("[data-password-toggle]")
+	require.NoError(t, toggle.Click())
+	assert.Equal(t, "text", attribute(t, s.page.Locator("#password"), "type"))
+	assert.Equal(t, "true", attribute(t, toggle, "aria-pressed"))
+	require.NoError(t, toggle.Click())
+	assert.Equal(t, "password", attribute(t, s.page.Locator("#password"), "type"))
+	assert.Equal(t, "false", attribute(t, toggle, "aria-pressed"))
+
+	// At 390 px the fields keep their width and nothing overflows.
+	require.NoError(t, s.page.SetViewportSize(390, 844))
+	narrow, err := s.page.Evaluate(`(() => {
+		const field = Math.round(document.querySelector("#username").getBoundingClientRect().width);
+		return { field: field, wide: field >= 300, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+	})()`)
+	require.NoError(t, err)
+	measures, ok := narrow.(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, true, measures["wide"], "the username field at 390 px: %v px", measures["field"])
+	assert.Equal(t, false, measures["overflow"], "no horizontal scrolling at 390 px")
+	require.NoError(t, s.page.SetViewportSize(1280, 720))
+
+	// Another language keeps the page asked for; then back to the first one.
+	require.NoError(t, s.page.Locator("summary.w-lang").Click())
+	require.NoError(t, s.page.Locator(`.w-menu__panel a[lang="en"]`).Click())
+	expectURL(t, s.page, s.baseURL+"/webui/login?language=en&redirect="+url.QueryEscape(asked))
+	require.NoError(t, s.tracker.settle())
+	assert.Equal(t, 1, s.count(t, `html[lang="en"]`), "the page follows the language chosen")
+	require.NoError(t, s.page.Locator("summary.w-lang").Click())
+	require.NoError(t, s.page.Locator(`.w-menu__panel a[lang="fr"]`).Click())
+	expectURL(t, s.page, s.baseURL+"/webui/login?language=fr&redirect="+url.QueryEscape(asked))
+	require.NoError(t, s.tracker.settle())
+
+	t.Run("axe-core", func(t *testing.T) { s.checkAccessibility(t) })
+
+	// A refused sign-in: the form again (422, the one failure expected), the
+	// refusal announced, the username kept, the password gone.
+	s.tracker.enter("/webui/login (refused)")
+	require.NoError(t, s.page.Locator("#username").Fill("nobody"))
+	require.NoError(t, s.page.Locator("#password").Fill("wrong"))
+	require.NoError(t, s.page.Locator("form button[type=submit]").Click())
+	require.NoError(t, s.page.Locator(`[role="alert"]`).WaitFor())
+	require.NoError(t, s.tracker.settle())
+
+	value, err := s.page.Locator("#username").InputValue()
+	require.NoError(t, err)
+	assert.Equal(t, "nobody", value, "the username is kept")
+
+	value, err = s.page.Locator("#password").InputValue()
+	require.NoError(t, err)
+	assert.Empty(t, value, "the password is not")
+
+	failures := s.tracker.failuresOf("/webui/login (refused)")
+	require.Len(t, failures, 1, "the refusal is the only failed request")
+	assert.Contains(t, failures[0], "status 422")
+	assert.Empty(t, s.tracker.failuresOf("/webui/login"), "failed requests of the sign-in page")
 }
 
 // count returns the number of elements matching selector.
@@ -1256,6 +1332,14 @@ func (s *e2eSession) checkAccessibility(t *testing.T) {
 		t.Skip("AXE_CORE_JS is not set: run ./helpers/playwright-bootstrap.sh and source .playwright/env.sh")
 	}
 
+	// The pointer, left where the last click was, may hover an element whose
+	// tooltip is fading in when the rules run (its colours blended meanwhile):
+	// moved away, and the tooltip closed, before the rules run.
+	require.NoError(t, s.page.Mouse().Move(0, 0))
+	require.NoError(t, s.page.Locator("#w-tip").WaitFor(playwright.LocatorWaitForOptions{
+		State: playwright.WaitForSelectorStateHidden, Timeout: playwright.Float(5000),
+	}))
+
 	_, err := s.page.AddScriptTag(playwright.PageAddScriptTagOptions{Path: playwright.String(path)})
 	require.NoError(t, err)
 
@@ -1279,6 +1363,8 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 	page := newE2EPage(t)
 	session := &e2eSession{page: page, tracker: trackRequests(page, baseURL), baseURL: baseURL}
 	page.OnDialog(session.onDialog)
+
+	t.Run("/webui/login", func(t *testing.T) { session.checkSignIn(t) })
 
 	session.login(t)
 
@@ -1536,5 +1622,22 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		require.NoError(t, err)
 		t.Logf("run of the watcher: %s", strings.Join(strings.Fields(toast), " "))
 		assert.Contains(t, toast, "releves-banque", "the notification names the watcher")
+	})
+
+	// The sign-out (#787): the account menu signs out with a form, the
+	// sign-in page says so, and the interface asks to sign in again (without
+	// a reason: the cookie is gone).
+	t.Run("the sign-out says so", func(t *testing.T) {
+		session.visit(t, "/webui/home")
+		session.tracker.enter("/webui/logout")
+		require.NoError(t, page.Locator(`header details.w-menu:has(form[action$="/webui/logout"]) > summary`).Click())
+		require.NoError(t, page.Locator(`header form[action$="/webui/logout"] button`).Click())
+		expectURL(t, page, baseURL+"/webui/login?reason=signed_out")
+		require.NoError(t, session.tracker.settle())
+		assert.Equal(t, 1, session.count(t, `.w-plain__card [role="status"]`), "the page says the user signed out")
+		assert.Empty(t, session.tracker.failuresOf("/webui/logout"), "failed requests of the sign-out")
+
+		session.visit(t, "/webui/home")
+		expectURL(t, page, baseURL+"/webui/login?redirect=%2Fwebui%2Fhome")
 	})
 }

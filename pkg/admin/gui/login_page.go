@@ -4,12 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 	"uuid"
 
 	"github.com/puzpuzpuz/xsync/v4"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/locale"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/login"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -31,6 +34,13 @@ const (
 	tokenLifetimeDuration = 24 * time.Hour
 
 	tokenCookieName = "token"
+
+	// The page asked for before the sign-in, as the authentication middleware
+	// sets it; the sign-in leads there.
+	redirectParam = "redirect"
+	homePath      = "home"
+	loginPath     = "login"
+	logoutPath    = "logout"
 )
 
 var (
@@ -133,54 +143,73 @@ func checkUser(db database.ReadAccess, username, password string) (*model.User, 
 	return &user, nil
 }
 
+// loginPage serves the sign-in page (#787): GET shows the form, with the
+// reason the user is there when the address says one; POST checks the
+// credentials and opens the session, or shows the form again with the
+// refusal (422), the username kept and the password never. The page is
+// rendered by the plain page of the kit, in the language of the request.
 func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	shell := common.NewShell()
+
+	render := func(w http.ResponseWriter, r *http.Request, data login.Data, status int) {
+		translate := shell.Translator(r)
+		shell.RenderPlain(w, logger, r, login.Title(translate), status, nil, login.Page(data))
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		userLanguage := locale.GetLanguage(r)
-		tabTranslated := pageTranslated("login_page", userLanguage)
+		translate := shell.Translator(r)
 
 		if r.Method == http.MethodGet {
-			makeLoginPage(w, logger, userLanguage, tabTranslated, "")
+			render(w, r, login.Data{Info: login.Info(translate, r.URL.Query().Get(login.ReasonParam))}, 0)
 
 			return
 		}
 
-		user, errorMsg := authenticateUser(db, logger, r, tabTranslated)
-		if errorMsg != "" {
-			makeLoginPage(w, logger, userLanguage, tabTranslated, errorMsg)
+		user, err := authenticateUser(db, logger, r)
+		if err != nil {
+			render(w, r, login.Data{
+				Username: r.FormValue("username"),
+				Error:    login.Refusal(translate, errors.Is(err, ErrAuthentication)),
+			}, http.StatusUnprocessableEntity)
 
 			return
 		}
 
 		addNewToken(r, w, user.ID)
-
-		if redirect := r.URL.Query().Get("redirect"); redirect != "" {
-			http.Redirect(w, r, redirect, http.StatusFound)
-		} else {
-			http.Redirect(w, r, "home", http.StatusFound)
-		}
+		http.Redirect(w, r, afterLogin(r.URL.Query().Get(redirectParam)), http.StatusSeeOther)
 	}
 }
 
-func makeLoginPage(w http.ResponseWriter, logger *log.Logger, lang string,
-	tabTranslated map[string]string, errorMsg string,
-) {
-	if tmplErr := loginTemplate.ExecuteTemplate(w, "login_page", map[string]any{
-		"tab":      tabTranslated,
-		"Error":    errorMsg,
-		"language": lang,
-	}); tmplErr != nil {
-		logger.Errorf("render login_page: %v", tmplErr)
-		http.Error(w, "Internal error", http.StatusInternalServerError)
+// afterLogin is where the sign-in leads: the page asked for when it is a page
+// of the web interface (a path under the prefix, neither the sign-in nor the
+// sign-out), the home page otherwise. The address is given by the browser:
+// nothing outside the interface is followed.
+func afterLogin(target string) string {
+	if !strings.HasPrefix(target, Prefix+"/") {
+		return homePath
 	}
+
+	parsed, err := url.Parse(target)
+	if err != nil || parsed.Host != "" || parsed.Scheme != "" {
+		return homePath
+	}
+
+	switch strings.Trim(strings.TrimPrefix(parsed.Path, Prefix+"/"), "/") {
+	case "", loginPath, logoutPath:
+		return homePath
+	}
+
+	return target
 }
 
-func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Request,
-	translation map[string]string,
-) (user *model.User, msg string) {
+// authenticateUser reads the credentials of the form and checks them, within
+// the authentication limiter: a locked account is refused like a wrong
+// password, without any delay or hint.
+func authenticateUser(db *database.DB, logger *log.Logger, r *http.Request) (*model.User, error) {
 	if err := r.ParseForm(); err != nil {
 		logger.Warningf("Failed to parse login form: %v", err)
 
-		return nil, translation["error"]
+		return nil, ErrAuthentication
 	}
 
 	username := r.FormValue("username")
@@ -193,7 +222,7 @@ func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Reques
 		logger.Warningf("Login of user %q from %q refused: too many failed attempts",
 			username, r.RemoteAddr)
 
-		return nil, translation["errorUser"]
+		return nil, ErrAuthentication
 	}
 
 	user, checkErr := checkUser(db, username, password)
@@ -205,14 +234,14 @@ func authenticateUser(db database.ReadAccess, logger *log.Logger, r *http.Reques
 				username, r.RemoteAddr)
 		}
 
-		return nil, translation["errorUser"]
+		return nil, ErrAuthentication
 	} else if checkErr != nil {
 		logger.Errorf("Failed to check user: %v", checkErr)
 
-		return nil, checkErr.Error()
+		return nil, checkErr
 	}
 
 	attempt.Succeed()
 
-	return user, ""
+	return user, nil
 }
