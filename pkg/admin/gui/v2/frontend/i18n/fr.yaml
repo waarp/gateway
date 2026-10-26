@@ -3061,15 +3061,6 @@ transfers:
   date_time: "{date} à {time}"
   # Un moment de la liste : la date et l'heure à la seconde, sur chaque ligne.
   date_cell: "{date} {time}"
-  thousands: " "
-  decimal: ","
-  size:
-    byte: "{n} octet"
-    bytes: "{n} octets"
-    kb: "{n} Ko"
-    mb: "{n} Mo"
-    gb: "{n} Go"
-    tb: "{n} To"
   # Libellé de chaque code d'erreur du produit ; le code technique reste affiché en aide.
   code:
     TeUnknown: Erreur inconnue
@@ -3318,3 +3309,14 @@ config:
     restarted: Les services concernés ont été redémarrés.
     refused: L'import a été refusé.
     no_write: L'import demande le droit d'écriture sur l'administration.
+# Nombres et tailles, écrits comme la langue les lit, pour tous les écrans (paquet handlers/format).
+format:
+  thousands: " "
+  decimal: ","
+  size:
+    byte: "{n} octet"
+    bytes: "{n} octets"
+    kb: "{n} Ko"
+    mb: "{n} Mo"
+    gb: "{n} Go"
+    tb: "{n} To"

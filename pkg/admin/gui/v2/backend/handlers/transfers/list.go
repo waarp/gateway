@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -564,8 +564,8 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 	}
 
 	data.Pager = listSpec.Pager(query, translate("transfers.pager",
-		"from", groupDigits(translate, uint64(bounds.From+1)), "to", groupDigits(translate, uint64(bounds.To)),
-		"total", groupDigits(translate, shown)), bounds)
+		"from", format.GroupDigits(translate, uint64(bounds.From+1)), "to", format.GroupDigits(translate, uint64(bounds.To)),
+		"total", format.GroupDigits(translate, shown)), bounds)
 
 	return data
 }
@@ -600,13 +600,13 @@ func stateItems(translate gui.Translator, query *liststate.Query, counts map[str
 	current := filtersOf(query).State
 	items := []stateItem{{
 		Label: translate("transfers.states.all"), Hint: translate(stateHintPrefix + "all"),
-		Count: groupDigits(translate, all), URL: stateURL(query, ""), Current: current == "",
+		Count: format.GroupDigits(translate, all), URL: stateURL(query, ""), Current: current == "",
 	}}
 
 	for _, spec := range stateSpecs() {
 		items = append(items, stateItem{
 			Key: spec.key, Label: translate(statesKeyPrefix + spec.key), Hint: translate(stateHintPrefix + spec.key),
-			Count: groupDigits(translate, counts[spec.key]), URL: stateURL(query, spec.key), Current: current == spec.key,
+			Count: format.GroupDigits(translate, counts[spec.key]), URL: stateURL(query, spec.key), Current: current == spec.key,
 		})
 	}
 
@@ -632,7 +632,7 @@ func countText(translate gui.Translator, n uint64) string {
 		return translate("transfers.count_one")
 	}
 
-	return translate("transfers.count", "total", groupDigits(translate, n))
+	return translate("transfers.count", "total", format.GroupDigits(translate, n))
 }
 
 // filterView reads the choices of the filters panel: the names of the rules,
@@ -789,7 +789,7 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 	line.Status.Strong = true
 
 	if line.Size != "" {
-		line.SizeTitle = exactSize(translate, trans.Filesize)
+		line.SizeTitle = format.ExactBytes(translate, trans.Filesize)
 		line.ProgressTitle = line.Size + " (" + line.SizeTitle + ")"
 	}
 
@@ -837,7 +837,7 @@ func progressOf(translate gui.Translator, trans *model.NormalizedTransferView) p
 	// The size once known: a transfer that has not started yet may hold 0.
 	view := progressView{}
 	if trans.Filesize > 0 || (trans.Filesize == 0 && trans.Status == types.StatusDone) {
-		view.Size = formatSize(translate, trans.Filesize)
+		view.Size = format.Bytes(translate, trans.Filesize)
 	}
 
 	switch {
@@ -846,7 +846,7 @@ func progressOf(translate gui.Translator, trans *model.NormalizedTransferView) p
 		view.Pct = int(min(max(trans.Progress*100/trans.Filesize, 0), 100)) //nolint:mnd // a percentage
 		view.Label = translate("transfers.percent", "pct", view.Pct)
 	case trans.Progress > 0:
-		view.Label = formatSize(translate, trans.Progress)
+		view.Label = format.Bytes(translate, trans.Progress)
 	case trans.Status == types.StatusDone:
 		view.Bar, view.Pct = true, 100
 		view.Label = translate("transfers.percent", "pct", view.Pct)
@@ -878,63 +878,4 @@ func dateTime(translate gui.Translator, moment time.Time) string {
 	clock, date := timeAndDate(translate, moment)
 
 	return translate("transfers.date_time", "date", date, "time", clock)
-}
-
-// groupDigits writes a count with the thousands separator of the language.
-func groupDigits(translate gui.Translator, n uint64) string {
-	digits := strconv.FormatUint(n, 10)
-	sep := translate("transfers.thousands")
-
-	var out strings.Builder
-
-	for i, c := range digits {
-		if i > 0 && (len(digits)-i)%3 == 0 {
-			out.WriteString(sep)
-		}
-
-		out.WriteRune(c)
-	}
-
-	return out.String()
-}
-
-// exactSize is the size of a file to the byte, its digits grouped: the
-// tooltip of the size in the list.
-func exactSize(translate gui.Translator, n int64) string {
-	if n < 2 { //nolint:mnd // 0 and 1 are singular in French
-		return translate("transfers.size.byte", "n", n)
-	}
-
-	return translate("transfers.size.bytes", "n", groupDigits(translate, uint64(n)))
-}
-
-// formatSize writes a size in bytes, then in the largest unit that keeps it
-// above one, with one decimal under ten.
-func formatSize(translate gui.Translator, n int64) string {
-	switch {
-	case n < 2: //nolint:mnd // 0 and 1 are singular in French
-		return translate("transfers.size.byte", "n", n)
-	case n < 1024: //nolint:mnd // one kibibyte
-		return translate("transfers.size.bytes", "n", n)
-	}
-
-	value := float64(n)
-	units := []string{"kb", "mb", "gb", "tb"}
-	unit := ""
-
-	for _, u := range units {
-		value /= 1024
-		unit = u
-
-		if value < 1024 { //nolint:mnd // one more unit
-			break
-		}
-	}
-
-	text := strconv.FormatFloat(value, 'f', 0, 64)
-	if value < 10 { //nolint:mnd // one decimal under ten
-		text = strings.Replace(strconv.FormatFloat(value, 'f', 1, 64), ".", translate("transfers.decimal"), 1)
-	}
-
-	return translate("transfers.size."+unit, "n", text)
 }

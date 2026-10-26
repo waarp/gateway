@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`786` Les fiches des serveurs locaux et des partenaires distants
+  affichent les tailles de leurs options avec leur unité : « 10 Mo
+  (10 485 760 octets) » pour l'intervalle entre deux points de synchronisation
+  PeSIT, « 32 700 octets » pour la taille maximale d'un message, de même pour la
+  taille maximale d'un fichier AS2 ; elles s'affichaient en nombre nu.
 * :bug:`781` Dans le suivi des transferts, la colonne Partenaire reste visible
   quelle que soit la largeur de l'écran : sous 1 500 px d'écran, c'est la taille
   qui se replie dans l'infobulle de la progression. Elle disparaissait dès

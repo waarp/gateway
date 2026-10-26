@@ -14,6 +14,7 @@ import (
 	"golang.org/x/exp/constraints"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
@@ -168,6 +169,9 @@ type Option struct {
 	// DefaultKey is the catalogue key of the row when the option is not
 	// set: the product's default.
 	DefaultKey string
+	// Bytes marks a number of bytes: the row of the details page says it
+	// with its unit ("10 Mo (10 485 760 octets)", "32 700 octets").
+	Bytes bool
 }
 
 func (o *Option) forRole(role Role) bool { return slices.Contains(o.Roles, role) }
@@ -335,7 +339,7 @@ var (
 				Name: "pesit_checkpoint_size", Cfg: cfgCheckpointSize, Kind: KindNumber, Roles: all,
 				Section: secSync,
 				Short:   true, Min: 1, Parse: parseUnsigned[uint32], Label: "proto.opt.pesit_checkpoint_size",
-				Hint: "proto.opt.bytes", DefaultKey: "proto.opt.default_value",
+				Hint: "proto.opt.bytes", DefaultKey: "proto.opt.default_value", Bytes: true,
 			},
 			{
 				Name: "pesit_checkpoint_window", Cfg: cfgCheckpointWindow, Kind: KindNumber, Roles: all,
@@ -353,7 +357,7 @@ var (
 				Name: "pesit_max_message", Cfg: cfgMaxMessageSize, Kind: KindNumber, Roles: serverAndPartner, Short: true,
 				Section: secMessages,
 				Min:     1, Max: maxPort, Parse: parseUnsigned[uint16], Label: "proto.opt.pesit_max_message",
-				Hint: "proto.opt.bytes", DefaultKey: "proto.opt.default_value",
+				Hint: "proto.opt.bytes", DefaultKey: "proto.opt.default_value", Bytes: true,
 			},
 			{
 				Name: "pesit_mode", Cfg: cfgCompatibilityMode, Kind: KindSelect, Roles: serverAndPartner, Short: true,
@@ -416,7 +420,7 @@ var (
 				Name: "as2_max_file_size", Cfg: cfgMaxFileSize, Kind: KindNumber, Roles: serverAndClient, Short: true,
 				Section: secTransfer,
 				Min:     1, Parse: parseSigned[int64], Label: "proto.opt.as2_max_file_size",
-				Hint: "proto.opt.as2_max_file_size_hint", DefaultKey: "proto.opt.default_value",
+				Hint: "proto.opt.as2_max_file_size_hint", DefaultKey: "proto.opt.default_value", Bytes: true,
 			},
 			{
 				Name: "as2_mdn_algo", Cfg: cfgMDNSignatureAlgo, Kind: KindSelect, Roles: serverOnly, Short: true,
@@ -771,6 +775,12 @@ func (o *Option) row(translate gui.Translator, cfg map[string]any) KV {
 		value := CfgString(cfg, o.Cfg)
 		if value == "" {
 			return KV{Label: label, Value: translate(o.DefaultKey)}
+		}
+
+		if o.Bytes {
+			if n, err := strconv.ParseInt(value, 10, 64); err == nil {
+				return KV{Label: label, Value: format.WholeBytes(translate, n)}
+			}
 		}
 
 		return KV{Label: label, Value: value, Mono: true}
