@@ -2,10 +2,12 @@ package means
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/certinfo"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -32,6 +34,19 @@ type detailData struct {
 	Rows        []kv
 	Public      string // the public part, when there is one
 	PublicTitle string
+	// Chain is every certificate of a chain, when there are several: the
+	// sheet shows them in a table.
+	Chain []chainRow
+}
+
+// chainRow is a certificate of a chain on the sheet: its role, what it
+// says, its validity.
+type chainRow struct {
+	Role     string
+	Subject  string
+	Issuer   string
+	Validity string
+	Expiry   gui.Status
 }
 
 // buildDetail describes a means in reading: what identifies it, never the
@@ -81,6 +96,14 @@ func buildDetail(translate gui.Translator, own *Owner, cred *view, now time.Time
 		}
 
 		data.Public, data.PublicTitle = cred.Public, translate("auth.detail.pem")
+
+		if len(cred.Chain) > 1 {
+			data.Rows = append(data.Rows, kv{
+				Label: translate("auth.detail.chain"), Value: translate("auth.content.chain", "n", len(cred.Chain)),
+			})
+			data.Chain, data.Public = chainRows(translate, cred.Chain, now)
+			data.PublicTitle = translate("auth.detail.chain_pem")
+		}
 	case cred.Type == sftp.AuthSSHPublicKey && cred.KeyType != "":
 		data.Rows = []kv{
 			{Label: translate("auth.detail.key_type"), Value: cred.KeyType, Mono: true},
@@ -102,6 +125,32 @@ func buildDetail(translate gui.Translator, own *Owner, cred *view, now time.Time
 	}
 
 	return data
+}
+
+// chainRows describes every certificate of a chain (the certificate, then
+// its intermediates) and writes the chain in full, as it is stored.
+func chainRows(translate gui.Translator, chain []certinfo.Info, now time.Time) ([]chainRow, string) {
+	date := translate("auth.date")
+	rows := make([]chainRow, 0, len(chain))
+
+	var public strings.Builder
+
+	for i := range chain {
+		c := &chain[i]
+		role := translate("auth.detail.chain_role.intermediate")
+		if i == 0 {
+			role = translate("auth.detail.chain_role.leaf")
+		}
+
+		rows = append(rows, chainRow{
+			Role: role, Subject: c.Subject, Issuer: c.Issuer,
+			Validity: translate("auth.detail.validity_text", "from", c.NotBefore.Format(date), "to", c.NotAfter.Format(date)),
+			Expiry:   c.Expiry(translate, now),
+		})
+		public.WriteString(c.Public)
+	}
+
+	return rows, public.String()
 }
 
 // preConnectionRows are the rows of a PeSIT pre-connection: its login, and
@@ -203,5 +252,5 @@ func (p *Pages) Delete(w http.ResponseWriter, r *http.Request, own *Owner) {
 		return
 	}
 
-	p.redirect(w, r, own, liststate.DoneDeleted, cred.Name)
+	p.redirect(w, r, own, liststate.DoneDeleted, cred.Name, "", "")
 }

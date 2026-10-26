@@ -61,6 +61,14 @@ Glossaire
       un partenaire ou bien un compte. Lorsqu'il est attaché à un compte,
       un certificat peut également servir à l'authentification.
 
+   chaîne de certification
+   (*certificate chain*)
+      Le certificat d'un serveur ou d'un client, suivi des certificats des
+      autorités intermédiaires qui l'ont signé, jusqu'à la racine, que le
+      correspondant connaît de son côté. L'ordre compte : le certificat
+      d'abord. La racine ne se présente pas : elle se déclare parmi les
+      autorités d'authentification.
+
    contrôleur
    (*controller*)
       Le contrôleur est le service en charge du lancement des transferts programmés.

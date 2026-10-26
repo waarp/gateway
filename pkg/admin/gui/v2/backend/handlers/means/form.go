@@ -1,6 +1,7 @@
 package means
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/certchain"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -39,6 +41,16 @@ const (
 
 	// A PEM file weighs a few kilobytes: the limit of an upload.
 	maxUpload = 4 << 20
+
+	// The causes the product gives, worded for a developer, that the form
+	// says in the words of the user: a chain that reaches no authority the
+	// gateway knows; a certificate given in place of the private key, a key
+	// that is not the one of the certificate, a key that cannot be read.
+	causeUnknownAuthority = "signed by unknown authority"
+	causeKeyIsCert        = "found a certificate rather than a key"
+	causeKeyMismatch      = "does not match public key"
+	causeKeyUnreadable    = "failed to parse private key"
+	causeKeyEmpty         = "failed to find any PEM data in key input"
 )
 
 // Form is the form of a means: its identity (name, kind) and the content of
@@ -56,6 +68,14 @@ type Form struct {
 	Refused   string
 	Tabs      []Tab
 	TabsLabel string
+	// After the save, Note says what the form did with the certificates
+	// given beyond the chain: noteRootDropped (Root named), or
+	// noteTrustedLeafOnly.
+	Note string
+	Root string
+	// chain is the chain assembled from the certificates given, for the
+	// explanation of a refusal of the product.
+	chain *certchain.Chain
 
 	Name      protoform.Field
 	Type      string
@@ -162,7 +182,7 @@ func certText(translate gui.Translator, v *view, now time.Time) string {
 		return translate("auth.content.set")
 	}
 
-	return v.Subject + " · " + v.expiry(translate, now).Label
+	return v.Subject + v.chainText(translate) + " · " + v.expiry(translate, now).Label
 }
 
 // Chosen tells whether a kind was posted: inside the form of an account,
@@ -249,14 +269,26 @@ func (f *Form) readPassword(translate gui.Translator, r *http.Request, cred *mod
 
 // readFile takes the one file of the means, uploaded or pasted. A pasted
 // private key is not echoed back on a refused form; the public contents are.
+// A trusted certificate given with its chain keeps the certificate alone
+// (the trust bears on it, strictly), and the form says it.
 func (f *Form) readFile(translate gui.Translator, r *http.Request, cred *model.Credential) error {
-	content, err := FileOrText(r, f.Prefix+fieldFile, f.Prefix+fieldPem)
+	content, err := FilesOrText(r, f.Prefix+fieldFile, f.Prefix+fieldPem)
 	if err != nil {
 		return err
 	}
 
 	if f.Type != sftp.AuthSSHPrivateKey {
 		f.Pem.Value = r.FormValue(f.Prefix + fieldPem)
+	}
+
+	if content != "" && f.Type == auth.TLSTrustedCertificate {
+		content = f.assemble(translate, content, &f.Pem, true)
+	}
+
+	if content != "" && f.Type != sftp.AuthSSHPrivateKey {
+		// Shown again in the paste field if the form comes back refused: a
+		// browser cannot show a chosen file again, and the content is public.
+		f.Pem.Value = content
 	}
 
 	if content != "" {
@@ -268,12 +300,62 @@ func (f *Form) readFile(translate gui.Translator, r *http.Request, cred *model.C
 	return nil
 }
 
-// readPair takes the certificate and its private key, each one uploaded or
-// pasted, each one kept on edition when left empty.
+// assemble puts the certificates given (one or several files, or a paste,
+// in any order) in the order TLS expects: the certificate, then its
+// intermediates; a root given with them is set apart and said. A trusted
+// certificate keeps the certificate alone. A certificate foreign to the
+// chain, or a set without its certificate, is refused on the field. A text
+// that holds no certificate is returned as given: the product says why it
+// refuses it.
+func (f *Form) assemble(translate gui.Translator, pemText string, field *protoform.Field, leafOnly bool) string {
+	certs, err := certchain.Parse(pemText)
+	if err != nil {
+		return pemText
+	}
+
+	chain, err := certchain.Assemble(certs)
+
+	var unrelated *certchain.UnrelatedError
+
+	switch {
+	case errors.As(err, &unrelated):
+		field.Error = translate("auth.form.error.unrelated", "name", unrelated.Subject)
+
+		return pemText
+	case err != nil:
+		field.Error = translate("auth.form.error.no_leaf")
+
+		return pemText
+	}
+
+	f.chain = chain
+
+	if leafOnly {
+		if len(certs) > 1 {
+			f.Note = noteTrustedLeafOnly
+		}
+
+		return chain.LeafPEM()
+	}
+
+	if chain.Root != nil {
+		f.Note, f.Root = noteRootDropped, chain.Root.Subject.CommonName
+	}
+
+	return chain.PEM()
+}
+
+// readPair takes the certificate (with its intermediates: several files, or
+// a paste of several blocks, in any order) and its private key, each one
+// uploaded or pasted, each one kept on edition when left empty.
 func (f *Form) readPair(translate gui.Translator, r *http.Request, cred *model.Credential) error {
-	cert, err := FileOrText(r, f.Prefix+fieldCertFile, f.Prefix+fieldCertPem)
+	cert, err := FilesOrText(r, f.Prefix+fieldCertFile, f.Prefix+fieldCertPem)
 	if err != nil {
 		return err
+	}
+
+	if cert != "" {
+		cert = f.assemble(translate, cert, &f.PemCert, false)
 	}
 
 	key, err := FileOrText(r, f.Prefix+fieldKeyFile, f.Prefix+fieldKeyPem)
@@ -281,7 +363,14 @@ func (f *Form) readPair(translate gui.Translator, r *http.Request, cred *model.C
 		return err
 	}
 
+	// Shown again in the paste field if the form comes back refused: what was
+	// pasted, or the chain uploaded (a browser cannot show a chosen file
+	// again, and the chain is public).
 	f.PemCert.Value = r.FormValue(f.Prefix + fieldCertPem)
+	if cert != "" {
+		f.PemCert.Value = cert
+	}
+
 	required := translate("auth.form.error.required")
 
 	if cert != "" {
@@ -311,7 +400,7 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 		f.TypeError = translate("auth.form.error.unique")
 	case strings.Contains(msg, "failed to validate authentication value"):
 		_, reason, _ := strings.Cut(msg, "failed to validate authentication value: ")
-		text := translate("auth.form.error.invalid", "reason", reason)
+		text, onKey := f.explain(translate, reason)
 
 		switch f.Family {
 		case familyPassword:
@@ -319,7 +408,11 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 		case familyFile:
 			f.Pem.Error = text
 		case familyTwoFile:
-			f.PemCert.Error = text
+			if onKey {
+				f.PemKey.Error = text
+			} else {
+				f.PemCert.Error = text
+			}
 		case familyPair:
 			f.refusePreConnection(reason, text)
 		default:
@@ -330,6 +423,33 @@ func (f *Form) Refuse(translate gui.Translator, err error) {
 	}
 
 	f.HasErrors = true
+}
+
+// explain says a refusal of the product in the words of the user: the chain
+// reaches no authority the gateway knows (when the root came with the chain,
+// it is that root which is not registered: said alone, nothing else to give);
+// a certificate was given in place of the private key; the key is not the one
+// of the certificate; the key cannot be read. Any other cause is shown as the
+// product says it. The second value says whether the cause concerns the
+// private key field.
+func (f *Form) explain(translate gui.Translator, reason string) (text string, onKey bool) {
+	switch {
+	case f.chain != nil && strings.Contains(reason, causeUnknownAuthority):
+		subject, issuer := f.chain.Unknown()
+		if root := f.chain.Root; root != nil && bytes.Equal(f.chain.Last().RawIssuer, root.RawSubject) {
+			return translate("auth.form.error.root_unknown", "root", issuer), false
+		}
+
+		return translate("auth.form.error.issuer_unknown", "subject", subject, "issuer", issuer), false
+	case strings.Contains(reason, causeKeyIsCert):
+		return translate("auth.form.error.key_is_cert"), true
+	case strings.Contains(reason, causeKeyMismatch):
+		return translate("auth.form.error.key_mismatch"), true
+	case strings.Contains(reason, causeKeyUnreadable), strings.Contains(reason, causeKeyEmpty):
+		return translate("auth.form.error.key_unreadable"), true
+	default:
+		return translate("auth.form.error.invalid", "reason", reason), false
+	}
 }
 
 // refusePreConnection puts the refusal of a PeSIT pre-connection on the
@@ -441,7 +561,7 @@ func (p *Pages) save(w http.ResponseWriter, r *http.Request, own *Owner, cred *m
 
 		switch {
 		case saveErr == nil:
-			p.redirect(w, r, own, done, cred.Name)
+			p.redirect(w, r, own, done, cred.Name, form.Note, form.Root)
 
 			return
 		case database.IsValidationError(saveErr):
@@ -462,11 +582,45 @@ func (p *Pages) save(w http.ResponseWriter, r *http.Request, own *Owner, cred *m
 }
 
 // redirect sends to the "Authentication" tab of the owner (carrying the list
-// state) with the result of the action on the means.
-func (p *Pages) redirect(w http.ResponseWriter, r *http.Request, own *Owner, done, name string) {
-	liststate.RedirectTo(w, r, own.WithRet(own.AuthURL), url.Values{
+// state) with the result of the action on the means, and what the form did
+// with the certificates given beyond the chain, when it did something.
+func (p *Pages) redirect(w http.ResponseWriter, r *http.Request, own *Owner, done, name, note, root string) {
+	values := url.Values{
 		liststate.KindParam: {KindCred}, liststate.DoneParam: {done}, liststate.NameParam: {name},
-	})
+	}
+
+	if note != "" {
+		values.Set(NoteParam, note)
+	}
+
+	if root != "" {
+		values.Set(RootParam, root)
+	}
+
+	liststate.RedirectTo(w, r, own.WithRet(own.AuthURL), values)
+}
+
+// Notices turns the result of an action on a means, carried by the
+// redirection, into notifications: the action done, then what the form did
+// with the certificates given beyond the chain.
+func Notices(translate gui.Translator, values url.Values) []gui.Notice {
+	var notices []gui.Notice
+
+	name, done := values.Get(liststate.NameParam), values.Get(liststate.DoneParam)
+	if slices.Contains([]string{liststate.DoneCreated, liststate.DoneUpdated, liststate.DoneDeleted}, done) {
+		notices = append(notices, gui.Notice{Kind: "ok", Title: translate("auth.toast."+done, "name", name)})
+	}
+
+	switch values.Get(NoteParam) {
+	case noteRootDropped:
+		notices = append(notices, gui.Notice{
+			Kind: "warn", Title: translate("auth.note.root_dropped", "root", values.Get(RootParam)),
+		})
+	case noteTrustedLeafOnly:
+		notices = append(notices, gui.Notice{Kind: "warn", Title: translate("auth.note.trusted_leaf_only")})
+	}
+
+	return notices
 }
 
 // ---------------------------------------------------------------- forms ----
@@ -486,6 +640,38 @@ func ParseForm(r *http.Request) error {
 	}
 
 	return nil
+}
+
+// FilesOrText is the content of the files uploaded in a field, joined in the
+// order given (a certificate and its intermediates), or, without any, of the
+// text field next to it where the same content can be pasted.
+func FilesOrText(r *http.Request, fileField, textField string) (string, error) {
+	if r.MultipartForm == nil || len(r.MultipartForm.File[fileField]) <= 1 {
+		return FileOrText(r, fileField, textField)
+	}
+
+	var parts []string
+
+	for _, header := range r.MultipartForm.File[fileField] {
+		file, err := header.Open()
+		if err != nil {
+			return "", fmt.Errorf("failed to read the uploaded file: %w", err)
+		}
+
+		content, readErr := io.ReadAll(io.LimitReader(file, maxUpload))
+
+		file.Close() //nolint:errcheck,gosec // read only
+
+		if readErr != nil {
+			return "", fmt.Errorf("failed to read the uploaded file: %w", readErr)
+		}
+
+		if text := normalizeText(string(content)); text != "" {
+			parts = append(parts, text)
+		}
+	}
+
+	return strings.Join(parts, "\n"), nil
 }
 
 // FileOrText is the content of the file uploaded in a field or, without one,
