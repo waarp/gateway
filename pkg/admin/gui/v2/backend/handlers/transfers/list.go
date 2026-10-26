@@ -426,7 +426,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	data.FullURL = listSpec.ListURLOf(full)
 
 	screen := h.screen(translate("transfers.title"), crumbs(translate, "", ""), 0)
-	screen.Notices = notices(translate, r.URL.Query())
+	screen.Notices = Notices(translate, r.URL.Query())
 	screen.Scripts = []string{script}
 	screen.Head = liveHead(data.FullURL, data.Pending)
 
@@ -623,6 +623,24 @@ func stateItems(translate gui.Translator, query *liststate.Query, counts map[str
 	return items
 }
 
+// FilteredListURL is the list of the transfers in a state (StateRunning,
+// StateError, StateDone; "" for every state), started from a moment (zero
+// for any), from its first page and said explicitly, so that it is not the
+// list kept for the session: another screen (the dashboard) leads to it.
+func FilteredListURL(state string, from time.Time) string {
+	v := url.Values{}
+
+	if state != "" {
+		v.Set(paramState, state)
+	}
+
+	if !from.IsZero() {
+		v.Set(paramFrom, from.Local().Format(localLayout))
+	}
+
+	return listSpec.ExplicitListURL(v)
+}
+
 // stateURL is the list in a state ("" for every state), from its first
 // page.
 func stateURL(query *liststate.Query, key string) string {
@@ -816,7 +834,7 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 	}
 
 	if trans.Status == types.StatusError {
-		line.StatusTip = errorLabel(translate, trans.ErrCode)
+		line.StatusTip = ErrorLabel(translate, trans.ErrCode)
 
 		if trans.ErrDetails != "" {
 			line.StatusTip = translate("transfers.error_tip", "cause", line.StatusTip, "message", trans.ErrDetails)
@@ -849,7 +867,7 @@ func momentOf(translate gui.Translator, at time.Time) moment {
 		return moment{}
 	}
 
-	clock, date := timeAndDate(translate, at)
+	clock, date := TimeAndDate(translate, at)
 
 	return moment{Text: translate("transfers.date_cell", "date", date, "time", clock), Title: dateTime(translate, at)}
 }
@@ -879,9 +897,9 @@ func progressOf(translate gui.Translator, trans *model.NormalizedTransferView) p
 	return view
 }
 
-// timeAndDate is a moment in the time zone of the gateway: its time and its
-// date; "" for none.
-func timeAndDate(translate gui.Translator, moment time.Time) (clock, date string) {
+// TimeAndDate is a moment in the time zone of the gateway: its time and its
+// date; "" for none. The dashboard shares it.
+func TimeAndDate(translate gui.Translator, moment time.Time) (clock, date string) {
 	if moment.IsZero() {
 		return "", ""
 	}
@@ -897,7 +915,7 @@ func dateTime(translate gui.Translator, moment time.Time) string {
 		return ""
 	}
 
-	clock, date := timeAndDate(translate, moment)
+	clock, date := TimeAndDate(translate, moment)
 
 	return translate("transfers.date_time", "date", date, "time", clock)
 }

@@ -15,6 +15,7 @@ const (
 	SidebarMenuEmailTemplates = "email_templates"
 
 	SidebarSectionMonitoring = "monitoring"
+	SidebarMenuDashboard     = "dashboard"
 	SidebarMenuStatus        = "status"
 	SidebarMenuTransfers     = "transfers"
 	SidebarMenuSNMP          = "snmp"

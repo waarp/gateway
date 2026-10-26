@@ -32,6 +32,7 @@ restent décrits par l'interface elle-même.
    snmp
    surcharges
    import-export
+   tableau-de-bord
    etat-des-services
    suivi-des-transferts
 
@@ -135,9 +136,11 @@ modification le droit d'écriture, une suppression le droit de suppression. Le
 serveur contrôle ces droits sur chaque page et chaque action, indépendamment
 de ce que l'interface affiche ; une requête non autorisée reçoit le code 403.
 
-L':doc:`accueil` et l'écran :doc:`etat-des-services` ne requièrent aucun
-droit particulier : tout utilisateur authentifié peut les consulter ;
-l'accueil ne propose que les écrans que l'utilisateur a le droit de lire.
+L':doc:`accueil`, le :doc:`tableau-de-bord` et l'écran
+:doc:`etat-des-services` ne requièrent aucun droit particulier : tout
+utilisateur authentifié peut les consulter ; l'accueil ne propose que les
+écrans que l'utilisateur a le droit de lire, et le tableau de bord ne montre
+les transferts qu'avec le droit de les lire.
 Les écrans :doc:`serveurs-locaux` et :doc:`surveillances`
 requièrent les droits sur les serveurs : lecture pour la liste et le détail,
 écriture pour créer, modifier, démarrer et arrêter, suppression pour

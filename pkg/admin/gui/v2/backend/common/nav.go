@@ -51,6 +51,7 @@ func navigation() []navGroup {
 			{constants.SidebarMenuEmailTemplates, "envelope", "nav.email_templates", "/email-templates", model.PermRulesRead},
 		}},
 		{section: constants.SidebarSectionMonitoring, key: "nav.supervision", entries: []navEntry{
+			{constants.SidebarMenuDashboard, "gauge", "nav.dashboard", "/dashboard", 0},
 			{constants.SidebarMenuStatus, "pulse", "nav.services", "/services", 0},
 			{constants.SidebarMenuTransfers, "clock", "nav.transfers", "/transfers", model.PermTransfersRead},
 		}},
