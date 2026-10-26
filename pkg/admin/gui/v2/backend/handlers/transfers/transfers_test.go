@@ -543,6 +543,15 @@ func TestDetail(t *testing.T) {
 			"failed to make transfer request: FICHIER DEJA RECU", "Préparation du transfert")
 		indexes(t, body, "Règle", "releves", "Envoi · client", "Partenaire", "banque-demo", "Compte", "prod",
 			"Client", "cli-sftp", "Protocole", "SFTP", "Identifiant de suivi", "2112951385528143872")
+		// The objects of the transfer lead to their sheets (#783).
+		partner := "/webui/partners/" + strconv.FormatInt(s.bank.ID, 10)
+		assert.Contains(t, body, `<dt>Règle</dt><dd><a class="w-link" href="/webui/rules/`+strconv.FormatInt(s.send.ID, 10)+
+			`"><code class="w-code">releves</code></a></dd>`)
+		assert.Contains(t, body, `<dt>Partenaire</dt><dd><a class="w-link" href="`+partner+`">banque-demo</a></dd>`)
+		assert.Contains(t, body, `<dt>Compte</dt><dd><a class="w-link" href="`+partner+"/accounts/"+strconv.FormatInt(s.prod.ID, 10)+
+			`"><code class="w-code">prod</code></a></dd>`)
+		assert.Contains(t, body, `<dt>Client</dt><dd><a class="w-link" href="/webui/clients/`+strconv.FormatInt(s.client.ID, 10)+
+			`"><code class="w-code">cli-sftp</code></a></dd>`)
 		indexes(t, body, "Tentatives restantes", "2", "Prochaine tentative", "21/10/2026 à 10:43:02")
 		indexes(t, body, "Informations de transfert", `<dl class="w-deflist tf-infos">`, "Identifiant de suivi", "__followID__",
 			`<dt><code class="w-code">lot</code></dt><dd><code class="w-code">2026-10-20-B</code></dd>`)
@@ -558,6 +567,10 @@ func TestDetail(t *testing.T) {
 		body := s.get(t, permRead, pathOf(s.done.ID, "")).Body.String()
 		indexes(t, body, ">commandes-0457.edi</h1>", "Terminé", "Réception · serveur", "Serveur", "srv-sftp",
 			"Début", "21/10/2026 à 10:36:44", "Fin", "21/10/2026 à 10:36:45", "100 %", "48 Ko")
+		server := "/webui/servers/" + strconv.FormatInt(s.server.ID, 10)
+		assert.Contains(t, body, `<dt>Serveur</dt><dd><a class="w-link" href="`+server+`">srv-sftp</a></dd>`, "a history entry too")
+		assert.Contains(t, body, `<dt>Compte</dt><dd><a class="w-link" href="`+server+"/accounts/"+strconv.FormatInt(s.south.ID, 10)+
+			`"><code class="w-code">filiale-sud</code></a></dd>`)
 		assert.NotContains(t, body, "Tentatives restantes", "no retry for a server transfer")
 		assert.NotContains(t, body, "tf-error-card")
 		assert.NotContains(t, body, "Relancer", "no action in reading")
@@ -575,6 +588,26 @@ func TestDetail(t *testing.T) {
 		indexes(t, body, "Fichier", "Nom à la source", "rapport-mensuel.pdf",
 			"Chemin prévu sur la passerelle", "rapport-mensuel.pdf",
 			"Chemin prévu chez le partenaire", "rapport-mensuel.pdf", "Déroulement")
+	})
+
+	t.Run("Given a history entry whose objects are gone", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		gone := &model.HistoryEntry{
+			Identifier: model.ID(1003), RemoteTransferID: "r-1003", IsSend: false, IsServer: true, Rule: "ancienne",
+			Account: "ancien-compte", Agent: "srv-retire", Protocol: "sftp", SrcFilename: "archive.zip", DestFilename: "archive.zip",
+			Filesize: 10, Progress: 10, Start: at(9, 0, 0), Stop: at(9, 0, 1), Status: types.StatusDone,
+		}
+		require.NoError(t, s.db.Insert(gone).Run())
+
+		body := s.get(t, permRead, pathOf(gone.ID, "")).Body.String()
+		assert.Contains(t, body, `<dt>Règle</dt><dd><code class="w-code">ancienne</code></dd>`, "the name alone, no link")
+		assert.Contains(t, body, `<dt>Serveur</dt><dd>srv-retire</dd>`)
+		assert.Contains(t, body, `<dt>Compte</dt><dd><code class="w-code">ancien-compte</code></dd>`)
+		assert.NotContains(t, body, `class="w-link" href="/webui/rules/`)
 	})
 
 	t.Run("Given an unknown transfer", func(t *testing.T) {
