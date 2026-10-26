@@ -204,7 +204,7 @@ func (h *Handlers) refuse(w http.ResponseWriter, r *http.Request, trans *model.N
 
 	h.shell.Render(w, h.logger, r, h.screen(title, crumbs(translate, number, ret(r)), http.StatusConflict),
 		refusedView(refusedData{
-			Title: title, Reason: reason, File: fileName(trans), Status: statusOf(translate, trans.Status),
+			Title: title, Reason: reason, File: fileName(trans), Status: StatusOf(translate, trans.Status),
 			Number: number, BackURL: backURL(r, trans),
 		}))
 }
@@ -356,7 +356,7 @@ func (h *Handlers) CancelForm(w http.ResponseWriter, r *http.Request) {
 			Running:   trans.Status == types.StatusRunning,
 			File:      fileName(trans),
 			Number:    number,
-			Status:    statusOf(translate, trans.Status),
+			Status:    StatusOf(translate, trans.Status),
 			Rule:      trans.Rule,
 			Direction: direction(translate, trans),
 			Partner:   trans.Agent,

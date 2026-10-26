@@ -25,6 +25,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/users"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/watchers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -55,6 +56,7 @@ func MakeRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	MakeOverridesRouter(router, db, logger)
 	MakeConfigRouter(router, db, logger)
 	MakeRulesRouter(router, db, logger)
+	MakeWatchersRouter(router, db, logger)
 	MakeKeysRouter(router, db, logger)
 	MakeSMTPCredentialsRouter(router, db, logger)
 	MakeEmailTemplatesRouter(router, db, logger)
@@ -392,6 +394,26 @@ func MakeRulesRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
 	routes.write(rulePath+"/access/new", handlers.AccessNewForm, handlers.AccessCreate)
 	routes.write(rulePath+"/access/open", handlers.AccessOpenForm, handlers.AccessOpen)
 	routes.write(rulePath+"/access/{kind}/{target:[0-9]+}/delete", handlers.AccessDeleteForm, handlers.AccessDelete)
+}
+
+// MakeWatchersRouter registers the "Partner watchers" screen, behind the
+// rights on the servers as the REST API: the list and the sheet in reading,
+// the creation and the edition behind the write right, the deletion behind the delete
+// right, the start, the stop and the run of a watcher behind the write
+// right (POST only).
+func MakeWatchersRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
+	handlers := watchers.New(db, logger)
+	routes := serverRoutes{router}
+	const watcherPath = "/watchers/{id:[0-9]+}"
+
+	routes.read("/watchers", handlers.List)
+	routes.write("/watchers/new", handlers.NewForm, handlers.Create)
+	routes.read(watcherPath, handlers.Detail)
+	routes.write(watcherPath+"/edit", handlers.EditForm, handlers.Update)
+	routes.del(watcherPath+"/delete", handlers.DeleteForm, handlers.Delete)
+	routes.action(watcherPath+"/start", handlers.Start)
+	routes.action(watcherPath+"/stop", handlers.Stop)
+	routes.action(watcherPath+"/fire", handlers.Fire)
 }
 
 // MakeKeysRouter registers the "Cryptographic keys" screen: the list and the

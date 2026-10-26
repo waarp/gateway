@@ -773,7 +773,7 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 		FileTitle:  destination(trans),
 		Name:       fileName(trans),
 		URL:        withRet(transferURL(trans.ID, ""), carried),
-		Status:     statusOf(translate, trans.Status),
+		Status:     StatusOf(translate, trans.Status),
 		DirIcon:    icon,
 		DirTip:     translate("transfers.dir_tip." + role + "_" + dir),
 		Rule:       trans.Rule,
