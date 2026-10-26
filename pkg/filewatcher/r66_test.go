@@ -5,19 +5,21 @@ import (
 	"net"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	r66lib "code.waarp.fr/lib/r66"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func init() {
 	model.Protocols[r66.R66] = r66.Module{}
+	features.Register(r66.R66, r66.Module{}.OptionalFeatures()...)
 }
 
 func TestListR66(t *testing.T) {

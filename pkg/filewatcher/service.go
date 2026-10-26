@@ -81,7 +81,7 @@ func (s *Service) Stop(ctx context.Context) error {
 }
 
 func (s *Service) start() error {
-	if err := s.db.Get(s.fw, "id=?", s.fw.ID).Run(); err != nil {
+	if err := s.db.Get(s.fw, "id=?", s.fw.ID).Eager().Run(); err != nil {
 		msg := fmt.Sprintf("Failed to retrieve filewatcher: %v", err)
 		s.logger.Error(msg)
 		s.state.Set(utils.StateError, msg)
