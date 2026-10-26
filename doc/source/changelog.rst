@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`784` La durée maximale d'exécution des tâches EXEC, EXECMOVE et
+  EXECOUTPUT se saisit comme une durée (« 30s », « 5m », « 1h30m ») et s'affiche
+  en clair, « Sans limite » quand elle est absente ; l'aide dit qu'un programme
+  qui la dépasse est interrompu et que le transfert passe alors en erreur. La
+  ligne repliée d'une tâche EXEC nomme son programme et sa limite.
 * :feature:`782` Les fiches des partenaires distants, des serveurs locaux,
   des clients locaux et de leurs comptes mènent au suivi des transferts filtré
   sur l'objet (menu « ⋯ », avec le droit de lecture des transferts) ; le suivi

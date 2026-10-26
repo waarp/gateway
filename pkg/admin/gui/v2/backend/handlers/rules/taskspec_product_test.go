@@ -46,7 +46,7 @@ var (
 		refClient: "cli-sftp", refServer: "srv-sftp", refLocalAccount: "filiale-sud", refRule: "releves",
 	}
 	sampleKinds = map[argKind]string{
-		argText: "/tmp/fichier", argBool: "true", argInt: "1", argDecimal: "1.5", argMillis: "1000",
+		argText: "/tmp/fichier", argBool: "true", argInt: "1", argDecimal: "1.5",
 		argDuration: "1s", argOctal: "640", argJSON: "{}",
 	}
 )

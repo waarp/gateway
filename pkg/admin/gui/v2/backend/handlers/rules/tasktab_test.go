@@ -562,3 +562,55 @@ func TestTaskMove(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, s.post(t, permWrite, s.at(t, s.orders, model.ChainPost, "post", 3, "/up"), url.Values{}).Code,
 		"a rank the chain shown does not have")
 }
+
+// TestExecLimit: the time limit of an EXEC task reads as a duration, on the
+// folded line with the program, "no limit" when absent; the form asks it as
+// a duration and stores the milliseconds the product reads (#784).
+func TestExecLimit(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+
+	rule := &model.Rule{Name: "limite", IsSend: true, Path: "limite"}
+	require.NoError(t, s.db.Insert(rule).Run())
+
+	for _, task := range []*model.Task{
+		{RuleID: rule.ID, Chain: model.ChainPost, Rank: 0, Type: tasks.Exec, Args: map[string]string{
+			"path": "/opt/scripts/rangement.sh", "args": "--quiet", "delay": "90000",
+		}},
+		{RuleID: rule.ID, Chain: model.ChainPost, Rank: 1, Type: tasks.Exec, Args: map[string]string{"path": `C:\scripts\trace.bat`}},
+	} {
+		require.NoError(t, s.db.Insert(task).Run())
+	}
+
+	body := s.get(t, permRead, path(rule, "/tasks")).Body.String()
+	assert.Contains(t, body, `<strong class="rules-taskname">EXEC</strong> <span class="rules-taskmeta">rangement.sh · 1 min 30 s</span>`,
+		"the program and the limit on the folded line")
+	assert.Contains(t, body, `<strong class="rules-taskname">EXEC</strong> <span class="rules-taskmeta">trace.bat · Sans limite</span>`,
+		"a program without a limit, whatever the separators of its path")
+	assert.Contains(t, body, `<span class="rules-value">1 min 30 s</span>`)
+	assert.Contains(t, body, `<span class="rules-value">Sans limite</span>`, "the absent limit is said")
+	assert.NotContains(t, body, "90000", "never the milliseconds")
+
+	body = s.get(t, permWrite, path(rule, "/tasks/post/0/edit")).Body.String()
+	assert.Contains(t, body, "Durée maximale d&#39;exécution")
+	assert.Contains(t, body, `value="1m30s"`, "the form shows the limit as a duration")
+	assert.Contains(t, body, "Au-delà, le programme est interrompu et le transfert passe en erreur. Vide : sans limite. Une durée : 30s, 5m, 1h30m.")
+
+	edit := func(limit string) int {
+		return s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"),
+			url.Values{"exec.path": {"/opt/scripts/rangement.sh"}, "exec.args": {"--quiet"}, "exec.delay": {limit}}).Code
+	}
+
+	require.Equal(t, http.StatusSeeOther, edit("2m"))
+	assert.Equal(t, "120000", s.chain(t, rule, model.ChainPost)[0].Args["delay"], "stored in milliseconds")
+
+	require.Equal(t, http.StatusSeeOther, edit("2m"), "the duration shown, posted back")
+	assert.Equal(t, "120000", s.chain(t, rule, model.ChainPost)[0].Args["delay"], "a value left as shown keeps what is stored")
+
+	require.Equal(t, http.StatusSeeOther, edit(""))
+	assert.NotContains(t, s.chain(t, rule, model.ChainPost)[0].Args, "delay", "empty: no limit, nothing stored")
+
+	assert.Equal(t, http.StatusUnprocessableEntity, edit("bientôt"), "not a duration")
+}

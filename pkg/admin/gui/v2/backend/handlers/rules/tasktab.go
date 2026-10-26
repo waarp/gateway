@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"slices"
 	"strconv"
+	"strings"
+	"time"
 
 	"code.waarp.fr/lib/gui"
 	"github.com/gorilla/mux"
@@ -16,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -229,6 +232,33 @@ type argView struct {
 	ScreenURL   string
 }
 
+// millisLabel says a stored time limit in milliseconds: in words when it is
+// whole seconds ("1 h 30 min", "30 s"), as the form shows it otherwise
+// ("1.5s"); absent or zero: no limit (#784).
+func millisLabel(translate gui.Translator, stored string) string {
+	text := millisText(stored)
+	if text == "" {
+		return translate("rules.tasks.no_limit")
+	}
+
+	if d, err := time.ParseDuration(text); err == nil && d%time.Second == 0 {
+		return protoform.FormatDuration(translate, text)
+	}
+
+	return text
+}
+
+// summaryOf is the part an argument takes on the folded line of its task: the
+// base name of a program, after its last separator whatever the system; the
+// value shown otherwise.
+func summaryOf(arg *argSpec, stored, shown string) string {
+	if arg.Kind == argText && stored != "" {
+		return stored[strings.LastIndexAny(stored, `/\`)+1:]
+	}
+
+	return shown
+}
+
 // lookup is what argsOf checks the named objects against: their names, and
 // the screens the user may open.
 type lookup struct {
@@ -280,11 +310,14 @@ func (l *lookup) missing(translate gui.Translator, arg *argSpec, view *argView) 
 // seconds in seconds, a choice by its label, a missing object
 // marked when look is given), then the others by name as they are (the keys
 // of a SETINFO task among them).
-func argsOf(translate gui.Translator, task *model.Task, look *lookup) []argView {
+func argsOf(translate gui.Translator, task *model.Task, look *lookup) (views []argView, meta string) {
 	spec := specOf(task.Type)
 	known := map[string]bool{}
 
-	var out []argView
+	var (
+		out     []argView
+		summary []string
+	)
 
 	if spec != nil {
 		for i := range spec.Args {
@@ -296,6 +329,10 @@ func argsOf(translate gui.Translator, task *model.Task, look *lookup) []argView 
 			known[arg.Name] = true
 
 			value := task.Args[arg.Name]
+			if arg.Millis {
+				value = millisLabel(translate, value)
+			}
+
 			if value == "" || arg.Kind == argBool && value != trueValue {
 				continue
 			}
@@ -316,6 +353,10 @@ func argsOf(translate gui.Translator, task *model.Task, look *lookup) []argView 
 			view := argView{Label: translate(argKey(spec, arg.Name, "label")), Value: value}
 			look.missing(translate, arg, &view)
 			out = append(out, view)
+
+			if arg.Summary {
+				summary = append(summary, summaryOf(arg, task.Args[arg.Name], value))
+			}
 		}
 	}
 
@@ -332,7 +373,7 @@ func argsOf(translate gui.Translator, task *model.Task, look *lookup) []argView 
 		out = append(out, argView{Label: name, Value: task.Args[name]})
 	}
 
-	return out
+	return out, strings.Join(summary, " · ")
 }
 
 // choiceLabel is the label of a value of a choice, or the value itself.
@@ -351,6 +392,7 @@ type taskRow struct {
 	Rank    int
 	Label   string
 	Code    string
+	Meta    string // the folded line: what tells the task apart (the program, its limit)
 	Missing bool   // an object the task names that the gateway no longer has
 	Tip     string // the label and what the task does, in its tooltip
 	Unknown bool
@@ -429,9 +471,10 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 
 		for i, task := range list {
 			place := &taskPlace{ruleID: item.rule.ID, slug: slug, rank: i, count: len(list)}
+			args, meta := argsOf(translate, task, look)
 			row := taskRow{
 				ID: slug + "-" + strconv.Itoa(i), Rank: i + 1, Label: typeLabel(translate, task.Type),
-				Code: task.Type, Unknown: specOf(task.Type) == nil, Args: argsOf(translate, task, look),
+				Code: task.Type, Meta: meta, Unknown: specOf(task.Type) == nil, Args: args,
 			}
 
 			row.Missing = slices.ContainsFunc(row.Args, func(a argView) bool { return a.Missing })
@@ -622,12 +665,13 @@ func (h *Handlers) taskDelete(w http.ResponseWriter, r *http.Request, post bool)
 		return
 	}
 
+	args, _ := argsOf(translate, task, nil)
 	title := translate("rules.tasks.delete_title", "n", place.rank+1, "chain", translate(chainLowerKey+place.slug))
 	h.shell.Render(w, h.logger, r, h.screen(translate, title, carried, 0), taskDeleteView(taskDeleteData{
 		Title:     title,
 		Label:     label,
 		Code:      task.Type,
-		Args:      argsOf(translate, task, nil),
+		Args:      args,
 		CancelURL: withRet(tasksTabURL(place.ruleID), carried),
 		Action:    withRet(withVersion(taskURL(place.ruleID, place.slug, place.rank, "/delete"), versionOf(list)), carried),
 	}))
