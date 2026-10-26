@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`781` Dans le suivi des transferts, la colonne Partenaire reste visible
+  quelle que soit la largeur de l'écran : sous 1 500 px d'écran, c'est la taille
+  qui se replie dans l'infobulle de la progression. Elle disparaissait dès
+  1 880 px de fenêtre, le seuil ayant été mesuré sur la liste et non sur l'écran.
 * :feature:`776` Les formulaires d'authentification de l'interface web
   reçoivent un certificat avec ses intermédiaires, déposés ensemble, en un ou
   plusieurs fichiers choisis en une fois, dans n'importe quel ordre : la chaîne est remise dans l'ordre

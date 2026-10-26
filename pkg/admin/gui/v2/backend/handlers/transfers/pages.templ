@@ -222,7 +222,7 @@ templ tableRegion(d listData) {
 			<div class="w-table-wrap tf-list">
 				<table class="w-table w-table--one-line tf-table">
 					<caption class="visually-hidden">{ d.Caption }</caption>
-					<colgroup><col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner tf-x"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-progress"/><col class="tf-col-size"/><col class="tf-col-actions"/></colgroup>
+					<colgroup><col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-progress"/><col class="tf-col-size tf-x"/><col class="tf-col-actions"/></colgroup>
 					<thead>
 						<tr>
 							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.direction") }</span></th>
@@ -230,11 +230,11 @@ templ tableRegion(d listData) {
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.state"), Key: sortState, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.file"), Key: sortFile, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.rule"), Key: sortRule, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
-							<th scope="col" class="tf-x">{ gui.T(ctx, "transfers.col.partner") }</th>
+							<th scope="col">{ gui.T(ctx, "transfers.col.partner") }</th>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.start"), Key: sortStart, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.stop"), Key: sortStop, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							<th scope="col">{ gui.T(ctx, "transfers.col.progress") }</th>
-							<th scope="col" class="w-num">{ gui.T(ctx, "transfers.col.size") }</th>
+							<th scope="col" class="w-num tf-x">{ gui.T(ctx, "transfers.col.size") }</th>
 							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.actions") }</span></th>
 						</tr>
 					</thead>
@@ -258,7 +258,7 @@ templ tableRegion(d listData) {
 								</td>
 								<td><a class="tf-file w-truncate w-truncate--start" href={ templ.SafeURL(r.URL) } title={ r.FileTitle }><bdi>{ r.File }</bdi></a></td>
 								<td class="w-mono" title={ r.RuleTip }>{ r.Rule }</td>
-								<td class="tf-x" title={ r.PartnerTip }>{ r.Partner }</td>
+								<td title={ r.PartnerTip }>{ r.Partner }</td>
 								<td class="tf-time">@momentCell(r.Start)</td>
 								<td class="tf-time">
 									if r.Next {
@@ -270,9 +270,13 @@ templ tableRegion(d listData) {
 										@momentCell(r.End)
 									}
 								</td>
-								<td>@progressInline(r.Progress)</td>
 								<td
-									class="w-num"
+									if r.ProgressTitle != "" {
+										title={ r.ProgressTitle }
+									}
+								>@progressInline(r.Progress)</td>
+								<td
+									class="w-num tf-x"
 									if r.SizeTitle != "" {
 										title={ r.SizeTitle }
 									}
