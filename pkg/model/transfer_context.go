@@ -36,6 +36,10 @@ type TransferContext struct {
 	Authorities Authorities
 }
 
+func (t *TransferContext) IsSend() bool    { return t.Rule.IsSend }
+func (t *TransferContext) IsReceive() bool { return !t.Rule.IsSend }
+func (t *TransferContext) IsServer() bool  { return t.Transfer.IsServer() }
+
 func GetHistoryContext(db *database.DB, logger *log.Logger, trans *NormalizedTransferView,
 ) (*TransferContext, error) {
 	if trans.IsTransfer {

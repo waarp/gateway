@@ -104,7 +104,7 @@ func TestDatabase(tb testing.TB) *database.DB {
 	config.Paths.DirPerms = 0o700
 
 	db := &database.DB{
-		Logger: logtest.GetTestLogger(tb, logtest.WithLevel("TRACE")),
+		Logger: logtest.GetTestLogger(tb, logtest.WithLevel("WARNING")),
 		Config: config,
 	}
 	db.ChangeAEAD(testAEAD)

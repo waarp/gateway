@@ -14,6 +14,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+const continueTimeout = 1 * time.Second
+
 //nolint:gochecknoglobals //needs to be a variable for tests
 var idleConnTimeout = protoutils.DefaultConnGracePeriod
 
@@ -42,8 +44,9 @@ func NewTransporter(overHttps bool, localAddr string, overrides *conf.ConfigOver
 
 	if !overHttps {
 		return &Transporter{transport: &http.Transport{
-			IdleConnTimeout: idleConnTimeout,
-			DialContext:     dialer.DialContext,
+			IdleConnTimeout:       idleConnTimeout,
+			DialContext:           dialer.DialContext,
+			ExpectContinueTimeout: continueTimeout,
 		}}, nil
 	}
 
@@ -57,6 +60,7 @@ func NewTransporter(overHttps bool, localAddr string, overrides *conf.ConfigOver
 
 			return dialHttps(ctx, dialer, overrides, pip)
 		},
+		ExpectContinueTimeout: continueTimeout,
 	}}, nil
 }
 
