@@ -18,9 +18,11 @@ instances de la grappe, et doit donc être unique au sein d'une même grappe.
 Ce nom d'instance est **obligatoire** dans le cadre du fonctionnement en grappe.
 
 Au démarrage, Waarp Gateway cherchera un fichier .ini portant son nom d'instance
-dans le dossier du fichier de configuration principal. Si ce fichier existe,
-tous les paramètres définis dedans prendront précédence sur ceux définis dans le
-fichier de configuration principal ou dans la base de données.
+dans le dossier du fichier de configuration principal. Ce fichier **doit** exister.
+Similairement au fichier de configuration principal, un fichier d'exemple peut
+être créé avec l'option ``-n`` de la :ref:`commande de démarrage <ref-gatewayd-server>`
+du service Gateway. Tous les paramètres définis dans ce fichier prendront précédence
+sur ceux définis dans le fichier principal ou dans la base de données.
 
 Pour l'instant, ce fichier ne permet que de définir des indirections d'adresse.
 
@@ -55,7 +57,7 @@ instances.
 
       IndirectAddress = <adresse à remplacer> -> <adresse de remplacement>
 
-   Les adresse avec et sans port sont acceptées.  Ce paramètre peut être répété
+   Les adresse avec et sans port sont acceptées. Ce paramètre peut être répété
    autant de fois qu'il y a d'indirections. Exemple :
 
    .. code-block:: ini

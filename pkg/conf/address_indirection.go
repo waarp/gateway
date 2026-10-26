@@ -21,9 +21,11 @@ import (
 //
 // Do note that, although not mandatory, IPv6 addresses should be surrounded with
 // [brackets] to avoid confusion when adding a port number at the end.
+//
+//nolint:lll //struct tags are long
 type addressOverride struct {
 	addressMap   map[string]string
-	Indirections []string `ini-name:"IndirectAddress" description:"Replace the target address with another one"`
+	Indirections []string `ini-name:"IndirectAddress" description:"Replace the target address with another one. Repeat the option for each indirection.\n; Each entry should have the following format: IndirectAddress = <addrToReplace> -> <replaceBy>."`
 }
 
 func (a *addressOverride) Parse() error {
