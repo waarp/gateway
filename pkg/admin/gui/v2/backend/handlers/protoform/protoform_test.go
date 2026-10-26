@@ -289,6 +289,17 @@ func TestRows(t *testing.T) {
 	assert.Equal(t, "N'importe quel port libre", labels["Dernier port du mode actif"])
 	assert.NotContains(t, labels, "Mode passif")
 
+	// A number of bytes reads with its unit when it is a whole number of it, to the byte otherwise (#786).
+	rows = Rows(translate, RoleServer, ProtocolOf("pesit"), map[string]any{"checkpointSize": 10485760, "maxMessageSize": 32700})
+	labels = map[string]string{}
+
+	for _, row := range rows {
+		labels[row.Label] = row.Value
+	}
+
+	assert.Equal(t, "10 Mo (10\u202f485\u202f760 octets)", labels["Intervalle entre deux points de synchronisation"])
+	assert.Equal(t, "32\u202f700 octets", labels["Taille maximale d'un message"])
+
 	rows = Rows(translate, RoleClient, ProtocolOf("http"), nil)
 	require.Len(t, rows, 1)
 	assert.Equal(t, "Aucune option pour ce protocole", rows[0].Value)

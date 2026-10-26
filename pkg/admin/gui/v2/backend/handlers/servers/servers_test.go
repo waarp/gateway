@@ -613,7 +613,8 @@ func TestDetail(t *testing.T) {
 			"the module disables the restart along with the checkpoints: the page shows what is stored")
 		assert.Contains(t, body, "<dt>Points de synchronisation</dt><dd>Désactivé</dd>")
 		assert.Contains(t, body, "<dt>Intervalle entre deux points de synchronisation</dt><dd>Valeur par défaut de la passerelle</dd>")
-		assert.Contains(t, body, `<dt>Taille maximale d&#39;un message</dt><dd><code class="w-code">32000</code></dd>`)
+		assert.Contains(t, body, "<dt>Taille maximale d&#39;un message</dt><dd>32\u202f000 octets</dd>",
+			"a size in bytes reads with its unit (#786)")
 		assert.Contains(t, body, "<dt>Mode PeSIT</dt><dd>Non standard</dd>")
 		assert.NotContains(t, body, "Version TLS minimale", "no TLS options for a plain PeSIT server")
 		assert.NotContains(t, body, "Voir le détail", "no link to itself")
