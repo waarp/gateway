@@ -256,26 +256,27 @@ type stateItem struct {
 // row is a transfer of the list, on one line (Driss, 2026-10-22): what does
 // not fit goes to the tooltips.
 type row struct {
-	ID         int64
-	File       string // the file where it goes (destination), cut at its start when too long
-	FileTitle  string // the same, whole
-	Name       string // the name of the file, for the label of the actions
-	URL        string
-	Status     gui.Status
-	StatusTip  string // the cause and the message of an error
-	DirIcon    string // the direction, a cloud when the gateway is the server
-	DirTip     string // the direction and the role of the gateway
-	Rule       string
-	RuleTip    string // the rule, the partner and the account (the partner folds on a narrow list)
-	Partner    string
-	PartnerTip string // the partner and the account
-	Progress   progressView
-	Size       string // the size of the file once known
-	SizeTitle  string // the size to the byte
-	Start      moment
-	End        moment // the end, or the next attempt (Next)
-	Next       bool
-	Actions    []gui.Action
+	ID            int64
+	File          string // the file where it goes (destination), cut at its start when too long
+	FileTitle     string // the same, whole
+	Name          string // the name of the file, for the label of the actions
+	URL           string
+	Status        gui.Status
+	StatusTip     string // the cause and the message of an error
+	DirIcon       string // the direction, a cloud when the gateway is the server
+	DirTip        string // the direction and the role of the gateway
+	Rule          string
+	RuleTip       string // the rule, the partner and the account, read together
+	Partner       string
+	PartnerTip    string // the partner and the account
+	Progress      progressView
+	ProgressTitle string // the size, readable and to the byte: the size column folds under 1 500 px of screen (#781)
+	Size          string // the size of the file once known
+	SizeTitle     string // the size to the byte
+	Start         moment
+	End           moment // the end, or the next attempt (Next)
+	Next          bool
+	Actions       []gui.Action
 }
 
 // moment is a date in a cell: its date and its time to the second, the
@@ -789,6 +790,7 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 
 	if line.Size != "" {
 		line.SizeTitle = exactSize(translate, trans.Filesize)
+		line.ProgressTitle = line.Size + " (" + line.SizeTitle + ")"
 	}
 
 	if trans.Status == types.StatusError {

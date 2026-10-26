@@ -31,8 +31,10 @@
    error); what does not fit ends with "…" and reads in the tooltip. The columns follow the historic screen (Driss,
    2026-10-22): the direction as an icon first, then the number, the state, the file, the rule, the partner, the start,
    the end, the progress and the size. Every column but the file has its width: the file takes the rest of the line.
-   Under 1 500 px of width, the partner folds into the tooltip of the rule; under 1 000 px, the table scrolls in its
-   frame. */
+   The partner stays whatever the width: "to whom did this file go" is the first question of an operator (#781,
+   2026-10-26). Under 1 500 px of screen, the size folds into the tooltip of the progress: the list is the window less
+   346 px (the sidebar and the margins, measured), so the container query fires under 1 154 px of list. Under 1 000 px
+   of list, the table scrolls in its frame. */
 .w-main__inner:has(#transfers-table) { max-width: none; }
 .tf-list { container-type: inline-size; }
 .tf-table .w-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
@@ -51,7 +53,7 @@
 .tf-file { color: var(--tp); font-weight: 700; }
 .tf-time { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }   /* the date and the time to the second, smaller */
 .tf-next { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--g600); }
-@container (max-width: 1499px) {
+@container (max-width: 1153px) {
   .tf-table .tf-x { display: none; }
   .tf-col-state { width: 6.75rem; }
 }
