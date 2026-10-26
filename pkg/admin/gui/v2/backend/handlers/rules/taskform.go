@@ -300,11 +300,8 @@ func fields(translate gui.Translator, spec *taskSpec, input *taskInput, found na
 		switch arg.Kind {
 		case argBool:
 			boolField(translate, arg, value, &field)
-		case argInt, argMillis:
+		case argInt:
 			field.Kind, field.Min, field.Max = fieldNumber, arg.Min, arg.Max
-			if arg.Kind == argMillis {
-				field.Hint += " " + translate("task_types.hint.millis")
-			}
 		case argDecimal:
 			field.Kind = fieldDecimal
 		case argDuration:
@@ -352,16 +349,91 @@ func boolField(translate gui.Translator, arg *argSpec, value string, field *fiel
 // durationField: a duration, in seconds when the description says so (a
 // number field, unless the value stored has another form).
 func durationField(translate gui.Translator, arg *argSpec, value string, field *fieldView) {
-	if !arg.Seconds {
+	switch {
+	case arg.Millis:
 		field.Hint += " " + translate("task_types.hint.duration")
+		field.Value = millisText(value)
+	case !arg.Seconds:
+		field.Hint += " " + translate("task_types.hint.duration")
+	default:
+		field.Value = secondsText(value)
+		if _, err := strconv.Atoi(field.Value); err == nil || field.Value == "" {
+			field.Kind, field.Min = fieldNumber, 0
+		}
+	}
+}
 
-		return
+// durationValue reads a duration of the form as the product stores it: the
+// seconds of a Seconds argument ("30s"), the milliseconds of a Millis one, the
+// text otherwise; with the message of a refusal.
+func durationValue(translate gui.Translator, arg *argSpec, raw string) (value, msg string) {
+	switch {
+	case arg.Millis:
+		millis, ok := millisValue(raw)
+		if !ok {
+			return raw, translate("check." + string(gui.CheckDuration))
+		}
+
+		return millis, ""
+	case arg.Seconds:
+		duration, ok := secondsValue(raw)
+		if !ok {
+			return raw, translate("rules.tasks.error.seconds")
+		}
+
+		return duration, ""
+	default:
+		return raw, ""
+	}
+}
+
+// millisText writes a stored number of milliseconds as the duration the form
+// shows ("30s", "1m30s", "1h", "1.5s"); zero, empty or unreadable: nothing,
+// the limit is absent.
+func millisText(stored string) string {
+	ms, err := strconv.ParseInt(stored, 10, 64)
+	if err != nil || ms <= 0 {
+		return ""
 	}
 
-	field.Value = secondsText(value)
-	if _, err := strconv.Atoi(field.Value); err == nil || field.Value == "" {
-		field.Kind, field.Min = fieldNumber, 0
+	return compactDuration(time.Duration(ms) * time.Millisecond)
+}
+
+// millisValue reads a duration of the form as the number of milliseconds the
+// product stores; empty: no limit, nothing stored.
+func millisValue(raw string) (string, bool) {
+	if raw == "" {
+		return "", true
 	}
+
+	d, err := time.ParseDuration(raw)
+	if err != nil || d < 0 {
+		return "", false
+	}
+
+	return strconv.FormatInt(int64(d/time.Millisecond), 10), true
+}
+
+// compactDuration writes a duration without its zero parts ("1h", "1m30s");
+// under the second, as Go writes it ("1.5s").
+func compactDuration(d time.Duration) string {
+	if d%time.Second != 0 {
+		return d.String()
+	}
+
+	var out strings.Builder
+
+	for _, part := range []struct {
+		unit time.Duration
+		mark string
+	}{{time.Hour, "h"}, {time.Minute, "m"}, {time.Second, "s"}} {
+		if n := d / part.unit; n > 0 {
+			out.WriteString(strconv.FormatInt(int64(n), 10) + part.mark)
+			d %= part.unit
+		}
+	}
+
+	return out.String()
 }
 
 // choiceField: the only value possible is said and sent; two or three values
@@ -641,6 +713,8 @@ func keptAsStored(arg *argSpec, raw, old string, had bool, posted func(string) s
 		return false
 	case arg.Seconds && raw != "" && secondsText(old) == raw:
 		return true
+	case arg.Millis && raw != "" && millisText(old) == raw:
+		return true
 	}
 
 	return raw == old && arg.Kind != argPairs
@@ -749,7 +823,7 @@ func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[strin
 	}
 
 	switch arg.Kind {
-	case argInt, argMillis:
+	case argInt:
 		if msg := checkNumber(translate, arg, raw); msg != "" {
 			return msg
 		}
@@ -758,14 +832,12 @@ func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[strin
 			return translate("rules.tasks.error.decimal")
 		}
 	case argDuration:
-		if arg.Seconds {
-			duration, ok := secondsValue(raw)
-			if !ok {
-				return translate("rules.tasks.error.seconds")
-			}
-
-			raw = duration
+		value, msg := durationValue(translate, arg, raw)
+		if msg != "" {
+			return msg
 		}
+
+		raw = value
 	case argJSON:
 		var object map[string]any
 		if err := json.Unmarshal([]byte(raw), &object); err != nil {

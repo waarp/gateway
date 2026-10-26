@@ -210,10 +210,14 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        possible est affichée, sans choix à faire.
    * - Nombre
      - Un entier, borné quand la tâche le borne (niveau de compression de 0 à
-       9), ou un délai en millisecondes.
+       9).
    * - Durée
      - Sous la forme ``30s``, ``5m`` ou ``1h30m`` ; en secondes pour les
-       délais d'une tâche ``TRANSFER``.
+       délais d'une tâche ``TRANSFER``. La durée maximale d'exécution d'une
+       tâche ``EXEC`` se saisit ainsi et s'affiche en clair (« 1 min 30 s ») ;
+       vide, elle est sans limite. Un programme qui la dépasse est interrompu
+       et le transfert passe en erreur. Repliée, la tâche nomme son programme
+       et sa limite.
    * - Liste
      - Les valeurs que la tâche accepte (méthodes de chiffrement, jeux de
        caractères) ou les objets de la Gateway (clés, identifiants SMTP,
