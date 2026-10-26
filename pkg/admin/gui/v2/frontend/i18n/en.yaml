@@ -283,6 +283,7 @@ servers:
     accounts: Local accounts
     edit: Edit the server
     delete: Delete the server
+    transfers: View the transfers
   detail:
     title: "Server “{name}”"
     card: Server
@@ -577,6 +578,7 @@ accounts:
     detail: View the account
     edit: Edit the account
     delete: Delete the account
+    transfers: View the transfers
   new:
     title: New account
   edit:
@@ -728,6 +730,7 @@ partners:
     detail: View the sheet
     edit: Edit the partner
     delete: Delete the partner
+    transfers: View the transfers
   tabs: Tabs of the sheet
   tab:
     details: Details
@@ -834,6 +837,7 @@ remote_accounts:
     detail: View the account
     edit: Edit the account
     delete: Delete the account
+    transfers: View the transfers
   new:
     title: New remote account
   edit:
@@ -915,6 +919,7 @@ clients:
     stop: Stop the client
     edit: Edit the client
     delete: Delete the client
+    transfers: View the transfers
   detail:
     title: "Client “{name}”"
     card: Client
@@ -3017,6 +3022,8 @@ transfers:
     servers: Local servers
     account: Account
     account_all: Every account
+    client: Client
+    client_all: Every client
     protocol: Protocol
     protocol_all: Every protocol
     from: Start from

@@ -648,3 +648,25 @@ func TestSheetTabsOnForms(t *testing.T) {
 	require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 	assert.Contains(t, rec.Body.String(), `<span class="w-tabs__disabled"`, "the refused form keeps the greyed strip")
 }
+
+// TestTransfersLinks: the sheet and the accounts of a partner lead to the
+// transfer monitoring filtered on them, for whoever reads the transfers (#782).
+func TestTransfersLinks(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	perms := permRead | model.PermTransfersRead
+
+	body := s.get(t, perms, s.path(s.sftp, "")).Body.String()
+	assert.Contains(t, body, `href="/webui/transfers?partner=part-sftp-01"`, "the sheet of the partner")
+	assert.Contains(t, body, "Voir les transferts")
+	assert.NotContains(t, s.get(t, permRead, s.path(s.sftp, "")).Body.String(), "Voir les transferts",
+		"nothing without the right to read the transfers")
+
+	body = s.get(t, perms, s.accountPath(s.prod, "")).Body.String()
+	assert.Contains(t, body, `href="/webui/transfers?account=prod&amp;partner=part-sftp-01"`, "the sheet of an account")
+
+	body = s.get(t, perms, s.path(s.sftp, "/accounts")).Body.String()
+	assert.Contains(t, body, `href="/webui/transfers?account=prod&amp;partner=part-sftp-01"`, "the menu of the accounts tab")
+}

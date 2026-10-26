@@ -731,3 +731,19 @@ func TestDelay(t *testing.T) {
 	assert.Equal(t, "1", formatFactor(0))
 	assert.Equal(t, "1.5", formatFactor(1.5))
 }
+
+// TestTransfersLink: the sheet of a client leads to the transfer monitoring
+// filtered on it, for whoever reads the transfers (#782).
+func TestTransfersLink(t *testing.T) {
+	t.Parallel()
+
+	s := newSuite(t)
+	s.fixtures(t)
+	perms := permRead | model.PermTransfersRead
+
+	body := s.get(t, perms, s.path(s.sftp, "")).Body.String()
+	assert.Contains(t, body, `href="/webui/transfers?client=cli-sftp"`)
+	assert.Contains(t, body, "Voir les transferts")
+	assert.NotContains(t, s.get(t, permRead, s.path(s.sftp, "")).Body.String(), "Voir les transferts",
+		"nothing without the right to read the transfers")
+}

@@ -153,17 +153,29 @@ func New(db *database.DB, logger *log.Logger, ctl Control) *Handlers {
 
 func transfersURL() string { return common.WebuiURL(transfersPath) }
 
+// transfersOf is the transfer monitoring filtered on the server and, when
+// given, on one of its accounts (#782).
+func transfersOf(server, account string) string {
+	v := url.Values{"partner": {server}}
+	if account != "" {
+		v.Set("account", account)
+	}
+
+	return transfersURL() + "?" + v.Encode()
+}
+
 // rights of the current user on the servers: reading is implied by reaching
 // the screen; writing and deleting are checked again by the router on each
 // action. The templates hide what the rights forbid.
-type rights struct{ Write, Delete bool }
+type rights struct{ Write, Delete, Transfers bool }
 
 func rightsOf(r *http.Request) rights {
 	perms := common.GetUser(r).Permissions
 
 	return rights{
-		Write:  perms.HasPermission(model.PermServersWrite),
-		Delete: perms.HasPermission(model.PermServersDelete),
+		Write:     perms.HasPermission(model.PermServersWrite),
+		Delete:    perms.HasPermission(model.PermServersDelete),
+		Transfers: perms.HasPermission(model.PermTransfersRead),
 	}
 }
 
@@ -490,8 +502,8 @@ func sortEntries(entries []entry, key, dir string) {
 // tabs of the sheet and "Edit") and on the details page (without: the tabs
 // and the buttons are there). Entries follow the rights; the destructive one
 // comes last. Every URL carries the list state.
-func actions(translate gui.Translator, e entry, user rights, onDetail bool, carried string) []gui.Action {
-	agentID := e.agent.ID
+func actions(translate gui.Translator, item entry, user rights, onDetail bool, carried string) []gui.Action {
+	agentID := item.agent.ID
 
 	var acts []gui.Action
 	if !onDetail {
@@ -501,7 +513,7 @@ func actions(translate gui.Translator, e entry, user rights, onDetail bool, carr
 	}
 
 	if user.Write {
-		if e.running() {
+		if item.running() {
 			acts = append(acts, gui.Action{
 				Icon: "stop", Label: translate("servers.action.stop"), Action: withRet(serverURL(agentID, "/stop"), carried),
 			})
@@ -528,6 +540,12 @@ func actions(translate gui.Translator, e entry, user rights, onDetail bool, carr
 				Icon: "pen", Label: translate("servers.action.edit"), URL: withRet(serverURL(agentID, "/edit"), carried),
 			})
 		}
+	}
+
+	if user.Transfers {
+		acts = append(acts, gui.Action{
+			Icon: "clock", Label: translate("servers.action.transfers"), URL: transfersOf(item.agent.Name, ""),
+		})
 	}
 
 	if user.Delete {

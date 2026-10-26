@@ -315,6 +315,14 @@ func TestList(t *testing.T) {
 		rec = s.get(t, permWrite, "/webui/transfers?full=1&partner=partenaire-supprime")
 		assert.Contains(t, rec.Body.String(), `<option value="partenaire-supprime" selected>partenaire-supprime</option>`)
 
+		// The client filter (#782): the clients offered, the chosen one kept, the server transfers left out.
+		indexes(t, body, `<select class="w-select" id="f-client" name="client">`, "Tous les clients",
+			`<option value="cli-sftp">cli-sftp</option>`, "</select>")
+		filtered := s.get(t, permWrite, "/webui/transfers?full=1&client=cli-sftp").Body.String()
+		assert.Contains(t, filtered, "<bdi>releve-20102026.pdf</bdi>")
+		assert.NotContains(t, filtered, "<bdi>commandes-0457.edi</bdi>", "a server transfer has no client")
+		assert.Contains(t, filtered, `<option value="cli-sftp" selected>cli-sftp</option>`)
+
 		// The secondary action of the header in a "⋯" menu, as on the other pages.
 		indexes(t, body, `popovertarget="act-page"`, `<div class="w-actions" id="act-page" popover>`,
 			`href="/webui/transfers/preregister"`)
