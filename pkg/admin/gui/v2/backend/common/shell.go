@@ -79,6 +79,22 @@ func (s *Shell) Render(w http.ResponseWriter, logger *log.Logger, r *http.Reques
 	s.execute(w, logger, r, gui.Shell(s.makePage(r, screen), body), screen.Status)
 }
 
+// RenderPlain writes a page outside a session, the sign-in page: the plain
+// page of the kit (no header, no sidebar), in the language of the request,
+// with the language switcher (which keeps the query of the page, the page
+// asked for included) and the notices; status as for Render.
+func (s *Shell) RenderPlain(w http.ResponseWriter, logger *log.Logger, r *http.Request,
+	title string, status int, notices []gui.Notice, body templ.Component,
+) {
+	lang := locale.GetLanguage(r)
+	page := gui.Page{
+		Lang: lang, Title: title, Product: constants.AppName, ProductSlug: productSlug,
+		Languages: languages(r, lang), Notices: notices,
+	}
+
+	s.execute(w, logger, r, gui.Plain(page, body), status)
+}
+
 // RenderFragment writes one component of the screen alone, for the updates
 // without reload (?fragment=...).
 func (s *Shell) RenderFragment(w http.ResponseWriter, logger *log.Logger, r *http.Request, fragment templ.Component) {

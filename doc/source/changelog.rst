@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :feature:`787` La page de connexion est refondue sur le kit de l'interface
+  web, sans changer sa composition : la bannière, une carte à coins arrondis
+  avec l'identifiant, le mot de passe et le bouton qui l'affiche, le bouton de
+  connexion, le choix de la langue en haut à droite. À 390 px de large, les
+  champs gardent leur largeur ; l'icône du mot de passe s'affiche ; la page
+  déclare sa langue. Un refus garde l'identifiant saisi ; une session qui a
+  pris fin et une déconnexion sont dites sur la page ; changer de langue garde
+  la page demandée, et la connexion n'y ramène que si elle est une page de
+  l'interface (voir :ref:`le guide de l'interface web <user-webui-login>`).
 * :feature:`784` La durée maximale d'exécution des tâches EXEC, EXECMOVE et
   EXECOUTPUT se saisit comme une durée (« 30s », « 5m », « 1h30m ») et s'affiche
   en clair, « Sans limite » quand elle est absente ; l'aide dit qu'un programme

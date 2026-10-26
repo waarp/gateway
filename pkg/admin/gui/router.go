@@ -11,6 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/login"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
@@ -130,6 +131,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	RouterPages(secureRouter, db, logger)
 }
 
+// logout ends the session and leads to the sign-in page, which says so.
 func logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if cookie, err := r.Cookie(tokenCookieName); err == nil {
@@ -144,23 +146,34 @@ func logout() http.HandlerFunc {
 			HttpOnly: true,
 		})
 
-		http.Redirect(w, r, "login", http.StatusFound)
+		signIn := url.URL{Path: loginPath, RawQuery: url.Values{login.ReasonParam: {login.ReasonSignedOut}}.Encode()}
+		http.Redirect(w, r, signIn.String(), http.StatusSeeOther)
 	}
 }
 
+// AuthenticationMiddleware lets a request through with its user when its
+// session cookie is valid, and leads to the sign-in page otherwise, with the
+// page asked for; a cookie that was given and refused (expired, replaced by a
+// sign-in elsewhere, lost at a restart) is said to the user by the reason.
 func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			loginURL := url.URL{Path: "login"}
+			params := url.Values{}
 			if curPage := r.URL.RequestURI(); curPage != Prefix+"/" {
-				params := loginURL.Query()
-				params.Set("redirect", curPage)
-				loginURL.RawQuery = params.Encode()
+				params.Set(redirectParam, curPage)
+			}
+
+			toSignIn := func(reason string) {
+				if reason != "" {
+					params.Set(login.ReasonParam, reason)
+				}
+
+				http.Redirect(w, r, (&url.URL{Path: loginPath, RawQuery: params.Encode()}).String(), http.StatusFound)
 			}
 
 			tokenCookie, err := r.Cookie(tokenCookieName)
 			if err != nil || tokenCookie.Value == "" {
-				http.Redirect(w, r, loginURL.String(), http.StatusFound)
+				toSignIn("")
 
 				return
 			}
@@ -168,7 +181,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 			user, err := validateSession(db, tokenCookie.Value)
 			if err != nil {
 				logger.Infof("Failed to validate session: %v", err)
-				http.Redirect(w, r, loginURL.String(), http.StatusFound)
+				toSignIn(login.ReasonExpired)
 
 				return
 			}
