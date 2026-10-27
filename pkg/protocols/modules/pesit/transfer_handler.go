@@ -479,7 +479,7 @@ func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
 
 		return data.receiveTransfer(trans)
 	}); err != nil {
-		t.pip.Logger.Debugf("Data transfer failed: %v", err)
+		data.logger.Debugf("Data transfer failed: %v", err)
 
 		var stopErr error
 
@@ -493,13 +493,13 @@ func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
 		}
 
 		if stopErr != nil {
-			t.pip.Logger.Errorf("Failed to stop transfer: %v", stopErr)
+			data.logger.Errorf("Failed to stop transfer: %v", stopErr)
 		}
 
 		return err
 	}
 
-	t.pip.Logger.Debug("Data transfer completed")
+	data.logger.Debug("Data transfer completed")
 
 	return nil
 }
@@ -546,6 +546,7 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 	// Reset transfer-specific state so the handler is ready for another
 	// transfer cycle on the same connection (multi-file support).
 	defer func() {
+		t.pip.SetInterruptionHandlers(nil, nil, nil)
 		t.pip = nil
 		t.file = nil
 		t.ctx = nil
@@ -557,8 +558,6 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 
 		return nil
 	}
-
-	t.pip.SetInterruptionHandlers(nil, nil, nil)
 
 	go func(pip *pipeline.Pipeline) {
 		if err := pip.PostTasks(); err != nil {
