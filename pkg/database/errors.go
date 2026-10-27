@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -132,7 +133,19 @@ type ForeignKeyError struct {
 	Total uint64
 }
 
-func (err *ForeignKeyError) Error() string { return err.Msg }
+func (err *ForeignKeyError) Error() string {
+	w := &strings.Builder{}
+	fmt.Fprintln(w, err.Msg)
+	fmt.Fprintf(w, "%s that require it: %s", err.Elems[0].Appellation(), utils.JoinFunc(
+		err.Elems, FKElement.GetName, ", ",
+	))
+	if diff := err.Total - uint64(len(err.Elems)); diff > 0 {
+		fmt.Fprintf(w, "... (%d omitted, total: %d)", diff, err.Total)
+	}
+	fmt.Fprintln(w)
+
+	return w.String()
+}
 
 type FkChecker[T FKElement] struct {
 	db   ReadAccess
@@ -156,7 +169,7 @@ func (fk *FkChecker[T]) Check(msg string) error {
 		return nil
 	}
 
-	const limit = 20
+	const limit = 10
 
 	var elems Slice[T]
 	if err := fk.db.Select(&elems).Eager().Where(fk.cond.sql, fk.cond.args...).

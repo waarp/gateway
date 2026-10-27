@@ -14,7 +14,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 type order struct {
@@ -96,14 +95,7 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 	}
 
 	if val, ok := errors.AsType[*database.ForeignKeyError](err); ok {
-		http.Error(w, val.Msg, http.StatusBadRequest)
-		fmt.Fprintf(w, "Affected elements: %s", utils.JoinFunc(
-			val.Elems, database.FKElement.GetName, ", ",
-		))
-		if diff := val.Total - uint64(len(val.Elems)); diff > 0 {
-			fmt.Fprintf(w, "... (%d omitted, total: %d)", diff, val.Total)
-		}
-		fmt.Fprintln(w)
+		http.Error(w, val.Error(), http.StatusBadRequest)
 
 		return true
 	}
