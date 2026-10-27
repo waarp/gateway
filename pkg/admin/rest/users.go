@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -54,7 +52,7 @@ func DBUsersToREST(dbUsers []*model.User) []*api.OutUser {
 
 //nolint:dupl //duplicate is for a completely different type (servers), keep separate
 func retrieveDBUser(r *http.Request, db *database.DB) (*model.User, error) {
-	username, ok := mux.Vars(r)["user"]
+	username, ok := GetURLVar(r, "user")
 	if !ok {
 		return nil, notFound("missing username")
 	}

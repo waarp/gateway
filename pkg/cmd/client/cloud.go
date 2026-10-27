@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -45,7 +44,7 @@ type CloudGet struct {
 
 func (c *CloudGet) Execute([]string) error { return execute(c) }
 func (c *CloudGet) execute(w io.Writer) error {
-	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
+	SetAddrPath("%s/%s", cloudsAPIPath, c.Args.Name)
 
 	cloud := &api.GetCloudRespObject{}
 	if err := get(cloud); err != nil {
@@ -85,7 +84,7 @@ type CloudDelete struct {
 
 func (c *CloudDelete) Execute([]string) error { return execute(c) }
 func (c *CloudDelete) execute(w io.Writer) error {
-	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
+	SetAddrPath("%s/%s", cloudsAPIPath, c.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err
@@ -111,7 +110,7 @@ type CloudUpdate struct {
 
 func (c *CloudUpdate) Execute([]string) error { return execute(c) }
 func (c *CloudUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
+	SetAddrPath("%s/%s", cloudsAPIPath, c.Args.Name)
 
 	if err := update(w, c); err != nil {
 		return err

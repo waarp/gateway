@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -15,7 +13,7 @@ import (
 
 //nolint:dupl //duplicate is for a different type, keep separate
 func retrieveDBSNMPMonitor(r *http.Request, db *database.DB) (*snmp.MonitorConfig, error) {
-	name, ok := mux.Vars(r)["snmp_monitor"]
+	name, ok := GetURLVar(r, "snmp_monitor")
 	if !ok {
 		return nil, notFound("missing SNMP monitor name")
 	}

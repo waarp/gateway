@@ -50,7 +50,7 @@ type RemAccGet struct {
 
 func (r *RemAccGet) Execute([]string) error { return execute(r) }
 func (r *RemAccGet) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
+	SetAddrPath("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
 	account := &api.OutRemoteAccount{}
 	if err := get(account); err != nil {
@@ -70,7 +70,7 @@ type RemAccAdd struct {
 
 func (r *RemAccAdd) Execute([]string) error { return execute(r) }
 func (r *RemAccAdd) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
+	SetAddrPath("/api/partners/%s/accounts", Partner)
 
 	if _, err := add(w, r); err != nil {
 		return err
@@ -91,7 +91,7 @@ type RemAccDelete struct {
 
 func (r *RemAccDelete) Execute([]string) error { return execute(r) }
 func (r *RemAccDelete) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
+	SetAddrPath("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
 	if err := remove(w); err != nil {
 		return err
@@ -115,7 +115,7 @@ type RemAccUpdate struct {
 
 func (r *RemAccUpdate) Execute([]string) error { return execute(r) }
 func (r *RemAccUpdate) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
+	SetAddrPath("/api/partners/%s/accounts/%s", Partner, r.Args.Login)
 
 	if err := update(w, r); err != nil {
 		return err
@@ -144,7 +144,7 @@ func (r *RemAccList) Execute([]string) error { return execute(r) }
 
 //nolint:dupl //duplicate is for a different command, best keep separate
 func (r *RemAccList) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", Partner)
+	SetAddrPath("/api/partners/%s/accounts", Partner)
 
 	listURL(&r.ListOptions, r.SortBy)
 
@@ -174,8 +174,7 @@ type RemAccAuthorize struct {
 
 func (r *RemAccAuthorize) Execute([]string) error { return execute(r) }
 func (r *RemAccAuthorize) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", Partner,
-		r.Args.Login, r.Args.Rule, r.Args.Direction)
+	SetAddrPath("/api/partners/%s/accounts/%s/authorize/%s/%s", Partner, r.Args.Login, r.Args.Rule, r.Args.Direction)
 
 	return authorize(w, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
@@ -192,8 +191,7 @@ type RemAccRevoke struct {
 
 func (r *RemAccRevoke) Execute([]string) error { return execute(r) }
 func (r *RemAccRevoke) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/revoke/%s/%s", Partner,
-		r.Args.Login, r.Args.Rule, r.Args.Direction)
+	SetAddrPath("/api/partners/%s/accounts/%s/revoke/%s/%s", Partner, r.Args.Login, r.Args.Rule, r.Args.Direction)
 
 	return revoke(w, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }

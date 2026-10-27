@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -80,7 +79,7 @@ func (r *RuleGet) execute(w io.Writer) error {
 		return err
 	}
 
-	addr.Path = path.Join("/api/rules", r.Args.Name, strings.ToLower(r.Args.Direction))
+	SetAddrPath("/api/rules/%s/%s", r.Args.Name, strings.ToLower(r.Args.Direction))
 
 	rule := &api.OutRule{}
 	if err := get(rule); err != nil {
@@ -155,7 +154,7 @@ func (r *RuleDelete) execute(w io.Writer) error {
 		return err
 	}
 
-	addr.Path = path.Join("/api/rules", r.Args.Name, r.Args.Direction)
+	SetAddrPath("/api/rules/%s/%s", r.Args.Name, r.Args.Direction)
 
 	if err := remove(w); err != nil {
 		return err
@@ -228,7 +227,7 @@ func (r *RuleUpdate) execute(w io.Writer) error {
 		return err
 	}
 
-	addr.Path = path.Join("/api/rules", r.Args.Name, strings.ToLower(r.Args.Direction))
+	SetAddrPath("/api/rules/%s/%s", r.Args.Name, strings.ToLower(r.Args.Direction))
 
 	if r.InPath != nil {
 		warnRuleInPathDeprecated(w)
@@ -272,8 +271,7 @@ func (r *RuleAllowAll) execute(w io.Writer) error {
 		return err
 	}
 
-	addr.Path = fmt.Sprintf("/api/rules/%s/%s/allow_all", r.Args.Name,
-		strings.ToLower(r.Args.Direction))
+	SetAddrPath("/api/rules/%s/%s/allow_all", r.Args.Name, strings.ToLower(r.Args.Direction))
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()

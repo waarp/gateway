@@ -9,6 +9,7 @@ import (
 	"github.com/gookit/color"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func coloredStatus(status types.TransferStatus) string {
@@ -47,7 +48,7 @@ func displayTransferInfo(w io.Writer, info map[string]any) {
 }
 
 func putTransferRequest(w io.Writer, id uint64, endpoint, action string) error {
-	addr.Path = fmt.Sprintf("/api/transfers/%d/%s", id, endpoint)
+	SetAddrPath("/api/transfers/%s/%s", utils.FormatUint(id), endpoint)
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()

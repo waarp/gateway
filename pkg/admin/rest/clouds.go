@@ -3,8 +3,6 @@ package rest
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -12,7 +10,7 @@ import (
 )
 
 func retrieveCloud(r *http.Request, db *database.DB) (*model.CloudInstance, error) {
-	cloudName, ok := mux.Vars(r)["cloud"]
+	cloudName, ok := GetURLVar(r, "cloud")
 	if !ok {
 		return nil, notFound("missing cloud name")
 	}

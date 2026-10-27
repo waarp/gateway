@@ -69,7 +69,7 @@ type OverrideAddressDelete struct {
 
 func (o *OverrideAddressDelete) Execute([]string) error { return execute(o) }
 func (o *OverrideAddressDelete) execute(w io.Writer) error {
-	addr.Path = "/api/override/addresses/" + o.Args.Target
+	SetAddrPath("/api/override/addresses/%s", o.Args.Target)
 
 	if err := remove(w); err != nil {
 		return err

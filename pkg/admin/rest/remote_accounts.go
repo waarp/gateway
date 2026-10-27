@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -22,7 +20,7 @@ func getDBRemoteAccount(r *http.Request, db *database.DB) (*model.RemoteAgent,
 		return nil, nil, parentErr
 	}
 
-	login, ok := mux.Vars(r)["remote_account"]
+	login, ok := GetURLVar(r, "remote_account")
 	if !ok {
 		return parent, nil, notFound("missing partner name")
 	}

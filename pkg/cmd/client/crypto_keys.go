@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 
 	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 
@@ -96,7 +95,7 @@ type CryptoKeysGet struct {
 
 func (p *CryptoKeysGet) Execute([]string) error { return p.execute(stdOutput) }
 func (p *CryptoKeysGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/keys", p.Args.Key)
+	SetAddrPath("/api/keys/%s", p.Args.Key)
 
 	key := &api.GetCryptoKeyRespObject{}
 	if err := get(key); err != nil {
@@ -146,7 +145,7 @@ type CryptoKeysUpdate struct {
 
 func (p *CryptoKeysUpdate) Execute([]string) error { return p.execute(stdOutput) }
 func (p *CryptoKeysUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/keys", p.Args.Key)
+	SetAddrPath("/api/keys/%s", p.Args.Key)
 
 	if err := update(w, p); err != nil {
 		return err
@@ -170,7 +169,7 @@ type CryptoKeysDelete struct {
 
 func (p *CryptoKeysDelete) Execute([]string) error { return p.execute(stdOutput) }
 func (p *CryptoKeysDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/keys", p.Args.Key)
+	SetAddrPath("/api/keys/%s", p.Args.Key)
 
 	if err := remove(w); err != nil {
 		return err

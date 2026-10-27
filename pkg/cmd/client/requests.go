@@ -202,8 +202,8 @@ func remove(w io.Writer) error {
 	}
 }
 
-func exec(w io.Writer, path string) error {
-	addr.Path = path
+func exec(w io.Writer, path string, args ...string) error {
+	SetAddrPath(path, args...)
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()

@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`753` Les noms d'objets REST (règle, serveurs...) contenant des caractères
+  spéciaux sont désormais correctement gérés par l'API REST et le client terminal.
+  Par exemple, précédemment, créer un objet avec un slash ``/`` dans son nom était
+  accepté, mais cet objet était inaccessible par la suite (code 404). Cela est
+  maintenant corrigé, à condition que le nom soit correctement échappé dans l'URL.
 * :bug:`752` Créer une règle avec un chemin (*path*) contenant les *wildcards*
   ``%`` ou ``_`` pouvait parfois produire une erreur si une autre règle au
   chemin similaire (après résolution des wildcards) existait déjà. Ces wildcards

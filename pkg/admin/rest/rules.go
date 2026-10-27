@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -121,12 +119,12 @@ func ruleDirection(rule *model.Rule) string {
 }
 
 func retrieveDBRule(r *http.Request, db *database.DB) (*model.Rule, error) {
-	ruleName, ok := mux.Vars(r)["rule"]
+	ruleName, ok := GetURLVar(r, "rule")
 	if !ok {
 		return nil, notFound("missing rule name")
 	}
 
-	direction, ok := mux.Vars(r)["direction"]
+	direction, ok := GetURLVar(r, "direction")
 	if !ok {
 		return nil, notFound("missing rule direction")
 	}

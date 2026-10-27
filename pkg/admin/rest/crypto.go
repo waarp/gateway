@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -159,7 +157,7 @@ func FromCryptos(dbCryptos []*model.Credential) ([]*api.OutCrypto, error) {
 }
 
 func retrieveCrypto(r *http.Request, db database.ReadAccess, owner model.CredOwnerTable) (*model.Credential, error) {
-	cryptName, ok := mux.Vars(r)["certificate"]
+	cryptName, ok := GetURLVar(r, "certificate")
 	if !ok {
 		return nil, notFound("missing certificate name")
 	}

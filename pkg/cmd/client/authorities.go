@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 
 	"github.com/gookit/color"
 
@@ -76,7 +75,7 @@ type AuthorityGet struct {
 
 func (a *AuthorityGet) Execute([]string) error { return a.execute(stdOutput) }
 func (a *AuthorityGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/authorities", a.Args.Name)
+	SetAddrPath("/api/authorities/%s", a.Args.Name)
 
 	authority := &api.OutAuthority{}
 	if err := get(authority); err != nil {
@@ -128,7 +127,7 @@ type AuthorityUpdate struct {
 
 func (a *AuthorityUpdate) Execute([]string) error { return a.execute(stdOutput) }
 func (a *AuthorityUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/authorities", a.Args.Name)
+	SetAddrPath("/api/authorities/%s", a.Args.Name)
 
 	if err := update(w, a); err != nil {
 		return err
@@ -152,7 +151,7 @@ type AuthorityDelete struct {
 
 func (a *AuthorityDelete) Execute([]string) error { return a.execute(stdOutput) }
 func (a *AuthorityDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/authorities", a.Args.Name)
+	SetAddrPath("/api/authorities/%s", a.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err

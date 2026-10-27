@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 
 	"github.com/gookit/color"
 
@@ -32,19 +31,24 @@ func displayCrypto(w io.Writer, cert *api.OutCrypto) error {
 	}
 }
 
-func getCertPath() string {
+func getCertPath() (string, []string) {
 	switch {
 	case LocalAccount != "":
-		return fmt.Sprintf("/api/servers/%s/accounts/%s", Server, LocalAccount)
+		return "/api/servers/%s/accounts/%s", []string{Server, LocalAccount}
 	case RemoteAccount != "":
-		return fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, RemoteAccount)
+		return "/api/partners/%s/accounts/%s", []string{Partner, RemoteAccount}
 	case Server != "":
-		return fmt.Sprintf("/api/servers/%s", Server)
+		return "/api/servers/%s", []string{Server}
 	case Partner != "":
-		return fmt.Sprintf("/api/partners/%s", Partner)
+		return "/api/partners/%s", []string{Partner}
 	default:
 		panic("unknown certificate recipient")
 	}
+}
+
+func setCertAddrPath(suffix string, args ...string) {
+	base, baseArgs := getCertPath()
+	SetAddrPath(base+suffix, append(baseArgs, args...)...)
 }
 
 // ######################## GET ##########################
@@ -64,7 +68,7 @@ func (c *CertGet) Execute([]string) error {
 
 // Deprecated: use CredentialGet command instead.
 func (c *CertGet) execute(w io.Writer) error {
-	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
+	setCertAddrPath("/certificates/%s", c.Args.Cert)
 
 	cert := &api.OutCrypto{}
 	if err := get(cert); err != nil {
@@ -93,7 +97,7 @@ func (c *CertAdd) Execute([]string) error {
 }
 
 func (c *CertAdd) execute(w io.Writer) error {
-	addr.Path = path.Join(getCertPath(), "certificates")
+	setCertAddrPath("/certificates")
 
 	if _, err := add(w, c); err != nil {
 		return err
@@ -119,7 +123,7 @@ func (c *CertDelete) Execute([]string) error {
 }
 
 func (c *CertDelete) execute(w io.Writer) error {
-	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
+	setCertAddrPath("/certificates/%s", c.Args.Cert)
 
 	if err := remove(w); err != nil {
 		return err
@@ -149,7 +153,7 @@ func (c *CertList) Execute([]string) error {
 
 // Deprecated: use command "get" on the certificate owner instead.
 func (c *CertList) execute(w io.Writer) error {
-	addr.Path = path.Join(getCertPath(), "certificates")
+	setCertAddrPath("/certificates")
 
 	listURL(&c.ListOptions, c.SortBy)
 
@@ -193,7 +197,7 @@ func (c *CertUpdate) Execute([]string) error {
 }
 
 func (c *CertUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
+	setCertAddrPath("/certificates/%s", c.Args.Cert)
 
 	if err := update(w, c); err != nil {
 		return err

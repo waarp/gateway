@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
@@ -63,7 +61,7 @@ func ClientRESTToDB(client *api.InClient) (*model.Client, error) {
 }
 
 func getDBClient(r *http.Request, db *database.DB) (*model.Client, error) {
-	clientName, ok := mux.Vars(r)["client"]
+	clientName, ok := GetURLVar(r, "client")
 	if !ok {
 		return nil, notFound("missing client name")
 	}
