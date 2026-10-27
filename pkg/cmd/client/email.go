@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -99,7 +98,7 @@ type EmailTemplateGet struct {
 
 func (e *EmailTemplateGet) Execute([]string) error { return execute(e) }
 func (e *EmailTemplateGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/email/templates", e.Args.Name)
+	SetAddrPath("/api/email/templates/%s", e.Args.Name)
 
 	var template api.GetEmailTemplateObject
 	if err := get(&template); err != nil {
@@ -126,7 +125,7 @@ type EmailTemplateUpdate struct {
 
 func (e *EmailTemplateUpdate) Execute([]string) error { return execute(e) }
 func (e *EmailTemplateUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/email/templates", e.Args.Name)
+	SetAddrPath("/api/email/templates/%s", e.Args.Name)
 
 	if err := update(w, e); err != nil {
 		return err
@@ -152,7 +151,7 @@ type EmailTemplateDelete struct {
 
 func (e *EmailTemplateDelete) Execute([]string) error { return execute(e) }
 func (e *EmailTemplateDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/email/templates", e.Args.Name)
+	SetAddrPath("/api/email/templates/%s", e.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err
@@ -251,7 +250,7 @@ type SMTPCredentialGet struct {
 
 func (e *SMTPCredentialGet) Execute([]string) error { return execute(e) }
 func (e *SMTPCredentialGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/email/credentials", e.Args.Email)
+	SetAddrPath("/api/email/credentials/%s", e.Args.Email)
 
 	var credential api.GetSMTPCredentialObject
 	if err := get(&credential); err != nil {
@@ -277,7 +276,7 @@ type SMTPCredentialUpdate struct {
 
 func (e *SMTPCredentialUpdate) Execute([]string) error { return execute(e) }
 func (e *SMTPCredentialUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/email/credentials", e.Args.Email)
+	SetAddrPath("/api/email/credentials/%s", e.Args.Email)
 
 	if err := update(w, e); err != nil {
 		return err
@@ -303,7 +302,7 @@ type SMTPCredentialDelete struct {
 
 func (e *SMTPCredentialDelete) Execute([]string) error { return execute(e) }
 func (e *SMTPCredentialDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/email/credentials", e.Args.Email)
+	SetAddrPath("/api/email/credentials/%s", e.Args.Email)
 
 	if err := remove(w); err != nil {
 		return err

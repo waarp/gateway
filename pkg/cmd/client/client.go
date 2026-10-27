@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 	"time"
 
 	"github.com/gookit/color"
@@ -123,7 +122,7 @@ type ClientGet struct {
 
 func (c *ClientGet) Execute([]string) error { return execute(c) }
 func (c *ClientGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/clients", c.Args.Name)
+	SetAddrPath("/api/clients/%s", c.Args.Name)
 
 	var client api.OutClient
 	if err := get(&client); err != nil {
@@ -153,7 +152,7 @@ type ClientUpdate struct {
 
 func (c *ClientUpdate) Execute([]string) error { return execute(c) }
 func (c *ClientUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/clients", c.Args.Name)
+	SetAddrPath("/api/clients/%s", c.Args.Name)
 
 	if c.FirstRetryDelayDur != 0 {
 		c.FirstRetryDelay = int32(c.FirstRetryDelayDur.Seconds())
@@ -183,7 +182,7 @@ type ClientDelete struct {
 
 func (c *ClientDelete) Execute([]string) error { return execute(c) }
 func (c *ClientDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/clients", c.Args.Name)
+	SetAddrPath("/api/clients/%s", c.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err
@@ -204,7 +203,7 @@ type ClientEnable struct {
 
 func (c *ClientEnable) Execute([]string) error { return execute(c) }
 func (c *ClientEnable) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/clients/%s/enable", c.Args.Name)); err != nil {
+	if err := exec(w, "/api/clients/%s/enable", c.Args.Name); err != nil {
 		return err
 	}
 
@@ -221,7 +220,7 @@ type ClientDisable struct {
 
 func (c *ClientDisable) Execute([]string) error { return execute(c) }
 func (c *ClientDisable) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/clients/%s/disable", c.Args.Name)); err != nil {
+	if err := exec(w, "/api/clients/%s/disable", c.Args.Name); err != nil {
 		return err
 	}
 
@@ -240,7 +239,7 @@ type ClientStart struct {
 
 func (c *ClientStart) Execute([]string) error { return execute(c) }
 func (c *ClientStart) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/clients/%s/start", c.Args.Name)); err != nil {
+	if err := exec(w, "/api/clients/%s/start", c.Args.Name); err != nil {
 		return err
 	}
 
@@ -257,7 +256,7 @@ type ClientStop struct {
 
 func (c *ClientStop) Execute([]string) error { return execute(c) }
 func (c *ClientStop) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/clients/%s/stop", c.Args.Name)); err != nil {
+	if err := exec(w, "/api/clients/%s/stop", c.Args.Name); err != nil {
 		return err
 	}
 
@@ -274,7 +273,7 @@ type ClientRestart struct {
 
 func (c *ClientRestart) Execute([]string) error { return execute(c) }
 func (c *ClientRestart) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/clients/%s/restart", c.Args.Name)); err != nil {
+	if err := exec(w, "/api/clients/%s/restart", c.Args.Name); err != nil {
 		return err
 	}
 

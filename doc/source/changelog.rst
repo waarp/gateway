@@ -3,6 +3,19 @@
 Historique des versions
 =======================
 
+* :bug:`753` Les noms d'objets REST (règle, serveurs...) contenant des caractères
+  spéciaux sont désormais correctement gérés par l'API REST et le client terminal.
+  Par exemple, précédemment, créer un objet avec un slash ``/`` dans son nom était
+  accepté, mais cet objet était inaccessible par la suite (code 404). Cela est
+  maintenant corrigé, à condition que le nom soit correctement échappé dans l'URL.
+* :bug:`752` Créer une règle avec un chemin (*path*) contenant les *wildcards*
+  ``%`` ou ``_`` pouvait parfois produire une erreur si une autre règle au
+  chemin similaire (après résolution des wildcards) existait déjà. Ces wildcards
+  sont désormais correctement échappées de la requête SQL.
+* :bug:`754` Le message d'erreur renvoyé lorsqu'un objet de configuration ne
+  peut pas être supprimé car il est utilisé ailleurs est désormais plus détaillé.
+  Il donne désormais une courte liste des éléments qui reposent sur cet objet,
+  ainsi que leur nombre total.
 * :bug:`777` Les transferts client HTTP tombent désormais correctement en erreur
   lorsque le partenaire renvoie un code HTTP non-attendu.
 * :bug:`780` Les *filewatchers* distants rechargent désormais correctement leur

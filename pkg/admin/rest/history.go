@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -76,7 +74,7 @@ func FromHistories(hs []*model.HistoryEntry) []*api.OutHistory {
 
 //nolint:dupl // duplicated code is about a different type
 func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
-	val := mux.Vars(r)["history"]
+	val, _ := GetURLVar(r, "history")
 
 	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // no need for a constant here
 	if parsErr != nil || id == 0 {

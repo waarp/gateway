@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -117,7 +116,7 @@ type SnmpMonitorGet struct {
 
 func (s *SnmpMonitorGet) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpMonitorGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/snmp/monitors", s.Args.Name)
+	SetAddrPath("/api/snmp/monitors/%s", s.Args.Name)
 
 	var monitor api.GetSnmpMonitorRespObject
 	if err := get(&monitor); err != nil {
@@ -153,7 +152,7 @@ type SnmpMonitorUpdate struct {
 
 func (s *SnmpMonitorUpdate) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpMonitorUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/snmp/monitors", s.Args.Name)
+	SetAddrPath("/api/snmp/monitors/%s", s.Args.Name)
 
 	if s.NotifType != nil {
 		s.UseInforms = new(bool)
@@ -184,7 +183,7 @@ type SnmpMonitorDelete struct {
 
 func (s *SnmpMonitorDelete) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpMonitorDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/snmp/monitors", s.Args.Name)
+	SetAddrPath("/api/snmp/monitors/%s", s.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err
@@ -224,7 +223,7 @@ type SnmpServerSet struct {
 
 func (s *SnmpServerSet) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpServerSet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/snmp/server")
+	SetAddrPath("/api/snmp/server")
 
 	if err := updateMethod(w, s, http.MethodPut); err != nil {
 		return err
@@ -241,7 +240,7 @@ type SnmpServerGet struct {
 
 func (s *SnmpServerGet) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpServerGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/snmp/server")
+	SetAddrPath("/api/snmp/server")
 
 	var serverConf api.GetSnmpServiceRespObject
 	if err := get(&serverConf); err != nil {
@@ -255,7 +254,7 @@ type SnmpServerDelete struct{}
 
 func (s *SnmpServerDelete) Execute([]string) error { return s.execute(stdOutput) }
 func (s *SnmpServerDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/snmp/server")
+	SetAddrPath("/api/snmp/server")
 
 	if err := remove(w); err != nil {
 		return err

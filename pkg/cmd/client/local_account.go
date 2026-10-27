@@ -51,7 +51,7 @@ type LocAccAdd struct {
 
 func (l *LocAccAdd) Execute([]string) error { return execute(l) }
 func (l *LocAccAdd) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
+	SetAddrPath("/api/servers/%s/accounts", Server)
 
 	if _, err := add(w, l); err != nil {
 		return err
@@ -74,7 +74,7 @@ type LocAccGet struct {
 
 func (l *LocAccGet) Execute([]string) error { return execute(l) }
 func (l *LocAccGet) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
+	SetAddrPath("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
 	account := &api.OutLocalAccount{}
 	if err := get(account); err != nil {
@@ -99,7 +99,7 @@ type LocAccUpdate struct {
 
 func (l *LocAccUpdate) Execute([]string) error { return execute(l) }
 func (l *LocAccUpdate) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
+	SetAddrPath("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
 	if l.IPAddresses != nil && slices.Contains(*l.IPAddresses, "none") {
 		*l.IPAddresses = []string{}
@@ -129,7 +129,7 @@ type LocAccDelete struct {
 
 func (l *LocAccDelete) Execute([]string) error { return execute(l) }
 func (l *LocAccDelete) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
+	SetAddrPath("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
 	if err := remove(w); err != nil {
 		return err
@@ -153,7 +153,7 @@ func (l *LocAccList) Execute([]string) error { return execute(l) }
 
 //nolint:dupl //duplicate is for a different command, best keep separate
 func (l *LocAccList) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
+	SetAddrPath("/api/servers/%s/accounts", Server)
 
 	listURL(&l.ListOptions, l.SortBy)
 
@@ -183,8 +183,7 @@ type LocAccAuthorize struct {
 
 func (l *LocAccAuthorize) Execute([]string) error { return execute(l) }
 func (l *LocAccAuthorize) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", Server,
-		l.Args.Login, l.Args.Rule, l.Args.Direction)
+	SetAddrPath("/api/servers/%s/accounts/%s/authorize/%s/%s", Server, l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return authorize(w, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }
@@ -201,8 +200,7 @@ type LocAccRevoke struct {
 
 func (l *LocAccRevoke) Execute([]string) error { return execute(l) }
 func (l *LocAccRevoke) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", Server,
-		l.Args.Login, l.Args.Rule, l.Args.Direction)
+	SetAddrPath("/api/servers/%s/accounts/%s/revoke/%s/%s", Server, l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return revoke(w, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }

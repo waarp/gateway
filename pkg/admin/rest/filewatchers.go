@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/filewatcher"
@@ -15,7 +13,7 @@ import (
 )
 
 func getDBFilewatcher(r *http.Request, db *database.DB) (*model.FileWatcher, error) {
-	flow, ok := mux.Vars(r)["filewatcher"]
+	flow, ok := GetURLVar(r, "filewatcher")
 	if !ok {
 		return nil, notFound("missing filewatcher flow name")
 	}

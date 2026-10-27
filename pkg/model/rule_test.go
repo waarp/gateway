@@ -39,21 +39,19 @@ func TestRuleBeforeWrite(t *testing.T) {
 			old := Rule{
 				Name:   "old",
 				IsSend: true,
-				Path:   "old_path/subdir",
+				Path:   "root-dir/old_path",
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
 			rule := Rule{
 				Name:   "new",
 				IsSend: true,
-				Path:   "new_path",
+				Path:   "root_dir",
 			}
 
 			shouldSucceed := func() {
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) error {
-						return rule.BeforeWrite(ses)
-					})
+					err := rule.BeforeWrite(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -63,9 +61,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 			shouldFailWith := func(errDesc string, expErr error) {
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) error {
-						return rule.BeforeWrite(ses)
-					})
+					err := rule.BeforeWrite(db)
 
 					Convey("Then the error should say that "+errDesc, func() {
 						So(err, ShouldBeError, expErr)
@@ -111,9 +107,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 				rule.Path = ""
 
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) error {
-						return rule.BeforeWrite(ses)
-					})
+					err := rule.BeforeWrite(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -135,12 +129,12 @@ func TestRuleBeforeDelete(t *testing.T) {
 		db := database.TestDatabase(c)
 
 		Convey("Given a rule with some tasks and permissions", func() {
-			rule := Rule{
+			rule := &Rule{
 				Name:   "rule",
-				IsSend: true,
+				IsSend: false,
 				Path:   "path",
 			}
-			So(db.Insert(&rule).Run(), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			t1 := Task{RuleID: rule.ID, Chain: ChainPre, Rank: 0, Type: "TESTSUCCESS"}
 			So(db.Insert(&t1).Run(), ShouldBeNil)
@@ -148,25 +142,23 @@ func TestRuleBeforeDelete(t *testing.T) {
 			t2 := Task{RuleID: rule.ID, Chain: ChainPost, Rank: 0, Type: "TESTSUCCESS"}
 			So(db.Insert(&t2).Run(), ShouldBeNil)
 
-			server := LocalAgent{
+			partner := &RemoteAgent{
 				Name: "server", Protocol: testProtocol,
 				Address: types.Addr("localhost", 1111),
 			}
-			So(db.Insert(&server).Run(), ShouldBeNil)
-			account := LocalAccount{LocalAgentID: server.ID, Login: "toto"}
-			So(db.Insert(&account).Run(), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
+			account := &RemoteAccount{RemoteAgentID: partner.ID, Login: "toto"}
+			So(db.Insert(account).Run(), ShouldBeNil)
 
-			a1 := RuleAccess{RuleID: rule.ID, LocalAgentID: server.NullableID()}
-			So(db.Insert(&a1).Run(), ShouldBeNil)
+			a1 := &RuleAccess{RuleID: rule.ID, RemoteAgentID: partner.NullableID()}
+			So(db.Insert(a1).Run(), ShouldBeNil)
 
-			a2 := RuleAccess{RuleID: rule.ID, LocalAccountID: account.NullableID()}
-			So(db.Insert(&a2).Run(), ShouldBeNil)
+			a2 := &RuleAccess{RuleID: rule.ID, RemoteAccountID: account.NullableID()}
+			So(db.Insert(a2).Run(), ShouldBeNil)
 
 			Convey("Given that the rule is unused", func() {
 				Convey("When calling the `BeforeDelete` function", func() {
-					err := db.Transaction(func(ses *database.Session) error {
-						return rule.BeforeDelete(ses)
-					})
+					err := rule.BeforeDelete(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -175,12 +167,35 @@ func TestRuleBeforeDelete(t *testing.T) {
 			})
 
 			Convey("Given that the rule is used by a transfer", func() {
-				trans := Transfer{
-					RuleID:         rule.ID,
-					LocalAccountID: account.NullableID(),
-					SrcFilename:    "file",
+				cli := &Client{Name: "client", Protocol: testProtocol}
+				So(db.Insert(cli).Run(), ShouldBeNil)
+				trans := &Transfer{
+					RuleID:          rule.ID,
+					ClientID:        cli.NullableID(),
+					RemoteAccountID: account.NullableID(),
+					SrcFilename:     "file",
 				}
-				So(db.Insert(&trans).Run(), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
+
+				Convey("When calling the `BeforeDelete` function", func() {
+					err := rule.BeforeDelete(db)
+
+					Convey("Then the error should say that the rule cannot be deleted", func() {
+						shouldBeFKErrFor(err, trans)
+					})
+				})
+			})
+
+			Convey("Given that the rule is used by a filewatcher", func() {
+				cli := &Client{Name: "client", Protocol: testProtocol}
+				So(db.Insert(cli).Run(), ShouldBeNil)
+				fw := &FileWatcher{
+					Flow:          "flow",
+					Rule:          *rule,
+					RemoteAccount: *account,
+					Client:        *cli,
+				}
+				So(db.Insert(fw).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` function", func() {
 					err := db.Transaction(func(ses *database.Session) error {
@@ -188,9 +203,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 					})
 
 					Convey("Then the error should say that the rule cannot be deleted", func() {
-						So(err, ShouldBeError, "this rule is currently being "+
-							"used in a running transfer and cannot be deleted, "+
-							"cancel the transfer or wait for it to finish")
+						shouldBeFKErrFor(err, fw)
 					})
 				})
 			})

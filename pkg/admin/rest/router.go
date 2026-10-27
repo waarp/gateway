@@ -23,6 +23,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router) {
 		LoggingMiddleware(logger),
 		ServerInfoMiddleware(),
 	)
+	router.UseEncodedPath()
 
 	router.Name("GET /status").Path("/status").Methods(http.MethodGet).
 		Handler(getStatus(logger))

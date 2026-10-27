@@ -3,12 +3,18 @@ package rest
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -64,4 +70,26 @@ func TestRouterChange(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestPathEscape(t *testing.T) {
+	db := dbtest.TestDatabase(t)
+	logger := logtest.GetTestLogger(t)
+
+	router := mux.NewRouter()
+	MakeRESTHandler(logger, db, router)
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	existing := &model.Rule{Name: "existing/rule", IsSend: false}
+	require.NoError(t, db.Insert(existing).Run())
+
+	URL := server.URL + "/rules/" + url.PathEscape(existing.Name) + "/receive"
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
+	require.NoError(t, err)
+	req.SetBasicAuth("admin", "admin_password")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }

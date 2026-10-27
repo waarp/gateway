@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -73,7 +72,7 @@ func (h *HistoryGet) Execute([]string) error {
 
 // Deprecated: replaced by "transfer" command.
 func (h *HistoryGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/history/", utils.FormatUint(h.Args.ID))
+	SetAddrPath("/api/history/%s", utils.FormatUint(h.Args.ID))
 
 	trans := &api.OutHistory{}
 	if err := get(trans); err != nil {
@@ -201,7 +200,7 @@ func (h *HistoryRetry) Execute([]string) error {
 
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (h *HistoryRetry) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/history/%d/retry", h.Args.ID)
+	SetAddrPath("/api/history/%s/retry", utils.FormatUint(h.Args.ID))
 
 	query := url.Values{}
 

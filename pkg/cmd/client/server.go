@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path"
-	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -84,7 +82,7 @@ type ServerGet struct {
 
 func (s *ServerGet) Execute([]string) error { return execute(s) }
 func (s *ServerGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/servers", s.Args.Name)
+	SetAddrPath("/api/servers/%s", s.Args.Name)
 
 	server := &api.OutServer{}
 	if err := get(server); err != nil {
@@ -153,7 +151,7 @@ type ServerDelete struct {
 
 func (s *ServerDelete) Execute([]string) error { return execute(s) }
 func (s *ServerDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/servers", s.Args.Name)
+	SetAddrPath("/api/servers/%s", s.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err
@@ -236,7 +234,7 @@ func (s *ServerUpdate) execute(w io.Writer) error {
 		warnServerWorkDeprecated(w)
 	}
 
-	addr.Path = path.Join("/api/servers", s.Args.Name)
+	SetAddrPath("/api/servers/%s", s.Args.Name)
 
 	if err := update(w, s); err != nil {
 		return err
@@ -265,8 +263,7 @@ type ServerAuthorize struct {
 
 func (s *ServerAuthorize) Execute([]string) error { return execute(s) }
 func (s *ServerAuthorize) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
-		s.Args.Rule, s.Args.Direction)
+	SetAddrPath("/api/servers/%s/authorize/%s/%s", s.Args.Server, s.Args.Rule, s.Args.Direction)
 
 	return authorize(w, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
@@ -284,8 +281,7 @@ type ServerRevoke struct {
 
 func (s *ServerRevoke) Execute([]string) error { return execute(s) }
 func (s *ServerRevoke) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
-		s.Args.Rule, s.Args.Direction)
+	SetAddrPath("/api/servers/%s/revoke/%s/%s", s.Args.Server, s.Args.Rule, s.Args.Direction)
 
 	return revoke(w, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
@@ -304,12 +300,12 @@ func (s *serverEnableDisable) run(w io.Writer, isEnable bool) error {
 		return ErrMissingServerName
 	}
 
-	handlerPath, status := "/api/servers/{server}/enable", "enabled"
+	handlerPath, status := "/api/servers/%s/enable", "enabled"
 	if !isEnable {
-		handlerPath, status = "/api/servers/{server}/disable", "disabled"
+		handlerPath, status = "/api/servers/%s/disable", "disabled"
 	}
 
-	addr.Path = strings.ReplaceAll(handlerPath, "{server}", server)
+	SetAddrPath(handlerPath, server)
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
@@ -353,7 +349,7 @@ type ServerStart struct {
 
 func (s *ServerStart) Execute([]string) error { return execute(s) }
 func (s *ServerStart) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/servers/%s/start", s.Args.Name)); err != nil {
+	if err := exec(w, "/api/servers/%s/start", s.Args.Name); err != nil {
 		return err
 	}
 
@@ -370,7 +366,7 @@ type ServerStop struct {
 
 func (s *ServerStop) Execute([]string) error { return execute(s) }
 func (s *ServerStop) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/servers/%s/stop", s.Args.Name)); err != nil {
+	if err := exec(w, "/api/servers/%s/stop", s.Args.Name); err != nil {
 		return err
 	}
 
@@ -387,7 +383,7 @@ type ServerRestart struct {
 
 func (s *ServerRestart) Execute([]string) error { return execute(s) }
 func (s *ServerRestart) execute(w io.Writer) error {
-	if err := exec(w, fmt.Sprintf("/api/servers/%s/restart", s.Args.Name)); err != nil {
+	if err := exec(w, "/api/servers/%s/restart", s.Args.Name); err != nil {
 		return err
 	}
 

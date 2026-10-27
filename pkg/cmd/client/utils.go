@@ -91,8 +91,8 @@ func isNotUpdate(obj any) bool {
 	case reflect.Map:
 		return value.Len() == 0
 	case reflect.Struct:
-		for i := range value.NumField() {
-			if !value.Field(i).IsZero() {
+		for _, fieldVal := range value.Fields() {
+			if !fieldVal.IsZero() {
 				return false
 			}
 		}
@@ -168,7 +168,7 @@ type ListOptions struct {
 }
 
 func agentListURL(path string, s *ListOptions, sort string, protos []string) {
-	addr.Path = path
+	SetAddrPath(path)
 	query := url.Values{}
 	query.Set("limit", utils.FormatUint(s.Limit))
 	query.Set("offset", utils.FormatUint(s.Offset))

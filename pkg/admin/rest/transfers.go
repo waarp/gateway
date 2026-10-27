@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -136,7 +134,7 @@ func DBTransfersToREST(models []*model.NormalizedTransferView) []*api.OutTransfe
 
 //nolint:dupl // dupicated code is about a different type
 func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
-	val := mux.Vars(r)["transfer"]
+	val, _ := GetURLVar(r, "transfer")
 
 	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // useless to add a constant for that
 	if parsErr != nil || id == 0 {
@@ -157,7 +155,7 @@ func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 
 //nolint:dupl // dupicated code is about a different type
 func getDBTransView(r *http.Request, db *database.DB) (*model.NormalizedTransferView, error) {
-	val := mux.Vars(r)["transfer"]
+	val, _ := GetURLVar(r, "transfer")
 
 	id, parsErr := strconv.ParseUint(val, 10, 64) //nolint:mnd // useless to add a constant for that
 	if parsErr != nil || id == 0 {

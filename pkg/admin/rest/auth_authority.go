@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -42,7 +40,7 @@ func modelToAuthorities(dbAuthorities model.Authorities) []*api.OutAuthority {
 }
 
 func getAuthority(r *http.Request, db database.ReadAccess) (*model.Authority, error) {
-	authName, ok := mux.Vars(r)["authority"]
+	authName, ok := GetURLVar(r, "authority")
 	if !ok {
 		return nil, notFound("missing authority name")
 	}

@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -75,7 +74,7 @@ type UserGet struct {
 
 func (u *UserGet) Execute([]string) error { return execute(u) }
 func (u *UserGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/users", u.Args.Username)
+	SetAddrPath("/api/users/%s", u.Args.Username)
 
 	user := &api.OutUser{}
 	if err := get(user); err != nil {
@@ -107,7 +106,7 @@ func (u *UserUpdate) execute(w io.Writer) error {
 		}
 	}
 
-	addr.Path = path.Join("/api/users", u.Args.Username)
+	SetAddrPath("/api/users/%s", u.Args.Username)
 
 	if err := update(w, u); err != nil {
 		return err
@@ -133,7 +132,7 @@ type UserDelete struct {
 
 func (u *UserDelete) Execute([]string) error { return execute(u) }
 func (u *UserDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/users", u.Args.Username)
+	SetAddrPath("/api/users/%s", u.Args.Username)
 
 	if err := remove(w); err != nil {
 		return err

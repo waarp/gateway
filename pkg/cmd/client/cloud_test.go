@@ -20,7 +20,7 @@ func TestCloudGet(t *testing.T) {
 		opt1, key1 = "opt1", "key1"
 		opt2, key2 = "opt2", "key2"
 
-		path = cloudsAPIPath + "/" + cloudName
+		path = "/api/clouds/" + cloudName
 	)
 
 	t.Run(`Testing the cloud "get" command`, func(t *testing.T) {

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -23,7 +21,7 @@ func getDBLocalAccount(r *http.Request, db *database.DB) (
 		return nil, nil, parentErr
 	}
 
-	login, ok := mux.Vars(r)["local_account"]
+	login, ok := GetURLVar(r, "local_account")
 	if !ok {
 		return parent, nil, notFound("missing account login")
 	}

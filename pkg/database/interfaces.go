@@ -190,6 +190,10 @@ type Identifier interface {
 	GetID() int64
 }
 
+type Namer interface {
+	GetName() string
+}
+
 // Iterator is the object returned when sending a 'SELECT' query to the database.
 // It allows to iterate over the rows selected by the statement, with the Next
 // and Scan functions. Scan allows to directly write the content of the row into an

@@ -10,6 +10,8 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/gorilla/mux"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 )
@@ -92,6 +94,12 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return true
 	}
 
+	if val, ok := errors.AsType[*database.ForeignKeyError](err); ok {
+		http.Error(w, val.Error(), http.StatusBadRequest)
+
+		return true
+	}
+
 	if val, ok := errors.AsType[*database.ValidationError](err); ok {
 		http.Error(w, val.Error(), http.StatusBadRequest)
 
@@ -164,4 +172,18 @@ func locationUpdate(u *url.URL, name string) string {
 
 func LocationUpdate(u *url.URL, name string) string {
 	return locationUpdate(u, name)
+}
+
+func GetURLVar(r *http.Request, name string) (string, bool) {
+	val, ok := mux.Vars(r)[name]
+	if !ok {
+		return "", false
+	}
+
+	esc, err := url.PathUnescape(val)
+	if err != nil {
+		return val, true
+	}
+
+	return esc, true
 }

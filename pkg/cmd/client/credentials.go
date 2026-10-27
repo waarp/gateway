@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
@@ -14,19 +13,30 @@ import (
 
 var errUnknownCredentialRecipient = errors.New("unknown credential recipient")
 
-func getCredentialPath() (string, error) {
+func getCredentialPath() (string, []string, error) {
 	switch {
 	case Partner != "" && RemoteAccount != "":
-		return fmt.Sprintf("/api/partners/%s/accounts/%s", Partner, RemoteAccount), nil
+		return "/api/partners/%s/accounts/%s", []string{Partner, RemoteAccount}, nil
 	case Server != "" && LocalAccount != "":
-		return fmt.Sprintf("/api/servers/%s/accounts/%s", Server, LocalAccount), nil
+		return "/api/servers/%s/accounts/%s", []string{Server, LocalAccount}, nil
 	case Partner != "":
-		return fmt.Sprintf("/api/partners/%s", Partner), nil
+		return "/api/partners/%s", []string{Partner}, nil
 	case Server != "":
-		return fmt.Sprintf("/api/servers/%s", Server), nil
+		return "/api/servers/%s", []string{Server}, nil
 	default:
-		return "", errUnknownCredentialRecipient
+		return "", nil, errUnknownCredentialRecipient
 	}
+}
+
+func setCredentialAddrPath(suffix string, args ...string) error {
+	base, baseArgs, err := getCredentialPath()
+	if err != nil {
+		return err
+	}
+
+	SetAddrPath(base+suffix, append(baseArgs, args...)...)
+
+	return nil
 }
 
 func displayCredential(w io.Writer, cred *api.OutCred) error {
@@ -59,12 +69,9 @@ type CredentialAdd struct {
 
 func (a *CredentialAdd) Execute([]string) error { return a.execute(stdOutput) }
 func (a *CredentialAdd) execute(w io.Writer) error {
-	credPath, pathErr := getCredentialPath()
-	if pathErr != nil {
+	if pathErr := setCredentialAddrPath("/credentials"); pathErr != nil {
 		return pathErr
 	}
-
-	addr.Path = path.Join(credPath, "credentials")
 
 	if _, err := add(w, a); err != nil {
 		return err
@@ -90,12 +97,9 @@ type CredentialGet struct {
 
 func (a *CredentialGet) Execute([]string) error { return a.execute(stdOutput) }
 func (a *CredentialGet) execute(w io.Writer) error {
-	credPath, pathErr := getCredentialPath()
-	if pathErr != nil {
+	if pathErr := setCredentialAddrPath("/credentials/%s", a.Args.Credential); pathErr != nil {
 		return pathErr
 	}
-
-	addr.Path = path.Join(credPath, "credentials", a.Args.Credential)
 
 	var cred api.OutCred
 	if err := get(&cred); err != nil {
@@ -113,12 +117,9 @@ type CredentialDelete struct {
 
 func (a *CredentialDelete) Execute([]string) error { return a.execute(stdOutput) }
 func (a *CredentialDelete) execute(w io.Writer) error {
-	credPath, pathErr := getCredentialPath()
-	if pathErr != nil {
+	if pathErr := setCredentialAddrPath("/credentials/%s", a.Args.Credential); pathErr != nil {
 		return pathErr
 	}
-
-	addr.Path = path.Join(credPath, "credentials", a.Args.Credential)
 
 	if err := remove(w); err != nil {
 		return err

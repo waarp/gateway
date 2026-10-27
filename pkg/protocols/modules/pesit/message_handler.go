@@ -120,7 +120,7 @@ func (s *service) relayMessage(outTrans *model.NormalizedTransferView,
 		return nil
 	}
 
-	var infos model.Slice[model.NormalizedTransferInfo]
+	var infos database.Slice[model.NormalizedTransferInfo]
 	if err := s.db.Select(&infos).Where("name=?", model.FollowID).
 		Where("value=?", followID).Run(); err != nil {
 		s.logger.Errorf("Failed to find followID: %v", err)

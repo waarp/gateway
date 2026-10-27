@@ -3,12 +3,12 @@ package backup
 import (
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -48,14 +48,14 @@ func TestNewSNMPConfImport(t *testing.T) {
 		require.NoError(t, importSNMPConfig(logger, db, nil, false, false))
 
 		t.Run("Existing servers are untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.ServerConfig]
+			var check database.Slice[*snmp.ServerConfig]
 			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 1)
 			assert.Equal(t, check[0], dbServer2)
 		})
 
 		t.Run("Existing monitors are untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.MonitorConfig]
+			var check database.Slice[*snmp.MonitorConfig]
 			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbMonitor1)
@@ -67,14 +67,14 @@ func TestNewSNMPConfImport(t *testing.T) {
 		require.NoError(t, importSNMPConfig(logger, db, &file.SNMPConfig{}, false, false))
 
 		t.Run("Existing servers are untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.ServerConfig]
+			var check database.Slice[*snmp.ServerConfig]
 			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 1)
 			assert.Equal(t, check[0], dbServer2)
 		})
 
 		t.Run("Existing monitors are untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.MonitorConfig]
+			var check database.Slice[*snmp.MonitorConfig]
 			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbMonitor1)
@@ -149,14 +149,14 @@ func TestNewSNMPConfImport(t *testing.T) {
 		})
 
 		t.Run("Existing server is untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.ServerConfig]
+			var check database.Slice[*snmp.ServerConfig]
 			require.NoError(t, db.Select(&check).All().OrderBy("id", true).Run())
 			require.Len(t, check, 2)
 			assert.Equal(t, check[0], dbServer2)
 		})
 
 		t.Run("Existing monitors are untouched", func(t *testing.T) {
-			var check model.Slice[*snmp.MonitorConfig]
+			var check database.Slice[*snmp.MonitorConfig]
 			require.NoError(t, db.Select(&check).All().Where("name<>?", newMonitorName).
 				OrderBy("id", true).Run())
 			require.Len(t, check, 2)
@@ -232,7 +232,7 @@ func TestNewSNMPConfImport(t *testing.T) {
 		})
 
 		t.Run("Existing monitors are gone", func(t *testing.T) {
-			var check model.Slice[*snmp.MonitorConfig]
+			var check database.Slice[*snmp.MonitorConfig]
 			require.NoError(t, db.Select(&check).Where("name<>?", newMonitorName).
 				OrderBy("id", true).Run())
 			assert.Empty(t, check)
