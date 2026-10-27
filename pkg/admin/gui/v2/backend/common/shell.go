@@ -152,10 +152,15 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		HomeURL:    WebuiURL("/home"),
 		Languages:  languages(r, lang),
 		Nav:        makeNav(translate, user.Permissions, screen.Section, screen.Menu),
-		Crumbs:     screen.Crumbs,
-		Notices:    screen.Notices,
-		Head:       headOf(screen.Stylesheets, screen.Editor, screen.Head),
-		Scripts:    scriptsOf(screen.Scripts),
+		// The state of the sidebar (collapsed or not) and the groups the user
+		// closed come from their cookies and are rendered by the server, so
+		// that nothing slides or folds at a navigation (kit 0.22.0, 0.23.0).
+		NavState:  gui.NavStateOf(r),
+		NavClosed: gui.NavClosedOf(r),
+		Crumbs:    screen.Crumbs,
+		Notices:   screen.Notices,
+		Head:      headOf(screen.Stylesheets, screen.Editor, screen.Head),
+		Scripts:   scriptsOf(screen.Scripts),
 	}
 }
 
