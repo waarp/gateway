@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
@@ -99,7 +98,7 @@ func listSnmpMonitors(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var dbMonitors model.Slice[*snmp.MonitorConfig]
+		var dbMonitors database.Slice[*snmp.MonitorConfig]
 
 		query, queryErr := parseSelectQuery(r, db, validSorting, &dbMonitors)
 		if handleError(w, logger, queryErr) {

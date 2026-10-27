@@ -32,6 +32,7 @@ type FileWatcher struct {
 
 func (*FileWatcher) TableName() string   { return TableFileWatchers }
 func (*FileWatcher) Appellation() string { return NameFileWatcher }
+func (r *FileWatcher) GetName() string   { return r.Flow }
 
 func (*FileWatcher) Preloads() []string {
 	return []string{"RemoteAccount", "Client", "Rule"}

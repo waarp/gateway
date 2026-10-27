@@ -2878,7 +2878,8 @@ linters:
       #ignore-sigs: []
       # An array of strings that specify regular expressions of signatures to ignore.
       # Default: []
-      ignore-sig-regexps: []
+      ignore-sig-regexps:
+        - \(\*code.waarp.fr/apps/gateway/gateway/pkg/database\.FkChecker\[.*\]\)\.Check(f)?\(.*
       # An array of strings that specify globs of packages to ignore.
       # Default: []
       ignore-package-globs:

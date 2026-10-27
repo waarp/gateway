@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`754` Le message d'erreur renvoyé lorsqu'un objet de configuration ne
+  peut pas être supprimé car il est utilisé ailleurs est désormais plus détaillé.
+  Il donne désormais une courte liste des éléments qui reposent sur cet objet,
+  ainsi que leur nombre total.
 * :bug:`777` Les transferts client HTTP tombent désormais correctement en erreur
   lorsque le partenaire renvoie un code HTTP non-attendu.
 * :bug:`780` Les *filewatchers* distants rechargent désormais correctement leur

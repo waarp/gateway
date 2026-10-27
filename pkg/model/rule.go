@@ -128,15 +128,17 @@ func (r *Rule) Direction() string {
 // BeforeDelete is called before deleting the rule from the database. Its
 // role is to check whether the rule is still used in any ongoing transfer.
 func (r *Rule) BeforeDelete(db database.Access) error {
-	if n, err := db.Count(&Transfer{}).Where("rule_id=?", r.ID).Run(); err != nil {
-		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
-	} else if n > 0 {
-		return database.NewValidationError("this rule is currently being used in a " +
-			"running transfer and cannot be deleted, cancel the transfer or wait " +
-			"for it to finish")
+	if err := database.CheckFKViolation[*Transfer](db, "rule_id=?", r.ID).
+		Checkf("the rule %q is currently being used by one or more unfinished "+
+			"transfers and thus cannot be deleted, delete these transfers first "+
+			"or wait for them to finish", r.Name); err != nil {
+		return err
 	}
 
-	return nil
+	return database.CheckFKViolation[*FileWatcher](db, "rule_id=?", r.ID).
+		Checkf("the rule %q is currently being used by one or more file watchers "+
+			"and thus cannot be deleted, delete these file watchers first or "+
+			"change their rules", r.Name)
 }
 
 func (r *Rule) AfterRead(database.ReadAccess) error {

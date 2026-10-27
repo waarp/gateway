@@ -126,10 +126,28 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 					err := ag.BeforeDelete(db)
 
 					Convey("Then it should say that the agent is being used", func() {
-						So(err, ShouldBeError, database.NewValidationError(
-							"this partner is currently being used in one or more "+
-								"running transfers and thus cannot be deleted, "+
-								"cancel these transfers or wait for them to finish"))
+						shouldBeFKErrFor(err, trans)
+					})
+				})
+			})
+
+			Convey("Given that the agent is used in a filewatcher", func() {
+				cli := Client{Protocol: ag.Protocol}
+				So(db.Insert(&cli).Run(), ShouldBeNil)
+
+				fw := &FileWatcher{
+					Flow:          "test_flow",
+					Rule:          rule,
+					Client:        cli,
+					RemoteAccount: acc,
+				}
+				So(db.Insert(fw).Run(), ShouldBeNil)
+
+				Convey("When calling the `BeforeDelete` hook", func() {
+					err := ag.BeforeDelete(db)
+
+					Convey("Then it should say that the agent is being used", func() {
+						shouldBeFKErrFor(err, fw)
 					})
 				})
 			})

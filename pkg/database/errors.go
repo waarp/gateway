@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // ValidationError is the error returned when the entry given for insertion is
@@ -116,4 +118,60 @@ func isRetryable(err error) bool {
 	default:
 		return false
 	}
+}
+
+type FKElement interface {
+	Table
+	Identifier
+	Namer
+}
+
+type ForeignKeyError struct {
+	Msg   string
+	Elems []FKElement
+	Total uint64
+}
+
+func (err *ForeignKeyError) Error() string { return err.Msg }
+
+type FkChecker[T FKElement] struct {
+	db   ReadAccess
+	cond condition
+}
+
+func CheckFKViolation[T FKElement](db ReadAccess, cond string, args ...any) *FkChecker[T] {
+	return &FkChecker[T]{
+		db:   db,
+		cond: condition{sql: cond, args: args},
+	}
+}
+
+func (fk *FkChecker[T]) Check(msg string) error {
+	elem := utils.NewValue[T]()
+
+	n, cErr := fk.db.Count(elem).Where(fk.cond.sql, fk.cond.args...).Run()
+	if cErr != nil {
+		return fmt.Errorf("failed to count %s elements: %w", elem.Appellation(), cErr)
+	} else if n == 0 {
+		return nil
+	}
+
+	const limit = 20
+
+	var elems Slice[T]
+	if err := fk.db.Select(&elems).Eager().Where(fk.cond.sql, fk.cond.args...).
+		Limit(limit, 0).Run(); err != nil {
+		return fmt.Errorf("failed to retrieve %s elements: %w", elem.Appellation(), err)
+	}
+
+	namedElems := make([]FKElement, len(elems))
+	for i, elem := range elems {
+		namedElems[i] = elem
+	}
+
+	return &ForeignKeyError{Msg: msg, Elems: namedElems, Total: n}
+}
+
+func (fk *FkChecker[T]) Checkf(msg string, args ...any) error {
+	return fk.Check(fmt.Sprintf(msg, args...))
 }

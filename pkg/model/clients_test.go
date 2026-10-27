@@ -6,7 +6,9 @@ import (
 	"net"
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -91,5 +93,77 @@ func TestClientBeforeWrite(t *testing.T) {
 				})
 			})
 		})
+	})
+}
+
+func TestClientBeforeDelete(t *testing.T) {
+	t.Parallel()
+	db := dbtest.TestDatabase(t)
+
+	addClient := func(tb testing.TB) *Client {
+		tb.Helper()
+		client := &Client{
+			Name:         tb.Name(),
+			Protocol:     testProtocol,
+			LocalAddress: types.Addr("localhost", 0),
+		}
+		require.NoError(t, db.Insert(client).Run())
+
+		return client
+	}
+
+	addTransCtx := func(tb testing.TB) (*Rule, *RemoteAccount) {
+		tb.Helper()
+		rule := &Rule{Name: tb.Name()}
+		require.NoError(t, db.Insert(rule).Run())
+
+		partner := &RemoteAgent{Name: tb.Name(), Protocol: testProtocol, Address: types.Addr("localhost", 0)}
+		require.NoError(t, db.Insert(partner).Run())
+
+		account := &RemoteAccount{Login: tb.Name(), RemoteAgent: *partner}
+		require.NoError(t, db.Insert(account).Run())
+
+		return rule, account
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		t.Parallel()
+		client := addClient(t)
+
+		require.NoError(t, client.BeforeDelete(db))
+	})
+
+	t.Run("Used in transfer", func(t *testing.T) {
+		t.Parallel()
+		client := addClient(t)
+		rule, account := addTransCtx(t)
+
+		transfer := &Transfer{
+			RuleID:          rule.ID,
+			ClientID:        client.NullableID(),
+			RemoteAccountID: account.NullableID(),
+			SrcFilename:     "file.test",
+		}
+		require.NoError(t, db.Insert(transfer).Run())
+
+		err := client.BeforeDelete(db)
+		assertIsFKErrFor(t, err, transfer)
+	})
+
+	t.Run("Used in filewatcher", func(t *testing.T) {
+		t.Parallel()
+		client := addClient(t)
+		rule, account := addTransCtx(t)
+
+		fw := &FileWatcher{
+			Flow:          t.Name(),
+			Rule:          *rule,
+			Client:        *client,
+			RemoteAccount: *account,
+		}
+		require.NoError(t, db.Insert(fw).Run())
+
+		err := client.BeforeDelete(db)
+		assertIsFKErrFor(t, err, fw)
 	})
 }

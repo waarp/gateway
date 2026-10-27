@@ -51,6 +51,7 @@ type Transfer struct {
 
 func (*Transfer) TableName() string   { return TableTransfers }
 func (*Transfer) Appellation() string { return NameTransfer }
+func (t *Transfer) GetName() string   { return utils.FormatInt(t.ID) }
 
 //nolint:goconst //best keep separate
 func (*Transfer) Preloads() []string { return []string{"Infos"} }

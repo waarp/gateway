@@ -62,15 +62,17 @@ func (r *RemoteAccount) BeforeWrite(db database.Access) error {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to check whether the account is still used in any ongoing transfer.
 func (r *RemoteAccount) BeforeDelete(db database.Access) error {
-	if n, err := db.Count(&Transfer{}).Where("remote_account_id=?", r.ID).Run(); err != nil {
-		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
-	} else if n > 0 {
-		return database.NewValidationError("this account is currently being used " +
-			"in one or more running transfers and thus cannot be deleted, cancel " +
-			"these transfers or wait for them to finish")
+	if err := database.CheckFKViolation[*Transfer](db, "remote_account_id=?", r.ID).
+		Checkf("the account %q is currently being used in one or more unfinished "+
+			"transfers and thus cannot be deleted, cancel these transfers first "+
+			"or wait for them to finish", r.Login); err != nil {
+		return err
 	}
 
-	return nil
+	return database.CheckFKViolation[*FileWatcher](db, "remote_account_id=?", r.ID).
+		Checkf("the account %q is currently being used by one or more filewatchers "+
+			"and thus cannot be deleted, delete these filewatchers first or change "+
+			"their targets", r.Login)
 }
 
 // GetCredentials fetch in the database then return the associated Credentials if they exist.

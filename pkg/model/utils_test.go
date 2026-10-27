@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"runtime"
 	"slices"
+	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 )
 
 const (
@@ -90,4 +93,47 @@ func (*testAuthorityHandler) Validate(val string) error {
 	}
 
 	return errInvalidAuthorityVal
+}
+
+func shouldBeFKErrFor[T database.Identifier](err error, candidates ...T) {
+	fkErr, ok := errors.AsType[*database.ForeignKeyError](err)
+	convey.So(ok, convey.ShouldBeTrue)
+
+	if len(candidates) == 0 {
+		return
+	}
+
+	convey.So(len(fkErr.Elems), convey.ShouldBeGreaterThanOrEqualTo, len(candidates))
+	for _, elem := range fkErr.Elems {
+		convey.So(elem, convey.ShouldHaveSameTypeAs, candidates[0])
+	}
+
+	for _, candidate := range candidates {
+		convey.So(slices.ContainsFunc(fkErr.Elems, func(t database.FKElement) bool {
+			return t.GetID() == candidate.GetID()
+		}), convey.ShouldBeTrue)
+	}
+}
+
+func assertIsFKErrFor[T database.FKElement](tb testing.TB, err error, candidates ...T) {
+	var fkErr *database.ForeignKeyError
+	require.ErrorAs(tb, err, &fkErr)
+
+	if len(candidates) == 0 {
+		return
+	}
+
+	assert.GreaterOrEqual(tb, len(fkErr.Elems), len(candidates))
+	for _, elem := range fkErr.Elems {
+		assert.IsType(tb, elem, candidates[0])
+	}
+
+	for _, candidate := range candidates {
+		assert.Truef(tb,
+			slices.ContainsFunc(fkErr.Elems, func(t database.FKElement) bool {
+				return t.GetID() == candidate.GetID()
+			}),
+			"could not find %s id n°%d in error elements %v",
+			candidate.Appellation(), candidate.GetID(), fkErr.Elems)
+	}
 }

@@ -95,10 +95,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 					err := acc.BeforeDelete(db)
 
 					Convey("Then it should say that the account is being used", func() {
-						So(err, ShouldBeError, database.NewValidationError(
-							"this account is currently being used in one or more "+
-								"running transfers and thus cannot be deleted, "+
-								"cancel these transfers or wait for them to finish"))
+						shouldBeFKErrFor(err, trans)
 					})
 				})
 			})
