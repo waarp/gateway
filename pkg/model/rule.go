@@ -76,7 +76,9 @@ func (r *Rule) checkPath(db database.ReadAccess) error {
 	}
 
 	// check descendants
-	if n, err := db.Count(r).Where("path LIKE ?", r.Path+"/%").Run(); err != nil {
+	escapedPath := database.SQLLikeEscape(r.Path)
+	if n, err := db.Count(r).Where("path LIKE ? ESCAPE ?", escapedPath+"/%",
+		database.SQLLikeEscapeChar).Run(); err != nil {
 		return fmt.Errorf("failed to check for descendants rule paths: %w", err)
 	} else if n != 0 {
 		return database.NewValidationError("the rule's path cannot be the ancestor " +

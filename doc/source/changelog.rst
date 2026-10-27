@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`752` Créer une règle avec un chemin (*path*) contenant les *wildcards*
+  ``%`` ou ``_`` pouvait parfois produire une erreur si une autre règle au
+  chemin similaire (après résolution des wildcards) existait déjà. Ces wildcards
+  sont désormais correctement échappées de la requête SQL.
 * :bug:`754` Le message d'erreur renvoyé lorsqu'un objet de configuration ne
   peut pas être supprimé car il est utilisé ailleurs est désormais plus détaillé.
   Il donne désormais une courte liste des éléments qui reposent sur cet objet,

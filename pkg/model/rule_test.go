@@ -39,21 +39,19 @@ func TestRuleBeforeWrite(t *testing.T) {
 			old := Rule{
 				Name:   "old",
 				IsSend: true,
-				Path:   "old_path/subdir",
+				Path:   "root-dir/old_path",
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
 			rule := Rule{
 				Name:   "new",
 				IsSend: true,
-				Path:   "new_path",
+				Path:   "root_dir",
 			}
 
 			shouldSucceed := func() {
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) error {
-						return rule.BeforeWrite(ses)
-					})
+					err := rule.BeforeWrite(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -63,9 +61,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 			shouldFailWith := func(errDesc string, expErr error) {
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) error {
-						return rule.BeforeWrite(ses)
-					})
+					err := rule.BeforeWrite(db)
 
 					Convey("Then the error should say that "+errDesc, func() {
 						So(err, ShouldBeError, expErr)
@@ -111,9 +107,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 				rule.Path = ""
 
 				Convey("When calling `BeforeWrite`", func() {
-					err := db.Transaction(func(ses *database.Session) error {
-						return rule.BeforeWrite(ses)
-					})
+					err := rule.BeforeWrite(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
