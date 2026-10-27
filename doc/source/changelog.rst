@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :support:`791` La barre latérale de l'interface web refondue est rendue par
+  le serveur dans l'état choisi par l'exploitant (repliée ou non, groupes
+  fermés), lu dans deux cookies : plus de glissement ni de repli au chargement
+  d'une page. Un navigateur qui avait replié la barre la retrouve ouverte une
+  fois, le choix étant désormais conservé dans un cookie.
 * :feature:`787` La page de connexion est refondue sur le kit de l'interface
   web, sans changer sa composition : la bannière, une carte à coins arrondis
   avec l'identifiant, le mot de passe et le bouton qui l'affiche, le bouton de
