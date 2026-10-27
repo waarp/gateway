@@ -22,7 +22,7 @@ const (
 )
 
 func TestFilewatcherGet(t *testing.T) {
-	const path = filewatchersAPIPath + "/" + fwFlow
+	const path = "/api/filewatchers/" + fwFlow
 
 	w := newTestOutput()
 	command := &FilewatcherGet{}
@@ -71,7 +71,7 @@ func TestFilewatcherGet(t *testing.T) {
 
 func TestFilewatcherAdd(t *testing.T) {
 	const (
-		path     = filewatchersAPIPath
+		path     = "/api/filewatchers"
 		location = path + "/" + fwFlow
 	)
 
@@ -119,7 +119,7 @@ func TestFilewatcherAdd(t *testing.T) {
 }
 
 func TestFilewatcherDelete(t *testing.T) {
-	const path = filewatchersAPIPath + "/" + fwFlow
+	const path = "/api/filewatchers/" + fwFlow
 
 	w := newTestOutput()
 	command := &FilewatcherDelete{}
@@ -148,8 +148,8 @@ func TestFilewatcherUpdate(t *testing.T) {
 		newFWFlow    = "updated-flow"
 		newFWPattern = "*.csv"
 
-		path     = filewatchersAPIPath + "/" + fwFlow
-		location = filewatchersAPIPath + "/" + newFWFlow
+		path     = "/api/filewatchers/" + fwFlow
+		location = "/api/filewatchers/" + newFWFlow
 	)
 
 	w := newTestOutput()
@@ -187,7 +187,7 @@ func TestFilewatcherUpdate(t *testing.T) {
 }
 
 func TestFilewatcherStart(t *testing.T) {
-	const path = filewatchersAPIPath + "/" + fwFlow + "/start"
+	const path = "/api/filewatchers/" + fwFlow + "/start"
 
 	w := newTestOutput()
 	command := &FilewatcherStart{}
@@ -212,7 +212,7 @@ func TestFilewatcherStart(t *testing.T) {
 }
 
 func TestFilewatcherStop(t *testing.T) {
-	const path = filewatchersAPIPath + "/" + fwFlow + "/stop"
+	const path = "/api/filewatchers/" + fwFlow + "/stop"
 
 	w := newTestOutput()
 	command := &FilewatcherStop{}
@@ -237,7 +237,7 @@ func TestFilewatcherStop(t *testing.T) {
 }
 
 func TestFilewatcherFire(t *testing.T) {
-	const path = filewatchersAPIPath + "/" + fwFlow + "/fire"
+	const path = "/api/filewatchers/" + fwFlow + "/fire"
 
 	w := newTestOutput()
 	command := &FilewatcherFire{}
@@ -263,7 +263,7 @@ func TestFilewatcherFire(t *testing.T) {
 
 func TestFilewatcherList(t *testing.T) {
 	const (
-		path   = filewatchersAPIPath
+		path   = "/api/filewatchers"
 		sort   = "flow-"
 		limit  = "10"
 		offset = "5"

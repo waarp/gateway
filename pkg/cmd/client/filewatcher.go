@@ -8,8 +8,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
-const filewatchersAPIPath = "/api/filewatchers"
-
 func displayFilewatchers(w io.Writer, fws []*api.OutFilewatcher) error {
 	Style0.Printf(w, "=== Filewatchers ===")
 	for _, fw := range fws {
@@ -50,7 +48,7 @@ type FilewatcherAdd struct {
 
 func (fw *FilewatcherAdd) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherAdd) execute(w io.Writer) error {
-	addr.Path = filewatchersAPIPath
+	addr.Path = "/api/filewatchers"
 
 	if _, err := add(w, fw); err != nil {
 		return err
@@ -71,7 +69,7 @@ type FilewatcherGet struct {
 
 func (fw *FilewatcherGet) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherGet) execute(w io.Writer) error {
-	SetAddrPath("%s/%s", filewatchersAPIPath, fw.Args.Flow)
+	SetAddrPath("/api/filewatchers/%s", fw.Args.Flow)
 
 	var filewatcher api.OutFilewatcher
 	if err := get(&filewatcher); err != nil {
@@ -90,7 +88,7 @@ type FilewatcherList struct {
 
 func (fw *FilewatcherList) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherList) execute(w io.Writer) error {
-	addr.Path = filewatchersAPIPath
+	addr.Path = "/api/filewatchers"
 
 	listURL(&fw.ListOptions, fw.SortBy)
 
@@ -127,7 +125,7 @@ type FilewatcherUpdate struct {
 
 func (fw *FilewatcherUpdate) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherUpdate) execute(w io.Writer) error {
-	SetAddrPath("%s/%s", filewatchersAPIPath, fw.Args.Flow)
+	SetAddrPath("/api/filewatchers/%s", fw.Args.Flow)
 
 	if err := update(w, fw); err != nil {
 		return err
@@ -151,7 +149,7 @@ type FilewatcherDelete struct {
 
 func (fw *FilewatcherDelete) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherDelete) execute(w io.Writer) error {
-	SetAddrPath(filewatchersAPIPath+"/%s", fw.Args.Flow)
+	SetAddrPath("/api/filewatchers/%s", fw.Args.Flow)
 
 	if err := remove(w); err != nil {
 		return err
@@ -170,7 +168,7 @@ type FilewatcherStart struct {
 
 func (fw *FilewatcherStart) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherStart) execute(w io.Writer) error {
-	if err := exec(w, filewatchersAPIPath+"/%s/start", fw.Args.Flow); err != nil {
+	if err := exec(w, "/api/filewatchers/%s/start", fw.Args.Flow); err != nil {
 		return err
 	}
 
@@ -187,7 +185,7 @@ type FilewatcherStop struct {
 
 func (fw *FilewatcherStop) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherStop) execute(w io.Writer) error {
-	if err := exec(w, filewatchersAPIPath+"/%s/stop", fw.Args.Flow); err != nil {
+	if err := exec(w, "/api/filewatchers/%s/stop", fw.Args.Flow); err != nil {
 		return err
 	}
 
@@ -204,7 +202,7 @@ type FilewatcherFire struct {
 
 func (fw *FilewatcherFire) Execute([]string) error { return fw.execute(stdOutput) }
 func (fw *FilewatcherFire) execute(w io.Writer) error {
-	if err := exec(w, filewatchersAPIPath+"/%s/fire", fw.Args.Flow); err != nil {
+	if err := exec(w, "/api/filewatchers/%s/fire", fw.Args.Flow); err != nil {
 		return err
 	}
 
