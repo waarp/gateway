@@ -125,7 +125,7 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	RouterAutocompletions(secureRouter, db)
 
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "home", http.StatusFound)
+		http.Redirect(w, r, pagePath(homePath), http.StatusFound)
 	})
 
 	RouterPages(secureRouter, db, logger)
@@ -146,7 +146,10 @@ func logout() http.HandlerFunc {
 			HttpOnly: true,
 		})
 
-		signIn := url.URL{Path: loginPath, RawQuery: url.Values{login.ReasonParam: {login.ReasonSignedOut}}.Encode()}
+		signIn := url.URL{
+			Path:     pagePath(loginPath),
+			RawQuery: url.Values{login.ReasonParam: {login.ReasonSignedOut}}.Encode(),
+		}
 		http.Redirect(w, r, signIn.String(), http.StatusSeeOther)
 	}
 }
@@ -168,7 +171,7 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 					params.Set(login.ReasonParam, reason)
 				}
 
-				http.Redirect(w, r, (&url.URL{Path: loginPath, RawQuery: params.Encode()}).String(), http.StatusFound)
+				http.Redirect(w, r, (&url.URL{Path: pagePath(loginPath), RawQuery: params.Encode()}).String(), http.StatusFound)
 			}
 
 			tokenCookie, err := r.Cookie(tokenCookieName)
