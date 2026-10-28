@@ -52,6 +52,12 @@ type option struct {
 	Value    string
 	Label    string
 	Selected bool
+	// Restricted marks a rule that lists who may use it: transfers.js then
+	// offers the accounts it authorizes alone.
+	Restricted bool
+	// Rules lists, space separated, the restricted rules that authorize the
+	// account: those that list it, or its partner or server. Empty when none.
+	Rules string
 }
 
 type optGroup struct {
@@ -193,11 +199,18 @@ func (h *Handlers) choices(translate gui.Translator, form *formData) error {
 		return err //nolint:wrapcheck // logged by the caller
 	}
 
+	var accesses model.RuleAccesses
+	if selectErr := h.db.Select(&accesses).Run(); selectErr != nil {
+		return selectErr //nolint:wrapcheck // logged by the caller
+	}
+
+	grants := grantsOf(accesses)
+
 	send := optGroup{Label: translate("transfers.form.rules_send")}
 	receive := optGroup{Label: translate("transfers.form.rules_receive")}
 
 	for _, rule := range rules {
-		opt := option{Value: strconv.FormatInt(rule.ID, 10), Label: rule.Name}
+		opt := option{Value: strconv.FormatInt(rule.ID, 10), Label: rule.Name, Restricted: grants.restricted[rule.ID]}
 		opt.Selected = opt.Value == form.Rule.Value
 
 		if rule.IsSend {
@@ -210,14 +223,14 @@ func (h *Handlers) choices(translate gui.Translator, form *formData) error {
 	form.Rules = []optGroup{send, receive}
 
 	if form.Server {
-		return h.serverChoices(form)
+		return h.serverChoices(form, grants)
 	}
 
-	return h.clientChoices(form)
+	return h.clientChoices(form, grants)
 }
 
 // clientChoices are the remote accounts by partner, and the clients.
-func (h *Handlers) clientChoices(form *formData) error {
+func (h *Handlers) clientChoices(form *formData, grants ruleGrants) error {
 	var partners model.RemoteAgents
 	if err := h.db.Select(&partners).OrderBy("name", true).Run(); err != nil {
 		return err //nolint:wrapcheck // logged by the caller
@@ -233,7 +246,9 @@ func (h *Handlers) clientChoices(form *formData) error {
 
 		for _, account := range accounts {
 			if account.RemoteAgentID == partner.ID {
-				group.Options = append(group.Options, accountOption(account.ID, account.Login, form.Account.Value))
+				opt := accountOption(account.ID, account.Login, form.Account.Value)
+				opt.Rules = grants.rulesOf(account.ID, partner.ID, grants.byRemoteAccount, grants.byRemoteAgent)
+				group.Options = append(group.Options, opt)
 			}
 		}
 
@@ -258,7 +273,7 @@ func (h *Handlers) clientChoices(form *formData) error {
 }
 
 // serverChoices are the local accounts by server.
-func (h *Handlers) serverChoices(form *formData) error {
+func (h *Handlers) serverChoices(form *formData, grants ruleGrants) error {
 	var servers model.LocalAgents
 	if err := h.db.Select(&servers).OrderBy("name", true).Run(); err != nil {
 		return err //nolint:wrapcheck // logged by the caller
@@ -274,7 +289,9 @@ func (h *Handlers) serverChoices(form *formData) error {
 
 		for _, account := range accounts {
 			if account.LocalAgentID == server.ID {
-				group.Options = append(group.Options, accountOption(account.ID, account.Login, form.Account.Value))
+				opt := accountOption(account.ID, account.Login, form.Account.Value)
+				opt.Rules = grants.rulesOf(account.ID, server.ID, grants.byLocalAccount, grants.byLocalAgent)
+				group.Options = append(group.Options, opt)
 			}
 		}
 
@@ -284,6 +301,55 @@ func (h *Handlers) serverChoices(form *formData) error {
 	}
 
 	return nil
+}
+
+// ruleGrants are the access entries of the rules, by what they list. A rule
+// without any entry is open to everyone; the others authorize the accounts
+// they list and every account of the partners or servers they list, as
+// model.IsRuleAuthorized reads them.
+type ruleGrants struct {
+	restricted                     map[int64]bool
+	byRemoteAccount, byRemoteAgent map[int64][]int64
+	byLocalAccount, byLocalAgent   map[int64][]int64
+}
+
+func grantsOf(accesses model.RuleAccesses) ruleGrants {
+	g := ruleGrants{
+		restricted:      map[int64]bool{},
+		byRemoteAccount: map[int64][]int64{}, byRemoteAgent: map[int64][]int64{},
+		byLocalAccount: map[int64][]int64{}, byLocalAgent: map[int64][]int64{},
+	}
+
+	for _, a := range accesses {
+		g.restricted[a.RuleID] = true
+
+		switch {
+		case a.RemoteAccountID.Valid:
+			g.byRemoteAccount[a.RemoteAccountID.Int64] = append(g.byRemoteAccount[a.RemoteAccountID.Int64], a.RuleID)
+		case a.RemoteAgentID.Valid:
+			g.byRemoteAgent[a.RemoteAgentID.Int64] = append(g.byRemoteAgent[a.RemoteAgentID.Int64], a.RuleID)
+		case a.LocalAccountID.Valid:
+			g.byLocalAccount[a.LocalAccountID.Int64] = append(g.byLocalAccount[a.LocalAccountID.Int64], a.RuleID)
+		case a.LocalAgentID.Valid:
+			g.byLocalAgent[a.LocalAgentID.Int64] = append(g.byLocalAgent[a.LocalAgentID.Int64], a.RuleID)
+		}
+	}
+
+	return g
+}
+
+// rulesOf lists, sorted and once each, the restricted rules that authorize
+// an account: those listing the account, those listing its partner or server.
+func (g ruleGrants) rulesOf(account, agent int64, byAccount, byAgent map[int64][]int64) string {
+	ids := slices.Concat(byAccount[account], byAgent[agent])
+	slices.Sort(ids)
+
+	parts := make([]string, 0, len(ids))
+	for _, id := range slices.Compact(ids) {
+		parts = append(parts, strconv.FormatInt(id, 10))
+	}
+
+	return strings.Join(parts, " ")
 }
 
 func accountOption(id int64, login, chosen string) option {
@@ -479,7 +545,7 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, server bool) {
 
 	if ok {
 		if server {
-			trans, err = h.preregister(form.File.Value, &values)
+			trans, err = h.preregister(translate, form, &values)
 			result = "preregistered"
 		} else {
 			trans, err = h.add(translate, form, &values)
@@ -527,6 +593,12 @@ func (h *Handlers) add(translate gui.Translator, form *formData, checked *parsed
 		return nil, err //nolint:wrapcheck // turned into the error of the field
 	}
 
+	if authErr := h.authorized(translate, form, checked.rule, &model.Transfer{
+		RuleID: checked.rule.ID, RemoteAccountID: account.NullableID(),
+	}); authErr != nil {
+		return nil, authErr
+	}
+
 	var partner model.RemoteAgent
 	if getErr := h.db.Get(&partner, "id=?", account.RemoteAgentID).Run(); getErr != nil {
 		return nil, getErr //nolint:wrapcheck // logged by the caller
@@ -560,14 +632,39 @@ func (h *Handlers) add(translate gui.Translator, form *formData, checked *parsed
 }
 
 // preregister makes a server transfer available until its due date.
-func (h *Handlers) preregister(file string, checked *parsed) (*model.Transfer, error) {
+func (h *Handlers) preregister(translate gui.Translator, form *formData, checked *parsed) (*model.Transfer, error) {
 	account, err := internal.GetServerAccountByID(h.db, checked.account)
 	if err != nil {
 		return nil, err //nolint:wrapcheck // turned into a refusal
 	}
 
+	if authErr := h.authorized(translate, form, checked.rule, &model.Transfer{
+		RuleID: checked.rule.ID, LocalAccountID: account.NullableID(),
+	}); authErr != nil {
+		return nil, authErr
+	}
+
 	//nolint:wrapcheck // the model says why
-	return internal.RegisterNewTransfer(h.db, file, checked.rule, account, checked.start, checked.info)
+	return internal.RegisterNewTransfer(h.db, form.File.Value, checked.rule, account, checked.start, checked.info)
+}
+
+// authorized refuses, under the field of the account, an account the rule
+// does not authorize, as the model would when the transfer is written: the
+// page offers the authorized accounts alone, but the server keeps the last
+// word.
+func (h *Handlers) authorized(translate gui.Translator, form *formData, rule *model.Rule, trans *model.Transfer) error {
+	allowed, err := model.IsRuleAuthorized(h.db, trans)
+	if err != nil {
+		return err //nolint:wrapcheck // logged by the caller
+	}
+
+	if !allowed {
+		form.Account.Error, form.HasErrors = translate("transfers.form.error.not_allowed", "rule", rule.Name), true
+
+		return database.NewValidationErrorf("the rule %q does not authorize the account", rule.Name)
+	}
+
+	return nil
 }
 
 // baseName is the last element of a path, "/" or "\" separated.

@@ -325,6 +325,18 @@ func insertE2ETransfers(t *testing.T, db *database.DB) {
 	rule := &model.Rule{Name: "releves", IsSend: true, Path: "releves"}
 	require.NoError(t, db.Insert(rule).Run())
 
+	// The rule lists the partner of the first remote account and the first
+	// local account alone: the forms of a transfer offer, once it is chosen,
+	// the accounts of that partner and that local account alone.
+	var first model.RemoteAccount
+	require.NoError(t, db.Get(&first, "id=?", 1).Run())
+	require.NoError(t, db.Insert(&model.RuleAccess{
+		RuleID: rule.ID, RemoteAgentID: sql.NullInt64{Int64: first.RemoteAgentID, Valid: true},
+	}).Run())
+	require.NoError(t, db.Insert(&model.RuleAccess{
+		RuleID: rule.ID, LocalAccountID: sql.NullInt64{Int64: 1, Valid: true},
+	}).Run())
+
 	start := time.Now().Add(-time.Hour)
 
 	for i, trans := range []*model.Transfer{
@@ -1146,6 +1158,22 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 				"the group shown must survive the refresh")
 			assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible`))
 		}
+	}
+
+	// The forms of a transfer offer, for the rule chosen, the accounts it
+	// authorizes alone: a rule that lists who may use it hides the other
+	// accounts and the hint says how many are offered, with a link to the
+	// access of the rule.
+	if s.count(t, "select[data-rule-filter]") > 0 && s.count(t, "#rule option[data-restricted]") > 0 {
+		offered := s.count(t, `#account option[value]:not([value=""])`)
+		require.Zero(t, s.count(t, "#account option[hidden]"), "every account offered before a rule is chosen")
+		restricted := attribute(t, s.page.Locator("#rule option[data-restricted]").First(), "value")
+		_, err := s.page.Locator("#rule").SelectOption(playwright.SelectOptionValues{Values: &[]string{restricted}})
+		require.NoError(t, err)
+		hidden := s.count(t, "#account option[hidden]")
+		assert.Positive(t, hidden, "the accounts the rule does not authorize are hidden")
+		assert.Less(t, hidden, offered, "the accounts the rule authorizes stay")
+		assert.Equal(t, 1, s.count(t, "#account-h a.w-link"), "the hint links to the access of the rule")
 	}
 
 	// A sortable column header, sorted ascending by default, sorts descending

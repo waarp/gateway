@@ -281,7 +281,11 @@ est vide).
    * - Règle
      - Les règles, groupées par sens : la règle fixe le sens du transfert.
    * - Partenaire et compte
-     - Les comptes distants, groupés par partenaire.
+     - Les comptes distants, groupés par partenaire. Quand la règle choisie
+       restreint ses accès, seuls les comptes qu'elle autorise sont proposés :
+       ceux qu'elle liste et ceux de ses partenaires listés ; l'aide du champ
+       en donne le nombre et mène aux accès de la règle. Un compte que la
+       règle n'autorise pas est refusé.
    * - Client
      - Facultatif ; vide, le client du protocole du partenaire. Quand
        plusieurs clients existent pour ce protocole, il faut en choisir un.
@@ -303,8 +307,9 @@ Le menu « ⋯ » de l'en-tête propose *Pré-enregistrer un transfert* : un
 transfert serveur, que le partenaire échangera en se connectant au serveur
 local, jusqu'à une date limite. Le transfert apparaît au statut *Attendu*.
 La page demande le fichier, la règle, le serveur et le compte local avec
-lequel le partenaire se connectera, et la date limite ; les informations de
-transfert sont facultatives.
+lequel le partenaire se connectera (seuls les comptes que la règle autorise
+sont proposés), et la date limite ; les informations de transfert sont
+facultatives.
 
 
 Ancienne page
