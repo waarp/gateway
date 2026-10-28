@@ -3292,6 +3292,11 @@ transfers:
     local_account: Server and account
     local_account_hint: The account the partner will connect to the server with.
     choose_account: Choose an account
+    account_allowed: "{n} accounts authorized by this rule"
+    account_allowed_one: One account authorized by this rule
+    account_allowed_none: No account authorized by this rule
+    account_cleared: "The account “{login}” is not authorized by this rule."
+    rule_access: See the access of the rule
     client_default: The client of the protocol of the partner
     client_hint: Useful when several clients exist for the same protocol.
     start: Start
@@ -3310,6 +3315,7 @@ transfers:
     error:
       required: Enter a value.
       choose: Choose a value from the list.
+      not_allowed: "The rule “{rule}” does not authorize this account. Choose an authorized account, or change the access of the rule."
       date: "Enter a date and a time. Expected format: 2026-10-21 18:00"
       due_past: Enter a due date to come.
       info_name: "Enter the name of the information {n}."
