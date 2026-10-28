@@ -3294,6 +3294,11 @@ transfers:
     local_account: Serveur et compte
     local_account_hint: Le compte avec lequel le partenaire se connectera au serveur.
     choose_account: Choisir un compte
+    account_allowed: "{n} comptes autorisés par cette règle"
+    account_allowed_one: Un compte autorisé par cette règle
+    account_allowed_none: Aucun compte autorisé par cette règle
+    account_cleared: "Le compte « {login} » n'est pas autorisé par cette règle."
+    rule_access: Voir les accès de la règle
     client_default: Le client du protocole du partenaire
     client_hint: Utile quand plusieurs clients existent pour le même protocole.
     start: Départ
@@ -3312,6 +3317,7 @@ transfers:
     error:
       required: Indiquez une valeur.
       choose: Choisissez une valeur dans la liste.
+      not_allowed: "La règle « {rule} » n'autorise pas ce compte. Choisissez un compte autorisé, ou modifiez les accès de la règle."
       date: "Indiquez une date et une heure. Format attendu : 21/10/2026 18:00"
       due_past: Indiquez une date limite à venir.
       info_name: "Indiquez le nom de l'information {n}."

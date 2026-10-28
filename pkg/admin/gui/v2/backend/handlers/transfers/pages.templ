@@ -1,11 +1,13 @@
 package transfers
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 )
@@ -559,8 +561,11 @@ templ dateField(id, label string, f field, hint string, required bool) {
 	</div>
 }
 
-// selectField: a select of grouped choices, with an empty first choice.
-templ selectField(id, label string, f field, groups []optGroup, empty, hint string) {
+// selectField: a select of grouped choices, with an empty first choice. A
+// rule that lists who may use it is marked (data-restricted), an account
+// carries the restricted rules that authorize it (data-rules): the script of
+// the screen then offers, for the rule chosen, the authorized accounts alone.
+templ selectField(id, label string, f field, groups []optGroup, empty, hint string, attrs templ.Attributes) {
 	<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
 		<label class="w-field__label" for={ id }>{ label }@protoform.ReqMark(true)</label>
 		<select
@@ -572,13 +577,21 @@ templ selectField(id, label string, f field, groups []optGroup, empty, hint stri
 			if f.Error != "" {
 				aria-invalid="true"
 			}
+			{ attrs... }
 		>
 			<option value="">{ empty }</option>
 			for _, g := range groups {
 				if len(g.Options) > 0 {
 					<optgroup label={ g.Label }>
 						for _, o := range g.Options {
-							<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+							<option
+								value={ o.Value }
+								selected?={ o.Selected }
+								data-restricted?={ o.Restricted }
+								if o.Rules != "" {
+									data-rules={ o.Rules }
+								}
+							>{ o.Label }</option>
 						}
 					</optgroup>
 				}
@@ -586,6 +599,21 @@ templ selectField(id, label string, f field, groups []optGroup, empty, hint stri
 		</select>
 		@protoform.Message(id+"-h", f.Error, hint)
 	</div>
+}
+
+// accountAttrs: what transfers.js needs to offer, for the rule chosen, the
+// accounts it authorizes alone: the rule field, the address of the access
+// tab of a rule, the words of the hint.
+func accountAttrs(ctx context.Context) templ.Attributes {
+	return templ.Attributes{
+		"data-rule-filter":  fieldRule,
+		"data-access-url":   constants.WebuiPrefix + "/rules/{id}/access",
+		"data-allowed":      gui.T(ctx, "transfers.form.account_allowed"),
+		"data-allowed-one":  gui.T(ctx, "transfers.form.account_allowed_one"),
+		"data-allowed-none": gui.T(ctx, "transfers.form.account_allowed_none"),
+		"data-cleared":      gui.T(ctx, "transfers.form.account_cleared"),
+		"data-access-label": gui.T(ctx, "transfers.form.rule_access"),
+	}
 }
 
 // formView: the page that adds a client transfer or preregisters a server
@@ -627,12 +655,12 @@ templ formView(d *formData) {
 			<fieldset class="w-fieldset w-fieldset--wide">
 				<legend class="w-card__title">{ gui.T(ctx, "transfers.form.exchange") }</legend>
 				<div class="w-grid w-grid--2">
-					@selectField(fieldRule, gui.T(ctx, "transfers.col.rule"), d.Rule, d.Rules, gui.T(ctx, "transfers.form.choose_rule"), gui.T(ctx, "transfers.form.rule_hint"))
+					@selectField(fieldRule, gui.T(ctx, "transfers.col.rule"), d.Rule, d.Rules, gui.T(ctx, "transfers.form.choose_rule"), gui.T(ctx, "transfers.form.rule_hint"), nil)
 					if d.Server {
-						@selectField(fieldAccount, gui.T(ctx, "transfers.form.local_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.local_account_hint"))
+						@selectField(fieldAccount, gui.T(ctx, "transfers.form.local_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.local_account_hint"), accountAttrs(ctx))
 						@dateField(fieldStart, gui.T(ctx, "transfers.detail.due"), d.Start, gui.T(ctx, "transfers.form.due_hint"), true)
 					} else {
-						@selectField(fieldAccount, gui.T(ctx, "transfers.form.remote_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.remote_account_hint"))
+						@selectField(fieldAccount, gui.T(ctx, "transfers.form.remote_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.remote_account_hint"), accountAttrs(ctx))
 						<div class={ "w-field", templ.KV("is-invalid", d.Client.Error != "") }>
 							<label class="w-field__label" for={ fieldClient }>{ gui.T(ctx, "transfers.detail.client") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
 							<select

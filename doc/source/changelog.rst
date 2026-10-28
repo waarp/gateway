@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`794` Les pages qui ajoutent ou pré-enregistrent un transfert ne
+  proposent, pour la règle choisie, que les comptes qu'elle autorise : une
+  règle qui restreint ses accès masque les autres comptes, l'aide du champ
+  dit combien sont proposés et mène aux accès de la règle, et un compte déjà
+  choisi que la règle n'autorise pas est retiré. Un compte non autorisé
+  envoyé malgré tout est refusé sous son champ.
 * :feature:`789` Ajout de l'écran Tableau de bord de l'interface web
   (section Supervision) : les services du nœud, les transferts en cours et
   en erreur, l'activité des 24 dernières heures heure par heure, les cinq

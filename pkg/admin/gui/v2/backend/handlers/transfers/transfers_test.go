@@ -838,6 +838,90 @@ func TestForms(t *testing.T) {
 		assert.Equal(t, "paie", view.TransferInfo["flux"])
 	})
 
+	t.Run("Add a client transfer: the accounts the rule authorizes", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		// A second partner with its account; the sending rule lists the first
+		// partner alone, the receiving rule stays open.
+		insurer := &model.RemoteAgent{Name: "assurance-demo", Protocol: "sftp", Address: types.Addr("127.0.0.1", 10023)}
+		require.NoError(t, s.db.Insert(insurer).Run())
+		dev := &model.RemoteAccount{RemoteAgentID: insurer.ID, Login: "dev"}
+		require.NoError(t, s.db.Insert(dev).Run())
+		require.NoError(t, s.db.Insert(&model.RuleAccess{
+			RuleID: s.send.ID, RemoteAgentID: sql.NullInt64{Int64: s.bank.ID, Valid: true},
+		}).Run())
+
+		sendID, receiveID := strconv.FormatInt(s.send.ID, 10), strconv.FormatInt(s.receive.ID, 10)
+		prodID, devID := strconv.FormatInt(s.prod.ID, 10), strconv.FormatInt(dev.ID, 10)
+
+		body := s.get(t, permWrite, "/webui/transfers/new").Body.String()
+		assert.Contains(t, body, `<option value="`+sendID+`" data-restricted>releves</option>`, "a rule that lists who may use it")
+		assert.Contains(t, body, `<option value="`+receiveID+`">commandes</option>`, "an open rule")
+		assert.Contains(t, body, `<option value="`+prodID+`" data-rules="`+sendID+`">prod</option>`,
+			"the account of a partner the rule lists")
+		assert.Contains(t, body, `<option value="`+devID+`">dev</option>`, "no restricted rule authorizes it")
+		for _, attr := range []string{
+			`data-rule-filter="rule"`, `data-access-url="/webui/rules/{id}/access"`,
+			`data-allowed="{n} comptes autorisés par cette règle"`, `data-allowed-one="Un compte autorisé par cette règle"`,
+			`data-cleared="Le compte « {login} » n&#39;est pas autorisé par cette règle."`,
+			`data-access-label="Voir les accès de la règle"`,
+		} {
+			assert.Contains(t, body, attr, "what the script needs, on the select of the account")
+		}
+
+		// The server keeps the last word: a posted account the rule does not
+		// authorize is refused under its field, nothing saved.
+		rec := s.post(t, permWrite, "/webui/transfers/new", url.Values{
+			fieldFile: {"x.pdf"}, fieldRule: {sendID}, fieldAccount: {devID},
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		body = rec.Body.String()
+		assert.Contains(t, body, "La règle « releves » n&#39;autorise pas ce compte.")
+		assert.Contains(t, body, "Corrigez les champs signalés.", "a refusal a field carries: no other message in the banner")
+		n, err := s.db.Count(&model.Transfer{}).Where("src_filename=?", "x.pdf").Run()
+		require.NoError(t, err)
+		assert.Zero(t, n, "nothing saved")
+
+		rec = s.post(t, permWrite, "/webui/transfers/new", url.Values{
+			fieldFile: {"x.pdf"}, fieldRule: {sendID}, fieldAccount: {prodID},
+		})
+		require.Equal(t, http.StatusSeeOther, rec.Code, "the account of the partner the rule lists")
+	})
+
+	t.Run("Preregister a server transfer: the accounts the rule authorizes", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		north := &model.LocalAccount{LocalAgentID: s.server.ID, Login: "filiale-nord"}
+		require.NoError(t, s.db.Insert(north).Run())
+		require.NoError(t, s.db.Insert(&model.RuleAccess{
+			RuleID: s.receive.ID, LocalAccountID: sql.NullInt64{Int64: s.south.ID, Valid: true},
+		}).Run())
+
+		receiveID := strconv.FormatInt(s.receive.ID, 10)
+		southID, northID := strconv.FormatInt(s.south.ID, 10), strconv.FormatInt(north.ID, 10)
+
+		body := s.get(t, permWrite, "/webui/transfers/preregister").Body.String()
+		assert.Contains(t, body, `<option value="`+receiveID+`" data-restricted>commandes</option>`)
+		assert.Contains(t, body, `<option value="`+southID+`" data-rules="`+receiveID+`">filiale-sud</option>`, "the account the rule lists")
+		assert.Contains(t, body, `<option value="`+northID+`">filiale-nord</option>`, "not listed")
+		assert.Contains(t, body, `data-rule-filter="rule"`)
+
+		rec := s.post(t, permWrite, "/webui/transfers/preregister", url.Values{
+			fieldFile: {"inventaire-decembre.csv"}, fieldRule: {receiveID}, fieldAccount: {northID}, fieldStart: {"2026-11-02T06:00"},
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		assert.Contains(t, rec.Body.String(), "La règle « commandes » n&#39;autorise pas ce compte.")
+		n, err := s.db.Count(&model.Transfer{}).Where("dest_filename=?", "inventaire-decembre.csv").Run()
+		require.NoError(t, err)
+		assert.Zero(t, n, "nothing saved")
+	})
+
 	t.Run("Preregister a server transfer", func(t *testing.T) {
 		t.Parallel()
 
