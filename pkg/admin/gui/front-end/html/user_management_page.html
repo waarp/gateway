@@ -1,7 +1,6 @@
 {{ define "head" }}
     <title>{{ index .tab "title" }}</title>
     <link rel="stylesheet" href="/webui/static/css/style.css">
-    <link href="/webui/static/css/font-awesome_all.min.css" rel="stylesheet">
     <script src="/webui/static/javaScript/user_management_page.js"></script>
     <script src="/webui/static/javaScript/autoCompleteSearch.js"></script>
     <script src="/webui/static/javaScript/eyePassword.js"></script>
@@ -51,7 +50,7 @@
                     <label class="col-form-label">{{ index .tab "passwordStr" }} :</label>
                     <div class="input-group">
                         <input type="password" id="newUserPassword_{{ .ID }}" class="form-control" required value="{{ index $.modalElement "newUserPassword" }}">
-                        <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPassword_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
+                        <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPassword_{{ .ID }}', this)"><i class="bi bi-eye-slash"></i></button>
                     </div>
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
@@ -59,7 +58,7 @@
                     <label class="col-form-label">{{ index .tab "passwordConfirmStr" }} :</label>
                     <div class="input-group">
                         <input type="password" id="newUserPasswordConfirm_{{ .ID }}" name="newUserPassword" class="form-control" required value="{{ index $.modalElement "newUserPassword" }}">
-                        <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPasswordConfirm_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
+                        <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('newUserPasswordConfirm_{{ .ID }}', this)"><i class="bi bi-eye-slash"></i></button>
                     </div>
                 </div>
                 <hr style="border-top: 1px solid #ababab;">
@@ -285,7 +284,7 @@
                                 <label class="col-form-label">{{ index $.tab "passwordStr" }} :</label>
                                 <div class="input-group">
                                     <input type="password" id="editUserPassword_{{ .ID }}" class="form-control" value="{{ if $me }}{{ index $me "editUserPassword" }}{{ end }}">
-                                    <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPassword_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
+                                    <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPassword_{{ .ID }}', this)"><i class="bi bi-eye-slash"></i></button>
                                 </div>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">
@@ -293,7 +292,7 @@
                                 <label class="col-form-label">{{ index $.tab "passwordConfirmStr" }} :</label>
                                 <div class="input-group">
                                     <input type="password" id="editUserPasswordConfirm_{{ .ID }}" name="editUserPassword" class="form-control" value="{{ if $me }}{{ index $me "editUserPassword" }}{{ end }}">
-                                    <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPasswordConfirm_{{ .ID }}', this)"><i class="far fa-eye-slash"></i></button>
+                                    <button class="btn btn-outline-secondary eye-button" type="button" onclick="eyePassword('editUserPasswordConfirm_{{ .ID }}', this)"><i class="bi bi-eye-slash"></i></button>
                                 </div>
                             </div>
                             <hr style="border-top: 1px solid #ababab;">

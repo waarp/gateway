@@ -1,7 +1,6 @@
 {{ define "head" }}
   <title>{{ index .tab "title" }}</title>
   <link rel="stylesheet" href="/webui/static/css/style.css">
-  <link href="/webui/static/css/font-awesome_all.min.css" rel="stylesheet">
   <script src="/webui/static/javaScript/tooltip.js"></script>
   <script src="/webui/static/javaScript/fields.js "></script>
   <script src="/webui/static/javaScript/refreshTableTransfer.js"></script>
@@ -654,7 +653,7 @@
           <label class="ms-3 me-3">{{ index .tab "fileFilter" }} :
             <div class="input-group d-inline-flex w-auto">
               <input type="text" name="filterFilePattern" id="filterFilePatternInput" class="form-control d-inline w-auto" placeholder="{{ index .tab "file" }}" value="{{ .filter.FilterFilePattern }}">
-              <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('filterFilePatternInput').value='';"> <i class="fa fa-times"></i></button>
+              <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('filterFilePatternInput').value='';"> <i class="bi bi-x-lg"></i></button>
             </div>
           </label>
         </div>
