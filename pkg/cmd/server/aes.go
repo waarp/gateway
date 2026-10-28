@@ -64,7 +64,7 @@ func (*noHookLocalAgent) AfterUpdate(database.Access) error { return nil }
 func changeAgentsAESPassphrase(db *database.DB, newAEAD cipher.AEAD) error {
 	owner := db.Config.GatewayName
 
-	var servers model.Slice[*noHookLocalAgent]
+	var servers database.Slice[*noHookLocalAgent]
 	if err := db.Select(&servers).In("protocol", r66.R66, r66.R66TLS).Run(); err != nil {
 		return fmt.Errorf("failed to retrieve the R66 servers: %w", err)
 	}

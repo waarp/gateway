@@ -4,8 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -14,7 +12,7 @@ import (
 type addrOverride struct{ target, real string }
 
 func getAddrOverride(db *database.DB, r *http.Request) (*addrOverride, error) {
-	target, ok := mux.Vars(r)["address"]
+	target, ok := GetURLVar(r, "address")
 	if !ok {
 		return nil, notFound("missing target address")
 	}

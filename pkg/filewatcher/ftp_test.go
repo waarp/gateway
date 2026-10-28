@@ -16,11 +16,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
 )
 
 func init() {
 	model.Protocols[ftp.FTP] = ftp.Module{}
+	features.Register(ftp.FTP, ftp.Module{}.OptionalFeatures()...)
 }
 
 func TestListFTP(t *testing.T) {

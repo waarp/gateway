@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
@@ -16,7 +14,7 @@ import (
 
 //nolint:dupl //duplicate is for a completely different type (users), keep separate
 func getDBServer(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
-	serverName, ok := mux.Vars(r)["server"]
+	serverName, ok := GetURLVar(r, "server")
 	if !ok {
 		return nil, notFound("missing server name")
 	}

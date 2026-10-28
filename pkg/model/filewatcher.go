@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"path"
 	"time"
 
@@ -31,14 +32,21 @@ type FileWatcher struct {
 
 func (*FileWatcher) TableName() string   { return TableFileWatchers }
 func (*FileWatcher) Appellation() string { return NameFileWatcher }
+func (r *FileWatcher) GetName() string   { return r.Flow }
 
 func (*FileWatcher) Preloads() []string {
 	return []string{"RemoteAccount", "Client", "Rule"}
 }
 
-func (r *FileWatcher) BeforeWrite(database.Access) error {
+func (r *FileWatcher) BeforeWrite(db database.Access) error {
 	if err := r.checkMandatoryValues(); err != nil {
 		return err
+	}
+
+	if r.Client.ID == 0 {
+		if err := db.Get(&r.Client, "id=?", r.ClientID).Run(); err != nil {
+			return fmt.Errorf("failed to retrieve filewatcher client: %w", err)
+		}
 	}
 
 	if !features.Supports(r.Client.Protocol, features.Listing) {
@@ -61,9 +69,17 @@ func (r *FileWatcher) checkMandatoryValues() error {
 		return database.NewValidationError("the filewatcher's flow name is missing")
 	}
 
-	r.RemoteAccountID = r.RemoteAccount.ID
-	r.ClientID = r.Client.ID
-	r.RuleID = r.Rule.ID
+	if r.RemoteAccount.ID != 0 {
+		r.RemoteAccountID = r.RemoteAccount.ID
+	}
+
+	if r.Client.ID != 0 {
+		r.ClientID = r.Client.ID
+	}
+
+	if r.Rule.ID != 0 {
+		r.RuleID = r.Rule.ID
+	}
 
 	if r.RemoteAccountID == 0 {
 		return database.NewValidationError("the filewatcher's account is missing")

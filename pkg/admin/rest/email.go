@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -15,7 +13,7 @@ import (
 // Email templates
 
 func retrieveEmailTemplate(r *http.Request, db *database.DB) (*model.EmailTemplate, error) {
-	name, ok := mux.Vars(r)["email_template"]
+	name, ok := GetURLVar(r, "email_template")
 	if !ok {
 		return nil, notFound("missing email template name")
 	}
@@ -154,7 +152,7 @@ func deleteEmailTemplate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 // SMTP credentials
 
 func retrieveSMTPCredential(r *http.Request, db *database.DB) (*model.SMTPCredential, error) {
-	name, ok := mux.Vars(r)["smtp_credential"]
+	name, ok := GetURLVar(r, "smtp_credential")
 	if !ok {
 		return nil, notFound("missing SMTP credential sender address")
 	}

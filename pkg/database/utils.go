@@ -226,3 +226,15 @@ func makeInClause(col string, vals ...any) *condition {
 		args: []any{vals},
 	}
 }
+
+const SQLLikeEscapeChar = `\`
+
+func SQLLikeEscape(str string) string {
+	const esc = SQLLikeEscapeChar
+
+	return strings.NewReplacer(
+		esc, esc,
+		`%`, esc+"%",
+		`_`, esc+"_",
+	).Replace(str)
+}

@@ -49,7 +49,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&accAuth).Run(), ShouldBeNil)
 
-			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
+			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			access := RuleAccess{RuleID: rule.ID, RemoteAccountID: acc.NullableID()}
@@ -87,22 +87,40 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 				cli := &Client{Protocol: ag.Protocol}
 				So(db.Insert(cli).Run(), ShouldBeNil)
 
-				trans := Transfer{
+				trans := &Transfer{
 					RuleID:          rule.ID,
 					ClientID:        cli.NullableID(),
 					RemoteAccountID: acc.NullableID(),
 					SrcFilename:     "file",
 				}
-				So(db.Insert(&trans).Run(), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` hook", func() {
 					err := acc.BeforeDelete(db)
 
 					Convey("Then it should say that the account is being used", func() {
-						So(err, ShouldBeError, database.NewValidationError(
-							"this account is currently being used in one or more "+
-								"running transfers and thus cannot be deleted, "+
-								"cancel these transfers or wait for them to finish"))
+						shouldBeFKErrFor(err, trans)
+					})
+				})
+			})
+
+			Convey("Given that the account is used in a filewatcher", func() {
+				cli := Client{Protocol: ag.Protocol}
+				So(db.Insert(&cli).Run(), ShouldBeNil)
+
+				fw := &FileWatcher{
+					Flow:          "test_flow",
+					Rule:          rule,
+					Client:        cli,
+					RemoteAccount: acc,
+				}
+				So(db.Insert(fw).Run(), ShouldBeNil)
+
+				Convey("When calling the `BeforeDelete` hook", func() {
+					err := acc.BeforeDelete(db)
+
+					Convey("Then it should say that the account is being used", func() {
+						shouldBeFKErrFor(err, fw)
 					})
 				})
 			})

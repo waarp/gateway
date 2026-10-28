@@ -15,19 +15,22 @@ type UnexpectedStatusError struct {
 	msg    string
 }
 
-func newUnexpectedStatusError(resp *http.Response) *UnexpectedStatusError {
-	statusError := &UnexpectedStatusError{
-		method: resp.Request.Method,
-		code:   resp.StatusCode,
-	}
-
+func readResponseMsg(resp *http.Response) string {
 	msg := &strings.Builder{}
 	//nolint:errcheck //we don't care about the error here
 	if n, _ := io.CopyN(msg, resp.Body, httpErrMsgMaxSize); n > 0 {
-		statusError.msg = msg.String()
+		return msg.String()
 	}
 
-	return statusError
+	return ""
+}
+
+func newUnexpectedStatusError(resp *http.Response) *UnexpectedStatusError {
+	return &UnexpectedStatusError{
+		method: resp.Request.Method,
+		code:   resp.StatusCode,
+		msg:    readResponseMsg(resp),
+	}
 }
 
 func (e *UnexpectedStatusError) Error() string {

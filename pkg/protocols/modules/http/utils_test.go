@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -20,6 +21,15 @@ func init() {
 	pipelinetest.Register(HTTPS, pipelinetest.ProtoFeatures{
 		Protocol: ModuleHTTPS{},
 		TransID:  true, RuleName: true, Size: true, TransferInfo: true,
+	})
+
+	gwtesting.Register(HTTP, gwtesting.ProtoFeatures{
+		Protocol: Module{},
+		TransID:  true, RuleName: true, Size: true,
+	})
+	gwtesting.Register(HTTPS, gwtesting.ProtoFeatures{
+		Protocol: ModuleHTTPS{},
+		TransID:  true, RuleName: true, Size: true,
 	})
 }
 

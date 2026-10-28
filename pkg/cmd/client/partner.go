@@ -3,7 +3,6 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -108,7 +107,7 @@ type PartnerGet struct {
 
 func (p *PartnerGet) Execute([]string) error { return execute(p) }
 func (p *PartnerGet) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/partners", p.Args.Name)
+	SetAddrPath("/api/partners/%s", p.Args.Name)
 
 	partner := &api.OutPartner{}
 	if err := get(partner); err != nil {
@@ -128,7 +127,7 @@ type PartnerDelete struct {
 
 func (p *PartnerDelete) Execute([]string) error { return execute(p) }
 func (p *PartnerDelete) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/partners", p.Args.Name)
+	SetAddrPath("/api/partners/%s", p.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err
@@ -155,7 +154,7 @@ type PartnerUpdate struct {
 
 func (p *PartnerUpdate) Execute([]string) error { return execute(p) }
 func (p *PartnerUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join("/api/partners", p.Args.Name)
+	SetAddrPath("/api/partners/%s", p.Args.Name)
 
 	if err := update(w, p); err != nil {
 		return err
@@ -184,8 +183,7 @@ type PartnerAuthorize struct {
 
 func (p *PartnerAuthorize) Execute([]string) error { return execute(p) }
 func (p *PartnerAuthorize) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/authorize/%s/%s", p.Args.Partner,
-		p.Args.Rule, p.Args.Direction)
+	SetAddrPath("/api/partners/%s/authorize/%s/%s", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 
 	return authorize(w, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }
@@ -202,8 +200,7 @@ type PartnerRevoke struct {
 
 func (p *PartnerRevoke) Execute([]string) error { return execute(p) }
 func (p *PartnerRevoke) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/partners/%s/revoke/%s/%s", p.Args.Partner,
-		p.Args.Rule, p.Args.Direction)
+	SetAddrPath("/api/partners/%s/revoke/%s/%s", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 
 	return revoke(w, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -28,7 +26,7 @@ func makeCredList(db database.ReadAccess, target model.CredOwnerTable) ([]string
 
 func getCred(r *http.Request, db database.ReadAccess, target model.CredOwnerTable,
 ) (*model.Credential, error) {
-	name, ok := mux.Vars(r)["credential"]
+	name, ok := GetURLVar(r, "credential")
 	if !ok {
 		return nil, notFound("missing credential name")
 	}

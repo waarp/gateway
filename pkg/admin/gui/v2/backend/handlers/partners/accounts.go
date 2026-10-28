@@ -13,6 +13,7 @@ import (
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -605,16 +606,16 @@ type accountDeleteData struct {
 
 func (d *accountDeleteData) blocked() bool { return d.Transfers || d.Watchers }
 
-// accountBlockers tells what refuses the deletion of the account, from the
-// model's own rule (running transfers) and from the folder watchers that
-// name it (the foreign key restricts the deletion).
+// accountBlockers tells what refuses the deletion of the account: the
+// model's rule, which names the unfinished transfers before the folder
+// watchers, and a count of the folder watchers that name it.
 func (h *Handlers) accountBlockers(acc *model.RemoteAccount) (transfers, watchers bool, err error) {
 	if delErr := acc.BeforeDelete(h.db); delErr != nil {
-		if !database.IsValidationError(delErr) {
+		if !common.Refused(delErr) {
 			return false, false, delErr //nolint:wrapcheck // logged by the caller
 		}
 
-		transfers = true
+		transfers = common.HeldBy[*model.Transfer](delErr)
 	}
 
 	n, err := h.db.Count(&model.FileWatcher{}).Where("remote_account_id=?", acc.ID).Run()
@@ -699,8 +700,9 @@ func (h *Handlers) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	case err == nil && !transfers && !watchers:
 		target := withRet(partnerURL(own.ptn.agent.ID, accountsSuffix), ret(r))
 		redirectSheet(w, r, target, kindAccount, doneDeleted, own.acc.Login)
-	case err == nil || database.IsValidationError(err):
-		h.accountDeletePage(w, r, own, transfers || database.IsValidationError(err), watchers, http.StatusUnprocessableEntity)
+	case err == nil || common.Refused(err):
+		h.accountDeletePage(w, r, own, transfers || common.HeldBy[*model.Transfer](err),
+			watchers || common.HeldBy[*model.FileWatcher](err), http.StatusUnprocessableEntity)
 	default:
 		h.logger.Errorf("failed to delete the account %d: %v", own.acc.ID, err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)

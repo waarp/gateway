@@ -14,6 +14,7 @@ import (
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -634,7 +635,7 @@ func (h *Handlers) accountBlocked(acc *model.LocalAccount) (bool, error) {
 		return false, nil
 	}
 
-	if database.IsValidationError(err) {
+	if common.Refused(err) {
 		return true, nil
 	}
 
@@ -715,7 +716,7 @@ func (h *Handlers) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.Delete(own.acc).Run(); err != nil {
-		if database.IsValidationError(err) {
+		if common.Refused(err) {
 			h.accountDeletePage(w, r, own, true, http.StatusUnprocessableEntity)
 
 			return

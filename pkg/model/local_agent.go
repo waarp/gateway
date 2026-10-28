@@ -133,17 +133,11 @@ func (l *LocalAgent) BeforeWrite(db database.Access) error {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to check whether the server is still used in any ongoing transfer.
 func (l *LocalAgent) BeforeDelete(db database.Access) error {
-	if n, err := db.Count(&Transfer{}).Where(`local_account_id IN (SELECT id
-		FROM local_accounts WHERE local_agent_id=?)`, l.ID).Run(); err != nil {
-		return fmt.Errorf("failed to check for ongoing transfers: %w", err)
-	} else if n > 0 {
-		//nolint:goconst //too specific
-		return database.NewValidationError("this server is currently being used " +
-			"in one or more running transfers and thus cannot be deleted, cancel " +
-			"these transfers or wait for them to finish")
-	}
-
-	return nil
+	return database.CheckFKViolation[*Transfer](db, `local_account_id IN 
+		(SELECT id FROM local_accounts WHERE local_agent_id=?)`, l.ID).
+		Checkf("the server %q is currently being used in one or more unfinished "+
+			"transfers and thus cannot be deleted, cancel these transfers first or "+
+			"wait for them to finish", l.Name)
 }
 
 // GetCredentials fetch in the database then return the associated Credentials if they exist.

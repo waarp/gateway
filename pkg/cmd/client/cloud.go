@@ -3,12 +3,9 @@ package wg
 import (
 	"fmt"
 	"io"
-	"path"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
-
-const cloudsAPIPath = "/api/clouds"
 
 func displayClouds(w io.Writer, clouds []*api.GetCloudRespObject) error {
 	Style0.Printf(w, "=== Cloud instances ===")
@@ -45,7 +42,7 @@ type CloudGet struct {
 
 func (c *CloudGet) Execute([]string) error { return execute(c) }
 func (c *CloudGet) execute(w io.Writer) error {
-	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
+	SetAddrPath("/api/clouds/%s", c.Args.Name)
 
 	cloud := &api.GetCloudRespObject{}
 	if err := get(cloud); err != nil {
@@ -66,7 +63,7 @@ type CloudAdd struct {
 
 func (c *CloudAdd) Execute([]string) error { return execute(c) }
 func (c *CloudAdd) execute(w io.Writer) error {
-	addr.Path = cloudsAPIPath
+	addr.Path = "/api/clouds"
 
 	if _, err := add(w, c); err != nil {
 		return err
@@ -85,7 +82,7 @@ type CloudDelete struct {
 
 func (c *CloudDelete) Execute([]string) error { return execute(c) }
 func (c *CloudDelete) execute(w io.Writer) error {
-	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
+	SetAddrPath("/api/clouds/%s", c.Args.Name)
 
 	if err := remove(w); err != nil {
 		return err
@@ -111,7 +108,7 @@ type CloudUpdate struct {
 
 func (c *CloudUpdate) Execute([]string) error { return execute(c) }
 func (c *CloudUpdate) execute(w io.Writer) error {
-	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
+	SetAddrPath("/api/clouds/%s", c.Args.Name)
 
 	if err := update(w, c); err != nil {
 		return err
@@ -136,7 +133,7 @@ type CloudList struct {
 
 func (c *CloudList) Execute([]string) error { return execute(c) }
 func (c *CloudList) execute(w io.Writer) error {
-	addr.Path = cloudsAPIPath
+	addr.Path = "/api/clouds"
 
 	listURL(&c.ListOptions, c.SortBy)
 

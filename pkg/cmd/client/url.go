@@ -2,8 +2,11 @@ package wg
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:gochecknoglobals //global vars are required here
@@ -59,4 +62,12 @@ type InsecureOpt func(string)
 
 func SetInsecureFlag(value string) {
 	insecure = strings.TrimSpace(value) != ""
+}
+
+func SetAddrPath(path string, args ...string) {
+	for i := range args {
+		args[i] = url.PathEscape(args[i])
+	}
+
+	addr.Path = fmt.Sprintf(path, utils.AsAny(args)...)
 }

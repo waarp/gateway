@@ -124,7 +124,7 @@ func (s *Service) ReloadMonitorsConf() error {
 	s.monConfLock.Lock()
 	defer s.monConfLock.Unlock()
 
-	var monitors model.Slice[*MonitorConfig]
+	var monitors database.Slice[*MonitorConfig]
 	if err := s.DB.Select(&monitors).Run(); err != nil {
 		s.Logger.Errorf("Failed to retrieve SNMP monitors: %v", err)
 

@@ -705,7 +705,7 @@ func (h *Handlers) reservedRules(agentID int64) ([]reservedRule, error) {
 		ids = append(ids, a.ID)
 	}
 
-	var accesses model.Slice[*model.RuleAccess]
+	var accesses model.RuleAccesses
 
 	query := h.db.Select(&accesses).Where("remote_agent_id=?", agentID)
 	if len(ids) > 0 {
@@ -871,16 +871,17 @@ type deleteData struct {
 
 func (d *deleteData) blocked() bool { return d.Transfers || d.Watchers }
 
-// blockers tells what refuses the deletion of the partner, from the model's
-// own rule (running transfers) and from the folder watchers that name one
-// of its accounts (the foreign key restricts the deletion).
+// blockers tells what refuses the deletion of the partner: the model's rule,
+// which names the unfinished transfers before the folder watchers, and a
+// count of the folder watchers that name one of its accounts, so that the
+// page says both when both hold it.
 func (h *Handlers) blockers(e entry) (transfers, watchers bool, err error) {
 	if delErr := e.agent.BeforeDelete(h.db); delErr != nil {
-		if !database.IsValidationError(delErr) {
+		if !common.Refused(delErr) {
 			return false, false, delErr //nolint:wrapcheck // logged by the caller
 		}
 
-		transfers = true
+		transfers = common.HeldBy[*model.Transfer](delErr)
 	}
 
 	n, err := h.db.Count(&model.FileWatcher{}).Where(
@@ -957,8 +958,9 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err == nil && !transfers && !watchers:
 		redirectList(w, r, ret(r), url.Values{doneParam: {doneDeleted}, nameParam: {e.agent.Name}})
-	case err == nil || database.IsValidationError(err):
-		h.deletePage(w, r, e, transfers || database.IsValidationError(err), watchers, http.StatusUnprocessableEntity)
+	case err == nil || common.Refused(err):
+		h.deletePage(w, r, e, transfers || common.HeldBy[*model.Transfer](err),
+			watchers || common.HeldBy[*model.FileWatcher](err), http.StatusUnprocessableEntity)
 	default:
 		h.logger.Errorf("failed to delete the partner %d: %v", e.agent.ID, err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)

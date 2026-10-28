@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -13,7 +11,7 @@ import (
 )
 
 func retrieveDBCryptoKey(r *http.Request, db database.ReadAccess) (*model.CryptoKey, error) {
-	keyName, ok := mux.Vars(r)["crypto_key"]
+	keyName, ok := GetURLVar(r, "crypto_key")
 	if !ok {
 		return nil, notFound("missing cryptographic key name")
 	}

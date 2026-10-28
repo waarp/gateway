@@ -12,16 +12,15 @@ import (
 
 func TestUserGet(t *testing.T) {
 	const (
-		username     = "foo"
+		username     = "foo/bar"
 		permTrans    = "-r-"
 		permServers  = "-w-"
 		permPartners = "--d"
 		permRules    = "rw-"
 		permUsers    = "r-w"
 		permAdmin    = "-wd"
-
-		path = "/api/users/" + username
 	)
+	path := "/api/users/" + url.PathEscape(username)
 
 	t.Run(`Testing the user "get" command`, func(t *testing.T) {
 		command := &UserGet{}

@@ -26,17 +26,21 @@ type Pipeline struct {
 	serTransEnd chan struct{}
 }
 
+func (p Pipeline) NoServerTransfer() {
+	p.serTransEnd <- struct{}{}
+}
+
 func (p Pipeline) Run() error {
 	ctx, cancel := context.WithTimeout(context.Background(), transferTimeout)
 	defer cancel()
 
 	select {
 	case err := <-utils.GoRun(func() error {
+		defer func() { <-p.serTransEnd }()
+
 		if err := p.ClientPipeline.Run(); err != nil {
 			return err //nolint:wrapcheck //wrapping adds nothing here
 		}
-
-		<-p.serTransEnd
 
 		return nil
 	}):
@@ -52,7 +56,7 @@ func (ctx *TransferCtx) PushPipeline(tb testing.TB) Pipeline {
 	pip, err := controller.NewClientPipeline(ctx.DB, ctx.TransferPush)
 	require.NoError(tb, err, "Failed to initialize the test push pipeline")
 
-	return Pipeline{pip, ctx.servTransEnd}
+	return Pipeline{ClientPipeline: pip, serTransEnd: ctx.servTransEnd}
 }
 
 func (ctx *TransferCtx) PullPipeline(tb testing.TB) Pipeline {
@@ -61,7 +65,7 @@ func (ctx *TransferCtx) PullPipeline(tb testing.TB) Pipeline {
 	pip, err := controller.NewClientPipeline(ctx.DB, ctx.TransferPull)
 	require.NoError(tb, err, "Failed to initialize the test pull pipeline")
 
-	return Pipeline{pip, ctx.servTransEnd}
+	return Pipeline{ClientPipeline: pip, serTransEnd: ctx.servTransEnd}
 }
 
 func (ctx *TransferCtx) RetryPush(tb testing.TB) Pipeline {

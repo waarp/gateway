@@ -69,3 +69,17 @@ func (c *Client) BeforeWrite(db database.Access) error {
 
 	return nil
 }
+
+func (c *Client) BeforeDelete(db database.Access) error {
+	if err := database.CheckFKViolation[*Transfer](db, "client_id=?", c.ID).
+		Checkf("the client %q is currently being used in one or more unfinished "+
+			"transfer and thus cannot be deleted, cancel these transfers first or "+
+			"wait for them to finish", c.Name); err != nil {
+		return err
+	}
+
+	return database.CheckFKViolation[*FileWatcher](db, "client_id=?", c.ID).
+		Checkf("the client %q is currently being used by one or more filewatchers "+
+			"and thus cannot be deleted, delete these filewatchers first or change "+
+			"their clients", c.Name)
+}

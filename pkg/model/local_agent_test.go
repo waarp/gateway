@@ -116,10 +116,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					err := ag.BeforeDelete(db)
 
 					Convey("Then it should say that the agent is being used", func() {
-						So(err, ShouldBeError, database.NewValidationError(
-							"this server is currently being used in one or more "+
-								"running transfers and thus cannot be deleted, "+
-								"cancel these transfers or wait for them to finish"))
+						shouldBeFKErrFor(err, &trans)
 					})
 				})
 			})

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -14,7 +12,7 @@ import (
 
 //nolint:dupl //duplicate is for servers, best keep separate
 func retrievePartner(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
-	agentName, ok := mux.Vars(r)["partner"]
+	agentName, ok := GetURLVar(r, "partner")
 	if !ok {
 		return nil, notFound("missing partner name")
 	}

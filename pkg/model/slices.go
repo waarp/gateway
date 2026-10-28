@@ -1,66 +1,28 @@
 package model
 
 import (
-	"fmt"
-	"strings"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
-type Slice[T database.Table] []T
-
-func (*Slice[T]) TableName() string { return (*new(T)).TableName() }
-func (*Slice[T]) Elem() string      { return (*new(T)).Appellation() }
-
-func (s *Slice[T]) AfterRead(db database.ReadAccess) error {
-	for _, elem := range *s {
-		if hook, ok := any(elem).(database.ReadCallback); ok {
-			if err := hook.AfterRead(db); err != nil {
-				return err //nolint:wrapcheck //wrapping adds nothing here
-			}
-		}
-	}
-
-	return nil
-}
-
-func (s Slice[T]) String() string {
-	builder := &strings.Builder{}
-
-	for i, elem := range s {
-		fmt.Fprintf(builder, "Item #%d: %+v\n", i, elem)
-	}
-
-	return builder.String()
-}
-
-func (s Slice[T]) Preloads() []string {
-	if preloader, ok := any(*new(T)).(database.Preloader); ok {
-		return preloader.Preloads()
-	}
-
-	return nil
-}
-
 type (
-	Credentials         = Slice[*Credential]
-	HistoryEntries      = Slice[*HistoryEntry]
-	LocalAccounts       = Slice[*LocalAccount]
-	LocalAgents         = Slice[*LocalAgent]
-	RemoteAccounts      = Slice[*RemoteAccount]
-	RemoteAgents        = Slice[*RemoteAgent]
-	Clients             = Slice[*Client]
-	Rules               = Slice[*Rule]
-	RuleAccesses        = Slice[*RuleAccess]
-	Tasks               = Slice[*Task]
-	Transfers           = Slice[*Transfer]
-	Users               = Slice[*User]
-	NormalizedTransfers = Slice[*NormalizedTransferView]
-	CloudInstances      = Slice[*CloudInstance]
-	Authorities         = Slice[*Authority]
-	Hosts               = Slice[*Host]
-	CryptoKeys          = Slice[*CryptoKey]
-	EmailTemplates      = Slice[*EmailTemplate]
-	SMTPCredentials     = Slice[*SMTPCredential]
-	FileWatchers        = Slice[*FileWatcher]
+	Credentials         = database.Slice[*Credential]
+	HistoryEntries      = database.Slice[*HistoryEntry]
+	LocalAccounts       = database.Slice[*LocalAccount]
+	LocalAgents         = database.Slice[*LocalAgent]
+	RemoteAccounts      = database.Slice[*RemoteAccount]
+	RemoteAgents        = database.Slice[*RemoteAgent]
+	Clients             = database.Slice[*Client]
+	Rules               = database.Slice[*Rule]
+	RuleAccesses        = database.Slice[*RuleAccess]
+	Tasks               = database.Slice[*Task]
+	Transfers           = database.Slice[*Transfer]
+	Users               = database.Slice[*User]
+	NormalizedTransfers = database.Slice[*NormalizedTransferView]
+	CloudInstances      = database.Slice[*CloudInstance]
+	Authorities         = database.Slice[*Authority]
+	Hosts               = database.Slice[*Host]
+	CryptoKeys          = database.Slice[*CryptoKey]
+	EmailTemplates      = database.Slice[*EmailTemplate]
+	SMTPCredentials     = database.Slice[*SMTPCredential]
+	FileWatchers        = database.Slice[*FileWatcher]
 )

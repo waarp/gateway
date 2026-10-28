@@ -759,7 +759,7 @@ func (h *Handlers) blocked(e entry) (bool, error) {
 		return false, nil
 	}
 
-	if database.IsValidationError(err) {
+	if common.Refused(err) {
 		return true, nil
 	}
 
@@ -831,7 +831,7 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.ctl.Remove(r.Context(), h.db, e.agent); err != nil {
-		if database.IsValidationError(err) {
+		if common.Refused(err) {
 			h.deletePage(w, r, e, true, http.StatusUnprocessableEntity)
 
 			return

@@ -104,7 +104,10 @@ func TestOverrideWrite(t *testing.T) {
 				line3 := "IndirectAddress = localhost -> 127.0.0.1\n"
 
 				So(nextLine(), ShouldEqual, "[Address Indirection]\n")
-				So(nextLine(), ShouldEqual, "; Replace the target address with another one\n")
+				So(nextLine(), ShouldEqual, "; Replace the target address with another one. "+
+					"Repeat the option for each indirection.\n")
+				So(nextLine(), ShouldEqual, "; Each entry should have the following format: "+
+					"IndirectAddress = <addrToReplace> -> <replaceBy>.\n")
 				So(buf.String(), ShouldBeIn,
 					line1+line2+line3+"\n", line1+line3+line2+"\n",
 					line2+line1+line3+"\n", line2+line3+line1+"\n",

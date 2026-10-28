@@ -459,6 +459,23 @@ Historique des versions
   premier guide de l'interface web accompagne cet écran
   (:ref:`user-guide-webui`).
 
+* :bug:`753` Les noms d'objets REST (règle, serveurs...) contenant des caractères
+  spéciaux sont désormais correctement gérés par l'API REST et le client terminal.
+  Par exemple, précédemment, créer un objet avec un slash ``/`` dans son nom était
+  accepté, mais cet objet était inaccessible par la suite (code 404). Cela est
+  maintenant corrigé, à condition que le nom soit correctement échappé dans l'URL.
+* :bug:`752` Créer une règle avec un chemin (*path*) contenant les *wildcards*
+  ``%`` ou ``_`` pouvait parfois produire une erreur si une autre règle au
+  chemin similaire (après résolution des wildcards) existait déjà. Ces wildcards
+  sont désormais correctement échappées de la requête SQL.
+* :bug:`754` Le message d'erreur renvoyé lorsqu'un objet de configuration ne
+  peut pas être supprimé car il est utilisé ailleurs est désormais plus détaillé.
+  Il donne désormais une courte liste des éléments qui reposent sur cet objet,
+  ainsi que leur nombre total.
+* :bug:`777` Les transferts client HTTP tombent désormais correctement en erreur
+  lorsque le partenaire renvoie un code HTTP non-attendu.
+* :bug:`780` Les *filewatchers* distants rechargent désormais correctement leur
+  configuration depuis la base de données lors de leur démarrage.
 * :bug:`751` Correction d'une mauvaise gestion des droits qui empêchait le listage
   de certains éléments dans le formulaire de tâches de la WebUI.
 * :bug:`755` Insérer une tâche via REST contenant un élément de configuration
@@ -468,8 +485,8 @@ Historique des versions
   valeurs existantes lorsqu'un utilisateur ouvrait le formulaire pour modifier
   une tâche existante.
 * :bug:`749` Correction des formulaire web pour les tâches ENCRYPT, DECRYPT, SIGN,
-   VERIFY, ICAP et SENDMESSAGE dont les formulaires ne correspondaient pas
-   exactement aux options attendues par les tâches en question.
+  VERIFY, ICAP et SENDMESSAGE dont les formulaires ne correspondaient pas
+  exactement aux options attendues par les tâches en question.
 * :bug:`750` Correction de certains *edge cases* pouvant causer un mauvais
   ordonnancement des tâches ajoutées via la WebUI.
 * :bug:`747` Correction d'un bug Javascript empêchant l'ajout de tâches

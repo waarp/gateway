@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 )
@@ -88,17 +89,32 @@ func Join[T any](elems ...*T) []*T {
 }
 
 func JoinString[E fmt.Stringer, T ~[]E](list T, sep string) string {
+	return JoinFunc(list, E.String, sep)
+}
+
+func JoinFunc[T any](list []T, str func(T) string, sep string) string {
 	if len(list) == 0 {
 		return ""
 	}
 
 	builder := strings.Builder{}
-	builder.WriteString(list[0].String())
+	builder.WriteString(str(list[0]))
 
 	for _, elem := range list[1:] {
 		builder.WriteString(sep)
-		builder.WriteString(elem.String())
+		builder.WriteString(str(elem))
 	}
 
 	return builder.String()
+}
+
+func NewValue[T any]() T {
+	var zero T
+	t := reflect.TypeOf(zero)
+	if t != nil && t.Kind() == reflect.Pointer {
+		//nolint:forcetypeassert //assertion always succeeds
+		return reflect.New(t.Elem()).Interface().(T)
+	}
+
+	return zero
 }

@@ -153,7 +153,7 @@ type TransferGet struct {
 
 func (t *TransferGet) Execute([]string) error { return execute(t) }
 func (t *TransferGet) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/transfers/%d", t.Args.ID)
+	SetAddrPath("/api/transfers/%s", utils.FormatUint(t.Args.ID))
 
 	trans := &api.OutTransfer{}
 	if err := get(trans); err != nil {
@@ -287,7 +287,7 @@ func (t *TransferRetry) Execute([]string) error { return execute(t) }
 
 //nolint:dupl //history & transfer commands should be kept separate for future-proofing
 func (t *TransferRetry) execute(w io.Writer) error {
-	addr.Path = fmt.Sprintf("/api/transfers/%d/retry", t.Args.ID)
+	SetAddrPath("/api/transfers/%s/retry", utils.FormatUint(t.Args.ID))
 
 	query := url.Values{}
 

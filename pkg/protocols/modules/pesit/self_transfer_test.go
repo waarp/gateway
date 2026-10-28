@@ -88,6 +88,7 @@ func TestErrorPreTasksClient(t *testing.T) {
 		ctx.AddTaskError(t, ctx.ClientRulePull, model.ChainPre)
 
 		pip := ctx.PullPipeline(t)
+		pip.NoServerTransfer()
 
 		t.Run("When executing the transfer", func(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")
@@ -105,6 +106,7 @@ func TestErrorPreTasksClient(t *testing.T) {
 		ctx.AddTaskError(t, ctx.ClientRulePush, model.ChainPre)
 
 		pip := ctx.PushPipeline(t)
+		pip.NoServerTransfer()
 
 		t.Run("When executing the transfer", func(t *testing.T) {
 			require.Error(t, pip.Run(), "Then the transfer should fail")

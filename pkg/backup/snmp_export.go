@@ -6,7 +6,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
@@ -16,7 +15,7 @@ func exportSNMPConfig(logger *log.Logger, db database.ReadAccess) (*file.SNMPCon
 		return nil, fmt.Errorf("failed to retrieve SNMP server config: %w", err)
 	}
 
-	var monitors model.Slice[*snmp.MonitorConfig]
+	var monitors database.Slice[*snmp.MonitorConfig]
 	if err := db.Select(&monitors).Run(); err != nil {
 		return nil, fmt.Errorf("failed to retrieve SNMP monitors: %w", err)
 	}
