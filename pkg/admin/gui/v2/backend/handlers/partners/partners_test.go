@@ -312,8 +312,9 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Comptes distants</dt><dd>2</dd>")
 		assert.Contains(t, body, "Les transferts vers ce partenaire passent par le client « cli-sftp »")
 		assert.Contains(t, body, `href="/webui/clients/`+strconv.FormatInt(s.cliSFTP.ID, 10)+`">cli-sftp</a>`)
-		assert.Contains(t, body, `<td><a class="w-cell-title" href="/webui/rules/`+strconv.FormatInt(s.receive.ID, 10)+`">reception</a></td><td>réception</td><td>Au partenaire</td>`,
+		assert.Contains(t, body, `<li><a class="w-link" href="/webui/rules/`+strconv.FormatInt(s.receive.ID, 10)+`">reception</a> · réception · accordée au partenaire</li>`,
 			"the rule reserved to the partner, with its direction and who it was granted to")
+		assert.NotContains(t, body, "<table", "no table in a card (#760): the reserved rules are a list")
 		assert.NotContains(t, body, ">envoi</a>", "the open rule is not listed: it is summarised")
 		assert.Contains(t, body, "Il peut aussi utiliser la règle sans restriction, comme tout partenaire.")
 		assert.Contains(t, body, `<span class="w-fold__meta">1 réservées · 1 sans restriction</span>`)
@@ -351,8 +352,8 @@ func TestDetail(t *testing.T) {
 		require.NoError(t, via.db.Insert(&model.RuleAccess{RuleID: via.send.ID, RemoteAccountID: via.test.NullableID()}).Run())
 
 		body := via.get(t, permRead, via.path(via.sftp, "")).Body.String()
-		assert.Contains(t, body, `>envoi</a></td><td>envoi</td><td>Au compte « test »</td>`, "granted through the account")
-		assert.Contains(t, body, `>reception</a></td><td>réception</td><td>Au partenaire</td>`)
+		assert.Contains(t, body, `>envoi</a> · envoi · accordée au compte « test »</li>`, "granted through the account")
+		assert.Contains(t, body, `>reception</a> · réception · accordée au partenaire</li>`)
 		assert.Contains(t, body, "Aucune règle sans restriction.")
 		assert.Contains(t, body, `<span class="w-fold__meta">2 réservées · 0 sans restriction</span>`)
 	})
