@@ -795,56 +795,85 @@ type deleteData struct {
 	Address   string // "" when the system chooses it
 	CancelURL string
 	Action    string
-	Blocked   bool // folder watchers use the client: the database refuses
+	// Refusal says why the model refuses the deletion, empty when it accepts
+	// it; TransfersURL leads to the transfers that hold the client, for a
+	// user who may read them.
+	Refusal      string
+	TransfersURL string
 }
 
-// blocked tells whether the deletion is refused: the folder watchers of the
-// gateway name their client with a foreign key that forbids it.
-func (h *Handlers) blocked(e *entry) (bool, error) {
-	watchers, err := h.db.Count(&model.FileWatcher{}).Where("client_id=?", e.client.ID).Run()
-	if err != nil {
-		return false, err //nolint:wrapcheck // logged by the caller with its context
+// blockers tells what refuses the deletion of the client: the model's rule,
+// which names the unfinished transfers before the folder watchers, and a
+// count of the folder watchers, so that the page says both when both hold it.
+func (h *Handlers) blockers(e *entry) (transfers, watchers bool, err error) {
+	if delErr := e.client.BeforeDelete(h.db); delErr != nil {
+		if !common.Refused(delErr) {
+			return false, false, delErr //nolint:wrapcheck // logged by the caller with its context
+		}
+
+		transfers = common.HeldBy[*model.Transfer](delErr)
 	}
 
-	return watchers > 0, nil
+	n, err := h.db.Count(&model.FileWatcher{}).Where("client_id=?", e.client.ID).Run()
+	if err != nil {
+		return false, false, err //nolint:wrapcheck // logged by the caller with its context
+	}
+
+	return transfers, n > 0, nil
 }
 
-func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, e *entry, isBlocked bool, status int) {
+func (h *Handlers) deletePage(
+	w http.ResponseWriter, r *http.Request, item *entry, transfers, watchers bool, status int,
+) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
 	data := deleteData{
-		Name:      e.client.Name,
-		Status:    e.status(translate),
-		Running:   e.running(),
-		Protocol:  protoform.Describe(translate, e.proto),
-		Address:   e.address(),
-		CancelURL: withRet(clientURL(e.client.ID, ""), carried),
-		Action:    withRet(clientURL(e.client.ID, "/delete"), carried),
-		Blocked:   isBlocked,
+		Name:      item.client.Name,
+		Status:    item.status(translate),
+		Running:   item.running(),
+		Protocol:  protoform.Describe(translate, item.proto),
+		Address:   item.address(),
+		CancelURL: withRet(clientURL(item.client.ID, ""), carried),
+		Action:    withRet(clientURL(item.client.ID, "/delete"), carried),
 	}
 
-	title := translate("clients.delete.title", "name", e.client.Name)
+	var reasons []string
+	if transfers {
+		reasons = append(reasons, translate("clients.delete.blocked_transfers"))
+
+		if rightsOf(r).Transfers {
+			data.TransfersURL = transfersOf(item.client.Name)
+		}
+	}
+
+	if watchers {
+		reasons = append(reasons, translate("clients.delete.blocked_text"))
+	}
+
+	data.Refusal = strings.Join(reasons, " ")
+
+	title := translate("clients.delete.title", "name", item.client.Name)
 	h.shell.Render(w, h.logger, r, h.screen(translate, title, carried, status), deleteView(data))
 }
 
 // DeleteForm serves GET /webui/clients/{id}/delete: the confirmation page,
-// or the refusal when folder watchers use the client.
+// or the refusal when unfinished transfers or folder watchers use the client.
 func (h *Handlers) DeleteForm(w http.ResponseWriter, r *http.Request) {
 	e, ok := h.client(w, r)
 	if !ok {
 		return
 	}
 
-	isBlocked, err := h.blocked(&e)
+	transfers, watchers, err := h.blockers(&e)
 	if err != nil {
-		h.logger.Errorf("failed to count the folder watchers of the client %d: %v", e.client.ID, err)
+		h.logger.Errorf("failed to check what holds the client %d: %v", e.client.ID, err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
 		return
 	}
 
-	h.deletePage(w, r, &e, isBlocked, 0)
+	h.deletePage(w, r, &e, transfers, watchers, 0)
 }
 
 // Delete serves POST /webui/clients/{id}/delete.
@@ -854,21 +883,28 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isBlocked, err := h.blocked(&cli)
+	transfers, watchers, err := h.blockers(&cli)
 	if err != nil {
-		h.logger.Errorf("failed to count the folder watchers of the client %d: %v", cli.client.ID, err)
+		h.logger.Errorf("failed to check what holds the client %d: %v", cli.client.ID, err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
 		return
 	}
 
-	if isBlocked {
-		h.deletePage(w, r, &cli, true, http.StatusUnprocessableEntity)
+	if transfers || watchers {
+		h.deletePage(w, r, &cli, transfers, watchers, http.StatusUnprocessableEntity)
 
 		return
 	}
 
 	if removeErr := h.ctl.Remove(r.Context(), h.db, cli.client); removeErr != nil {
+		if common.Refused(removeErr) {
+			h.deletePage(w, r, &cli, common.HeldBy[*model.Transfer](removeErr),
+				common.HeldBy[*model.FileWatcher](removeErr), http.StatusUnprocessableEntity)
+
+			return
+		}
+
 		h.logger.Errorf("failed to delete the client %d: %v", cli.client.ID, removeErr)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 

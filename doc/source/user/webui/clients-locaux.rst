@@ -194,13 +194,14 @@ Supprimer un client
 ===================
 
 La suppression se confirme sur une page qui nomme le client et ses
-conséquences : les transferts à venir ou interrompus qui le désignent ne
-pourront plus s'exécuter, l'historique des transferts garde son nom, et s'il
-est en ligne, il est arrêté et ses transferts en cours interrompus.
+conséquences : l'historique des transferts garde son nom, et s'il est en
+ligne, il est arrêté.
 
-Un client utilisé par des surveillances de dossiers ne peut pas être
-supprimé : la page l'indique. Il faut d'abord supprimer ces surveillances,
-par l'API ou la ligne de commande.
+Un client utilisé par des transferts non terminés (planifiés, en cours, en
+pause, interrompus ou en erreur) ou par des surveillances de dossiers ne peut
+pas être supprimé : la page l'indique et, avec le droit de lecture des
+transferts, mène à ses transferts. Il faut d'abord annuler ces transferts ou
+attendre leur fin, et supprimer ces surveillances.
 
 
 Et par l'API

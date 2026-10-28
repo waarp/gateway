@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -643,7 +644,7 @@ func TestDeleteClient(t *testing.T) {
 
 		body := s.get(t, permAll, s.path(s.sftp, "/delete")+"?ret=q%3Dcli").Body.String()
 		assert.Contains(t, body, "<title>Supprimer le client « cli-sftp » ? · gw-test · Waarp Gateway</title>")
-		assert.Contains(t, body, "Il est en ligne : il sera arrêté et ses transferts en cours interrompus.")
+		assert.Contains(t, body, "L&#39;historique des transferts garde son nom. Il est en ligne : il sera arrêté.")
 		assert.Contains(t, body, `action="`+s.path(s.sftp, "/delete")+`?ret=q%3Dcli"`)
 		assert.Contains(t, body, ">Supprimer</button>")
 
@@ -678,6 +679,42 @@ func TestDeleteClient(t *testing.T) {
 
 		rec = s.post(t, permAll, s.path(s.sftp, "/delete"), nil)
 		assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+
+		_, err = internal.GetClientByID(s.db, s.sftp.ID)
+		require.NoError(t, err, "still there")
+	})
+
+	t.Run("Given a client used by an unfinished transfer", func(t *testing.T) {
+		t.Parallel()
+
+		s := newSuite(t)
+		s.fixtures(t)
+
+		partner, err := internal.GetPartner(s.db, "part-sftp")
+		require.NoError(t, err)
+		account := &model.RemoteAccount{RemoteAgentID: partner.ID, Login: "me"}
+		require.NoError(t, s.db.Insert(account).Run())
+		rule := &model.Rule{Name: "push", IsSend: true, Path: "/push"}
+		require.NoError(t, s.db.Insert(rule).Run())
+		require.NoError(t, s.db.Insert(&model.Transfer{
+			RuleID: rule.ID, ClientID: s.sftp.NullableID(), RemoteAccountID: account.NullableID(),
+			SrcFilename: "a.txt", DestFilename: "a.txt", Status: types.StatusError, Start: time.Now(),
+			Filesize: model.UnknownSize,
+		}).Run())
+
+		body := s.get(t, permAll|model.PermTransfersRead, s.path(s.sftp, "/delete")).Body.String()
+		assert.Contains(t, body, "Ce client ne peut pas être supprimé.")
+		assert.Contains(t, body, "Des transferts non terminés l&#39;utilisent")
+		assert.NotContains(t, body, "Des surveillances de dossiers", "no folder watcher holds it")
+		assert.Contains(t, body, `<a class="w-link" href="/webui/transfers?client=cli-sftp">Voir les transferts</a>`)
+		assert.NotContains(t, body, ">Supprimer</button>")
+
+		body = s.get(t, permAll, s.path(s.sftp, "/delete")).Body.String()
+		assert.NotContains(t, body, "/webui/transfers?client=", "no way to the transfers without the right to read them")
+
+		rec := s.post(t, permAll, s.path(s.sftp, "/delete"), nil)
+		assert.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		assert.Contains(t, rec.Body.String(), "Des transferts non terminés l&#39;utilisent")
 
 		_, err = internal.GetClientByID(s.db, s.sftp.ID)
 		require.NoError(t, err, "still there")
