@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`796` Sur la fiche d'un partenaire distant, les règles de transfert qui
+  lui sont réservées sont présentées en liste dans leur carte, chacune avec
+  son sens et à qui l'accès est accordé, et non plus en tableau.
 * :bug:`795` Hors connexion, une page de l'interface web refondue placée sous
   un sous-chemin (fiche d'un serveur, ajout d'un transfert, onglet d'une
   règle) menait à une page de connexion inexistante, l'adresse de la

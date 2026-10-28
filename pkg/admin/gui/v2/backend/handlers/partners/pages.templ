@@ -154,10 +154,11 @@ templ clientCardView(c clientCard) {
 	</details>
 }
 
-// rulesCardView: the transfer rules reserved to the partner (a table: the
-// rule, its direction, who the access was granted to), then the rules
-// without any restriction in one sentence; a foldable card whose summary
-// counts both. The accesses are managed on the rules screen.
+// rulesCardView: the transfer rules reserved to the partner (a list, no
+// table in a card: the rule, its direction, who the access was granted
+// to), then the rules without any restriction in one sentence; a foldable
+// card whose summary counts both. The accesses are managed on the rules
+// screen.
 templ rulesCardView(c rulesCard) {
 	<details class="w-card w-card--fold" open>
 		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "partners.detail.rules_title") }</span><span class="w-fold__meta">{ c.Meta }</span></summary>
@@ -165,27 +166,11 @@ templ rulesCardView(c rulesCard) {
 			if len(c.Reserved) == 0 {
 				<p class="partners-text">{ gui.T(ctx, "partners.detail.rules_reserved_none") }</p>
 			} else {
-				<div class="w-table-wrap">
-					<table class="w-table">
-						<caption class="visually-hidden">{ gui.T(ctx, "partners.detail.rules_title") }</caption>
-						<thead>
-							<tr>
-								<th scope="col">{ gui.T(ctx, "partners.detail.rule_col_name") }</th>
-								<th scope="col">{ gui.T(ctx, "partners.detail.rule_col_dir") }</th>
-								<th scope="col">{ gui.T(ctx, "partners.detail.rule_col_via") }</th>
-							</tr>
-						</thead>
-						<tbody>
-							for _, r := range c.Reserved {
-								<tr>
-									<td><a class="w-cell-title" href={ templ.SafeURL(r.URL) }>{ r.Name }</a></td>
-									<td>{ r.Direction }</td>
-									<td>{ r.Via }</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
+				<ul class="partners-rules">
+					for _, r := range c.Reserved {
+						<li><a class="w-link" href={ templ.SafeURL(r.URL) }>{ r.Name }</a> · { r.Direction } · { r.Via }</li>
+					}
+				</ul>
 			}
 			<p class="partners-text">
 				switch {

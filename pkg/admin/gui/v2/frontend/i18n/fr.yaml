@@ -760,11 +760,8 @@ partners:
     rules_meta: "{reserved} réservées · {open} sans restriction"
     rules_hint: "Les accès aux règles se gèrent depuis l'écran des règles de transfert."
     rules_link: Voir les règles de transfert
-    rule_col_name: Règle
-    rule_col_dir: Sens
-    rule_col_via: Accordée à
-    rule_via_partner: Au partenaire
-    rule_via_account: "Au compte « {login} »"
+    rule_via_partner: accordée au partenaire
+    rule_via_account: "accordée au compte « {login} »"
     rule_send: envoi
     rule_receive: réception
   client:
