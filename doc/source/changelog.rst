@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`795` Hors connexion, une page de l'interface web refondue placée sous
+  un sous-chemin (fiche d'un serveur, ajout d'un transfert, onglet d'une
+  règle) menait à une page de connexion inexistante, l'adresse de la
+  connexion étant résolue par le navigateur dans le dossier de la page
+  demandée. La garde, la déconnexion et la connexion mènent désormais au
+  chemin absolu de la page de connexion et de l'accueil.
 * :support:`791` La barre latérale de l'interface web refondue est rendue par
   le serveur dans l'état choisi par l'exploitant (repliée ou non, groupes
   fermés), lu dans deux cookies : plus de glissement ni de repli au chargement

@@ -180,23 +180,29 @@ func loginPage(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// pagePath is the absolute path of a page of the interface. The browser
+// resolves a relative redirection against the directory of the page asked
+// for, and the authentication guard runs under every path: a redirection
+// it issues is never relative.
+func pagePath(name string) string { return Prefix + "/" + name }
+
 // afterLogin is where the sign-in leads: the page asked for when it is a page
 // of the web interface (a path under the prefix, neither the sign-in nor the
 // sign-out), the home page otherwise. The address is given by the browser:
 // nothing outside the interface is followed.
 func afterLogin(target string) string {
 	if !strings.HasPrefix(target, Prefix+"/") {
-		return homePath
+		return pagePath(homePath)
 	}
 
 	parsed, err := url.Parse(target)
 	if err != nil || parsed.Host != "" || parsed.Scheme != "" {
-		return homePath
+		return pagePath(homePath)
 	}
 
 	switch strings.Trim(strings.TrimPrefix(parsed.Path, Prefix+"/"), "/") {
 	case "", loginPath, logoutPath:
-		return homePath
+		return pagePath(homePath)
 	}
 
 	return target

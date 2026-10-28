@@ -51,6 +51,9 @@ func newLoginSuite(t *testing.T) *loginSuite {
 	secure := sub.PathPrefix("/").Subrouter()
 	secure.Use(AuthenticationMiddleware(logger, db))
 	secure.HandleFunc("/home", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	// A page of the reworked interface lives under a sub-path: the guard must
+	// lead it to the same sign-in page.
+	secure.HandleFunc("/transfers/new", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 
 	return &loginSuite{db: db, router: router}
 }
@@ -232,5 +235,16 @@ func TestLoginPage(t *testing.T) {
 		rec := s.do(t, "fr", http.MethodGet, "/webui/home", nil, "")
 		require.Equal(t, http.StatusFound, rec.Code)
 		assert.Equal(t, "/webui/login?redirect=%2Fwebui%2Fhome", rec.Header().Get("Location"))
+	})
+
+	t.Run("a page under a sub-path leads to the sign-in page of the interface, not to one of its own", func(t *testing.T) {
+		rec := s.do(t, "fr", http.MethodGet, "/webui/transfers/new", nil, "")
+		require.Equal(t, http.StatusFound, rec.Code)
+		assert.Equal(t, "/webui/login?redirect=%2Fwebui%2Ftransfers%2Fnew", rec.Header().Get("Location"),
+			"the sign-in page is at the root of the interface, whatever the directory of the page asked for")
+
+		rec = s.do(t, "fr", http.MethodGet, "/webui/transfers/new", nil, "stale-token")
+		require.Equal(t, http.StatusFound, rec.Code)
+		assert.Equal(t, "/webui/login?reason=expired&redirect=%2Fwebui%2Ftransfers%2Fnew", rec.Header().Get("Location"))
 	})
 }
