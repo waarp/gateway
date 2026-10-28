@@ -303,7 +303,7 @@ type pageData struct {
 
 // monitors reads the monitors, by name.
 func (h *Handlers) monitors() ([]*gwsnmp.MonitorConfig, error) {
-	var list model.Slice[*gwsnmp.MonitorConfig]
+	var list database.Slice[*gwsnmp.MonitorConfig]
 	if err := h.db.Select(&list).OrderBy("name", true).Run(); err != nil {
 		return nil, err //nolint:wrapcheck // logged by the caller with its context
 	}

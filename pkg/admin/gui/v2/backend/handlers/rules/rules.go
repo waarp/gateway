@@ -872,7 +872,7 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if delErr := h.db.Delete(item.rule).Run(); delErr != nil {
-		if database.IsValidationError(delErr) {
+		if common.Refused(delErr) {
 			h.renderDelete(w, r, &item, held, delErr.Error(), http.StatusUnprocessableEntity)
 
 			return
