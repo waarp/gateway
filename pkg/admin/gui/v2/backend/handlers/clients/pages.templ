@@ -368,8 +368,9 @@ templ addressValue(address string) {
 
 // deleteView: confirmation page of the deletion of a local client (decision
 // D10: a page, not a dialog). The title names the client, the text says the
-// consequences, "Cancel" then "Delete" bottom right (D12). Refused (folder
-// watchers use the client): the cause and the way out, no "Delete" button.
+// consequences, "Cancel" then "Delete" bottom right (D12). Refused
+// (unfinished transfers or folder watchers use the client): the cause, the
+// way to its transfers, no "Delete" button.
 templ deleteView(d deleteData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
@@ -383,12 +384,15 @@ templ deleteView(d deleteData) {
 		</div>
 	</div>
 	<div class="w-card">
-		if d.Blocked {
-			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "clients.delete.blocked_title"), Text: gui.T(ctx, "clients.delete.blocked_text")})
+		if d.Refusal != "" {
+			@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "clients.delete.blocked_title"), Text: d.Refusal})
+			if d.TransfersURL != "" {
+				<p class="clients-lead"><a class="w-link" href={ templ.SafeURL(d.TransfersURL) }>{ gui.T(ctx, "clients.action.transfers") }</a></p>
+			}
 		} else {
 			<p class="clients-lead">{ gui.T(ctx, "clients.delete.text") }@runningNote(d.Running)</p>
 		}
-		<dl class={ "w-deflist", templ.KV("clients-deflist", d.Blocked) }>
+		<dl class={ "w-deflist", templ.KV("clients-deflist", d.Refusal != "") }>
 			<dt>{ gui.T(ctx, "clients.detail.card") }</dt>
 			<dd>{ d.Name }</dd>
 			<dt>{ gui.T(ctx, "clients.detail.state") }</dt>
@@ -398,7 +402,7 @@ templ deleteView(d deleteData) {
 			<dt>{ gui.T(ctx, "clients.detail.address") }</dt>
 			<dd>@addressValue(d.Address)</dd>
 		</dl>
-		if d.Blocked {
+		if d.Refusal != "" {
 			<div class="w-form__actions clients-form-actions"><a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>{ gui.T(ctx, "clients.back_client") }</a></div>
 		} else {
 			<form class="clients-form-actions" method="post" action={ templ.SafeURL(d.Action) }>@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: true, Title: gui.T(ctx, "clients.delete.title", "name", d.Name)})</form>

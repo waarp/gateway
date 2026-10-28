@@ -1077,9 +1077,10 @@ clients:
       factor: Enter a factor above 0.
   delete:
     title: "Delete the client “{name}”?"
-    text: "Transfers to come or interrupted that name it will no longer run; the transfer history keeps its name."
-    running: "It is running: it will be stopped and its running transfers interrupted."
+    text: The transfer history keeps its name.
+    running: "It is running: it will be stopped."
     blocked_title: This client cannot be deleted.
+    blocked_transfers: "Unfinished transfers use it: planned, running, paused, interrupted or failed. Cancel them or wait for them to end."
     blocked_text: "Folder watchers use it. Delete them first, through the API or the command line."
   # Result of the previous action, as a notification.
   toast:

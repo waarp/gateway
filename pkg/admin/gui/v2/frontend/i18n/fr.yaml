@@ -1076,9 +1076,10 @@ clients:
       factor: Indiquez un facteur supérieur à 0.
   delete:
     title: "Supprimer le client « {name} » ?"
-    text: "Les transferts à venir ou interrompus qui le désignent ne pourront plus s'exécuter ; l'historique des transferts garde son nom."
-    running: "Il est en ligne : il sera arrêté et ses transferts en cours interrompus."
+    text: L'historique des transferts garde son nom.
+    running: "Il est en ligne : il sera arrêté."
     blocked_title: Ce client ne peut pas être supprimé.
+    blocked_transfers: "Des transferts non terminés l'utilisent : planifiés, en cours, en pause, interrompus ou en erreur. Annulez-les ou attendez qu'ils se terminent."
     blocked_text: "Des surveillances de dossiers l'utilisent. Supprimez-les d'abord, par l'API ou la ligne de commande."
   # Résultat de l'action précédente, en notification.
   toast:
