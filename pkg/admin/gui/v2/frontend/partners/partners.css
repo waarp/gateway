@@ -4,4 +4,6 @@
 .partners-col-protocol { width: 16%; }
 .partners-col-accounts { width: 12%; }
 .partners-text { margin: 0; }
+.partners-rules { margin: 0 0 var(--sp-3); padding-left: var(--sp-5); }   /* the rules reserved to the partner, a list in its card (#760) */
+.partners-rules li + li { margin-top: var(--sp-1); }
 .partners-links { margin: 0; padding: 0 0 0 var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-1); }

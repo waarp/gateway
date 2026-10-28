@@ -761,11 +761,8 @@ partners:
     rules_meta: "{reserved} reserved · {open} unrestricted"
     rules_hint: "The accesses to the rules are managed on the transfer rules screen."
     rules_link: See the transfer rules
-    rule_col_name: Rule
-    rule_col_dir: Direction
-    rule_col_via: Granted to
-    rule_via_partner: The partner
-    rule_via_account: "The account “{login}”"
+    rule_via_partner: granted to the partner
+    rule_via_account: "granted to the account “{login}”"
     rule_send: send
     rule_receive: receive
   client:
