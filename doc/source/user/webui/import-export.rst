@@ -73,8 +73,9 @@ l'utilisateur et les catégories ; un export en clair l'est en avertissement.
 Le nom du fichier porte alors ``-markers``. Les hachages des mots de passe
 des utilisateurs restent : ce ne sont pas des secrets en clair, et l'import
 ne connaît rien d'autre d'un utilisateur. Un tel fichier ne s'importe pas tel
-quel : la page refuse un fichier qui porte encore un repère, parce qu'un
-repère importé deviendrait un mot de passe.
+quel : la page refuse un fichier dont une valeur porte encore un repère, parce
+qu'un repère importé deviendrait un mot de passe ; un commentaire qui cite un
+repère n'en est pas un.
 
 
 Importer une configuration

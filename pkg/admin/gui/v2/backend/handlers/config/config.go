@@ -263,8 +263,8 @@ func (h *Handlers) exportFailed(w http.ResponseWriter, r *http.Request, translat
 // Import reads the uploaded file and the options, then simulates or applies
 // the import; the page comes back with its errors (422), or the screen
 // loads again with the result (Post/Redirect/Get). A file that cannot be
-// read is an error of the form, never a failure of the server; a file that
-// still carries markers is refused. The import is logged with its user.
+// read is an error of the form, never a failure of the server; a file whose
+// values still carry markers is refused. The import is logged with its user.
 func (h *Handlers) Import(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload+formOverhead)
@@ -355,11 +355,27 @@ func (h *Handlers) readImport(translate gui.Translator, r *http.Request) (*file.
 		return nil, posted, false
 	}
 
+	// The markers of a redacted export are looked for in the values of the
+	// file once parsed, not in its comments.
+	marked, err := carriesMarkers(data)
+	if err != nil {
+		posted.Import.FileError = translate("config.import.unreadable")
+		posted.Import.Refused = err.Error()
+
+		return nil, posted, false
+	}
+
+	if marked {
+		posted.Import.FileError = translate("config.import.markers")
+
+		return nil, posted, false
+	}
+
 	return data, posted, true
 }
 
 // readFile takes the uploaded file: present, of a known type, within the
-// bound, and free of the markers of a redacted export.
+// bound.
 func (h *Handlers) readFile(translate gui.Translator, r *http.Request, form *importForm) ([]byte, string, bool) {
 	upload, header, err := r.FormFile(fieldFile)
 	if err != nil {
@@ -385,8 +401,6 @@ func (h *Handlers) readFile(translate gui.Translator, r *http.Request, form *imp
 		form.FileError = translate("config.import.file_read")
 	case len(content) > maxUpload:
 		form.FileError = translate("config.import.file_size")
-	case hasMarkers(content):
-		form.FileError = translate("config.import.markers")
 	}
 
 	if form.FileError != "" {
