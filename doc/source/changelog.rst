@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`802` Sur l'écran d'import et d'export de la configuration, la page
+  s'ouvre en YAML, l'option de remplacement des secrets et des certificats par
+  des repères cochée ; un export demandé sans format est en YAML. Après un
+  import refusé, la page garde le format et l'option tels qu'ils ont été
+  choisis.
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,
   les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
   L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône

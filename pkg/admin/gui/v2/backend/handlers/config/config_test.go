@@ -204,11 +204,12 @@ func TestPage(t *testing.T) {
 			len(categories), "every category once, checked")
 		assert.Contains(t, body, `<input type="checkbox" id="cfg-cat-servers" name="target" value="servers" checked aria-describedby="cfg-cat-h"> <span>Serveurs locaux, avec leurs comptes et leur authentification</span>`)
 
-		// The export card: JSON, the secrets in clear and said, an outline
-		// button that names its route.
-		assert.Contains(t, body, `<input type="radio" name="format" value="json" checked>`)
-		assert.Contains(t, body, `<input type="radio" name="format" value="yaml">`)
-		assert.Contains(t, body, `<input type="checkbox" name="redact" value="1" id="cfg-redact" aria-describedby="cfg-redact-h"> <span>Remplacer les secrets et les certificats par des repères</span>`)
+		// The export card: YAML, the secrets replaced by markers (the warning
+		// on a file in clear stays in the page, the stylesheet hides it while
+		// the option is checked), an outline button that names its route.
+		assert.Contains(t, body, `<input type="radio" name="format" value="json">`)
+		assert.Contains(t, body, `<input type="radio" name="format" value="yaml" checked>`)
+		assert.Contains(t, body, `<input type="checkbox" name="redact" value="1" id="cfg-redact" checked aria-describedby="cfg-redact-h"> <span>Remplacer les secrets et les certificats par des repères</span>`)
 		assert.Contains(t, body, `<strong>Le fichier contient les secrets en clair.</strong>`)
 		assert.Contains(t, body, `<button class="w-btn w-btn--outline-dark" type="submit" formaction="/webui/config/export" formmethod="get" formnovalidate id="cfg-export-go">Exporter la configuration</button>`)
 
@@ -279,7 +280,13 @@ func TestExport(t *testing.T) {
 
 		rec = s.get(t, permRead, "/webui/config/export?target=rules")
 		require.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "application/json; charset=utf-8", rec.Header().Get("Content-Type"), "JSON by default")
+		assert.Equal(t, "application/yaml; charset=utf-8", rec.Header().Get("Content-Type"), "YAML by default")
+		assert.Regexp(t, `\.yaml"$`, rec.Header().Get("Content-Disposition"))
+		assert.Contains(t, rec.Body.String(), "rules:\n")
+
+		rec = s.get(t, permRead, "/webui/config/export?target=rules&format=json")
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "application/json; charset=utf-8", rec.Header().Get("Content-Type"), "JSON when asked")
 		assert.Regexp(t, `\.json"$`, rec.Header().Get("Content-Disposition"))
 
 		var data map[string]any
@@ -294,13 +301,13 @@ func TestExport(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		clear := s.get(t, permRead, "/webui/config/export?target=servers&target=partners&target=email").Body.String()
+		clear := s.get(t, permRead, "/webui/config/export?target=servers&target=partners&target=email&format=json").Body.String()
 		assert.Contains(t, clear, secretPassword)
 		assert.Contains(t, clear, secretSMTP)
 		assert.Contains(t, clear, "BEGIN CERTIFICATE")
 		assert.NotContains(t, clear, "__PWD__")
 
-		rec := s.get(t, permRead, "/webui/config/export?target=servers&target=partners&target=email&redact=1")
+		rec := s.get(t, permRead, "/webui/config/export?target=servers&target=partners&target=email&format=json&redact=1")
 		require.Equal(t, http.StatusOK, rec.Code)
 		assert.Regexp(t, `-markers\.json"$`, rec.Header().Get("Content-Disposition"), "the file says it")
 		body := rec.Body.String()
@@ -352,7 +359,8 @@ func TestImport(t *testing.T) {
 		fields.Set(fieldAction, actionSimulate)
 		fields.Set(fieldRestart, "1")
 
-		query := redirected(t, s.upload(t, fields, "export.json", export))
+		// The export asked without a format is YAML: the file is named so.
+		query := redirected(t, s.upload(t, fields, "export.yaml", export))
 		assert.Equal(t, doneSimulated, query.Get(doneParam))
 		assert.Equal(t, "Serveurs locaux, avec leurs comptes et leur authentification, Partenaires distants, avec leurs "+
 			"comptes et leur authentification, Clients locaux, Règles de transfert, Utilisateurs, Instances cloud, SNMP, "+
@@ -383,7 +391,7 @@ func TestImport(t *testing.T) {
 		s.fixtures(t)
 
 		yamlRule := []byte("rules:\n- name: imported\n  isSend: true\n  path: imported\n")
-		fields := url.Values{fieldTarget: {"rules"}, fieldAction: {actionImport}, fieldReset: {"1"}}
+		fields := url.Values{fieldTarget: {"rules"}, fieldAction: {actionImport}, fieldReset: {"1"}, fieldFormat: {formatJSON}}
 		rec := s.upload(t, fields, "conf.yaml", yamlRule)
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "without the confirmation")
 		body := rec.Body.String()
@@ -392,6 +400,8 @@ func TestImport(t *testing.T) {
 		assert.Contains(t, body, `name="reset" value="1" id="cfg-reset" checked>`, "the options posted stay")
 		assert.Contains(t, body, `id="cfg-cat-rules" name="target" value="rules" checked`, "the categories posted stay")
 		assert.NotContains(t, body, `id="cfg-cat-users" name="target" value="users" checked`)
+		assert.Contains(t, body, `<input type="radio" name="format" value="json" checked>`, "the export choices posted stay")
+		assert.NotContains(t, body, `id="cfg-redact" checked`, "the markers option, unchecked by the user, stays so")
 		assert.Equal(t, []string{"commandes", "releves"}, s.rules(t), "nothing changed")
 
 		fields.Set(fieldResetConfirm, "1")

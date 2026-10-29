@@ -70,6 +70,10 @@ const (
 
 	formatJSON = "json"
 	formatYAML = "yaml"
+	// The format of the page as it opens and of an export asked without one
+	// (2026-10-29): an export is mostly a file that circulates, and YAML
+	// reads and comments better.
+	defaultFormat = formatYAML
 
 	// The result of the previous action, carried by the redirection.
 	doneParam       = liststate.DoneParam
@@ -171,15 +175,17 @@ func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 	h.shell.Render(w, h.logger, r, screen, pageView(h.newPage(translate, r)))
 }
 
-// newPage is the page as it opens: every category checked, JSON, the
-// secrets in clear, nothing asked of the import.
+// newPage is the page as it opens: every category checked, the default
+// format, the secrets and the certificates replaced by markers (a file in
+// clear is asked for, never obtained by default), nothing asked of the import.
 func (h *Handlers) newPage(translate gui.Translator, r *http.Request) pageData {
 	return pageData{
 		ExportURL:  common.WebuiURL(exportPath),
 		ImportURL:  common.WebuiURL(importPath),
 		Write:      common.GetUser(r).Permissions.HasPermission(model.PermAdminWrite),
 		Categories: allCategories(translate, nil),
-		Formats:    formats(translate, formatJSON),
+		Formats:    formats(translate, defaultFormat),
+		Redact:     true,
 	}
 }
 
@@ -319,8 +325,11 @@ func (h *Handlers) readImport(translate gui.Translator, r *http.Request) (*file.
 	}
 
 	// Posted without any category is not the page as it opens: nothing
-	// checked.
+	// checked. The export card is in the same form: its choices come back as
+	// posted when the page is rendered again.
 	posted.Categories = allCategories(translate, append([]string{}, r.Form[fieldTarget]...))
+	posted.Formats = formats(translate, formatOf(r.FormValue(fieldFormat)))
+	posted.Redact = r.FormValue(fieldRedact) != ""
 	posted.Import.Restart = r.FormValue(fieldRestart) != ""
 	posted.Import.Reset = r.FormValue(fieldReset) != ""
 	posted.Import.ResetConfirm = r.FormValue(fieldResetConfirm) != ""
@@ -472,13 +481,14 @@ func formats(translate gui.Translator, format string) []choice {
 	}
 }
 
-// formatOf reads the posted format, JSON unless YAML is asked.
+// formatOf reads the posted format: JSON or YAML as asked, the default format
+// otherwise.
 func formatOf(posted string) string {
-	if posted == formatYAML {
-		return formatYAML
+	if posted == formatJSON || posted == formatYAML {
+		return posted
 	}
 
-	return formatJSON
+	return defaultFormat
 }
 
 // mimeOf is the content type of a downloaded file.

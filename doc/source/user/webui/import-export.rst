@@ -36,18 +36,20 @@ et celles que le fichier ne porte pas sont ignorées.
 Exporter la configuration
 =========================
 
-Le format est JSON ou YAML. *Exporter la configuration* télécharge le fichier
-``waarp-gateway-<instance>-<date>-<heure>.json`` (ou ``.yaml``).
+Le format est YAML par défaut, JSON au choix. *Exporter la configuration*
+télécharge le fichier ``waarp-gateway-<instance>-<date>-<heure>.yaml`` (ou
+``.json``).
 
-**Le fichier contient les secrets en clair** : mots de passe des comptes, clés
-privées, secrets des instances cloud, mots de passe SMTP. Seuls les mots de
-passe des utilisateurs n'y sont qu'en hachage. Il se range comme un secret.
-Chaque export est consigné dans le journal de la passerelle, avec
+L'option *Remplacer les secrets et les certificats par des repères*, cochée à
+l'ouverture de la page, produit un fichier qui peut circuler : chaque secret
+est remplacé par un repère qui dit où il va, dans la forme des outils de
+remplissage des migrations.
+
+Décochée, **le fichier contient les secrets en clair** : mots de passe des
+comptes, clés privées, secrets des instances cloud, mots de passe SMTP. Seuls
+les mots de passe des utilisateurs n'y sont qu'en hachage. Il se range comme
+un secret. Chaque export est consigné dans le journal de la passerelle, avec
 l'utilisateur et les catégories ; un export en clair l'est en avertissement.
-
-L'option *Remplacer les secrets et les certificats par des repères* produit
-un fichier qui peut circuler : chaque secret est remplacé par un repère qui
-dit où il va, dans la forme des outils de remplissage des migrations.
 
 .. list-table::
    :header-rows: 1
