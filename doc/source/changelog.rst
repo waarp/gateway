@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`805` Sur l'écran d'import et d'export de la configuration, les
+  catégories dont le libellé tient sur une ligne viennent en premier, les
+  serveurs locaux et les partenaires distants, aux libellés longs, en dernier ;
+  les notifications nomment les catégories dans le même ordre.
 * :bug:`804` Sur l'écran d'import et d'export de la configuration, les cartes
   Exporter et Importer, côte à côte, ont désormais la même hauteur, leurs
   boutons alignés en bas.

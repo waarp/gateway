@@ -92,13 +92,17 @@ const (
 )
 
 // categories are the parts of the configuration, named as the REST API
-// names its targets, in the order of the sidebar. The labels are the
-// catalogue keys "config.categories.<name>".
+// names its targets, in the order of the card: the categories whose label
+// fits on one line first, in the order of the sidebar, then the two whose
+// label names their accounts and their authentication, two lines wide at
+// 1440 px as at 390 px (measured on 2026-10-29), so that the card stays
+// balanced. The notifications name the categories in the same order. The
+// labels are the catalogue keys "config.categories.<name>".
 //
 //nolint:gochecknoglobals // reference data of the screen
 var categories = []string{
-	"servers", "partners", "clients", "rules", "users", "clouds",
-	"snmp", "authorities", "keys", "email", "filewatchers",
+	"clients", "rules", "users", "clouds", "snmp", "authorities", "keys", "email", "filewatchers",
+	"servers", "partners",
 }
 
 // fileTypes are the extensions of a configuration file, as the backup
@@ -465,7 +469,7 @@ func allCategories(translate gui.Translator, posted []string) []category {
 }
 
 // chosen keeps the posted categories the screen knows, in the order of the
-// sidebar: an unknown one is dropped, as the REST API ignores it.
+// card: an unknown one is dropped, as the REST API ignores it.
 func chosen(posted []string) []string {
 	kept := make([]string, 0, len(categories))
 	for _, key := range categories {
