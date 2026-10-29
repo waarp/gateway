@@ -183,10 +183,14 @@ templ detailView(d detailData) {
 				<p class="users-note">{ gui.T(ctx, "users.last_admin") }</p>
 			}
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "users.detail.rights") }</h2>
-			@rights.List(d.Caption, d.Rights)
-		</div>
+		// The second card folds (rule of 2026-10-25, #807): open by default,
+		// its state kept by the kit.
+		<details class="w-card w-card--fold" data-key="users-rights" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "users.detail.rights") }</span></summary>
+			<div class="w-card__body">
+				@rights.List(d.Caption, d.Rights)
+			</div>
+		</details>
 	</div>
 }
 
@@ -277,12 +281,24 @@ templ formView(d *formData) {
 				</div>
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "users.form.rights") }</legend>
-				@rightsChecks(d)
-			</fieldset>
-		</div>
+		// The rights card folds (rule of 2026-10-25, #807): open by default,
+		// its state kept by the kit; no key while the form is refused, so
+		// that it opens on the error.
+		<details
+			class="w-card w-card--fold"
+			if !d.HasErrors {
+				data-key="users-form-rights"
+			}
+			open
+		>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "users.form.rights") }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "users.form.rights") }</legend>
+					@rightsChecks(d)
+				</fieldset>
+			</div>
+		</details>
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>
 }
