@@ -329,6 +329,9 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, `sandbox="" srcdoc="`, "the body in a frame that runs nothing")
 		assert.Contains(t, body, "factures-2026-10.csv", "the example file")
 		assert.Contains(t, body, `<form class="et-preview__controls" method="get" action="/webui/email-templates/`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold et-preview" id="et-preview" data-key="et-preview" open>`, "the cards after the first fold (#807)")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="et-attachments" open>`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="et-uses" open>`)
 		assert.NotContains(t, body, `class="et-mark"`, "the values are not highlighted by default")
 	})
 
