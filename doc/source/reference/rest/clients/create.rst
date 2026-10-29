@@ -1,7 +1,7 @@
 Créer un client
 ===============
 
-.. http:post:: /api/clients/(string:client_name)
+.. http:post:: /api/clients
 
    Ajoute un nouveau client avec les informations renseignées en JSON.
 

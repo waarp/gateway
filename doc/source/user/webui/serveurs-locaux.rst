@@ -320,7 +320,7 @@ Les mêmes opérations sont disponibles par l'API REST, sur les points
 :http:get:`/api/servers`, :http:post:`/api/servers`,
 :http:put:`/api/servers/(string:server_name)/start` et
 :http:put:`/api/servers/(string:server_name)/stop`, et, pour la fiche,
-:http:get:`/api/servers/(string:server_name)/credentials` et
+:http:get:`/api/servers/(string:server_name)` et
 :http:get:`/api/servers/(string:server_name)/accounts` (voir
 :ref:`reference-rest-api`), et en ligne de commande avec ``waarp-gateway
 server``.

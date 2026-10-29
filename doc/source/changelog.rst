@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`815` Dans la référence de l'API REST, les points qui listent et créent
+  les clients sont documentés à leur vrai chemin, ``GET /api/clients`` et
+  ``POST /api/clients``, et non plus ``/api/clients/{nom}``.
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,
   les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
   L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône
