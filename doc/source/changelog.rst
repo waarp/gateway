@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`804` Sur l'écran d'import et d'export de la configuration, les cartes
+  Exporter et Importer, côte à côte, ont désormais la même hauteur, leurs
+  boutons alignés en bas.
 * :bug:`803` À l'import d'une configuration par l'interface web, les repères
   de secrets (``__PWD__``, ``__KEY__``, ``__PEM__``) ne sont plus cherchés que
   dans les valeurs du fichier : un commentaire YAML qui en cite un ne fait
