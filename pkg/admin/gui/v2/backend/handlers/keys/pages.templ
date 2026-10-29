@@ -175,45 +175,51 @@ templ detailView(d detailData) {
 				}
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "keys.detail.value") }</h2>
-			<dl class="w-deflist">
-				<dt>{ gui.T(ctx, "keys.detail.state") }</dt>
-				<dd class="keys-state">@gui.StatusOf(d.State)</dd>
-				if d.Info.Readable && d.Secret {
-					<dt>{ gui.T(ctx, "keys.detail.value") }</dt>
-					<dd>{ gui.T(ctx, "keys.secret_set") }</dd>
+		// The cards after the first fold (rule of 2026-10-25, #807): open by
+		// default, their state kept by the kit under their key.
+		<details class="w-card w-card--fold" data-key="keys-value" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "keys.detail.value") }</span></summary>
+			<div class="w-card__body">
+				<dl class="w-deflist">
+					<dt>{ gui.T(ctx, "keys.detail.state") }</dt>
+					<dd class="keys-state">@gui.StatusOf(d.State)</dd>
+					if d.Info.Readable && d.Secret {
+						<dt>{ gui.T(ctx, "keys.detail.value") }</dt>
+						<dd>{ gui.T(ctx, "keys.secret_set") }</dd>
+					}
+					if d.Info.Readable && d.AESBits > 0 {
+						<dt>{ gui.T(ctx, "keys.detail.size") }</dt>
+						<dd>{ gui.T(ctx, "keys.detail.bits", "n", d.AESBits) }</dd>
+					}
+					if d.Info.Readable && d.PGP {
+						<dt>{ gui.T(ctx, "keys.detail.identities") }</dt>
+						<dd>@identities(d.Info.Identities)</dd>
+						<dt>{ gui.T(ctx, "keys.detail.fingerprint") }</dt>
+						<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
+						<dt>{ gui.T(ctx, "keys.detail.key_id") }</dt>
+						<dd><code class="w-code">{ d.Info.KeyID }</code></dd>
+						<dt>{ gui.T(ctx, "keys.detail.algorithm") }</dt>
+						<dd>{ d.Info.Algorithm }</dd>
+						<dt>{ gui.T(ctx, "keys.detail.created") }</dt>
+						<dd>{ d.Created }</dd>
+						<dt>{ gui.T(ctx, "keys.detail.expires") }</dt>
+						<dd>{ d.Expires }</dd>
+					}
+				</dl>
+				if d.Info.Public != "" {
+					<details class="keys-public">
+						<summary>@gui.Icon("chevron-right")<span>{ gui.T(ctx, "keys.detail.show_public") }</span></summary>
+						<pre class="keys-armour">{ d.Info.Public }</pre>
+					</details>
 				}
-				if d.Info.Readable && d.AESBits > 0 {
-					<dt>{ gui.T(ctx, "keys.detail.size") }</dt>
-					<dd>{ gui.T(ctx, "keys.detail.bits", "n", d.AESBits) }</dd>
-				}
-				if d.Info.Readable && d.PGP {
-					<dt>{ gui.T(ctx, "keys.detail.identities") }</dt>
-					<dd>@identities(d.Info.Identities)</dd>
-					<dt>{ gui.T(ctx, "keys.detail.fingerprint") }</dt>
-					<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
-					<dt>{ gui.T(ctx, "keys.detail.key_id") }</dt>
-					<dd><code class="w-code">{ d.Info.KeyID }</code></dd>
-					<dt>{ gui.T(ctx, "keys.detail.algorithm") }</dt>
-					<dd>{ d.Info.Algorithm }</dd>
-					<dt>{ gui.T(ctx, "keys.detail.created") }</dt>
-					<dd>{ d.Created }</dd>
-					<dt>{ gui.T(ctx, "keys.detail.expires") }</dt>
-					<dd>{ d.Expires }</dd>
-				}
-			</dl>
-			if d.Info.Public != "" {
-				<details class="keys-public">
-					<summary>@gui.Icon("chevron-right")<span>{ gui.T(ctx, "keys.detail.show_public") }</span></summary>
-					<pre class="keys-armour">{ d.Info.Public }</pre>
-				</details>
-			}
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "keys.detail.uses") }</h2>
-			@usesList(d.Uses)
-		</div>
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="keys-uses" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "keys.detail.uses") }</span></summary>
+			<div class="w-card__body">
+				@usesList(d.Uses)
+			</div>
+		</details>
 	</div>
 }
 
@@ -350,16 +356,27 @@ templ formView(d *formData) {
 				}
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title keys-card-title">{ gui.T(ctx, "keys.detail.value") } <span class="w-fold__meta">{ d.ValueSummary }</span></h2>
-			for _, v := range d.Values {
-				if !d.Locked {
-					@valueBlock(v, true)
-				} else if v.Key == d.Type {
-					@valueBlock(v, false)
-				}
+		// The value card folds (rule of 2026-10-25, #807): open by default, its
+		// summary in its heading, its state kept by the kit; no key while the
+		// form is refused, so that it opens on the error.
+		<details
+			class="w-card w-card--fold"
+			if !d.HasErrors {
+				data-key="keys-form-value"
 			}
-		</div>
+			open
+		>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "keys.detail.value") }</span><span class="w-fold__meta">{ d.ValueSummary }</span></summary>
+			<div class="w-card__body">
+				for _, v := range d.Values {
+					if !d.Locked {
+						@valueBlock(v, true)
+					} else if v.Key == d.Type {
+						@valueBlock(v, false)
+					}
+				}
+			</div>
+		</details>
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: !d.Locked, Title: d.Title})
 	</form>
 }

@@ -26,27 +26,41 @@ templ page(d *pageData) {
 				<dd><code class="w-code">{ d.Instance }</code></dd>
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "me.rights") }</h2>
-			@rights.List(gui.T(ctx, "me.rights_caption"), d.Rights)
-			<p class="w-form__note me-note">{ gui.T(ctx, "me.rights_hint") }</p>
-		</div>
-		<div class="w-card">
-			<form class="w-form" method="post" action={ templ.SafeURL(d.Form.Action) } novalidate>
-				<fieldset class="w-fieldset w-fieldset--wide">
-					<legend class="w-card__title">{ gui.T(ctx, "me.password.title") }</legend>
-					if d.Form.HasErrors {
-						@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "me.password.refused"), Text: gui.T(ctx, "me.password.refused_text")})
-					}
-					<div class="w-grid w-grid--3">
-						@passwordField(fieldCurrent, gui.T(ctx, "me.password.current"), d.Form.Current, "", "current-password")
-						@passwordField(fieldNew, gui.T(ctx, "me.password.new"), d.Form.New, gui.T(ctx, "me.password.new_hint"), "new-password")
-						@passwordField(fieldConfirm, gui.T(ctx, "me.password.confirm"), d.Form.Confirm, "", "new-password")
-					</div>
-					@gui.FormActions(gui.FormActionsProps{CancelURL: d.Form.CancelURL, Required: true, Title: gui.T(ctx, "me.password.title")})
-				</fieldset>
-			</form>
-		</div>
+		// The cards after the first fold (rule of 2026-10-25, #807): open by
+		// default, their state kept by the kit under their key; the password
+		// card carries no key while it holds an error, so that it opens.
+		<details class="w-card w-card--fold" data-key="me-rights" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "me.rights") }</span></summary>
+			<div class="w-card__body">
+				@rights.List(gui.T(ctx, "me.rights_caption"), d.Rights)
+				<p class="w-form__note me-note">{ gui.T(ctx, "me.rights_hint") }</p>
+			</div>
+		</details>
+		<details
+			class="w-card w-card--fold"
+			if !d.Form.HasErrors {
+				data-key="me-password"
+			}
+			open
+		>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "me.password.title") }</span></summary>
+			<div class="w-card__body">
+				<form class="w-form" method="post" action={ templ.SafeURL(d.Form.Action) } novalidate>
+					<fieldset class="w-fieldset w-fieldset--wide">
+						<legend class="visually-hidden">{ gui.T(ctx, "me.password.title") }</legend>
+						if d.Form.HasErrors {
+							@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "me.password.refused"), Text: gui.T(ctx, "me.password.refused_text")})
+						}
+						<div class="w-grid w-grid--3">
+							@passwordField(fieldCurrent, gui.T(ctx, "me.password.current"), d.Form.Current, "", "current-password")
+							@passwordField(fieldNew, gui.T(ctx, "me.password.new"), d.Form.New, gui.T(ctx, "me.password.new_hint"), "new-password")
+							@passwordField(fieldConfirm, gui.T(ctx, "me.password.confirm"), d.Form.Confirm, "", "new-password")
+						</div>
+						@gui.FormActions(gui.FormActionsProps{CancelURL: d.Form.CancelURL, Required: true, Title: gui.T(ctx, "me.password.title")})
+					</fieldset>
+				</form>
+			</div>
+		</details>
 	</div>
 }
 

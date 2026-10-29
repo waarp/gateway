@@ -149,38 +149,44 @@ templ detailView(d detailData) {
 				<dd>{ gui.T(ctx, "smtp.detail.role_text") }</dd>
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</h2>
-			if d.Incomplete {
-				<div class="smtp-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "smtp.detail.incomplete"), Text: gui.T(ctx, "smtp.detail.incomplete_text")})</div>
-			}
-			<dl class="w-deflist">
-				<dt>{ gui.T(ctx, "smtp.form.host") }</dt>
-				<dd>@codeOrNone(d.Host)</dd>
-				<dt>{ gui.T(ctx, "smtp.form.port") }</dt>
-				<dd>@codeOrNone(d.Port)</dd>
-				if d.Connection != "" {
-					<dt>{ gui.T(ctx, "smtp.detail.connection") }</dt>
-					<dd>{ d.Connection }</dd>
+		// The cards after the first fold (rule of 2026-10-25, #807): open by
+		// default, their state kept by the kit under their key.
+		<details class="w-card w-card--fold" data-key="smtp-server" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</span></summary>
+			<div class="w-card__body">
+				if d.Incomplete {
+					<div class="smtp-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "smtp.detail.incomplete"), Text: gui.T(ctx, "smtp.detail.incomplete_text")})</div>
 				}
-				<dt>{ gui.T(ctx, "smtp.col.auth") }</dt>
-				if d.Login == "" {
-					<dd>{ gui.T(ctx, "smtp.detail.auth_none") }</dd>
-				} else {
-					<dd>{ gui.T(ctx, "smtp.detail.login") } <code class="w-code">{ d.Login }</code></dd>
-					<dt>{ gui.T(ctx, "smtp.form.password") }</dt>
-					if d.PasswordSet {
-						<dd>{ gui.T(ctx, "smtp.password.set") }</dd>
-					} else {
-						<dd>{ gui.T(ctx, "smtp.password.none") }</dd>
+				<dl class="w-deflist">
+					<dt>{ gui.T(ctx, "smtp.form.host") }</dt>
+					<dd>@codeOrNone(d.Host)</dd>
+					<dt>{ gui.T(ctx, "smtp.form.port") }</dt>
+					<dd>@codeOrNone(d.Port)</dd>
+					if d.Connection != "" {
+						<dt>{ gui.T(ctx, "smtp.detail.connection") }</dt>
+						<dd>{ d.Connection }</dd>
 					}
-				}
-			</dl>
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "smtp.detail.uses") }</h2>
-			@usesList(d.Uses)
-		</div>
+					<dt>{ gui.T(ctx, "smtp.col.auth") }</dt>
+					if d.Login == "" {
+						<dd>{ gui.T(ctx, "smtp.detail.auth_none") }</dd>
+					} else {
+						<dd>{ gui.T(ctx, "smtp.detail.login") } <code class="w-code">{ d.Login }</code></dd>
+						<dt>{ gui.T(ctx, "smtp.form.password") }</dt>
+						if d.PasswordSet {
+							<dd>{ gui.T(ctx, "smtp.password.set") }</dd>
+						} else {
+							<dd>{ gui.T(ctx, "smtp.password.none") }</dd>
+						}
+					}
+				</dl>
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="smtp-uses" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.detail.uses") }</span></summary>
+			<div class="w-card__body">
+				@usesList(d.Uses)
+			</div>
+		</details>
 	</div>
 }
 
@@ -259,24 +265,45 @@ templ formView(d *formData) {
 				}
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</legend>
-				<div class="w-grid w-grid--2">
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldHost, Label: gui.T(ctx, "smtp.form.host"), Req: true, F: d.Host, Hint: gui.T(ctx, "smtp.form.host_hint"), Placeholder: "smtp.example.org"})
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldPort, Label: gui.T(ctx, "smtp.form.port"), Req: true, F: d.Port, Hint: gui.T(ctx, "smtp.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
-				</div>
-			</fieldset>
-		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "smtp.col.auth") }</legend>
-				<div class="w-grid w-grid--2">
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldLogin, Label: gui.T(ctx, "smtp.form.login"), F: d.Login, Hint: gui.T(ctx, "smtp.form.login_hint"), Autocomplete: "off"})
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldPassword, Label: gui.T(ctx, "smtp.form.password"), F: d.Password, Hint: passwordHint(ctx, d), Password: true, Autocomplete: "new-password"})
-				</div>
-			</fieldset>
-		</div>
+		// The cards after the first fold (rule of 2026-10-25, #807): open by
+		// default, their state kept by the kit; a card carrying an error has
+		// no key, so that it opens.
+		<details
+			class="w-card w-card--fold"
+			if d.Host.Error == "" && d.Port.Error == "" {
+				data-key="smtp-form-server"
+			}
+			open
+		>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "smtp.detail.server") }</legend>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldHost, Label: gui.T(ctx, "smtp.form.host"), Req: true, F: d.Host, Hint: gui.T(ctx, "smtp.form.host_hint"), Placeholder: "smtp.example.org"})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldPort, Label: gui.T(ctx, "smtp.form.port"), Req: true, F: d.Port, Hint: gui.T(ctx, "smtp.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+					</div>
+				</fieldset>
+			</div>
+		</details>
+		<details
+			class="w-card w-card--fold"
+			if d.Login.Error == "" && d.Password.Error == "" {
+				data-key="smtp-form-auth"
+			}
+			open
+		>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.col.auth") }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "smtp.col.auth") }</legend>
+					<div class="w-grid w-grid--2">
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldLogin, Label: gui.T(ctx, "smtp.form.login"), F: d.Login, Hint: gui.T(ctx, "smtp.form.login_hint"), Autocomplete: "off"})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldPassword, Label: gui.T(ctx, "smtp.form.password"), F: d.Password, Hint: passwordHint(ctx, d), Password: true, Autocomplete: "new-password"})
+					</div>
+				</fieldset>
+			</div>
+		</details>
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>
 }

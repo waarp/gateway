@@ -15,7 +15,6 @@
 .keys-note { margin: var(--sp-3) 0 0; }
 .keys-subtitle { margin-top: var(--sp-5); }
 .keys-form-actions { margin-top: var(--sp-5); }
-.keys-card-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-3); }
 .keys-uses { margin-top: var(--sp-2); }
 .keys-list { margin: 0; padding-left: var(--sp-5); }
 .keys-list li + li { margin-top: var(--sp-1); }
