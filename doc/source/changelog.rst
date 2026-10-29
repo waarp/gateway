@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`806` Dans l'interface web refondue, une liste ouverte depuis la
+  navigation ne retient plus que ses préférences, le tri, son sens et le
+  nombre de lignes par page : elle repart en page 1, sans recherche ni filtre.
+  La page, la recherche et les filtres ne reviennent que par le retour d'une
+  page d'action. Un tri ou un nombre de lignes changé en place, sans
+  rechargement, est retenu lui aussi.
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,
   les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
   L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône

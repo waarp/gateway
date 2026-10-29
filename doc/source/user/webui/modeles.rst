@@ -46,9 +46,10 @@ La liste
 Les colonnes *Modèle* et *Objet* se trient d'un clic sur leur en-tête (par
 défaut, le nom croissant). La recherche filtre les modèles par leur nom
 (:ref:`règle commune <user-webui-search>`) et propose les noms existants. Le pied de liste permet de
-changer de page et de choisir le nombre de lignes par page. La recherche, le
-tri et la page sont conservés pour la durée de la session du navigateur, comme
-pour les autres listes.
+changer de page et de choisir le nombre de lignes par page. La recherche, le tri et
+la page sont portés par l'adresse de la page ; le tri et le nombre de lignes par
+page sont conservés pour la durée de la session du navigateur, comme pour les
+autres listes.
 
 Sans droit d'écriture, le bouton *Ajouter un modèle* et les actions qui
 modifient un modèle n'apparaissent pas ; le serveur refuse de toute façon une

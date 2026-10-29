@@ -1,9 +1,12 @@
 // Package liststate is the state of a list screen (local servers, local
 // clients...), shared by the screens: the search, the filters of the
 // screen, the sort, the page and the rows per page, carried by the URL of
-// the list, kept for the browser session in a cookie, and carried by the
-// action pages (?ret=) so that coming back finds the list as it was left.
-// It also builds the list foot and the counts.
+// the list and by the action pages (?ret=) so that coming back finds the
+// list as it was left. The preferences of the list, the sort, its direction
+// and the rows per page, are also kept for the browser session in a cookie:
+// a request that says nothing (the entry of the sidebar) gets them back, on
+// the first page, without search nor filter (2026-10-29). It also builds the
+// list foot and the counts.
 package liststate
 
 import (
@@ -184,14 +187,7 @@ func (q *Query) FilterValues() url.Values {
 // when they differ from the default; the page is added by WithPage.
 func (q *Query) Values() url.Values {
 	v := q.FilterValues()
-	if q.Sort != q.sorts[0] || q.Dir != q.defaultDir() {
-		v.Set(SortParam, q.Sort)
-		v.Set(DirParam, q.Dir)
-	}
-
-	if q.Size != q.sizeByDefault() {
-		v.Set(SizeParam, strconv.Itoa(q.Size))
-	}
+	maps.Copy(v, q.Preferences())
 
 	return v
 }
@@ -213,6 +209,23 @@ func (q *Query) sizeByDefault() int {
 	}
 
 	return q.sizes[0]
+}
+
+// Preferences carries the sort, its direction and the rows per page when
+// they differ from the default: what a list keeps for the session, apart
+// from its position (the page, the search and the filters).
+func (q *Query) Preferences() url.Values {
+	v := url.Values{}
+	if q.Sort != q.sorts[0] || q.Dir != q.defaultDir() {
+		v.Set(SortParam, q.Sort)
+		v.Set(DirParam, q.Dir)
+	}
+
+	if q.Size != q.sizeByDefault() {
+		v.Set(SizeParam, strconv.Itoa(q.Size))
+	}
+
+	return v
 }
 
 // WithPage is the state with the given page.
@@ -342,8 +355,8 @@ func (s *Spec) HasParams(params url.Values) bool {
 	return slices.ContainsFunc(keys, params.Has)
 }
 
-// KeptState reads the state kept for the session; a default or unreadable
-// state is no state.
+// KeptState reads the preferences kept for the session; default or
+// unreadable preferences are none.
 func (s *Spec) KeptState(r *http.Request) (*Query, bool) {
 	cookie, err := r.Cookie(s.Cookie)
 	if err != nil {
@@ -357,15 +370,17 @@ func (s *Spec) KeptState(r *http.Request) (*Query, bool) {
 
 	kept := s.RetOf(state)
 
-	return kept, kept.Encode(kept.Page) != ""
+	return kept, len(kept.Preferences()) > 0
 }
 
-// KeepState stores the state of the list for the browser session, or
-// forgets it when the state is the default one.
+// KeepState stores the preferences of the list (the sort, its direction and
+// the rows per page) for the browser session, or forgets them when they are
+// the default ones. The position of the list (the page, the search and the
+// filters) is not kept: it comes back through the action pages only.
 func (s *Spec) KeepState(w http.ResponseWriter, query *Query) {
 	cookie := &http.Cookie{
 		Name:     s.Cookie,
-		Value:    url.QueryEscape(query.Encode(query.Page)),
+		Value:    url.QueryEscape(query.Preferences().Encode()),
 		Path:     common.WebuiURL(s.Path),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -379,9 +394,11 @@ func (s *Spec) KeepState(w http.ResponseWriter, query *Query) {
 }
 
 // Restore redirects a request that says nothing about the state of the list
-// to the state kept for the session, carrying the result of the previous
-// action; it returns false when there is nothing to restore. A request that
-// says something keeps its state for the session.
+// to the preferences kept for the session, carrying the result of the
+// previous action; it returns false when there is nothing to restore. A
+// request that says something keeps its preferences for the session, the
+// fragments of the live list included (a sort or a size changed in place
+// counts); a fragment is never redirected.
 func (s *Spec) Restore(w http.ResponseWriter, r *http.Request) bool {
 	params := r.URL.Query()
 	if s.HasParams(params) {
@@ -390,12 +407,16 @@ func (s *Spec) Restore(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
+	if params.Get(FragmentParam) != "" {
+		return false
+	}
+
 	kept, ok := s.KeptState(r)
 	if !ok {
 		return false
 	}
 
-	target := kept.WithPage(kept.Page)
+	target := kept.Preferences()
 	for _, name := range []string{DoneParam, FailedParam, NameParam, ReasonParam} {
 		if params.Has(name) {
 			target.Set(name, params.Get(name))

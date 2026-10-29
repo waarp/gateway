@@ -86,8 +86,9 @@ leur chemin (:ref:`règle commune <user-webui-search>`) ; le bouton *Filtres* ou
 sens, appliquées dès qu'elles changent, et *Réinitialiser* revient à la liste
 complète. Le pied de liste permet de changer de page et de choisir le nombre
 de lignes par page. La recherche, les filtres, le tri et la page sont portés
-par l'adresse de la page et conservés pour la durée de la session du
-navigateur, comme pour les autres listes.
+par l'adresse de la page ; le tri et le nombre de lignes par page sont
+conservés pour la durée de la session du navigateur, comme pour les autres
+listes.
 
 .. list-table::
    :header-rows: 1

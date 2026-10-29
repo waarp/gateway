@@ -278,7 +278,7 @@ type listData struct {
 // List serves GET /webui/clouds.
 func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	fragment := liststate.IsListFragment(r)
-	if !fragment && listSpec.Restore(w, r) {
+	if listSpec.Restore(w, r) {
 		return
 	}
 

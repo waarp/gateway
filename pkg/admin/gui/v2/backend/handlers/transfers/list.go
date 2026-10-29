@@ -386,7 +386,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 		part = ""
 	}
 
-	if part == "" && listSpec.Restore(w, r) {
+	if listSpec.Restore(w, r) {
 		return
 	}
 

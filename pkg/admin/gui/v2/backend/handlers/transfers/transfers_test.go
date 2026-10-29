@@ -471,8 +471,13 @@ func TestList(t *testing.T) {
 		assert.NotContains(t, body, "<html", "the part alone")
 		indexes(t, body, `id="transfers-states"`, `data-live-part="counts"`, `id="transfers-count"`)
 		assert.NotContains(t, body, `id="transfers-table"`)
-		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=state%3Derror",
-			"the state the list loads is the one to find again when coming back")
+		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=;",
+			"a state is a position, not kept for the session: the sidebar leads to every state (#806)")
+
+		// A sort changed in place is a preference: kept, from the part.
+		rec = s.get(t, permRead, "/webui/transfers?state=error&sort=file&dir=asc&fragment=counts")
+		require.Equal(t, http.StatusOK, rec.Code, "a part is never redirected")
+		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=dir%3Dasc%26sort%3Dfile")
 
 		// The part of the rows: the feet of the list and the table, which change with the page.
 		rec = s.get(t, permRead, "/webui/transfers?state=error&fragment=rows")

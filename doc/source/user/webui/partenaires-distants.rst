@@ -53,8 +53,9 @@ filtre est actif, le nombre affiché.
 
 Le pied de liste permet de changer de page et de choisir le nombre de lignes
 par page (10 par défaut, 25, 50 ou 100). La recherche, les filtres, le tri et
-la page sont portés par l'adresse de la page et conservés pour la durée de la
-session du navigateur, comme pour les :doc:`serveurs locaux <serveurs-locaux>`.
+la page sont portés par l'adresse de la page ; le tri et le nombre de lignes
+par page sont conservés pour la durée de la session du navigateur, comme pour
+les :doc:`serveurs locaux <serveurs-locaux>`.
 
 Le menu « ⋯ » de chaque ligne donne accès aux actions sur le partenaire,
 selon les droits de l'utilisateur :

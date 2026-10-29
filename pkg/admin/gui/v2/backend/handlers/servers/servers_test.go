@@ -526,29 +526,32 @@ func TestList(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code, "nothing kept yet: the bare list")
 		assert.Empty(t, rec.Header().Values("Set-Cookie"))
 
-		rec = serveWith("/webui/servers?q=srv&sort=state", "")
+		// The preferences (the sort, the rows per page) are kept; the search,
+		// the filters and the page are a position, which is not (#806).
+		rec = serveWith("/webui/servers?q=srv&sort=state&page=2", "")
 		require.Equal(t, http.StatusOK, rec.Code)
 		cookies := rec.Result().Cookies()
 		require.Len(t, cookies, 1)
 		assert.Equal(t, "webui_servers_list", cookies[0].Name)
-		assert.Equal(t, "dir%3Dasc%26q%3Dsrv%26sort%3Dstate", cookies[0].Value)
+		assert.Equal(t, "dir%3Dasc%26sort%3Dstate", cookies[0].Value)
 		assert.Equal(t, "/webui/servers", cookies[0].Path)
 		assert.True(t, cookies[0].HttpOnly)
 		assert.Zero(t, cookies[0].MaxAge, "a session cookie")
 		kept := cookies[0].Name + "=" + cookies[0].Value
 
 		rec = serveWith("/webui/servers", kept)
-		require.Equal(t, http.StatusSeeOther, rec.Code, "the bare list comes back as it was left")
-		assert.Equal(t, "/webui/servers?dir=asc&q=srv&sort=state", rec.Header().Get("Location"))
+		require.Equal(t, http.StatusSeeOther, rec.Code, "the bare list comes back with its preferences, on the first page")
+		assert.Equal(t, "/webui/servers?dir=asc&sort=state", rec.Header().Get("Location"))
 
 		rec = serveWith("/webui/servers?done=created&name=srv-x", kept)
 		require.Equal(t, http.StatusSeeOther, rec.Code)
-		assert.Equal(t, "/webui/servers?dir=asc&done=created&name=srv-x&q=srv&sort=state", rec.Header().Get("Location"),
-			"the result of an action travels with the restored state")
+		assert.Equal(t, "/webui/servers?dir=asc&done=created&name=srv-x&sort=state", rec.Header().Get("Location"),
+			"the result of an action travels with the restored preferences")
 
 		rec = serveWith("/webui/servers?protocol=sftp", kept)
 		require.Equal(t, http.StatusOK, rec.Code, "an explicit address wins")
-		assert.Equal(t, "protocol%3Dsftp", rec.Result().Cookies()[0].Value)
+		assert.Equal(t, "", rec.Result().Cookies()[0].Value, "a filter alone leaves nothing to keep")
+		assert.Equal(t, -1, rec.Result().Cookies()[0].MaxAge)
 
 		body := serveWith("/webui/servers?q=zzz", kept).Body.String()
 		assert.Contains(t, body, `href="/webui/servers?reset=1">Effacer la recherche</a>`, "clearing is explicit")
