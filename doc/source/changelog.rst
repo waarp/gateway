@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`815` Dans la référence de l'API REST, les points qui listent et créent
+  les clients sont documentés à leur vrai chemin, ``GET /api/clients`` et
+  ``POST /api/clients``, et non plus ``/api/clients/{nom}``.
 * :bug:`806` Dans l'interface web refondue, une liste ouverte depuis la
   navigation revient telle qu'on l'a laissée, recherche, filtres, tri et
   nombre de lignes par page compris, mais toujours en page 1 : la page n'est

@@ -22,7 +22,7 @@ groupes :
        transferts, base de données, agent SNMP. Le nom technique du composant
        (``Admin``, ``Controller``…) est affiché sous son libellé.
    * - Serveurs locaux
-     - Un service par :ref:`serveur local <user-servers>` défini sur la
+     - Un service par :ref:`serveur local <user-webui-servers>` défini sur la
        Gateway.
    * - Clients locaux
      - Un service par client local défini sur la Gateway.
