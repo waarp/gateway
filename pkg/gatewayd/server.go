@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -172,10 +173,17 @@ func (wg *WG) startServers() error {
 		return fmt.Errorf("failed to retrieve servers from the database: %w", err)
 	}
 
-	// Services are read for the configured gateway name only: saying how
-	// many were found, and for whom, is what tells a mismatch apart from an
-	// empty database.
-	wg.Logger.Infof("Starting %d server(s) owned by %q", len(servers), wg.DBService.Config.GatewayName)
+	gwName := wg.DBService.Config.GatewayName
+	wg.Logger.Infof("Starting %d server(s) owned by %q", len(servers), gwName)
+
+	if len(servers) == 0 {
+		if otherOwners, err := getOtherOwners(wg.DBService, model.TableLocAgents); err != nil {
+			return fmt.Errorf("failed to retrieve owners for servers: %w", err)
+		} else if len(otherOwners) > 0 {
+			wg.Logger.Noticef("Server(s) found for owner(s) %s but the configured name is %q",
+				strings.Join(otherOwners, ", "), gwName)
+		}
+	}
 
 	for _, server := range servers {
 		serverService, mkErr := protocols.MakeServer(wg.DBService, server)
@@ -204,7 +212,17 @@ func (wg *WG) startClients() error {
 		return fmt.Errorf("failed to retrieve clients from the database: %w", err)
 	}
 
-	wg.Logger.Infof("Starting %d client(s) owned by %q", len(dbClients), wg.DBService.Config.GatewayName)
+	gwName := wg.DBService.Config.GatewayName
+	wg.Logger.Infof("Starting %d client(s) owned by %q", len(dbClients), gwName)
+
+	if len(dbClients) == 0 {
+		if otherOwners, err := getOtherOwners(wg.DBService, model.TableClients); err != nil {
+			return fmt.Errorf("failed to retrieve owners for clients: %w", err)
+		} else if len(otherOwners) > 0 {
+			wg.Logger.Noticef("Client(s) found for owner(s) %s but the configured name is %q",
+				strings.Join(otherOwners, ", "), gwName)
+		}
+	}
 
 	for _, client := range dbClients {
 		clientService, mkErr := protocols.MakeClient(wg.DBService, client)
@@ -335,4 +353,29 @@ mainloop:
 	wg.Logger.Info("Server is exiting...")
 
 	return nil
+}
+
+func getOtherOwners(db database.ReadAccess, tableName string) ([]string, error) {
+	query := fmt.Sprintf("SELECT DISTINCT owner FROM %s WHERE owner<>?", tableName)
+	rows, qErr := db.Query(query, db.GetConfig().GatewayName)
+	if qErr != nil {
+		return nil, fmt.Errorf("failed to query %s owners: %w", tableName, qErr)
+	}
+	defer rows.Close()
+
+	var owners []string
+	var owner string
+	for rows.Next() {
+		if err := rows.Scan(&owner); err != nil {
+			return nil, fmt.Errorf("failed to scan %s owner: %w", tableName, err)
+		}
+
+		owners = append(owners, owner)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to query %s owners: %w", tableName, err)
+	}
+
+	return owners, nil
 }

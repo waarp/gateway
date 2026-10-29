@@ -459,6 +459,10 @@ Historique des versions
   premier guide de l'interface web accompagne cet écran
   (:ref:`user-guide-webui`).
 
+* :bug:`742` Correction d'un bug de l'interface web qui n'affichait pas
+  correctement certaines icônes.
+* :bug:`695` Correction d'un crash application (panic) pouvant survenir sous
+  certaines conditions à l'arrêt ou au rechargement du serveur SNMP.
 * :bug:`753` Les noms d'objets REST (règle, serveurs...) contenant des caractères
   spéciaux sont désormais correctement gérés par l'API REST et le client terminal.
   Par exemple, précédemment, créer un objet avec un slash ``/`` dans son nom était

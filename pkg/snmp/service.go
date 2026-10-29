@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	snmplib "github.com/slayercat/GoSNMPServer"
@@ -27,7 +28,10 @@ type Service struct {
 	state     utils.State
 	startTime time.Time
 
-	server *snmplib.SNMPServer
+	lifecycle sync.Mutex
+
+	server   atomic.Pointer[snmplib.SNMPServer]
+	serverWG sync.WaitGroup
 
 	monitors    []*MonitorConfig
 	monConfLock sync.RWMutex
@@ -36,6 +40,13 @@ type Service struct {
 func (s *Service) Name() string { return ServiceName }
 
 func (s *Service) Start() error {
+	s.lifecycle.Lock()
+	defer s.lifecycle.Unlock()
+
+	return s.startLocked()
+}
+
+func (s *Service) startLocked() error {
 	if s.state.IsRunning() {
 		return nil
 	}
@@ -56,11 +67,11 @@ func (s *Service) start() error {
 	s.Logger = logging.NewLogger(ServiceName)
 	s.Logger.Info("Starting service...")
 
-	if err := s.startServer(); err != nil {
+	if err := s.ReloadMonitorsConf(); err != nil {
 		return err
 	}
 
-	if err := s.ReloadMonitorsConf(); err != nil {
+	if err := s.startServer(); err != nil {
 		return err
 	}
 
@@ -72,7 +83,7 @@ func (s *Service) start() error {
 func (s *Service) startServer() error {
 	var serverConf ServerConfig
 	if err := s.DB.Get(&serverConf, "true").Run(); database.IsNotFound(err) {
-		s.server = nil
+		s.server.Store(nil)
 
 		return nil // no server configured
 	} else if err != nil {
@@ -91,31 +102,33 @@ func (s *Service) startServer() error {
 }
 
 func (s *Service) Stop(ctx context.Context) error {
-	if !s.state.IsRunning() {
-		return utils.ErrNotRunning
-	}
+	s.lifecycle.Lock()
+	defer s.lifecycle.Unlock()
 
-	if err := s.stop(ctx); err != nil {
-		s.state.Set(utils.StateError, err.Error())
-	}
-
-	s.state.Set(utils.StateOffline, "")
-
-	return nil
+	return s.stopLocked(ctx)
 }
 
-func (s *Service) stop(ctx context.Context) error {
+func (s *Service) stopLocked(ctx context.Context) error {
 	s.Logger.Info("Stopping service...")
+	defer s.serverWG.Wait()
 
-	return utils.RunWithCtx(ctx, func() error {
-		if s.server != nil {
-			s.server.Shutdown()
+	if err := utils.RunWithCtx(ctx, func() error {
+		if server := s.server.Load(); server != nil {
+			server.Shutdown()
 		}
 
 		s.Logger.Info("Service stopped")
 
 		return nil
-	})
+	}); err != nil {
+		s.state.Set(utils.StateError, err.Error())
+
+		return err
+	}
+
+	s.state.Set(utils.StateOffline, "")
+
+	return nil
 }
 
 func (s *Service) State() (utils.StateCode, string) { return s.state.Get() }
@@ -137,11 +150,16 @@ func (s *Service) ReloadMonitorsConf() error {
 }
 
 func (s *Service) ReloadServerConf(ctx context.Context) error {
-	if err := s.Stop(ctx); err != nil {
-		return err
+	s.lifecycle.Lock()
+	defer s.lifecycle.Unlock()
+
+	if s.state.IsRunning() {
+		if err := s.stopLocked(ctx); err != nil {
+			return err
+		}
 	}
 
-	return s.Start()
+	return s.startLocked()
 }
 
 func (s *Service) ReportTransferError(transferID int64) {
@@ -193,44 +211,15 @@ func (s *Service) sysUpTime() uint32 {
 }
 
 func (s *Service) GetServerAddr() string {
-	if s.server == nil {
+	server := s.server.Load()
+	if server == nil {
 		return ""
 	}
 
-	addr := s.server.Address()
+	addr := server.Address()
 	if addr == nil {
 		return ""
 	}
 
 	return addr.String()
-}
-
-func (s *Service) StartNoServer() error {
-	if s.state.IsRunning() {
-		return utils.ErrAlreadyRunning
-	}
-
-	if err := s.startNoServer(); err != nil {
-		s.state.Set(utils.StateError, err.Error())
-
-		return err
-	}
-
-	s.state.Set(utils.StateRunning, "")
-	s.startTime = time.Now()
-
-	return nil
-}
-
-func (s *Service) startNoServer() error {
-	s.Logger = logging.NewLogger(ServiceName)
-	s.Logger.Info("Starting service...")
-
-	if err := s.ReloadMonitorsConf(); err != nil {
-		return err
-	}
-
-	s.Logger.Info("Service started")
-
-	return nil
 }

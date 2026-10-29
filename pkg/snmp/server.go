@@ -21,8 +21,8 @@ func (s *Service) listen(conf *ServerConfig) error {
 				UserName:                 conf.SNMPv3Username,
 				AuthenticationProtocol:   getAuthProtocol(conf.SNMPv3AuthProtocol),
 				PrivacyProtocol:          getPrivProtocol(conf.SNMPv3PrivProtocol),
-				AuthenticationPassphrase: string(conf.SNMPv3AuthPassphrase),
-				PrivacyPassphrase:        string(conf.SNMPv3PrivPassphrase),
+				AuthenticationPassphrase: conf.SNMPv3AuthPassphrase,
+				PrivacyPassphrase:        conf.SNMPv3PrivPassphrase,
 			}},
 		},
 		SubAgents: []*snmplib.SubAgent{{
@@ -33,17 +33,20 @@ func (s *Service) listen(conf *ServerConfig) error {
 		Logger: serverLog(s.Logger),
 	}
 
-	s.server = snmplib.NewSNMPServer(handler)
-
-	if err := s.server.ListenUDP("udp", conf.LocalUDPAddress); err != nil {
+	server := snmplib.NewSNMPServer(handler)
+	if err := server.ListenUDP("udp", conf.LocalUDPAddress); err != nil {
 		return fmt.Errorf("cannot listen on %q: %w", conf.LocalUDPAddress, err)
 	}
 
-	go func() {
-		if err := s.server.ServeForever(); err != nil {
-			s.state.Set(utils.StateError, err.Error())
+	s.server.Store(server)
+
+	s.serverWG.Go(func() {
+		if err := server.ServeForever(); err != nil {
+			if s.state.IsRunning() {
+				s.state.Set(utils.StateError, err.Error())
+			}
 		}
-	}()
+	})
 
 	return nil
 }
