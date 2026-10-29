@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :support:`800` Dans la barre latérale repliée de l'interface web refondue,
+  les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
+  L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône
+  empilée (entrées de la barre, colonne étroite d'icônes), s'affiche à côté
+  d'elle : elle ne masque plus l'entrée suivante et n'en capte plus le clic.
 * :feature:`794` Les pages qui ajoutent ou pré-enregistrent un transfert ne
   proposent, pour la règle choisie, que les comptes qu'elle autorise : une
   règle qui restreint ses accès masque les autres comptes, l'aide du champ
