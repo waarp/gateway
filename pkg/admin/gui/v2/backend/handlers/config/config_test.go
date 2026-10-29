@@ -204,6 +204,14 @@ func TestPage(t *testing.T) {
 			len(categories), "every category once, checked")
 		assert.Contains(t, body, `<input type="checkbox" id="cfg-cat-servers" name="target" value="servers" checked aria-describedby="cfg-cat-h"> <span>Serveurs locaux, avec leurs comptes et leur authentification</span>`)
 
+		// The one-line labels first, the two long ones (servers, partners) last.
+		var order []string
+		for _, m := range regexp.MustCompile(`id="cfg-cat-([a-z]+)" name="target"`).FindAllStringSubmatch(body, -1) {
+			order = append(order, m[1])
+		}
+		assert.Equal(t, []string{"clients", "rules", "users", "clouds", "snmp", "authorities", "keys", "email", "filewatchers",
+			"servers", "partners"}, order, "the order of the card")
+
 		// The export card: YAML, the secrets replaced by markers (the warning
 		// on a file in clear stays in the page, the stylesheet hides it while
 		// the option is checked), an outline button that names its route.
@@ -362,10 +370,10 @@ func TestImport(t *testing.T) {
 		// The export asked without a format is YAML: the file is named so.
 		query := redirected(t, s.upload(t, fields, "export.yaml", export))
 		assert.Equal(t, doneSimulated, query.Get(doneParam))
-		assert.Equal(t, "Serveurs locaux, avec leurs comptes et leur authentification, Partenaires distants, avec leurs "+
-			"comptes et leur authentification, Clients locaux, Règles de transfert, Utilisateurs, Instances cloud, SNMP, "+
-			"Autorités d'authentification, Clés cryptographiques, E-mail, identifiants SMTP et modèles, "+
-			"Surveillances de partenaires", query.Get(categoriesParam))
+		assert.Equal(t, "Clients locaux, Règles de transfert, Utilisateurs, Instances cloud, SNMP, Autorités d'authentification, "+
+			"Clés cryptographiques, E-mail, identifiants SMTP et modèles, Surveillances de partenaires, "+
+			"Serveurs locaux, avec leurs comptes et leur authentification, Partenaires distants, avec leurs comptes et "+
+			"leur authentification", query.Get(categoriesParam), "the categories in the order of the card")
 		assert.Empty(t, query.Get(restartedParam), "no restart on a simulation")
 		assert.Equal(t, []string{"commandes", "releves"}, s.rules(t), "nothing changed")
 	})

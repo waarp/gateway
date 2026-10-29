@@ -24,11 +24,11 @@ comme pour l'import, puis l'export et l'import.
 Catégories
 ==========
 
-Les catégories sont cochées, toutes par défaut : serveurs locaux (avec leurs
-comptes et leur authentification), partenaires distants (de même), clients
-locaux, règles de transfert, utilisateurs, instances cloud, SNMP, autorités
-d'authentification, clés cryptographiques, e-mail (identifiants SMTP et
-modèles), surveillances de partenaires. À l'export, seules les catégories
+Les catégories sont cochées, toutes par défaut : clients locaux, règles de
+transfert, utilisateurs, instances cloud, SNMP, autorités d'authentification,
+clés cryptographiques, e-mail (identifiants SMTP et modèles), surveillances de
+partenaires, puis serveurs locaux (avec leurs comptes et leur authentification)
+et partenaires distants (de même). À l'export, seules les catégories
 cochées sont écrites ; à l'import, seules les catégories cochées sont lues,
 et celles que le fichier ne porte pas sont ignorées.
 
