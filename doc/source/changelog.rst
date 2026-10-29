@@ -464,6 +464,9 @@ Historique des versions
   premier guide de l'interface web accompagne cet écran
   (:ref:`user-guide-webui`).
 
+* :bug:`798` Ajout d'options de filtrage et de tri manquantes à la commande
+  ``transfer list`` du CLI. Par ailleurs, la commande trie maintenant les
+  transferts du plus récent au plus ancien par défaut (au lieu de l'inverse).
 * :bug:`742` Correction d'un bug de l'interface web qui n'affichait pas
   correctement certaines icônes.
 * :bug:`695` Correction d'un crash application (panic) pouvant survenir sous
