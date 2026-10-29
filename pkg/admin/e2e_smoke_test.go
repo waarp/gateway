@@ -1618,17 +1618,31 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		assert.Zero(t, session.count(t, ".w-navgroup a[title]"), "expanded, the labels read in place")
 	})
 
-	// The configuration import and export (#773): the export downloads the
-	// file of the instance, the simulation of its import passes, in place of
-	// the page, with its notification.
+	// The configuration import and export (#773): the page opens on YAML with
+	// the secrets replaced by markers (#802), so the first export is a file
+	// with markers, which the import refuses; exported in clear, the file of
+	// the instance comes back whole and the simulation of its import passes,
+	// in place of the page, with its notification.
 	t.Run("the configuration exports and its import simulates", func(t *testing.T) {
 		session.visit(t, "/webui/config")
 
-		download, err := page.ExpectDownload(func() error { return page.Locator("#cfg-export-go").Click() })
+		marked, err := page.ExpectDownload(func() error { return page.Locator("#cfg-export-go").Click() })
 		require.NoError(t, err)
-		assert.Regexp(t, `^waarp-gateway-.+\.json$`, download.SuggestedFilename())
+		assert.Regexp(t, `^waarp-gateway-.+-markers\.yaml$`, marked.SuggestedFilename(), "YAML with markers by default")
 		// Saved under its name: Playwright keeps a download without an extension,
 		// and the screen reads the format on it.
+		markedPath := filepath.Join(t.TempDir(), marked.SuggestedFilename())
+		require.NoError(t, marked.SaveAs(markedPath))
+
+		require.NoError(t, page.Locator("#cfg-file").SetInputFiles(markedPath))
+		require.NoError(t, page.Locator("#cfg-simulate").Click())
+		require.NoError(t, page.Locator("#cfg-file-h.w-field__error").WaitFor(), "a file with markers is refused by its field")
+
+		// Exported in clear: the option unchecked, the file carries no marker.
+		require.NoError(t, page.Locator("#cfg-redact").Uncheck())
+		download, err := page.ExpectDownload(func() error { return page.Locator("#cfg-export-go").Click() })
+		require.NoError(t, err)
+		assert.Regexp(t, `^waarp-gateway-.+\d\.yaml$`, download.SuggestedFilename(), "YAML in clear, no -markers")
 		path := filepath.Join(t.TempDir(), download.SuggestedFilename())
 		require.NoError(t, download.SaveAs(path))
 
