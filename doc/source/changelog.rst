@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`798` Ajout d'options de filtrage et de tri manquantes à la commande
+  ``transfer list`` du CLI. Par ailleurs, la commande trie maintenant les
+  transferts du plus récent au plus ancient par défaut (au lieu de l'inverse).
 * :bug:`742` Correction d'un bug de l'interface web qui n'affichait pas
   correctement certains icônes.
 * :bug:`695` Correction d'un crash application (panic) pouvant survenir sous

@@ -31,7 +31,13 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
 
    - tri par date (``start+`` & ``start-``)
    - tri par identifiant (``id+`` & ``id-``)
+   - tri par règle (``rule+`` & ``rule-``)
    - tri par statut (``status+`` & ``status-``)
+   - tri par compte demandeur (``requester+`` & ``requester-``)
+   - tri par serveur ou partenaire sollicité (``requested+`` & ``requested-``)
+
+   Par défaut, les transferts sont triés par date en ordre décroissant
+   (transferts plus récents en premier).
 
 .. option:: -r <RULE>, --rule_=<RULE>
 
@@ -44,7 +50,8 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
    Filtre les transferts ayant actuellement le statut renseigné avec ce
    paramètre. Le paramètre peut être renseigné plusieurs fois pour filtrer
    plusieurs statuts à la fois. Les statuts valides sont: ``PLANNED``,
-   ``RUNNING``, ``INTERRUPTED`` et ``PAUSED``.
+   ``AVAILABLE``, ``RUNNING``, ``INTERRUPTED``, ``PAUSED``, ``ERROR``,
+   ``CANCELLED`` et ``DONE``.
 
 .. option:: -d <DATE>, --date=<DATE>
 
