@@ -564,6 +564,11 @@ func TestDetail(t *testing.T) {
 		indexes(t, body, "Informations de transfert", `<dl class="w-deflist tf-infos">`, "Identifiant de suivi", "__followID__",
 			`<dt><code class="w-code">lot</code></dt><dd><code class="w-code">2026-10-20-B</code></dd>`)
 		assert.NotContains(t, body, "<table", "no table in a card")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-transfer" open>`, "after the error card, every card folds (#807)")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-file" open>`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-run" open>`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-retries" open>`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-infos" open>`)
 	})
 
 	t.Run("Given a done server transfer, read only", func(t *testing.T) {
@@ -794,6 +799,10 @@ func TestForms(t *testing.T) {
 		assert.Contains(t, body, "Indiquez une valeur.")
 		assert.Contains(t, body, "Choisissez une valeur dans la liste.")
 		assert.Contains(t, body, "Indiquez le nom de l&#39;information 1.")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" open>`, "the refused cards open, their kept state set aside (#807)")
+		assert.NotContains(t, body, `data-key="tf-form-exchange"`)
+		assert.NotContains(t, body, `data-key="tf-form-infos"`)
+		assert.Contains(t, body, `data-key="tf-form-retries" open>`, "a card without error keeps its key")
 		indexes(t, body, `id="info-name-1"`, `value=""`, `aria-invalid="true"`, `value="sans nom"`,
 			`id="info-name-2"`, `value="lot"`, `value="B"`, `id="info-name-3"`, `<template id="tf-info-row">`)
 

@@ -22,55 +22,55 @@ import (
 // change (kit.js), carrying the state and the sort.
 templ listView(d listData) {
 	<div data-live data-live-period={ strconv.Itoa(d.RefreshSeconds) }>
-	<div class="w-page-header">
-		<div class="w-page-header__text">
-			<h1 class="w-page-header__title">{ gui.T(ctx, "transfers.title") }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<span class="w-live" id="transfers-live" role="status" aria-live="polite" data-live-status data-live={ gui.T(ctx, "transfers.live") } data-refreshing={ gui.T(ctx, "transfers.refreshing") } data-live-time={ d.RefreshedAt }>
-				if d.Pending {
-					{ gui.T(ctx, "transfers.refreshing") }
-				} else {
-					{ gui.T(ctx, "transfers.live", "time", d.RefreshedAt) }
-				}
-			</span>
-			<a class="w-btn w-btn--outline-dark" id="transfers-refresh" href={ templ.SafeURL(d.FragmentURL) } data-live-refresh>
-				@gui.Icon("rotate")
-				{ gui.T(ctx, "action.refresh") }
-			</a>
-			if d.AddURL != "" {
-				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
-					@gui.Icon("plus")
-					{ gui.T(ctx, "transfers.add") }
-				</a>
-				@gui.Actions(gui.ActionsProps{ID: "act-page", Name: gui.T(ctx, "transfers.title"), Items: []gui.Action{{Icon: "upload", Label: gui.T(ctx, "transfers.preregister.title"), URL: d.PreregisterURL}}, Menu: true})
-			}
-		</div>
-	</div>
-	@statesRow(d)
-	<div class="tf-bar">
-	<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-filter data-live-hold data-live-carry="state sort dir size">
-		for _, h := range liststate.SortedHidden(d.Hidden) {
-			<input type="hidden" name={ h.Name } value={ h.Value }/>
-		}
-		<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "transfers.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "transfers.search_placeholder") } title={ gui.T(ctx, "transfers.search_hint") } autocomplete="off"/></label>
-		<details class="w-disclose" open?={ d.FiltersOpen }>
-			<summary class="w-btn w-btn--outline-dark w-btn--sm">
-				@gui.Icon("filter")
-				{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
-			</summary>
-			<div class="w-disclose__panel">
-				@filtersPanel(d.Filters)
-				@gui.FiltersFoot(d.ResetURL)
+		<div class="w-page-header">
+			<div class="w-page-header__text">
+				<h1 class="w-page-header__title">{ gui.T(ctx, "transfers.title") }</h1>
 			</div>
-		</details>
-		<span class="w-toolbar__spacer"></span>
-		@countSpan(d)
-	</form>
-	@pagerTop(d)
-	</div>
-	@tableRegion(d)
-	<template data-live-error>@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.refresh_error.title"), Text: gui.T(ctx, "transfers.refresh_error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.FragmentURL}})</template>
+			<div class="w-page-header__actions">
+				<span class="w-live" id="transfers-live" role="status" aria-live="polite" data-live-status data-live={ gui.T(ctx, "transfers.live") } data-refreshing={ gui.T(ctx, "transfers.refreshing") } data-live-time={ d.RefreshedAt }>
+					if d.Pending {
+						{ gui.T(ctx, "transfers.refreshing") }
+					} else {
+						{ gui.T(ctx, "transfers.live", "time", d.RefreshedAt) }
+					}
+				</span>
+				<a class="w-btn w-btn--outline-dark" id="transfers-refresh" href={ templ.SafeURL(d.FragmentURL) } data-live-refresh>
+					@gui.Icon("rotate")
+					{ gui.T(ctx, "action.refresh") }
+				</a>
+				if d.AddURL != "" {
+					<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
+						@gui.Icon("plus")
+						{ gui.T(ctx, "transfers.add") }
+					</a>
+					@gui.Actions(gui.ActionsProps{ID: "act-page", Name: gui.T(ctx, "transfers.title"), Items: []gui.Action{{Icon: "upload", Label: gui.T(ctx, "transfers.preregister.title"), URL: d.PreregisterURL}}, Menu: true})
+				}
+			</div>
+		</div>
+		@statesRow(d)
+		<div class="tf-bar">
+			<form class="w-toolbar" role="search" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit data-live-filter data-live-hold data-live-carry="state sort dir size">
+				for _, h := range liststate.SortedHidden(d.Hidden) {
+					<input type="hidden" name={ h.Name } value={ h.Value }/>
+				}
+				<label class="w-search"><span class="visually-hidden">{ gui.T(ctx, "transfers.search") }</span>@gui.Icon("search")<input type="search" name="q" value={ d.Q } placeholder={ gui.T(ctx, "transfers.search_placeholder") } title={ gui.T(ctx, "transfers.search_hint") } autocomplete="off"/></label>
+				<details class="w-disclose" open?={ d.FiltersOpen }>
+					<summary class="w-btn w-btn--outline-dark w-btn--sm">
+						@gui.Icon("filter")
+						{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+					</summary>
+					<div class="w-disclose__panel">
+						@filtersPanel(d.Filters)
+						@gui.FiltersFoot(d.ResetURL)
+					</div>
+				</details>
+				<span class="w-toolbar__spacer"></span>
+				@countSpan(d)
+			</form>
+			@pagerTop(d)
+		</div>
+		@tableRegion(d)
+		<template data-live-error>@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.refresh_error.title"), Text: gui.T(ctx, "transfers.refresh_error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.FragmentURL}})</template>
 	</div>
 }
 
@@ -413,10 +413,11 @@ templ detailView(d detailData) {
 				</dl>
 			</div>
 		}
-		@deflistCard(gui.T(ctx, "transfers.detail.transfer"), d.Transfer)
-		@deflistCard(gui.T(ctx, "transfers.detail.file"), d.Files)
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "transfers.detail.run") }</h2>
+		// The cards after the first fold (rule of 2026-10-25, #807): the first
+		// one is the error when there is one, the transfer otherwise.
+		@deflistCard(gui.T(ctx, "transfers.detail.transfer"), keyIf(d.Error != nil, "tf-transfer"), d.Transfer)
+		@deflistCard(gui.T(ctx, "transfers.detail.file"), "tf-file", d.Files)
+		@foldCard("tf-run", gui.T(ctx, "transfers.detail.run")) {
 			<dl class="w-deflist">
 				for _, k := range d.Run {
 					<dt>{ k.Label }</dt>
@@ -425,12 +426,11 @@ templ detailView(d detailData) {
 				<dt>{ gui.T(ctx, "transfers.detail.progress") }</dt>
 				<dd>@progressCell(d.Progress)</dd>
 			</dl>
-		</div>
-		if d.Retries != nil {
-			@deflistCard(gui.T(ctx, "transfers.detail.retries"), d.Retries)
 		}
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</h2>
+		if d.Retries != nil {
+			@deflistCard(gui.T(ctx, "transfers.detail.retries"), "tf-retries", d.Retries)
+		}
+		@foldCard("tf-infos", gui.T(ctx, "transfers.detail.infos")) {
 			if len(d.Infos) == 0 {
 				<p class="w-muted tf-note">{ gui.T(ctx, "transfers.detail.infos_none") }</p>
 			} else {
@@ -447,7 +447,7 @@ templ detailView(d detailData) {
 					}
 				</dl>
 			}
-		</div>
+		}
 	</div>
 }
 
@@ -460,17 +460,80 @@ func buttonClass(primary bool) string {
 	return "w-btn w-btn--outline-dark"
 }
 
-// deflistCard: a card of key/value rows under its title.
-templ deflistCard(title string, rows []kv) {
-	<div class="w-card">
-		<h2 class="w-card__title">{ title }</h2>
-		<dl class="w-deflist">
-			for _, k := range rows {
-				<dt>{ k.Label }</dt>
-				<dd>@protoform.ValueOf(k)</dd>
-			}
-		</dl>
-	</div>
+// keyIf is the key of a folding card when the condition holds, none
+// otherwise: a card without a key is the first one of its page (a plain
+// card) or a card of a form that carries an error (folding, but open and
+// without the state the kit kept, so that the error shows).
+func keyIf(fold bool, key string) string {
+	if fold {
+		return key
+	}
+
+	return ""
+}
+
+// foldCard: a card after the first one of a page (#807): it folds, open by
+// default, its state kept by the kit under its key; without a key, it
+// still folds but opens whatever the kit kept (a card carrying an error).
+templ foldCard(key, title string) {
+	<details
+		class="w-card w-card--fold"
+		if key != "" {
+			data-key={ key }
+		}
+		open
+	>
+		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ title }</span></summary>
+		<div class="w-card__body">
+			{ children... }
+		</div>
+	</details>
+}
+
+// formCard: a card of a form with its fieldset: the first one of the page
+// plain, the next ones folding (foldCard) with their key, none while a
+// field of the card carries an error.
+templ formCard(fold bool, key, title string) {
+	if fold {
+		@foldCard(key, title) {
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="visually-hidden">{ title }</legend>
+				{ children... }
+			</fieldset>
+		}
+	} else {
+		<div class="w-card">
+			<fieldset class="w-fieldset w-fieldset--wide">
+				<legend class="w-card__title">{ title }</legend>
+				{ children... }
+			</fieldset>
+		</div>
+	}
+}
+
+// deflistCard: a card of key/value rows under its title, plain without a
+// key (the first card of the page), folding with one.
+templ deflistCard(title, key string, rows []kv) {
+	if key != "" {
+		@foldCard(key, title) {
+			<dl class="w-deflist">
+				for _, k := range rows {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		}
+	} else {
+		<div class="w-card">
+			<h2 class="w-card__title">{ title }</h2>
+			<dl class="w-deflist">
+				for _, k := range rows {
+					<dt>{ k.Label }</dt>
+					<dd>@protoform.ValueOf(k)</dd>
+				}
+			</dl>
+		</div>
+	}
 }
 
 // cancelView: the confirmation of the cancellation (decision D10: a page,
@@ -540,7 +603,8 @@ templ retryView(d *retryData) {
 // dateField: a date and time in the time zone of the gateway.
 templ dateField(id, label string, f field, hint string, required bool) {
 	<div class={ "w-field", "w-field--medium", templ.KV("is-invalid", f.Error != "") }>
-		<label class="w-field__label" for={ id }>{ label }@protoform.ReqMark(required)
+		<label class="w-field__label" for={ id }>
+			{ label }@protoform.ReqMark(required)
 			if !required {
 				{ " " }<span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span>
 			}
@@ -638,70 +702,60 @@ templ formView(d *formData) {
 		if d.Server {
 			<div class="w-card"><p class="tf-lead">{ gui.T(ctx, "transfers.preregister.text") }</p></div>
 		}
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.file") }</legend>
-				<div class="w-grid w-grid--2">
-					if d.Server {
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldFile, Label: gui.T(ctx, "transfers.form.file"), Req: true, F: d.File, Hint: gui.T(ctx, "transfers.form.file_server_hint")})
-					} else {
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldFile, Label: gui.T(ctx, "transfers.form.file"), Req: true, F: d.File, Hint: gui.T(ctx, "transfers.form.file_hint")})
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldOutput, Label: gui.T(ctx, "transfers.form.output"), F: d.Output, Hint: gui.T(ctx, "transfers.form.output_hint")})
-					}
-				</div>
-			</fieldset>
-		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "transfers.form.exchange") }</legend>
-				<div class="w-grid w-grid--2">
-					@selectField(fieldRule, gui.T(ctx, "transfers.col.rule"), d.Rule, d.Rules, gui.T(ctx, "transfers.form.choose_rule"), gui.T(ctx, "transfers.form.rule_hint"), nil)
-					if d.Server {
-						@selectField(fieldAccount, gui.T(ctx, "transfers.form.local_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.local_account_hint"), accountAttrs(ctx))
-						@dateField(fieldStart, gui.T(ctx, "transfers.detail.due"), d.Start, gui.T(ctx, "transfers.form.due_hint"), true)
-					} else {
-						@selectField(fieldAccount, gui.T(ctx, "transfers.form.remote_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.remote_account_hint"), accountAttrs(ctx))
-						<div class={ "w-field", templ.KV("is-invalid", d.Client.Error != "") }>
-							<label class="w-field__label" for={ fieldClient }>{ gui.T(ctx, "transfers.detail.client") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
-							<select
-								class="w-select"
-								id={ fieldClient }
-								name={ fieldClient }
-								aria-describedby="client-h"
-								if d.Client.Error != "" {
-									aria-invalid="true"
-								}
-							>
-								<option value="">{ gui.T(ctx, "transfers.form.client_default") }</option>
-								for _, o := range d.Clients {
-									<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
-								}
-							</select>
-							@protoform.Message("client-h", d.Client.Error, gui.T(ctx, "transfers.form.client_hint"))
-						</div>
-						@dateField(fieldStart, gui.T(ctx, "transfers.form.start"), d.Start, gui.T(ctx, "transfers.form.start_hint"), false)
-					}
-				</div>
-			</fieldset>
-		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</legend>
-				@InfoList(d.Infos, d.InfoError)
-			</fieldset>
-		</div>
-		if !d.Server {
-			<div class="w-card">
-				<fieldset class="w-fieldset w-fieldset--wide">
-					<legend class="w-card__title">{ gui.T(ctx, "transfers.form.retries") }</legend>
-					<p class="w-muted tf-note">{ gui.T(ctx, "transfers.form.retries_hint") }</p>
-					<div class="w-grid w-grid--3">
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldTries, Label: gui.T(ctx, "transfers.retries.attempts"), F: d.Tries, Short: true, Num: true, Max: maxTries})
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldDelay, Label: gui.T(ctx, "transfers.form.delay"), F: d.Delay, Short: true, Num: true})
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldFactor, Label: gui.T(ctx, "transfers.retries.factor"), F: d.Factor, Short: true})
-					</div>
-				</fieldset>
+		// The cards after the first fold (rule of 2026-10-25, #807): on the
+		// server form the first card is the lead, on the client form the file.
+		@formCard(d.Server, keyIf(d.File.Error == "" && d.Output.Error == "", "tf-form-file"), gui.T(ctx, "transfers.detail.file")) {
+			<div class="w-grid w-grid--2">
+				if d.Server {
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldFile, Label: gui.T(ctx, "transfers.form.file"), Req: true, F: d.File, Hint: gui.T(ctx, "transfers.form.file_server_hint")})
+				} else {
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldFile, Label: gui.T(ctx, "transfers.form.file"), Req: true, F: d.File, Hint: gui.T(ctx, "transfers.form.file_hint")})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldOutput, Label: gui.T(ctx, "transfers.form.output"), F: d.Output, Hint: gui.T(ctx, "transfers.form.output_hint")})
+				}
 			</div>
+		}
+		@formCard(true, keyIf(d.Rule.Error == "" && d.Account.Error == "" && d.Client.Error == "" && d.Start.Error == "", "tf-form-exchange"), gui.T(ctx, "transfers.form.exchange")) {
+			<div class="w-grid w-grid--2">
+				@selectField(fieldRule, gui.T(ctx, "transfers.col.rule"), d.Rule, d.Rules, gui.T(ctx, "transfers.form.choose_rule"), gui.T(ctx, "transfers.form.rule_hint"), nil)
+				if d.Server {
+					@selectField(fieldAccount, gui.T(ctx, "transfers.form.local_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.local_account_hint"), accountAttrs(ctx))
+					@dateField(fieldStart, gui.T(ctx, "transfers.detail.due"), d.Start, gui.T(ctx, "transfers.form.due_hint"), true)
+				} else {
+					@selectField(fieldAccount, gui.T(ctx, "transfers.form.remote_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.remote_account_hint"), accountAttrs(ctx))
+					<div class={ "w-field", templ.KV("is-invalid", d.Client.Error != "") }>
+						<label class="w-field__label" for={ fieldClient }>{ gui.T(ctx, "transfers.detail.client") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+						<select
+							class="w-select"
+							id={ fieldClient }
+							name={ fieldClient }
+							aria-describedby="client-h"
+							if d.Client.Error != "" {
+								aria-invalid="true"
+							}
+						>
+							<option value="">{ gui.T(ctx, "transfers.form.client_default") }</option>
+							for _, o := range d.Clients {
+								<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+							}
+						</select>
+						@protoform.Message("client-h", d.Client.Error, gui.T(ctx, "transfers.form.client_hint"))
+					</div>
+					@dateField(fieldStart, gui.T(ctx, "transfers.form.start"), d.Start, gui.T(ctx, "transfers.form.start_hint"), false)
+				}
+			</div>
+		}
+		@formCard(true, keyIf(d.InfoError == "", "tf-form-infos"), gui.T(ctx, "transfers.detail.infos")) {
+			@InfoList(d.Infos, d.InfoError)
+		}
+		if !d.Server {
+			@formCard(true, keyIf(d.Tries.Error == "" && d.Delay.Error == "" && d.Factor.Error == "", "tf-form-retries"), gui.T(ctx, "transfers.form.retries")) {
+				<p class="w-muted tf-note">{ gui.T(ctx, "transfers.form.retries_hint") }</p>
+				<div class="w-grid w-grid--3">
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldTries, Label: gui.T(ctx, "transfers.retries.attempts"), F: d.Tries, Short: true, Num: true, Max: maxTries})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldDelay, Label: gui.T(ctx, "transfers.form.delay"), F: d.Delay, Short: true, Num: true})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldFactor, Label: gui.T(ctx, "transfers.retries.factor"), F: d.Factor, Short: true})
+				</div>
+			}
 		}
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>

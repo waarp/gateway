@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`807` Dans l'interface web refondue, les cartes des écrans livrés
+  avant la règle du 25 octobre se replient à leur tour : sur la page Mon
+  compte, les fiches et les formulaires des identifiants SMTP, des clés
+  cryptographiques, des modèles d'e-mail, des utilisateurs et des transferts,
+  chaque carte après la première se replie et se déplie, ouverte par défaut,
+  son état retenu par le navigateur ; une carte qui porte une erreur de
+  saisie s'ouvre d'office.
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,
   les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
   L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône
