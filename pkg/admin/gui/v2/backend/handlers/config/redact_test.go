@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 )
@@ -97,11 +98,25 @@ func TestRedactSecrets(t *testing.T) {
 	assert.Equal(t, "__PWD__smtp/noreply@example.org:password", data.EmailConfig.Credentials[0].Password)
 }
 
-func TestHasMarkers(t *testing.T) {
+// A marker is found in any value of the parsed file, whatever the object;
+// a file without any is clean.
+func TestCarriesMarkers(t *testing.T) {
 	t.Parallel()
 
-	assert.False(t, hasMarkers([]byte(`{"rules": [{"name": "r", "path": "r"}]}`)))
-	assert.True(t, hasMarkers([]byte(`password: __PWD__partners/bank/prod:password`)))
-	assert.True(t, hasMarkers([]byte(`value2: __KEY__$GWPKIDIR/servers/sftp/cert.key`)))
-	assert.True(t, hasMarkers([]byte(`publicIdentity: __PEM__$GWPKIDIR/authorities/ca.pem`)))
+	for name, data := range map[string]*file.Data{
+		"a password": {Remotes: []file.RemoteAgent{{Name: "bank",
+			Accounts: []file.RemoteAccount{{Login: "prod", Password: "__PWD__partners/bank/prod:password"}}}}},
+		"a private key": {Locals: []file.LocalAgent{{Name: "sftp",
+			Credentials: []file.Credential{{Name: "cert", Type: "tls_certificate", Value: "CERT", Value2: "__KEY__$GWPKIDIR/servers/sftp/cert.key"}}}}},
+		"an authority":   {Authorities: []*file.Authority{{Name: "ca", PublicIdentity: "__PEM__$GWPKIDIR/authorities/ca.pem"}}},
+		"a cloud secret": {Clouds: []file.Cloud{{Name: "s3", Secret: "__PWD__clouds/s3:secret"}}},
+	} {
+		marked, err := carriesMarkers(data)
+		require.NoError(t, err, name)
+		assert.True(t, marked, name)
+	}
+
+	marked, err := carriesMarkers(&file.Data{Rules: []file.Rule{{Name: "r", Path: "r"}}})
+	require.NoError(t, err)
+	assert.False(t, marked, "nothing marked")
 }

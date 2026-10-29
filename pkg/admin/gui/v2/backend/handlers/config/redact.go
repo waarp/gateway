@@ -2,6 +2,8 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -29,16 +31,24 @@ const (
 //nolint:gochecknoglobals // reference data of the screen
 var markers = [][]byte{[]byte(markerPassword), []byte(markerKey), []byte(markerPEM)}
 
-// hasMarkers says whether a file still carries a marker: such a file is not
-// to be imported, a marker would become a password.
-func hasMarkers(content []byte) bool {
+// carriesMarkers says whether the parsed file still carries a marker in one
+// of its values: such a file is not to be imported, a marker would become a
+// password. The values are read on the file encoded again as JSON, which has
+// no comment: a YAML comment that cites a marker (the migration tooling writes
+// such comments) is not one (2026-10-29).
+func carriesMarkers(data *file.Data) (bool, error) {
+	values, err := json.Marshal(data)
+	if err != nil {
+		return false, fmt.Errorf("failed to read the values of the file: %w", err)
+	}
+
 	for _, m := range markers {
-		if bytes.Contains(content, m) {
-			return true
+		if bytes.Contains(values, m) {
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // redactSecrets replaces, in place, every secret and every certificate of the

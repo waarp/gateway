@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`803` À l'import d'une configuration par l'interface web, les repères
+  de secrets (``__PWD__``, ``__KEY__``, ``__PEM__``) ne sont plus cherchés que
+  dans les valeurs du fichier : un commentaire YAML qui en cite un ne fait
+  plus refuser le fichier.
 * :feature:`802` Sur l'écran d'import et d'export de la configuration, la page
   s'ouvre en YAML, l'option de remplacement des secrets et des certificats par
   des repères cochée ; un export demandé sans format est en YAML. Après un

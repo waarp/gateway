@@ -466,9 +466,23 @@ func TestImport(t *testing.T) {
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		assert.Contains(t, rec.Body.String(), `Le fichier porte encore des repères de secrets`)
 
+		// The same marker in a value of a YAML file, under a harmless comment.
+		markedYAML := []byte("# Export of the demonstration instance.\nremotes:\n- name: banque-demo\n  protocol: sftp\n" +
+			"  address: localhost:10022\n  accounts:\n  - login: prod\n    password: __PWD__partners/banque-demo/prod:password\n")
+		rec = s.upload(t, fields, "marked.yaml", markedYAML)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		assert.Contains(t, rec.Body.String(), `Le fichier porte encore des repères de secrets`)
+
 		var cred model.Credential
 		require.NoError(t, s.db.Get(&cred, "name=?", "password").Run())
 		assert.Equal(t, secretPassword, cred.Value, "the marker did not become the password")
+
+		// A comment that cites the markers is not one: the file passes.
+		commented := []byte("# Markers (__PWD__, __KEY__, __PEM__) filled by the tooling on 2026-10-29.\n" +
+			"rules:\n- name: imported # the rule a __PWD__ marker once stood next to\n  isSend: true\n  path: imported\n")
+		query := redirected(t, s.upload(t, url.Values{fieldTarget: {"rules"}, fieldAction: {actionSimulate}}, "commented.yaml", commented))
+		assert.Equal(t, doneSimulated, query.Get(doneParam))
+		assert.Equal(t, []string{"commandes", "releves"}, s.rules(t), "a simulation changes nothing")
 	})
 
 	t.Run("Given no category", func(t *testing.T) {
