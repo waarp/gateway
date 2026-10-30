@@ -221,10 +221,11 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, `<input type="hidden" name="ret" value="page=2">`, "the list state goes along")
 		assert.Contains(t, body, `formmethod="get" formaction="`+path(s.orders, "/tasks/pre/new")+`" formnovalidate>Continuer`,
 			"without JavaScript, the page asked again with the type")
-		indexes(t, body, `data-combobox="`, `data-switch="type"`, `<optgroup label="Opérations de fichiers">`,
-			`<option value="COPY" data-label="Copier le fichier" data-code="COPY" data-text="Crée une copie du fichier de transfert`,
-			`>Copier le fichier (COPY)</option>`, `<optgroup label="Réseau">`, `<option value="SENDMESSAGE" data-label=`,
-			`<optgroup label="Cryptographie">`)
+		indexes(t, body, `data-combobox="`, `data-switch="type" data-code-first>`, `<optgroup label="Opérations de fichiers">`,
+			`<option value="CHMOD"`, `<option value="COPY" data-label="Copier le fichier" data-code="COPY" data-text="Crée une copie du fichier de transfert`,
+			`>COPY · Copier le fichier</option>`, `<option value="COPYRENAME"`, `<option value="DELETE"`, `<option value="MOVE"`,
+			`<option value="MOVERENAME"`, `<option value="REMOTEDELETE"`, `<optgroup label="Exécutables">`, `<optgroup label="Réseau">`,
+			`<option value="EMAIL"`, `<option value="ICAP"`, `<option value="SENDMESSAGE" data-label=`, `<optgroup label="Cryptographie">`)
 		assert.Contains(t, body, `src="/webui/static/gui/combobox.js"`, "the list to type in")
 
 		for i := range taskSpecs {
@@ -253,6 +254,8 @@ func TestTaskAdd(t *testing.T) {
 
 		body := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type=TRANSFER").Body.String()
 		assert.Contains(t, body, `<option value="TRANSFER" selected data-label="Lancer un transfert"`)
+		indexes(t, body, `rules-typeinfo" data-case="TRANSFER" data-of="type">`, `<code class="w-code">TRANSFER</code>`,
+			`<strong>Lancer un transfert</strong>`) // its name first under the list
 		assert.Contains(t, body, `data-case="TRANSFER" data-of="type">`, "its cards shown")
 		indexes(t, body, `<details class="w-card w-card--fold" open><summary>`, "<h2 class=\"w-card__title\">Fichier</h2>",
 			"Nom à la destination", "<h2 class=\"w-card__title\">Échange</h2>", `name="transfer.sens" value="send" required data-switch="transfer-sens"`,

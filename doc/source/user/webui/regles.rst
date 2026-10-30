@@ -181,9 +181,10 @@ type est dans :ref:`la référence des traitements <reference-tasks>`.
 
 **Ajouter une tâche.** Chaque chaîne a son bouton *Ajouter une tâche*. La page
 fait choisir le type dans une liste où l'on tape : chaque type y montre son
-libellé en gras, son code et ce qu'il fait, groupé par famille (opérations de
-fichiers, exécutables, transfert, altérations de fichiers, archivage, réseau,
-cryptographie), et la saisie filtre sur les trois ; ses
+nom (``COPY``, ``EXEC``, ``TRANSFER``…), puis son libellé en gras et ce qu'il
+fait, groupé par famille (opérations de fichiers, exécutables, transfert,
+altérations de fichiers, archivage, réseau, cryptographie) et trié par nom dans
+sa famille ; la saisie filtre sur les trois ; ses
 paramètres s'affichent aussitôt, sur la même page, une carte repliable par
 groupe (*Fichier*, *Échange*, *Exécution*…), côte à côte quand ils tiennent. Sous la
 liste, le bouton ⓘ du type choisi dit ce que fait la tâche. Sans JavaScript, le
