@@ -143,46 +143,55 @@ templ detailView(d detailData) {
 				<dd>{ d.Format }</dd>
 			</dl>
 		</div>
+		// The cards after the first fold (rule of 2026-10-25, #807): open by
+		// default, their state kept by the kit under their key.
 		@previewCard(d.Preview)
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</h2>
-			if len(d.Attachments) == 0 {
-				<p class="et-note w-muted">{ gui.T(ctx, "email_templates.attachments.none") }</p>
-			} else {
-				<ul class="et-files">
-					for _, a := range d.Attachments {
-						<li><code class="w-code et-wrap">{ a }</code></li>
-					}
-				</ul>
-			}
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "email_templates.detail.uses") }</h2>
-			@usesList(d.Uses)
-		</div>
+		<details class="w-card w-card--fold" data-key="et-attachments" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</span></summary>
+			<div class="w-card__body">
+				if len(d.Attachments) == 0 {
+					<p class="et-note w-muted">{ gui.T(ctx, "email_templates.attachments.none") }</p>
+				} else {
+					<ul class="et-files">
+						for _, a := range d.Attachments {
+							<li><code class="w-code et-wrap">{ a }</code></li>
+						}
+					</ul>
+				}
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="et-uses" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.uses") }</span></summary>
+			<div class="w-card__body">
+				@usesList(d.Uses)
+			</div>
+		</details>
 	</div>
 }
 
-// previewCard: the preview of a template. On the sheet, the choice of the
-// values is a GET form (applied as soon as it changes, a button without
-// JavaScript); in the form of the template, the choice belongs to that form
-// and the script of the screen updates the preview as the user types.
+// previewCard: the preview of a template, a card that folds (#807), its
+// state kept by the kit. On the sheet, the choice of the values is a GET
+// form (applied as soon as it changes, a button without JavaScript); in the
+// form of the template, the choice belongs to that form and the script of
+// the screen updates the preview as the user types.
 templ previewCard(d *previewData) {
-	<div class="w-card et-preview" id="et-preview">
-		<h2 class="w-card__title">{ gui.T(ctx, "email_templates.preview.title") }</h2>
-		if d.Action != "" {
-			<form class="et-preview__controls" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
-				if d.Ret != "" {
-					<input type="hidden" name="ret" value={ d.Ret }/>
-				}
-				@previewControls(d)
-				<noscript><button class="w-btn w-btn--outline-dark w-btn--sm" type="submit">{ gui.T(ctx, "email_templates.preview.show") }</button></noscript>
-			</form>
-		} else {
-			<div class="et-preview__controls">@previewControls(d)</div>
-		}
-		<div id="et-preview-out" aria-live="polite">@previewOutput(d)</div>
-	</div>
+	<details class="w-card w-card--fold et-preview" id="et-preview" data-key="et-preview" open>
+		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.preview.title") }</span></summary>
+		<div class="w-card__body">
+			if d.Action != "" {
+				<form class="et-preview__controls" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
+					if d.Ret != "" {
+						<input type="hidden" name="ret" value={ d.Ret }/>
+					}
+					@previewControls(d)
+					<noscript><button class="w-btn w-btn--outline-dark w-btn--sm" type="submit">{ gui.T(ctx, "email_templates.preview.show") }</button></noscript>
+				</form>
+			} else {
+				<div class="et-preview__controls">@previewControls(d)</div>
+			}
+			<div id="et-preview-out" aria-live="polite">@previewOutput(d)</div>
+		</div>
+	</details>
 }
 
 templ previewControls(d *previewData) {
@@ -311,43 +320,64 @@ templ formView(d *formData) {
 				</div>
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "email_templates.detail.message") }</legend>
-				@varField(fieldSubject, gui.T(ctx, "email_templates.form.subject"), gui.T(ctx, "email_templates.form.subject_hint"), d.Subject, false)
-				<div class={ "w-field", templ.KV("is-invalid", d.BodyFile.Error != "") }>
-					<label class="w-field__label" for="body_file">{ gui.T(ctx, "email_templates.form.body_file") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
-					@gui.File(gui.FileProps{ID: fieldBodyFile, Name: fieldBodyFile, Accept: bodyFileAccept, Describe: describe(fieldBodyFile, d.BodyFile)})
-					if d.BodyFile.Error != "" {
-						@hintOrError(fieldBodyFile, "", d.BodyFile)
-					} else {
-						<span
-							class="w-field__hint"
-							id={ fieldBodyFile + "-h" }
-							aria-live="polite"
-							data-loaded={ gui.T(ctx, "email_templates.form.body_file_loaded") }
-							data-refused={ gui.T(ctx, "email_templates.form.body_file_refused") }
-						>{ gui.T(ctx, "email_templates.form.body_file_hint") }</span>
-					}
-				</div>
-				<div data-case={ d.HTMLCase }>
-					<div class={ "w-field", templ.KV("is-invalid", d.BodyHTML.Error != "") }>
-						<label class="w-field__label" for="body_html">{ gui.T(ctx, "email_templates.form.body") } <span class="w-field__req" aria-hidden="true">*</span></label>
-						@gui.RichText(gui.RichTextProps{ID: fieldBodyHTML, Name: fieldBodyHTML, Value: d.BodyHTML.Value, Describe: describe(fieldBodyHTML, d.BodyHTML), Vars: varListID, Required: true, Invalid: d.BodyHTML.Error != ""})
-						@hintOrError(fieldBodyHTML, gui.T(ctx, "email_templates.form.body_html_hint"), d.BodyHTML)
+		// The cards after the first fold (rule of 2026-10-25, #807): open by
+		// default, their state kept by the kit; a card carrying an error has
+		// no key, so that it opens.
+		<details
+			class="w-card w-card--fold"
+			if d.Subject.Error == "" && d.BodyFile.Error == "" && d.BodyHTML.Error == "" && d.BodyText.Error == "" {
+				data-key="et-form-message"
+			}
+			open
+		>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.message") }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "email_templates.detail.message") }</legend>
+					@varField(fieldSubject, gui.T(ctx, "email_templates.form.subject"), gui.T(ctx, "email_templates.form.subject_hint"), d.Subject, false)
+					<div class={ "w-field", templ.KV("is-invalid", d.BodyFile.Error != "") }>
+						<label class="w-field__label" for="body_file">{ gui.T(ctx, "email_templates.form.body_file") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+						@gui.File(gui.FileProps{ID: fieldBodyFile, Name: fieldBodyFile, Accept: bodyFileAccept, Describe: describe(fieldBodyFile, d.BodyFile)})
+						if d.BodyFile.Error != "" {
+							@hintOrError(fieldBodyFile, "", d.BodyFile)
+						} else {
+							<span
+								class="w-field__hint"
+								id={ fieldBodyFile + "-h" }
+								aria-live="polite"
+								data-loaded={ gui.T(ctx, "email_templates.form.body_file_loaded") }
+								data-refused={ gui.T(ctx, "email_templates.form.body_file_refused") }
+							>{ gui.T(ctx, "email_templates.form.body_file_hint") }</span>
+						}
 					</div>
-				</div>
-				<div data-case={ d.TextCases }>
-					@varField(fieldBodyText, gui.T(ctx, "email_templates.form.body"), gui.T(ctx, "email_templates.form.body_text_hint"), d.BodyText, true)
-				</div>
-			</fieldset>
-		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</legend>
-				@varField(fieldAttachments, gui.T(ctx, "email_templates.form.attachments"), gui.T(ctx, "email_templates.form.attachments_hint"), d.Attachments, true)
-			</fieldset>
-		</div>
+					<div data-case={ d.HTMLCase }>
+						<div class={ "w-field", templ.KV("is-invalid", d.BodyHTML.Error != "") }>
+							<label class="w-field__label" for="body_html">{ gui.T(ctx, "email_templates.form.body") } <span class="w-field__req" aria-hidden="true">*</span></label>
+							@gui.RichText(gui.RichTextProps{ID: fieldBodyHTML, Name: fieldBodyHTML, Value: d.BodyHTML.Value, Describe: describe(fieldBodyHTML, d.BodyHTML), Vars: varListID, Required: true, Invalid: d.BodyHTML.Error != ""})
+							@hintOrError(fieldBodyHTML, gui.T(ctx, "email_templates.form.body_html_hint"), d.BodyHTML)
+						</div>
+					</div>
+					<div data-case={ d.TextCases }>
+						@varField(fieldBodyText, gui.T(ctx, "email_templates.form.body"), gui.T(ctx, "email_templates.form.body_text_hint"), d.BodyText, true)
+					</div>
+				</fieldset>
+			</div>
+		</details>
+		<details
+			class="w-card w-card--fold"
+			if d.Attachments.Error == "" {
+				data-key="et-form-attachments"
+			}
+			open
+		>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "email_templates.detail.attachments") }</legend>
+					@varField(fieldAttachments, gui.T(ctx, "email_templates.form.attachments"), gui.T(ctx, "email_templates.form.attachments_hint"), d.Attachments, true)
+				</fieldset>
+			</div>
+		</details>
 		@previewCard(d.Preview)
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>
@@ -363,7 +393,7 @@ templ varField(id, label, hint string, f field, area bool) {
 			if id == fieldAttachments {
 				{ " " + gui.T(ctx, "form.optional") }
 			} else {
-				<span class="w-field__req" aria-hidden="true"> *</span>
+				<span class="w-field__req" aria-hidden="true">*</span>
 			}
 		</label>
 		if area {

@@ -3025,11 +3025,12 @@ linters:
         text: "Function `.*->TransactionWithTimeout`"
 
       # Disable "contextcheck" on the templ components of the web interface v2: a component is a closure that
-      # takes the context at rendering, the handler that builds it has none to pass.
+      # takes the context at rendering, the handler that builds it has none to pass; the children of a component
+      # nested in the children of another are closures of closures ($1$2...).
       - linters:
           - contextcheck
         path: pkg/admin/gui/v2/backend/
-        text: "Function `.*[$]1`"
+        text: "Function `.*[$]1([$][0-9]+)*`"
 
       # Disable "tagliatelle" on the MACs keyword (MAC is an acronym).
       - linters:
