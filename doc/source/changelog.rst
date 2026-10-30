@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :support:`810` Le kit d'interface 0.26.0 est épinglé : l'éditeur du corps des
+  modèles d'e-mail insère un tableau simple, rendu par les clients de
+  messagerie, dont une barre gère les lignes et les colonnes.
 * :feature:`809` Le Suivi des transferts et l'onglet Tâches d'une règle occupent
   toute la largeur de l'écran, par le gabarit de page large du kit, qui
   remplace l'exception de style du Suivi.
