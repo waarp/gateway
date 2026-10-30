@@ -932,9 +932,11 @@ func unknownArgs(spec *taskSpec, stored map[string]string) []string {
 	return out
 }
 
-// typeChoices are the types to choose from, by family, each with its label,
-// its code and what it does (Driss, 2026-10-23: the label in bold and its
-// explanation, found by typing), the chosen one selected.
+// typeChoices are the types to choose from, by family, each with its name
+// first (its code: the operators know the tasks by their names, from the
+// command line and the documentation; 2026-10-29), its label and what it does
+// (2026-10-23: the explanation, found by typing), sorted by name within their
+// family, the chosen one selected.
 func typeChoices(translate gui.Translator, chosen string) []gui.ComboGroup {
 	out := make([]gui.ComboGroup, 0, len(families))
 
@@ -950,6 +952,8 @@ func typeChoices(translate gui.Translator, chosen string) []gui.ComboGroup {
 				})
 			}
 		}
+
+		slices.SortFunc(group.Choices, func(a, b gui.ComboChoice) int { return strings.Compare(a.Code, b.Code) })
 
 		out = append(out, group)
 	}

@@ -216,7 +216,7 @@ templ typeCard(d *taskFormData) {
 				<label class="w-field__label" for={ fieldType }>{ gui.T(ctx, "rules.tasks.type") } <span class="w-field__req" aria-hidden="true">*</span></label>
 				@gui.Combobox(gui.ComboboxProps{
 					ID: fieldType, Name: fieldType, Groups: d.Families, Placeholder: gui.T(ctx, "rules.tasks.type_choose"),
-					Required: true, Invalid: d.TypeErr != "", Describe: "type-h", Switch: "type",
+					Required: true, Invalid: d.TypeErr != "", Describe: "type-h", Switch: "type", CodeFirst: true,
 				})
 				@protoform.Message("type-h", d.TypeErr, gui.T(ctx, "rules.tasks.type_hint"))
 				<noscript>
@@ -225,9 +225,9 @@ templ typeCard(d *taskFormData) {
 			</div>
 			for _, b := range d.Blocks {
 				<p class="rules-taskname rules-typeinfo" data-case={ b.Type } data-of="type" hidden?={ !b.Active }>
-					<strong>{ b.Label }</strong>
-					{ " " }
 					<code class="w-code">{ b.Type }</code>
+					{ " " }
+					<strong>{ b.Label }</strong>
 					@taskTip(b.Type, b.Tip)
 				</p>
 			}

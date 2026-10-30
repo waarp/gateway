@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`811` Sur la page d'ajout d'une tâche, la liste des types montre
+  le nom de la tâche (COPY, EXEC, TRANSFER…) avant son libellé et trie les
+  types par nom dans leur famille.
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,
   les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
   L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône
