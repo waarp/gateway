@@ -67,6 +67,9 @@ type Screen struct {
 	// Notices are the results of the previous action, rendered as
 	// notifications when the page loads (Post/Redirect/Get).
 	Notices []gui.Notice
+	// Wide: the content takes the whole width of the main area (gui.Page.Wide),
+	// for an operations screen with many columns or cards side by side (#809).
+	Wide bool
 }
 
 // Render writes the complete page: the kit chrome, filled from the request
@@ -161,6 +164,7 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		Notices:   screen.Notices,
 		Head:      headOf(screen.Stylesheets, screen.Editor, screen.Head),
 		Scripts:   scriptsOf(screen.Scripts),
+		Wide:      screen.Wide,
 	}
 }
 

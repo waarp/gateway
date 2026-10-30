@@ -182,6 +182,7 @@ func TestTasksTabMissingObject(t *testing.T) {
 	require.NoError(t, s.db.Delete(cred).Run())
 
 	body := s.get(t, permRead, path(s.orders, "/tasks")).Body.String()
+	assert.Contains(t, body, `<div class="w-main__inner w-main__inner--wide">`, "the tasks take the whole width (#809)")
 	indexes(t, body, `<strong class="rules-taskname">EMAIL</strong>`, `<span class="w-status w-status--warn">Introuvable</span>`,
 		sender, `<span class="w-status w-status--warn">Introuvable</span>`, `<a href="/webui/smtp">Identifiants SMTP</a>`, template)
 	assert.Equal(t, 2, strings.Count(body, "Introuvable"), "said on the folded task and at its parameter; the template is still there")

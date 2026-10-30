@@ -501,6 +501,7 @@ func TestList(t *testing.T) {
 		// The page comes at once, without reading the transfers: the parts
 		// wait for the live list of the kit, which reads them in parallel.
 		body := s.get(t, permRead, "/webui/transfers").Body.String()
+		assert.Contains(t, body, `<div class="w-main__inner w-main__inner--wide">`, "the list takes the whole width (#809)")
 		indexes(t, body, `<script src="/webui/static/gui/live.js" defer></script>`,
 			`<noscript><meta http-equiv="refresh" content="0;url=/webui/transfers?full=1"></noscript>`,
 			`<div data-live data-live-period="5">`, `data-live-status`,
@@ -858,6 +859,7 @@ func TestForms(t *testing.T) {
 		prodID, devID := strconv.FormatInt(s.prod.ID, 10), strconv.FormatInt(dev.ID, 10)
 
 		body := s.get(t, permWrite, "/webui/transfers/new").Body.String()
+		assert.Contains(t, body, `<div class="w-main__inner">`, "the form keeps the usual width")
 		assert.Contains(t, body, `<option value="`+sendID+`" data-restricted>releves</option>`, "a rule that lists who may use it")
 		assert.Contains(t, body, `<option value="`+receiveID+`">commandes</option>`, "an open rule")
 		assert.Contains(t, body, `<option value="`+prodID+`" data-rules="`+sendID+`">prod</option>`,

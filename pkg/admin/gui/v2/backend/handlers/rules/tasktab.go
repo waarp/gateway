@@ -496,6 +496,7 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 
 	screen := h.screen(translate, data.Title, carried, 0)
 	screen.Notices = notices(translate, r.URL.Query())
+	screen.Wide = true // the cards of the chains side by side, on the whole width (#809)
 	screen.Head = gui.SortableAssets()
 	h.shell.Render(w, h.logger, r, screen, tasksView(data))
 }

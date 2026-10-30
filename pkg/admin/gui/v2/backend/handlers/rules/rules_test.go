@@ -197,6 +197,7 @@ func TestListFragment(t *testing.T) {
 	assert.Contains(t, body, `<div id="rules-list" data-live-part="list" data-live-paged>`)
 
 	body = s.get(t, permRead, "/webui/rules").Body.String()
+	assert.Contains(t, body, `<div class="w-main__inner">`, "the list keeps the usual width")
 	assert.Contains(t, body, `<div data-live data-live-period="0">`, "read on the user's actions only")
 	assert.Contains(t, body, `data-autosubmit data-live-filter>`, "the filters apply in place")
 	assert.Contains(t, body, `<template data-live-error>`)

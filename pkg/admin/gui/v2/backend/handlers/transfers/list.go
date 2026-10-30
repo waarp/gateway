@@ -426,6 +426,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	data.FullURL = listSpec.ListURLOf(full)
 
 	screen := h.screen(translate("transfers.title"), crumbs(translate, "", ""), 0)
+	screen.Wide = true // one line per transfer, on the whole width of the screen (#809)
 	screen.Notices = Notices(translate, r.URL.Query())
 	screen.Scripts = []string{script}
 	screen.Head = liveHead(data.FullURL, data.Pending)

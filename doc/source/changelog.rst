@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`809` Le Suivi des transferts et l'onglet Tâches d'une règle occupent
+  toute la largeur de l'écran, par le gabarit de page large du kit, qui
+  remplace l'exception de style du Suivi.
 * :feature:`811` Sur la page d'ajout d'une tâche, la liste des types montre
   le nom de la tâche (COPY, EXEC, TRANSFER…) avant son libellé et trie les
   types par nom dans leur famille.

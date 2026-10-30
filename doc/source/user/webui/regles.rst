@@ -171,6 +171,7 @@ nombre de tâches ; une carte repliée le reste au retour sur l'onglet :
      - Quand le transfert est en erreur ; la première tâche en échec arrête la
        chaîne.
 
+L'onglet occupe toute la largeur de l'écran, comme le Suivi des transferts.
 Les tâches s'y lisent dans leur ordre d'exécution, chacune une carte pliée :
 son rang et son type (par exemple ``COPY``), dont le bouton ⓘ donne le libellé
 et ce que fait la tâche. Le chevron déplie ses paramètres en clair. Une case

@@ -27,15 +27,14 @@
 .tf-pager { margin-top: var(--sp-3); }
 
 /* The list (2026-10-22): one line per transfer (w-table--one-line of the kit, since 0.10.0), on the whole width of
-   the screen, the cap of the kit lifted for this screen alone, whatever the state of the list (rows, no match, empty,
-   error); what does not fit ends with "…" and reads in the tooltip. The columns follow the historic screen (Driss,
+   the screen (the wide page of the kit 0.25.0, Screen.Wide, #809), whatever the state of the list (rows, no match,
+   empty, error); what does not fit ends with "…" and reads in the tooltip. The columns follow the historic screen (Driss,
    2026-10-22): the direction as an icon first, then the number, the state, the file, the rule, the partner, the start,
    the end, the progress and the size. Every column but the file has its width: the file takes the rest of the line.
    The partner stays whatever the width: "to whom did this file go" is the first question of an operator (#781,
    2026-10-26). Under 1 500 px of screen, the size folds into the tooltip of the progress: the list is the window less
    346 px (the sidebar and the margins, measured), so the container query fires under 1 154 px of list. Under 1 000 px
    of list, the table scrolls in its frame. */
-.w-main__inner:has(#transfers-table) { max-width: none; }
 .tf-list { container-type: inline-size; }
 .tf-table .w-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tf-col-dir { width: 2.5rem; }
