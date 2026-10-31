@@ -661,6 +661,7 @@ type monitorData struct {
 	ContextEngine string
 	ShowAuth      bool
 	ShowPriv      bool
+	SecurityMeta  string // the summary of the folded security card (#810)
 	BackURL       string
 	EditURL       string
 	Actions       []gui.Action
@@ -697,6 +698,7 @@ func (h *Handlers) Monitor(w http.ResponseWriter, r *http.Request) {
 		BackURL:       listURL(carried),
 		Actions:       monitorActions(translate, item, user, true, carried),
 	}
+	data.SecurityMeta = securityMeta(&data)
 
 	if user.Write {
 		data.EditURL = withRet(monitorURL(item.ID, "/edit"), carried)
@@ -840,4 +842,23 @@ func (h *Handlers) Test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	liststate.RedirectTo(w, r, listURL(ret(r)), result)
+}
+
+// securityMeta sums up the security card for its folded heading (#810): the
+// community of a SNMPv2c monitor, the level and the protocols of a SNMPv3 one.
+func securityMeta(d *monitorData) string {
+	if !d.V3 {
+		return d.Community
+	}
+
+	meta := d.Security
+	if d.ShowAuth {
+		meta += " · " + d.Auth
+	}
+
+	if d.ShowPriv {
+		meta += " · " + d.Priv
+	}
+
+	return meta
 }

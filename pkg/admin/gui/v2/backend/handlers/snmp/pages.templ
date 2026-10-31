@@ -188,36 +188,38 @@ templ monitorView(d monitorData) {
 				<dd><code class="w-code">{ d.Address }</code></dd>
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "snmp.col.security") }</h2>
-			<dl class="w-deflist">
-				if !d.V3 {
-					<dt>{ gui.T(ctx, "snmp.detail.community") }</dt>
-					<dd>{ d.Community }</dd>
-				} else {
-					<dt>{ gui.T(ctx, "snmp.detail.level") }</dt>
-					<dd>{ d.Security }</dd>
-					<dt>{ gui.T(ctx, "snmp.detail.user") }</dt>
-					<dd>@orNone(d.User, true)</dd>
-					if d.ShowAuth {
-						<dt>{ gui.T(ctx, "snmp.detail.engine") }</dt>
-						<dd>@orNone(d.EngineID, true)</dd>
-						<dt>{ gui.T(ctx, "snmp.detail.auth") }</dt>
-						<dd>{ d.Auth }</dd>
+		<details class="w-card w-card--fold" data-key="snmp-security">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "snmp.col.security") }</span><span class="w-fold__meta">{ d.SecurityMeta }</span></summary>
+			<div class="w-card__body">
+				<dl class="w-deflist">
+					if !d.V3 {
+						<dt>{ gui.T(ctx, "snmp.detail.community") }</dt>
+						<dd>{ d.Community }</dd>
+					} else {
+						<dt>{ gui.T(ctx, "snmp.detail.level") }</dt>
+						<dd>{ d.Security }</dd>
+						<dt>{ gui.T(ctx, "snmp.detail.user") }</dt>
+						<dd>@orNone(d.User, true)</dd>
+						if d.ShowAuth {
+							<dt>{ gui.T(ctx, "snmp.detail.engine") }</dt>
+							<dd>@orNone(d.EngineID, true)</dd>
+							<dt>{ gui.T(ctx, "snmp.detail.auth") }</dt>
+							<dd>{ d.Auth }</dd>
+						}
+						if d.ShowPriv {
+							<dt>{ gui.T(ctx, "snmp.detail.priv") }</dt>
+							<dd>{ d.Priv }</dd>
+						}
+						if d.ContextName != "" || d.ContextEngine != "" {
+							<dt>{ gui.T(ctx, "snmp.form.context_name") }</dt>
+							<dd>@orNone(d.ContextName, true)</dd>
+							<dt>{ gui.T(ctx, "snmp.form.context_engine") }</dt>
+							<dd>@orNone(d.ContextEngine, true)</dd>
+						}
 					}
-					if d.ShowPriv {
-						<dt>{ gui.T(ctx, "snmp.detail.priv") }</dt>
-						<dd>{ d.Priv }</dd>
-					}
-					if d.ContextName != "" || d.ContextEngine != "" {
-						<dt>{ gui.T(ctx, "snmp.form.context_name") }</dt>
-						<dd>@orNone(d.ContextName, true)</dd>
-						<dt>{ gui.T(ctx, "snmp.form.context_engine") }</dt>
-						<dd>@orNone(d.ContextEngine, true)</dd>
-					}
-				}
-			</dl>
-		</div>
+				</dl>
+			</div>
+		</details>
 	</div>
 }
 
