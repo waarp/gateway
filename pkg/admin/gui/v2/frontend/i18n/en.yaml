@@ -3006,8 +3006,11 @@ email_templates:
   error:
     title: The list of the email templates could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+
+# The variables the tasks substitute, offered by the variables list (email templates, tasks of the rules).
+vars:
   # The groups of the list of the variables.
-  var_group:
+  group:
     file: File
     transfer: Transfer
     partners: Partners

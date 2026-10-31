@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/varlist"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
@@ -96,7 +97,7 @@ func newForm(translate gui.Translator, e *entry, carried string) *formData {
 		Action:    withRet(common.WebuiURL(pagePath+"/new"), carried),
 		CancelURL: listURL(carried),
 		Format:    mimeHTML,
-		Vars:      varList(translate, time.Now()),
+		Vars:      varlist.List(translate, time.Now()),
 	}
 
 	if e != nil {

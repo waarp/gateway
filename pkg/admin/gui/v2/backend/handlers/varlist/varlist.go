@@ -1,4 +1,4 @@
-package emailtemplates
+package varlist
 
 import (
 	"slices"
@@ -10,9 +10,14 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
+// The variables list is built from the markers the tasks implement
+// (pkg/tasks), grouped by what they give, each with its label; a timestamp
+// offers the elements of its format. The screens whose fields the gateway
+// substitutes offer it (email templates, tasks of the rules; #812).
+
 const (
-	// The id of the variables list the fields of the form offer.
-	varListID = "email-template-vars"
+	// ListID is the id of the variables list the fields offer (data-vars).
+	ListID = "vars-list"
 
 	// The marker of a transfer info: its key follows the prefix.
 	transferInfoName = "TI_"
@@ -22,9 +27,9 @@ const (
 	defaultFormat = "YYYY-MM-DD_HHmmss"
 
 	// Prefixes of the catalogue keys chosen at run time.
-	varKeyPrefix   = "email_templates.var."
-	groupKeyPrefix = "email_templates.var_group."
-	tokenKeyPrefix = "email_templates.token."
+	varKeyPrefix   = "vars.var."
+	groupKeyPrefix = "vars.group."
+	tokenKeyPrefix = "vars.token."
 )
 
 // varGroups orders the markers of the tasks in the list, by what they give.
@@ -68,10 +73,10 @@ var tokenKeys = map[string]string{
 //nolint:gochecknoglobals // reference data of the screen
 var tokensNotOffered = []string{"pm"}
 
-// varList builds the variables list of the form: the markers the tasks
-// implement, by group, each with its label; a timestamp offers the elements
-// of its format with the value they give at the given time.
-func varList(translate gui.Translator, now time.Time) gui.VarListProps {
+// List builds the variables list: the markers the tasks implement, by
+// group, each with its label; a timestamp offers the elements of its format
+// with the value they give at the given time.
+func List(translate gui.Translator, now time.Time) gui.VarListProps {
 	formats := tasks.FormatMarkers()
 	tokens := formatTokens(translate, now)
 
@@ -85,7 +90,7 @@ func varList(translate gui.Translator, now time.Time) gui.VarListProps {
 
 			switch {
 			case name == transferInfoName:
-				param := translate("email_templates.var.ti_param")
+				param := translate("vars.var.ti_param")
 				group.Vars = append(group.Vars, gui.Var{Name: name + param, Label: label, Param: param})
 			case slices.Contains(formats, name):
 				group.Vars = append(group.Vars, gui.Var{
@@ -99,7 +104,7 @@ func varList(translate gui.Translator, now time.Time) gui.VarListProps {
 		groups = append(groups, group)
 	}
 
-	return gui.VarListProps{ID: varListID, Groups: groups}
+	return gui.VarListProps{ID: ListID, Groups: groups}
 }
 
 // formatTokens are the elements of a date format the list offers, each with

@@ -3008,8 +3008,11 @@ email_templates:
   error:
     title: La liste des modèles d'e-mail n'a pas pu être chargée.
     text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Les variables que les tâches substituent, proposées par la liste des variables (modèles d'e-mail, tâches des règles).
+vars:
   # Les groupes de la liste des variables.
-  var_group:
+  group:
     file: Fichier
     transfer: Transfert
     partners: Partenaires
