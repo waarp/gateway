@@ -175,10 +175,10 @@ templ detailView(d detailData) {
 				}
 			</dl>
 		</div>
-		// The cards after the first fold (rule of 2026-10-25, #807): open by
-		// default, their state kept by the kit under their key.
-		<details class="w-card w-card--fold" data-key="keys-value" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "keys.detail.value") }</span></summary>
+		// The cards after the first fold, closed by default and summed up in
+		// their heading (#810); the kit keeps the state the user chose.
+		<details class="w-card w-card--fold" data-key="keys-value">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "keys.detail.value") }</span><span class="w-fold__meta">{ d.ValueMeta }</span></summary>
 			<div class="w-card__body">
 				<dl class="w-deflist">
 					<dt>{ gui.T(ctx, "keys.detail.state") }</dt>
@@ -214,8 +214,8 @@ templ detailView(d detailData) {
 				}
 			</div>
 		</details>
-		<details class="w-card w-card--fold" data-key="keys-uses" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "keys.detail.uses") }</span></summary>
+		<details class="w-card w-card--fold" data-key="keys-uses">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "keys.detail.uses") }</span><span class="w-fold__meta">{ d.UsesMeta }</span></summary>
 			<div class="w-card__body">
 				@usesList(d.Uses)
 			</div>

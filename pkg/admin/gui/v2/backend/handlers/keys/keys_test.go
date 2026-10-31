@@ -185,7 +185,7 @@ func (s *suite) insert(t *testing.T, name, typ, value string) *model.CryptoKey {
 
 	valid := map[string]string{
 		model.CryptoKeyTypeAES: aesKey(aes128), model.CryptoKeyTypeHMAC: hmacSecret,
-		model.CryptoKeyTypePGPPublic: newPGP(t, "Valid", time.Now(), 0).Public,
+		model.CryptoKeyTypePGPPublic:  newPGP(t, "Valid", time.Now(), 0).Public,
 		model.CryptoKeyTypePGPPrivate: newPGP(t, "Valid", time.Now(), 0).Private,
 	}
 	k = &model.CryptoKey{Name: name, Type: typ, Key: valid[typ]}
@@ -496,8 +496,8 @@ func TestDetail(t *testing.T) {
 			`<span class="ruleuse-direction">Réception</span> <a class="w-link ruleuse-rule" href="`+tasksURL(s.receive)+`">flux-paie</a>`)
 		assert.Contains(t, body, `href="/webui/static_v2/ruleuse/ruleuse.css"`, "the cards of the rules")
 		assert.NotContains(t, body, "<table", "no table in a card")
-		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="keys-value" open>`, "the cards after the first fold (#807)")
-		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="keys-uses" open>`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="keys-value">`, "the cards after the first fold (#807)")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="keys-uses">`)
 		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.aes, "/edit")+`"`)
 		s.assertNoSecret(t, body)
 	})

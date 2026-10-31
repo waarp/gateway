@@ -606,6 +606,8 @@ type detailData struct {
 	Created   string
 	Expires   string
 	Uses      []ruleuse.Row
+	ValueMeta string // the summaries of the folded cards (#810)
+	UsesMeta  string
 	BackURL   string
 	EditURL   string
 	Actions   []gui.Action
@@ -650,6 +652,9 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	if !item.info.Expires.IsZero() {
 		data.Expires = item.info.Expires.Format(date)
 	}
+
+	data.ValueMeta = valueMeta(translate, &data)
+	data.UsesMeta = ruleuse.Count(translate, len(item.uses))
 
 	if user.Write {
 		data.EditURL = withRet(keyURL(item.key.ID, "/edit"), carried)
@@ -725,4 +730,19 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	listSpec.RedirectList(w, r, ret(r), url.Values{doneParam: {doneDeleted}, nameParam: {item.key.Name}})
+}
+
+// valueMeta sums up the value card for its folded heading (#810): the state
+// of the key, then its size or its algorithm when the value is readable.
+func valueMeta(translate gui.Translator, d *detailData) string {
+	parts := []string{d.State.Label}
+
+	switch {
+	case d.Info.Readable && d.AESBits > 0:
+		parts = append(parts, translate("keys.detail.bits", "n", d.AESBits))
+	case d.Info.Readable && d.PGP && d.Info.Algorithm != "":
+		parts = append(parts, d.Info.Algorithm)
+	}
+
+	return strings.Join(parts, " · ")
 }
