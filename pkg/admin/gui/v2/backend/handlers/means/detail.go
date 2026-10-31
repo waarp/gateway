@@ -34,6 +34,7 @@ type detailData struct {
 	Rows        []kv
 	Public      string // the public part, when there is one
 	PublicTitle string
+	PublicMeta  string // the fingerprint, short, in the heading of the folded public part (#810)
 	// Chain is every certificate of a chain, when there are several: the
 	// sheet shows them in a table.
 	Chain []chainRow
@@ -96,6 +97,7 @@ func buildDetail(translate gui.Translator, own *Owner, cred *view, now time.Time
 		}
 
 		data.Public, data.PublicTitle = cred.Public, translate("auth.detail.pem")
+		data.PublicMeta = shortFingerprint(cred.Fingerprint)
 
 		if len(cred.Chain) > 1 {
 			data.Rows = append(data.Rows, kv{
@@ -110,6 +112,7 @@ func buildDetail(translate gui.Translator, own *Owner, cred *view, now time.Time
 			{Label: translate("auth.detail.fingerprint"), Value: cred.Fingerprint, Mono: true},
 		}
 		data.Public, data.PublicTitle = cred.Public, translate("auth.detail.public_key")
+		data.PublicMeta = shortFingerprint(cred.Fingerprint)
 	case cred.Type == sftp.AuthSSHPrivateKey && cred.KeyType != "":
 		data.Rows = []kv{
 			{Label: translate("auth.detail.key_type"), Value: cred.KeyType, Mono: true},
@@ -253,4 +256,15 @@ func (p *Pages) Delete(w http.ResponseWriter, r *http.Request, own *Owner) {
 	}
 
 	p.redirect(w, r, own, liststate.DoneDeleted, cred.Name, "", "")
+}
+
+// shortFingerprint is the start of a fingerprint, for the heading of the
+// folded public part (#810): enough to recognise it, the sheet has it in full.
+func shortFingerprint(fingerprint string) string {
+	const shown = 20
+	if len(fingerprint) <= shown {
+		return fingerprint
+	}
+
+	return fingerprint[:shown] + "…"
 }

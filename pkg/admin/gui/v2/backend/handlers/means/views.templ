@@ -444,7 +444,7 @@ templ detailView(d detailData) {
 			</dl>
 		</div>
 		if len(d.Chain) > 1 {
-			<details class="w-card w-card--fold" open>
+			<details class="w-card w-card--fold" data-key="mean-chain">
 				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "auth.detail.chain") }</span><span class="w-fold__meta">{ gui.T(ctx, "auth.content.chain", "n", len(d.Chain)) }</span></summary>
 				<div class="w-card__body">
 					<div class="w-table-wrap">
@@ -477,8 +477,8 @@ templ detailView(d detailData) {
 			</details>
 		}
 		if d.Public != "" {
-			<details class="w-card w-card--fold" open>
-				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ d.PublicTitle }</span></summary>
+			<details class="w-card w-card--fold" data-key="mean-public">
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ d.PublicTitle }</span><span class="w-fold__meta">{ d.PublicMeta }</span></summary>
 				<div class="w-card__body">
 					<pre class="w-code sheet-pem">{ d.Public }</pre>
 					<p class="w-form__note sheet-note">{ gui.T(ctx, "auth.detail.public_note") }</p>
