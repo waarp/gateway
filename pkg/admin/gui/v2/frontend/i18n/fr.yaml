@@ -377,6 +377,7 @@ servers:
     accounts: Comptes locaux
     dirs: Dossiers
     undefined: Non défini
+    dirs_meta_default: Dossiers par défaut
   dirs:
     root: Dossier racine
     receive: Dossier de réception

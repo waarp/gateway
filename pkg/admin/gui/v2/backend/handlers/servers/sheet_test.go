@@ -140,7 +140,7 @@ func TestAccountsFragment(t *testing.T) {
 	s := newSuite(t)
 	s.sheet(t)
 
-	rec := s.get(t, permAll, s.path(s.sftp, "/accounts") + "?fragment=list")
+	rec := s.get(t, permAll, s.path(s.sftp, "/accounts")+"?fragment=list")
 	require.Equal(t, http.StatusOK, rec.Code)
 
 	body := rec.Body.String()

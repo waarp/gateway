@@ -378,6 +378,7 @@ servers:
     accounts: Local accounts
     dirs: Directories
     undefined: Not set
+    dirs_meta_default: Default directories
   dirs:
     root: Root directory
     receive: Receive directory

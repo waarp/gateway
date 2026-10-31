@@ -176,29 +176,33 @@ templ detailView(d detailData) {
 				}
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "servers.detail.dirs") }</h2>
-			<dl class="w-deflist">
-				for _, k := range d.Dirs {
-					<dt>{ k.Label }</dt>
-					<dd>@dirValue(k)</dd>
-				}
-			</dl>
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
-			for _, g := range protoform.Grouped(d.Options) {
-				if g.Title != "" {
-					<h3 class="proto-section__title">{ g.Title }</h3>
-				}
+		<details class="w-card w-card--fold" data-key="srv-dirs">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "servers.detail.dirs") }</span><span class="w-fold__meta">{ d.DirsMeta }</span></summary>
+			<div class="w-card__body">
 				<dl class="w-deflist">
-					for _, k := range g.Rows {
+					for _, k := range d.Dirs {
 						<dt>{ k.Label }</dt>
-						<dd>@protoform.ValueOf(k)</dd>
+						<dd>@dirValue(k)</dd>
 					}
 				</dl>
-			}
-		</div>
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="srv-options">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</span><span class="w-fold__meta">{ d.OptionsMeta }</span></summary>
+			<div class="w-card__body">
+				for _, g := range protoform.Grouped(d.Options) {
+					if g.Title != "" {
+						<h3 class="proto-section__title">{ g.Title }</h3>
+					}
+					<dl class="w-deflist">
+						for _, k := range g.Rows {
+							<dt>{ k.Label }</dt>
+							<dd>@protoform.ValueOf(k)</dd>
+						}
+					</dl>
+				}
+			</div>
+		</details>
 	</div>
 }
 

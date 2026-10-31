@@ -666,17 +666,19 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 func formStylesheets() []string { return []string{protoStylesheet, means.Stylesheet, stylesheet} }
 
 type detailData struct {
-	Name     string
-	Status   gui.Status
-	Reason   string
-	Protocol string
-	Tabs     []tab
-	BackURL  string
-	EditURL  string
-	Actions  []gui.Action
-	Identity []kv
-	Dirs     []kv
-	Options  []kv
+	Name        string
+	Status      gui.Status
+	Reason      string
+	Protocol    string
+	Tabs        []tab
+	BackURL     string
+	EditURL     string
+	Actions     []gui.Action
+	Identity    []kv
+	Dirs        []kv
+	Options     []kv
+	DirsMeta    string // the summaries of the folded cards (#810)
+	OptionsMeta string
 }
 
 // Detail serves GET /webui/servers/{id}: the "Details" tab of the sheet,
@@ -727,6 +729,13 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		},
 		Options: protoform.Rows(translate, protoform.RoleServer, srv.proto, srv.agent.ProtoConfig),
 	}
+
+	data.DirsMeta = srv.agent.RootDir
+	if data.DirsMeta == "" {
+		data.DirsMeta = translate("servers.detail.dirs_meta_default")
+	}
+
+	data.OptionsMeta = protoform.OptionsMeta(translate, data.Options)
 
 	if user.Write {
 		data.EditURL = withRet(serverURL(srv.agent.ID, "/edit"), carried)
