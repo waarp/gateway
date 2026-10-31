@@ -365,7 +365,8 @@ templ detailView(d detailData) {
 				}
 			</dl>
 		</div>
-		<details class="w-card w-card--fold" open>
+		// Closed by default and summed up in its heading (#810); the kit keeps the state the user chose.
+		<details class="w-card w-card--fold" data-key="wt-files">
 			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "watchers.detail.files") }</span><span class="w-fold__meta">{ d.FilesCount }</span></summary>
 			<div class="w-card__body">
 				<p class="wt-lead">{ d.FilesText }</p>
