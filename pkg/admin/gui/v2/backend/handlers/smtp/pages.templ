@@ -149,10 +149,10 @@ templ detailView(d detailData) {
 				<dd>{ gui.T(ctx, "smtp.detail.role_text") }</dd>
 			</dl>
 		</div>
-		// The cards after the first fold (rule of 2026-10-25, #807): open by
-		// default, their state kept by the kit under their key.
-		<details class="w-card w-card--fold" data-key="smtp-server" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</span></summary>
+		// The cards after the first fold, closed by default and summed up in
+		// their heading (#810); the kit keeps the state the user chose.
+		<details class="w-card w-card--fold" data-key="smtp-server">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.detail.server") }</span><span class="w-fold__meta">{ d.ServerMeta }</span></summary>
 			<div class="w-card__body">
 				if d.Incomplete {
 					<div class="smtp-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "smtp.detail.incomplete"), Text: gui.T(ctx, "smtp.detail.incomplete_text")})</div>
@@ -181,8 +181,8 @@ templ detailView(d detailData) {
 				</dl>
 			</div>
 		</details>
-		<details class="w-card w-card--fold" data-key="smtp-uses" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.detail.uses") }</span></summary>
+		<details class="w-card w-card--fold" data-key="smtp-uses">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "smtp.detail.uses") }</span><span class="w-fold__meta">{ d.UsesMeta }</span></summary>
 			<div class="w-card__body">
 				@usesList(d.Uses)
 			</div>

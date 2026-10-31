@@ -475,6 +475,8 @@ type detailData struct {
 	Login       string
 	PasswordSet bool
 	Uses        []ruleuse.Row
+	ServerMeta  string // the summaries of the folded cards (#810)
+	UsesMeta    string
 	BackURL     string
 	EditURL     string
 	Actions     []gui.Action
@@ -508,6 +510,9 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		data.Port = strconv.Itoa(int(addr.Port))
 		data.Connection = connection(translate, addr.Port)
 	}
+
+	data.ServerMeta = serverMeta(translate, &data)
+	data.UsesMeta = ruleuse.Count(translate, len(item.uses))
 
 	if user.Write {
 		data.EditURL = withRet(credURL(item.cred.ID, "/edit"), carried)
@@ -581,4 +586,23 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	listSpec.RedirectList(w, r, ret(r), url.Values{doneParam: {doneDeleted}, nameParam: {item.cred.EmailAddress}})
+}
+
+// serverMeta sums up the server card for its folded heading (#810): the host
+// and the port, then the connection; or that the credential is incomplete.
+func serverMeta(translate gui.Translator, d *detailData) string {
+	if d.Incomplete {
+		return translate("smtp.detail.incomplete")
+	}
+
+	meta := d.Host
+	if d.Port != "" {
+		meta += ":" + d.Port
+	}
+
+	if d.Connection != "" {
+		meta += " · " + d.Connection
+	}
+
+	return meta
 }
