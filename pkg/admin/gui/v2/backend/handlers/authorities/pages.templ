@@ -186,52 +186,58 @@ templ detailView(d detailData) {
 				}
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "authorities.detail.identity") }</h2>
-			if !d.Readable {
-				<p class="authorities-note w-muted">{ gui.T(ctx, "authorities.detail.unreadable") }</p>
-			} else if d.TLS {
-				<dl class="w-deflist">
-					<dt>{ gui.T(ctx, "auth.detail.subject") }</dt>
-					<dd><code class="w-code">{ d.Info.Subject }</code></dd>
-					<dt>{ gui.T(ctx, "auth.detail.issuer") }</dt>
-					<dd><code class="w-code">{ d.Info.Issuer }</code></dd>
-					<dt>{ gui.T(ctx, "auth.detail.validity") }</dt>
-					<dd>{ d.Period } @validityCell(d.Validity)</dd>
-					<dt>{ gui.T(ctx, "auth.detail.fingerprint") }</dt>
-					<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
-				</dl>
-				@publicBlock(gui.T(ctx, "authorities.detail.show_certificate"), d.Info.Public)
-			} else {
-				<dl class="w-deflist">
-					<dt>{ gui.T(ctx, "auth.detail.key_type") }</dt>
-					<dd><code class="w-code">{ d.Info.KeyType }</code></dd>
-					<dt>{ gui.T(ctx, "auth.detail.fingerprint") }</dt>
-					<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
-				</dl>
-				@publicBlock(gui.T(ctx, "authorities.detail.show_key"), d.Info.Public)
-			}
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "authorities.detail.hosts") }</h2>
-			if len(d.Hosts) == 0 {
-				<p class="authorities-note">{ gui.T(ctx, "authorities.hosts.all") }</p>
-			} else {
-				<ul class="authorities-list">
-					for _, host := range d.Hosts {
-						<li><code class="w-code">{ host }</code></li>
-					}
-				</ul>
-			}
-			if d.HostsHint != "" {
-				<p class="authorities-note w-muted">{ d.HostsHint }</p>
-			}
-		</div>
-		if d.TLS {
-			<div class="w-card">
-				<h2 class="w-card__title">{ gui.T(ctx, "authorities.detail.signed") }</h2>
-				@signedList(d.Signed)
+		<details class="w-card w-card--fold" data-key="auth-identity">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "authorities.detail.identity") }</span><span class="w-fold__meta">{ d.IdentityMeta }</span></summary>
+			<div class="w-card__body">
+				if !d.Readable {
+					<p class="authorities-note w-muted">{ gui.T(ctx, "authorities.detail.unreadable") }</p>
+				} else if d.TLS {
+					<dl class="w-deflist">
+						<dt>{ gui.T(ctx, "auth.detail.subject") }</dt>
+						<dd><code class="w-code">{ d.Info.Subject }</code></dd>
+						<dt>{ gui.T(ctx, "auth.detail.issuer") }</dt>
+						<dd><code class="w-code">{ d.Info.Issuer }</code></dd>
+						<dt>{ gui.T(ctx, "auth.detail.validity") }</dt>
+						<dd>{ d.Period } @validityCell(d.Validity)</dd>
+						<dt>{ gui.T(ctx, "auth.detail.fingerprint") }</dt>
+						<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
+					</dl>
+					@publicBlock(gui.T(ctx, "authorities.detail.show_certificate"), d.Info.Public)
+				} else {
+					<dl class="w-deflist">
+						<dt>{ gui.T(ctx, "auth.detail.key_type") }</dt>
+						<dd><code class="w-code">{ d.Info.KeyType }</code></dd>
+						<dt>{ gui.T(ctx, "auth.detail.fingerprint") }</dt>
+						<dd><code class="w-code">{ d.Info.Fingerprint }</code></dd>
+					</dl>
+					@publicBlock(gui.T(ctx, "authorities.detail.show_key"), d.Info.Public)
+				}
 			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="auth-hosts">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "authorities.detail.hosts") }</span><span class="w-fold__meta">{ d.HostsMeta }</span></summary>
+			<div class="w-card__body">
+				if len(d.Hosts) == 0 {
+					<p class="authorities-note">{ gui.T(ctx, "authorities.hosts.all") }</p>
+				} else {
+					<ul class="authorities-list">
+						for _, host := range d.Hosts {
+							<li><code class="w-code">{ host }</code></li>
+						}
+					</ul>
+				}
+				if d.HostsHint != "" {
+					<p class="authorities-note w-muted">{ d.HostsHint }</p>
+				}
+			</div>
+		</details>
+		if d.TLS {
+			<details class="w-card w-card--fold" data-key="auth-signed">
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "authorities.detail.signed") }</span><span class="w-fold__meta">{ d.SignedMeta }</span></summary>
+				<div class="w-card__body">
+					@signedList(d.Signed)
+				</div>
+			</details>
 		}
 	</div>
 }

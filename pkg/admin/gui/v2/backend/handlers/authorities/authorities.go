@@ -704,21 +704,24 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 }
 
 type detailData struct {
-	Name      string
-	TypeLabel string // the full label, or the raw key of an unknown type
-	TypeKey   string
-	TypeHint  string
-	TLS       bool
-	Readable  bool
-	Info      certinfo.Info
-	Validity  gui.Status
-	Period    string // "from … to …" of a certificate
-	Hosts     []string
-	HostsHint string
-	Signed    []signed
-	BackURL   string
-	EditURL   string
-	Actions   []gui.Action
+	Name         string
+	TypeLabel    string // the full label, or the raw key of an unknown type
+	TypeKey      string
+	TypeHint     string
+	TLS          bool
+	Readable     bool
+	Info         certinfo.Info
+	Validity     gui.Status
+	Period       string // "from … to …" of a certificate
+	Hosts        []string
+	HostsHint    string
+	Signed       []signed
+	IdentityMeta string // the summaries of the folded cards (#810)
+	HostsMeta    string
+	SignedMeta   string
+	BackURL      string
+	EditURL      string
+	Actions      []gui.Action
 }
 
 // Detail serves GET /webui/authorities/{id}: the authority in reading, with
@@ -766,6 +769,10 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		data.Period = translate("auth.detail.validity_text",
 			"from", item.info.NotBefore.Format(date), "to", item.info.NotAfter.Format(date))
 	}
+
+	data.IdentityMeta = identityMeta(translate, &data)
+	data.HostsMeta = hostsMeta(translate, len(data.Hosts))
+	data.SignedMeta = signedMeta(translate, len(data.Signed))
 
 	if user.Write {
 		data.EditURL = withRet(authorityURL(item.authority.ID, "/edit"), carried)
@@ -843,4 +850,44 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	listSpec.RedirectList(w, r, ret(r), url.Values{doneParam: {doneDeleted}, nameParam: {e.authority.Name}})
+}
+
+// identityMeta sums up the public identity card for its folded heading
+// (#810): the subject and the expiry of a certificate, the type of a key, or
+// that the identity cannot be read.
+func identityMeta(translate gui.Translator, d *detailData) string {
+	switch {
+	case !d.Readable:
+		return translate("authorities.identity.unreadable")
+	case d.TLS:
+		expires := translate("authorities.identity.meta_expires", "date", d.Info.NotAfter.Format(translate("auth.date")))
+
+		return d.Info.Subject + " · " + expires
+	default:
+		return d.Info.KeyType
+	}
+}
+
+// hostsMeta sums up the allowed hosts card for its folded heading (#810).
+func hostsMeta(translate gui.Translator, n int) string {
+	switch n {
+	case 0:
+		return translate("authorities.hosts.all")
+	case 1:
+		return translate("authorities.hosts.meta_one")
+	default:
+		return translate("authorities.hosts.meta", "n", n)
+	}
+}
+
+// signedMeta sums up the signed certificates card for its folded heading (#810).
+func signedMeta(translate gui.Translator, n int) string {
+	switch n {
+	case 0:
+		return translate("authorities.signed.meta_none")
+	case 1:
+		return translate("authorities.signed.meta_one")
+	default:
+		return translate("authorities.signed.meta", "n", n)
+	}
 }

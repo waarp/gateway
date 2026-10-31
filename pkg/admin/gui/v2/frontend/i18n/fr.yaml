@@ -1460,8 +1460,15 @@ authorities:
     ko: Expirée
   identity:
     unreadable: Illisible
+    meta_expires: "expire le {date}"
+  signed:
+    meta_none: Aucun
+    meta_one: 1 certificat
+    meta: "{n} certificats"
   hosts:
     all: Tous les hôtes
+    meta_one: 1 hôte
+    meta: "{n} hôtes"
     more: "{hosts} et {n} autres"
     more_one: "{hosts} et 1 autre"
   # Qui porte un certificat enregistré que l'autorité signe.

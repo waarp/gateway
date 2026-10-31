@@ -1461,8 +1461,15 @@ authorities:
     ko: Expired
   identity:
     unreadable: Unreadable
+    meta_expires: "expires on {date}"
+  signed:
+    meta_none: None
+    meta_one: 1 certificate
+    meta: "{n} certificates"
   hosts:
     all: Any host
+    meta_one: 1 host
+    meta: "{n} hosts"
     more: "{hosts} and {n} more"
     more_one: "{hosts} and 1 more"
   # Who holds a registered certificate the authority signs.
