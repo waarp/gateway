@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`810` Les cartes des fiches de l'interface web refondue, sauf la
+  première, sont pliées par défaut et résumées dans leur en-tête ; le
+  navigateur retient l'état déplié. Les blocs facultatifs vides des
+  formulaires se plient de même.
 * :support:`810` Le kit d'interface 0.26.0 est épinglé : l'éditeur du corps des
   modèles d'e-mail insère un tableau simple, rendu par les clients de
   messagerie, dont une barre gère les lignes et les colonnes.

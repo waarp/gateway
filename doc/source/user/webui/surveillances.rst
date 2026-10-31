@@ -85,7 +85,8 @@ Fiche d'une surveillance
 La fiche rappelle la surveillance (état du service et, en erreur, la raison ;
 partenaire et compte ; client ; règle, qui mène à sa propre fiche ; motif ;
 intervalle ; reprise des fichiers déjà transférés ; démarrage avec la
-passerelle) et liste, dans une carte repliable, les derniers fichiers reçus :
+passerelle) et liste, dans une carte pliée par défaut dont l'en-tête compte
+les fichiers, les derniers fichiers reçus :
 les vingt derniers transferts de réception de la règle pour ce partenaire et
 ce compte, avec leur date, leur heure et leur état, chacun menant à la fiche
 du transfert. Le bouton *Voir tous les transferts* ouvre le suivi des
