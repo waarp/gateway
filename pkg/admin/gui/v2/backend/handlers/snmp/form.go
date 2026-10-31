@@ -708,3 +708,16 @@ func (h *Handlers) SaveAgent(w http.ResponseWriter, r *http.Request) {
 
 	h.renderAgent(w, r, form, http.StatusUnprocessableEntity)
 }
+
+// v3Touched says whether the SNMPv3 card of the agent form has something to
+// show, a user, a protocol, a stored passphrase or an error: the card opens
+// then, folded otherwise (#810).
+func (f *agentForm) v3Touched() bool {
+	for _, id := range []string{fieldUser, fieldAuthProtocol, fieldAuthPass, fieldPrivProtocol, fieldPrivPass} {
+		if f.Fields[id].Value != "" || f.Fields[id].Error != "" {
+			return true
+		}
+	}
+
+	return f.AuthSet || f.PrivSet
+}

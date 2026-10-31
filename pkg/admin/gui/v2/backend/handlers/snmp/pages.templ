@@ -323,36 +323,42 @@ templ monitorFormView(d *monitorForm) {
 				@protoform.FieldOf(protoform.FieldProps{ID: fieldAddress, Label: gui.T(ctx, "snmp.col.address"), Req: true, F: d.Fields[fieldAddress], Hint: gui.T(ctx, "snmp.form.address_hint"), Placeholder: "supervision.example.org:162"})
 			</fieldset>
 		</div>
-		<div class="w-card" data-case={ versionV2 } data-of="version">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ versionV2c }</legend>
-				@protoform.FieldOf(protoform.FieldProps{ID: fieldCommunity, Label: gui.T(ctx, "snmp.detail.community"), F: d.Fields[fieldCommunity], Hint: secretHint(ctx, d.CommunitySet, gui.T(ctx, "snmp.form.community_hint")), Password: true, Autocomplete: "off"})
-			</fieldset>
-		</div>
-		<div class="w-card" data-case={ versionV3 } data-of="version">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ versionV3 }</legend>
-				<div class="w-grid w-grid--2">
-					@selectField(fieldSecurity, gui.T(ctx, "snmp.detail.level"), true, d.Levels, "", d.Fields[fieldSecurity].Error, "", "security")
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldUser, Label: gui.T(ctx, "snmp.detail.user"), Req: true, F: d.Fields[fieldUser], Hint: gui.T(ctx, "snmp.form.user_hint"), Autocomplete: "off"})
-				</div>
-				<fieldset class="w-fieldset w-fieldset--wide" data-case="authNoPriv authPriv" data-of="security">
-					<legend class="snmp-legend">{ gui.T(ctx, "snmp.detail.auth") }</legend>
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldEngine, Label: gui.T(ctx, "snmp.detail.engine"), Req: d.EngineReq, F: d.Fields[fieldEngine], Hint: gui.T(ctx, "snmp.form.engine_hint"), Placeholder: "0x80001f8880e9630000d61ff449"})
-					<div class="w-grid w-grid--2">
-						@selectField(fieldAuthProtocol, gui.T(ctx, "snmp.form.auth_protocol"), true, d.AuthProtocols, gui.T(ctx, "snmp.form.protocol_choose"), d.Fields[fieldAuthProtocol].Error, "", "")
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldAuthPass, Label: gui.T(ctx, "snmp.form.auth_pass"), Req: !d.AuthSet, F: d.Fields[fieldAuthPass], Hint: secretHint(ctx, d.AuthSet, ""), Password: true, Autocomplete: "new-password"})
-					</div>
+		<details class="w-card w-card--fold" data-case={ versionV2 } data-of="version" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ versionV2c }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ versionV2c }</legend>
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldCommunity, Label: gui.T(ctx, "snmp.detail.community"), F: d.Fields[fieldCommunity], Hint: secretHint(ctx, d.CommunitySet, gui.T(ctx, "snmp.form.community_hint")), Password: true, Autocomplete: "off"})
 				</fieldset>
-				<fieldset class="w-fieldset w-fieldset--wide" data-case="authPriv" data-of="security">
-					<legend class="snmp-legend">{ gui.T(ctx, "snmp.detail.priv") }</legend>
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-case={ versionV3 } data-of="version" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ versionV3 }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ versionV3 }</legend>
 					<div class="w-grid w-grid--2">
-						@selectField(fieldPrivProtocol, gui.T(ctx, "snmp.form.priv_protocol"), true, d.PrivProtocols, gui.T(ctx, "snmp.form.protocol_choose"), d.Fields[fieldPrivProtocol].Error, "", "")
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldPrivPass, Label: gui.T(ctx, "snmp.form.priv_pass"), Req: !d.PrivSet, F: d.Fields[fieldPrivPass], Hint: secretHint(ctx, d.PrivSet, ""), Password: true, Autocomplete: "new-password"})
+						@selectField(fieldSecurity, gui.T(ctx, "snmp.detail.level"), true, d.Levels, "", d.Fields[fieldSecurity].Error, "", "security")
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldUser, Label: gui.T(ctx, "snmp.detail.user"), Req: true, F: d.Fields[fieldUser], Hint: gui.T(ctx, "snmp.form.user_hint"), Autocomplete: "off"})
 					</div>
+					<fieldset class="w-fieldset w-fieldset--wide" data-case="authNoPriv authPriv" data-of="security">
+						<legend class="snmp-legend">{ gui.T(ctx, "snmp.detail.auth") }</legend>
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldEngine, Label: gui.T(ctx, "snmp.detail.engine"), Req: d.EngineReq, F: d.Fields[fieldEngine], Hint: gui.T(ctx, "snmp.form.engine_hint"), Placeholder: "0x80001f8880e9630000d61ff449"})
+						<div class="w-grid w-grid--2">
+							@selectField(fieldAuthProtocol, gui.T(ctx, "snmp.form.auth_protocol"), true, d.AuthProtocols, gui.T(ctx, "snmp.form.protocol_choose"), d.Fields[fieldAuthProtocol].Error, "", "")
+							@protoform.FieldOf(protoform.FieldProps{ID: fieldAuthPass, Label: gui.T(ctx, "snmp.form.auth_pass"), Req: !d.AuthSet, F: d.Fields[fieldAuthPass], Hint: secretHint(ctx, d.AuthSet, ""), Password: true, Autocomplete: "new-password"})
+						</div>
+					</fieldset>
+					<fieldset class="w-fieldset w-fieldset--wide" data-case="authPriv" data-of="security">
+						<legend class="snmp-legend">{ gui.T(ctx, "snmp.detail.priv") }</legend>
+						<div class="w-grid w-grid--2">
+							@selectField(fieldPrivProtocol, gui.T(ctx, "snmp.form.priv_protocol"), true, d.PrivProtocols, gui.T(ctx, "snmp.form.protocol_choose"), d.Fields[fieldPrivProtocol].Error, "", "")
+							@protoform.FieldOf(protoform.FieldProps{ID: fieldPrivPass, Label: gui.T(ctx, "snmp.form.priv_pass"), Req: !d.PrivSet, F: d.Fields[fieldPrivPass], Hint: secretHint(ctx, d.PrivSet, ""), Password: true, Autocomplete: "new-password"})
+						</div>
+					</fieldset>
 				</fieldset>
-			</fieldset>
-		</div>
+			</div>
+		</details>
 		<details class="w-card w-card--fold" data-case={ versionV3 } data-of="version" open?={ d.ContextOpen }>
 			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "snmp.form.context_card") }</span><span class="w-fold__meta">{ contextSummary(ctx, d) }</span></summary>
 			<div class="w-card__body">
@@ -405,18 +411,21 @@ templ agentFormView(d *agentForm) {
 				<span class="w-field__hint" id="v3-only-h">{ gui.T(ctx, "snmp.agent.v3_only_hint") }</span>
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ versionV3 }</legend>
-				@protoform.FieldOf(protoform.FieldProps{ID: fieldUser, Label: gui.T(ctx, "snmp.detail.user"), F: d.Fields[fieldUser], Hint: gui.T(ctx, "snmp.agent.user_hint"), Autocomplete: "off"})
-				<div class="w-grid w-grid--2">
-					@selectField(fieldAuthProtocol, gui.T(ctx, "snmp.form.auth_protocol"), false, d.AuthProtocols, gui.T(ctx, "snmp.detail.none"), d.Fields[fieldAuthProtocol].Error, "", "")
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldAuthPass, Label: gui.T(ctx, "snmp.form.auth_pass"), F: d.Fields[fieldAuthPass], Hint: secretHint(ctx, d.AuthSet, ""), Password: true, Autocomplete: "new-password"})
-					@selectField(fieldPrivProtocol, gui.T(ctx, "snmp.form.priv_protocol"), false, d.PrivProtocols, gui.T(ctx, "snmp.detail.none"), d.Fields[fieldPrivProtocol].Error, gui.T(ctx, "snmp.agent.priv_hint"), "")
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldPrivPass, Label: gui.T(ctx, "snmp.form.priv_pass"), F: d.Fields[fieldPrivPass], Hint: secretHint(ctx, d.PrivSet, ""), Password: true, Autocomplete: "new-password"})
-				</div>
-			</fieldset>
-		</div>
+		<details class="w-card w-card--fold" open?={ d.v3Touched() }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ versionV3 }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ versionV3 }</legend>
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldUser, Label: gui.T(ctx, "snmp.detail.user"), F: d.Fields[fieldUser], Hint: gui.T(ctx, "snmp.agent.user_hint"), Autocomplete: "off"})
+					<div class="w-grid w-grid--2">
+						@selectField(fieldAuthProtocol, gui.T(ctx, "snmp.form.auth_protocol"), false, d.AuthProtocols, gui.T(ctx, "snmp.detail.none"), d.Fields[fieldAuthProtocol].Error, "", "")
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldAuthPass, Label: gui.T(ctx, "snmp.form.auth_pass"), F: d.Fields[fieldAuthPass], Hint: secretHint(ctx, d.AuthSet, ""), Password: true, Autocomplete: "new-password"})
+						@selectField(fieldPrivProtocol, gui.T(ctx, "snmp.form.priv_protocol"), false, d.PrivProtocols, gui.T(ctx, "snmp.detail.none"), d.Fields[fieldPrivProtocol].Error, gui.T(ctx, "snmp.agent.priv_hint"), "")
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldPrivPass, Label: gui.T(ctx, "snmp.form.priv_pass"), F: d.Fields[fieldPrivPass], Hint: secretHint(ctx, d.PrivSet, ""), Password: true, Autocomplete: "new-password"})
+					</div>
+				</fieldset>
+			</div>
+		</details>
 		<p class="snmp-note w-muted">{ gui.T(ctx, "snmp.agent.restart_hint") }</p>
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>
