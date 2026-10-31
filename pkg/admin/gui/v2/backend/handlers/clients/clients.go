@@ -667,6 +667,9 @@ type detailData struct {
 	NoRetries     bool   // no automatic retry: the card says so instead of the rows
 	Options       []kv
 	Partners      []partnerRow
+	RetriesMeta   string // the summaries of the folded cards (#810)
+	OptionsMeta   string
+	PartnersMeta  string
 }
 
 // Detail serves GET /webui/clients/{id}: the client in reading, with the
@@ -726,6 +729,10 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		data.Partners = append(data.Partners,
 			partnerRow{Name: partner.Name, Address: partner.Address.String(), URL: partnerURL(partner.ID)})
 	}
+
+	data.RetriesMeta = retriesMeta(translate, int(cli.client.NbOfAttempts))
+	data.OptionsMeta = protoform.OptionsMeta(translate, data.Options)
+	data.PartnersMeta = partnersMeta(translate, len(data.Partners))
 
 	if user.Write {
 		data.EditURL = withRet(clientURL(cli.client.ID, "/edit"), carried)
@@ -962,4 +969,28 @@ func (h *Handlers) Stop(w http.ResponseWriter, r *http.Request) {
 	}
 
 	listSpec.RedirectList(w, r, ret(r), result)
+}
+
+// retriesMeta sums up the retries card for its folded heading (#810).
+func retriesMeta(translate gui.Translator, n int) string {
+	switch n {
+	case 0:
+		return translate("clients.detail.retries_none")
+	case 1:
+		return translate("clients.detail.retries_meta_one")
+	default:
+		return translate("clients.detail.retries_meta", "n", n)
+	}
+}
+
+// partnersMeta sums up the reachable partners card for its folded heading (#810).
+func partnersMeta(translate gui.Translator, n int) string {
+	switch n {
+	case 0:
+		return translate("clients.detail.partners_meta_none")
+	case 1:
+		return translate("clients.detail.partners_meta_one")
+	default:
+		return translate("clients.detail.partners_meta", "n", n)
+	}
 }

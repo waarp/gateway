@@ -178,47 +178,53 @@ templ detailView(d detailData) {
 				}
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "clients.detail.retries") }</h2>
-			if d.NoRetries {
-				<p class="clients-lead w-muted">{ gui.T(ctx, "clients.detail.retries_none") }</p>
-			} else {
-				<p class="clients-lead">{ d.RetrySentence }</p>
-				<dl class="w-deflist">
-					for _, k := range d.Retries {
-						<dt>{ k.Label }</dt>
-						<dd>{ k.Value }</dd>
-					}
-				</dl>
-			}
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</h2>
-			for _, g := range protoform.Grouped(d.Options) {
-				if g.Title != "" {
-					<h3 class="proto-section__title">{ g.Title }</h3>
+		<details class="w-card w-card--fold" data-key="cli-retries">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clients.detail.retries") }</span><span class="w-fold__meta">{ d.RetriesMeta }</span></summary>
+			<div class="w-card__body">
+				if d.NoRetries {
+					<p class="clients-lead w-muted">{ gui.T(ctx, "clients.detail.retries_none") }</p>
+				} else {
+					<p class="clients-lead">{ d.RetrySentence }</p>
+					<dl class="w-deflist">
+						for _, k := range d.Retries {
+							<dt>{ k.Label }</dt>
+							<dd>{ k.Value }</dd>
+						}
+					</dl>
 				}
-				<dl class="w-deflist">
-					for _, k := range g.Rows {
-						<dt>{ k.Label }</dt>
-						<dd>@protoform.ValueOf(k)</dd>
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="cli-options">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</span><span class="w-fold__meta">{ d.OptionsMeta }</span></summary>
+			<div class="w-card__body">
+				for _, g := range protoform.Grouped(d.Options) {
+					if g.Title != "" {
+						<h3 class="proto-section__title">{ g.Title }</h3>
 					}
-				</dl>
-			}
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "clients.detail.partners") }</h2>
-			<p class="clients-lead">{ gui.T(ctx, "clients.detail.partners_hint") }</p>
-			if len(d.Partners) > 0 {
-				<ul class="clients-partners" aria-label={ gui.T(ctx, "clients.detail.partners") }>
-					for _, p := range d.Partners {
-						<li><a class="w-link" href={ templ.SafeURL(p.URL) }>{ p.Name }</a> <code class="w-code">{ p.Address }</code></li>
-					}
-				</ul>
-			} else {
-				<p class="clients-note w-muted">{ gui.T(ctx, "clients.detail.partners_none") }</p>
-			}
-		</div>
+					<dl class="w-deflist">
+						for _, k := range g.Rows {
+							<dt>{ k.Label }</dt>
+							<dd>@protoform.ValueOf(k)</dd>
+						}
+					</dl>
+				}
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="cli-partners">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clients.detail.partners") }</span><span class="w-fold__meta">{ d.PartnersMeta }</span></summary>
+			<div class="w-card__body">
+				<p class="clients-lead">{ gui.T(ctx, "clients.detail.partners_hint") }</p>
+				if len(d.Partners) > 0 {
+					<ul class="clients-partners" aria-label={ gui.T(ctx, "clients.detail.partners") }>
+						for _, p := range d.Partners {
+							<li><a class="w-link" href={ templ.SafeURL(p.URL) }>{ p.Name }</a> <code class="w-code">{ p.Address }</code></li>
+						}
+					</ul>
+				} else {
+					<p class="clients-note w-muted">{ gui.T(ctx, "clients.detail.partners_none") }</p>
+				}
+			</div>
+		</details>
 	</div>
 }
 

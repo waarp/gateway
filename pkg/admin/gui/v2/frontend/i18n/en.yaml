@@ -1028,6 +1028,11 @@ clients:
     partners: Partners this client can reach
     partners_hint: "The remote partners of its protocol; a transfer to one of them goes through this client, unless another one is named."
     partners_none: No partner of this protocol yet.
+    retries_meta_one: 1 attempt
+    retries_meta: "{n} attempts"
+    partners_meta_none: None
+    partners_meta_one: 1 partner
+    partners_meta: "{n} partners"
   retries:
     attempts: Automatic retries after a failure
     attempts_hint: "0: no retry; 127 at most"

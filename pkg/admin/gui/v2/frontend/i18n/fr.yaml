@@ -1027,6 +1027,11 @@ clients:
     partners: Partenaires joignables par ce client
     partners_hint: "Les partenaires distants de son protocole ; un transfert vers l'un d'eux passe par ce client, sauf à en nommer un autre."
     partners_none: Aucun partenaire de ce protocole pour l'instant.
+    retries_meta_one: 1 tentative
+    retries_meta: "{n} tentatives"
+    partners_meta_none: Aucun
+    partners_meta_one: 1 partenaire
+    partners_meta: "{n} partenaires"
   retries:
     attempts: Tentatives automatiques après un échec
     attempts_hint: "0 : aucune reprise ; 127 au plus"
