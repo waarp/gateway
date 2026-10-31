@@ -391,12 +391,15 @@ templ formView(d *Form) {
 				</div>
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "auth.form.content") }</legend>
-				@CredFields(d)
-			</fieldset>
-		</div>
+		<details class="w-card w-card--fold" open>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "auth.form.content") }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "auth.form.content") }</legend>
+					@CredFields(d)
+				</fieldset>
+			</div>
+		</details>
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title, NeedsNote: gui.T(ctx, "auth.form.needs")})
 	</form>
 }

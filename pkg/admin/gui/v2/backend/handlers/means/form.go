@@ -705,3 +705,10 @@ func FileOrText(r *http.Request, fileField, textField string) (string, error) {
 func normalizeText(s string) string {
 	return strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n"))
 }
+
+// Touched says whether the form of a first means has something to show, a
+// type chosen, a name or an error: the optional card of the account forms
+// opens then, folded otherwise (#810).
+func (f *Form) Touched() bool {
+	return f.Type != "" || f.TypeError != "" || f.Name.Value != "" || f.Name.Error != "" || f.HasErrors
+}
