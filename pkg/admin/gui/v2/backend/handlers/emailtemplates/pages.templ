@@ -143,11 +143,11 @@ templ detailView(d detailData) {
 				<dd>{ d.Format }</dd>
 			</dl>
 		</div>
-		// The cards after the first fold (rule of 2026-10-25, #807): open by
-		// default, their state kept by the kit under their key.
-		@previewCard(d.Preview)
-		<details class="w-card w-card--fold" data-key="et-attachments" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</span></summary>
+		// The cards after the first fold, closed by default and summed up in
+		// their heading (#810); the kit keeps the state the user chose.
+		@previewCard(d.Preview, true, d.Format)
+		<details class="w-card w-card--fold" data-key="et-attachments">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.attachments") }</span><span class="w-fold__meta">{ d.AttachmentsMeta }</span></summary>
 			<div class="w-card__body">
 				if len(d.Attachments) == 0 {
 					<p class="et-note w-muted">{ gui.T(ctx, "email_templates.attachments.none") }</p>
@@ -160,8 +160,8 @@ templ detailView(d detailData) {
 				}
 			</div>
 		</details>
-		<details class="w-card w-card--fold" data-key="et-uses" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.uses") }</span></summary>
+		<details class="w-card w-card--fold" data-key="et-uses">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.detail.uses") }</span><span class="w-fold__meta">{ d.UsesMeta }</span></summary>
 			<div class="w-card__body">
 				@usesList(d.Uses)
 			</div>
@@ -170,13 +170,20 @@ templ detailView(d detailData) {
 }
 
 // previewCard: the preview of a template, a card that folds (#807), its
-// state kept by the kit. On the sheet, the choice of the values is a GET
+// state kept by the kit; closed by default and summed up on the sheet,
+// open in the form (#810). On the sheet, the choice of the values is a GET
 // form (applied as soon as it changes, a button without JavaScript); in the
 // form of the template, the choice belongs to that form and the script of
 // the screen updates the preview as the user types.
-templ previewCard(d *previewData) {
-	<details class="w-card w-card--fold et-preview" id="et-preview" data-key="et-preview" open>
-		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "email_templates.preview.title") }</span></summary>
+templ previewCard(d *previewData, folded bool, meta string) {
+	<details class="w-card w-card--fold et-preview" id="et-preview" data-key="et-preview" open?={ !folded }>
+		<summary>
+			@gui.Icon("chevron-right")
+			<span class="w-card__title">{ gui.T(ctx, "email_templates.preview.title") }</span>
+			if meta != "" {
+				<span class="w-fold__meta">{ meta }</span>
+			}
+		</summary>
 		<div class="w-card__body">
 			if d.Action != "" {
 				<form class="et-preview__controls" method="get" action={ templ.SafeURL(d.Action) } data-autosubmit>
@@ -378,7 +385,7 @@ templ formView(d *formData) {
 				</fieldset>
 			</div>
 		</details>
-		@previewCard(d.Preview)
+		@previewCard(d.Preview, false, "")
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>
 }

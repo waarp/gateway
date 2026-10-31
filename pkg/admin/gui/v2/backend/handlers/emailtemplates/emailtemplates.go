@@ -483,15 +483,17 @@ func (h *Handlers) template(w http.ResponseWriter, r *http.Request) (entry, bool
 }
 
 type detailData struct {
-	Name        string
-	Subject     string
-	Format      string
-	Attachments []string
-	Uses        []ruleuse.Row
-	Preview     *previewData
-	BackURL     string
-	EditURL     string
-	Actions     []gui.Action
+	Name            string
+	Subject         string
+	Format          string
+	Attachments     []string
+	Uses            []ruleuse.Row
+	Preview         *previewData
+	AttachmentsMeta string // the summaries of the folded cards (#810)
+	UsesMeta        string
+	BackURL         string
+	EditURL         string
+	Actions         []gui.Action
 }
 
 // Detail serves GET /webui/email-templates/{id}: the template in reading,
@@ -520,6 +522,8 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	data.Preview = h.preview(translate, item.tpl, item.uses, query.Get(valuesParam), query.Get(markParam) != "")
 	data.Preview.Action, data.Preview.Ret = templateURL(item.tpl.ID, ""), carried
+	data.AttachmentsMeta = attachmentsCount(translate, len(item.tpl.Attachments))
+	data.UsesMeta = ruleuse.Count(translate, len(item.uses))
 
 	if user.Write {
 		data.EditURL = withRet(templateURL(item.tpl.ID, "/edit"), carried)
