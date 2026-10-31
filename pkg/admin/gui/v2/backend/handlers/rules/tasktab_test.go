@@ -381,6 +381,22 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, `value="*.csv"`, "the typed values stay")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.Copy}, "copy.path": {"/archives/#NOPE#/#TRUEFILENAME#"},
+		}).Body.String()
+		assert.Contains(t, body, "Variables que les tâches ne connaissent pas : #NOPE#.", "an unknown variable is refused (#812)")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.SetInfo}, "setinfo.pairs": {"lot=#ARCHPATH#"},
+		}).Body.String()
+		assert.Contains(t, body, "Variables que les tâches ne connaissent pas : #ARCHPATH#.", "a variable the tasks know but do not implement too")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
+			"transfer.account": {accountValue("banque-demo", "prod")}, "info_name": {"lot"}, "info_value": {"#LOT#"},
+		}).Body.String()
+		assert.Contains(t, body, "Variables que les tâches ne connaissent pas : #LOT#.", "in a transfer information too")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
 			"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
 			"transfer.account": {accountValue("banque-demo", "prod")}, "info_name": {"lot", ""}, "info_value": {"A", "orpheline"},
 			"transfer.retryIncrementFactor": {"deux"}, "transfer.firstRetryDelay": {"trente"}, "transfer.synchronous": {"true"},

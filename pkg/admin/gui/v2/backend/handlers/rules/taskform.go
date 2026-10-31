@@ -740,6 +740,14 @@ func readInfos(translate gui.Translator, r *http.Request, stored, args map[strin
 
 	input.rows = transfers.ReadInfoPairs(r.PostForm)
 
+	for _, row := range input.rows {
+		if msg := unknownMarkers(translate, argText, row.Value); msg != "" {
+			input.infoErr = msg
+
+			return false
+		}
+	}
+
 	info, msg := transfers.InfoObject(translate, input.rows)
 	if msg != "" {
 		input.infoErr = msg
@@ -827,6 +835,10 @@ func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[strin
 
 	if check := arg.check(); !check.Valid(raw) {
 		return translate("check." + string(check))
+	}
+
+	if msg := unknownMarkers(translate, arg.Kind, raw); msg != "" {
+		return msg
 	}
 
 	switch arg.Kind {
@@ -917,7 +929,26 @@ func readPairs(translate gui.Translator, raw string, args map[string]string) str
 			return translate("rules.tasks.error.pairs")
 		}
 
+		if msg := unknownMarkers(translate, argText, value); msg != "" {
+			return msg
+		}
+
 		args[strings.TrimSpace(key)] = strings.TrimSpace(value)
+	}
+
+	return ""
+}
+
+// unknownMarkers refuses, in an argument the gateway substitutes, a variable
+// the tasks do not know (or know but do not implement): the task would fail
+// at its first run (#812). The other kinds of argument are not judged.
+func unknownMarkers(translate gui.Translator, kind argKind, raw string) string {
+	if kind != argText && kind != argJSON {
+		return ""
+	}
+
+	if unknown := tasks.UnknownMarkers(raw); len(unknown) > 0 {
+		return translate("rules.tasks.error.markers", "markers", strings.Join(unknown, ", "))
 	}
 
 	return ""

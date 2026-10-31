@@ -2310,6 +2310,7 @@ rules:
       range: "Between {min} and {max}."
       json: "Give a JSON object, for instance {\"batch\": \"A\"}."
       pairs: "One line per information, as key=value."
+      markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
       type: Choose a type.
       sens: Choose a direction.
       icap: "Enter the address of the ICAP server, for example icap://antivirus.example.com:1344/avscan."
