@@ -16,6 +16,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/varlist"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
@@ -112,6 +113,7 @@ type fieldView struct {
 	CaseOf    string
 	CaseValue string
 	Check     gui.Check // the type the page checks as soon as the user leaves the field
+	Vars      string    // the id of the variables list the field offers; "" when the gateway does not substitute it (#812)
 }
 
 // groupView is a card of the page: its title, its note, its fields side by
@@ -185,8 +187,9 @@ type taskFormData struct {
 	TypeTip   string // the type of a task edited: its label and what it does
 	Blocks    []typeBlock
 	Infos     *infosView
-	Required  bool   // a field is required: the form says what the star means
-	Unknown   string // the arguments kept as they are
+	Vars      gui.VarListProps // the variables list the substituted fields offer (#812)
+	Required  bool             // a field is required: the form says what the star means
+	Unknown   string           // the arguments kept as they are
 	HasErrors bool
 	Refused   string
 }
@@ -311,17 +314,21 @@ func fields(translate gui.Translator, spec *taskSpec, input *taskInput, found na
 		case argJSON:
 			field.Kind, field.Rows, field.Wide = fieldJSON, jsonLines, true
 			field.Hint += " " + translate("task_types.hint.json")
+			field.Vars = varlist.ListID
 		case argPairs:
 			field.Kind, field.Rows, field.Wide = fieldPairs, pairsLines, true
 			if !input.posted {
 				field.Value = pairsText(input.values)
 			}
+
+			field.Vars = varlist.ListID
 		case argChoice:
 			choiceField(translate, arg, value, &field)
 		case argRef:
 			field.Kind, field.None = fieldSelect, noneLabel(translate, arg)
 			field.Groups = withMissing(translate, selected(found[arg.Ref], value), value)
 		case argText:
+			field.Vars = varlist.ListID
 		}
 
 		out = append(out, field)
@@ -1069,8 +1076,11 @@ func (h *Handlers) taskForm(w http.ResponseWriter, r *http.Request, edit, post b
 		return
 	}
 
+	form.Vars = varlist.List(translate, time.Now())
+
 	screen := h.screen(translate, form.Title, carried, status)
 	screen.Head = taskFormHead()
+	screen.Editor = true
 
 	if form.Infos != nil {
 		screen.Stylesheets = append(screen.Stylesheets, transfers.InfoStylesheet)

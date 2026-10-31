@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/varlist"
 )
 
 // tasksView: the Tasks tab of a rule (prototype validated by Driss on
@@ -164,6 +165,7 @@ templ taskFormView(d *taskFormData) {
 	if d.HasErrors {
 		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.tasks.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.tasks.refused_text"))})</div>
 	}
+	@gui.VarList(d.Vars)
 	<form class="w-form rules-taskform" method="post" action={ templ.SafeURL(d.Action) } novalidate>
 		if d.Ret != "" {
 			<input type="hidden" name="ret" value={ d.Ret }/>
@@ -190,7 +192,8 @@ templ taskFormView(d *taskFormData) {
 }
 
 // taskFormHead: what the page of a task loads besides the kit: the list to
-// type in (the type), the typed fields.
+// type in (the type), the typed fields; the screen loads the editor assets for
+// the variables list (#812).
 templ taskFormHead() {
 	@gui.ComboboxAssets()
 	@gui.CheckAssets()
@@ -355,7 +358,7 @@ templ infosCard(x *infosView) {
 					<label class="w-check"><input type="checkbox" id="info-copy" name={ fieldInfoCopy } value="true" checked?={ x.Copy } aria-describedby="info-copy-h"/> <span>{ gui.T(ctx, "rules.tasks.info_copy") }</span></label>
 					<span class="w-field__hint" id="info-copy-h">{ gui.T(ctx, "rules.tasks.info_copy_hint") }</span>
 				</div>
-				@transfers.InfoList(x.Rows, x.Error)
+				@transfers.InfoList(x.Rows, x.Error, varlist.ListID)
 			</div>
 		</details>
 	</fieldset>
@@ -399,6 +402,9 @@ templ argInput(f fieldView) {
 					id={ f.ID }
 					name={ f.Name }
 					value={ f.Value }
+					if f.Vars != "" {
+						data-vars={ f.Vars }
+					}
 					if f.Kind == fieldNumber {
 						type="number"
 						inputmode="numeric"
@@ -472,6 +478,9 @@ templ argInput(f fieldView) {
 					name={ f.Name }
 					rows={ strconv.Itoa(f.Rows) }
 					spellcheck="false"
+					if f.Vars != "" {
+						data-vars={ f.Vars }
+					}
 					aria-describedby={ f.ID + "-h" }
 					if f.Error != "" {
 						aria-invalid="true"
