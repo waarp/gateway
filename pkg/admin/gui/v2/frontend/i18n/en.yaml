@@ -3217,6 +3217,12 @@ transfers:
     retries: Retries
     infos: Transfer information
     infos_none: No transfer information.
+    infos_meta_none: None
+    infos_meta_one: 1 entry
+    infos_meta: "{n} entries"
+    retries_meta_none: No retry left
+    retries_meta_one: 1 retry left
+    retries_meta: "{n} retries left"
     progress: Progress
     rule: Rule
     direction: Direction

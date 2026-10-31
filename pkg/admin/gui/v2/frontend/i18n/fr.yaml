@@ -3219,6 +3219,12 @@ transfers:
     retries: Tentatives
     infos: Informations de transfert
     infos_none: Aucune information de transfert.
+    infos_meta_none: Aucune
+    infos_meta_one: 1 information
+    infos_meta: "{n} informations"
+    retries_meta_none: Plus de tentative
+    retries_meta_one: 1 tentative restante
+    retries_meta: "{n} tentatives restantes"
     progress: Progression
     rule: Règle
     direction: Sens

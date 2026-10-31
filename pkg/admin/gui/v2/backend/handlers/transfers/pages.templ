@@ -413,11 +413,12 @@ templ detailView(d detailData) {
 				</dl>
 			</div>
 		}
-		// The cards after the first fold (rule of 2026-10-25, #807): the first
-		// one is the error when there is one, the transfer otherwise.
-		@deflistCard(gui.T(ctx, "transfers.detail.transfer"), keyIf(d.Error != nil, "tf-transfer"), d.Transfer)
-		@deflistCard(gui.T(ctx, "transfers.detail.file"), "tf-file", d.Files)
-		@foldCard("tf-run", gui.T(ctx, "transfers.detail.run")) {
+		// The cards after the first fold, closed by default and summed up in
+		// their heading (#810): the first one is the error when there is one,
+		// the transfer otherwise.
+		@deflistCard(gui.T(ctx, "transfers.detail.transfer"), keyIf(d.Error != nil, "tf-transfer"), d.TransferMeta, d.Transfer)
+		@deflistCard(gui.T(ctx, "transfers.detail.file"), "tf-file", d.FileMeta, d.Files)
+		@foldCard("tf-run", gui.T(ctx, "transfers.detail.run"), d.RunMeta, false) {
 			<dl class="w-deflist">
 				for _, k := range d.Run {
 					<dt>{ k.Label }</dt>
@@ -428,9 +429,9 @@ templ detailView(d detailData) {
 			</dl>
 		}
 		if d.Retries != nil {
-			@deflistCard(gui.T(ctx, "transfers.detail.retries"), "tf-retries", d.Retries)
+			@deflistCard(gui.T(ctx, "transfers.detail.retries"), "tf-retries", d.RetriesMeta, d.Retries)
 		}
-		@foldCard("tf-infos", gui.T(ctx, "transfers.detail.infos")) {
+		@foldCard("tf-infos", gui.T(ctx, "transfers.detail.infos"), d.InfosMeta, false) {
 			if len(d.Infos) == 0 {
 				<p class="w-muted tf-note">{ gui.T(ctx, "transfers.detail.infos_none") }</p>
 			} else {
@@ -472,18 +473,25 @@ func keyIf(fold bool, key string) string {
 	return ""
 }
 
-// foldCard: a card after the first one of a page (#807): it folds, open by
-// default, its state kept by the kit under its key; without a key, it
-// still folds but opens whatever the kit kept (a card carrying an error).
-templ foldCard(key, title string) {
+// foldCard: a card after the first one of a page (#807): it folds, its state
+// kept by the kit under its key; without a key, it still folds but opens
+// whatever the kit kept (a card carrying an error). On a sheet it is closed
+// by default and summed up by meta (#810); a form keeps it open.
+templ foldCard(key, title, meta string, open bool) {
 	<details
 		class="w-card w-card--fold"
 		if key != "" {
 			data-key={ key }
 		}
-		open
+		open?={ open }
 	>
-		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ title }</span></summary>
+		<summary>
+			@gui.Icon("chevron-right")
+			<span class="w-card__title">{ title }</span>
+			if meta != "" {
+				<span class="w-fold__meta">{ meta }</span>
+			}
+		</summary>
 		<div class="w-card__body">
 			{ children... }
 		</div>
@@ -495,7 +503,7 @@ templ foldCard(key, title string) {
 // field of the card carries an error.
 templ formCard(fold bool, key, title string) {
 	if fold {
-		@foldCard(key, title) {
+		@foldCard(key, title, "", true) {
 			<fieldset class="w-fieldset w-fieldset--wide">
 				<legend class="visually-hidden">{ title }</legend>
 				{ children... }
@@ -513,9 +521,9 @@ templ formCard(fold bool, key, title string) {
 
 // deflistCard: a card of key/value rows under its title, plain without a
 // key (the first card of the page), folding with one.
-templ deflistCard(title, key string, rows []kv) {
+templ deflistCard(title, key, meta string, rows []kv) {
 	if key != "" {
-		@foldCard(key, title) {
+		@foldCard(key, title, meta, false) {
 			<dl class="w-deflist">
 				for _, k := range rows {
 					<dt>{ k.Label }</dt>

@@ -565,11 +565,11 @@ func TestDetail(t *testing.T) {
 		indexes(t, body, "Informations de transfert", `<dl class="w-deflist tf-infos">`, "Identifiant de suivi", "__followID__",
 			`<dt><code class="w-code">lot</code></dt><dd><code class="w-code">2026-10-20-B</code></dd>`)
 		assert.NotContains(t, body, "<table", "no table in a card")
-		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-transfer" open>`, "after the error card, every card folds (#807)")
-		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-file" open>`)
-		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-run" open>`)
-		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-retries" open>`)
-		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-infos" open>`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-transfer">`, "after the error card, every card folds (#807)")
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-file">`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-run">`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-retries">`)
+		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="tf-infos">`)
 	})
 
 	t.Run("Given a done server transfer, read only", func(t *testing.T) {

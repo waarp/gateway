@@ -65,6 +65,8 @@ type detailData struct {
 	Progress progressView
 	Retries  []kv // nil for a server transfer
 	Infos    []infoRow
+	// The summaries of the folded cards (#810).
+	TransferMeta, FileMeta, RunMeta, RetriesMeta, InfosMeta string
 }
 
 // Detail serves GET /webui/transfers/{id}: the sheet of a transfer.
@@ -105,6 +107,20 @@ func detailOf(translate gui.Translator, has func(string) bool, trans *model.Norm
 		data.File = data.Number
 	}
 
+	data.TransferMeta = trans.Rule + " · " + trans.Agent
+	data.FileMeta = translate("transfers.detail.size_unknown")
+
+	if trans.Filesize >= 0 {
+		data.FileMeta = format.Bytes(translate, trans.Filesize)
+	}
+
+	data.RunMeta = data.Status.Label
+	if data.Progress.Label != "" {
+		data.RunMeta += " · " + data.Progress.Label
+	}
+
+	data.InfosMeta = infosMeta(translate, len(data.Infos))
+
 	if label := ErrorLabel(translate, trans.ErrCode); label != "" {
 		data.Error = &errorView{
 			Cause: label, Code: trans.ErrCode.String(), Message: trans.ErrDetails, Step: stepLabel(translate, trans.Step),
@@ -113,6 +129,7 @@ func detailOf(translate gui.Translator, has func(string) bool, trans *model.Norm
 
 	if !trans.IsServer && trans.IsTransfer {
 		data.Retries = retryRows(translate, trans)
+		data.RetriesMeta = retriesMeta(translate, int(trans.RemainingTries))
 	}
 
 	if write {
@@ -360,4 +377,28 @@ func infoRows(translate gui.Translator, has func(string) bool, infos map[string]
 	slices.SortFunc(rows, func(a, b infoRow) int { return strings.Compare(a.Name, b.Name) })
 
 	return rows
+}
+
+// infosMeta sums up the card of the transfer information (#810).
+func infosMeta(translate gui.Translator, n int) string {
+	switch n {
+	case 0:
+		return translate("transfers.detail.infos_meta_none")
+	case 1:
+		return translate("transfers.detail.infos_meta_one")
+	default:
+		return translate("transfers.detail.infos_meta", "n", n)
+	}
+}
+
+// retriesMeta sums up the card of the retries (#810): how many are left.
+func retriesMeta(translate gui.Translator, n int) string {
+	switch n {
+	case 0:
+		return translate("transfers.detail.retries_meta_none")
+	case 1:
+		return translate("transfers.detail.retries_meta_one")
+	default:
+		return translate("transfers.detail.retries_meta", "n", n)
+	}
 }
