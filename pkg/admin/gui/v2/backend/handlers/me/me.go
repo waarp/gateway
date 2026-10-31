@@ -46,10 +46,11 @@ type passwordForm struct {
 }
 
 type pageData struct {
-	Username string
-	Instance string
-	Rights   []rights.Row // the rights of the user by domain, in reading
-	Form     passwordForm
+	Username   string
+	Instance   string
+	Rights     []rights.Row // the rights of the user by domain, in reading
+	RightsMeta string       // the summary of the folded rights card (#810)
+	Form       passwordForm
 }
 
 // Handlers serves the page and the change of password.
@@ -64,11 +65,14 @@ func New(db *database.DB, logger *log.Logger) *Handlers {
 }
 
 func (h *Handlers) data(translate gui.Translator, user *model.User) pageData {
+	rows := rights.Rows(translate, user.Permissions)
+
 	return pageData{
-		Username: user.Username,
-		Instance: user.Owner,
-		Rights:   rights.Rows(translate, user.Permissions),
-		Form:     passwordForm{Action: common.WebuiURL(passwordPath), CancelURL: common.WebuiURL(pagePath)},
+		Username:   user.Username,
+		Instance:   user.Owner,
+		Rights:     rows,
+		RightsMeta: rights.Meta(translate, rows),
+		Form:       passwordForm{Action: common.WebuiURL(passwordPath), CancelURL: common.WebuiURL(pagePath)},
 	}
 }
 

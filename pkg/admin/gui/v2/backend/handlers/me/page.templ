@@ -26,11 +26,12 @@ templ page(d *pageData) {
 				<dd><code class="w-code">{ d.Instance }</code></dd>
 			</dl>
 		</div>
-		// The cards after the first fold (rule of 2026-10-25, #807): open by
-		// default, their state kept by the kit under their key; the password
-		// card carries no key while it holds an error, so that it opens.
-		<details class="w-card w-card--fold" data-key="me-rights" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "me.rights") }</span></summary>
+		// The cards after the first fold, closed by default (#810), the rights
+		// summed up in their heading; the kit keeps the state the user chose
+		// under their key. The password card carries no key while it holds an
+		// error, and opens then.
+		<details class="w-card w-card--fold" data-key="me-rights">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "me.rights") }</span><span class="w-fold__meta">{ d.RightsMeta }</span></summary>
 			<div class="w-card__body">
 				@rights.List(gui.T(ctx, "me.rights_caption"), d.Rights)
 				<p class="w-form__note me-note">{ gui.T(ctx, "me.rights_hint") }</p>
@@ -41,7 +42,7 @@ templ page(d *pageData) {
 			if !d.Form.HasErrors {
 				data-key="me-password"
 			}
-			open
+			open?={ d.Form.HasErrors }
 		>
 			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "me.password.title") }</span></summary>
 			<div class="w-card__body">
