@@ -200,7 +200,12 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
      - Saisie
    * - Texte
      - Un chemin, une adresse, une liste de fichiers ; les
-       :ref:`substitutions <reference-tasks-substitutions>` y sont admises.
+       :ref:`substitutions <reference-tasks-substitutions>` y sont admises :
+       taper ``#`` ouvre la liste des variables à l'endroit du curseur, le
+       bouton *Variables* sous le champ aussi, comme dans
+       :ref:`un modèle d'e-mail <user-webui-email-templates>`. Une variable
+       que les traitements ne connaissent pas est refusée à la validation,
+       sous son champ.
    * - Case à cocher
      - Cochée, le paramètre vaut ``true`` ; décochée, il vaut ``false`` si la
        tâche l'avait déjà, sinon il est omis et la tâche prend sa valeur par
@@ -229,10 +234,11 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        information (nom, valeur), comme sur la page qui ajoute un transfert,
        et la case qui copie d'abord celles du transfert en cours. Une valeur
        enregistrée et non modifiée garde son type (un nombre reste un
-       nombre).
+       nombre) ; les valeurs admettent les variables, comme un texte.
    * - Lignes clé=valeur
      - Les informations de transfert que pose une tâche ``SETINFO``, une par
-       ligne ; une valeur vide retire la clé au moment de l'exécution.
+       ligne ; une valeur vide retire la clé au moment de l'exécution. Les
+       valeurs admettent les variables, comme un texte.
 
 Un paramètre qui ne compte que selon un autre ne s'affiche qu'avec lui : le
 dossier où déplacer un fichier refusé par ICAP, la durée limite d'un transfert

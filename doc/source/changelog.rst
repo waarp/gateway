@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`812` Dans le formulaire d'une tâche, chaque champ que la Gateway
+  substitue (textes, paires de ``SETINFO``, informations de transfert)
+  propose la liste des variables, par ``#`` ou le bouton *Variables* ; une
+  variable inconnue des traitements est refusée.
 * :feature:`810` Les cartes des fiches de l'interface web refondue, sauf la
   première, sont pliées par défaut et résumées dans leur en-tête ; le
   navigateur retient l'état déplié. Les blocs facultatifs vides des
