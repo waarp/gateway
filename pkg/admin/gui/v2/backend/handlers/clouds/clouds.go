@@ -618,21 +618,24 @@ func (h *Handlers) usageOf(name string) (usage, error) {
 }
 
 type detailData struct {
-	Name     string
-	Type     string
-	TypeHint string // what the storage is; "" for an unknown type key
-	Path     string // the path to use: "name:folder/file"
-	BackURL  string
-	EditURL  string
-	Actions  []gui.Action
-	KeyLabel string // what the key is for the storage; "" when the type is unknown
-	Key      string
-	Secret   bool // set or not: the value is never rendered
-	EnvAuth  bool
-	Options  []kv     // the known options, with their label; absent ones say the product default
-	Others   []kv     // the options the form does not name, by raw key
-	Masked   []string // the options the storage library masks: named, never rendered
-	Usage    usage
+	Name        string
+	Type        string
+	TypeHint    string // what the storage is; "" for an unknown type key
+	Path        string // the path to use: "name:folder/file"
+	BackURL     string
+	EditURL     string
+	Actions     []gui.Action
+	KeyLabel    string // what the key is for the storage; "" when the type is unknown
+	Key         string
+	Secret      bool // set or not: the value is never rendered
+	EnvAuth     bool
+	Options     []kv     // the known options, with their label; absent ones say the product default
+	Others      []kv     // the options the form does not name, by raw key
+	Masked      []string // the options the storage library masks: named, never rendered
+	Usage       usage
+	AccessMeta  string // the summaries of the folded cards (#810)
+	OptionsMeta string
+	UsageMeta   string
 }
 
 // Detail serves GET /webui/clouds/{id}: the instance in reading, with what
@@ -677,6 +680,10 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 
 	data.Others = otherRows(inst.storage, inst.cloud.Options)
 	data.Masked = maskedKeys(inst.storage, inst.cloud.Options)
+
+	data.AccessMeta = accessMeta(translate, &data)
+	data.OptionsMeta = optionsMeta(translate, len(data.Options)+len(data.Others)+len(data.Masked))
+	data.UsageMeta = usageMeta(translate, &data.Usage)
 
 	if user.Write {
 		data.EditURL = withRet(cloudURL(inst.cloud.ID, "/edit"), carried)
@@ -834,4 +841,66 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	listSpec.RedirectList(w, r, ret(r), url.Values{doneParam: {doneDeleted}, nameParam: {e.cloud.Name}})
+}
+
+// accessMeta sums up the access card for its folded heading (#810): where the
+// credentials come from.
+func accessMeta(translate gui.Translator, d *detailData) string {
+	switch {
+	case d.EnvAuth:
+		return translate("clouds.detail.access_meta_env")
+	case d.Secret:
+		return translate("clouds.detail.access_meta_secret")
+	default:
+		return translate("clouds.detail.access_meta_none")
+	}
+}
+
+// optionsMeta sums up the options card for its folded heading (#810).
+func optionsMeta(translate gui.Translator, n int) string {
+	switch n {
+	case 0:
+		return translate("clouds.detail.options_meta_none")
+	case 1:
+		return translate("clouds.detail.options_meta_one")
+	default:
+		return translate("clouds.detail.options_meta", "n", n)
+	}
+}
+
+// usageMeta sums up the "used by" card for its folded heading (#810): how many
+// rules, servers and transfers name the instance.
+func usageMeta(translate gui.Translator, use *usage) string {
+	if use.none() {
+		return translate("clouds.detail.usage_meta_none")
+	}
+
+	meta := ""
+	add := func(s string) {
+		if meta != "" {
+			meta += " · "
+		}
+
+		meta += s
+	}
+
+	if n := len(use.Rules); n == 1 {
+		add(translate("clouds.detail.usage_meta_rules_one"))
+	} else if n > 1 {
+		add(translate("clouds.detail.usage_meta_rules", "n", n))
+	}
+
+	if n := len(use.Servers); n == 1 {
+		add(translate("clouds.detail.usage_meta_servers_one"))
+	} else if n > 1 {
+		add(translate("clouds.detail.usage_meta_servers", "n", n))
+	}
+
+	if use.Transfers == 1 {
+		add(translate("clouds.detail.usage_meta_transfers_one"))
+	} else if use.Transfers > 1 {
+		add(translate("clouds.detail.usage_meta_transfers", "n", use.Transfers))
+	}
+
+	return meta
 }

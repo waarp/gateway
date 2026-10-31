@@ -1285,6 +1285,19 @@ clouds:
     "no": Non
     options: Options
     options_none: Aucune option.
+    options_meta_none: Aucune
+    options_meta_one: 1 option
+    options_meta: "{n} options"
+    access_meta_env: Par l'environnement
+    access_meta_secret: Secret fourni
+    access_meta_none: Sans secret
+    usage_meta_none: Aucun usage
+    usage_meta_rules_one: 1 règle
+    usage_meta_rules: "{n} règles"
+    usage_meta_servers_one: 1 serveur
+    usage_meta_servers: "{n} serveurs"
+    usage_meta_transfers_one: 1 transfert
+    usage_meta_transfers: "{n} transferts"
     default: Valeur par défaut de la passerelle
     unset: Non défini
     masked: Masquée

@@ -1286,6 +1286,19 @@ clouds:
     "no": "No"
     options: Options
     options_none: No option.
+    options_meta_none: None
+    options_meta_one: 1 option
+    options_meta: "{n} options"
+    access_meta_env: From the environment
+    access_meta_secret: Secret set
+    access_meta_none: No secret
+    usage_meta_none: Unused
+    usage_meta_rules_one: 1 rule
+    usage_meta_rules: "{n} rules"
+    usage_meta_servers_one: 1 server
+    usage_meta_servers: "{n} servers"
+    usage_meta_transfers_one: 1 transfer
+    usage_meta_transfers: "{n} transfers"
     default: Default value of the gateway
     unset: Not set
     masked: Hidden

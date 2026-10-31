@@ -206,48 +206,54 @@ templ detailView(d detailData) {
 				<dd><code class="w-code">{ d.Path }</code><span class="w-muted">{ gui.T(ctx, "clouds.detail.path_hint") }</span></dd>
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "clouds.detail.access") }</h2>
-			<dl class="w-deflist">
-				<dt>{ d.KeyLabel }</dt>
-				<dd>@keyValue(d.Key)</dd>
-				<dt>{ gui.T(ctx, "clouds.detail.secret") }</dt>
-				<dd>@secretValue(d.Secret)</dd>
-				<dt>{ gui.T(ctx, "clouds.detail.env_auth") }</dt>
-				<dd>{ yesNoOf(ctx, d.EnvAuth) }</dd>
-			</dl>
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "clouds.detail.options") }</h2>
-			if len(d.Options) > 0 {
+		<details class="w-card w-card--fold" data-key="cloud-access">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clouds.detail.access") }</span><span class="w-fold__meta">{ d.AccessMeta }</span></summary>
+			<div class="w-card__body">
 				<dl class="w-deflist">
-					for _, k := range d.Options {
-						<dt>{ k.Label }</dt>
-						<dd>@protoform.ValueOf(k)</dd>
-					}
+					<dt>{ d.KeyLabel }</dt>
+					<dd>@keyValue(d.Key)</dd>
+					<dt>{ gui.T(ctx, "clouds.detail.secret") }</dt>
+					<dd>@secretValue(d.Secret)</dd>
+					<dt>{ gui.T(ctx, "clouds.detail.env_auth") }</dt>
+					<dd>{ yesNoOf(ctx, d.EnvAuth) }</dd>
 				</dl>
-			}
-			if len(d.Others) > 0 || len(d.Masked) > 0 {
-				<h3 class="w-card__title clouds-subtitle">{ gui.T(ctx, "clouds.detail.other") }</h3>
-				<dl class="w-deflist">
-					for _, k := range d.Others {
-						<dt><code class="w-code">{ k.Label }</code></dt>
-						<dd>@protoform.ValueOf(k)</dd>
-					}
-					for _, key := range d.Masked {
-						<dt><code class="w-code">{ key }</code></dt>
-						<dd><span class="w-muted">{ gui.T(ctx, "clouds.detail.masked") }</span></dd>
-					}
-				</dl>
-			}
-			if len(d.Options) == 0 && len(d.Others) == 0 && len(d.Masked) == 0 {
-				<p class="clouds-note w-muted">{ gui.T(ctx, "clouds.detail.options_none") }</p>
-			}
-		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "clouds.detail.used_by") }</h2>
-			@usageList(d.Usage)
-		</div>
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="cloud-options">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clouds.detail.options") }</span><span class="w-fold__meta">{ d.OptionsMeta }</span></summary>
+			<div class="w-card__body">
+				if len(d.Options) > 0 {
+					<dl class="w-deflist">
+						for _, k := range d.Options {
+							<dt>{ k.Label }</dt>
+							<dd>@protoform.ValueOf(k)</dd>
+						}
+					</dl>
+				}
+				if len(d.Others) > 0 || len(d.Masked) > 0 {
+					<h3 class="w-card__title clouds-subtitle">{ gui.T(ctx, "clouds.detail.other") }</h3>
+					<dl class="w-deflist">
+						for _, k := range d.Others {
+							<dt><code class="w-code">{ k.Label }</code></dt>
+							<dd>@protoform.ValueOf(k)</dd>
+						}
+						for _, key := range d.Masked {
+							<dt><code class="w-code">{ key }</code></dt>
+							<dd><span class="w-muted">{ gui.T(ctx, "clouds.detail.masked") }</span></dd>
+						}
+					</dl>
+				}
+				if len(d.Options) == 0 && len(d.Others) == 0 && len(d.Masked) == 0 {
+					<p class="clouds-note w-muted">{ gui.T(ctx, "clouds.detail.options_none") }</p>
+				}
+			</div>
+		</details>
+		<details class="w-card w-card--fold" data-key="cloud-usage">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "clouds.detail.used_by") }</span><span class="w-fold__meta">{ d.UsageMeta }</span></summary>
+			<div class="w-card__body">
+				@usageList(d.Usage)
+			</div>
+		</details>
 	</div>
 }
 
