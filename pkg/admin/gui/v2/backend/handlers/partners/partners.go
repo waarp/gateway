@@ -762,16 +762,17 @@ func (h *Handlers) openRules() (int, error) {
 }
 
 type detailData struct {
-	Name     string
-	Protocol string // the family, for the title of the options card
-	Tabs     []tab
-	BackURL  string
-	EditURL  string
-	Actions  []gui.Action
-	Identity []kv
-	Client   clientCard
-	Rules    rulesCard
-	Options  []kv
+	Name        string
+	Protocol    string // the family, for the title of the options card
+	Tabs        []tab
+	BackURL     string
+	EditURL     string
+	Actions     []gui.Action
+	Identity    []kv
+	Client      clientCard
+	Rules       rulesCard
+	Options     []kv
+	OptionsMeta string // the summary of the folded options card (#810)
 }
 
 // Detail serves GET /webui/partners/{id}: the "Details" tab of the sheet.
@@ -843,6 +844,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Rules:   rulesCardOf(translate, reserved, open, int(total)),
 		Options: protoform.Rows(translate, protoform.RolePartner, ptn.proto, ptn.agent.ProtoConfig),
 	}
+	data.OptionsMeta = protoform.OptionsMeta(translate, data.Options)
 
 	if user.Write {
 		data.EditURL = withRet(partnerURL(ptn.agent.ID, editSuffix), carried)

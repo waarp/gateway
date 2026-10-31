@@ -131,7 +131,7 @@ templ listFragment(d listData) {
 // clientCardView: the client the transfers go through, a foldable card
 // whose summary names it.
 templ clientCardView(c clientCard) {
-	<details class="w-card w-card--fold" open>
+	<details class="w-card w-card--fold" data-key="ptn-client">
 		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "partners.client.title") }</span><span class="w-fold__meta">{ c.Meta }</span></summary>
 		<div class="w-card__body">
 			<p class="partners-text">{ c.Text }</p>
@@ -160,7 +160,7 @@ templ clientCardView(c clientCard) {
 // card whose summary counts both. The accesses are managed on the rules
 // screen.
 templ rulesCardView(c rulesCard) {
-	<details class="w-card w-card--fold" open>
+	<details class="w-card w-card--fold" data-key="ptn-rules">
 		<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "partners.detail.rules_title") }</span><span class="w-fold__meta">{ c.Meta }</span></summary>
 		<div class="w-card__body">
 			if len(c.Reserved) == 0 {
@@ -234,8 +234,8 @@ templ detailView(d detailData) {
 		</div>
 		@clientCardView(d.Client)
 		@rulesCardView(d.Rules)
-		<details class="w-card w-card--fold" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</span></summary>
+		<details class="w-card w-card--fold" data-key="ptn-options">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "proto.options", "protocol", d.Protocol) }</span><span class="w-fold__meta">{ d.OptionsMeta }</span></summary>
 			<div class="w-card__body">
 				for _, g := range protoform.Grouped(d.Options) {
 					if g.Title != "" {
