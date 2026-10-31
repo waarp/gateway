@@ -732,6 +732,10 @@ about:
   link_contact: "Contact: {email}"
 # Rights of a user by domain: the table shared by "My account" and the "Users" screen.
 rights:
+  meta_all: Every right
+  meta_one: 1 right
+  meta: "{n} rights"
+  meta_none: No right
   col:
     read: Read
     write: Write

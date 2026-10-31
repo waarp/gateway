@@ -183,10 +183,10 @@ templ detailView(d detailData) {
 				<p class="users-note">{ gui.T(ctx, "users.last_admin") }</p>
 			}
 		</div>
-		// The second card folds (rule of 2026-10-25, #807): open by default,
-		// its state kept by the kit.
-		<details class="w-card w-card--fold" data-key="users-rights" open>
-			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "users.detail.rights") }</span></summary>
+		// The second card folds, closed by default and summed up in its heading
+		// (#810); the kit keeps the state the user chose.
+		<details class="w-card w-card--fold" data-key="users-rights">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "users.detail.rights") }</span><span class="w-fold__meta">{ d.RightsMeta }</span></summary>
 			<div class="w-card__body">
 				@rights.List(d.Caption, d.Rights)
 			</div>

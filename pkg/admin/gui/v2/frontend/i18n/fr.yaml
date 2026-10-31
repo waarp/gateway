@@ -731,6 +731,10 @@ about:
   link_contact: "Contact : {email}"
 # Droits d'un utilisateur par domaine : le tableau partagé par « Mon compte » et l'écran « Utilisateurs ».
 rights:
+  meta_all: Tous les droits
+  meta_one: 1 droit
+  meta: "{n} droits"
+  meta_none: Aucun droit
   col:
     read: Lecture
     write: Écriture

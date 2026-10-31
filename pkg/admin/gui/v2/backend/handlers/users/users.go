@@ -659,14 +659,15 @@ func (h *Handlers) lastAdmin(user *model.User) (bool, error) {
 }
 
 type detailData struct {
-	Name      string
-	Self      bool
-	LastAdmin bool
-	BackURL   string
-	EditURL   string
-	Actions   []gui.Action
-	Caption   string
-	Rights    []rights.Row
+	Name       string
+	Self       bool
+	LastAdmin  bool
+	BackURL    string
+	EditURL    string
+	Actions    []gui.Action
+	Caption    string
+	Rights     []rights.Row
+	RightsMeta string // the summary of the folded rights card (#810)
 }
 
 // Detail serves GET /webui/users/{id}: the user in reading, with their
@@ -698,6 +699,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Caption:   translate("users.detail.rights_caption", "name", user.Username),
 		Rights:    rights.Rows(translate, user.Permissions),
 	}
+	data.RightsMeta = rights.Meta(translate, data.Rights)
 
 	if c.write {
 		data.EditURL = withRet(userURL(user.ID, "/edit"), carried)

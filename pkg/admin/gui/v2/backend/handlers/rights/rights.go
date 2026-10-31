@@ -120,3 +120,33 @@ func Rows(translate gui.Translator, perms model.PermsMask) []Row {
 
 	return rows
 }
+
+// Meta sums up the rights of a user for the heading of a folded card (#810):
+// every right, none, or how many of them are granted.
+func Meta(translate gui.Translator, rows []Row) string {
+	granted, total := 0, 0
+
+	for _, row := range rows {
+		for _, on := range []bool{row.Read, row.Write, row.Delete} {
+			if on {
+				granted++
+			}
+		}
+
+		total += 3
+		if row.NoDelete {
+			total--
+		}
+	}
+
+	switch granted {
+	case 0:
+		return translate("rights.meta_none")
+	case total:
+		return translate("rights.meta_all")
+	case 1:
+		return translate("rights.meta_one")
+	default:
+		return translate("rights.meta", "n", granted)
+	}
+}
