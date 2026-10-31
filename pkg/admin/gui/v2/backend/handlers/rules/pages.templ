@@ -319,14 +319,17 @@ templ formView(d *formData) {
 				</div>
 			</fieldset>
 		</div>
-		<div class="w-card">
-			<fieldset class="w-fieldset w-fieldset--wide">
-				<legend class="w-card__title">{ gui.T(ctx, "rules.detail.folders") }</legend>
-				@protoform.FieldOf(protoform.FieldProps{ID: fieldLocal, Label: gui.T(ctx, "rules.dir.local"), F: d.Local, Hint: gui.T(ctx, "rules.form.local_hint")})
-				@protoform.FieldOf(protoform.FieldProps{ID: fieldRemote, Label: gui.T(ctx, "rules.dir.remote"), F: d.Remote, Hint: gui.T(ctx, "rules.form.remote_hint")})
-				@protoform.FieldOf(protoform.FieldProps{ID: fieldTmp, Label: gui.T(ctx, "rules.dir.tmp"), F: d.Tmp, Hint: gui.T(ctx, "rules.form.tmp_hint")})
-			</fieldset>
-		</div>
+		<details class="w-card w-card--fold" open?={ d.foldersTouched() }>
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "rules.detail.folders") }</span></summary>
+			<div class="w-card__body">
+				<fieldset class="w-fieldset w-fieldset--wide">
+					<legend class="visually-hidden">{ gui.T(ctx, "rules.detail.folders") }</legend>
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldLocal, Label: gui.T(ctx, "rules.dir.local"), F: d.Local, Hint: gui.T(ctx, "rules.form.local_hint")})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldRemote, Label: gui.T(ctx, "rules.dir.remote"), F: d.Remote, Hint: gui.T(ctx, "rules.form.remote_hint")})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldTmp, Label: gui.T(ctx, "rules.dir.tmp"), F: d.Tmp, Hint: gui.T(ctx, "rules.form.tmp_hint")})
+				</fieldset>
+			</div>
+		</details>
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title})
 	</form>
 }

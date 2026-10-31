@@ -316,3 +316,15 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, e *entry) {
 
 	h.render(w, r, form, http.StatusUnprocessableEntity)
 }
+
+// foldersTouched says whether the folders card of the form has something to
+// show, a folder set or refused: the card opens then, folded otherwise (#810).
+func (f *formData) foldersTouched() bool {
+	for _, fl := range []field{f.Local, f.Remote, f.Tmp} {
+		if fl.Value != "" || fl.Error != "" {
+			return true
+		}
+	}
+
+	return false
+}
