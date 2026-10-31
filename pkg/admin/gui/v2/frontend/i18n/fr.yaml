@@ -2204,6 +2204,9 @@ rules:
     title_receive: "Règle de réception « {name} »"
     card: Règle
     folders: Dossiers
+    folders_meta_none: Dossiers par défaut
+    folders_meta_one: 1 dossier défini
+    folders_meta: "{n} dossiers définis"
     no_comment: Aucun commentaire
     path_hint: "Les serveurs SFTP, FTP, WebDAV, AS2 et PeSIT standard reconnaissent la règle à ce chemin ; en R66, HTTP et PeSIT non standard, le partenaire la nomme."
     open_hint: "Tout serveur, partenaire ou compte peut l'employer."

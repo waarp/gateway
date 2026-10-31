@@ -202,21 +202,23 @@ templ detailView(d detailData) {
 				</dd>
 			</dl>
 		</div>
-		<div class="w-card">
-			<h2 class="w-card__title">{ gui.T(ctx, "rules.detail.folders") }</h2>
-			<dl class="w-deflist">
-				for _, f := range d.Folders {
-					<dt>{ f.Label }</dt>
-					<dd>
-						if f.Value != "" {
-							<code class="w-code">{ f.Value }</code>
-						} else {
-							<span class="w-muted">{ f.Empty }</span>
-						}
-					</dd>
-				}
-			</dl>
-		</div>
+		<details class="w-card w-card--fold" data-key="rule-folders">
+			<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "rules.detail.folders") }</span><span class="w-fold__meta">{ d.FoldersMeta }</span></summary>
+			<div class="w-card__body">
+				<dl class="w-deflist">
+					for _, f := range d.Folders {
+						<dt>{ f.Label }</dt>
+						<dd>
+							if f.Value != "" {
+								<code class="w-code">{ f.Value }</code>
+							} else {
+								<span class="w-muted">{ f.Empty }</span>
+							}
+						</dd>
+					}
+				</dl>
+			</div>
+		</details>
 	</div>
 }
 

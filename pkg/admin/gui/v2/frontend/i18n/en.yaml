@@ -2205,6 +2205,9 @@ rules:
     title_receive: "Receive rule “{name}”"
     card: Rule
     folders: Directories
+    folders_meta_none: Default directories
+    folders_meta_one: 1 directory set
+    folders_meta: "{n} directories set"
     no_comment: No comment
     path_hint: "SFTP, FTP, WebDAV, AS2 and standard PeSIT servers recognise the rule by this path; in R66, HTTP and non-standard PeSIT, the partner names it."
     open_hint: Any server, partner or account can use it.

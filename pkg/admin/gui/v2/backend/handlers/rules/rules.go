@@ -681,20 +681,21 @@ type folder struct {
 }
 
 type detailData struct {
-	Title      string
-	Name       string
-	Direction  string
-	DirIcon    string
-	Path       string
-	PathHint   string
-	Comment    string
-	Folders    []folder
-	Access     string
-	Restricted bool
-	Tabs       []means.Tab
-	BackURL    string
-	EditURL    string
-	Actions    []gui.Action
+	Title       string
+	Name        string
+	Direction   string
+	DirIcon     string
+	Path        string
+	PathHint    string
+	Comment     string
+	Folders     []folder
+	FoldersMeta string // the summary of the folded folders card (#810)
+	Access      string
+	Restricted  bool
+	Tabs        []means.Tab
+	BackURL     string
+	EditURL     string
+	Actions     []gui.Action
 }
 
 // ruleTitle is the title of the sheet of a rule, which says its direction
@@ -743,6 +744,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		BackURL:    listURL(carried),
 		Actions:    actions(translate, &item, user, true, carried),
 	}
+	data.FoldersMeta = foldersMeta(translate, data.Folders)
 
 	if user.Write {
 		data.EditURL = withRet(ruleURL(item.rule.ID, "/edit"), carried)
@@ -885,4 +887,25 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	listSpec.RedirectList(w, r, ret(r), url.Values{doneParam: {doneDeleted}, nameParam: {item.rule.Name}})
+}
+
+// foldersMeta sums up the folders card for its folded heading (#810): how many
+// folders the rule sets, the others taking the defaults of the gateway.
+func foldersMeta(translate gui.Translator, folders []folder) string {
+	n := 0
+
+	for _, f := range folders {
+		if f.Value != "" {
+			n++
+		}
+	}
+
+	switch n {
+	case 0:
+		return translate("rules.detail.folders_meta_none")
+	case 1:
+		return translate("rules.detail.folders_meta_one")
+	default:
+		return translate("rules.detail.folders_meta", "n", n)
+	}
 }
