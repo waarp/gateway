@@ -854,3 +854,17 @@ func Or(text, fallback string) string {
 
 	return fallback
 }
+
+// OptionsMeta sums up the protocol options card for its folded heading (#810).
+func OptionsMeta(translate gui.Translator, rows []KV) string {
+	n := len(rows)
+
+	switch n {
+	case 0:
+		return translate("proto.options_meta_none")
+	case 1:
+		return translate("proto.options_meta_one")
+	default:
+		return translate("proto.options_meta", "n", n)
+	}
+}

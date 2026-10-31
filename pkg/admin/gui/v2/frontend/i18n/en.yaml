@@ -176,6 +176,9 @@ proto:
   filter_tls_no: Without TLS
   options: "{protocol} options"
   options_label: Options
+  options_meta_none: No option
+  options_meta_one: 1 option
+  options_meta: "{n} options"
   error_number: Enter a whole number.
   error_duration: "Give whole numbers of hours, minutes and seconds."
   options_default: Default options of the gateway

@@ -175,6 +175,9 @@ proto:
   filter_tls_no: Sans TLS
   options: "Options du protocole {protocol}"
   options_label: Options
+  options_meta_none: Aucune option
+  options_meta_one: 1 option
+  options_meta: "{n} options"
   error_number: Indiquez un nombre entier.
   error_duration: "Indiquez des nombres entiers d'heures, de minutes et de secondes."
   options_default: Options par défaut de la passerelle
