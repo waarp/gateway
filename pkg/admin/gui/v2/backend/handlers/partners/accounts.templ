@@ -150,34 +150,37 @@ templ accountFormView(d *accountFormData) {
 			</fieldset>
 		</div>
 		if d.Means != nil {
-			<div class="w-card">
-				<fieldset class="w-fieldset w-fieldset--wide">
-					<legend class="w-card__title">{ gui.T(ctx, "remote_accounts.form.first_means") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></legend>
-					<p class="w-form__note sheet-note">{ gui.T(ctx, "remote_accounts.form.first_means_hint") }</p>
-					<div class="w-grid w-grid--2">
-						@protoform.FieldOf(protoform.FieldProps{ID: "means_name", Label: gui.T(ctx, "accounts.form.means_name"), F: d.Means.Name, Hint: gui.T(ctx, "accounts.form.means_name_hint")})
-						<div class={ "w-field", templ.KV("is-invalid", d.Means.TypeError != "") }>
-							<label class="w-field__label" for="means_type">{ gui.T(ctx, "accounts.form.means_type") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
-							<select
-								class="w-select"
-								id="means_type"
-								name="means_type"
-								data-switch="means_type"
-								aria-describedby="means_type-h"
-								if d.Means.TypeError != "" {
-									aria-invalid="true"
-								}
-							>
-								for _, c := range d.Means.Types {
-									<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
-								}
-							</select>
-							@protoform.Message("means_type-h", d.Means.TypeError, gui.T(ctx, "accounts.form.means_type_hint"))
+			<details class="w-card w-card--fold" open?={ d.Means.Touched() }>
+				<summary>@gui.Icon("chevron-right")<span class="w-card__title">{ gui.T(ctx, "remote_accounts.form.first_means") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></span></summary>
+				<div class="w-card__body">
+					<fieldset class="w-fieldset w-fieldset--wide">
+						<legend class="visually-hidden">{ gui.T(ctx, "remote_accounts.form.first_means") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></legend>
+						<p class="w-form__note sheet-note">{ gui.T(ctx, "remote_accounts.form.first_means_hint") }</p>
+						<div class="w-grid w-grid--2">
+							@protoform.FieldOf(protoform.FieldProps{ID: "means_name", Label: gui.T(ctx, "accounts.form.means_name"), F: d.Means.Name, Hint: gui.T(ctx, "accounts.form.means_name_hint")})
+							<div class={ "w-field", templ.KV("is-invalid", d.Means.TypeError != "") }>
+								<label class="w-field__label" for="means_type">{ gui.T(ctx, "accounts.form.means_type") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+								<select
+									class="w-select"
+									id="means_type"
+									name="means_type"
+									data-switch="means_type"
+									aria-describedby="means_type-h"
+									if d.Means.TypeError != "" {
+										aria-invalid="true"
+									}
+								>
+									for _, c := range d.Means.Types {
+										<option value={ c.Value } selected?={ c.Selected }>{ c.Label }</option>
+									}
+								</select>
+								@protoform.Message("means_type-h", d.Means.TypeError, gui.T(ctx, "accounts.form.means_type_hint"))
+							</div>
 						</div>
-					</div>
-					@means.CredFields(d.Means)
-				</fieldset>
-			</div>
+						@means.CredFields(d.Means)
+					</fieldset>
+				</div>
+			</details>
 		}
 		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Required: true, Title: d.Title, NeedsNote: gui.T(ctx, "auth.form.needs")})
 	</form>
