@@ -267,6 +267,8 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, `data-case="TRANSFER" data-of="type">`, "its cards shown")
 		assert.Contains(t, body, `name="info_value" value="" autocomplete="off" spellcheck="false" data-vars="vars-list"`,
 			"the values of the transfer information offer the variables (#812)")
+		assert.Contains(t, body, `spellcheck="false" list="info-keys"`, "their names propose the reserved keys (#816)")
+		assert.Contains(t, body, `<datalist id="info-keys">`)
 		indexes(t, body, `<details class="w-card w-card--fold" open><summary>`, "<h2 class=\"w-card__title\">Fichier</h2>",
 			"Nom à la destination", "<h2 class=\"w-card__title\">Échange</h2>", `name="transfer.sens" value="send" required data-switch="transfer-sens"`,
 			`data-case="send" data-of="transfer-sens"`, `name="transfer.rule_send"`, "Choisir une règle d&#39;envoi",

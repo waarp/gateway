@@ -10,6 +10,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/varlist"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // listView: the transfer monitoring screen (Supervision). Presentation only:
@@ -775,7 +777,9 @@ templ formView(d *formData) {
 // one more (AddsInfo). The tasks TRANSFER and PREREGISTER of the transfer
 // rules ask their information with it, and load InfoScript and
 // InfoStylesheet; vars is the id of the variables list the values offer
-// (the tasks substitute them, #812), empty for none (a transfer).
+// (the tasks substitute them, #812), empty for none (a transfer). The name
+// of an information proposes the reserved keys the user sets, with their
+// label, a free key staying possible (datalist, #816).
 templ InfoList(rows []InfoPair, errText, vars string) {
 	@protoform.Message("info-h", errText, gui.T(ctx, "transfers.form.info_hint"))
 	<div
@@ -786,6 +790,13 @@ templ InfoList(rows []InfoPair, errText, vars string) {
 		data-label-remove={ gui.T(ctx, "transfers.form.info_remove_n") }
 	>
 		<div class="tf-info-head" aria-hidden="true"><span>{ gui.T(ctx, "transfers.form.info_name") }</span><span>{ gui.T(ctx, "transfers.form.info_value") }</span></div>
+		<datalist id="info-keys">
+			for _, k := range model.ReservedInfoKeys() {
+				if k.UserSets() {
+					<option value={ k.Name }>{ gui.T(ctx, varlist.InfoKeyLabel(k.Name)) }</option>
+				}
+			}
+		</datalist>
 		for i, p := range rows {
 			@infoField(i+1, p, vars)
 		}
@@ -813,6 +824,7 @@ templ infoField(n int, p InfoPair, vars string) {
 			value={ p.Name }
 			autocomplete="off"
 			spellcheck="false"
+			list="info-keys"
 			aria-describedby="info-h"
 			if p.Invalid {
 				aria-invalid="true"

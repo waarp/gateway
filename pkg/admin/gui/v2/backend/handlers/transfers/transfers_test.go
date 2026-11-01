@@ -869,6 +869,10 @@ func TestForms(t *testing.T) {
 
 		body := s.get(t, permWrite, "/webui/transfers/new").Body.String()
 		assert.NotContains(t, body, "data-vars=", "no variables list on a transfer: nothing is substituted there (#812)")
+		assert.Contains(t, body, `spellcheck="false" list="info-keys"`, "the name of an information proposes the reserved keys (#816)")
+		assert.Contains(t, body, `<option value="__ackExpected__">Acquittement attendu</option>`, "a key the user sets, with its label")
+		assert.Contains(t, body, `<option value="__followID__">`)
+		assert.NotContains(t, body, `<option value="__ackReceivedOn__">`, "a key only the gateway writes is not proposed")
 		assert.Contains(t, body, `<div class="w-main__inner">`, "the form keeps the usual width")
 		assert.Contains(t, body, `<option value="`+sendID+`" data-restricted>releves</option>`, "a rule that lists who may use it")
 		assert.Contains(t, body, `<option value="`+receiveID+`">commandes</option>`, "an open rule")
