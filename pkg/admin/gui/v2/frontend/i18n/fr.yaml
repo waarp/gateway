@@ -3021,6 +3021,8 @@ vars:
     error: Erreur (tâches d'erreur)
     paths: Chemins
     info: Informations de transfert
+    info_pesit: Informations PeSIT
+    info_ack: Acquittements
   # Les variables, par le nom de leur marqueur en minuscules.
   var:
     truefilename: Nom du fichier
@@ -3049,6 +3051,34 @@ vars:
     workpath: Dossier temporaire de réception
     ti: "Information attachée au transfert : remplacez « clé » par son nom"
     ti_param: clé
+  # Les clés réservées des informations de transfert (pkg/model), par leur nom en minuscules.
+  info:
+    follow_id: Identifiant de flux (R66), qui relie aussi un transfert à son acquittement
+    user_content: Contenu utilisateur (R66)
+    sync_transfer_id: Transfert parent d'un transfert synchronisé
+    sync_transfer_rank: Rang d'un transfert synchronisé
+    client_conn_freetext: Texte libre du client à la connexion
+    client_trans_freetext: Texte libre du client à la sélection du fichier
+    client_trans_freetext_raw: Texte libre du client reçu tel quel (PI 99, profil historique)
+    server_conn_freetext: Texte libre du serveur à la connexion
+    server_trans_freetext: Texte libre du serveur à la sélection du fichier
+    file_encoding: Encodage du fichier (PI 16)
+    file_type: Type de fichier (PI 11)
+    organization: Organisation du fichier (PI 33)
+    customer_id: Identifiant de client (PI 61)
+    bank_id: Identifiant de banque (PI 62)
+    articles_format: Format des articles, fixe ou variable (PI 31)
+    articles_lengths: Longueurs des articles
+    articles_separator: Séparateur des enregistrements envoyés un par article (LF ou CRLF)
+    ack_expected: Acquittement attendu
+    ack_wait_timeout: Délai d'attente de l'acquittement
+    ack_wait_since: Attente de l'acquittement depuis
+    ack_received: Acquittement reçu
+    ack_received_on: Date de réception de l'acquittement
+    ack_sent: Acquittement envoyé
+    ack_sent_on: Date d'envoi de l'acquittement
+    ack_sent_to: Partenaire destinataire de l'acquittement
+    ack_sent_as: Compte utilisé pour envoyer l'acquittement
   # Les éléments du format d'un horodatage.
   token:
     year: année

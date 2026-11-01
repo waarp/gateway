@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
@@ -63,4 +64,49 @@ func TestVariablesFollowTheTasks(t *testing.T) {
 
 	assert.NotEqual(t, "AM", strings.ToUpper(tasks.FormatTimestamp("(pm)", now)),
 		"pm is set aside while the tasks render it wrong: offer it again once they do")
+}
+
+// The reserved keys of the transfer information (pkg/model) are offered, each
+// with a label in French and in English, by family (#816).
+func TestReservedKeysAreOffered(t *testing.T) {
+	t.Parallel()
+
+	catalog := common.NewShell().Catalog()
+	keys := model.ReservedInfoKeys()
+
+	for _, lang := range []string{"fr", "en"} {
+		list := List(catalog.Translator(lang), time.Now())
+		offered := map[string]string{}
+
+		for _, g := range list.Groups {
+			assert.NotContains(t, g.Label, "¿")
+
+			for _, v := range g.Vars {
+				offered[v.Name] = v.Label
+			}
+		}
+
+		for _, k := range keys {
+			label, ok := offered[transferInfoName+k.Name]
+			assert.Truef(t, ok, "%s: %s is not offered", lang, k.Name)
+			assert.NotEmptyf(t, label, "%s: the label of %s", lang, k.Name)
+			assert.NotContainsf(t, label, "¿", "%s: the label of %s", lang, k.Name)
+		}
+
+		assert.Len(t, list.Groups, len(varGroups)+2, "a group for the PeSIT keys, one for the acknowledgements")
+	}
+}
+
+func TestInfoKeyLabel(t *testing.T) {
+	t.Parallel()
+
+	for name, want := range map[string]string{
+		"__followID__":               "vars.info.follow_id",
+		"__clientTransFreetextRaw__": "vars.info.client_trans_freetext_raw",
+		"__ackReceivedOn__":          "vars.info.ack_received_on",
+		"__syncTransferID__":         "vars.info.sync_transfer_id",
+		"__bankID__":                 "vars.info.bank_id",
+	} {
+		assert.Equal(t, want, InfoKeyLabel(name))
+	}
 }

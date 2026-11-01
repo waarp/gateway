@@ -3019,6 +3019,8 @@ vars:
     error: Error (error tasks)
     paths: Paths
     info: Transfer info
+    info_pesit: PeSIT information
+    info_ack: Acknowledgements
   # The variables, by the name of their marker in lower case.
   var:
     truefilename: Name of the file
@@ -3047,6 +3049,34 @@ vars:
     workpath: Temporary receive folder
     ti: "Information attached to the transfer: replace “key” with its name"
     ti_param: key
+  # The reserved keys of the transfer information (pkg/model), by their name in lower case.
+  info:
+    follow_id: Follow ID (R66), which also links a transfer and its acknowledgement
+    user_content: User content (R66)
+    sync_transfer_id: Parent of a synchronised transfer
+    sync_transfer_rank: Rank of a synchronised transfer
+    client_conn_freetext: Free text of the client at the connection
+    client_trans_freetext: Free text of the client at the selection of the file
+    client_trans_freetext_raw: Free text of the client as received (PI 99, legacy profile)
+    server_conn_freetext: Free text of the server at the connection
+    server_trans_freetext: Free text of the server at the selection of the file
+    file_encoding: Encoding of the file (PI 16)
+    file_type: Type of the file (PI 11)
+    organization: Organisation of the file (PI 33)
+    customer_id: Customer ID (PI 61)
+    bank_id: Bank ID (PI 62)
+    articles_format: Format of the articles, fixed or variable (PI 31)
+    articles_lengths: Lengths of the articles
+    articles_separator: Separator of the records sent one per article (LF or CRLF)
+    ack_expected: Acknowledgement expected
+    ack_wait_timeout: How long to wait for the acknowledgement
+    ack_wait_since: Waiting for the acknowledgement since
+    ack_received: Acknowledgement received
+    ack_received_on: When the acknowledgement was received
+    ack_sent: Acknowledgement sent
+    ack_sent_on: When the acknowledgement was sent
+    ack_sent_to: Partner the acknowledgement was sent to
+    ack_sent_as: Account the acknowledgement was sent as
   # The elements of the format of a timestamp.
   token:
     year: year

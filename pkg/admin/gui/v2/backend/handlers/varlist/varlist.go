@@ -4,16 +4,20 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
 // The variables list is built from the markers the tasks implement
 // (pkg/tasks), grouped by what they give, each with its label; a timestamp
 // offers the elements of its format. The screens whose fields the gateway
-// substitutes offer it (email templates, tasks of the rules; #812).
+// substitutes offer it (email templates, tasks of the rules; #812). The
+// reserved keys of the transfer information (model.ReservedInfoKeys) are
+// offered by family, next to the free key (#816).
 
 const (
 	// ListID is the id of the variables list the fields offer (data-vars).
@@ -30,6 +34,7 @@ const (
 	varKeyPrefix   = "vars.var."
 	groupKeyPrefix = "vars.group."
 	tokenKeyPrefix = "vars.token."
+	infoKeyPrefix  = "vars.info."
 )
 
 // varGroups orders the markers of the tasks in the list, by what they give.
@@ -73,6 +78,15 @@ var tokenKeys = map[string]string{
 //nolint:gochecknoglobals // reference data of the screen
 var tokensNotOffered = []string{"pm"}
 
+// infoFamilyGroups names the group of the list that offers the reserved keys
+// of each family: the keys of the transfer follow the free key in its group,
+// the others have a group of their own.
+//
+//nolint:gochecknoglobals // reference data of the screen
+var infoFamilyGroups = map[model.InfoKeyFamily]string{
+	model.InfoFamilyTransfer: "info", model.InfoFamilyPesit: "info_pesit", model.InfoFamilyAck: "info_ack",
+}
+
 // List builds the variables list: the markers the tasks implement, by
 // group, each with its label; a timestamp offers the elements of its format
 // with the value they give at the given time.
@@ -101,10 +115,53 @@ func List(translate gui.Translator, now time.Time) gui.VarListProps {
 			}
 		}
 
+		if g.key == infoFamilyGroups[model.InfoFamilyTransfer] {
+			group.Vars = append(group.Vars, reservedKeys(translate, model.InfoFamilyTransfer)...)
+		}
+
 		groups = append(groups, group)
 	}
 
+	for _, family := range []model.InfoKeyFamily{model.InfoFamilyPesit, model.InfoFamilyAck} {
+		groups = append(groups, gui.VarGroup{
+			Label: translate(groupKeyPrefix + infoFamilyGroups[family]), Vars: reservedKeys(translate, family),
+		})
+	}
+
 	return gui.VarListProps{ID: ListID, Groups: groups}
+}
+
+// reservedKeys offers the reserved keys of a family (model.ReservedInfoKeys),
+// each as #TI___key__# with its label.
+func reservedKeys(translate gui.Translator, family model.InfoKeyFamily) []gui.Var {
+	keys := model.ReservedInfoKeys()
+	out := make([]gui.Var, 0, len(keys))
+
+	for _, k := range keys {
+		if k.Family == family {
+			out = append(out, gui.Var{Name: transferInfoName + k.Name, Label: translate(InfoKeyLabel(k.Name))})
+		}
+	}
+
+	return out
+}
+
+// InfoKeyLabel is the catalogue key of the label of a reserved key of the
+// transfer information: __clientConnFreetext__ gives
+// vars.info.client_conn_freetext, __followID__ gives vars.info.follow_id.
+func InfoKeyLabel(name string) string {
+	var b strings.Builder
+
+	runes := []rune(strings.Trim(name, "_"))
+	for i, r := range runes {
+		if unicode.IsUpper(r) && i > 0 && (unicode.IsLower(runes[i-1]) || (i+1 < len(runes) && unicode.IsLower(runes[i+1]))) {
+			b.WriteByte('_')
+		}
+
+		b.WriteRune(unicode.ToLower(r))
+	}
+
+	return infoKeyPrefix + b.String()
 }
 
 // formatTokens are the elements of a date format the list offers, each with
