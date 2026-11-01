@@ -126,6 +126,10 @@ le marqueur à utiliser est le suivant:
 À l'exécution, ce marqueur sera alors substitué par la valeur associée à la clé
 renseignée.
 
+Les clés que Waarp Gateway réserve (``__followID__``, ``__clientTransFreetext__``…)
+se lisent de même, par exemple ``#TI___followID__#`` ; leur liste est dans
+:ref:`reference-transfer-info`.
+
 Ces valeurs de substitutions sont également disponibles pour les programmes externes
 appelés par les tâches EXEC sous forme de variables d'environnement. Ces variables
 d'environnement ont la forme ``WAARP_<nom_de_variable>`` sans les dièses ``#``

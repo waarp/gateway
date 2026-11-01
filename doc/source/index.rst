@@ -83,6 +83,7 @@ de l'application.
    reference/proto_config/index
    reference/auth_methods
    reference/tasks/index
+   reference/transfer_info
    reference/cloud/index
    reference/errorcodes
    reference/backup

@@ -176,6 +176,10 @@ sélectionné pour être remplacé :
   ``DD``, ``HH``, ``mm``…) avec la valeur qu'ils donnent maintenant ;
 - les informations de transfert (``#TI_<clé>#``) : la clé est à saisir.
 
+Les clés que la Gateway réserve (textes libres et attributs PeSIT, acquittements,
+identifiant de flux…) sont proposées par famille, chacune avec son libellé, à
+côté de ``#TI_<clé>#`` (:ref:`reference-transfer-info`).
+
 Dans l'éditeur, un marqueur s'affiche comme une étiquette.
 
 *Valider* enregistre le modèle avec une notification et ramène à la liste

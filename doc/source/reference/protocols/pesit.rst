@@ -107,6 +107,8 @@ les clés spéciales suivantes :
 - ``__clientTransFreetext__`` pour le texte envoyé par le client à la sélection du fichier
 - ``__serverConnFreetext__`` pour le texte envoyé par le serveur à la connexion
 - ``__serverTransFreetext__`` pour le texte envoyé par le serveur à la sélection du fichier
+- ``__clientTransFreetextRaw__`` pour le texte du client reçu tel quel (PI 99) quand le
+  profil historique place le texte libre dans le PI 94
 
 Ces valeurs étant stockées dans les :term:`infos de transfert`, il est donc possible
 de référencer ces valeurs dans des traitements via les :ref:`marqueurs de substitution
@@ -198,6 +200,12 @@ de la clé ``__ackExpected__`` dans les *transfer info*. Une fois l'ACK reçu,
 cette clé est supprimée et remplacée par ``__ackReceived__``  indiquant que l'ACK
 a été reçu, et ``__ackReceivedOn__`` indiquant la date (format ISO 8601) à laquelle
 l'ACK a été reçu.
+
+Pendant l'attente, ``__ackWaitSince__`` porte la date depuis laquelle le transfert
+attend l'ACK, et ``__ackWaitTimeout__`` le délai au-delà duquel l'attente échoue
+(une durée, ``30m`` ; posée par l'option ``ackTimeout`` du partenaire ou à la main ;
+10 minutes sans elle). La liste des clés réservées est dans
+:ref:`reference-transfer-info`.
 
 Réciproquement, lorsque Gateway envoie un ACK pour un transfert, une clé ``__ackSent__``
 sera ajoutée aux informations du transfert en question; ainsi que ``__ackSentOn__``,

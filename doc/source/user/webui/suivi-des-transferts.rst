@@ -294,7 +294,10 @@ est vide).
    * - Informations de transfert
      - Facultatives : une ligne par information, avec son nom et sa
        valeur ; *Ajouter une information* ajoute une ligne, le bouton de
-       chaque ligne la retire. Les traitements de la règle peuvent les lire.
+       chaque ligne la retire. Le nom propose les clés réservées de la Gateway
+       (``__ackExpected__``, ``__followID__``…) avec leur sens, une clé libre
+       restant possible (:ref:`reference-transfer-info`). Les traitements de
+       la règle peuvent les lire.
    * - Tentatives en cas d'erreur
      - Facultatives : nombre de tentatives, premier délai en secondes,
        facteur d'augmentation ; vides, celles du client.
