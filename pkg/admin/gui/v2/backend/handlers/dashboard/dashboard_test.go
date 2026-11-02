@@ -232,7 +232,12 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `>Actualisé à 16:05:00</span>`)
 		assert.Contains(t, body, `id="tdb-refresh" href="/webui/dashboard">Actualiser</a>`)
 		assert.Contains(t, body, `data-refresh-seconds="30" data-refreshed-at="16:05:00"`)
-		assert.NotContains(t, body, "w-btn--primary", "no action of its own yet")
+		// The grouped resumption (#818): the only coloured action, saying how many
+		// will resume (the server transfer apart), the failed count it was shown.
+		assert.Equal(t, 1, strings.Count(body, "w-btn--primary"), "one coloured action: the grouped resumption")
+		indexes(t, body, `id="tdb-refresh"`, `<div id="tdb-resume" class="tdb-resume"><form method="post" action="/webui/transfers/resume?from=dashboard">`,
+			`<input type="hidden" name="state" value="error">`, `<input type="hidden" name="all" value="1">`,
+			`<input type="hidden" name="expected" value="3">`, `Reprendre les 2 transferts en erreur</button>`, `id="tdb-body"`)
 		assert.NotContains(t, body, "¿", "no missing key")
 
 		// The services of the node: the tiles of the service status, as links.
@@ -331,6 +336,8 @@ func TestPage(t *testing.T) {
 		errors := part(t, body, "tdb-errors")
 
 		assert.NotContains(t, errors, "popover", "no menu without the right to write")
+		assert.NotContains(t, body, "/webui/transfers/resume", "no grouped resumption either")
+		assert.Contains(t, body, `<div id="tdb-resume" class="tdb-resume"></div>`)
 		assert.Equal(t, 3, strings.Count(errors, `aria-label="View the transfer"`), "the sheet alone")
 		assert.Contains(t, body, "Services of node gw-test")
 		assert.Contains(t, body, `<span class="w-tile__label">Done in 24 h</span>`)
@@ -353,8 +360,25 @@ func TestPage(t *testing.T) {
 		body := rec.Body.String()
 
 		assert.NotContains(t, body, "<html")
-		assert.True(t, strings.HasPrefix(body, `<div id="tdb-body"`), "the body alone")
+		assert.True(t, strings.HasPrefix(body, `<div id="tdb-body"`), "the body first")
 		assert.Contains(t, body, `id="tdb-errors"`)
+		assert.Contains(t, body, `<div id="tdb-resume" class="tdb-resume"><form`, "then the resumption button, which follows the figures")
+	})
+
+	t.Run("Given a failed child of a synchronous transfer", func(t *testing.T) {
+		other := newSuite(t)
+		other.fixtures(t)
+
+		child := &model.Transfer{
+			RuleID: other.failedRecent.RuleID, ClientID: other.failedRecent.ClientID,
+			RemoteAccountID: other.failedRecent.RemoteAccountID, SrcFilename: "lot-2.pdf", DestFilename: "lot-2.pdf",
+			Status: types.StatusError, Start: at(21, 15, 50), Filesize: model.UnknownSize,
+			TransferInfo: map[string]any{model.SyncTransferID: other.failedRecent.ID, model.SyncTransferRank: int64(1)},
+		}
+		require.NoError(t, other.db.Insert(child).Run())
+
+		body := other.serve(t, write, "en", "/webui/dashboard").Body.String()
+		indexes(t, body, `<input type="hidden" name="expected" value="4">`, `Resume the 2 failed transfers</button>`)
 	})
 }
 
@@ -377,6 +401,7 @@ func TestEmptyPage(t *testing.T) {
 	errors := part(t, body, "tdb-errors")
 	assert.Contains(t, errors, `<p class="w-empty__title">Aucun transfert en erreur</p>`)
 	assert.NotContains(t, errors, "<table")
+	assert.NotContains(t, body, "w-btn--primary", "nothing to resume: no button")
 }
 
 func TestFiguresCache(t *testing.T) {
@@ -385,7 +410,7 @@ func TestFiguresCache(t *testing.T) {
 	s := newSuite(t)
 	s.fixtures(t)
 
-	figs, last := s.h.figures(s.now)
+	figs, last := s.h.figures(s.now, false)
 	require.NotNil(t, figs)
 	assert.EqualValues(t, 3, figs.Live[statusKey(types.StatusError)])
 	assert.Equal(t, s.now, last.at)
@@ -397,12 +422,25 @@ func TestFiguresCache(t *testing.T) {
 		SrcFilename: "late.csv", DestFilename: "late.csv", Status: types.StatusError, Start: at(21, 16, 0), Filesize: model.UnknownSize,
 	}).Run())
 
-	figs, _ = s.h.figures(s.now.Add(20 * time.Second))
+	figs, _ = s.h.figures(s.now.Add(20*time.Second), false)
 	assert.EqualValues(t, 3, figs.Live[statusKey(types.StatusError)], "read once per period")
 
-	figs, last = s.h.figures(s.now.Add(31 * time.Second))
+	figs, last = s.h.figures(s.now.Add(31*time.Second), false)
 	assert.EqualValues(t, 4, figs.Live[statusKey(types.StatusError)], "read again once the period is over")
 	assert.Equal(t, s.now.Add(31*time.Second), last.at)
+
+	// An action came back with its result: read again at once (#818).
+	require.NoError(t, s.db.Insert(&model.Transfer{
+		RuleID: s.failedOld.RuleID, ClientID: s.failedOld.ClientID, RemoteAccountID: s.failedOld.RemoteAccountID,
+		SrcFilename: "later.csv", DestFilename: "later.csv", Status: types.StatusError, Start: at(21, 16, 1), Filesize: model.UnknownSize,
+	}).Run())
+
+	figs, last = s.h.figures(s.now.Add(40*time.Second), true)
+	assert.EqualValues(t, 5, figs.Live[statusKey(types.StatusError)], "read again after an action, within the period")
+	assert.Equal(t, s.now.Add(40*time.Second), last.at)
+
+	body := s.serve(t, model.PermTransfersRead|model.PermTransfersWrite, "fr", "/webui/dashboard?done=set_resumed&name=3").Body.String()
+	assert.Contains(t, body, "3 transferts repris", "the result of the action")
 }
 
 func TestDegradedPage(t *testing.T) {

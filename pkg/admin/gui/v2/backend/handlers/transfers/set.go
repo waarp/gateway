@@ -14,6 +14,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/batch"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
@@ -186,6 +187,65 @@ func expectedOf(r *http.Request) (int, bool) {
 	return n, err == nil && n >= 0
 }
 
+// ResumeFailedForm is the form another screen (the dashboard, #818) posts to
+// resume every failed transfer at once, coming back to it: the address of the
+// grouped resumption and its fields (the failed state, the whole filter, the
+// count of failed transfers the screen showed).
+func ResumeFailedForm(expected uint64) (action string, fields []liststate.Hidden) {
+	return actionURLFrom(string(batch.Resume), fromDashboard), []liststate.Hidden{
+		{Name: paramState, Value: StateError},
+		{Name: "all", Value: "1"},
+		{Name: expectedParam, Value: strconv.FormatUint(expected, 10)},
+	}
+}
+
+// actionURLFrom is the address of a gesture on a set, which keeps where the
+// gesture comes back to ("" for the list).
+func actionURLFrom(name, from string) string {
+	action := common.WebuiURL(pagePath + "/" + name)
+	if from != "" {
+		action = liststate.WithQuery(action, url.Values{fromParam: {from}})
+	}
+
+	return action
+}
+
+// fromDashboardSet tells whether a gesture on a set was asked from the
+// dashboard, where it comes back. The parameter is read on the address alone:
+// the filters of the list name their period "from" too, in the form.
+func fromDashboardSet(r *http.Request) bool { return r.URL.Query().Get(fromParam) == fromDashboard }
+
+// originOf is where a gesture on a set was asked from, as actionURLFrom
+// carries it: the dashboard, or "" for the list.
+func originOf(r *http.Request) string {
+	if fromDashboardSet(r) {
+		return fromDashboard
+	}
+
+	return ""
+}
+
+// backOf is where a gesture on the selection comes back to: the dashboard
+// when it was asked from there, else the list as the user left it.
+func backOf(r *http.Request, sel *selection) string {
+	if fromDashboardSet(r) {
+		return common.WebuiURL(constants.DashboardPath)
+	}
+
+	return listURL(sel.carried())
+}
+
+// redirectBack sends back where the gesture was asked, with its result.
+func redirectBack(w http.ResponseWriter, r *http.Request, sel *selection, values url.Values) {
+	if fromDashboardSet(r) {
+		liststate.RedirectTo(w, r, common.WebuiURL(constants.DashboardPath), values)
+
+		return
+	}
+
+	listSpec.RedirectList(w, r, sel.carried(), values)
+}
+
 // ------------------------------------------------------------- pages ----
 
 // setData is a page of a grouped action: the set in clear (the filters, the
@@ -227,8 +287,8 @@ func (h *Handlers) renderSet(w http.ResponseWriter, r *http.Request, sel *select
 	name := string(gesture)
 	data.Title = countedText(translate, setKeyPrefix+name+"_title", len(sel.ids))
 	data.Text = translate(setKeyPrefix + name + "_text")
-	data.Action = common.WebuiURL(pagePath + "/" + name)
-	data.CancelURL = listURL(sel.carried())
+	data.Action = actionURLFrom(name, originOf(r))
+	data.CancelURL = backOf(r, sel)
 	data.Hidden = sel.hidden()
 	data.Rows = h.setRows(translate, sel)
 	data.Will = kv{Label: translate(setKeyPrefix + "will_" + name), Value: digits(translate, preview.Accepted)}
@@ -360,7 +420,7 @@ func (h *Handlers) selectionOf(w http.ResponseWriter, r *http.Request) (*selecti
 
 		return nil, false
 	case len(sel.ids) == 0:
-		listSpec.RedirectList(w, r, sel.carried(), url.Values{liststate.DoneParam: {setEmpty}})
+		redirectBack(w, r, sel, url.Values{liststate.DoneParam: {setEmpty}})
 
 		return nil, false
 	}
@@ -379,7 +439,7 @@ func doneSet(w http.ResponseWriter, r *http.Request, sel *selection, done string
 		values.Set(liststate.ReasonParam, encodeReasons(result.Counts()))
 	}
 
-	listSpec.RedirectList(w, r, sel.carried(), values)
+	redirectBack(w, r, sel, values)
 }
 
 // encodeReasons writes the refusals by reason ("server:1,state:2"), in the

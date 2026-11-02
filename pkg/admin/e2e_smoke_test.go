@@ -1628,6 +1628,31 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		assert.Contains(t, toast, "1 transfert repris")
 	})
 
+	// The dashboard resumes the failed transfers in one click (#818): the
+	// primary button of its header, which says how many, posts the grouped
+	// resumption and comes back to the dashboard with the notification.
+	t.Run("the dashboard resumes the failed transfers in one click", func(t *testing.T) {
+		session.visit(t, "/webui/dashboard")
+
+		button := page.Locator("#tdb-resume button")
+		require.NoError(t, button.WaitFor())
+		label, err := button.TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, label, "Reprendre")
+
+		session.tracker.enter("/webui/transfers/resume")
+		require.NoError(t, button.Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/dashboard?")+`done=set_resumed&name=\d+$`)))
+		require.NoError(t, session.tracker.settle())
+		assert.Empty(t, session.tracker.failuresOf("/webui/transfers/resume"), "failed requests of the resumption")
+
+		toast, err := page.Locator(".w-toast--ok").First().TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, toast, "repris")
+		assert.Equal(t, 0, session.count(t, "#tdb-resume form"), "nothing left to resume: the button is gone")
+	})
+
 	// Collapsed, the sidebar keeps the icons of its entries in a rail, each
 	// label as a tooltip (#772); expanded again, the labels come back.
 	t.Run("the sidebar collapses to a rail", func(t *testing.T) {

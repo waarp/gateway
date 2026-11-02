@@ -92,6 +92,8 @@ dashboard:
   refreshing: Refreshing…
   node: "Services of node {node}"
   transfers: Transfers
+  resume: "Resume the {n} failed transfers"
+  resume_one: Resume the failed transfer
   tile:
     running: Running transfers
     error: Failed transfers

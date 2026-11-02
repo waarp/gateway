@@ -16,6 +16,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -93,15 +94,20 @@ func New(db *database.DB, logger *log.Logger, list services.Lister) *Handlers {
 }
 
 // Page serves GET /webui/dashboard. With ?fragment=body, it renders the body
-// alone (everything under the page header), for the refresh without reload.
+// (everything under the page header) and the resumption button of the header,
+// for the refresh without reload.
 func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	perms := common.GetUser(r).Permissions
+	// An action that comes back here with its result (a transfer resumed, the
+	// failed transfers resumed at once): the figures are read again, so that
+	// the tiles and the resumption button say what the action left.
+	fresh := r.URL.Query().Get(liststate.DoneParam) != ""
 	data := h.makePageData(translate,
-		perms.HasPermission(model.PermTransfersRead), perms.HasPermission(model.PermTransfersWrite))
+		perms.HasPermission(model.PermTransfersRead), perms.HasPermission(model.PermTransfersWrite), fresh)
 
 	if r.URL.Query().Get(constants.FragmentParam) == bodyFragment {
-		h.shell.RenderFragment(w, h.logger, r, body(data))
+		h.shell.RenderFragment(w, h.logger, r, fragment(data))
 
 		return
 	}
@@ -139,11 +145,24 @@ type pageData struct {
 	Errors         []errorRow       // the latest failed transfers, the most recent first
 	ErrorsAll      string           // the link to the list of the failed transfers, with their number
 	ErrorsURL      string           // the list of the failed transfers
+	Resume         *resumeAction    // the grouped resumption of the failed transfers; nil without any, or to a reader
 }
 
-// makePageData reads what the page shows. Without the right to read the
-// transfers, the page shows the services alone, and reads nothing else.
-func (h *Handlers) makePageData(translate gui.Translator, read, write bool) pageData {
+// resumeAction is the primary button of the page header (#818): the grouped
+// resumption of the failed transfers, its label saying how many will resume,
+// the form it posts (the transfer monitoring: the failed state, the whole
+// filter, the count of failed transfers the page showed), which comes back
+// to the dashboard.
+type resumeAction struct {
+	Label  string
+	Action string
+	Fields []liststate.Hidden
+}
+
+// makePageData reads what the page shows (again, when fresh). Without the
+// right to read the transfers, the page shows the services alone, and reads
+// nothing else.
+func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh bool) pageData {
 	now := h.now()
 	data := pageData{
 		RefreshedAt:    now.Format(timeLayout),
@@ -158,7 +177,7 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write bool) page
 		return data
 	}
 
-	figs, last := h.figures(now)
+	figs, last := h.figures(now, fresh)
 
 	if !last.failing.IsZero() {
 		text := translate("dashboard.degraded.none")
@@ -186,17 +205,23 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write bool) page
 	data.ErrorsAll = texts.count(errorsKeys, "all", figs.Live[statusKey(types.StatusError)])
 	data.ErrorsURL = transfers.FilteredListURL(transfers.StateError, time.Time{})
 
+	if write && figs.Resumable > 0 {
+		action, fields := transfers.ResumeFailedForm(figs.Live[statusKey(types.StatusError)])
+		data.Resume = &resumeAction{Label: texts.count(resumeKeys, "resume", figs.Resumable), Action: action, Fields: fields}
+	}
+
 	return data
 }
 
 // figures gives the figures of the transfers: those read less than a period
-// ago, else a new reading. When the base does not answer, the last figures
-// read stay, with the reading that says since when the base fails.
-func (h *Handlers) figures(now time.Time) (*figures, reading) {
+// ago, else, or when fresh, a new reading. When the base does not answer,
+// the last figures read stay, with the reading that says since when the base
+// fails.
+func (h *Handlers) figures(now time.Time, fresh bool) (*figures, reading) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if h.last.figures != nil && h.last.failing.IsZero() && now.Sub(h.last.at) < refreshPeriod {
+	if !fresh && h.last.figures != nil && h.last.failing.IsZero() && now.Sub(h.last.at) < refreshPeriod {
 		return h.last.figures, h.last
 	}
 

@@ -20,6 +20,7 @@ const (
 	srKeys     = "dashboard.sr."
 	errorsKeys = "dashboard.errors."
 	valuesKeys = "dashboard.values."
+	resumeKeys = "dashboard."
 	oneSuffix  = "_one"
 )
 
@@ -46,10 +47,14 @@ func (txt texts) count(prefix, key string, n uint64) string {
 type figures struct {
 	Live   map[string]uint64 // the live transfers by status
 	Recent uint64            // the failed transfers started in the last hour
-	Day    map[string]uint64 // the transfers of the window by status, from the history
-	Volume int64             // bytes of the transfers of the window done
-	Hours  []hour            // the hours of the window, the oldest first
-	Errors []failure         // the latest failed transfers, the most recent first
+	// Resumable: the failed transfers the grouped resumption of the page will
+	// resume (#818): the client ones that are not the child of a synchronous
+	// transfer (the rule of the model, CheckResumable), counted in one reading.
+	Resumable uint64
+	Day       map[string]uint64 // the transfers of the window by status, from the history
+	Volume    int64             // bytes of the transfers of the window done
+	Hours     []hour            // the hours of the window, the oldest first
+	Errors    []failure         // the latest failed transfers, the most recent first
 }
 
 // hour is one hour of the window: how many transfers started in it are done,
@@ -91,6 +96,12 @@ func (h *Handlers) readFigures(now time.Time) (*figures, error) {
 
 	if figs.Live, err = h.db.Select(&live).CountBy("status"); err != nil {
 		return nil, fmt.Errorf("failed to count the live transfers: %w", err)
+	}
+
+	if figs.Resumable, err = h.db.Select(&live).Where("status=? AND local_account_id IS NULL AND id NOT IN "+
+		"(SELECT transfer_id FROM transfer_info WHERE name=? AND transfer_id IS NOT NULL)",
+		types.StatusError, model.SyncTransferID).Count(); err != nil {
+		return nil, fmt.Errorf("failed to count the failed transfers to resume: %w", err)
 	}
 
 	if figs.Day, err = h.db.Select(&hist).Where("start>=?", since).CountBy("status"); err != nil {

@@ -8,9 +8,9 @@ import (
 
 // page: the dashboard (Monitoring). Presentation only: the handler reads and
 // counts, builds the tiles, the chart and the rows and translates the texts.
-// The body (everything under the page header) is also served alone
-// (?fragment=body) and refreshed in place by dashboard.js; without
-// JavaScript, "Refresh" reloads the page.
+// The body (everything under the page header) and the resumption button of
+// the header are also served alone (?fragment=body) and refreshed in place by
+// dashboard.js; without JavaScript, "Refresh" reloads the page.
 templ page(d pageData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
@@ -19,10 +19,38 @@ templ page(d pageData) {
 		<div class="w-page-header__actions">
 			<span class="w-live" id="tdb-live" role="status" aria-live="polite" data-live={ gui.T(ctx, "dashboard.live") } data-refreshing={ gui.T(ctx, "dashboard.refreshing") }>{ gui.T(ctx, "dashboard.live", "time", d.RefreshedAt) }</span>
 			<a class="w-btn w-btn--outline-dark" id="tdb-refresh" href={ templ.SafeURL(gui.URL(ctx, pagePath)) }>{ gui.T(ctx, "action.refresh") }</a>
+			@resumePart(d)
 		</div>
 	</div>
 	@body(d)
 	<template id="tdb-error">@gui.Banner(gui.BannerProps{Kind: stateKO, Title: gui.T(ctx, "dashboard.error.title"), Text: gui.T(ctx, "dashboard.error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: gui.URL(ctx, pagePath)}})</template>
+}
+
+// fragment: what the refresh without reload reads (?fragment=body): the body,
+// then the resumption button of the header, whose number follows the tiles.
+templ fragment(d pageData) {
+	@body(d)
+	@resumePart(d)
+}
+
+// resumePart: the primary action of the page (#818), the grouped resumption
+// of the failed transfers, to whoever may write and when some will resume:
+// a form posted to the transfer monitoring, which comes back here. Empty
+// otherwise, so that a refresh takes the button away when nothing is left.
+templ resumePart(d pageData) {
+	<div id="tdb-resume" class="tdb-resume">
+		if d.Resume != nil {
+			<form method="post" action={ templ.SafeURL(d.Resume.Action) }>
+				for _, h := range d.Resume.Fields {
+					<input type="hidden" name={ h.Name } value={ h.Value }/>
+				}
+				<button class="w-btn w-btn--primary" type="submit">
+					@gui.Icon("play")
+					{ d.Resume.Label }
+				</button>
+			</form>
+		}
+	</div>
 }
 
 // body: the figures, the part refreshed in place. Each part replaced on its

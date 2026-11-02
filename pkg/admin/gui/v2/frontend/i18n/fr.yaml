@@ -91,6 +91,8 @@ dashboard:
   refreshing: Actualisation…
   node: "Services du nœud {node}"
   transfers: Transferts
+  resume: "Reprendre les {n} transferts en erreur"
+  resume_one: Reprendre le transfert en erreur
   tile:
     running: Transferts en cours
     error: Transferts en erreur

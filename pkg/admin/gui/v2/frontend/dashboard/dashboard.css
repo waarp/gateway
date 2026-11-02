@@ -3,6 +3,7 @@
    the columns of the latest errors in a half-width section: a fixed layout, the detail of an error on one line, cut
    with an ellipsis, the whole text in its tooltip, since a cell is a short label and the sheet holds the detail).
    No table stands in a card (2026-10-23). Tokens only. */
+.tdb-resume { display: contents; }   /* the resumption form sits among the actions of the page header (#818) */
 .tdb-sections { margin-top: var(--sp-6); }
 .tdb-sections .w-section-title { margin-top: 0; }
 .tdb-values { margin-top: var(--sp-4); }

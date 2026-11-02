@@ -1,9 +1,9 @@
 // Dashboard screen: refreshes the figures every half minute without reloading the page, on the "Refresh" button
 // and when the tab comes back to the front, and keeps a persistent message when a refresh fails. The parts of the
 // body are replaced one by one, so that the open or closed state of the values section and the listeners of the
-// kit survive; the actions menus of the new rows are handed to the kit. The page works without this file: the
-// button then reloads it. Every text comes from the page (data attributes and the error template), none is
-// written here.
+// kit survive; the actions menus of the new rows are handed to the kit; the resumption button of the header follows
+// the figures (#818). The page works without this file: the button then reloads it. Every text comes from the page
+// (data attributes and the error template), none is written here.
 (() => {
   "use strict";
 
@@ -67,11 +67,14 @@
         headers: { Accept: "text/html" }, credentials: "same-origin", redirect: "error", cache: "no-store",
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
-      const fresh = new DOMParser().parseFromString(await response.text(), "text/html").getElementById("tdb-body");
+      const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+      const fresh = doc.getElementById("tdb-body");
       if (!fresh) throw new Error("unexpected fragment");
       const banner = block.querySelector(":scope > .w-banner");
       if (banner) banner.remove();
       morph(fresh);
+      const resume = document.getElementById("tdb-resume"), freshResume = doc.getElementById("tdb-resume");
+      if (resume && freshResume) resume.replaceChildren(...freshResume.childNodes);
       lastRead = fresh.dataset.refreshedAt || lastRead;
       block.dataset.refreshedAt = lastRead;
       if (focusAfter && refreshButton) refreshButton.focus();

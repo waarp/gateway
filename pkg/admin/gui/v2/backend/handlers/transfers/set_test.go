@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
@@ -325,6 +326,36 @@ func TestSetRetry(t *testing.T) {
 	rec = s.post(t, permWrite, "/webui/transfers/retry", url.Values{"ids": {id(s.failed)}, "date": {"soon"}})
 	require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 	assert.Contains(t, rec.Body.String(), "is-invalid")
+}
+
+// TestSetFromDashboard checks a resumption asked from the dashboard (#818):
+// the form the dashboard posts, the way back to it with the result, its
+// confirmation page leading back to it, and an empty set said there.
+func TestSetFromDashboard(t *testing.T) {
+	t.Parallel()
+
+	action, fields := ResumeFailedForm(3)
+	assert.Equal(t, "/webui/transfers/resume?from=dashboard", action)
+	assert.Equal(t, []liststate.Hidden{{Name: "state", Value: "error"}, {Name: "all", Value: "1"}, {Name: "expected", Value: "3"}},
+		fields)
+
+	s := newSuite(t)
+	s.fixtures(t)
+
+	rec := s.post(t, permWrite, action, url.Values{"state": {"error"}, "all": {"1"}, "expected": {"9"}})
+	require.Equal(t, http.StatusOK, rec.Code, "the count changed: the page asks")
+	indexes(t, rec.Body.String(), `<a class="w-btn w-btn--outline-dark" href="/webui/dashboard">`,
+		`<form class="w-form" method="post" action="/webui/transfers/resume?from=dashboard"`, `Reprendre les transferts</button>`)
+	assert.Equal(t, types.StatusError, statusOfTransfer(t, s.db, s.failed.ID))
+
+	rec = s.post(t, permWrite, action, url.Values{"state": {"error"}, "all": {"1"}, "expected": {"1"}})
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Equal(t, "/webui/dashboard?done=set_resumed&name=1", rec.Header().Get("Location"), "back to the dashboard")
+	assert.Equal(t, types.StatusPlanned, statusOfTransfer(t, s.db, s.failed.ID))
+
+	rec = s.post(t, permWrite, action, url.Values{"state": {"error"}, "all": {"1"}, "expected": {"0"}})
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	assert.Equal(t, "/webui/dashboard?done=set_empty", rec.Header().Get("Location"), "nothing left to resume")
 }
 
 // TestSetParseIDs checks the reading of the identifiers a form sends.
