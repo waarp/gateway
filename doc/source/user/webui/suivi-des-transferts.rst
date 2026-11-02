@@ -260,6 +260,53 @@ nœud ne se met pas en pause et ne s'annule pas depuis celui-ci : la page le
 dit, l'action se fait depuis l'interface du nœud qui l'exécute.
 
 
+Actions groupées
+================
+
+Chaque ligne de la liste porte une case à cocher ; la case de l'en-tête coche
+la page. Dès qu'une ligne est cochée, une barre apparaît sous la barre
+d'outils : elle compte la sélection, propose *Sélectionner les n transferts
+du filtre* (toutes les pages des filtres en cours, pas la seule page
+affichée ; décocher une ligne l'exclut alors de l'ensemble) et offre trois
+gestes sur l'ensemble, pour qui a le droit d'écriture sur les transferts.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 76
+
+   * - Geste
+     - Effet
+   * - Reprendre les transferts
+     - Les transferts de l'ensemble reprennent là où ils se sont arrêtés, en
+       un clic. Si l'ensemble a changé depuis l'affichage (des erreurs sont
+       arrivées entre deux actualisations), une page de confirmation dit le
+       nouveau nombre avant d'agir.
+   * - Relancer les transferts
+     - Une page propose la date de départ (maintenant si elle est vide) ; un
+       nouveau transfert est créé pour chacun, les transferts d'origine
+       restant tels quels.
+   * - Annuler les transferts
+     - Une page de confirmation nomme l'ensemble (les filtres en clair, les
+       exceptions, le nombre) et dit combien de transferts en cours seront
+       interrompus ; les transferts passent ensuite à l'historique, au statut
+       *Annulé*.
+
+Chaque page dit ce que le geste fera et ce qu'il laissera de côté : un
+transfert serveur reprend ou se relance à l'initiative du partenaire, le
+transfert enfant d'un transfert synchrone reprend par son parent, un statut
+peut ne pas permettre le geste, un transfert peut avoir disparu entre-temps
+ou s'exécuter sur un autre nœud de la grappe. La notification de retour
+compte de même ce qui a été fait et ce qui a été laissé de côté, avec la
+raison. Les reprises s'exécutent dans une seule transaction : une erreur de
+la base ne reprend rien. L'annulation avance par lots et s'arrête à la
+première erreur de la base, ce qui a été annulé le restant.
+
+Sans JavaScript, les cases et la barre restent un formulaire ordinaire : la
+sélection est soit les lignes cochées de la page, soit tout le filtre, sans
+compte ni exclusion, et la reprise passe alors toujours par sa page de
+confirmation.
+
+
 Ajouter un transfert
 ====================
 
