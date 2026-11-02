@@ -811,7 +811,7 @@ templ InfoList(rows []InfoPair, errText, vars string) {
 		<datalist id="info-keys">
 			for _, k := range model.ReservedInfoKeys() {
 				if k.UserSets() {
-					<option value={ k.Name }>{ gui.T(ctx, varlist.InfoKeyLabel(k.Name)) }</option>
+					<option value={ k.Name }>{ infoKeyText(ctx, k) }</option>
 				}
 			}
 		</datalist>
@@ -826,6 +826,18 @@ templ InfoList(rows []InfoPair, errText, vars string) {
 			{ gui.T(ctx, "transfers.form.info_add") }
 		</button>
 	</div>
+}
+
+// infoKeyText is a reserved key as the suggestions of the name say it: the
+// family of a key of PeSIT or of the acknowledgements, then its meaning (the
+// keys of the transfer carry their meaning alone).
+func infoKeyText(ctx context.Context, k model.ReservedInfoKey) string {
+	label := gui.T(ctx, varlist.InfoKeyLabel(k.Name))
+	if k.Family == model.InfoFamilyTransfer {
+		return label
+	}
+
+	return gui.T(ctx, infoFamilyKeyPrefix+string(k.Family)) + " · " + label
 }
 
 // infoField: a row of the transfer information, numbered from 1 (0 in the

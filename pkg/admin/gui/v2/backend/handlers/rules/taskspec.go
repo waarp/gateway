@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"slices"
+
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
@@ -119,10 +121,16 @@ type argGroup struct {
 
 func group(title string, args ...string) argGroup { return argGroup{Title: title, Args: args} }
 
-// covers are the arguments a card asks for.
+// covers are the arguments a card asks for: those of the kind of the card,
+// unless the card names its own (the pairs of SETINFO, its card of the
+// transfer information).
 func (g *argGroup) covers() []string {
 	switch g.Kind {
 	case groupInfos:
+		if len(g.Args) > 0 {
+			return g.Args
+		}
+
 		return []string{"copyInfo", "info"}
 	case groupExchange:
 		return []string{"to", "from", "as", "rule", "using"}
@@ -146,6 +154,12 @@ type taskSpec struct {
 }
 
 // has says whether one of the cards of the type is of a kind.
+// The task sets free keys and values (SETINFO): the rows of its card of the
+// transfer information are its arguments themselves.
+func (s *taskSpec) pairs() bool {
+	return slices.ContainsFunc(s.Args, func(a argSpec) bool { return a.Kind == argPairs })
+}
+
 func (s *taskSpec) has(kind groupKind) bool {
 	for i := range s.Groups {
 		if s.Groups[i].Kind == kind {
@@ -321,9 +335,11 @@ var taskSpecs = []taskSpec{
 		group("file", "file", "isSend"), group("rule_account", "rule", "server", "account"), group("validity", "validFor"),
 		{Title: "infos", Kind: groupInfos},
 	}},
+	// SETINFO: its free keys and values are the rows of the card of the
+	// transfer information (#820); the argument of the pairs names them.
 	{Type: tasks.SetInfo, Slug: "setinfo", Family: familyTransfer, Args: []argSpec{
 		{Name: "pairs", Kind: argPairs},
-	}, Groups: []argGroup{group("", "pairs")}, Mapped: true},
+	}, Groups: []argGroup{{Title: "infos", Kind: groupInfos, Args: []string{"pairs"}}}, Mapped: true},
 	{Type: tasks.Transcode, Slug: "transcode", Family: familyAlteration, Args: []argSpec{
 		choiceArg("fromCharset", keysOf(tasks.TranscodeFormats.Keys)),
 		choiceArg("toCharset", keysOf(tasks.TranscodeFormats.Keys)),

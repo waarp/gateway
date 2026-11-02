@@ -2,6 +2,7 @@ package transfers
 
 import (
 	"database/sql"
+	"net/url"
 	"testing"
 	"time"
 
@@ -64,6 +65,23 @@ func TestFilteredListURL(t *testing.T) {
 	assert.Equal(t, "/webui/transfers?from=2026-10-20T17%3A00&state=done",
 		FilteredListURL(StateDone, time.Date(2026, 10, 20, 17, 0, 0, 0, time.Local)))
 	assert.Equal(t, "/webui/transfers?reset=1", FilteredListURL("", time.Time{}), "no criterion: the list reset")
+}
+
+// TestInfoNames checks the names of the rows of transfer information: a key
+// is kept as typed, trimmed, its case counting (a reserved key is its name,
+// __key__, as the documentation writes it); the rows of a task come by key.
+func TestInfoNames(t *testing.T) {
+	t.Parallel()
+
+	pairs := ReadInfoPairs(url.Values{
+		"info_name": {model.FollowID, " lot ", "FollowID"}, "info_value": {"1", "A", "x"},
+	})
+	assert.Equal(t, []InfoPair{
+		{Name: model.FollowID, Value: "1"}, {Name: "lot", Value: "A"}, {Name: "FollowID", Value: "x"},
+	}, pairs)
+
+	assert.Equal(t, []InfoPair{{Name: model.FollowID, Value: "1"}, {Name: "lot", Value: "A"}},
+		PairRows(map[string]string{"lot": "A", model.FollowID: "1"}), "by key")
 }
 
 // TestFileNameOf checks the name of a file: the file on the gateway when it is

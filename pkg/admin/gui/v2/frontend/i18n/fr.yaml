@@ -2299,6 +2299,7 @@ rules:
     fixed: seule valeur possible
     info_copy: Copier les informations du transfert en cours
     info_copy_hint: Celles de la liste les complètent ou les remplacent.
+    setinfo_hint: "Chaque ligne pose une information sur le transfert en cours ; une valeur vide la retire."
     option_none: Aucun
     keep_unknown: "Paramètres conservés tels quels, que cet écran ne connaît pas : {names}."
     refused: La tâche n'a pas été enregistrée.
@@ -2311,7 +2312,6 @@ rules:
       min: "{min} au moins."
       range: "Entre {min} et {max}."
       json: "Indiquez un objet JSON, par exemple {\"lot\": \"A\"}."
-      pairs: "Une ligne par information, sous la forme clé=valeur."
       markers: "Variables que les tâches ne connaissent pas : {markers}. Tapez # pour choisir dans la liste."
       type: Choisissez un type.
       sens: Choisissez un sens.
@@ -2585,7 +2585,7 @@ task_types:
     arg:
       pairs:
         label: "Informations de transfert"
-        hint: "Une ligne par information, sous la forme clé=valeur ; une valeur vide supprime la clé. Les variables sont substituées."
+        hint: "Une ligne par information (nom, valeur) ; une valeur vide supprime la clé. Les variables sont substituées."
   transcode:
     label: "Changer l'encodage"
     text: "Change l'encodage du fichier de transfert."
@@ -3441,6 +3441,9 @@ transfers:
     info_remove_n: "Retirer l'information {n}"
     info_add: Ajouter une information
     info_hint: Facultatives. Les traitements de la règle peuvent les lire.
+    info_family:
+      pesit: PeSIT
+      ack: Acquittement
     retries: Tentatives en cas d'erreur
     retries_hint: "Vides : celles du client."
     delay: Premier délai (s)

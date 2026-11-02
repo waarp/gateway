@@ -288,7 +288,7 @@ templ groupContent(g groupView) {
 	if g.Note != "" {
 		<p class="w-muted rules-note">{ g.Note }</p>
 	}
-	switch {
+	switch  {
 		case g.Empty:
 			<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
 		case g.Exchange != nil:
@@ -342,9 +342,10 @@ templ exchangeFields(x *exchangeView) {
 	</div>
 }
 
-// infosCard: the transfer information of TRANSFER and PREREGISTER, one card
-// for both, shown and sent for them only: the copy of the information of the
-// transfer under way, then the rows of the page that adds a transfer.
+// infosCard: the transfer information of TRANSFER, PREREGISTER and SETINFO,
+// one card for the three, shown and sent for them only: the copy of the
+// information of the transfer under way (not for SETINFO, whose rows are its
+// keys and values, #820), then the rows of the page that adds a transfer.
 templ infosCard(x *infosView) {
 	<fieldset class="w-fieldset w-fieldset--wide rules-case" data-case={ x.Cases } data-of="type" hidden?={ !x.Active } disabled?={ !x.Active }>
 		<legend class="visually-hidden">{ gui.T(ctx, "transfers.detail.infos") }</legend>
@@ -354,10 +355,11 @@ templ infosCard(x *infosView) {
 				<h2 class="w-card__title">{ gui.T(ctx, "transfers.detail.infos") }</h2>
 			</summary>
 			<div class="w-card__body">
-				<div class="w-field rules-copyinfo">
+				<div class="w-field rules-copyinfo" data-case={ x.CopyCases } data-of="type">
 					<label class="w-check"><input type="checkbox" id="info-copy" name={ fieldInfoCopy } value="true" checked?={ x.Copy } aria-describedby="info-copy-h"/> <span>{ gui.T(ctx, "rules.tasks.info_copy") }</span></label>
 					<span class="w-field__hint" id="info-copy-h">{ gui.T(ctx, "rules.tasks.info_copy_hint") }</span>
 				</div>
+				<p class="w-field__hint rules-setinfo-hint" data-case={ x.PairCases } data-of="type">{ gui.T(ctx, "rules.tasks.setinfo_hint") }</p>
 				@transfers.InfoList(x.Rows, x.Error, varlist.ListID)
 			</div>
 		</details>

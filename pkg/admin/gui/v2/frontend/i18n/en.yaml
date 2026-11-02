@@ -2299,6 +2299,7 @@ rules:
     fixed: the only value possible
     info_copy: Copy the information of the transfer under way
     info_copy_hint: Those of the list add to them or replace them.
+    setinfo_hint: "Each row sets an information on the transfer under way; an empty value removes it."
     option_none: None
     keep_unknown: "Parameters kept as they are, which this screen does not know: {names}."
     refused: The task was not saved.
@@ -2311,7 +2312,6 @@ rules:
       min: "{min} at least."
       range: "Between {min} and {max}."
       json: "Give a JSON object, for instance {\"batch\": \"A\"}."
-      pairs: "One line per information, as key=value."
       markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
       type: Choose a type.
       sens: Choose a direction.
@@ -3439,6 +3439,9 @@ transfers:
     info_remove_n: "Remove the information {n}"
     info_add: Add an information
     info_hint: Optional. The tasks of the rule can read them.
+    info_family:
+      pesit: PeSIT
+      ack: Acknowledgement
     retries: Retries on error
     retries_hint: "Empty: those of the client."
     delay: First delay (s)

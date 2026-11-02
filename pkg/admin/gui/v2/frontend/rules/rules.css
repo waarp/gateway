@@ -78,3 +78,6 @@
   .rules-args { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
   .rules-args dd + dt { margin-top: var(--sp-2); }
 }
+/* The copy box of the transfer information (TRANSFER, PREREGISTER) and the hint of the free keys (SETINFO) follow the
+   type chosen (data-case, #820): hidden, they are not displayed, whatever their own display. */
+.rules-copyinfo[hidden], .rules-setinfo-hint[hidden] { display: none; }

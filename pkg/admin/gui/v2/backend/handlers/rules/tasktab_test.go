@@ -231,8 +231,12 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, `<script id="vars-list" type="application/json">`, "the variables list (#812)")
 		assert.Contains(t, body, `src="/webui/static/gui/editor.js"`, "the picker of the kit")
 		assert.Contains(t, body, `name="copy.path" value="" data-vars="vars-list"`, "a text argument offers the variables")
-		assert.Contains(t, body, `name="setinfo.pairs" rows="`, "the pairs of SETINFO")
-		assert.Regexp(t, `name="setinfo.pairs" rows="[0-9]+" spellcheck="false" data-vars="vars-list"`, body, "the pairs offer the variables")
+		// SETINFO sets its keys as the rows of the card of the transfer
+		// information (#820): the card covers it, the copy box does not.
+		assert.NotContains(t, body, `name="setinfo.pairs"`, "no text area of pairs")
+		assert.Contains(t, body, `data-case="TRANSFER PREREGISTER SETINFO" data-of="type"`, "the card of the information, for SETINFO too")
+		assert.Contains(t, body, `class="w-field rules-copyinfo" data-case="TRANSFER PREREGISTER" data-of="type"`, "the copy for the two that may")
+		assert.Contains(t, body, `rules-setinfo-hint" data-case="SETINFO" data-of="type">Chaque ligne pose une information`)
 		assert.Regexp(t, `name="archive.compressionLevel" value="" type="number"`, body, "a number does not")
 		assert.NotRegexp(t, `name="archive.compressionLevel" value="" data-vars`, body)
 
@@ -242,8 +246,8 @@ func TestTaskAdd(t *testing.T) {
 				"the cards of every type, shown once it is chosen")
 		}
 
-		assert.Contains(t, body, `data-case="TRANSFER PREREGISTER" data-of="type" hidden disabled>`,
-			"one card of the transfer information for both types")
+		assert.Contains(t, body, `data-case="TRANSFER PREREGISTER SETINFO" data-of="type" hidden disabled>`,
+			"one card of the transfer information for the three types")
 	})
 
 	t.Run("Given a type the screen does not know", func(t *testing.T) {
@@ -388,7 +392,7 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, "Variables que les tâches ne connaissent pas : #NOPE#.", "an unknown variable is refused (#812)")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
-			"type": {tasks.SetInfo}, "setinfo.pairs": {"lot=#ARCHPATH#"},
+			"type": {tasks.SetInfo}, "info_name": {"lot"}, "info_value": {"#ARCHPATH#"},
 		}).Body.String()
 		assert.Contains(t, body, "Variables que les tâches ne connaissent pas : #ARCHPATH#.", "a variable the tasks know but do not implement too")
 
@@ -416,9 +420,9 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, "Choisissez un sens.")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
-			"type": {tasks.SetInfo}, "setinfo.pairs": {"lot=A\nsans signe"},
+			"type": {tasks.SetInfo}, "info_name": {"lot", ""}, "info_value": {"A", "sans nom"},
 		}).Body.String()
-		assert.Contains(t, body, "Une ligne par information, sous la forme clé=valeur.")
+		assert.Contains(t, body, "Indiquez le nom de l&#39;information 2.", "a SETINFO row needs its name")
 
 		assert.Empty(t, s.chain(t, s.orders, model.ChainPre), "nothing saved")
 	})
@@ -459,7 +463,9 @@ func TestTaskEdit(t *testing.T) {
 		assert.Contains(t, body, `value="exploitation@example.org"`)
 
 		body = s.get(t, permWrite, path(s.orders, "/tasks/error/0/edit")).Body.String()
-		assert.Contains(t, body, ">lot=A\nvide=</textarea>", "the SETINFO keys one a line")
+		assert.Contains(t, body, `name="info_name" value="lot"`, "the SETINFO keys as rows (#820)")
+		assert.Contains(t, body, `name="info_name" value="vide"`)
+		assert.NotContains(t, body, "</textarea>", "no text area")
 
 		assert.Equal(t, http.StatusNotFound, s.get(t, permWrite, path(s.orders, "/tasks/post/3/edit")).Code)
 	})
@@ -494,11 +500,27 @@ func TestTaskEdit(t *testing.T) {
 			RuleID: rule.ID, Chain: model.ChainPost, Type: tasks.SetInfo, Args: map[string]string{"lot": "A"},
 		}).Run())
 
-		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"),
-			url.Values{"setinfo.pairs": {"lot = B\r\n\r\nvide=\n"}})
+		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"), url.Values{
+			"info_name": {" lot ", "vide", "__followID__", "__ackExpected__", ""}, "info_value": {" B ", "", "x", "true", ""},
+		})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
-		assert.Equal(t, map[string]string{"lot": "B", "vide": ""}, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args),
-			"the lines replace the keys; an empty value stays (it removes the key when the task runs)")
+		assert.Equal(t, map[string]string{"lot": "B", "vide": "", "__followID__": "x", "__ackExpected__": "true"},
+			map[string]string(s.chain(t, rule, model.ChainPost)[0].Args),
+			"the rows replace the keys; an empty value stays (it removes the key when the task runs); "+
+				"a reserved key as the documentation writes it (#820)")
+
+		body := s.get(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit")).Body.String()
+		indexes(t, body, `name="info_name" value="__ackExpected__"`, `name="info_value" value="true"`,
+			`name="info_name" value="__followID__"`, `name="info_value" value="x"`, `name="info_name" value="lot"`,
+			`name="info_name" value="vide"`, `name="info_value" value=""`)
+		assert.Contains(t, body, `<option value="__clientConnFreetext__">PeSIT · Texte libre du client à la connexion</option>`,
+			"the suggestions, with the family")
+
+		rec = s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"), url.Values{
+			"info_name": {"lot", "lot"}, "info_value": {"A", "B"},
+		})
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
+		assert.Contains(t, rec.Body.String(), "L&#39;information « lot » est indiquée deux fois.")
 	})
 
 	t.Run("Given a task of a type the screen does not know", func(t *testing.T) {

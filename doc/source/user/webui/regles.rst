@@ -230,18 +230,18 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        caractères) ou les objets de la Gateway (clés, identifiants SMTP,
        modèles d'e-mail, partenaires, comptes, clients, serveurs, règles).
    * - Informations de transfert
-     - Celles d'une tâche ``TRANSFER`` ou ``PREREGISTER`` : une ligne par
-       information (nom, valeur), comme sur la page qui ajoute un transfert,
-       et la case qui copie d'abord celles du transfert en cours. Une valeur
-       enregistrée et non modifiée garde son type (un nombre reste un
-       nombre) ; les valeurs admettent les variables, comme un texte, et le
-       nom propose les clés réservées de la Gateway (``__ackExpected__``,
-       ``__followID__``…) avec leur sens, une clé libre restant possible
-       (:ref:`reference-transfer-info`).
-   * - Lignes clé=valeur
-     - Les informations de transfert que pose une tâche ``SETINFO``, une par
-       ligne ; une valeur vide retire la clé au moment de l'exécution. Les
-       valeurs admettent les variables, comme un texte.
+     - Celles d'une tâche ``TRANSFER`` ou ``PREREGISTER``, et celles que pose
+       une tâche ``SETINFO`` : une ligne par information (nom, valeur), comme
+       sur la page qui ajoute un transfert, et, pour les deux premières, la
+       case qui copie d'abord celles du transfert en cours. Le nom propose les
+       clés réservées de la Gateway telles que la documentation les écrit
+       (``__ackExpected__``, ``__followID__``, ``__clientConnFreetext__`` avec
+       sa famille PeSIT…) et leur sens ; une clé libre reste possible
+       (:ref:`reference-transfer-info`). Les valeurs
+       admettent les variables, comme un texte. Pour ``TRANSFER`` et
+       ``PREREGISTER``, une valeur enregistrée et non modifiée garde son type
+       (un nombre reste un nombre) ; pour ``SETINFO``, une valeur vide retire
+       l'information au moment de l'exécution.
 
 Un paramètre qui ne compte que selon un autre ne s'affiche qu'avec lui : le
 dossier où déplacer un fichier refusé par ICAP, la durée limite d'un transfert

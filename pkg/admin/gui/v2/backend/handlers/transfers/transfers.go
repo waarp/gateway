@@ -82,6 +82,9 @@ const (
 	stepKeyPrefix   = "transfers.step."   // the step of a transfer, "transfers.step.StepData"
 	toastKeyPrefix  = "transfers.toast."  // the result of an action, "transfers.toast.paused"
 	sortKeyPrefix   = "transfers.sort."   // the name of a sorted column, "transfers.sort.start"
+	// The family of a reserved key of the transfer information, in the
+	// suggestions of the name of an information, "transfers.form.info_family.pesit" (#820).
+	infoFamilyKeyPrefix = "transfers.form.info_family."
 )
 
 //nolint:gochecknoglobals // reference data of the screen

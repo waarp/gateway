@@ -45,7 +45,6 @@ const (
 	fieldChoice  = "choice" // two or three values, as joined buttons
 	fieldFixed   = "fixed"  // the only value possible, said and sent
 	fieldJSON    = "json"
-	fieldPairs   = "pairs"
 
 	// The most values a choice offers as joined buttons; beyond, a list.
 	maxButtons = 3
@@ -141,13 +140,17 @@ type typeBlock struct {
 }
 
 // infosView is the card of the transfer information, one for the types that
-// ask for it (Cases, for the switch of the type): its box, its rows.
+// ask for it (Cases, for the switch of the type): its box, for the types that
+// copy the information of the transfer under way (CopyCases), its rows, their
+// hint for the types whose rows are free keys (PairCases, SETINFO).
 type infosView struct {
-	Cases  string
-	Active bool
-	Copy   bool
-	Rows   []transfers.InfoPair
-	Error  string
+	Cases     string
+	CopyCases string
+	PairCases string
+	Active    bool
+	Copy      bool
+	Rows      []transfers.InfoPair
+	Error     string
 }
 
 // exchangeView is the exchange of a TRANSFER task, as the page that adds a
@@ -215,8 +218,8 @@ type exchangeInput struct {
 }
 
 // inputOf is what the form shows of a stored task (none for a new one).
-func inputOf(stored map[string]string) *taskInput {
-	input := &taskInput{values: maps.Clone(stored), errors: map[string]string{}, rows: rowsOf(stored["info"])}
+func inputOf(spec *taskSpec, stored map[string]string) *taskInput {
+	input := &taskInput{values: maps.Clone(stored), errors: map[string]string{}, rows: infoRows(spec, stored)}
 	if input.values == nil {
 		input.values = map[string]string{}
 	}
@@ -232,6 +235,17 @@ func inputOf(stored map[string]string) *taskInput {
 	exchange.rule, exchange.login = stored["rule"], stored["as"]
 
 	return input
+}
+
+// infoRows are the rows of the transfer information a stored task shows: its
+// free keys for a task that sets them (SETINFO, #820), else its "info"
+// object.
+func infoRows(spec *taskSpec, stored map[string]string) []transfers.InfoPair {
+	if spec != nil && spec.pairs() {
+		return transfers.PairRows(stored)
+	}
+
+	return rowsOf(stored["info"])
 }
 
 // rowsOf are the rows of a stored transfer information.
@@ -316,12 +330,8 @@ func fields(translate gui.Translator, spec *taskSpec, input *taskInput, found na
 			field.Hint += " " + translate("task_types.hint.json")
 			field.Vars = varlist.ListID
 		case argPairs:
-			field.Kind, field.Rows, field.Wide = fieldPairs, pairsLines, true
-			if !input.posted {
-				field.Value = pairsText(input.values)
-			}
-
-			field.Vars = varlist.ListID
+			// The rows of the card of the transfer information (readInfos);
+			// no field of its own.
 		case argChoice:
 			choiceField(translate, arg, value, &field)
 		case argRef:
@@ -535,23 +545,6 @@ func withMissing(translate gui.Translator, groups []taskGroup, value string) []t
 	return append([]taskGroup{{Options: []taskOption{missing}}}, groups...)
 }
 
-// pairsText is the SETINFO arguments, one "key=value" a line, by key.
-func pairsText(args map[string]string) string {
-	keys := make([]string, 0, len(args))
-	for k := range args {
-		keys = append(keys, k)
-	}
-
-	slices.Sort(keys)
-
-	lines := make([]string, 0, len(keys))
-	for _, k := range keys {
-		lines = append(lines, k+pairsSeparator+args[k])
-	}
-
-	return strings.Join(lines, "\n")
-}
-
 // exchangeOf builds the exchange of a TRANSFER task: the rules of each
 // direction (the one held selected, kept when the lists do not hold it), the
 // accounts by partner, the client.
@@ -668,7 +661,7 @@ func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored 
 
 	for i := range spec.Args {
 		arg := &spec.Args[i]
-		if special[arg.Name] {
+		if special[arg.Name] || arg.Kind == argPairs {
 			continue
 		}
 
@@ -694,7 +687,7 @@ func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored 
 	}
 
 	if spec.has(groupInfos) {
-		valid = readInfos(translate, r, stored, args, input) && valid
+		valid = readInfos(translate, r, spec, stored, args, input) && valid
 	}
 
 	if spec.has(groupExchange) {
@@ -724,18 +717,24 @@ func keptAsStored(arg *argSpec, raw, old string, had bool, posted func(string) s
 		return true
 	}
 
-	return raw == old && arg.Kind != argPairs
+	return raw == old
 }
 
 // readInfos reads the card of the transfer information: the copy of the
 // information of the transfer under way (a box stored stays, as "false"), and
 // the rows, as the page that adds a transfer reads them; a stored empty
-// object stays when no row is given.
-func readInfos(translate gui.Translator, r *http.Request, stored, args map[string]string, input *taskInput) bool {
-	if r.PostFormValue(fieldInfoCopy) == trueValue {
-		args["copyInfo"], input.values["copyInfo"] = trueValue, trueValue
-	} else if _, had := stored["copyInfo"]; had {
-		args["copyInfo"] = falseValue
+// object stays when no row is given. For a task that sets free keys
+// (SETINFO), the rows are its arguments, an empty value kept (it removes the
+// key when the task runs).
+func readInfos(translate gui.Translator, r *http.Request, spec *taskSpec, stored, args map[string]string,
+	input *taskInput,
+) bool {
+	if !spec.pairs() {
+		if r.PostFormValue(fieldInfoCopy) == trueValue {
+			args["copyInfo"], input.values["copyInfo"] = trueValue, trueValue
+		} else if _, had := stored["copyInfo"]; had {
+			args["copyInfo"] = falseValue
+		}
 	}
 
 	input.rows = transfers.ReadInfoPairs(r.PostForm)
@@ -753,6 +752,14 @@ func readInfos(translate gui.Translator, r *http.Request, stored, args map[strin
 		input.infoErr = msg
 
 		return false
+	}
+
+	if spec.pairs() {
+		for _, row := range input.rows {
+			args[row.Name] = row.Value
+		}
+
+		return true
 	}
 
 	switch {
@@ -821,10 +828,6 @@ func readExchange(translate gui.Translator, r *http.Request, spec *taskSpec, arg
 // checkArg checks one posted argument and stores it; it answers the message
 // of a refused value.
 func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[string]string) string {
-	if arg.Kind == argPairs {
-		return readPairs(translate, raw, args)
-	}
-
 	if raw == "" || arg.Kind == argBool && raw != trueValue {
 		if arg.Required {
 			return translate("rules.tasks.error.required")
@@ -867,6 +870,7 @@ func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[strin
 			return translate("rules.tasks.error.icap")
 		}
 	case argText, argBool, argOctal, argChoice, argRef, argPairs:
+		// As given.
 	}
 
 	args[arg.Name] = raw
@@ -913,30 +917,6 @@ func secondsValue(raw string) (string, bool) {
 	_, err := time.ParseDuration(raw)
 
 	return raw, err == nil
-}
-
-// readPairs reads the SETINFO lines, "key=value"; an empty value is kept (it
-// removes the key from the transfer information when the task runs).
-func readPairs(translate gui.Translator, raw string, args map[string]string) string {
-	for line := range strings.SplitSeq(raw, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		key, value, ok := strings.Cut(line, pairsSeparator)
-		if !ok || strings.TrimSpace(key) == "" {
-			return translate("rules.tasks.error.pairs")
-		}
-
-		if msg := unknownMarkers(translate, argText, value); msg != "" {
-			return msg
-		}
-
-		args[strings.TrimSpace(key)] = strings.TrimSpace(value)
-	}
-
-	return ""
 }
 
 // unknownMarkers refuses, in an argument the gateway substitutes, a variable
@@ -1074,7 +1054,7 @@ func (h *Handlers) taskForm(w http.ResponseWriter, r *http.Request, edit, post b
 		form.Required = slices.ContainsFunc(spec.Args, func(a argSpec) bool { return a.Required })
 	}
 
-	input := inputOf(stored)
+	input := inputOf(spec, stored)
 	status := 0
 
 	switch {
@@ -1188,9 +1168,9 @@ func (h *Handlers) taskPage(translate gui.Translator, form *taskFormData, specs 
 		form.Families = typeChoices(translate, form.Type)
 	}
 
-	var cases []string
+	var cases, copyCases, pairCases []string
 
-	empty := inputOf(nil)
+	empty := inputOf(nil, nil)
 
 	for _, spec := range specs {
 		active := spec == chosen
@@ -1218,11 +1198,19 @@ func (h *Handlers) taskPage(translate gui.Translator, form *taskFormData, specs 
 
 		if infos {
 			cases = append(cases, spec.Type)
+
+			if spec.pairs() {
+				pairCases = append(pairCases, spec.Type)
+			} else {
+				copyCases = append(copyCases, spec.Type)
+			}
 		}
 	}
 
 	if len(cases) > 0 {
-		form.Infos = &infosView{Cases: strings.Join(cases, " ")}
+		form.Infos = &infosView{
+			Cases: strings.Join(cases, " "), CopyCases: strings.Join(copyCases, " "), PairCases: strings.Join(pairCases, " "),
+		}
 
 		if chosen != nil && chosen.has(groupInfos) {
 			form.Infos.Active, form.Infos.Copy = true, input.values["copyInfo"] == trueValue

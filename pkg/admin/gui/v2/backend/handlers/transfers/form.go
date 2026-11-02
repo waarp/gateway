@@ -165,6 +165,17 @@ func InfoPairs(info map[string]json.RawMessage) []InfoPair {
 	return out
 }
 
+// PairRows are the rows of the free keys of a task (SETINFO), by name, each
+// value as it is stored.
+func PairRows(args map[string]string) []InfoPair {
+	out := make([]InfoPair, 0, len(args))
+	for _, name := range slices.Sorted(maps.Keys(args)) {
+		out = append(out, InfoPair{Name: name, Value: args[name]})
+	}
+
+	return out
+}
+
 // InfoText is a stored value of the transfer information as a row shows it.
 func InfoText(raw json.RawMessage) string {
 	var text string
