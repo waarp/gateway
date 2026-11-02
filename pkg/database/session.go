@@ -130,6 +130,15 @@ func (s *Session) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 	return &DeleteAllQuery{db: s, bean: bean}
 }
 
+// UpdateAll starts building a SQL 'UPDATE' query which writes the named
+// columns of the given bean to every entry matching its conditions, in one
+// statement, without calling the model's hooks (see Access.UpdateAll).
+//
+// The request can then be executed using the UpdateAllQuery.Run method.
+func (s *Session) UpdateAll(bean UpdateAllBean) *UpdateAllQuery {
+	return &UpdateAllQuery{db: s, bean: bean}
+}
+
 // Exec executes the given custom SQL query, and returns any error encountered.
 // The query uses the '?' character as a placeholder for arguments.
 //
