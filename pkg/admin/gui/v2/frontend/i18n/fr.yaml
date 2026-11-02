@@ -3348,6 +3348,57 @@ transfers:
     date: Départ
     refused: La relance n'a pas été créée
     gone: La règle, le partenaire, le compte ou le client de ce transfert n'existe plus.
+  set:
+    objects: transferts
+    row: "le transfert n° {id}"
+    resume: Reprendre les transferts
+    retry: Relancer les transferts
+    cancel: Annuler les transferts
+    empty: Aucun transfert sélectionné
+    search: Recherche
+    period: Période de début
+    period_both: "du {from} au {to}"
+    period_from: "à partir du {from}"
+    period_to: "jusqu'au {to}"
+    except: Sauf
+    count: Nombre
+    changed_title: L'ensemble a changé depuis l'affichage
+    changed: "Le nombre est passé de {expected} à {n}. Vérifiez l'ensemble avant de confirmer."
+    resume_title: "Reprendre {n} transferts ?"
+    resume_title_one: "Reprendre 1 transfert ?"
+    resume_text: "Les transferts reprennent là où ils se sont arrêtés ; leur prochaine tentative a lieu maintenant. Ceux que leur statut ou leur nature empêche de reprendre restent tels quels."
+    retry_title: "Relancer {n} transferts"
+    retry_title_one: Relancer 1 transfert
+    retry_text: "Un nouveau transfert est créé pour chacun, avec la même règle, le même partenaire, le même compte et le même fichier ; les transferts d'origine restent tels quels."
+    cancel_title: "Annuler {n} transferts ?"
+    cancel_title_one: "Annuler 1 transfert ?"
+    cancel_text: "Les transferts passent à l'historique, au statut « Annulé » ; ils ne seront plus retentés. Pour les refaire, il faudra les relancer. Un transfert en cours est d'abord interrompu."
+    will_resume: Seront repris
+    will_retry: Seront relancés
+    will_cancel: Seront annulés
+    running: Dont en cours, interrompus
+    aside:
+      server: Transferts serveur, à l'initiative du partenaire
+      sync: Transferts enfants d'un transfert synchrone, qui reprennent par leur parent
+      state: Transferts dont le statut ne permet pas ce geste
+      missing: Transferts qui n'existent plus
+      gone: Transferts dont la règle, le partenaire, le compte ou le client n'existe plus
+      elsewhere: Transferts en cours sur un autre nœud de la grappe
+      busy: Transferts en cours qui ne se sont pas arrêtés à temps
+    resumed: "{n} transferts repris"
+    resumed_one: 1 transfert repris
+    retried: "{n} transferts relancés"
+    retried_one: 1 transfert relancé
+    cancelled: "{n} transferts annulés"
+    cancelled_one: 1 transfert annulé
+    left_resumed: "{n} non repris"
+    left_resumed_one: 1 non repris
+    left_retried: "{n} non relancés"
+    left_retried_one: 1 non relancé
+    left_cancelled: "{n} non annulés"
+    left_cancelled_one: 1 non annulé
+    left_sep: " : "
+    reason_sep: " : "
   new:
     title: Nouveau transfert
   preregister:

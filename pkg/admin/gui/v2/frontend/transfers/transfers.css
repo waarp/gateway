@@ -46,6 +46,7 @@
 .tf-col-progress { width: 7.75rem; }   /* the header "Progression" whole */
 .tf-col-size { width: 5.5rem; }
 .tf-col-actions { width: 52px; }
+.tf-col-select { width: 2.75rem; }   /* the checkbox of the row selection (kit 0.21.0, #792) */
 .tf-table td.tf-dir { padding-left: var(--sp-2); padding-right: var(--sp-2); color: var(--ts); }
 .tf-dir svg.i { display: block; width: 1.5rem; height: 1.5rem; margin: 0 auto; }   /* 24 px, the grid of the drawing: a sharp 2 px line */
 .tf-num { color: var(--g600); font-size: var(--fs-sm); }
@@ -91,5 +92,6 @@
 
 /* The action pages. */
 .tf-lead { margin: 0 0 var(--sp-4); }
+.tf-set-counts { margin-top: var(--sp-4); }   /* what a grouped action will do and leave aside, under the set in clear (#792) */
 .tf-banner { margin-bottom: var(--sp-4); }
 .tf-form-actions { margin-top: var(--sp-5); }

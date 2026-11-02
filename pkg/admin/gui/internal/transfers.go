@@ -144,6 +144,32 @@ func (q *TransferListQuery) StartedUntil(to time.Time) *TransferListQuery {
 	return q
 }
 
+// Among keeps the transfers whose identifier is one of the given ones (the
+// rows an operator checked, kept to those of the filters).
+func (q *TransferListQuery) Among(ids ...int64) *TransferListQuery {
+	q.query.In("id", utils.AsAny(ids)...)
+
+	return q
+}
+
+// IDs reads the identifiers of the transfers of the query, and nothing else
+// of them, in the order of the query (an order by a column read: the
+// identifier).
+func (q *TransferListQuery) IDs() ([]int64, error) {
+	q.query.Distinct("id")
+
+	if err := q.query.Run(); err != nil {
+		return nil, fmt.Errorf("failed to list the transfers: %w", err)
+	}
+
+	ids := make([]int64, len(q.transfers))
+	for i, trans := range q.transfers {
+		ids[i] = trans.ID
+	}
+
+	return ids, nil
+}
+
 func (q *TransferListQuery) Count() (uint64, error) {
 	return q.query.Count()
 }

@@ -42,6 +42,11 @@ const (
 	localLayout = "2006-01-02T15:04"
 )
 
+// tableCols are the columns of the list: the direction, the number, the
+// state, the file, the rule, the partner, the start, the end, the progress,
+// the size and the actions.
+const tableCols = 11
+
 //nolint:gochecknoglobals // reference data of the screen
 var filterParams = []string{
 	paramState, paramRule, paramDir, paramPartner, paramAccount, paramClient, paramProtocol, paramFrom, paramTo,
@@ -315,6 +320,14 @@ type listData struct {
 
 	States []stateItem
 
+	// The row selection for the grouped actions (#792), to whoever may write:
+	// the bar, the column of checkboxes, the total of the filter the count
+	// of the toolbar carries for the bar.
+	Select    bool
+	Selection *gui.SelectionProps
+	Shown     uint64
+	Cols      int // the columns of the table, the selection included
+
 	Action       string // toolbar form action: the bare list
 	Base         string // list with search and filters: base of the sort links
 	Q            string
@@ -468,9 +481,13 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 		data.Hidden[paramState] = crit.State
 	}
 
+	data.Cols = tableCols
+
 	if write {
 		data.AddURL = withRet(common.WebuiURL(pagePath+"/new"), carried)
 		data.PreregisterURL = withRet(common.WebuiURL(pagePath+"/preregister"), carried)
+		data.Select, data.Cols = true, tableCols+1
+		data.Selection = selectionProps(translate, query, 0)
 	}
 
 	if len(parts) == 0 {
@@ -530,6 +547,11 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 
 	data.States = stateItems(translate, query, counts, all)
 	data.Count = countText(translate, shown)
+	data.Shown = shown
+
+	if data.Selection != nil {
+		data.Selection.Total = int(shown) //nolint:gosec // a count
+	}
 	data.CountShown = shown <= uint64(query.Size) //nolint:gosec // a page size, small
 
 	if !withRows {

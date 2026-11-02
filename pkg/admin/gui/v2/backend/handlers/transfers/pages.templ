@@ -71,6 +71,9 @@ templ listView(d listData) {
 			</form>
 			@pagerTop(d)
 		</div>
+		if d.Selection != nil {
+			@gui.Selection(*d.Selection)
+		}
 		@tableRegion(d)
 		<template data-live-error>@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "transfers.refresh_error.title"), Text: gui.T(ctx, "transfers.refresh_error.text", "seconds", d.RefreshSeconds), Action: &gui.Link{Label: gui.T(ctx, "action.retry"), URL: d.FragmentURL}})</template>
 	</div>
@@ -125,12 +128,16 @@ templ statesRow(d listData) {
 }
 
 // countSpan: the count of the list, in the toolbar, when the list holds on
-// one page; the foot at the top says it when there are several.
+// one page; the foot at the top says it when there are several. The inner
+// span carries the total of the filter for the selection bar (kit 0.21.0):
+// inside the live part, which the kit enhances by its descendants.
 templ countSpan(d listData) {
 	<span class="w-toolbar__count" id="transfers-count" aria-live="polite" data-live-part="counts" data-live-pending?={ d.Pending }>
-		if d.CountShown {
-			{ d.Count }
-		}
+		<span data-select-total={ selectionID } data-total={ strconv.FormatUint(d.Shown, 10) }>
+			if d.CountShown {
+				{ d.Count }
+			}
+		</span>
 	</span>
 }
 
@@ -236,11 +243,19 @@ templ tableRegion(d listData) {
 			@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.NoMatchText, Action: &gui.Link{Label: d.NoMatchLink, URL: d.NoMatchURL}})
 		} else {
 			<div class="w-table-wrap tf-list">
-				<table class="w-table w-table--one-line tf-table">
+				<table class={ "w-table", "w-table--one-line", "tf-table", templ.KV("w-table--select", d.Select) }>
 					<caption class="visually-hidden">{ d.Caption }</caption>
-					<colgroup><col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-progress"/><col class="tf-col-size tf-x"/><col class="tf-col-actions"/></colgroup>
+					<colgroup>
+						if d.Select {
+							<col class="tf-col-select"/>
+						}
+						<col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-progress"/><col class="tf-col-size tf-x"/><col class="tf-col-actions"/>
+					</colgroup>
 					<thead>
 						<tr>
+							if d.Select {
+								@gui.SelectHead(selectionID)
+							}
 							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.direction") }</span></th>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.id"), Key: sortID, Sort: d.Sort, Dir: d.Dir, Base: d.Base, Num: true})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.state"), Key: sortState, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
@@ -256,10 +271,13 @@ templ tableRegion(d listData) {
 					</thead>
 					<tbody>
 						if d.Pending {
-							@gui.SkeletonRows(gui.SkeletonRowsProps{Rows: 10, Cols: 11})
+							@gui.SkeletonRows(gui.SkeletonRowsProps{Rows: 10, Cols: d.Cols})
 						}
 						for _, r := range d.Rows {
 							<tr>
+								if d.Select {
+									@gui.SelectCell(gui.SelectCellProps{Form: selectionID, Value: strconv.FormatInt(r.ID, 10), Name: gui.T(ctx, "transfers.set.row", "id", r.ID)})
+								}
 								<td class="tf-dir" title={ r.DirTip }>
 									@gui.Icon(r.DirIcon)
 									<span class="visually-hidden">{ r.DirTip }</span>
@@ -878,4 +896,56 @@ templ notFoundView(d notFoundData) {
 		</div>
 	</div>
 	@gui.Empty(gui.EmptyProps{Icon: "search", Title: d.Title, Text: d.Text, Action: &gui.Link{Label: gui.T(ctx, "transfers.back"), URL: d.BackURL, Icon: "arrow-left"}})
+}
+
+// setView: a grouped action on a selection of the list (#792): the set in
+// clear, what the gesture will do and leave aside, the form that sends the
+// set again (the resumption confirms when the set changed since the page
+// showed it; the retry takes a date; the cancellation is destructive: a red
+// button).
+templ setView(d *setData) {
+	<div class="w-page-header">
+		<div class="w-page-header__text">
+			<h1 class="w-page-header__title tf-title">{ d.Title }</h1>
+		</div>
+		<div class="w-page-header__actions">
+			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
+				@gui.Icon("arrow-left")
+				{ gui.T(ctx, "transfers.back") }
+			</a>
+		</div>
+	</div>
+	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>
+		for _, h := range d.Hidden {
+			<input type="hidden" name={ h.Name } value={ h.Value }/>
+		}
+		<div class="w-card">
+			if d.Changed != "" {
+				<div class="tf-banner">@gui.Banner(gui.BannerProps{Kind: "warn", Title: gui.T(ctx, "transfers.set.changed_title"), Text: d.Changed})</div>
+			}
+			<p class="tf-lead">{ d.Text }</p>
+			<dl class="w-deflist">
+				for _, row := range d.Rows {
+					<dt>{ row.Label }</dt>
+					<dd>{ row.Value }</dd>
+				}
+			</dl>
+			<dl class="w-deflist tf-set-counts">
+				<dt>{ d.Will.Label }</dt>
+				<dd class="w-num">{ d.Will.Value }</dd>
+				if d.Running.Label != "" {
+					<dt>{ d.Running.Label }</dt>
+					<dd class="w-num">{ d.Running.Value }</dd>
+				}
+				for _, row := range d.Aside {
+					<dt>{ row.Label }</dt>
+					<dd class="w-num">{ row.Value }</dd>
+				}
+			</dl>
+			if d.Date != nil {
+				@dateField(fieldDate, gui.T(ctx, "transfers.retry.date"), *d.Date, gui.T(ctx, "transfers.form.start_hint"), false)
+			}
+		</div>
+		@gui.FormActions(gui.FormActionsProps{CancelURL: d.CancelURL, Danger: d.Danger, Title: d.Title, Label: d.Label})
+	</form>
 }

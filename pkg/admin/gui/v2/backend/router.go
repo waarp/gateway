@@ -531,6 +531,11 @@ func MakeTransfersRouter(router *mux.Router, db *database.DB, logger *log.Logger
 	routes.read("/transfers", handlers.List)
 	routes.write("/transfers/new", handlers.NewForm, handlers.Create)
 	routes.write("/transfers/preregister", handlers.PreregisterForm, handlers.Preregister)
+	// The grouped actions on the transfers of the filters (#792): the
+	// resumption acts, the retry and the cancellation go through their page.
+	routes.act("/transfers/resume", handlers.ResumeSet)
+	routes.write("/transfers/retry", handlers.RetrySetForm, handlers.RetrySet)
+	routes.write("/transfers/cancel", handlers.CancelSetForm, handlers.CancelSet)
 	routes.read(transferPath, handlers.Detail)
 	routes.act(transferPath+"/pause", handlers.Pause)
 	routes.act(transferPath+"/resume", handlers.Resume)

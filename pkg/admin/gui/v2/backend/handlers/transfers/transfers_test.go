@@ -60,6 +60,11 @@ func newSuite(t *testing.T) *suite {
 	r.Path("/transfers/new").Methods(http.MethodPost).HandlerFunc(h.Create)
 	r.Path("/transfers/preregister").Methods(http.MethodGet).HandlerFunc(h.PreregisterForm)
 	r.Path("/transfers/preregister").Methods(http.MethodPost).HandlerFunc(h.Preregister)
+	r.Path("/transfers/resume").Methods(http.MethodPost).HandlerFunc(h.ResumeSet)
+	r.Path("/transfers/retry").Methods(http.MethodGet).HandlerFunc(h.RetrySetForm)
+	r.Path("/transfers/retry").Methods(http.MethodPost).HandlerFunc(h.RetrySet)
+	r.Path("/transfers/cancel").Methods(http.MethodGet).HandlerFunc(h.CancelSetForm)
+	r.Path("/transfers/cancel").Methods(http.MethodPost).HandlerFunc(h.CancelSet)
 	r.Path("/transfers/{id:[0-9]+}").Methods(http.MethodGet).HandlerFunc(h.Detail)
 	r.Path("/transfers/{id:[0-9]+}/pause").Methods(http.MethodPost).HandlerFunc(h.Pause)
 	r.Path("/transfers/{id:[0-9]+}/resume").Methods(http.MethodPost).HandlerFunc(h.Resume)
@@ -263,7 +268,9 @@ func TestList(t *testing.T) {
 			"<span>"+count("Planifiés", 1), "<span>"+count("En pause", 0),
 			"<span>"+count("Interrompus", 0), "<span>"+count("Attendus", 1),
 			"<span>"+count("Terminés", 1), "<span>"+count("Annulés", 1), "</nav>")
-		assert.Contains(t, body, `id="transfers-count" aria-live="polite" data-live-part="counts">6 transferts</span>`)
+		assert.Contains(t, body, `id="transfers-count" aria-live="polite" data-live-part="counts">`)
+		assert.Contains(t, body, `<span data-select-total="sel-transfers" data-total="6">6 transferts</span>`,
+			"the count carries the total of the filter for the selection bar, inside the live part")
 		assert.Contains(t, body, `title="Transfert pré-enregistré : la passerelle attend que le partenaire se connecte`,
 			"each state says what it means")
 
@@ -364,7 +371,7 @@ func TestList(t *testing.T) {
 		assert.Contains(t, body, "<bdi>releve-20102026.pdf</bdi></a>")
 		assert.Contains(t, body, `href="/webui/transfers?state=error" title="Le transfert a échoué ; il peut être retenté, repris ou relancé" aria-current="true"><span>En erreur</span>`)
 		assert.Contains(t, body, `<input type="hidden" name="state" value="error">`, "a search keeps the state")
-		assert.Contains(t, body, `aria-live="polite" data-live-part="counts">1 transfert</span>`)
+		assert.Contains(t, body, `<span data-select-total="sel-transfers" data-total="1">1 transfert</span>`)
 
 		body = s.get(t, permRead, "/webui/transfers?full=1&state=paused").Body.String()
 		assert.Contains(t, body, "Aucun transfert « En pause »")

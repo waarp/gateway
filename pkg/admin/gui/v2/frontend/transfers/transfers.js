@@ -1,5 +1,6 @@
 // Transfer monitoring screen, the pages that add a transfer: the rows of the transfer information, the accounts the
-// rule authorizes. The list is a live list of the kit (live.js), which refreshes it in place.
+// rule authorizes, the selection bar of the grouped actions. The list is a live list of the kit (live.js), which
+// refreshes it in place.
 (() => {
   "use strict";
 
@@ -87,5 +88,32 @@
     };
     rules.addEventListener("change", apply);
     apply();
+  }
+
+  // The selection bar of the list (kit 0.21.0, #792). The live list changes the filters, the sort and the page in
+  // place and the address follows: at the submission, the bar takes the state of the list from the address, so that
+  // the set it names is the one shown, and says how many transfers the selection counts (expected), so that the server
+  // acts at once when the set has not changed and asks otherwise. Without JavaScript, the fields rendered with the
+  // page name the set and the server always asks.
+  const bar = document.getElementById("sel-transfers");
+  if (bar) {
+    const own = ["ids", "all", "except", "expected"];
+    const skip = ["page", "fragment", "full", "ret", "reset", "done", "name", "failed", "reason"];
+    bar.addEventListener("submit", () => {
+      bar.querySelectorAll("input[type=hidden]").forEach((i) => { if (!own.includes(i.name)) i.remove(); });
+      for (const [name, value] of new URLSearchParams(location.search)) {
+        if (own.includes(name) || skip.includes(name)) continue;
+        bar.append(Object.assign(document.createElement("input"), { type: "hidden", name, value }));
+      }
+      const all = bar.querySelector("input[name=all]");
+      const checked = [...document.querySelectorAll('input[data-select-row][form="sel-transfers"]')].filter((r) => r.checked).length;
+      const n = all && all.checked ? (+bar.dataset.total || 0) - bar.querySelectorAll("input[name=except]").length : checked;
+      let expected = bar.querySelector("input[name=expected]");
+      if (!expected) {
+        expected = Object.assign(document.createElement("input"), { type: "hidden", name: "expected" });
+        bar.append(expected);
+      }
+      expected.value = String(Math.max(n, 0));
+    });
   }
 })();
