@@ -1,6 +1,7 @@
 package transfers
 
 import (
+	"context"
 	"encoding/json"
 	"maps"
 	"net/http"
@@ -199,6 +200,21 @@ func SelfReference(rows []InfoPair) (row int, ref string, found bool) {
 	}
 
 	return 0, "", false
+}
+
+// infoActions are the actions of a row of transfer information, run by
+// transfers.js (#824): a variable inserted into the value when the tasks
+// substitute them (vars names the list), the row removed. The removal alone
+// renders as the icon button, named with the row.
+func infoActions(ctx context.Context, n int, vars string) []gui.Action {
+	remove := gui.Action{Icon: "xmark", Label: gui.T(ctx, "transfers.form.info_remove"), Command: "remove", Danger: true}
+	if vars == "" {
+		remove.Label = gui.T(ctx, "transfers.form.info_remove_n", "n", n)
+
+		return []gui.Action{remove}
+	}
+
+	return []gui.Action{{Icon: "list", Label: gui.T(ctx, "transfers.form.info_vars"), Command: "vars"}, remove}
 }
 
 // InfoText is a stored value of the transfer information as a row shows it.

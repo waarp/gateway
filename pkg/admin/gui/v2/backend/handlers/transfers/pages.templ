@@ -790,14 +790,16 @@ templ formView(d *formData) {
 }
 
 // InfoList: the rows of the transfer information, an empty one last to
-// fill, each with the button that removes it; "Add an information" adds one
-// in place (transfers.js) or, without JavaScript, posts the form back with
-// one more (AddsInfo). The tasks TRANSFER and PREREGISTER of the transfer
-// rules ask their information with it, and load InfoScript and
-// InfoStylesheet; vars is the id of the variables list the values offer
-// (the tasks substitute them, #812), empty for none (a transfer). The name
-// of an information proposes the reserved keys the user sets, with their
-// label, a free key staying possible (datalist, #816).
+// fill, each with its actions (#824: the "⋯" menu that inserts a variable
+// into the value or removes the row, the removal alone when no variable is
+// offered); "Add an information" adds one in place (transfers.js) or,
+// without JavaScript, posts the form back with one more (AddsInfo). The
+// tasks TRANSFER and PREREGISTER of the transfer rules ask their
+// information with it, and load InfoScript and InfoStylesheet; vars is the
+// id of the variables list the values offer (the tasks substitute them,
+// #812), empty for none (a transfer). The name of an information proposes
+// the reserved keys the user sets, with their label, a free key staying
+// possible (datalist, #816).
 templ InfoList(rows []InfoPair, errText, vars string) {
 	@protoform.Message("info-h", errText, gui.T(ctx, "transfers.form.info_hint"))
 	<div
@@ -806,6 +808,7 @@ templ InfoList(rows []InfoPair, errText, vars string) {
 		data-label-name={ gui.T(ctx, "transfers.form.info_name_n") }
 		data-label-value={ gui.T(ctx, "transfers.form.info_value_n") }
 		data-label-remove={ gui.T(ctx, "transfers.form.info_remove_n") }
+		data-label-actions={ gui.T(ctx, "actions.for", "name", gui.T(ctx, "transfers.form.info_n")) }
 	>
 		<div class="tf-info-head" aria-hidden="true"><span>{ gui.T(ctx, "transfers.form.info_name") }</span><span>{ gui.T(ctx, "transfers.form.info_value") }</span></div>
 		<datalist id="info-keys">
@@ -842,8 +845,8 @@ func infoKeyText(ctx context.Context, k model.ReservedInfoKey) string {
 
 // infoField: a row of the transfer information, numbered from 1 (0 in the
 // template the script copies, which numbers the rows again): the name, the
-// value, the button that removes the row (shown by the script; without it,
-// emptying the row is enough).
+// value, the actions of the row (shown by the script, which runs them;
+// without it, emptying the row is enough).
 templ infoField(n int, p InfoPair, vars string) {
 	<div class="tf-info-row">
 		<label class="visually-hidden" for={ fmt.Sprintf("info-name-%d", n) }>{ gui.T(ctx, "transfers.form.info_name_n", "n", n) }</label>
@@ -870,10 +873,13 @@ templ infoField(n int, p InfoPair, vars string) {
 			spellcheck="false"
 			if vars != "" {
 				data-vars={ vars }
+				data-vars-button="none"
 			}
 		/>
 		<input type="hidden" name={ fieldInfoRaw } value={ p.Raw }/>
-		<button class="w-icon-btn" type="button" hidden data-info-remove aria-label={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) } title={ gui.T(ctx, "transfers.form.info_remove_n", "n", n) }>@gui.Icon("xmark")</button>
+		<div class="tf-info-menu" hidden data-info-actions>
+			@gui.Actions(gui.ActionsProps{ID: fmt.Sprintf("info-menu-%d", n), Name: gui.T(ctx, "transfers.form.info_n", "n", n), Items: infoActions(ctx, n, vars)})
+		</div>
 	</div>
 }
 

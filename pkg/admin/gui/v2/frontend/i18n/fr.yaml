@@ -3440,6 +3440,9 @@ transfers:
     info_name_n: "Nom de l'information {n}"
     info_value_n: "Valeur de l'information {n}"
     info_remove_n: "Retirer l'information {n}"
+    info_n: "l'information {n}"
+    info_vars: Insérer une variable
+    info_remove: "Retirer l'information"
     info_add: Ajouter une information
     info_hint: Facultatives. Les traitements de la règle peuvent les lire.
     info_family:

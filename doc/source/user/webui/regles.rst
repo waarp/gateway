@@ -246,6 +246,8 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        elle-même comprise : les variables sont remplacées avant la tâche,
        avec les valeurs d'avant ; une information posée par une tâche
        précédente de la chaîne se lit, les tâches s'exécutant dans l'ordre.
+       Le menu « ⋯ » d'une ligne insère une variable dans sa valeur ou
+       retire l'information.
 
 Un paramètre qui ne compte que selon un autre ne s'affiche qu'avec lui : le
 dossier où déplacer un fichier refusé par ICAP, la durée limite d'un transfert

@@ -4,8 +4,10 @@
 (() => {
   "use strict";
 
-  // Transfer information: "Add" adds a row in place (without JavaScript, the form comes back with one more), a row's
-  // button removes it, the rows are numbered again so that every field keeps its label.
+  // Transfer information: "Add" adds a row in place (without JavaScript, the form comes back with one more); the
+  // actions of a row, shown here, run by their command (#824): "vars" opens the variables list on the value (the kit
+  // attaches it to the rows put in place, wEnhance), "remove" removes the row; the rows are numbered again so that
+  // every field and menu keeps its label.
   const infos = document.querySelector("[data-infos]");
   const rowTemplate = document.getElementById("tf-info-row");
   const addInfo = document.querySelector("[data-info-add]");
@@ -16,26 +18,42 @@
         const n = String(i + 1);
         const [name, value] = row.querySelectorAll("input");
         const [nameLabel, valueLabel] = row.querySelectorAll("label");
-        const remove = row.querySelector("[data-info-remove]");
+        const remove = row.querySelector('[data-command="remove"]');
         name.id = "info-name-" + n; value.id = "info-value-" + n;
         nameLabel.htmlFor = name.id; valueLabel.htmlFor = value.id;
         nameLabel.textContent = label(infos.dataset.labelName, n);
         valueLabel.textContent = label(infos.dataset.labelValue, n);
-        remove.hidden = false;
-        remove.setAttribute("aria-label", label(infos.dataset.labelRemove, n));
-        remove.title = label(infos.dataset.labelRemove, n);
+        row.querySelector("[data-info-actions]").hidden = false;
+        const menu = row.querySelector(".w-actions");
+        const opener = row.querySelector("[popovertarget]");
+        if (menu && opener) {
+          menu.id = "info-menu-" + n;
+          opener.setAttribute("popovertarget", menu.id);
+          opener.setAttribute("aria-label", label(infos.dataset.labelActions, n));
+        } else {
+          remove.setAttribute("aria-label", label(infos.dataset.labelRemove, n));
+          remove.title = label(infos.dataset.labelRemove, n);
+        }
       });
     };
     addInfo.addEventListener("click", (event) => {
       event.preventDefault();
-      infos.append(rowTemplate.content.firstElementChild.cloneNode(true));
+      const row = rowTemplate.content.firstElementChild.cloneNode(true);
+      infos.append(row);
       number();
-      infos.lastElementChild.querySelector("input").focus();
+      if (window.wEnhance) window.wEnhance(row);
+      row.querySelector("input").focus();
     });
     infos.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-info-remove]");
-      if (!button) return;
-      const row = button.closest(".tf-info-row");
+      const command = event.target.closest("[data-command]");
+      if (!command) return;
+      const row = command.closest(".tf-info-row");
+      if (command.dataset.command === "vars") {
+        const value = row.querySelectorAll("input")[1];
+        if (value.insertHash) value.insertHash();
+        return;
+      }
+      if (command.dataset.command !== "remove") return;
       const rows = [...infos.querySelectorAll(".tf-info-row")];
       if (rows.length === 1) {
         row.querySelectorAll("input").forEach((input) => { input.value = ""; });

@@ -1255,8 +1255,11 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 		assert.Zero(t, s.count(t, `[data-live-part="list"] .w-empty`), "the rows come back once the search is cleared")
 	}
 
-	if s.count(t, `button[popovertarget]`) > 0 {
-		menu := s.page.Locator(`button[popovertarget]`).First()
+	// The first menu shown: a form keeps the menus of its rows in a block a
+	// switch hides until its case is chosen (the transfer information of a
+	// task, #824), and a hidden button cannot take the focus.
+	if s.count(t, `button[popovertarget]:visible`) > 0 {
+		menu := s.page.Locator(`button[popovertarget]:visible`).First()
 		require.NoError(t, menu.Focus())
 		require.NoError(t, s.page.Keyboard().Press("Enter"))
 		assert.Equal(t, 1, s.count(t, `.w-actions:popover-open`), "the menu opens from the keyboard")
@@ -1651,6 +1654,29 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, toast, "repris")
 		assert.Equal(t, 0, session.count(t, "#tdb-resume form"), "nothing left to resume: the button is gone")
+	})
+
+	// A row of transfer information carries its "⋯" menu (#824): on a row
+	// added in place, "Insert a variable" opens the list of the variables on
+	// the value, which the kit attaches to the rows put in place.
+	t.Run("a row of transfer information added in place offers the variables", func(t *testing.T) {
+		session.visit(t, "/webui/rules/2/tasks/post/new?type=TRANSFER")
+
+		require.NoError(t, page.Locator("[data-info-add]").Click())
+		row := page.Locator(".tf-info-row").Nth(1)
+		require.NoError(t, row.Locator("[popovertarget]").Click())
+		require.NoError(t, row.Locator(`[data-command="vars"]`).Click())
+		require.NoError(t, page.Locator(".w-vars:not([hidden])").WaitFor())
+		require.NoError(t, page.Keyboard().Type("transferi"))
+		first, err := page.Locator(`.w-vars [role="option"] .w-vars__code`).First().TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, "#TRANSFERID#", first, "the list filters as the value is typed")
+		require.NoError(t, page.Keyboard().Press("Enter"))
+
+		value, err := row.Locator("#info-value-2").InputValue()
+		require.NoError(t, err)
+		assert.Equal(t, "#TRANSFERID#", value, "the marker inserted into the value of the row added in place")
+		assert.Equal(t, 0, session.count(t, ".tf-info-row .w-vars-btn"), "no button inserted into the rows")
 	})
 
 	// Collapsed, the sidebar keeps the icons of its entries in a rail, each

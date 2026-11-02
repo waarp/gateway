@@ -3438,6 +3438,9 @@ transfers:
     info_name_n: "Name of the information {n}"
     info_value_n: "Value of the information {n}"
     info_remove_n: "Remove the information {n}"
+    info_n: "the information {n}"
+    info_vars: Insert a variable
+    info_remove: Remove the information
     info_add: Add an information
     info_hint: Optional. The tasks of the rule can read them.
     info_family:

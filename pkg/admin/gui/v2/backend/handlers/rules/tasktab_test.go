@@ -270,8 +270,11 @@ func TestTaskAdd(t *testing.T) {
 		indexes(t, body, `rules-typeinfo" data-case="TRANSFER" data-of="type">`, `<code class="w-code">TRANSFER</code>`,
 			`<strong>Lancer un transfert</strong>`) // its name first under the list
 		assert.Contains(t, body, `data-case="TRANSFER" data-of="type">`, "its cards shown")
-		assert.Contains(t, body, `name="info_value" value="" autocomplete="off" spellcheck="false" data-vars="vars-list"`,
-			"the values of the transfer information offer the variables (#812)")
+		assert.Contains(t, body, `name="info_value" value="" autocomplete="off" spellcheck="false" data-vars="vars-list" data-vars-button="none"`,
+			"the values of the transfer information offer the variables (#812), by the menu of the row (#824)")
+		indexes(t, body, `popovertarget="info-menu-1" aria-label="Actions pour l&#39;information 1"`,
+			`<div class="w-actions" id="info-menu-1" popover>`, `<button type="button" data-command="vars">`, "Insérer une variable",
+			"<hr>", `<button class="is-danger" type="button" data-command="remove">`, "Retirer l&#39;information</button>")
 		assert.Contains(t, body, `spellcheck="false" list="info-keys"`, "their names propose the reserved keys (#816)")
 		assert.Contains(t, body, `<datalist id="info-keys">`)
 		indexes(t, body, `<details class="w-card w-card--fold" open><summary>`, "<h2 class=\"w-card__title\">Fichier</h2>",

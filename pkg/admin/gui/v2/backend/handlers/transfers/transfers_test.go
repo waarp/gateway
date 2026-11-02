@@ -882,6 +882,10 @@ func TestForms(t *testing.T) {
 
 		body := s.get(t, permWrite, "/webui/transfers/new").Body.String()
 		assert.NotContains(t, body, "data-vars=", "no variables list on a transfer: nothing is substituted there (#812)")
+		assert.Contains(t, body, `<button class="w-icon-btn is-danger" type="button" data-command="remove" aria-label="Retirer l&#39;information 1"`,
+			"the removal alone, as the icon button of the row (#824)")
+		assert.NotContains(t, body, `data-command="vars"`)
+		assert.Contains(t, body, `data-label-actions="Actions pour l&#39;information {n}"`, "the script names the menus it numbers")
 		assert.Contains(t, body, `spellcheck="false" list="info-keys"`, "the name of an information proposes the reserved keys (#816)")
 		assert.Contains(t, body, `<option value="__ackExpected__">Acquittement · Acquittement attendu</option>`,
 			"a key the user sets, as the documentation writes it, with its family and its label (#820)")

@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`824` Chaque ligne d'information d'une tâche porte son menu « ⋯ »
+  (insérer une variable, retirer l'information) : le bouton « Variables » ne
+  déborde plus de la ligne, et une ligne ajoutée propose aussi les variables.
 * :feature:`821` Le formulaire d'une tâche refuse une information dont la
   valeur fait référence à une information que la même tâche pose : les
   variables sont remplacées avant la tâche, avec les valeurs d'avant.
