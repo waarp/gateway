@@ -18,6 +18,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/varlist"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -883,8 +884,9 @@ func TestForms(t *testing.T) {
 		body := s.get(t, permWrite, "/webui/transfers/new").Body.String()
 		assert.NotContains(t, body, "data-vars=", "no variables list on a transfer: nothing is substituted there")
 		assert.Contains(t, body, `spellcheck="false" list="info-keys"`, "the name of an information proposes the reserved keys")
-		assert.Contains(t, body, `<option value="__ackExpected__">Acquittement attendu</option>`, "a key the user sets, with its label")
-		assert.Contains(t, body, `<option value="__followID__">`)
+		assert.Contains(t, body, `<option value="__ackExpected__">Acquittement · Acquittement attendu</option>`,
+			"a key the user sets, as the documentation writes it, with its family and its label")
+		assert.Contains(t, body, `<option value="__followID__">Identifiant de flux`, "a key of the transfer: its label alone")
 		assert.NotContains(t, body, `<option value="__ackReceivedOn__">`, "a key only the gateway writes is not proposed")
 		assert.Contains(t, body, `<div class="w-main__inner">`, "the form keeps the usual width")
 		assert.Contains(t, body, `<option value="`+sendID+`" data-restricted>releves</option>`, "a rule that lists who may use it")
@@ -1046,5 +1048,11 @@ func TestCatalogue(t *testing.T) {
 
 	for _, done := range doneKinds {
 		assert.Truef(t, has(toastKeyPrefix+done), "notification %s", done)
+	}
+
+	for _, family := range varlist.InfoFamilies() {
+		if family != model.InfoFamilyTransfer {
+			assert.Truef(t, has(infoFamilyKeyPrefix+string(family)), "family %s of the reserved keys", family)
+		}
 	}
 }

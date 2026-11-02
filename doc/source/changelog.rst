@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`820` Le formulaire d'une tâche ``SETINFO`` saisit ses informations
+  en lignes (nom, valeur), comme les tâches ``TRANSFER`` et ``PREREGISTER`` ;
+  sur toutes ces lignes, une clé réservée se propose avec sa famille et son
+  sens.
 * :feature:`818` Le tableau de bord reprend en un clic les transferts en
   erreur, par le bouton de son en-tête qui dit combien reprendront ; la page
   y revient avec la notification.

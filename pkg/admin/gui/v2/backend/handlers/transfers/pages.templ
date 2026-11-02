@@ -809,9 +809,9 @@ templ InfoList(rows []InfoPair, errText, vars string) {
 	>
 		<div class="tf-info-head" aria-hidden="true"><span>{ gui.T(ctx, "transfers.form.info_name") }</span><span>{ gui.T(ctx, "transfers.form.info_value") }</span></div>
 		<datalist id="info-keys">
-			for _, k := range model.ReservedInfoKeys.Iter() {
+			for family, k := range model.ReservedInfoKeys.Iter() {
 				if k.UserSets() {
-					<option value={ k.Name }>{ gui.T(ctx, varlist.InfoKeyLabel(k.Name)) }</option>
+					<option value={ k.Name }>{ infoKeyText(ctx, family, k) }</option>
 				}
 			}
 		</datalist>
@@ -826,6 +826,18 @@ templ InfoList(rows []InfoPair, errText, vars string) {
 			{ gui.T(ctx, "transfers.form.info_add") }
 		</button>
 	</div>
+}
+
+// infoKeyText is a reserved key as the suggestions of the name say it: the
+// family of a key of a protocol or of the acknowledgements, then its meaning
+// (the keys of the transfer carry their meaning alone).
+func infoKeyText(ctx context.Context, family model.InfoKeyFamily, k model.ReservedInfoKey) string {
+	label := gui.T(ctx, varlist.InfoKeyLabel(k.Name))
+	if family == model.InfoFamilyTransfer {
+		return label
+	}
+
+	return gui.T(ctx, infoFamilyKeyPrefix+string(family)) + " · " + label
 }
 
 // infoField: a row of the transfer information, numbered from 1 (0 in the

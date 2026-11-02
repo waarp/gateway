@@ -62,11 +62,9 @@ const (
 	chainKeyPrefix  = "rules.tasks.chain."
 	chainLowerKey   = "rules.tasks.chain_lower."
 
-	trueValue      = "true"
-	falseValue     = "false"
-	pairsSeparator = "="
-	jsonLines      = 3
-	pairsLines     = 5
+	trueValue  = "true"
+	falseValue = "false"
+	jsonLines  = 3
 )
 
 //nolint:gochecknoglobals // reference data of the screen
