@@ -76,6 +76,12 @@ func at(hour, minute, second int) time.Time {
 	return time.Date(2026, 10, 21, hour, minute, second, 0, time.Local)
 }
 
+// dueTomorrow is a due date the forms accept whatever the day the test runs:
+// the next day at the same time, as a datetime-local field sends it.
+func dueTomorrow() string {
+	return time.Now().AddDate(0, 0, 1).Format(localLayout)
+}
+
 // fixtures inserts a partner with its account and a client, a server with
 // its account, a sending and a receiving rule; four transfers (running,
 // failed, planned, and a server one available) and two history entries (done
@@ -929,7 +935,7 @@ func TestForms(t *testing.T) {
 		assert.Contains(t, body, `data-rule-filter="rule"`)
 
 		rec := s.post(t, permWrite, "/webui/transfers/preregister", url.Values{
-			fieldFile: {"inventaire-decembre.csv"}, fieldRule: {receiveID}, fieldAccount: {northID}, fieldStart: {"2026-11-02T06:00"},
+			fieldFile: {"inventaire-decembre.csv"}, fieldRule: {receiveID}, fieldAccount: {northID}, fieldStart: {dueTomorrow()},
 		})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		assert.Contains(t, rec.Body.String(), "La règle « commandes » n&#39;autorise pas ce compte.")
@@ -964,7 +970,7 @@ func TestForms(t *testing.T) {
 
 		rec = s.post(t, permWrite, "/webui/transfers/preregister", url.Values{
 			fieldFile: {"inventaire-novembre.csv"}, fieldRule: {strconv.FormatInt(s.receive.ID, 10)},
-			fieldAccount: {strconv.FormatInt(s.south.ID, 10)}, fieldStart: {"2026-11-02T06:00"},
+			fieldAccount: {strconv.FormatInt(s.south.ID, 10)}, fieldStart: {dueTomorrow()},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 
