@@ -241,7 +241,11 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        admettent les variables, comme un texte. Pour ``TRANSFER`` et
        ``PREREGISTER``, une valeur enregistrée et non modifiée garde son type
        (un nombre reste un nombre) ; pour ``SETINFO``, une valeur vide retire
-       l'information au moment de l'exécution.
+       l'information au moment de l'exécution. Une valeur ne peut pas faire
+       référence, par ``#TI_…#``, à une information que la même tâche pose,
+       elle-même comprise : les variables sont remplacées avant la tâche,
+       avec les valeurs d'avant ; une information posée par une tâche
+       précédente de la chaîne se lit, les tâches s'exécutant dans l'ordre.
 
 Un paramètre qui ne compte que selon un autre ne s'affiche qu'avec lui : le
 dossier où déplacer un fichier refusé par ICAP, la durée limite d'un transfert
