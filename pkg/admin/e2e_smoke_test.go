@@ -281,6 +281,10 @@ func e2eScreens() []e2eScreen {
 		{path: "/webui/transfers/preregister"},
 		{path: "/webui/transfers/1/cancel"},
 		{path: "/webui/transfers/1001/retry"},
+		// The pages of the grouped actions (#792): the cancellation of the
+		// failed transfers, the retry of the whole filter.
+		{path: "/webui/transfers/cancel?all=1&state=error"},
+		{path: "/webui/transfers/retry?all=1&state=error"},
 	}
 }
 
@@ -355,6 +359,13 @@ func insertE2ETransfers(t *testing.T, db *database.DB) {
 			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
 			SrcFilename: "rapport-mensuel.pdf", DestFilename: "rapport-mensuel.pdf", Start: start.Add(2 * time.Hour),
 			Status: types.StatusPlanned, Filesize: model.UnknownSize,
+		},
+		// A second failed transfer: the one a selection resumes (#792).
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "releve-21102026.pdf", DestFilename: "releve-21102026.pdf", Start: start.Add(2 * time.Minute),
+			Status: types.StatusError, Step: types.StepSetup, ErrCode: types.TeConnection,
+			ErrDetails: "failed to connect to the partner", RemainingTries: 1, Filesize: 204800,
 		},
 	} {
 		require.NoError(t, db.Insert(trans).Run())
@@ -1587,6 +1598,34 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		_, err = page.WaitForFunction(`(t) => document.querySelector("#transfers-live").textContent !== t`,
 			before, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(15000)})
 		require.NoError(t, err, "the time changes after one period")
+	})
+
+	// The grouped actions of the transfer monitoring (#792): a row checked
+	// shows the selection bar, which counts it; "Resume the transfers" resumes
+	// the set at once and the list, back as it was, says so.
+	t.Run("a selection of transfers resumes at once", func(t *testing.T) {
+		session.visit(t, "/webui/transfers?state=error")
+
+		row := page.Locator(`input[data-select-row][value="4"]`)
+		require.NoError(t, row.WaitFor())
+		require.NoError(t, row.Check())
+
+		count := page.Locator("#sel-transfers:not([hidden]) .w-selection__count")
+		require.NoError(t, count.WaitFor())
+		counted, err := count.TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, "1 sur cette page", strings.TrimSpace(counted))
+
+		session.tracker.enter("/webui/transfers/resume")
+		require.NoError(t, page.Locator(`#sel-transfers button[formaction$="/webui/transfers/resume"]`).Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/transfers?")+"done=set_resumed&name=1&state=error$")))
+		require.NoError(t, session.tracker.settle())
+		assert.Empty(t, session.tracker.failuresOf("/webui/transfers/resume"), "failed requests of the resumption")
+
+		toast, err := page.Locator(".w-toast--ok").First().TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, toast, "1 transfert repris")
 	})
 
 	// Collapsed, the sidebar keeps the icons of its entries in a rail, each
