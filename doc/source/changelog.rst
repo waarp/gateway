@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`818` Le tableau de bord reprend en un clic les transferts en
+  erreur, par le bouton de son en-tête qui dit combien reprendront ; la page
+  y revient avec la notification.
 * :feature:`792` Le Suivi des transferts agit sur un ensemble : les transferts
   des filtres, moins les lignes décochées, ou les lignes cochées seules, se
   reprennent, se relancent ou s'annulent en une fois ; la notification compte

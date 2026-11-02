@@ -93,6 +93,22 @@ depuis la Gateway : il reprend à l'initiative du partenaire. Une action
 demandée depuis le tableau de bord y revient, avec sa notification.
 
 
+Reprendre toutes les erreurs
+============================
+
+Pour qui a le droit d'écriture sur les transferts, l'en-tête de la page porte
+le bouton *Reprendre les n transferts en erreur*, la seule action colorée de
+l'écran. Le nombre est celui des transferts que le geste reprendra : les
+transferts client en erreur qui ne sont pas l'enfant d'un transfert
+synchrone ; la tuile peut en compter davantage, la notification explique
+alors la différence. Un clic reprend l'ensemble par l'action groupée du
+:doc:`suivi des transferts <suivi-des-transferts>` et revient au tableau de
+bord avec la notification. Si des erreurs sont arrivées entre deux
+actualisations, une page de confirmation dit le nouveau nombre avant d'agir
+et revient de même au tableau de bord. Le bouton suit l'actualisation des
+chiffres et disparaît quand il n'y a plus rien à reprendre.
+
+
 Rafraîchissement
 ================
 
