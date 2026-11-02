@@ -46,3 +46,10 @@ func newWarningf(msg string, args ...any) *WarningError {
 func (e *WarningError) Error() string {
 	return e.msg
 }
+
+type PanicError struct {
+	Cause any
+}
+
+func newPanicError(cause any) *PanicError { return &PanicError{Cause: cause} }
+func (p *PanicError) Error() string       { return fmt.Sprintf("task panicked: %v", p.Cause) }
