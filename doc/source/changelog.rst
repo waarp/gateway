@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`822` Correction d'un bug de la tâche TRANSCODE pouvant parfois provoquer
+  un crash d'application (*panic*).
 * :bug:`798` Ajout d'options de filtrage et de tri manquantes à la commande
   ``transfer list`` du CLI. Par ailleurs, la commande trie maintenant les
   transferts du plus récent au plus ancient par défaut (au lieu de l'inverse).
