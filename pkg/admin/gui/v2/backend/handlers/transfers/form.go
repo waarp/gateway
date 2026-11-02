@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/compatibility"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
 // Names of the fields of the pages that add and preregister a transfer.
@@ -174,6 +175,30 @@ func PairRows(args map[string]string) []InfoPair {
 	}
 
 	return out
+}
+
+// SelfReference finds, among the rows of transfer information a task sets, a
+// value that reads an information the same rows set, itself included (#821):
+// the variables of a task are replaced before it runs, from the information
+// as it is then, so such a value takes the value from before the task, or
+// nothing. It gives the row and the key read, and whether it found one. A
+// marker reads a key as it is, like the tasks do: #TI___followID__# reads
+// __followID__, and no other spelling.
+func SelfReference(rows []InfoPair) (row int, ref string, found bool) {
+	names := make(map[string]bool, len(rows))
+	for _, pair := range rows {
+		names[pair.Name] = true
+	}
+
+	for i, pair := range rows {
+		for _, key := range tasks.InfoMarkers(pair.Value) {
+			if names[key] {
+				return i, key, true
+			}
+		}
+	}
+
+	return 0, "", false
 }
 
 // InfoText is a stored value of the transfer information as a row shows it.

@@ -747,6 +747,15 @@ func readInfos(translate gui.Translator, r *http.Request, spec *taskSpec, stored
 		}
 	}
 
+	// A value that reads an information these rows set would get the value
+	// from before the task, or nothing (#821).
+	if row, ref, found := transfers.SelfReference(input.rows); found {
+		input.rows[row].Invalid = true
+		input.infoErr = translate("rules.tasks.error.info_self", "name", input.rows[row].Name, "ref", ref)
+
+		return false
+	}
+
 	info, msg := transfers.InfoObject(translate, input.rows)
 	if msg != "" {
 		input.infoErr = msg

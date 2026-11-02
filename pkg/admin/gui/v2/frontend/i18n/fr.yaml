@@ -2313,6 +2313,7 @@ rules:
       range: "Entre {min} et {max}."
       json: "Indiquez un objet JSON, par exemple {\"lot\": \"A\"}."
       markers: "Variables que les tâches ne connaissent pas : {markers}. Tapez # pour choisir dans la liste."
+      info_self: "La valeur de « {name} » fait référence à l'information « {ref} », que cette tâche pose : les variables sont remplacées avant la tâche, avec les valeurs d'avant."
       type: Choisissez un type.
       sens: Choisissez un sens.
       icap: "Indiquez l'adresse du serveur ICAP, par exemple icap://antivirus.exemple.fr:1344/avscan."

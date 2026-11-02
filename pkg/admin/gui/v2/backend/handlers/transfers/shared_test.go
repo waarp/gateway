@@ -84,6 +84,34 @@ func TestInfoNames(t *testing.T) {
 		PairRows(map[string]string{"lot": "A", model.FollowID: "1"}), "by key")
 }
 
+// TestSelfReference checks the value that reads an information the same rows
+// set (#821): itself, another row, a reserved key; a key the rows do not set
+// is fine, and so is a spelling the tasks would not read.
+func TestSelfReference(t *testing.T) {
+	t.Parallel()
+
+	row, ref, found := SelfReference([]InfoPair{{Name: "a", Value: "#TI_b# et #TRUEFILENAME#"}, {Name: "b", Value: "1"}})
+	assert.True(t, found)
+	assert.Equal(t, 0, row)
+	assert.Equal(t, "b", ref)
+
+	row, ref, found = SelfReference([]InfoPair{{Name: "lot", Value: "x"}, {Name: "a", Value: "#TI_a#"}})
+	assert.True(t, found)
+	assert.Equal(t, 1, row)
+	assert.Equal(t, "a", ref, "itself")
+
+	row, ref, found = SelfReference([]InfoPair{{Name: model.FollowID, Value: "1"}, {Name: "a", Value: "#TI___followID__#"}})
+	assert.True(t, found)
+	assert.Equal(t, 1, row)
+	assert.Equal(t, model.FollowID, ref, "a reserved key, as the marker and the row write it")
+
+	_, _, found = SelfReference([]InfoPair{{Name: "a", Value: "#TI_lot# #TI___ackExpected__#"}, {Name: "b", Value: "#DATE#"}})
+	assert.False(t, found, "keys the rows do not set")
+
+	_, _, found = SelfReference([]InfoPair{{Name: model.FollowID, Value: "1"}, {Name: "a", Value: "#TI_followID#"}})
+	assert.False(t, found, "a spelling the tasks do not read as the key")
+}
+
 // TestFileNameOf checks the name of a file: the file on the gateway when it is
 // known, else the name at the source, else at the destination.
 func TestFileNameOf(t *testing.T) {

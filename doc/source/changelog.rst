@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`821` Le formulaire d'une tâche refuse une information dont la
+  valeur fait référence à une information que la même tâche pose : les
+  variables sont remplacées avant la tâche, avec les valeurs d'avant.
 * :feature:`820` Le formulaire d'une tâche ``SETINFO`` saisit ses informations
   en lignes (nom, valeur), comme les tâches ``TRANSFER`` et ``PREREGISTER`` ;
   sur toutes ces lignes, une clé réservée se propose avec sa famille et son

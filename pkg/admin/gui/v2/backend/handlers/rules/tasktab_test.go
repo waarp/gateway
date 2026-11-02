@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"html"
 	"net/http"
 	"net/url"
@@ -404,6 +405,13 @@ func TestTaskAdd(t *testing.T) {
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
 			"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
+			"transfer.account": {accountValue("banque-demo", "prod")}, "info_name": {"lot", "ref"}, "info_value": {"A", "#TI_lot#"},
+		}).Body.String()
+		assert.Contains(t, body, "La valeur de « ref » fait référence à l&#39;information « lot », que cette tâche pose",
+			"a transfer information that reads one the task sets (#821)")
+
+		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
+			"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
 			"transfer.account": {accountValue("banque-demo", "prod")}, "info_name": {"lot", ""}, "info_value": {"A", "orpheline"},
 			"transfer.retryIncrementFactor": {"deux"}, "transfer.firstRetryDelay": {"trente"}, "transfer.synchronous": {"true"},
 		}).Body.String()
@@ -521,6 +529,26 @@ func TestTaskEdit(t *testing.T) {
 		})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		assert.Contains(t, rec.Body.String(), "L&#39;information « lot » est indiquée deux fois.")
+
+		// A value that reads an information the same task sets (#821): another
+		// row, itself, a reserved key; a key the task does not set is fine.
+		self := "fait référence à l&#39;information « %s », que cette tâche pose : les variables sont remplacées avant la tâche"
+		for name, values := range map[string][][]string{
+			"b":            {{"a", "b"}, {"#TI_b#-#DATE#", "1"}},
+			"a":            {{"lot", "a"}, {"x", "#TI_a#"}},
+			"__followID__": {{"__followID__", "a"}, {"1", "#TI___followID__#"}},
+		} {
+			rec = s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"),
+				url.Values{"info_name": values[0], "info_value": values[1]})
+			require.Equal(t, http.StatusUnprocessableEntity, rec.Code, name)
+			assert.Contains(t, rec.Body.String(), fmt.Sprintf(self, name), name)
+			assert.Contains(t, rec.Body.String(), `aria-invalid="true"`, "the row marked")
+		}
+
+		rec = s.post(t, permWrite, s.at(t, rule, model.ChainPost, "post", 0, "/edit"),
+			url.Values{"info_name": {"a"}, "info_value": {"#TI_lot#/#TI___followID__#"}})
+		require.Equal(t, http.StatusSeeOther, rec.Code, "keys set by an earlier task, or nobody, are read")
+		assert.Equal(t, map[string]string{"a": "#TI_lot#/#TI___followID__#"}, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args))
 	})
 
 	t.Run("Given a task of a type the screen does not know", func(t *testing.T) {
