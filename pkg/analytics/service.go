@@ -20,8 +20,9 @@ type Service struct {
 
 	DB *database.DB
 
-	logger *log.Logger
-	state  utils.State
+	logger       *log.Logger
+	state        utils.State
+	stopSampling context.CancelFunc
 }
 
 func (s *Service) Name() string { return ServiceName }
@@ -51,7 +52,29 @@ func (s *Service) start() error {
 	now := time.Now()
 	s.StartTime.Store(&now)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	s.stopSampling = cancel
+
+	go s.sampleEvery(ctx, SamplePeriod)
+
 	return nil
+}
+
+// sampleEvery samples the counters now, then every period, until ctx ends.
+func (s *Service) sampleEvery(ctx context.Context, period time.Duration) {
+	s.Sample(time.Now())
+
+	ticker := time.NewTicker(period)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			s.Sample(now)
+		}
+	}
 }
 
 func (s *Service) Stop(context.Context) error {
@@ -72,6 +95,10 @@ func (s *Service) Stop(context.Context) error {
 }
 
 func (s *Service) stop() error {
+	if s.stopSampling != nil {
+		s.stopSampling()
+	}
+
 	return nil
 }
 

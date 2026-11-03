@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`828` La passerelle mesure le débit de ses transferts, reçu et émis,
+  en moyenne sur les trente dernières secondes ; SNMP l'expose par les objets
+  ``incomingThroughput`` et ``outgoingThroughput`` de la MIB, jusqu'ici
+  prévus sans valeur.
 * :bug:`839` Les objets SNMP restent servis après un rechargement de la
   configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
   redémarrage de la passerelle.

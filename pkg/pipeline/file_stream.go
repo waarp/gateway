@@ -7,6 +7,7 @@ import (
 	"io"
 	"sync/atomic"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -56,6 +57,8 @@ func (f *FileStream) Read(p []byte) (int, error) {
 	}
 
 	n, err := f.file.Read(p)
+	analytics.AddBytesSent(n)
+
 	if uErr := f.updateProgress(n); uErr != nil {
 		return n, uErr
 	}
@@ -84,6 +87,8 @@ func (f *FileStream) Write(p []byte) (int, error) {
 	}
 
 	n, err := f.file.Write(p)
+	analytics.AddBytesReceived(n)
+
 	if uErr := f.updateProgress(n); uErr != nil {
 		return n, uErr
 	}
@@ -109,6 +114,8 @@ func (f *FileStream) ReadAt(p []byte, off int64) (int, error) {
 	}
 
 	n, err := f.file.ReadAt(p, off)
+	analytics.AddBytesSent(n)
+
 	if uErr := f.updateProgress(n); uErr != nil {
 		return n, uErr
 	}
@@ -138,6 +145,8 @@ func (f *FileStream) WriteAt(p []byte, off int64) (int, error) {
 	}
 
 	n, err := f.file.WriteAt(p, off)
+	analytics.AddBytesReceived(n)
+
 	if uErr := f.updateProgress(n); uErr != nil {
 		return n, uErr
 	}

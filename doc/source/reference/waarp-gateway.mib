@@ -228,21 +228,21 @@ outgoingConnections OBJECT-TYPE
         "The number of open outbboing connections made by the application"
     ::= { resourcesInfoObjects 5 }
 
---incomingTrafic OBJECT-TYPE
---    SYNTAX          Gauge32
---    MAX-ACCESS      read-only
---    STATUS          current
---    DESCRIPTION
---        "The total incoming trafic on the application (in kB/s)"
---    ::= { resourcesInfoObjects 6 }
+incomingThroughput OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The mean incoming throughput of the transfers over the last 30 seconds (in kB/s)"
+    ::= { resourcesInfoObjects 6 }
 
---outgoingTrafic OBJECT-TYPE
---    SYNTAX          Gauge32
---    MAX-ACCESS      read-only
---    STATUS          current
---    DESCRIPTION
---        "The total outgoing trafic on the application (in kB/s)"
---    ::= { resourcesInfoObjects 7 }
+outgoingThroughput OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The mean outgoing throughput of the transfers over the last 30 seconds (in kB/s)"
+    ::= { resourcesInfoObjects 7 }
 
 lastTransferObjects OBJECT IDENTIFIER ::= { gwObjects 4 }
 

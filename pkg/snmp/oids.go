@@ -40,13 +40,13 @@ var (
 var (
 	RessourcesInfoOID = ObjectsOID + ".3"
 
-	ResObjectMemUsageOID        = RessourcesInfoOID + ".1"
-	ResObjectNbCPUOID           = RessourcesInfoOID + ".2"
-	ResObjectNbGoroutinesOID    = RessourcesInfoOID + ".3"
-	ResObjectNbIncomingConnsOID = RessourcesInfoOID + ".4"
-	ResObjectNbOutgoingConnsOID = RessourcesInfoOID + ".5"
-	ResObjectIncomingTraficOID  = RessourcesInfoOID + ".6"
-	ResObjectOutgoingTraficOID  = RessourcesInfoOID + ".7"
+	ResObjectMemUsageOID           = RessourcesInfoOID + ".1"
+	ResObjectNbCPUOID              = RessourcesInfoOID + ".2"
+	ResObjectNbGoroutinesOID       = RessourcesInfoOID + ".3"
+	ResObjectNbIncomingConnsOID    = RessourcesInfoOID + ".4"
+	ResObjectNbOutgoingConnsOID    = RessourcesInfoOID + ".5"
+	ResObjectIncomingThroughputOID = RessourcesInfoOID + ".6"
+	ResObjectOutgoingThroughputOID = RessourcesInfoOID + ".7"
 )
 
 // Last transfer OIDs.

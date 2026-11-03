@@ -14,7 +14,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const noTransferMsg = "ERROR: no transfer in database"
+const (
+	noTransferMsg = "ERROR: no transfer in database"
+	bytesPerKB    = 1000 // the unit of the throughput objects
+)
 
 // getServerPDUs gives the sub-agent of a server its own copies of the objects,
 // named by their scalar instance (".0"). The objects themselves stay untouched:
@@ -110,21 +113,36 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 			return uint32(analytics.GlobalService.OpenOutgoingConnections.Load()), nil
 		},
 	},
-	/*{
-		Document: "The total incoming bandwidth (in kB/s)",
-		OID:      ResObjectIncomingTraficOID,
-		Type:     gosnmp.Gauge32,
-		OnGet: func() (any, error) { // TODO
-			return nil, errors.New("not implemented")
+	{
+		Document: "The mean incoming throughput of the transfers over the last " +
+			analytics.SampleWindow.String() + " (in kB/s)",
+		OID:  ResObjectIncomingThroughputOID,
+		Type: gosnmp.Gauge32,
+		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
+			received, _ := analytics.GlobalService.Throughput()
+
+			return uint32(received / bytesPerKB), nil
 		},
-	}, {
-		Document: "The total outgoing bandwidth (in kB/s)",
-		OID:      ResObjectOutgoingTraficOID,
-		Type:     gosnmp.Gauge32,
-		OnGet: func() (any, error) { // TODO
-			return nil, errors.New("not implemented")
+	},
+	{
+		Document: "The mean outgoing throughput of the transfers over the last " +
+			analytics.SampleWindow.String() + " (in kB/s)",
+		OID:  ResObjectOutgoingThroughputOID,
+		Type: gosnmp.Gauge32,
+		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
+			_, sent := analytics.GlobalService.Throughput()
+
+			return uint32(sent / bytesPerKB), nil
 		},
-	},*/
+	},
 
 	// ### Last transfer info ###
 	{
