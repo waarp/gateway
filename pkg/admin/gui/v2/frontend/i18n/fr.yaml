@@ -121,8 +121,11 @@ dashboard:
   activity:
     title: Activité des 24 dernières heures
     chart: "Transferts par heure sur les 24 dernières heures : terminés et encore en erreur"
-    desc: Les valeurs exactes figurent dans le tableau « Valeurs par heure » qui suit le graphique.
+    desc: "Les valeurs exactes figurent dans le tableau « Valeurs par heure » qui suit le graphique ; un trait sépare hier d'aujourd'hui."
     hour: "{hour}h"
+    today: "Aujourd'hui · {date}"
+    yesterday: "Hier · {date}"
+    date: 02/01
   legend:
     done: Terminés
     error: Encore en erreur (hachuré, chiffre au-dessus)
@@ -135,7 +138,7 @@ dashboard:
     total_done_one: 1 terminé
     total_error: "{n} en erreur"
     total_error_one: 1 en erreur
-    caption: Transferts terminés et encore en erreur, par heure de début, sur les 24 dernières heures
+    caption: Transferts terminés et encore en erreur, par heure de début, du plus récent au plus ancien, sur les 24 dernières heures
     hour: Heure de début
     done: Terminés
     error: Encore en erreur

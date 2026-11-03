@@ -140,7 +140,7 @@ type pageData struct {
 	Degraded       *gui.BannerProps // the base does not answer: since when, how old the figures shown are
 	Tiles          []gui.TileProps  // running, failed, done in 24 hours
 	Chart          *gui.ChartProps  // nil without any transfer in the window: the empty state instead
-	Values         []hourRow        // the values of the chart, one row per hour
+	Days           []dayValues      // the values of the chart by day, the most recent first
 	ValuesMeta     string           // the totals of the window, in the heading of the values
 	Errors         []errorRow       // the latest failed transfers, the most recent first
 	ErrorsAll      string           // the link to the list of the failed transfers, with their number
@@ -200,7 +200,7 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh boo
 	data.Figures = true
 	texts := texts{translate}
 	data.Tiles = tiles(texts, figs)
-	data.Chart, data.Values, data.ValuesMeta = activity(texts, figs)
+	data.Chart, data.Days, data.ValuesMeta = activity(texts, figs)
 	data.Errors = errorRows(translate, figs, now, write)
 	data.ErrorsAll = texts.count(errorsKeys, "all", figs.Live[statusKey(types.StatusError)])
 	data.ErrorsURL = transfers.FilteredListURL(transfers.StateError, time.Time{})

@@ -326,37 +326,69 @@ type hourRow struct {
 	Done, Failed string
 }
 
+// dayValues are the values of one day of the window: its label (today,
+// yesterday, with its date), its totals, its hours from the most recent to
+// the oldest.
+type dayValues struct {
+	Label string
+	Meta  string
+	Rows  []hourRow
+}
+
+// day is one day of the window as the chart groups it: its consecutive slots
+// and their totals.
+type day struct {
+	start        time.Time
+	slots        int
+	rows         []hourRow
+	done, failed uint64
+}
+
 // activity is the chart of the window and its values: one bar per hour, the
-// transfers done plain and the failed ones hatched with their figure above;
+// transfers done plain and the failed ones hatched with their figure above,
+// the hours grouped by day (a line at midnight, the day under its hours);
 // no chart (nil) without any transfer in the window, the empty state says
-// so. The heading of the values gives the totals.
-func activity(txt texts, figs *figures) (*gui.ChartProps, []hourRow, string) {
+// so. The values go by day, the most recent first, each day headed by its
+// totals; the heading of the values gives the totals of the window.
+func activity(txt texts, figs *figures) (*gui.ChartProps, []dayValues, string) {
 	labels := make([]string, 0, len(figs.Hours))
 	names := make([]string, 0, len(figs.Hours))
 	done := make([]int, 0, len(figs.Hours))
 	failed := make([]int, 0, len(figs.Hours))
-	rows := make([]hourRow, 0, len(figs.Hours))
 
-	var totalDone, totalFailed uint64
+	var (
+		totalDone, totalFailed uint64
+		days                   []*day
+	)
 
 	for _, slot := range figs.Hours {
 		labels = append(labels, txt.translate("dashboard.activity.hour", "hour", slot.Start.Format("15")))
 		names = append(names, slot.Start.Format("15:04"))
 		done = append(done, int(slot.Done))       //nolint:gosec // a count of transfers
 		failed = append(failed, int(slot.Failed)) //nolint:gosec // a count of transfers
-		rows = append(rows, hourRow{
+		totalDone += slot.Done
+		totalFailed += slot.Failed
+
+		if n := len(days); n == 0 || days[n-1].start.YearDay() != slot.Start.YearDay() {
+			days = append(days, &day{start: slot.Start})
+		}
+
+		current := days[len(days)-1]
+		current.slots++
+		current.done += slot.Done
+		current.failed += slot.Failed
+		current.rows = append(current.rows, hourRow{
 			Hour:   slot.Start.Format("15:04"),
 			Done:   groupDigits(txt.translate, slot.Done),
 			Failed: groupDigits(txt.translate, slot.Failed),
 		})
-		totalDone += slot.Done
-		totalFailed += slot.Failed
 	}
 
 	meta := txt.count(valuesKeys, "total_done", totalDone) + " · " + txt.count(valuesKeys, "total_error", totalFailed)
+	groups, values := dayGroups(txt, days)
 
 	if totalDone+totalFailed == 0 {
-		return nil, rows, meta
+		return nil, values, meta
 	}
 
 	chart := &gui.ChartProps{
@@ -365,6 +397,7 @@ func activity(txt texts, figs *figures) (*gui.ChartProps, []hourRow, string) {
 		Desc:   txt.translate("dashboard.activity.desc"),
 		Labels: labels,
 		Names:  names,
+		Groups: groups,
 		Series: []gui.Serie{
 			{
 				Label: txt.translate("dashboard.legend.done"), Unit: txt.translate("dashboard.unit.done"),
@@ -377,7 +410,39 @@ func activity(txt texts, figs *figures) (*gui.ChartProps, []hourRow, string) {
 		},
 	}
 
-	return chart, rows, meta
+	return chart, values, meta
+}
+
+// dayGroups labels the days of the window: the last one is today (the window
+// ends with the hour under way), the one before is yesterday. The groups of
+// the chart follow the hours; the values go the other way, the most recent
+// day first, its most recent hour first.
+func dayGroups(txt texts, days []*day) ([]gui.ChartGroup, []dayValues) {
+	groups := make([]gui.ChartGroup, 0, len(days))
+	values := make([]dayValues, 0, len(days))
+
+	for i, d := range days {
+		key := "dashboard.activity.yesterday"
+		if i == len(days)-1 {
+			key = "dashboard.activity.today"
+		}
+
+		label := txt.translate(key, "date", d.start.Format(txt.translate("dashboard.activity.date")))
+		groups = append(groups, gui.ChartGroup{Label: label, Slots: d.slots})
+
+		rows := make([]hourRow, 0, len(d.rows))
+		for j := len(d.rows) - 1; j >= 0; j-- {
+			rows = append(rows, d.rows[j])
+		}
+
+		values = append([]dayValues{{
+			Label: label,
+			Meta:  txt.count(valuesKeys, "total_done", d.done) + " · " + txt.count(valuesKeys, "total_error", d.failed),
+			Rows:  rows,
+		}}, values...)
+	}
+
+	return groups, values
 }
 
 // errorRow is one of the latest failed transfers: when it started (its date

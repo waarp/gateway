@@ -7,6 +7,9 @@
 .tdb-sections { margin-top: var(--sp-6); }
 .tdb-sections .w-section-title { margin-top: 0; }
 .tdb-values { margin-top: var(--sp-4); }
+/* The values per hour by day (#832): the heading row of a day, its totals beside its name. */
+.w-table .tdb-day th { background: var(--surface-alt); color: var(--tp); font: 700 var(--fs-sm) / 1.4 var(--fb); text-align: left; }
+.tdb-day__meta { margin-left: var(--sp-3); font-weight: 400; color: var(--ts); }
 .tdb-foot { margin: var(--sp-3) 0 0; }
 .tdb-errors { table-layout: fixed; min-width: 28rem; }
 .tdb-errors td { overflow: hidden; }

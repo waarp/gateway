@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`832` Le tableau de bord distingue hier d'aujourd'hui dans
+  l'activité des 24 dernières heures : un trait à minuit et le jour sous ses
+  heures ; les valeurs par heure vont de la plus récente à la plus ancienne,
+  groupées par jour.
 * :feature:`830` La passerelle mesure l'espace disque de ses dossiers de travail
   (réception, émission, temporaire) et du dossier de sa base de données quand
   elle est un fichier ; SNMP l'expose par huit objets de la MIB, part utilisée
