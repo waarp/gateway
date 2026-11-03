@@ -377,10 +377,14 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 	// all of them.
 	if nbFailed > 0 {
 		failed.Links = []gui.Link{
-			{Label: txt.count(footKeys, "client", figs.FailedClient),
-				URL: transfers.RoleListURL(transfers.StateError, transfers.RoleClient)},
-			{Label: txt.count(footKeys, "server", figs.FailedServer),
-				URL: transfers.RoleListURL(transfers.StateError, transfers.RoleServer)},
+			{
+				Label: txt.count(footKeys, "client", figs.FailedClient),
+				URL:   transfers.RoleListURL(transfers.StateError, transfers.RoleClient),
+			},
+			{
+				Label: txt.count(footKeys, "server", figs.FailedServer),
+				URL:   transfers.RoleListURL(transfers.StateError, transfers.RoleServer),
+			},
 		}
 	}
 
