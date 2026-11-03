@@ -46,7 +46,8 @@ toujours celui de l'écran qu'il ouvre.
      - Le nombre de transferts encore en erreur, donc à traiter ; en pied,
        combien sont côté client (ceux que *Reprendre* prend) et côté serveur
        (le partenaire les relance), et combien ont démarré depuis une heure.
-     - Le suivi des transferts filtré sur les transferts en erreur.
+     - Le suivi des transferts filtré sur les transferts en erreur ; chaque
+       chiffre du pied mène au suivi filtré sur les erreurs de son rôle.
    * - Terminés sur 24 h
      - Le nombre de transferts terminés sur les 24 dernières heures ; en
        pied, le volume transféré, les transferts annulés et l'heure du dernier

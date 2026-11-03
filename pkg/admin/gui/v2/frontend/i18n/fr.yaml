@@ -169,7 +169,10 @@ dashboard:
     late: "{n} planifiés en retard"
     late_one: 1 planifié en retard
     last_done: "Dernier terminé à {time}"
-    roles: "{client} côté client · {server} côté serveur"
+    client: "{n} côté client"
+    client_one: 1 côté client
+    server: "{n} côté serveur"
+    server_one: 1 côté serveur
   sr:
     running: "{n} transferts en cours"
     running_one: 1 transfert en cours

@@ -372,10 +372,16 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 	}
 
 	// By role (#835): the client ones are those the grouped resumption takes,
-	// the server ones are resumed by the partner.
+	// the server ones are resumed by the partner; each figure leads to the
+	// monitoring filtered by its role (#837), the tile staying the way to
+	// all of them.
 	if nbFailed > 0 {
-		failed.Foot = txt.translate("dashboard.foot.roles",
-			"client", groupDigits(txt.translate, figs.FailedClient), "server", groupDigits(txt.translate, figs.FailedServer))
+		failed.Links = []gui.Link{
+			{Label: txt.count(footKeys, "client", figs.FailedClient),
+				URL: transfers.RoleListURL(transfers.StateError, transfers.RoleClient)},
+			{Label: txt.count(footKeys, "server", figs.FailedServer),
+				URL: transfers.RoleListURL(transfers.StateError, transfers.RoleServer)},
+		}
 	}
 
 	since := time.Time{}

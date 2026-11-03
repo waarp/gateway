@@ -57,7 +57,7 @@ func TestLiveActions(t *testing.T) {
 }
 
 // TestFilteredListURL checks the lists another screen leads to: a state, a
-// period from a moment, both said explicitly.
+// period from a moment, a role of the gateway, all said explicitly.
 func TestFilteredListURL(t *testing.T) {
 	t.Parallel()
 
@@ -65,6 +65,8 @@ func TestFilteredListURL(t *testing.T) {
 	assert.Equal(t, "/webui/transfers?from=2026-10-20T17%3A00&state=done",
 		FilteredListURL(StateDone, time.Date(2026, 10, 20, 17, 0, 0, 0, time.Local)))
 	assert.Equal(t, "/webui/transfers?reset=1", FilteredListURL("", time.Time{}), "no criterion: the list reset")
+	assert.Equal(t, "/webui/transfers?role=client&state=error", RoleListURL(StateError, RoleClient), "a state and a role (#837)")
+	assert.Equal(t, "/webui/transfers?role=server", RoleListURL("", RoleServer))
 }
 
 // TestInfoNames checks the names of the rows of transfer information: a key

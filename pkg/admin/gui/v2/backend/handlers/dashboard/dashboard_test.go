@@ -430,15 +430,17 @@ func TestPage(t *testing.T) {
 			`<span class="w-status w-status--warn">1 en cours depuis plus d&#39;une heure</span>`,
 			`<span class="w-status w-status--warn">1 planifié en retard</span>`)
 
-		failedTile := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ko" href="/webui/transfers\?state=error">.*?</a>`).FindString(tiles)
+		failedTile := regexp.MustCompile(`(?s)<div class="w-card w-tile w-tile--ko"><a class="w-tile__main" href="/webui/transfers\?state=error">.*?</div>`).FindString(tiles)
 		require.NotEmpty(t, failedTile)
-		assert.Contains(t, failedTile, `<span class="w-muted">2 côté client · 1 côté serveur</span>`, "the roles of the failed transfers (#835)")
+		assert.Contains(t, failedTile, `<span class="w-muted"><a class="w-link" href="/webui/transfers?role=client&amp;state=error">2 côté client</a> · `+
+			`<a class="w-link" href="/webui/transfers?role=server&amp;state=error">1 côté serveur</a></span>`,
+			"the roles of the failed transfers (#835), each leading to the monitoring filtered by its role (#837)")
 
 		doneTile := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ok" href="/webui/transfers\?from=[^"]+state=done">.*?</a>`).FindString(tiles)
 		require.NotEmpty(t, doneTile)
 		assert.Contains(t, doneTile, `<span class="w-status w-status--ok">Dernier terminé à 15:30</span>`, "the last transfer done (#835)")
 
-		failed := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ko" href="/webui/transfers\?state=error">.*?</a>`).FindString(tiles)
+		failed := regexp.MustCompile(`(?s)<div class="w-card w-tile w-tile--ko"><a class="w-tile__main" href="/webui/transfers\?state=error">.*?</div>`).FindString(tiles)
 		require.NotEmpty(t, failed)
 		assert.Contains(t, failed, `<span aria-hidden="true">3</span><span class="visually-hidden">3 transferts en erreur</span>`)
 		assert.Contains(t, failed, `<span class="w-status w-status--ko">1 depuis une heure</span>`)

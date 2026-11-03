@@ -682,6 +682,24 @@ func FilteredListURL(state string, from time.Time) string {
 	return listSpec.ExplicitListURL(v)
 }
 
+// RoleListURL is the list of the transfers in a state ("" for every state)
+// where the gateway has a role (RoleClient, RoleServer; "" for both), from
+// its first page and said explicitly: the figures of the dashboard lead to
+// it (#837).
+func RoleListURL(state, role string) string {
+	v := url.Values{}
+
+	if state != "" {
+		v.Set(paramState, state)
+	}
+
+	if role != "" {
+		v.Set(paramRole, role)
+	}
+
+	return listSpec.ExplicitListURL(v)
+}
+
 // stateURL is the list in a state ("" for every state), from its first
 // page.
 func stateURL(query *liststate.Query, key string) string {
