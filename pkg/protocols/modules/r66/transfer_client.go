@@ -109,6 +109,10 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) *pipeline.Error {
 		return c.wrapAndSendError(recvErr)
 	}
 
+	if err := c.checkSize(); err != nil {
+		return c.wrapAndSendError(err)
+	}
+
 	if c.noFinalHash {
 		return nil
 	}
