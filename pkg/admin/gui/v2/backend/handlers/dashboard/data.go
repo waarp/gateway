@@ -67,6 +67,47 @@ type figures struct {
 	LastDone                   time.Time
 }
 
+// readTileFigures reads what the tiles say beyond their figure (#835): the
+// failed transfers by role (the live counts being read), the stuck and the
+// overdue ones, the last transfer done.
+func (h *Handlers) readTileFigures(now time.Time, figs *figures) error {
+	var (
+		live model.Transfers
+		err  error
+	)
+
+	if figs.FailedClient, err = h.db.Select(&live).Where("status=? AND local_account_id IS NULL",
+		types.StatusError).Count(); err != nil {
+		return fmt.Errorf("failed to count the failed client transfers: %w", err)
+	}
+
+	if total := figs.Live[statusKey(types.StatusError)]; total > figs.FailedClient {
+		figs.FailedServer = total - figs.FailedClient
+	}
+
+	if figs.Stuck, err = h.db.Select(&live).Where("status=? AND start<?", types.StatusRunning,
+		now.Add(-stuckAfter).UTC()).Count(); err != nil {
+		return fmt.Errorf("failed to count the stuck transfers: %w", err)
+	}
+
+	if figs.Late, err = h.db.Select(&live).Where("status=? AND start<?", types.StatusPlanned,
+		now.UTC()).Count(); err != nil {
+		return fmt.Errorf("failed to count the overdue transfers: %w", err)
+	}
+
+	var lastDone model.HistoryEntries
+	if err = h.db.Select(&lastDone).Where("status=?", types.StatusDone).
+		OrderBy("start", false).Limit(1, 0).Run(); err != nil {
+		return fmt.Errorf("failed to read the last transfer done: %w", err)
+	}
+
+	if len(lastDone) == 1 {
+		figs.LastDone = lastDone[0].Start
+	}
+
+	return nil
+}
+
 // hour is one hour of the window: how many transfers started in it are done,
 // how many are failed.
 type hour struct {
@@ -114,37 +155,12 @@ func (h *Handlers) readFigures(now time.Time) (*figures, error) {
 		return nil, fmt.Errorf("failed to count the failed transfers to resume: %w", err)
 	}
 
-	if figs.FailedClient, err = h.db.Select(&live).Where("status=? AND local_account_id IS NULL",
-		types.StatusError).Count(); err != nil {
-		return nil, fmt.Errorf("failed to count the failed client transfers: %w", err)
-	}
-
-	if total := figs.Live[statusKey(types.StatusError)]; total > figs.FailedClient {
-		figs.FailedServer = total - figs.FailedClient
-	}
-
-	if figs.Stuck, err = h.db.Select(&live).Where("status=? AND start<?", types.StatusRunning,
-		now.Add(-stuckAfter).UTC()).Count(); err != nil {
-		return nil, fmt.Errorf("failed to count the stuck transfers: %w", err)
-	}
-
-	if figs.Late, err = h.db.Select(&live).Where("status=? AND start<?", types.StatusPlanned,
-		now.UTC()).Count(); err != nil {
-		return nil, fmt.Errorf("failed to count the overdue transfers: %w", err)
+	if tileErr := h.readTileFigures(now, figs); tileErr != nil {
+		return nil, tileErr
 	}
 
 	if figs.Day, err = h.db.Select(&hist).Where("start>=?", since).CountBy("status"); err != nil {
 		return nil, fmt.Errorf("failed to count the transfers of the window: %w", err)
-	}
-
-	var lastDone model.HistoryEntries
-	if err = h.db.Select(&lastDone).Where("status=?", types.StatusDone).
-		OrderBy("start", false).Limit(1, 0).Run(); err != nil {
-		return nil, fmt.Errorf("failed to read the last transfer done: %w", err)
-	}
-
-	if len(lastDone) == 1 {
-		figs.LastDone = lastDone[0].Start
 	}
 
 	if figs.Volume, err = h.db.Select(&hist).Where("start>=? AND status=? AND filesize>0",
@@ -324,7 +340,8 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 		key string
 	}{{figs.Stuck, "stuck"}, {figs.Late, "late"}} {
 		if look.n > 0 {
-			running.Statuses = append(running.Statuses, gui.Status{State: stateWarn, Label: txt.count(footKeys, look.key, look.n)})
+			running.Statuses = append(running.Statuses,
+				gui.Status{State: stateWarn, Label: txt.count(footKeys, look.key, look.n)})
 		}
 	}
 
