@@ -27,6 +27,61 @@ func init() {
 	}
 }
 
+// diskUsage measures the file system of a directory of the gateway;
+// a directory the daemon has not given is not measured.
+func diskUsage(name string) (analytics.DiskUsage, error) {
+	if analytics.GlobalService == nil {
+		return analytics.DiskUsage{}, ErrNoAnalytics
+	}
+
+	usage, err := analytics.GlobalService.DiskUsageOf(name)
+	if errors.Is(err, analytics.ErrUnknownDir) {
+		return analytics.DiskUsage{}, ErrNotMeasured
+	}
+
+	if err != nil {
+		return analytics.DiskUsage{}, fmt.Errorf("failed to measure the %q directory: %w", name, err)
+	}
+
+	return usage, nil
+}
+
+// diskUsagePDU is the object of the share used of the file system of a
+// directory (in percent).
+func diskUsagePDU(name, oid string) *snmplib.PDUValueControlItem {
+	return &snmplib.PDUValueControlItem{
+		Document: fmt.Sprintf("The share of the file system of the %q directory in use (in percent)", name),
+		OID:      oid,
+		Type:     gosnmp.Gauge32,
+		OnGet: func() (any, error) {
+			usage, err := diskUsage(name)
+			if err != nil {
+				return nil, err
+			}
+
+			return uint32(usage.UsedPercent), nil
+		},
+	}
+}
+
+// diskFreePDU is the object of the bytes free on the file system of a
+// directory.
+func diskFreePDU(name, oid string) *snmplib.PDUValueControlItem {
+	return &snmplib.PDUValueControlItem{
+		Document: fmt.Sprintf("The bytes free on the file system of the %q directory", name),
+		OID:      oid,
+		Type:     gosnmp.Counter64,
+		OnGet: func() (any, error) {
+			usage, err := diskUsage(name)
+			if err != nil {
+				return nil, err
+			}
+
+			return usage.Free, nil
+		},
+	}
+}
+
 //nolint:gochecknoglobals //global var is better here
 var ServerPDUs = []*snmplib.PDUValueControlItem{
 	// ### App info PDUs ###
@@ -152,6 +207,14 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 			return uint32(share * perMille), nil
 		},
 	},
+	diskUsagePDU(analytics.DirIn, ResObjectInDirUsageOID),
+	diskFreePDU(analytics.DirIn, ResObjectInDirFreeOID),
+	diskUsagePDU(analytics.DirOut, ResObjectOutDirUsageOID),
+	diskFreePDU(analytics.DirOut, ResObjectOutDirFreeOID),
+	diskUsagePDU(analytics.DirTmp, ResObjectTmpDirUsageOID),
+	diskFreePDU(analytics.DirTmp, ResObjectTmpDirFreeOID),
+	diskUsagePDU(analytics.DirDatabase, ResObjectDBDirUsageOID),
+	diskFreePDU(analytics.DirDatabase, ResObjectDBDirFreeOID),
 
 	// ### Last transfer info ###
 	{

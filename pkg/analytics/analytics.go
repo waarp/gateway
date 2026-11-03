@@ -25,6 +25,7 @@ type analytics struct {
 
 	sampler sampler
 	cpu     cpuMeter
+	dirs    dirs
 }
 
 // Sample records the counters at now, for the rates; the service does it every

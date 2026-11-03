@@ -48,6 +48,14 @@ var (
 	ResObjectIncomingThroughputOID = RessourcesInfoOID + ".6"
 	ResObjectOutgoingThroughputOID = RessourcesInfoOID + ".7"
 	ResObjectCPUUsageOID           = RessourcesInfoOID + ".8"
+	ResObjectInDirUsageOID         = RessourcesInfoOID + ".9"
+	ResObjectInDirFreeOID          = RessourcesInfoOID + ".10"
+	ResObjectOutDirUsageOID        = RessourcesInfoOID + ".11"
+	ResObjectOutDirFreeOID         = RessourcesInfoOID + ".12"
+	ResObjectTmpDirUsageOID        = RessourcesInfoOID + ".13"
+	ResObjectTmpDirFreeOID         = RessourcesInfoOID + ".14"
+	ResObjectDBDirUsageOID         = RessourcesInfoOID + ".15"
+	ResObjectDBDirFreeOID          = RessourcesInfoOID + ".16"
 )
 
 // Last transfer OIDs.

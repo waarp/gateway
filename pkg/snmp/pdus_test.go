@@ -70,6 +70,26 @@ func TestCPUUsagePDU(t *testing.T) {
 	assert.Positive(t, usage.(uint32)) //nolint:forcetypeassert //the type is the object's
 }
 
+// The disk objects give the usage of the file system of each directory the
+// daemon has given, and say when a directory is not measured.
+func TestDiskPDUs(t *testing.T) {
+	analytics.GlobalService = &analytics.Service{}
+	t.Cleanup(func() { analytics.GlobalService = nil })
+
+	analytics.GlobalService.SetDirs([]analytics.Dir{{Name: analytics.DirIn, Path: t.TempDir()}})
+
+	used, err := serverPDU(t, ResObjectInDirUsageOID).OnGet()
+	require.NoError(t, err)
+	assert.LessOrEqual(t, used.(uint32), uint32(100)) //nolint:forcetypeassert //the type is the object's
+
+	free, err := serverPDU(t, ResObjectInDirFreeOID).OnGet()
+	require.NoError(t, err)
+	assert.Positive(t, free.(uint64)) //nolint:forcetypeassert //the type is the object's
+
+	_, err = serverPDU(t, ResObjectOutDirUsageOID).OnGet()
+	require.ErrorIs(t, err, ErrNotMeasured, "a directory the daemon has not given")
+}
+
 func TestThroughputPDUsWithoutAnalytics(t *testing.T) {
 	analytics.GlobalService = nil
 

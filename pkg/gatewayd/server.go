@@ -69,6 +69,25 @@ func getDir(root, dir string) string {
 	return path.Join(root, dir)
 }
 
+// dirsToMeasure lists the directories whose file system the analytics
+// service measures: the working directories and, for a database kept
+// in a file, its directory.
+func (wg *WG) dirsToMeasure(root, in, out, tmp string) []analytics.Dir {
+	dirs := []analytics.Dir{
+		{Name: analytics.DirIn, Path: in},
+		{Name: analytics.DirOut, Path: out},
+		{Name: analytics.DirTmp, Path: tmp},
+	}
+
+	if wg.Config.Database.Type == database.SQLite {
+		dirs = append(dirs, analytics.Dir{
+			Name: analytics.DirDatabase, Path: getDir(root, path.Dir(wg.Config.Database.Address)),
+		})
+	}
+
+	return dirs
+}
+
 func parseDirs(config *conf.PathsConfig) (rootDir, inDir, outDir, tmpDir string, err error) {
 	root := config.GatewayHome
 	in := getDir(root, config.DefaultInDir)
@@ -99,6 +118,8 @@ func (wg *WG) makeDirs() error {
 	if err := fs.MkdirAll(out); err != nil {
 		return fmt.Errorf("failed to create gateway out directory: %w", err)
 	}
+
+	wg.Analytics.SetDirs(wg.dirsToMeasure(root, in, out, tmp))
 
 	if err := fs.MkdirAll(tmp); err != nil {
 		return fmt.Errorf("failed to create gateway work directory: %w", err)
