@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`830` La passerelle mesure l'espace disque de ses dossiers de travail
+  (réception, émission, temporaire) et du dossier de sa base de données quand
+  elle est un fichier ; SNMP l'expose par huit objets de la MIB, part utilisée
+  et octets libres de chaque dossier.
 * :feature:`829` La passerelle mesure la part de processeur qu'elle prend,
   toutes les cinq secondes ; SNMP l'expose par l'objet ``cpuUsage`` de la MIB,
   en millièmes d'un cœur.
