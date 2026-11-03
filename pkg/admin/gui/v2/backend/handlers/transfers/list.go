@@ -38,8 +38,9 @@ const (
 	dirSend    = "send"
 	dirReceive = "receive"
 
-	// The roles of the gateway in a transfer, the values of the role filter
-	// (#837): the other screens lead to the list by a role.
+	// RoleClient and RoleServer are the roles of the gateway in a transfer,
+	// the values of the role filter (#837): the other screens lead to the
+	// list by a role.
 	RoleClient = "client"
 	RoleServer = "server"
 
@@ -75,34 +76,34 @@ type filters struct {
 
 // parseFilters reads the filters of a query, dropping what is unknown or
 // invalid.
-func parseFilters(v url.Values) *filters {
+func parseFilters(values url.Values) *filters {
 	crit := &filters{
-		Rule:    strings.TrimSpace(v.Get(paramRule)),
-		Partner: strings.TrimSpace(v.Get(paramPartner)),
-		Account: strings.TrimSpace(v.Get(paramAccount)),
-		Client:  strings.TrimSpace(v.Get(paramClient)),
+		Rule:    strings.TrimSpace(values.Get(paramRule)),
+		Partner: strings.TrimSpace(values.Get(paramPartner)),
+		Account: strings.TrimSpace(values.Get(paramAccount)),
+		Client:  strings.TrimSpace(values.Get(paramClient)),
 	}
 
-	if _, ok := specOfKey(v.Get(paramState)); ok {
-		crit.State = v.Get(paramState)
+	if _, ok := specOfKey(values.Get(paramState)); ok {
+		crit.State = values.Get(paramState)
 	}
 
-	if dir := v.Get(paramDir); dir == dirSend || dir == dirReceive {
+	if dir := values.Get(paramDir); dir == dirSend || dir == dirReceive {
 		crit.Dir = dir
 	}
 
-	if role := v.Get(paramRole); role == RoleClient || role == RoleServer {
+	if role := values.Get(paramRole); role == RoleClient || role == RoleServer {
 		crit.Role = role
 	}
 
-	crit.Protocol = protoform.FamilyKeyOf(v.Get(paramProtocol))
+	crit.Protocol = protoform.FamilyKeyOf(values.Get(paramProtocol))
 
-	if _, ok := parseLocal(v.Get(paramFrom)); ok {
-		crit.From = v.Get(paramFrom)
+	if _, ok := parseLocal(values.Get(paramFrom)); ok {
+		crit.From = values.Get(paramFrom)
 	}
 
-	if _, ok := parseLocal(v.Get(paramTo)); ok {
-		crit.To = v.Get(paramTo)
+	if _, ok := parseLocal(values.Get(paramTo)); ok {
+		crit.To = values.Get(paramTo)
 	}
 
 	return crit
