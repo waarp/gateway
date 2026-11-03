@@ -63,7 +63,7 @@ func (GatewayNode) CPUShare() (float64, bool) {
 
 func (GatewayNode) Cores() int { return runtime.NumCPU() }
 
-func (GatewayNode) Throughput() (float64, float64) {
+func (GatewayNode) Throughput() (received, sent float64) {
 	if s := analytics.GlobalService; s != nil {
 		return s.Throughput()
 	}
@@ -71,7 +71,7 @@ func (GatewayNode) Throughput() (float64, float64) {
 	return 0, 0
 }
 
-func (GatewayNode) Connections() (int64, int64) {
+func (GatewayNode) Connections() (incoming, outgoing int64) {
 	if s := analytics.GlobalService; s != nil {
 		return s.OpenIncomingConnections.Load(), s.OpenOutgoingConnections.Load()
 	}

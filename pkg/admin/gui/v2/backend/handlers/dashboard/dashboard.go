@@ -192,7 +192,7 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh boo
 		last = h.lastReading()
 	}
 
-	data.Health = gui.HealthProps{Items: healthCells(translate, healthInput{
+	data.Health = gui.HealthProps{Items: healthCells(translate, &healthInput{
 		node: h.info, now: now, dbType: h.db.Config.Database.Type, last: last,
 		services: services.Sum(translate, h.shell.Catalog().Has, h.list), monitors: h.monitors,
 	})}

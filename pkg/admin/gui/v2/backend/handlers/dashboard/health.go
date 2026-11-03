@@ -41,7 +41,7 @@ type healthInput struct {
 // processor and memory, disk space, network, partner monitors. Each cell
 // carries its state by a shape and a word; a figure that cannot be read is
 // "unmeasured", never a false figure.
-func healthCells(translate gui.Translator, in healthInput) []gui.HealthItem {
+func healthCells(translate gui.Translator, in *healthInput) []gui.HealthItem {
 	txt := texts{translate}
 
 	return []gui.HealthItem{
@@ -164,12 +164,16 @@ func loadCell(txt texts, node Node) gui.HealthItem {
 
 	switch {
 	case hasTotal:
-		cell.Text = txt.health("cpu_mem_text", "cores", cores, "memory", format.Bytes(txt.translate, int64(total))) //nolint:gosec // bytes
+		totalText := format.Bytes(txt.translate, int64(total)) //nolint:gosec // bytes
+		cell.Text = txt.health("cpu_mem_text", "cores", cores, "memory", totalText)
 	default:
 		cell.Text = txt.health("cores", "cores", cores)
 	}
 
-	if (measured && cores > 0 && share/float64(cores) >= loadWarn) || (hasTotal && total > 0 && float64(used)/float64(total) >= loadWarn) {
+	cpuHigh := measured && cores > 0 && share/float64(cores) >= loadWarn
+	memoryHigh := hasTotal && total > 0 && float64(used)/float64(total) >= loadWarn
+
+	if cpuHigh || memoryHigh {
 		cell.State = stateWarn
 	}
 
@@ -195,8 +199,9 @@ func diskCell(txt texts, node Node) gui.HealthItem {
 		}
 
 		usages = append(usages, usage)
+		freeText := format.Bytes(txt.translate, int64(usage.Free)) //nolint:gosec // bytes
 		titles = append(titles, txt.health("disk_item", "dir", dirLabel(txt, dir.Name),
-			"percent", int(math.Round(usage.UsedPercent)), "free", format.Bytes(txt.translate, int64(usage.Free)))) //nolint:gosec // bytes
+			"percent", int(math.Round(usage.UsedPercent)), "free", freeText))
 	}
 
 	if len(usages) == 0 {
@@ -213,7 +218,8 @@ func diskCell(txt texts, node Node) gui.HealthItem {
 	}
 
 	cell.Value, cell.Unit = strconv.Itoa(int(math.Round(fullest.UsedPercent))), "%"
-	cell.Text = txt.health("disk_text", "dir", dirLabel(txt, fullest.Name), "free", format.Bytes(txt.translate, int64(fullest.Free))) //nolint:gosec // bytes
+	fullestFree := format.Bytes(txt.translate, int64(fullest.Free)) //nolint:gosec // bytes
+	cell.Text = txt.health("disk_text", "dir", dirLabel(txt, fullest.Name), "free", fullestFree)
 	cell.Title = strings.Join(titles, " · ")
 
 	switch {
