@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"code.waarp.fr/lib/gui"
@@ -431,8 +432,8 @@ func dayGroups(txt texts, days []*day) ([]gui.ChartGroup, []dayValues) {
 		groups = append(groups, gui.ChartGroup{Label: label, Slots: d.slots})
 
 		rows := make([]hourRow, 0, len(d.rows))
-		for j := len(d.rows) - 1; j >= 0; j-- {
-			rows = append(rows, d.rows[j])
+		for _, row := range slices.Backward(d.rows) {
+			rows = append(rows, row)
 		}
 
 		values = append([]dayValues{{
