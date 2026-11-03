@@ -37,10 +37,6 @@ func HashPassword(password string) (string, error) {
 }
 
 func HashPasswordWithCost(bcryptRounds int, password string) (string, error) {
-	if password == "" {
-		return "", nil
-	}
-
 	// If password is already hashed, don't encrypt it again.
 	if IsHash(password) {
 		return password, nil

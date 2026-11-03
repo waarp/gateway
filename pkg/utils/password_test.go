@@ -19,3 +19,13 @@ func TestPasswordHash(t *testing.T) {
 	assert.True(t, IsHash(hash))
 	assert.True(t, IsHashOf(hash, password))
 }
+
+func TestEmptyPasswordHash(t *testing.T) {
+	t.Parallel()
+
+	hash, err := HashPasswordWithCost(bcrypt.MinCost, "")
+	require.NoError(t, err)
+
+	assert.True(t, IsHash(hash))
+	assert.True(t, IsHashOf(hash, ""))
+}

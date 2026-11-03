@@ -51,12 +51,6 @@ func DoCertificateAuthentication(db database.ReadAccess, logger *log.Logger,
 func PasswordAuthentication(db database.ReadAccess, logger *log.Logger,
 	acc *model.LocalAccount, password string,
 ) (bool, error) {
-	if password == "" {
-		logger.Debugf("No password provided")
-
-		return false, nil
-	}
-
 	if res, err := acc.Authenticate(db, auth.Password, password); err != nil {
 		logger.Errorf("Error during password authentication for account %q: %v",
 			acc.Login, err)
