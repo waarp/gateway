@@ -428,6 +428,19 @@ func TestList(t *testing.T) {
 		assert.Equal(t, 2, rows(body))
 		assert.Contains(t, body, "Filtres · 2")
 
+		// The role of the gateway (#837): the transfers a partner asked for, those the gateway asked for; the
+		// counts of the states row follow it, as the other filters.
+		body = s.get(t, permRead, "/webui/transfers?full=1&role=server").Body.String()
+		assert.Equal(t, 2, rows(body), "the transfers a partner asked for")
+		assert.Contains(t, body, "Filtres · 1")
+		assert.Contains(t, body, `<label class="w-field__label" for="f-role">Rôle de la passerelle</label>`)
+		assert.Contains(t, body, `<option value="server" selected>Serveur</option>`)
+		assert.Contains(t, body, `<span>Tous</span> <span class="tf-count">2</span>`, "the counts follow the role")
+
+		body = s.get(t, permRead, "/webui/transfers?full=1&role=client&direction=receive").Body.String()
+		assert.Equal(t, 0, rows(body), "the role and the direction are two axes: no client transfer is received here")
+		assert.Contains(t, body, "Aucun transfert ne correspond aux filtres")
+
 		body = s.get(t, permRead, "/webui/transfers?full=1&account=prod&protocol=sftp").Body.String()
 		assert.Equal(t, 4, rows(body))
 		assert.Contains(t, body, `<option value="sftp" selected>SFTP</option>`)
@@ -440,7 +453,7 @@ func TestList(t *testing.T) {
 		body = s.get(t, permRead, "/webui/transfers?full=1&from=2026-10-21T10:36&to=2026-10-21T10:39").Body.String()
 		assert.Equal(t, 2, rows(body), "the period of the start, its last minute included")
 
-		body = s.get(t, permRead, "/webui/transfers?full=1&direction=sideways&from=hier").Body.String()
+		body = s.get(t, permRead, "/webui/transfers?full=1&direction=sideways&role=both&from=hier").Body.String()
 		assert.Equal(t, 6, rows(body), "an invalid filter is dropped")
 		assert.NotContains(t, body, "Filtres · ")
 	})

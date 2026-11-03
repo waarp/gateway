@@ -121,6 +121,14 @@ func (q *TransferListQuery) Direction(isSend bool) *TransferListQuery {
 	return q
 }
 
+// Role adds a condition on the role of the gateway in the transfers: the
+// server, when a partner asked for them, or the client.
+func (q *TransferListQuery) Role(isServer bool) *TransferListQuery {
+	q.query.Where("is_server=?", isServer)
+
+	return q
+}
+
 // Protocols adds a condition on the protocol of the transfers: one of the
 // given ones.
 func (q *TransferListQuery) Protocols(protocols ...string) *TransferListQuery {

@@ -27,6 +27,7 @@ const (
 	paramState    = "state"
 	paramRule     = "rule"
 	paramDir      = "direction" // "dir" is the order of the sort
+	paramRole     = "role"
 	paramPartner  = "partner"
 	paramAccount  = "account"
 	paramClient   = "client"
@@ -36,6 +37,11 @@ const (
 
 	dirSend    = "send"
 	dirReceive = "receive"
+
+	// The roles of the gateway in a transfer, the values of the role filter
+	// (#837): the other screens lead to the list by a role.
+	RoleClient = "client"
+	RoleServer = "server"
 
 	// The layout of a datetime-local field, in the time zone of the
 	// gateway.
@@ -49,7 +55,8 @@ const tableCols = 11
 
 //nolint:gochecknoglobals // reference data of the screen
 var filterParams = []string{
-	paramState, paramRule, paramDir, paramPartner, paramAccount, paramClient, paramProtocol, paramFrom, paramTo,
+	paramState, paramRule, paramDir, paramRole, paramPartner, paramAccount, paramClient, paramProtocol,
+	paramFrom, paramTo,
 }
 
 // filters is the part of the state of the list that belongs to the screen.
@@ -57,6 +64,7 @@ type filters struct {
 	State    string // key of the row of the states, "" for every state
 	Rule     string
 	Dir      string // dirSend, dirReceive or ""
+	Role     string // RoleClient, RoleServer or ""
 	Partner  string // the remote partner or the local server
 	Account  string
 	Client   string // the local client of the transfers
@@ -81,6 +89,10 @@ func parseFilters(v url.Values) *filters {
 
 	if dir := v.Get(paramDir); dir == dirSend || dir == dirReceive {
 		crit.Dir = dir
+	}
+
+	if role := v.Get(paramRole); role == RoleClient || role == RoleServer {
+		crit.Role = role
 	}
 
 	crit.Protocol = protoform.FamilyKeyOf(v.Get(paramProtocol))
@@ -111,7 +123,7 @@ func parseLocal(value string) (time.Time, bool) {
 // parameters.
 func (f *filters) criteria() map[string]string {
 	return map[string]string{
-		paramState: f.State, paramRule: f.Rule, paramDir: f.Dir, paramPartner: f.Partner,
+		paramState: f.State, paramRule: f.Rule, paramDir: f.Dir, paramRole: f.Role, paramPartner: f.Partner,
 		paramAccount: f.Account, paramClient: f.Client, paramProtocol: f.Protocol, paramFrom: f.From, paramTo: f.To,
 	}
 }
@@ -172,6 +184,10 @@ func (h *Handlers) selectQuery(q *liststate.Query, crit *filters, status types.T
 
 	if crit.Dir != "" {
 		query.Direction(crit.Dir == dirSend)
+	}
+
+	if crit.Role != "" {
+		query.Role(crit.Role == RoleServer)
 	}
 
 	if crit.Partner != "" {
@@ -360,6 +376,7 @@ type filterView struct {
 	Rule     string
 	Rules    []string
 	Dir      string
+	Role     string
 	Partner  string
 	Partners []string // the remote partners
 	Servers  []string // the local servers
@@ -692,8 +709,8 @@ func countText(translate gui.Translator, n uint64) string {
 // these names anyway).
 func (h *Handlers) filterView(crit *filters) filterView {
 	view := filterView{
-		Rule: crit.Rule, Dir: crit.Dir, Partner: crit.Partner, Account: crit.Account, Client: crit.Client,
-		Protocol: crit.Protocol, From: crit.From, To: crit.To,
+		Rule: crit.Rule, Dir: crit.Dir, Role: crit.Role, Partner: crit.Partner, Account: crit.Account,
+		Client: crit.Client, Protocol: crit.Protocol, From: crit.From, To: crit.To,
 	}
 
 	if rules, err := internal.ListRules(h.db, "name", true, 0, 0); err == nil {

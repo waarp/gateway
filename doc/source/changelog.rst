@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`837` Le Suivi des transferts se filtre par le rôle de la passerelle
+  dans le transfert, client ou serveur : les chiffres par rôle du tableau de
+  bord se retrouvent dans le suivi.
 * :feature:`836` La bande de santé du tableau de bord compte les certificats
   du nœud expirés ou à échéance sous trente jours (serveurs, partenaires,
   comptes, autorités), nommés avec leur date au survol.

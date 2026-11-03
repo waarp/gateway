@@ -355,6 +355,10 @@ func (h *Handlers) setRows(translate gui.Translator, sel *selection) []kv {
 		add("transfers.filter.direction", translate("transfers.dir."+crit.Dir))
 	}
 
+	if crit.Role != "" {
+		add("transfers.filter.role", translate("transfers.filter.role_"+crit.Role))
+	}
+
 	add("transfers.filter.partner", crit.Partner)
 	add("transfers.filter.account", crit.Account)
 	add("transfers.filter.client", crit.Client)

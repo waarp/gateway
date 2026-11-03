@@ -3239,6 +3239,10 @@ transfers:
     rule_all: Every rule
     direction: Direction
     direction_all: Send and receive
+    role: Role of the gateway
+    role_all: Client and server
+    role_client: Client
+    role_server: Server
     partner: Partner or server
     partner_all: Every partner and server
     partners: Remote partners
