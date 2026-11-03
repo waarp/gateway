@@ -44,7 +44,9 @@ const (
 	latestErrors = 5
 	// "Recent" failures: the transfers failed that started in the last hour.
 	recentFailures = time.Hour
-	timeLayout     = time.TimeOnly
+	// A transfer running for longer than this is "stuck", said by its tile (#835).
+	stuckAfter = time.Hour
+	timeLayout = time.TimeOnly
 
 	// States of a gui.Status and variants of a tile: the shape and colour.
 	stateOK   = "ok"

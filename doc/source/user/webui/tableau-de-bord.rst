@@ -38,15 +38,19 @@ toujours celui de l'écran qu'il ouvre.
        la case.
    * - Transferts en cours
      - Le nombre de transferts en cours ; en pied, les transferts planifiés,
-       en pause, interrompus et attendus.
+       en pause, interrompus et attendus, puis ce qui demande un regard : les
+       transferts en cours depuis plus d'une heure, les planifiés dont la date
+       est passée.
      - Le suivi des transferts filtré sur les transferts en cours.
    * - Transferts en erreur
      - Le nombre de transferts encore en erreur, donc à traiter ; en pied,
-       combien ont démarré depuis une heure.
+       combien sont côté client (ceux que *Reprendre* prend) et côté serveur
+       (le partenaire les relance), et combien ont démarré depuis une heure.
      - Le suivi des transferts filtré sur les transferts en erreur.
    * - Terminés sur 24 h
      - Le nombre de transferts terminés sur les 24 dernières heures ; en
-       pied, le volume transféré et les transferts annulés.
+       pied, le volume transféré, les transferts annulés et l'heure du dernier
+       transfert terminé.
      - Le suivi des transferts filtré sur les transferts terminés depuis le
        début de la période.
    * - Activité des 24 dernières heures

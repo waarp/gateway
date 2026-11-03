@@ -151,6 +151,12 @@ dashboard:
     volume: "{volume} transférés"
     cancelled: "{n} annulés"
     cancelled_one: 1 annulé
+    stuck: "{n} en cours depuis plus d'une heure"
+    stuck_one: 1 en cours depuis plus d'une heure
+    late: "{n} planifiés en retard"
+    late_one: 1 planifié en retard
+    last_done: "Dernier terminé à {time}"
+    roles: "{client} côté client · {server} côté serveur"
   sr:
     running: "{n} transferts en cours"
     running_one: 1 transfert en cours

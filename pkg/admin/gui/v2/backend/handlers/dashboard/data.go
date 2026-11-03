@@ -56,6 +56,15 @@ type figures struct {
 	Volume    int64             // bytes of the transfers of the window done
 	Hours     []hour            // the hours of the window, the oldest first
 	Errors    []failure         // the latest failed transfers, the most recent first
+
+	// What the tiles say beyond their figure (#835): the failed transfers
+	// where the gateway is the client, those where it is the server (the
+	// partner resumes them), the transfers running for more than stuckAfter,
+	// the planned ones whose date is past, and when the last transfer was
+	// done (zero when none was).
+	FailedClient, FailedServer uint64
+	Stuck, Late                uint64
+	LastDone                   time.Time
 }
 
 // hour is one hour of the window: how many transfers started in it are done,
@@ -105,8 +114,37 @@ func (h *Handlers) readFigures(now time.Time) (*figures, error) {
 		return nil, fmt.Errorf("failed to count the failed transfers to resume: %w", err)
 	}
 
+	if figs.FailedClient, err = h.db.Select(&live).Where("status=? AND local_account_id IS NULL",
+		types.StatusError).Count(); err != nil {
+		return nil, fmt.Errorf("failed to count the failed client transfers: %w", err)
+	}
+
+	if total := figs.Live[statusKey(types.StatusError)]; total > figs.FailedClient {
+		figs.FailedServer = total - figs.FailedClient
+	}
+
+	if figs.Stuck, err = h.db.Select(&live).Where("status=? AND start<?", types.StatusRunning,
+		now.Add(-stuckAfter).UTC()).Count(); err != nil {
+		return nil, fmt.Errorf("failed to count the stuck transfers: %w", err)
+	}
+
+	if figs.Late, err = h.db.Select(&live).Where("status=? AND start<?", types.StatusPlanned,
+		now.UTC()).Count(); err != nil {
+		return nil, fmt.Errorf("failed to count the overdue transfers: %w", err)
+	}
+
 	if figs.Day, err = h.db.Select(&hist).Where("start>=?", since).CountBy("status"); err != nil {
 		return nil, fmt.Errorf("failed to count the transfers of the window: %w", err)
+	}
+
+	var lastDone model.HistoryEntries
+	if err = h.db.Select(&lastDone).Where("status=?", types.StatusDone).
+		OrderBy("start", false).Limit(1, 0).Run(); err != nil {
+		return nil, fmt.Errorf("failed to read the last transfer done: %w", err)
+	}
+
+	if len(lastDone) == 1 {
+		figs.LastDone = lastDone[0].Start
 	}
 
 	if figs.Volume, err = h.db.Select(&hist).Where("start>=? AND status=? AND filesize>0",
@@ -279,6 +317,17 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 		}
 	}
 
+	// What asks for a look (#835): a transfer running for too long, a planned
+	// one whose date is past.
+	for _, look := range []struct {
+		n   uint64
+		key string
+	}{{figs.Stuck, "stuck"}, {figs.Late, "late"}} {
+		if look.n > 0 {
+			running.Statuses = append(running.Statuses, gui.Status{State: stateWarn, Label: txt.count(footKeys, look.key, look.n)})
+		}
+	}
+
 	nbFailed := figs.Live[statusKey(types.StatusError)]
 	failed := gui.TileProps{
 		Label:   txt.translate("dashboard.tile.error"),
@@ -294,6 +343,13 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 		failed.Statuses = []gui.Status{{State: stateOK, Label: txt.translate("dashboard.errors.none")}}
 	case figs.Recent > 0:
 		failed.Statuses = []gui.Status{{State: stateKO, Label: txt.count(footKeys, "recent_errors", figs.Recent)}}
+	}
+
+	// By role (#835): the client ones are those the grouped resumption takes,
+	// the server ones are resumed by the partner.
+	if nbFailed > 0 {
+		failed.Foot = txt.translate("dashboard.foot.roles",
+			"client", groupDigits(txt.translate, figs.FailedClient), "server", groupDigits(txt.translate, figs.FailedServer))
 	}
 
 	since := time.Time{}
@@ -316,6 +372,12 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 
 	if n := figs.Day[statusKey(types.StatusCancelled)]; n > 0 {
 		done.Statuses = []gui.Status{{State: stateOff, Label: txt.count(footKeys, "cancelled", n)}}
+	}
+
+	if !figs.LastDone.IsZero() {
+		done.Statuses = append(done.Statuses, gui.Status{
+			State: stateOK, Label: txt.translate("dashboard.foot.last_done", "time", figs.LastDone.Local().Format("15:04")),
+		})
 	}
 
 	return []gui.TileProps{running, failed, done}

@@ -152,6 +152,12 @@ dashboard:
     volume: "{volume} transferred"
     cancelled: "{n} cancelled"
     cancelled_one: 1 cancelled
+    stuck: "{n} running for over an hour"
+    stuck_one: 1 running for over an hour
+    late: "{n} planned and overdue"
+    late_one: 1 planned and overdue
+    last_done: "Last done at {time}"
+    roles: "{client} as client · {server} as server"
   sr:
     running: "{n} running transfers"
     running_one: 1 running transfer

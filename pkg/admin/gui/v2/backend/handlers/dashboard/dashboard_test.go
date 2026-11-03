@@ -170,8 +170,10 @@ func (s *suite) fixtures(t *testing.T) {
 
 	for _, trans := range []*model.Transfer{
 		clientTransfer("paie-octobre.xml", types.StatusRunning, at(21, 15, 40)),
+		clientTransfer("rapport-trimestriel.pdf", types.StatusRunning, at(21, 12, 50)), // stuck: over three hours
 		clientTransfer("rapport-mensuel.pdf", types.StatusPlanned, at(21, 18, 0)),
 		clientTransfer("rapport-annuel.pdf", types.StatusPlanned, at(21, 19, 0)),
+		clientTransfer("rapport-hebdo.pdf", types.StatusPlanned, at(21, 14, 0)), // overdue: two hours ago
 		clientTransfer("archive.zip", types.StatusPaused, at(21, 9, 0)),
 		clientTransfer("stocks.csv", types.StatusInterrupted, at(21, 11, 30)),
 		{
@@ -350,8 +352,18 @@ func TestPage(t *testing.T) {
 		running := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--info" href="/webui/transfers\?state=running">.*?</a>`).FindString(tiles)
 		require.NotEmpty(t, running)
 		assert.Contains(t, running, `<span class="w-tile__label">Transferts en cours</span>`)
-		assert.Contains(t, running, `<span aria-hidden="true">1</span><span class="visually-hidden">1 transfert en cours</span>`)
-		indexes(t, running, ">2 planifiés<", ">1 en pause<", ">1 interrompu<", ">1 attendu<")
+		assert.Contains(t, running, `<span aria-hidden="true">2</span><span class="visually-hidden">2 transferts en cours</span>`)
+		indexes(t, running, ">3 planifiés<", ">1 en pause<", ">1 interrompu<", ">1 attendu<",
+			`<span class="w-status w-status--warn">1 en cours depuis plus d&#39;une heure</span>`,
+			`<span class="w-status w-status--warn">1 planifié en retard</span>`)
+
+		failedTile := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ko" href="/webui/transfers\?state=error">.*?</a>`).FindString(tiles)
+		require.NotEmpty(t, failedTile)
+		assert.Contains(t, failedTile, `<span class="w-muted">2 côté client · 1 côté serveur</span>`, "the roles of the failed transfers (#835)")
+
+		doneTile := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ok" href="/webui/transfers\?from=[^"]+state=done">.*?</a>`).FindString(tiles)
+		require.NotEmpty(t, doneTile)
+		assert.Contains(t, doneTile, `<span class="w-status w-status--ok">Dernier terminé à 15:30</span>`, "the last transfer done (#835)")
 
 		failed := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ko" href="/webui/transfers\?state=error">.*?</a>`).FindString(tiles)
 		require.NotEmpty(t, failed)

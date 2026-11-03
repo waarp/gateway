@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`835` Les tuiles du tableau de bord disent ce que leur chiffre
+  cache : les transferts en erreur côté client et côté serveur, ceux en cours
+  depuis plus d'une heure, les planifiés en retard, l'heure du dernier
+  transfert terminé.
 * :feature:`834` Le tableau de bord ouvre sur la santé du nœud : une bande de
   cases (disponibilité, services, base de données, processeur et mémoire,
   espace disque, réseau, surveillances de partenaires), chacune avec son
