@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"slices"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
@@ -17,10 +16,17 @@ import (
 
 const noTransferMsg = "ERROR: no transfer in database"
 
+// getServerPDUs gives the sub-agent of a server its own copies of the objects,
+// named by their scalar instance (".0"). The objects themselves stay untouched:
+// a server built again, as a reload of its configuration does, must serve the
+// same instances.
 func getServerPDUs() []*snmplib.PDUValueControlItem {
-	pdus := slices.Clone(ServerPDUs)
-	for i := range pdus {
-		pdus[i].OID += ".0"
+	pdus := make([]*snmplib.PDUValueControlItem, 0, len(ServerPDUs))
+
+	for _, object := range ServerPDUs {
+		instance := *object
+		instance.OID += ".0"
+		pdus = append(pdus, &instance)
 	}
 
 	return pdus

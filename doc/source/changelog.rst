@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`839` Les objets SNMP restent servis après un rechargement de la
+  configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
+  redémarrage de la passerelle.
 * :bug:`827` Les connexions du serveur AS2 et du message PeSIT en TLS sont
   comptées comme celles des autres modules : les compteurs de connexions
   ouvertes, exposés par SNMP, les incluent.
