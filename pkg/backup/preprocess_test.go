@@ -3,11 +3,13 @@ package backup
 import (
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	r66lib "code.waarp.fr/lib/r66"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 func TestPreprocess(t *testing.T) {
@@ -26,7 +28,7 @@ func TestPreprocess(t *testing.T) {
 			Protocol: "sftp",
 			Accounts: []file.LocalAccount{{
 				Login:    "password",
-				Password: pswd,
+				Password: api.NewNullable(pswd),
 			}, {
 				Login:        "hash",
 				PasswordHash: pswdHash,
@@ -38,7 +40,7 @@ func TestPreprocess(t *testing.T) {
 				Credentials: []file.Credential{pswdCred(pswdHash)},
 			}, {
 				Login:       "password&cred",
-				Password:    "old_sesame",
+				Password:    api.NewNullable("old_sesame"),
 				Credentials: []file.Credential{pswdCred(pswd)},
 			}},
 		}},
@@ -73,13 +75,13 @@ func TestPreprocess(t *testing.T) {
 						Login: "empty",
 					}, {
 						Login:    "passwordOnly",
-						Password: "sesame",
+						Password: api.NewNullable("sesame"),
 					}, {
 						Login:       "credOnly",
 						Credentials: []file.Credential{pswdCred("sesame")},
 					}, {
 						Login:       "password&cred",
-						Password:    "sesame1",
+						Password:    api.NewNullable("sesame1"),
 						Credentials: []file.Credential{pswdCred("sesame2")},
 					},
 				},

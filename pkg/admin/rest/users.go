@@ -18,9 +18,13 @@ func restUserToDB(user *api.InUser, old *model.User) (*model.User, error) {
 		return nil, err
 	}
 
+	if !user.Password.Valid {
+		return nil, badRequest("the user password cannot be empty")
+	}
+
 	hash, err := utils.HashPassword(user.Password.Value)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
+		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	return &model.User{

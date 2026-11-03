@@ -5,6 +5,7 @@ package file
 import (
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
@@ -52,9 +53,9 @@ type LocalAgent struct {
 //
 //nolint:lll //tags are long
 type LocalAccount struct {
-	Login       string       `json:"login" yaml:"login"`
-	Password    string       `json:"password,omitempty" yaml:"password,omitempty"`
-	Credentials []Credential `json:"credentials" yaml:"credentials"`
+	Login       string               `json:"login" yaml:"login"`
+	Password    api.Nullable[string] `json:"password" yaml:"password"`
+	Credentials []Credential         `json:"credentials" yaml:"credentials"`
 
 	// Deprecated fields.
 	PasswordHash string        `json:"passwordHash,omitempty" yaml:"passwordHash,omitempty"` // Deprecated: use Credentials instead.
@@ -92,9 +93,9 @@ type RemoteAgent struct {
 //
 //nolint:lll //tags are long
 type RemoteAccount struct {
-	Login       string       `json:"login" yaml:"login"`
-	Password    string       `json:"password" yaml:"password"`
-	Credentials []Credential `json:"credentials" yaml:"credentials"`
+	Login       string               `json:"login" yaml:"login"`
+	Password    api.Nullable[string] `json:"password" yaml:"password"`
+	Credentials []Credential         `json:"credentials" yaml:"credentials"`
 
 	// Deprecated fields.
 	Certificates []Certificate `json:"certificates,omitempty" yaml:"certificates,omitempty"` // Deprecated: use Credentials instead.

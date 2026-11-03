@@ -5,6 +5,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -41,10 +42,10 @@ func TestImportRemoteAgents(t *testing.T) {
 					Accounts: []RemoteAccount{
 						{
 							Login:    "acc1",
-							Password: "pwd",
+							Password: api.NewNullable("pwd"),
 						}, {
 							Login:    "acc2",
-							Password: "pwd",
+							Password: api.NewNullable("pwd"),
 						},
 					},
 				}
@@ -112,7 +113,7 @@ func TestImportRemoteAgents(t *testing.T) {
 					Accounts: []RemoteAccount{
 						{
 							Login:    "acc1",
-							Password: "pwd",
+							Password: api.NewNullable("pwd"),
 						},
 					},
 					Credentials: []Credential{
@@ -191,7 +192,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 			Convey("Given a list of new accounts", func() {
 				account1 := RemoteAccount{
 					Login:    "bar",
-					Password: "pwd1",
+					Password: api.NewNullable("pwd1"),
 					Credentials: []Credential{{
 						Name:   "cert",
 						Type:   auth.TLSCertificate,
@@ -201,7 +202,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 				}
 				account2 := RemoteAccount{
 					Login:    "toto",
-					Password: "pwd2",
+					Password: api.NewNullable("pwd2"),
 				}
 				accounts := []RemoteAccount{
 					account1, account2,
@@ -229,7 +230,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 							var pwd model.Credential
 							So(db.Get(&pwd, "remote_account_id=? AND type=?",
 								accounts[1].ID, auth.Password).Run(), ShouldBeNil)
-							So(pwd.Value, ShouldEqual, account1.Password)
+							So(pwd.Value, ShouldEqual, account1.Password.Value)
 
 							var cert model.Credential
 							So(db.Get(&cert, "remote_account_id=? AND type=?",
@@ -244,7 +245,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 							var pswd model.Credential
 							So(db.Get(&pswd, "remote_account_id=?", accounts[2].ID).Run(), ShouldBeNil)
 							So(pswd.Type, ShouldEqual, auth.Password)
-							So(pswd.Value, ShouldEqual, account2.Password)
+							So(pswd.Value, ShouldEqual, account2.Password.Value)
 						})
 
 						Convey("Then the existing account should be unchanged", func() {
@@ -257,7 +258,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 			Convey("Given a list of fully updated agents", func() {
 				account1 := RemoteAccount{
 					Login:    dbAccount.Login,
-					Password: "new password",
+					Password: api.NewNullable("new password"),
 					Certificates: []Certificate{
 						{
 							Name:        "cert",
@@ -288,7 +289,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 							var pwd model.Credential
 							So(db.Get(&pwd, "remote_account_id=? AND type=?",
 								accounts[0].ID, auth.Password).Run(), ShouldBeNil)
-							So(pwd.Value, ShouldEqual, account1.Password)
+							So(pwd.Value, ShouldEqual, account1.Password.Value)
 
 							var cert model.Credential
 							So(db.Get(&cert, "remote_account_id=? AND type=?",

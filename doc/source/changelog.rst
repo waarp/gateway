@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`799` Correction de bugs de l'interface REST et du CLI qui empêchaient
+  d'attribuer un mot de passe vide à un compte ou agent. Un autre bug invalidant
+  la vérification d'un mot de passe vide lors de l'authentification a également
+  été corrigé. Il est donc désormais bien possible d'attribuer explicitement un
+  mot de passe vide à un partenaire, serveur ou compte lorsque cela est nécessaire.
 * :bug:`822` Correction d'un bug de la tâche TRANSCODE pouvant parfois provoquer
   un crash d'application (*panic*).
 * :bug:`798` Ajout d'options de filtrage et de tri manquantes à la commande

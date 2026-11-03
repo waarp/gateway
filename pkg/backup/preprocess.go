@@ -60,8 +60,8 @@ func preprocessLocalAccounts(accounts []file.LocalAccount, protocol string) erro
 
 		if account.PasswordHash != "" {
 			err = addPswdHashCred(&account.Credentials, account.PasswordHash, protocol)
-		} else if account.Password != "" {
-			err = addPswdHashCred(&account.Credentials, account.Password, protocol)
+		} else if account.Password.Valid {
+			err = addPswdHashCred(&account.Credentials, account.Password.Value, protocol)
 		}
 
 		if err != nil {
@@ -102,8 +102,8 @@ func preprocessRemoteAccounts(accounts []file.RemoteAccount) {
 	for i := range accounts {
 		account := &accounts[i]
 
-		if account.Password != "" && !hasPasswordCred(account.Credentials) {
-			account.Credentials = append(account.Credentials, pswdCred(account.Password))
+		if account.Password.Valid && !hasPasswordCred(account.Credentials) {
+			account.Credentials = append(account.Credentials, pswdCred(account.Password.Value))
 		}
 	}
 }
