@@ -124,6 +124,7 @@ func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 		Stylesheets: []string{stylesheet},
 		Scripts:     []string{script},
 		Notices:     transfers.Notices(translate, r.URL.Query()),
+		Wide:        true, // an operations screen: the whole width
 	}, page(data))
 }
 
