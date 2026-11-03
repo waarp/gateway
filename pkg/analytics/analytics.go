@@ -17,6 +17,25 @@ type analytics struct {
 
 	OpenIncomingConnections atomic.Int64 // Number of open incoming connections.
 	OpenOutgoingConnections atomic.Int64 // Number of open outgoing connections.
+
+	// The bytes of the transfers written to the files of the gateway (received)
+	// and read from them (sent) since its launch; the sampler gives their rates.
+	BytesReceived atomic.Int64
+	BytesSent     atomic.Int64
+
+	sampler sampler
+}
+
+// Sample records the counters at now, for the rates; the service does it every
+// SamplePeriod.
+func (a *analytics) Sample(now time.Time) {
+	a.sampler.record(sample{at: now, received: a.BytesReceived.Load(), sent: a.BytesSent.Load()})
+}
+
+// Throughput is the mean bytes per second received and sent over the last
+// SampleWindow; zero before two samples.
+func (a *analytics) Throughput() (received, sent float64) {
+	return a.sampler.rates()
 }
 
 func (*analytics) GetVersion() string { return version.Num }
@@ -49,5 +68,19 @@ func AddOutgoingConnection() {
 func SubOutgoingConnection() {
 	if GlobalService != nil {
 		GlobalService.OpenOutgoingConnections.Add(-1)
+	}
+}
+
+// AddBytesReceived counts n bytes written to a file by a transfer.
+func AddBytesReceived(n int) {
+	if GlobalService != nil {
+		GlobalService.BytesReceived.Add(int64(n))
+	}
+}
+
+// AddBytesSent counts n bytes read from a file by a transfer.
+func AddBytesSent(n int) {
+	if GlobalService != nil {
+		GlobalService.BytesSent.Add(int64(n))
 	}
 }

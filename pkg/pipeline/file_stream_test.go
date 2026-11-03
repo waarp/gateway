@@ -10,6 +10,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -138,6 +139,8 @@ func TestStreamRead(t *testing.T) {
 			So(fs.WriteFullFile(localPath, content), ShouldBeNil)
 
 			stream := initFilestream(ctx, trans)
+			analytics.GlobalService = &analytics.Service{}
+			Reset(func() { analytics.GlobalService = nil })
 
 			Convey("When reading from the stream", func(c C) {
 				b := make([]byte, 4)
@@ -146,6 +149,11 @@ func TestStreamRead(t *testing.T) {
 
 				Convey("Then it should return the correct number of bytes", func(c C) {
 					So(n, ShouldEqual, len(b))
+				})
+
+				Convey("Then the bytes should have been counted as sent", func(c C) {
+					So(analytics.GlobalService.BytesSent.Load(), ShouldEqual, len(b))
+					So(analytics.GlobalService.BytesReceived.Load(), ShouldEqual, 0)
 				})
 
 				Convey("Then the transfer progression should have been updated", func(c C) {
@@ -290,6 +298,8 @@ func TestStreamWrite(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			stream := initFilestream(ctx, trans)
+			analytics.GlobalService = &analytics.Service{}
+			Reset(func() { analytics.GlobalService = nil })
 
 			Convey("When writing to the stream", func(c C) {
 				b := []byte("file content")
@@ -298,6 +308,11 @@ func TestStreamWrite(t *testing.T) {
 
 				Convey("Then it should return the correct number of bytes", func(c C) {
 					So(n, ShouldEqual, len(b))
+				})
+
+				Convey("Then the bytes should have been counted as received", func(c C) {
+					So(analytics.GlobalService.BytesReceived.Load(), ShouldEqual, len(b))
+					So(analytics.GlobalService.BytesSent.Load(), ShouldEqual, 0)
 				})
 
 				Convey("Then the transfer progression should have been updated", func(c C) {
