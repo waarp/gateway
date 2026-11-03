@@ -82,13 +82,13 @@ La liste
 
 Les colonnes *Règle*, *Sens* et *Chemin* se trient d'un clic sur leur en-tête
 (par défaut, le nom croissant). La recherche filtre les règles par leur nom ou
-leur chemin (:ref:`règle commune <user-webui-search>`) ; le bouton *Filtres* ouvre les cases des
-sens, appliquées dès qu'elles changent, et *Réinitialiser* revient à la liste
-complète. Le pied de liste permet de changer de page et de choisir le nombre
-de lignes par page. La recherche, les filtres, le tri et la page sont portés
-par l'adresse de la page ; le tri et le nombre de lignes par page sont
-conservés pour la durée de la session du navigateur, comme pour les autres
-listes.
+leur chemin (:ref:`règle commune <user-webui-search>`) ; le bouton *Filtres*
+ouvre les cases des sens, appliquées dès qu'elles changent, et *Réinitialiser*
+revient à la liste complète. Le pied de liste permet de changer de page et de
+choisir le nombre de lignes par page. La recherche, les filtres, le tri, le
+nombre de lignes par page et la page sont portés par l'adresse de la page et, la
+page exceptée, conservés pour la durée de la session du navigateur, comme pour
+les autres listes.
 
 .. list-table::
    :header-rows: 1

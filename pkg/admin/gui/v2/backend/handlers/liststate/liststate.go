@@ -2,11 +2,11 @@
 // clients...), shared by the screens: the search, the filters of the
 // screen, the sort, the page and the rows per page, carried by the URL of
 // the list and by the action pages (?ret=) so that coming back finds the
-// list as it was left. The preferences of the list, the sort, its direction
-// and the rows per page, are also kept for the browser session in a cookie:
-// a request that says nothing (the entry of the sidebar) gets them back, on
-// the first page, without search nor filter (2026-10-29). It also builds the
-// list foot and the counts.
+// list as it was left. The list is also kept for the browser session in a
+// cookie, its page apart: a request that says nothing (the entry of the
+// sidebar) gets its search, its filters, its sort and its rows per page back,
+// on the first page (2026-10-29, 2026-11-03). It also builds the list foot
+// and the counts.
 package liststate
 
 import (
@@ -212,8 +212,7 @@ func (q *Query) sizeByDefault() int {
 }
 
 // Preferences carries the sort, its direction and the rows per page when
-// they differ from the default: what a list keeps for the session, apart
-// from its position (the page, the search and the filters).
+// they differ from the default.
 func (q *Query) Preferences() url.Values {
 	v := url.Values{}
 	if q.Sort != q.sorts[0] || q.Dir != q.defaultDir() {
@@ -355,8 +354,8 @@ func (s *Spec) HasParams(params url.Values) bool {
 	return slices.ContainsFunc(keys, params.Has)
 }
 
-// KeptState reads the preferences kept for the session; default or
-// unreadable preferences are none.
+// KeptState reads the state kept for the session; a default or unreadable
+// state is none.
 func (s *Spec) KeptState(r *http.Request) (*Query, bool) {
 	cookie, err := r.Cookie(s.Cookie)
 	if err != nil {
@@ -370,17 +369,17 @@ func (s *Spec) KeptState(r *http.Request) (*Query, bool) {
 
 	kept := s.RetOf(state)
 
-	return kept, len(kept.Preferences()) > 0
+	return kept, len(kept.Values()) > 0
 }
 
-// KeepState stores the preferences of the list (the sort, its direction and
-// the rows per page) for the browser session, or forgets them when they are
-// the default ones. The position of the list (the page, the search and the
-// filters) is not kept: it comes back through the action pages only.
+// KeepState stores the state of the list (the search, the filters, the sort,
+// its direction and the rows per page) for the browser session, or forgets
+// it when it is the default one. The page is not kept: it comes back through
+// the action pages only.
 func (s *Spec) KeepState(w http.ResponseWriter, query *Query) {
 	cookie := &http.Cookie{
 		Name:     s.Cookie,
-		Value:    url.QueryEscape(query.Preferences().Encode()),
+		Value:    url.QueryEscape(query.Values().Encode()),
 		Path:     common.WebuiURL(s.Path),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -394,11 +393,11 @@ func (s *Spec) KeepState(w http.ResponseWriter, query *Query) {
 }
 
 // Restore redirects a request that says nothing about the state of the list
-// to the preferences kept for the session, carrying the result of the
-// previous action; it returns false when there is nothing to restore. A
-// request that says something keeps its preferences for the session, the
-// fragments of the live list included (a sort or a size changed in place
-// counts); a fragment is never redirected.
+// to the state kept for the session, on the first page, carrying the result
+// of the previous action; it returns false when there is nothing to restore.
+// A request that says something keeps its state for the session, the
+// fragments of the live list included (a filter, a sort or a size changed in
+// place counts); a fragment is never redirected.
 func (s *Spec) Restore(w http.ResponseWriter, r *http.Request) bool {
 	params := r.URL.Query()
 	if s.HasParams(params) {
@@ -416,7 +415,7 @@ func (s *Spec) Restore(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
-	target := kept.Preferences()
+	target := kept.Values()
 	for _, name := range []string{DoneParam, FailedParam, NameParam, ReasonParam} {
 		if params.Has(name) {
 			target.Set(name, params.Get(name))
