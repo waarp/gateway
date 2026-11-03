@@ -72,7 +72,8 @@ func certsCell(txt texts, certs *certSummary) gui.HealthItem {
 	items := make([]string, 0, len(certs.Items))
 	for _, item := range certs.Items {
 		_, date := transfers.TimeAndDate(txt.translate, item.NotAfter)
-		items = append(items, txt.health("cert_item", "owner", txt.health("cert_"+item.Owner, "name", item.Name), "date", date))
+		owner := txt.health("cert_"+item.Owner, "name", item.Name)
+		items = append(items, txt.health("cert_item", "owner", owner, "date", date))
 	}
 
 	cell.Title = strings.Join(items, " · ")
@@ -82,10 +83,12 @@ func certsCell(txt texts, certs *certSummary) gui.HealthItem {
 		cell.Value, cell.State, cell.Text = "0", stateOff, txt.health("certs_none")
 	case certs.Expired > 0:
 		cell.Value, cell.Unit = strconv.Itoa(certs.Expired+certs.Expiring), "/ "+strconv.Itoa(certs.Total)
-		cell.State, cell.Text = stateKO, txt.count(healthKeys, "certs_expired", uint64(certs.Expired)) //nolint:gosec // a count
+		cell.State = stateKO
+		cell.Text = txt.count(healthKeys, "certs_expired", uint64(certs.Expired)) //nolint:gosec // a count
 	case certs.Expiring > 0:
 		cell.Value, cell.Unit = strconv.Itoa(certs.Expiring), "/ "+strconv.Itoa(certs.Total)
-		cell.State, cell.Text = stateWarn, txt.count(healthKeys, "certs_expiring", uint64(certs.Expiring)) //nolint:gosec // a count
+		cell.State = stateWarn
+		cell.Text = txt.count(healthKeys, "certs_expiring", uint64(certs.Expiring)) //nolint:gosec // a count
 	default:
 		cell.Value, cell.Unit = strconv.Itoa(certs.Total), ""
 		cell.State, cell.Text = stateOK, txt.health("certs_ok")

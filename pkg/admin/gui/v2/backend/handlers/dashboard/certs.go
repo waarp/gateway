@@ -107,29 +107,29 @@ func ownerOf(db database.ReadAccess, cred *model.Credential) (owner, name string
 	switch {
 	case cred.LocalAgentID.Valid:
 		var server model.LocalAgent
-		if err := db.Get(&server, "id=?", cred.LocalAgentID.Int64).Run(); err != nil {
-			return "", "", fmt.Errorf("failed to read the server of a certificate: %w", err)
+		if getErr := db.Get(&server, "id=?", cred.LocalAgentID.Int64).Run(); getErr != nil {
+			return "", "", fmt.Errorf("failed to read the server of a certificate: %w", getErr)
 		}
 
 		return ownerServer, server.Name, nil
 	case cred.RemoteAgentID.Valid:
 		var partner model.RemoteAgent
-		if err := db.Get(&partner, "id=?", cred.RemoteAgentID.Int64).Run(); err != nil {
-			return "", "", fmt.Errorf("failed to read the partner of a certificate: %w", err)
+		if getErr := db.Get(&partner, "id=?", cred.RemoteAgentID.Int64).Run(); getErr != nil {
+			return "", "", fmt.Errorf("failed to read the partner of a certificate: %w", getErr)
 		}
 
 		return ownerPartner, partner.Name, nil
 	case cred.LocalAccountID.Valid:
 		var account model.LocalAccount
-		if err := db.Get(&account, "id=?", cred.LocalAccountID.Int64).Run(); err != nil {
-			return "", "", fmt.Errorf("failed to read the account of a certificate: %w", err)
+		if getErr := db.Get(&account, "id=?", cred.LocalAccountID.Int64).Run(); getErr != nil {
+			return "", "", fmt.Errorf("failed to read the account of a certificate: %w", getErr)
 		}
 
 		return ownerAccount, account.Login, nil
 	case cred.RemoteAccountID.Valid:
 		var account model.RemoteAccount
-		if err := db.Get(&account, "id=?", cred.RemoteAccountID.Int64).Run(); err != nil {
-			return "", "", fmt.Errorf("failed to read the account of a certificate: %w", err)
+		if getErr := db.Get(&account, "id=?", cred.RemoteAccountID.Int64).Run(); getErr != nil {
+			return "", "", fmt.Errorf("failed to read the account of a certificate: %w", getErr)
 		}
 
 		return ownerAccount, account.Login, nil
