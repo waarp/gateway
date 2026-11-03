@@ -194,8 +194,13 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh boo
 		last = h.lastReading()
 	}
 
+	var certs *certSummary
+	if figs != nil {
+		certs = &figs.Certs
+	}
+
 	data.Health = gui.HealthProps{Items: healthCells(translate, &healthInput{
-		node: h.info, now: now, dbType: h.db.Config.Database.Type, last: last,
+		node: h.info, now: now, dbType: h.db.Config.Database.Type, last: last, certs: certs,
 		services: services.Sum(translate, h.shell.Catalog().Has, h.list), monitors: h.monitors,
 	})}
 

@@ -124,6 +124,19 @@ dashboard:
     network_text: "{rate} émis · {n} connexions"
     network_text_one: "{rate} émis · 1 connexion"
     network_title: "Moyenne des 30 dernières secondes ; {in} connexions entrantes, {out} sortantes"
+    certs: Certificats
+    certs_unread: Non lus
+    certs_none: Aucun
+    certs_ok: Tous valides
+    certs_expiring: "Expirent sous 30 jours"
+    certs_expiring_one: Expire sous 30 jours
+    certs_expired: "{n} expirés"
+    certs_expired_one: 1 expiré
+    cert_item: "{owner} : {date}"
+    cert_server: "serveur {name}"
+    cert_partner: "partenaire {name}"
+    cert_account: "compte {name}"
+    cert_authority: "autorité {name}"
     monitors: Surveillances
     monitors_ok: Toutes actives
     monitors_ko: "{n} en défaut"

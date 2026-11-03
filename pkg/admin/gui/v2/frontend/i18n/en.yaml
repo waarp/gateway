@@ -125,6 +125,19 @@ dashboard:
     network_text: "{rate} sent · {n} connections"
     network_text_one: "{rate} sent · 1 connection"
     network_title: "Mean of the last 30 seconds; {in} incoming connections, {out} outgoing"
+    certs: Certificates
+    certs_unread: Not read
+    certs_none: None
+    certs_ok: All valid
+    certs_expiring: "Expiring within 30 days"
+    certs_expiring_one: Expiring within 30 days
+    certs_expired: "{n} expired"
+    certs_expired_one: 1 expired
+    cert_item: "{owner}: {date}"
+    cert_server: "server {name}"
+    cert_partner: "partner {name}"
+    cert_account: "account {name}"
+    cert_authority: "authority {name}"
     monitors: Monitors
     monitors_ok: All active
     monitors_ko: "{n} failing"

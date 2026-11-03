@@ -65,6 +65,8 @@ type figures struct {
 	FailedClient, FailedServer uint64
 	Stuck, Late                uint64
 	LastDone                   time.Time
+
+	Certs certSummary // the certificates of the node, judged at the reading (#836)
 }
 
 // readTileFigures reads what the tiles say beyond their figure (#835): the
@@ -161,6 +163,13 @@ func (h *Handlers) readFigures(now time.Time) (*figures, error) {
 
 	if figs.Day, err = h.db.Select(&hist).Where("start>=?", since).CountBy("status"); err != nil {
 		return nil, fmt.Errorf("failed to count the transfers of the window: %w", err)
+	}
+
+	// The certificates are read apart: one that cannot be read does not
+	// take the other figures down, the cell says they are unread.
+	if figs.Certs, err = readCerts(h.db, now); err != nil {
+		h.logger.Warningf("Failed to read the certificates for the dashboard: %v", err)
+		figs.Certs = certSummary{Unread: true}
 	}
 
 	if figs.Volume, err = h.db.Select(&hist).Where("start>=? AND status=? AND filesize>0",

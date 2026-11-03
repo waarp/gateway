@@ -34,13 +34,14 @@ type healthInput struct {
 	dbType   string
 	last     reading // the last reading of the figures: how long it took, since when it fails
 	services services.Summary
+	certs    *certSummary // the certificates of the node; nil when the figures are not read
 	monitors Monitors
 }
 
 // healthCells builds the cells of the strip (#834): uptime, services, database,
-// processor and memory, disk space, network, partner monitors. Each cell
-// carries its state by a shape and a word; a figure that cannot be read is
-// "unmeasured", never a false figure.
+// processor and memory, disk space, network, certificates (#836), partner
+// monitors. Each cell carries its state by a shape and a word; a figure that
+// cannot be read is "unmeasured", never a false figure.
 func healthCells(translate gui.Translator, in *healthInput) []gui.HealthItem {
 	txt := texts{translate}
 
@@ -51,8 +52,46 @@ func healthCells(translate gui.Translator, in *healthInput) []gui.HealthItem {
 		loadCell(txt, in.node),
 		diskCell(txt, in.node),
 		networkCell(txt, in.node),
+		certsCell(txt, in.certs),
 		monitorsCell(txt, in.monitors),
 	}
+}
+
+// certsCell counts the certificates of the node about to expire (#836): the
+// expired ones first, then those ending within thirty days, named with their
+// date in the tooltip; "all valid" otherwise.
+func certsCell(txt texts, certs *certSummary) gui.HealthItem {
+	cell := gui.HealthItem{Label: txt.health("certs")}
+
+	if certs == nil || certs.Unread {
+		cell.Value, cell.State, cell.Text = txt.health("unmeasured"), stateOff, txt.health("certs_unread")
+
+		return cell
+	}
+
+	items := make([]string, 0, len(certs.Items))
+	for _, item := range certs.Items {
+		_, date := transfers.TimeAndDate(txt.translate, item.NotAfter)
+		items = append(items, txt.health("cert_item", "owner", txt.health("cert_"+item.Owner, "name", item.Name), "date", date))
+	}
+
+	cell.Title = strings.Join(items, " · ")
+
+	switch {
+	case certs.Total == 0:
+		cell.Value, cell.State, cell.Text = "0", stateOff, txt.health("certs_none")
+	case certs.Expired > 0:
+		cell.Value, cell.Unit = strconv.Itoa(certs.Expired+certs.Expiring), "/ "+strconv.Itoa(certs.Total)
+		cell.State, cell.Text = stateKO, txt.count(healthKeys, "certs_expired", uint64(certs.Expired)) //nolint:gosec // a count
+	case certs.Expiring > 0:
+		cell.Value, cell.Unit = strconv.Itoa(certs.Expiring), "/ "+strconv.Itoa(certs.Total)
+		cell.State, cell.Text = stateWarn, txt.count(healthKeys, "certs_expiring", uint64(certs.Expiring)) //nolint:gosec // a count
+	default:
+		cell.Value, cell.Unit = strconv.Itoa(certs.Total), ""
+		cell.State, cell.Text = stateOK, txt.health("certs_ok")
+	}
+
+	return cell
 }
 
 func (txt texts) health(key string, args ...any) string {

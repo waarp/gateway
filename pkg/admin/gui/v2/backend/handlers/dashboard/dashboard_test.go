@@ -2,7 +2,15 @@ package dashboard
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
+	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -16,10 +24,12 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
@@ -28,6 +38,31 @@ import (
 // at is a moment of the days of the fixtures, in the time zone of the gateway.
 func at(day, hour, minute int) time.Time {
 	return time.Date(2026, 10, day, hour, minute, 0, 0, time.Local)
+}
+
+// certPEM makes a self-signed certificate for a name, valid until notAfter,
+// and its key, both in PEM.
+func certPEM(t *testing.T, name string, notAfter time.Time) (cert, key string) {
+	t.Helper()
+
+	private, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: name},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: notAfter,
+		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign, BasicConstraintsValid: true, IsCA: true,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}, IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1)},
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &private.PublicKey, private)
+	require.NoError(t, err)
+
+	keyDER, err := x509.MarshalECPrivateKey(private)
+	require.NoError(t, err)
+
+	return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})),
+		string(pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}))
 }
 
 // sampleServices is a lister with a server in error.
@@ -53,6 +88,7 @@ type suite struct {
 
 	monitorsTotal, monitorsFailing int
 	monitorsErr                    error
+	certEnd                        time.Time // when the certificate of the server ends: ten days from now, the real now
 
 	failedRecent, failedOld, failedServer *model.Transfer
 }
@@ -112,7 +148,10 @@ func (n *stubNode) DiskUsageOf(name string) (analytics.DiskUsage, error) {
 func newSuite(t *testing.T) *suite {
 	t.Helper()
 
-	s := &suite{db: dbtest.TestDatabase(t), now: at(21, 16, 5), node: sampleNode(), monitorsTotal: 14, monitorsFailing: 1}
+	s := &suite{
+		db: dbtest.TestDatabase(t), now: at(21, 16, 5), node: sampleNode(), monitorsTotal: 14, monitorsFailing: 1,
+		certEnd: time.Now().Add(10 * 24 * time.Hour),
+	}
 	s.h = New(s.db, testhelpers.GetTestLogger(t), sampleServices, s.node,
 		func() (int, int, error) { return s.monitorsTotal, s.monitorsFailing, s.monitorsErr })
 	s.h.now = func() time.Time { return s.now }
@@ -142,6 +181,20 @@ func (s *suite) fixtures(t *testing.T) {
 
 	south := &model.LocalAccount{LocalAgentID: server.ID, Login: "filiale-sud"}
 	require.NoError(t, s.db.Insert(south).Run())
+
+	// The certificates of the node (#836): the server one ends ten days from
+	// the real now (a certificate must be valid when it is written), the
+	// authority's one in years.
+	https := &model.LocalAgent{Name: "srv-https", Protocol: "https", Address: types.Addr("127.0.0.1", 8443)}
+	require.NoError(t, s.db.Insert(https).Run())
+
+	cert, key := certPEM(t, "srv-https", s.certEnd)
+	require.NoError(t, s.db.Insert(&model.Credential{
+		LocalAgentID: https.NullableID(), Name: "cert-https", Type: auth.TLSCertificate, Value: cert, Value2: key,
+	}).Run())
+
+	caCert, _ := certPEM(t, "ca-interne", time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC))
+	require.NoError(t, s.db.Insert(&model.Authority{Name: "ca-interne", Type: auth.AuthorityTLS, PublicIdentity: caCert}).Run())
 
 	send := &model.Rule{Name: "releves", IsSend: true, Path: "/releves"}
 	receive := &model.Rule{Name: "commandes", IsSend: false, Path: "/commandes"}
@@ -301,7 +354,7 @@ func TestPage(t *testing.T) {
 		// The health of the node: the strip of the kit, a cell per figure (#834).
 		health := part(t, body, "tdb-health")
 		assert.Contains(t, body, `<h2 class="w-section-title">Santé du nœud gw-test</h2>`)
-		assert.Equal(t, 7, strings.Count(health, `class="w-health__item `), "seven cells")
+		assert.Equal(t, 8, strings.Count(health, `class="w-health__item `), "eight cells")
 		indexes(t, health,
 			`<a class="w-health__item w-health__item--ok" href="/webui/about" title="Démarrée le 09/10/2026 à 06:12:00 ; version 0.19.0-test"><span class="w-health__label">Disponibilité</span> <span class="w-health__value">12 j 09 h</span> <span class="w-status w-status--ok">v0.19.0-test, depuis le 09/10/2026</span></a>`,
 			`<a class="w-health__item w-health__item--ko" href="/webui/services" title="Services système 2 / 2 · Serveurs locaux 1 / 2 · Clients locaux 1 / 1"><span class="w-health__label">Services</span> <span class="w-health__value">4<small>/ 5</small></span> <span class="w-status w-status--ko">1 en erreur</span></a>`,
@@ -328,6 +381,26 @@ func TestPage(t *testing.T) {
 
 		s.node, s.monitorsErr = sampleNode(), nil
 		s.h.info = s.node
+	})
+
+	t.Run("Given the certificates of the node", func(t *testing.T) {
+		// Judged at the real now, the clock the certificate was written with:
+		// the server certificate ends in ten days, the authority's in years.
+		_, date := transfers.TimeAndDate(func(key string, _ ...any) string { return "02/01/2006" }, s.certEnd)
+		s.now, s.h.last = time.Now(), reading{}
+		body := s.serve(t, write, "fr", "/webui/dashboard").Body.String()
+		health := part(t, body, "tdb-health")
+
+		assert.Contains(t, health, `<div class="w-health__item w-health__item--warn" title="serveur srv-https : `+date+`"><span class="w-health__label">Certificats</span> <span class="w-health__value">1<small>/ 2</small></span> <span class="w-status w-status--warn">Expire sous 30 jours</span></div>`)
+
+		// Twenty days on, it has expired.
+		s.now, s.h.last = time.Now().Add(20*24*time.Hour), reading{}
+		body = s.serve(t, write, "fr", "/webui/dashboard").Body.String()
+		health = part(t, body, "tdb-health")
+
+		assert.Contains(t, health, `<div class="w-health__item w-health__item--ko" title="serveur srv-https : `+date+`"><span class="w-health__label">Certificats</span> <span class="w-health__value">1<small>/ 2</small></span> <span class="w-status w-status--ko">1 expiré</span></div>`)
+
+		s.now, s.h.last = at(21, 16, 5), reading{}
 	})
 
 	t.Run("Given the thresholds of the strip", func(t *testing.T) {
@@ -482,9 +555,31 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `id="tdb-health"`)
 		assert.Contains(t, body, `<span class="w-health__label">Base de données</span> <span class="w-health__value">Non mesuré</span> <span class="w-status w-status--off">Pas encore lue</span>`,
 			"the database is not read for a user who does not read the transfers")
+		assert.Contains(t, body, `<span class="w-health__label">Certificats</span> <span class="w-health__value">Non mesuré</span> <span class="w-status w-status--off">Non lus</span>`,
+			"nor the certificates")
 		assert.NotContains(t, body, `id="tdb-transfers"`)
 		assert.NotContains(t, body, "tdb-errors")
 		assert.NotContains(t, part(t, body, "tdb-notice"), "w-banner", "no message: the sidebar does not offer the transfers either")
+	})
+
+	t.Run("Given certificates the base cannot read", func(t *testing.T) {
+		// A credential whose key is not ciphered as the base expects: the
+		// certificates are unread, the other figures stand.
+		require.NoError(t, s.db.Exec("UPDATE credentials SET value2=? WHERE name=?", "not-a-ciphered-key", "cert-https"))
+		s.h.last = reading{}
+		body := s.serve(t, write, "fr", "/webui/dashboard").Body.String()
+
+		assert.Contains(t, body, `<span class="w-health__label">Certificats</span> <span class="w-health__value">Non mesuré</span> <span class="w-status w-status--off">Non lus</span>`)
+		assert.Contains(t, body, `id="tdb-transfers"`, "the figures of the transfers stand")
+		assert.NotContains(t, body, "Injoignable")
+
+		cert, key := certPEM(t, "srv-https", s.certEnd)
+		require.NoError(t, s.db.Exec("DELETE FROM credentials WHERE name=?", "cert-https"))
+		require.NoError(t, s.db.Insert(&model.Credential{
+			LocalAgentID: utils.NewNullInt64(localAgentID(t, s.db, "srv-https")), Name: "cert-https",
+			Type: auth.TLSCertificate, Value: cert, Value2: key,
+		}).Run())
+		s.h.last = reading{}
 	})
 
 	t.Run("Given a request for the body fragment", func(t *testing.T) {
@@ -617,3 +712,13 @@ func TestDegradedPage(t *testing.T) {
 }
 
 func itoa(id int64) string { return strconv.FormatInt(id, 10) }
+
+// localAgentID is the id of the server of that name.
+func localAgentID(t *testing.T, db *database.DB, name string) int64 {
+	t.Helper()
+
+	var server model.LocalAgent
+	require.NoError(t, db.Get(&server, "name=?", name).Run())
+
+	return server.ID
+}
