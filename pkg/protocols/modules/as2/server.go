@@ -102,12 +102,13 @@ func (s *server) start() error {
 		utils.FormatUint(s.agent.Address.Port),
 	)
 
+	// The shared listeners count the open connections (#827).
 	var listErr error
 	if s.agent.Protocol == AS2TLS {
 		tlsConfig := protoutils.GetServerTLSConfig(s.db, s.logger, s.agent.ID)
-		s.listener, listErr = tls.Listen("tcp", realAddr, tlsConfig)
+		s.listener, listErr = protoutils.ListenTLS("tcp", realAddr, tlsConfig)
 	} else {
-		s.listener, listErr = net.Listen("tcp", realAddr)
+		s.listener, listErr = protoutils.Listen("tcp", realAddr)
 	}
 
 	if listErr != nil {

@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`827` Les connexions du serveur AS2 et du message PeSIT en TLS sont
+  comptées comme celles des autres modules : les compteurs de connexions
+  ouvertes, exposés par SNMP, les incluent.
 * :bug:`824` Chaque ligne d'information d'une tâche porte son menu « ⋯ »
   (insérer une variable, retirer l'information) : le bouton « Variables » ne
   déborde plus de la ligne, et une ligne ajoutée propose aussi les variables.
