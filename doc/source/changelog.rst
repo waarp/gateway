@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`834` Le tableau de bord ouvre sur la santé du nœud : une bande de
+  cases (disponibilité, services, base de données, processeur et mémoire,
+  espace disque, réseau, surveillances de partenaires), chacune avec son
+  état, à la place des trois tuiles de services.
 * :feature:`833` Le tableau de bord occupe toute la largeur de l'écran, comme
   le Suivi des transferts.
 * :feature:`832` Le tableau de bord distingue hier d'aujourd'hui dans

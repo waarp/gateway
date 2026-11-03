@@ -16,6 +16,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -45,11 +46,65 @@ func sampleServices() (core, servers, clients []internal.Service) {
 }
 
 type suite struct {
-	db  *database.DB
-	h   *Handlers
-	now time.Time
+	db   *database.DB
+	h    *Handlers
+	now  time.Time
+	node *stubNode
+
+	monitorsTotal, monitorsFailing int
+	monitorsErr                    error
 
 	failedRecent, failedOld, failedServer *model.Transfer
+}
+
+// stubNode is a node whose figures are chosen: started on the 9th at 06:12,
+// twelve days and nine hours before the clock of the suite.
+type stubNode struct {
+	started  time.Time
+	noStart  bool
+	memUsed  uint64
+	memTotal uint64
+	noTotal  bool
+	cpu      float64
+	noCPU    bool
+	cores    int
+	in, out  float64
+	connIn   int64
+	connOut  int64
+	dirs     []analytics.Dir
+	usages   map[string]analytics.DiskUsage
+}
+
+func sampleNode() *stubNode {
+	dirs := []analytics.Dir{{Name: analytics.DirIn, Path: "/gw/in"}, {Name: analytics.DirOut, Path: "/gw/out"}, {Name: analytics.DirTmp, Path: "/gw/tmp"}}
+
+	return &stubNode{
+		started: at(9, 6, 12), memUsed: 48 << 20, memTotal: 8 << 30, cpu: 0.03, cores: 4,
+		in: 1200 << 10, out: 400 << 10, connIn: 3, connOut: 2, dirs: dirs,
+		usages: map[string]analytics.DiskUsage{
+			analytics.DirIn:  {Dir: dirs[0], UsedPercent: 81, Free: 7 << 30},
+			analytics.DirOut: {Dir: dirs[1], UsedPercent: 41, Free: 22 << 30},
+			analytics.DirTmp: {Dir: dirs[2], UsedPercent: 12, Free: 33 << 30},
+		},
+	}
+}
+
+func (n *stubNode) Version() string                { return "0.19.0-test" }
+func (n *stubNode) StartTime() (time.Time, bool)   { return n.started, !n.noStart }
+func (n *stubNode) MemoryUsed() uint64             { return n.memUsed }
+func (n *stubNode) MemoryTotal() (uint64, bool)    { return n.memTotal, !n.noTotal }
+func (n *stubNode) CPUShare() (float64, bool)      { return n.cpu, !n.noCPU }
+func (n *stubNode) Cores() int                     { return n.cores }
+func (n *stubNode) Throughput() (float64, float64) { return n.in, n.out }
+func (n *stubNode) Connections() (int64, int64)    { return n.connIn, n.connOut }
+func (n *stubNode) Dirs() []analytics.Dir          { return n.dirs }
+func (n *stubNode) DiskUsageOf(name string) (analytics.DiskUsage, error) {
+	usage, ok := n.usages[name]
+	if !ok {
+		return analytics.DiskUsage{}, analytics.ErrUnknownDir
+	}
+
+	return usage, nil
 }
 
 // newSuite builds the handlers on a fresh base, the clock stopped at 16:05 on
@@ -57,8 +112,9 @@ type suite struct {
 func newSuite(t *testing.T) *suite {
 	t.Helper()
 
-	s := &suite{db: dbtest.TestDatabase(t), now: at(21, 16, 5)}
-	s.h = New(s.db, testhelpers.GetTestLogger(t), sampleServices)
+	s := &suite{db: dbtest.TestDatabase(t), now: at(21, 16, 5), node: sampleNode(), monitorsTotal: 14, monitorsFailing: 1}
+	s.h = New(s.db, testhelpers.GetTestLogger(t), sampleServices, s.node,
+		func() (int, int, error) { return s.monitorsTotal, s.monitorsFailing, s.monitorsErr })
 	s.h.now = func() time.Time { return s.now }
 
 	return s
@@ -240,16 +296,51 @@ func TestPage(t *testing.T) {
 			`<input type="hidden" name="expected" value="3">`, `Reprendre les 2 transferts en erreur</button>`, `id="tdb-body"`)
 		assert.NotContains(t, body, "¿", "no missing key")
 
-		// The services of the node: the tiles of the service status, as links.
-		services := part(t, body, "tdb-services")
-		assert.Contains(t, body, `<h2 class="w-section-title">Services du nœud gw-test</h2>`)
-		assert.Equal(t, 3, strings.Count(services, `class="w-card w-tile`), "three groups")
-		assert.NotContains(t, services, `role="tab"`, "links, not tabs")
-		assert.Contains(t, services, `href="/webui/services?group=servers"`)
-		assert.Contains(t, services, `w-tile--ko`, "a server in error")
-		assert.Contains(t, services, `>1 en erreur</span>`)
+		// The health of the node: the strip of the kit, a cell per figure (#834).
+		health := part(t, body, "tdb-health")
+		assert.Contains(t, body, `<h2 class="w-section-title">Santé du nœud gw-test</h2>`)
+		assert.Equal(t, 7, strings.Count(health, `class="w-health__item `), "seven cells")
+		indexes(t, health,
+			`<a class="w-health__item w-health__item--ok" href="/webui/about" title="Démarrée le 09/10/2026 à 06:12:00 ; version 0.19.0-test"><span class="w-health__label">Disponibilité</span> <span class="w-health__value">12 j 09 h</span> <span class="w-status w-status--ok">v0.19.0-test, depuis le 09/10/2026</span></a>`,
+			`<a class="w-health__item w-health__item--ko" href="/webui/services" title="Services système 2 / 2 · Serveurs locaux 1 / 2 · Clients locaux 1 / 1"><span class="w-health__label">Services</span> <span class="w-health__value">4<small>/ 5</small></span> <span class="w-status w-status--ko">1 en erreur</span></a>`,
+			`<a class="w-health__item w-health__item--ok" href="/webui/services?group=core" title="Base memory ; dernière lecture des chiffres en `,
+			`<span class="w-health__label">Base de données</span>`, `<small>ms</small></span> <span class="w-status w-status--ok">Répond</span></a>`,
+			`<div class="w-health__item w-health__item--ok" title="Part du processeur et mémoire prises par la passerelle"><span class="w-health__label">Processeur · mémoire</span> <span class="w-health__value">3<small>% · 48 Mo</small></span> <span class="w-status w-status--ok">Sur 4 cœurs et 8,0 Go</span></div>`,
+			`<div class="w-health__item w-health__item--warn" title="in 81 % (7,0 Go libres) · out 41 % (22 Go libres) · tmp 12 % (33 Go libres)"><span class="w-health__label">Espace disque</span> <span class="w-health__value">81<small>%</small></span> <span class="w-status w-status--warn">in : 7,0 Go libres</span></div>`,
+			`<div class="w-health__item w-health__item--ok" title="Moyenne des 30 dernières secondes ; 3 connexions entrantes, 2 sortantes"><span class="w-health__label">Réseau</span> <span class="w-health__value">1,2 Mo/s<small>reçus</small></span> <span class="w-status w-status--ok">400 Ko/s émis · 5 connexions</span></div>`,
+			`<a class="w-health__item w-health__item--ko" href="/webui/watchers"><span class="w-health__label">Surveillances</span> <span class="w-health__value">13<small>/ 14</small></span> <span class="w-status w-status--ko">1 en défaut</span></a>`)
 
 		assert.Contains(t, body, `<h2 class="w-section-title">Transferts</h2>`)
+	})
+
+	t.Run("Given a node whose figures cannot all be read", func(t *testing.T) {
+		s.node.noStart, s.node.noCPU, s.node.noTotal = true, true, true
+		s.node.dirs, s.monitorsErr = nil, errors.New("registry down")
+		body := s.serve(t, write, "fr", "/webui/dashboard").Body.String()
+		health := part(t, body, "tdb-health")
+
+		assert.Contains(t, health, `<span class="w-health__label">Disponibilité</span> <span class="w-health__value">Non mesuré</span> <span class="w-status w-status--off">v0.19.0-test</span>`)
+		assert.Contains(t, health, `<span class="w-health__label">Processeur · mémoire</span> <span class="w-health__value">48 Mo</span> <span class="w-status w-status--off">Processeur non mesuré</span>`)
+		assert.Contains(t, health, `<span class="w-health__label">Espace disque</span> <span class="w-health__value">Non mesuré</span> <span class="w-status w-status--off">Aucun dossier mesuré</span>`)
+		assert.Contains(t, health, `<span class="w-health__label">Surveillances</span> <span class="w-health__value">Non mesuré</span> <span class="w-status w-status--off">État inconnu</span>`)
+
+		s.node, s.monitorsErr = sampleNode(), nil
+		s.h.info = s.node
+	})
+
+	t.Run("Given the thresholds of the strip", func(t *testing.T) {
+		s.node.cpu, s.node.usages[analytics.DirTmp] = 3.3, analytics.DiskUsage{Dir: s.node.dirs[2], UsedPercent: 93, Free: 2 << 30}
+		s.monitorsFailing = 0
+		body := s.serve(t, write, "fr", "/webui/dashboard").Body.String()
+		health := part(t, body, "tdb-health")
+
+		assert.Contains(t, health, `<span class="w-health__label">Processeur · mémoire</span> <span class="w-health__value">330<small>% · 48 Mo</small></span> <span class="w-status w-status--warn">`, "3.3 cores of 4: warning")
+		assert.Contains(t, health, `w-health__item--ko" title="in 81 % (7,0 Go libres) · out 41 % (22 Go libres) · tmp 93 % (2,0 Go libres)"><span class="w-health__label">Espace disque</span> <span class="w-health__value">93<small>%</small></span> <span class="w-status w-status--ko">tmp : 2,0 Go libres</span>`, "the fullest directory, at 93 %: failure")
+		assert.Contains(t, health, `<span class="w-health__label">Surveillances</span> <span class="w-health__value">14<small>/ 14</small></span> <span class="w-status w-status--ok">Toutes actives</span>`)
+
+		s.node = sampleNode()
+		s.h.info = s.node
+		s.monitorsFailing = 1
 	})
 
 	t.Run("Given the tiles of the transfers", func(t *testing.T) {
@@ -364,7 +455,8 @@ func TestPage(t *testing.T) {
 		assert.NotContains(t, body, "/webui/transfers/resume", "no grouped resumption either")
 		assert.Contains(t, body, `<div id="tdb-resume" class="tdb-resume"></div>`)
 		assert.Equal(t, 3, strings.Count(errors, `aria-label="View the transfer"`), "the sheet alone")
-		assert.Contains(t, body, "Services of node gw-test")
+		assert.Contains(t, body, "Health of node gw-test")
+		assert.Contains(t, body, `<span class="w-health__label">Uptime</span> <span class="w-health__value">12 d 09 h</span>`)
 		assert.Contains(t, body, `<div class="w-main__inner w-main__inner--wide">`, "the whole width (#833)")
 		assert.Contains(t, body, `<span class="w-tile__label">Done in 24 h</span>`)
 		assert.Contains(t, body, `>3 done · 2 failed</span>`)
@@ -372,9 +464,12 @@ func TestPage(t *testing.T) {
 	})
 
 	t.Run("Given a user without the right to read the transfers", func(t *testing.T) {
+		s.h.last = reading{} // nothing read yet: the database cell says so
 		body := s.serve(t, 0, "fr", "/webui/dashboard").Body.String()
 
-		assert.Contains(t, body, `id="tdb-services"`)
+		assert.Contains(t, body, `id="tdb-health"`)
+		assert.Contains(t, body, `<span class="w-health__label">Base de données</span> <span class="w-health__value">Non mesuré</span> <span class="w-status w-status--off">Pas encore lue</span>`,
+			"the database is not read for a user who does not read the transfers")
 		assert.NotContains(t, body, `id="tdb-transfers"`)
 		assert.NotContains(t, body, "tdb-errors")
 		assert.NotContains(t, part(t, body, "tdb-notice"), "w-banner", "no message: the sidebar does not offer the transfers either")
@@ -504,7 +599,8 @@ func TestDegradedPage(t *testing.T) {
 	fresh.h.read = func(time.Time) (*figures, error) { return nil, errors.New("database is closed") }
 	body = fresh.serve(t, write, "fr", "/webui/dashboard").Body.String()
 	assert.Contains(t, body, "Aucun chiffre n&#39;a encore pu être lu.")
-	assert.Contains(t, body, `id="tdb-services"`, "the services, read in memory, stay")
+	assert.Contains(t, body, `id="tdb-health"`, "the health of the node, read in memory, stays")
+	assert.Contains(t, body, `<span class="w-health__label">Base de données</span> <span class="w-health__value">Injoignable</span> <span class="w-status w-status--ko">Depuis 16:05:00</span>`)
 	assert.NotContains(t, body, `id="tdb-transfers"`)
 }
 

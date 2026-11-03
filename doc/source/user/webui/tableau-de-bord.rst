@@ -24,11 +24,18 @@ toujours celui de l'écran qu'il ouvre.
    * - Bloc
      - Contenu
      - Mène à
-   * - Services du nœud
-     - Trois tuiles, celles de l'état des services : services système,
-       serveurs locaux, clients locaux, avec le nombre de services en ligne
-       sur le total et ce qui ne va pas le cas échéant.
-     - L'état des services, sur le groupe choisi.
+   * - Santé du nœud
+     - Une bande de huit cases, chacune avec sa valeur et son état (une forme
+       et un mot) : disponibilité (version, depuis quand), services (en ligne
+       sur le total, le détail des groupes au survol), base de données (temps
+       de la dernière lecture, ou depuis quand elle ne répond plus),
+       processeur et mémoire pris par la passerelle, espace disque (le dossier
+       de travail le plus plein, les autres au survol ; alerte à 80 %, défaut
+       à 90 %), réseau (débit reçu et émis, connexions ouvertes),
+       certificats qui arrivent à échéance, surveillances de partenaires (en
+       défaut). Un chiffre qui ne peut pas être mesuré se lit « Non mesuré ».
+     - À propos, l'état des services, les surveillances de partenaires, selon
+       la case.
    * - Transferts en cours
      - Le nombre de transferts en cours ; en pied, les transferts planifiés,
        en pause, interrompus et attendus.

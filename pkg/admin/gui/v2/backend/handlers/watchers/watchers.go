@@ -18,6 +18,7 @@ package watchers
 import (
 	"cmp"
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -122,6 +123,29 @@ type registry interface {
 
 // gatewayRegistry is the registry of the gateway (filewatcher.Filewatchers).
 type gatewayRegistry struct{ db *database.DB }
+
+// Counter counts the watchers of the node for another screen (the
+// dashboard): how many there are, how many are in error.
+func Counter(db *database.DB) func() (total, failing int, err error) {
+	reg := gatewayRegistry{db: db}
+
+	return func() (int, int, error) {
+		var list model.FileWatchers
+		if err := db.Select(&list).Run(); err != nil {
+			return 0, 0, fmt.Errorf("failed to list the watchers: %w", err)
+		}
+
+		failing := 0
+
+		for _, fw := range list {
+			if code, _ := reg.State(fw); stateOf(code) == stateError {
+				failing++
+			}
+		}
+
+		return len(list), failing, nil
+	}
+}
 
 func (g gatewayRegistry) service(fw *model.FileWatcher) *filewatcher.Service {
 	if svc, ok := filewatcher.Filewatchers.Get(fw); ok {

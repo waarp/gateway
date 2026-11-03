@@ -63,11 +63,9 @@ templ body(d pageData) {
 				@gui.Banner(*d.Degraded)
 			}
 		</div>
-		<h2 class="w-section-title">{ d.Node }</h2>
-		<div class="w-grid w-grid--3" id="tdb-services" data-tdb-part>
-			for _, tile := range d.Services {
-				@gui.Tile(tile)
-			}
+		<h2 class="w-section-title">{ d.HealthTitle }</h2>
+		<div id="tdb-health" data-tdb-part>
+			@gui.Health(d.Health)
 		</div>
 		if d.Figures {
 			<h2 class="w-section-title">{ gui.T(ctx, "dashboard.transfers") }</h2>

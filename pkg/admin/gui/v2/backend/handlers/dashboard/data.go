@@ -29,13 +29,13 @@ const (
 type texts struct{ translate gui.Translator }
 
 // count is a counted text: its form for one, else the plural one with the
-// number, its digits grouped.
-func (txt texts) count(prefix, key string, n uint64) string {
+// number, its digits grouped; args are the other arguments of both forms.
+func (txt texts) count(prefix, key string, n uint64, args ...any) string {
 	if n == 1 {
-		return txt.translate(prefix + key + oneSuffix)
+		return txt.translate(prefix+key+oneSuffix, args...)
 	}
 
-	return txt.translate(prefix+key, "n", groupDigits(txt.translate, n))
+	return txt.translate(prefix+key, append([]any{"n", groupDigits(txt.translate, n)}, args...)...)
 }
 
 // figures are the figures of the transfers the page shows, read together.

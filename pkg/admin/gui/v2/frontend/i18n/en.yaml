@@ -90,7 +90,47 @@ dashboard:
   title: Dashboard
   live: "Refreshed at {time}"
   refreshing: Refreshing…
-  node: "Services of node {node}"
+  health_title: "Health of node {node}"
+  health:
+    unmeasured: Not measured
+    uptime: Uptime
+    uptime_text: "v{version}, since {date}"
+    uptime_title: "Started on {date} at {time}; version {version}"
+    uptime_unknown: "v{version}"
+    days_hours: "{days} d {hours} h"
+    hours_minutes: "{hours} h {minutes} min"
+    services: Services
+    group_running: "{group} {running} / {total}"
+    database: Database
+    ms: ms
+    db_ok: Responding
+    db_down: Unreachable
+    db_ko: "Since {time}"
+    db_unread: Not read yet
+    db_title: "{type} database; last reading of the figures in {ms} ms"
+    db_title_down: "{type} database"
+    cpu_mem: CPU · memory
+    cpu_mem_text: "Of {cores} cores and {memory}"
+    cores: "Of {cores} cores"
+    cpu_unmeasured: CPU not measured
+    cpu_mem_title: Share of the CPU and memory taken by the gateway
+    disk: Disk space
+    disk_text: "{dir}: {free} free"
+    disk_item: "{dir} {percent} % ({free} free)"
+    disk_none: No directory measured
+    dir_database: database
+    network: Network
+    rate: "{bytes}/s"
+    received: received
+    network_text: "{rate} sent · {n} connections"
+    network_text_one: "{rate} sent · 1 connection"
+    network_title: "Mean of the last 30 seconds; {in} incoming connections, {out} outgoing"
+    monitors: Monitors
+    monitors_ok: All active
+    monitors_ko: "{n} failing"
+    monitors_ko_one: 1 failing
+    monitors_none: None
+    monitors_error: State unknown
   transfers: Transfers
   resume: "Resume the {n} failed transfers"
   resume_one: Resume the failed transfer

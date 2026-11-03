@@ -89,7 +89,47 @@ dashboard:
   title: Tableau de bord
   live: "Actualisé à {time}"
   refreshing: Actualisation…
-  node: "Services du nœud {node}"
+  health_title: "Santé du nœud {node}"
+  health:
+    unmeasured: Non mesuré
+    uptime: Disponibilité
+    uptime_text: "v{version}, depuis le {date}"
+    uptime_title: "Démarrée le {date} à {time} ; version {version}"
+    uptime_unknown: "v{version}"
+    days_hours: "{days} j {hours} h"
+    hours_minutes: "{hours} h {minutes} min"
+    services: Services
+    group_running: "{group} {running} / {total}"
+    database: Base de données
+    ms: ms
+    db_ok: Répond
+    db_down: Injoignable
+    db_ko: "Depuis {time}"
+    db_unread: Pas encore lue
+    db_title: "Base {type} ; dernière lecture des chiffres en {ms} ms"
+    db_title_down: "Base {type}"
+    cpu_mem: Processeur · mémoire
+    cpu_mem_text: "Sur {cores} cœurs et {memory}"
+    cores: "Sur {cores} cœurs"
+    cpu_unmeasured: Processeur non mesuré
+    cpu_mem_title: Part du processeur et mémoire prises par la passerelle
+    disk: Espace disque
+    disk_text: "{dir} : {free} libres"
+    disk_item: "{dir} {percent} % ({free} libres)"
+    disk_none: Aucun dossier mesuré
+    dir_database: base
+    network: Réseau
+    rate: "{bytes}/s"
+    received: reçus
+    network_text: "{rate} émis · {n} connexions"
+    network_text_one: "{rate} émis · 1 connexion"
+    network_title: "Moyenne des 30 dernières secondes ; {in} connexions entrantes, {out} sortantes"
+    monitors: Surveillances
+    monitors_ok: Toutes actives
+    monitors_ko: "{n} en défaut"
+    monitors_ko_one: 1 en défaut
+    monitors_none: Aucune
+    monitors_error: État inconnu
   transfers: Transferts
   resume: "Reprendre les {n} transferts en erreur"
   resume_one: Reprendre le transfert en erreur

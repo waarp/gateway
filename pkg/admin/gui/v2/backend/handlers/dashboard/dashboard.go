@@ -56,13 +56,15 @@ const (
 
 // Handlers serves the page and its fragment.
 type Handlers struct {
-	db     *database.DB
-	logger *log.Logger
-	list   services.Lister
-	node   string // name of this node of the cluster, whose services the page shows
-	shell  *common.Shell
-	now    func() time.Time                      // the clock, fixed in the tests
-	read   func(now time.Time) (*figures, error) // readFigures, a failing base in the tests
+	db       *database.DB
+	logger   *log.Logger
+	list     services.Lister
+	info     Node     // the figures of the node, for the health strip
+	monitors Monitors // the partner monitors of the node, for the health strip
+	node     string   // name of this node of the cluster, whose health the page shows
+	shell    *common.Shell
+	now      func() time.Time                      // the clock, fixed in the tests
+	read     func(now time.Time) (*figures, error) // readFigures, a failing base in the tests
 
 	mu   sync.Mutex
 	last reading // the last reading of the figures, shared by every page open
@@ -74,20 +76,25 @@ type Handlers struct {
 type reading struct {
 	figures *figures
 	at      time.Time
+	took    time.Duration // how long the last successful reading took
 	failing time.Time
 }
 
-// New builds the handlers of the screen: the base the figures are read from
-// and the services of the gateway (internal.ListServices, a stub in the
-// tests). The node is named by its identifier in a cluster, by the gateway
-// name otherwise.
-func New(db *database.DB, logger *log.Logger, list services.Lister) *Handlers {
+// New builds the handlers of the screen: the base the figures are read from,
+// the services of the gateway (internal.ListServices, a stub in the tests),
+// the figures of the node (GatewayNode) and its partner monitors
+// (watchers.Counter). The node is named by its identifier in a cluster, by
+// the gateway name otherwise.
+func New(db *database.DB, logger *log.Logger, list services.Lister, info Node, monitors Monitors) *Handlers {
 	node := db.Config.NodeID
 	if node == "" {
 		node = db.Config.GatewayName
 	}
 
-	h := &Handlers{db: db, logger: logger, list: list, node: node, shell: common.NewShell(), now: time.Now}
+	h := &Handlers{
+		db: db, logger: logger, list: list, info: info, monitors: monitors, node: node,
+		shell: common.NewShell(), now: time.Now,
+	}
 	h.read = h.readFigures
 
 	return h
@@ -133,8 +140,8 @@ func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 type pageData struct {
 	RefreshedAt    string
 	RefreshSeconds int
-	Node           string           // title of the row of the services, naming the node
-	Services       []gui.TileProps  // the three groups of services, as the service status screen sums them up
+	HealthTitle    string           // title of the health strip, naming the node
+	Health         gui.HealthProps  // the health strip of the node (#834)
 	Read           bool             // the user reads the transfers: their blocks are rendered
 	Write          bool             // the user may act on the transfers: the menus of the errors
 	Figures        bool             // figures were read, now or before: the blocks of the transfers have values
@@ -161,24 +168,38 @@ type resumeAction struct {
 }
 
 // makePageData reads what the page shows (again, when fresh). Without the
-// right to read the transfers, the page shows the services alone, and reads
-// nothing else.
+// right to read the transfers, the page shows the health of the node alone,
+// and reads nothing else (the database cell then says what the last reading
+// left).
 func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh bool) pageData {
 	now := h.now()
 	data := pageData{
 		RefreshedAt:    now.Format(timeLayout),
 		RefreshSeconds: int(refreshPeriod.Seconds()),
-		Node:           translate("dashboard.node", "node", h.node),
-		Services:       services.Tiles(translate, h.shell.Catalog().Has, h.list),
+		HealthTitle:    translate("dashboard.health_title", "node", h.node),
 		Read:           read,
 		Write:          write,
 	}
 
+	var (
+		figs *figures
+		last reading
+	)
+
+	if read {
+		figs, last = h.figures(now, fresh)
+	} else {
+		last = h.lastReading()
+	}
+
+	data.Health = gui.HealthProps{Items: healthCells(translate, healthInput{
+		node: h.info, now: now, dbType: h.db.Config.Database.Type, last: last,
+		services: services.Sum(translate, h.shell.Catalog().Has, h.list), monitors: h.monitors,
+	})}
+
 	if !read {
 		return data
 	}
-
-	figs, last := h.figures(now, fresh)
 
 	if !last.failing.IsZero() {
 		text := translate("dashboard.degraded.none")
@@ -226,7 +247,10 @@ func (h *Handlers) figures(now time.Time, fresh bool) (*figures, reading) {
 		return h.last.figures, h.last
 	}
 
+	started := time.Now()
 	figs, err := h.read(now)
+	took := time.Since(started)
+
 	if err != nil {
 		h.logger.Errorf("Failed to read the figures of the dashboard: %v", err)
 
@@ -237,7 +261,16 @@ func (h *Handlers) figures(now time.Time, fresh bool) (*figures, reading) {
 		return h.last.figures, h.last
 	}
 
-	h.last = reading{figures: figs, at: now}
+	h.last = reading{figures: figs, at: now, took: took}
 
 	return figs, h.last
+}
+
+// lastReading is what the last reading left, for a page that does not read
+// the figures itself.
+func (h *Handlers) lastReading() reading {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	return h.last
 }
