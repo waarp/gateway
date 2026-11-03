@@ -241,3 +241,28 @@ func verifyLegacyCert(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 
 	return nil
 }
+
+func (c *transferClient) checkSize() error {
+	expFilesize := c.pip.TransCtx.Transfer.Filesize
+
+	if c.pip.TransCtx.Rule.IsSend || expFilesize < 0 ||
+		c.pip.TransCtx.Transfer.Step > types.StepData {
+		return nil
+	}
+
+	stat, err := c.pip.Stream.Stat()
+	if err != nil {
+		c.pip.Logger.Errorf("Failed to retrieve file info: %v", err)
+
+		return pipeline.NewError(types.TeInternal, "failed to retrieve file info")
+	}
+
+	if stat.Size() != expFilesize {
+		msg := fmt.Sprintf("incorrect file size (expected %d, got %d)", expFilesize, stat.Size())
+		c.pip.Logger.Error(msg)
+
+		return pipeline.NewError(types.TeBadSize, msg)
+	}
+
+	return nil
+}

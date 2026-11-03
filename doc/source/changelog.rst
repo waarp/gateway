@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`819` En réception, R66 skip désormais la vérification de taille de
+  fichier en fin de transfert si le partenaire n'a pas communiqué de taille.
 * :bug:`799` Correction de bugs de l'interface REST et du CLI qui empêchaient
   d'attribuer un mot de passe vide à un compte ou agent. Un autre bug invalidant
   la vérification d'un mot de passe vide lors de l'authentification a également
