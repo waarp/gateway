@@ -10,7 +10,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-var ErrNoAnalytics = errors.New("analytics service is not running")
+var (
+	ErrNoAnalytics = errors.New("analytics service is not running")
+	ErrNotMeasured = errors.New("the figure has not been measured")
+)
 
 func (s *Service) listen(conf *ServerConfig) error {
 	handler := snmplib.MasterAgent{

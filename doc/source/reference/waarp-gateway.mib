@@ -244,6 +244,14 @@ outgoingThroughput OBJECT-TYPE
         "The mean outgoing throughput of the transfers over the last 30 seconds (in kB/s)"
     ::= { resourcesInfoObjects 7 }
 
+cpuUsage OBJECT-TYPE
+    SYNTAX          Gauge32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The share of one CPU core taken by the application since the previous sample, five seconds earlier (in per mille)"
+    ::= { resourcesInfoObjects 8 }
+
 lastTransferObjects OBJECT IDENTIFIER ::= { gwObjects 4 }
 
 lastTransferID OBJECT-TYPE

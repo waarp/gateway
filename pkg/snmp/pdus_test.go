@@ -47,6 +47,29 @@ func TestThroughputPDUs(t *testing.T) {
 	assert.Equal(t, uint32(2), sent)
 }
 
+// The CPU usage object gives the share of one core measured by the sampler,
+// in per mille, and says when nothing is measured yet.
+func TestCPUUsagePDU(t *testing.T) {
+	analytics.GlobalService = &analytics.Service{}
+	t.Cleanup(func() { analytics.GlobalService = nil })
+
+	pdu := serverPDU(t, ResObjectCPUUsageOID)
+
+	_, err := pdu.OnGet()
+	require.ErrorIs(t, err, ErrNotMeasured)
+
+	analytics.GlobalService.Sample(time.Now())
+
+	for end := time.Now().Add(100 * time.Millisecond); time.Now().Before(end); { //nolint:revive //busy on purpose
+	}
+
+	analytics.GlobalService.Sample(time.Now())
+
+	usage, err := pdu.OnGet()
+	require.NoError(t, err)
+	assert.Positive(t, usage.(uint32)) //nolint:forcetypeassert //the type is the object's
+}
+
 func TestThroughputPDUsWithoutAnalytics(t *testing.T) {
 	analytics.GlobalService = nil
 
