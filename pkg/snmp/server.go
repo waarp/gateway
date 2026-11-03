@@ -27,7 +27,7 @@ func (s *Service) listen(conf *ServerConfig) error {
 		},
 		SubAgents: []*snmplib.SubAgent{{
 			CommunityIDs: []string{conf.Community},
-			OIDs:         getServerPDUs(),
+			OIDs:         ServerPDUs,
 			Logger:       serverLog(s.Logger),
 		}},
 		Logger: serverLog(s.Logger),
