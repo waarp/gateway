@@ -47,6 +47,7 @@ var (
 	ResObjectNbOutgoingConnsOID    = RessourcesInfoOID + ".5"
 	ResObjectIncomingThroughputOID = RessourcesInfoOID + ".6"
 	ResObjectOutgoingThroughputOID = RessourcesInfoOID + ".7"
+	ResObjectCPUUsageOID           = RessourcesInfoOID + ".8"
 )
 
 // Last transfer OIDs.

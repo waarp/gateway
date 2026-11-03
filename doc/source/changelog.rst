@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`829` La passerelle mesure la part de processeur qu'elle prend,
+  toutes les cinq secondes ; SNMP l'expose par l'objet ``cpuUsage`` de la MIB,
+  en millièmes d'un cœur.
 * :feature:`828` La passerelle mesure le débit de ses transferts, reçu et émis,
   en moyenne sur les trente dernières secondes ; SNMP l'expose par les objets
   ``incomingThroughput`` et ``outgoingThroughput`` de la MIB, jusqu'ici

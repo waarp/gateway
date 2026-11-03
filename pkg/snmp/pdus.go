@@ -17,6 +17,7 @@ import (
 const (
 	noTransferMsg = "ERROR: no transfer in database"
 	bytesPerKB    = 1000 // the unit of the throughput objects
+	perMille      = 1000 // the unit of the CPU usage object
 )
 
 // getServerPDUs gives the sub-agent of a server its own copies of the objects,
@@ -141,6 +142,23 @@ var ServerPDUs = []*snmplib.PDUValueControlItem{
 			_, sent := analytics.GlobalService.Throughput()
 
 			return uint32(sent / bytesPerKB), nil
+		},
+	},
+	{
+		Document: "The share of one CPU core taken by the application since the previous sample (in per mille)",
+		OID:      ResObjectCPUUsageOID,
+		Type:     gosnmp.Gauge32,
+		OnGet: func() (any, error) {
+			if analytics.GlobalService == nil {
+				return nil, ErrNoAnalytics
+			}
+
+			share, measured := analytics.GlobalService.CPUShare()
+			if !measured {
+				return nil, ErrNotMeasured
+			}
+
+			return uint32(share * perMille), nil
 		},
 	},
 

@@ -24,12 +24,20 @@ type analytics struct {
 	BytesSent     atomic.Int64
 
 	sampler sampler
+	cpu     cpuMeter
 }
 
 // Sample records the counters at now, for the rates; the service does it every
 // SamplePeriod.
 func (a *analytics) Sample(now time.Time) {
 	a.sampler.record(sample{at: now, received: a.BytesReceived.Load(), sent: a.BytesSent.Load()})
+	a.cpu.sample(now)
+}
+
+// CPUShare is the share of one CPU core the gateway took between the last
+// two samples (1 is a whole core), and whether it has been measured.
+func (a *analytics) CPUShare() (share float64, measured bool) {
+	return a.cpu.value()
 }
 
 // Throughput is the mean bytes per second received and sent over the last
