@@ -58,6 +58,9 @@ toujours celui de l'écran qu'il ouvre.
      - La fiche du transfert ; le suivi filtré sur les transferts en erreur.
 
 
+La page occupe toute la largeur de l'écran, comme le suivi des transferts :
+sur un grand écran, le graphique et les dernières erreurs s'étalent.
+
 Définitions
 ===========
 

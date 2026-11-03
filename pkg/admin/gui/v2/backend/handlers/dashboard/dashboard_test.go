@@ -365,6 +365,7 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `<div id="tdb-resume" class="tdb-resume"></div>`)
 		assert.Equal(t, 3, strings.Count(errors, `aria-label="View the transfer"`), "the sheet alone")
 		assert.Contains(t, body, "Services of node gw-test")
+		assert.Contains(t, body, `<div class="w-main__inner w-main__inner--wide">`, "the whole width (#833)")
 		assert.Contains(t, body, `<span class="w-tile__label">Done in 24 h</span>`)
 		assert.Contains(t, body, `>3 done · 2 failed</span>`)
 		assert.Contains(t, body, `>View the 3 failed transfers</a>`)

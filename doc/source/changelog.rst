@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`833` Le tableau de bord occupe toute la largeur de l'écran, comme
+  le Suivi des transferts.
 * :feature:`832` Le tableau de bord distingue hier d'aujourd'hui dans
   l'activité des 24 dernières heures : un trait à minuit et le jour sous ses
   heures ; les valeurs par heure vont de la plus récente à la plus ancienne,
