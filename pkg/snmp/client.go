@@ -74,11 +74,16 @@ func connect(logger *log.Logger, config *MonitorConfig) (*gosnmp.GoSNMP, error) 
 	return client, nil
 }
 
-func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
+func (s *Service) sendTrap(variables []gosnmp.SnmpPDU) error {
 	s.monConfLock.RLock()
 	defer s.monConfLock.RUnlock()
 
-	clients := make([]*gosnmp.GoSNMP, 0, len(s.monitors))
+	type connCtx struct {
+		isInform bool
+		client   *gosnmp.GoSNMP
+	}
+
+	connCtxs := make([]*connCtx, 0, len(s.monitors))
 
 	var errs []error
 
@@ -91,21 +96,25 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 			errs = append(errs, fmt.Errorf("failed to connect to SNMP monitor %q at %q: %w",
 				monitor.Name, monitor.UDPAddress, err))
 		} else {
-			clients = append(clients, client)
+			connCtxs = append(connCtxs, &connCtx{
+				isInform: monitor.UseInforms,
+				client:   client,
+			})
 		}
 	}
 
 	defer func() {
-		for _, client := range clients {
-			if err := client.Conn.Close(); err != nil {
+		for _, ctx := range connCtxs {
+			if err := ctx.client.Conn.Close(); err != nil {
 				s.Logger.Warningf("Failed to close SNMP connection to %q: %v",
-					client.Conn.RemoteAddr().String(), err)
+					ctx.client.Conn.RemoteAddr().String(), err)
 			}
 		}
 	}()
 
-	for _, client := range clients {
-		if _, err := client.SendTrap(*trap); err != nil {
+	for _, ctx := range connCtxs {
+		trap := gosnmp.SnmpTrap{Variables: variables, IsInform: ctx.isInform}
+		if _, err := ctx.client.SendTrap(trap); err != nil {
 			s.Logger.Errorf("Failed to send SNMP trap: %v", err)
 
 			errs = append(errs, fmt.Errorf("failed to send SNMP trap: %w", err))
@@ -117,100 +126,94 @@ func (s *Service) sendTrap(trap *gosnmp.SnmpTrap) error {
 
 //nolint:funlen //function is fine as is
 func (s *Service) sendTransferError(trans *model.NormalizedTransferView) error {
-	trap := gosnmp.SnmpTrap{
-		Variables: []gosnmp.SnmpPDU{
-			{
-				Value: s.sysUpTime(),
-				Name:  SNMPSysUpTimeOID,
-				Type:  gosnmp.TimeTicks,
-			}, {
-				Value: TransferErrorNotifOID,
-				Name:  SNMPTrapOID,
-				Type:  gosnmp.ObjectIdentifier,
-			}, {
-				Value: s.DB.Config.GatewayName,
-				Name:  InstanceNameOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: utils.FormatInt(trans.ID),
-				Name:  TeObjectTransOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: trans.RemoteTransferID,
-				Name:  TeObjectRemoteOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: trans.Rule,
-				Name:  TeObjectRuleNameOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: trans.Account,
-				Name:  TeObjectRequesterOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: trans.Agent,
-				Name:  TeObjectRequestedOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: trans.LocalPath,
-				Name:  TeObjectFilenameOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: time.Now().Local().Format(time.RFC3339Nano),
-				Name:  TeObjectDateOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: trans.ErrCode.String(),
-				Name:  TeObjectErrCodeOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: trans.ErrDetails,
-				Name:  TeObjectErrDetailsOID,
-				Type:  gosnmp.OctetString,
-			},
+	variables := []gosnmp.SnmpPDU{
+		{
+			Value: s.sysUpTime(),
+			Name:  SNMPSysUpTimeOID,
+			Type:  gosnmp.TimeTicks,
+		}, {
+			Value: TransferErrorNotifOID,
+			Name:  SNMPTrapOID,
+			Type:  gosnmp.ObjectIdentifier,
+		}, {
+			Value: s.DB.Config.GatewayName,
+			Name:  InstanceNameOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: utils.FormatInt(trans.ID),
+			Name:  TeObjectTransOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: trans.RemoteTransferID,
+			Name:  TeObjectRemoteOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: trans.Rule,
+			Name:  TeObjectRuleNameOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: trans.Account,
+			Name:  TeObjectRequesterOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: trans.Agent,
+			Name:  TeObjectRequestedOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: trans.LocalPath,
+			Name:  TeObjectFilenameOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: time.Now().Local().Format(time.RFC3339Nano),
+			Name:  TeObjectDateOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: trans.ErrCode.String(),
+			Name:  TeObjectErrCodeOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: trans.ErrDetails,
+			Name:  TeObjectErrDetailsOID,
+			Type:  gosnmp.OctetString,
 		},
-		IsInform: false,
 	}
 
 	if trans.Client != "" {
 		//nolint:mnd //magic number needed here
-		trap.Variables = slices.Insert(trap.Variables, 5, gosnmp.SnmpPDU{
+		variables = slices.Insert(variables, 5, gosnmp.SnmpPDU{
 			Value: trans.Client,
 			Name:  TeObjectClientNameOID,
 			Type:  gosnmp.OctetString,
 		})
 	}
 
-	return s.sendTrap(&trap)
+	return s.sendTrap(variables)
 }
 
 func (s *Service) sendServiceError(service string, sErr error) error {
-	trap := gosnmp.SnmpTrap{
-		Variables: []gosnmp.SnmpPDU{
-			{
-				Value: s.sysUpTime(),
-				Name:  SNMPSysUpTimeOID,
-				Type:  gosnmp.TimeTicks,
-			}, {
-				Value: ServiceErrorNotifOID,
-				Name:  SNMPTrapOID,
-				Type:  gosnmp.ObjectIdentifier,
-			}, {
-				Value: s.DB.Config.GatewayName,
-				Name:  InstanceNameOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: service,
-				Name:  SeObjectNameOID,
-				Type:  gosnmp.OctetString,
-			}, {
-				Value: sErr.Error(),
-				Name:  SeObjectErrorOID,
-				Type:  gosnmp.OctetString,
-			},
+	variables := []gosnmp.SnmpPDU{
+		{
+			Value: s.sysUpTime(),
+			Name:  SNMPSysUpTimeOID,
+			Type:  gosnmp.TimeTicks,
+		}, {
+			Value: ServiceErrorNotifOID,
+			Name:  SNMPTrapOID,
+			Type:  gosnmp.ObjectIdentifier,
+		}, {
+			Value: s.DB.Config.GatewayName,
+			Name:  InstanceNameOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: service,
+			Name:  SeObjectNameOID,
+			Type:  gosnmp.OctetString,
+		}, {
+			Value: sErr.Error(),
+			Name:  SeObjectErrorOID,
+			Type:  gosnmp.OctetString,
 		},
-		IsInform: false,
 	}
 
-	return s.sendTrap(&trap)
+	return s.sendTrap(variables)
 }

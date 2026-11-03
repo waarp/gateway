@@ -39,13 +39,14 @@ func makeTrapListener(tb testing.TB, version gosnmp.SnmpVersion,
 	return receivedTraps, addr
 }
 
-func assertReceivedVar(tb testing.TB, receivedTraps <-chan *gosnmp.SnmpPacket,
-	expectedVars ...gosnmp.SnmpPDU,
+func assertReceivedTraps(tb testing.TB, receivedTraps <-chan *gosnmp.SnmpPacket,
+	expectedTraps ...*gosnmp.SnmpTrap,
 ) {
 	tb.Helper()
 
 	trap := <-receivedTraps
-	for _, expectedVar := range expectedVars {
-		assert.Contains(tb, trap.Variables, expectedVar)
+	for _, expectedTrap := range expectedTraps {
+		assert.Equal(tb, expectedTrap.IsInform, trap.IsInform)
+		assert.Subset(tb, trap.Variables, expectedTrap.Variables)
 	}
 }

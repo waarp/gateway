@@ -42,10 +42,12 @@ func TestSNMPClient(t *testing.T) {
 		require.NoError(t, db.Insert(&snmpV3Monitor).Run())
 
 		snmpV2Monitor := MonitorConfig{
-			Name:       "snmp-v2-monitor",
-			Version:    Version2,
-			UDPAddress: v2Addr.String(),
-			Community:  "public",
+			Name:         "snmp-v2-monitor",
+			Version:      Version2,
+			UDPAddress:   v2Addr.String(),
+			Community:    "public",
+			UseInforms:   true,
+			AuthEngineID: "12345",
 		}
 		require.NoError(t, db.Insert(&snmpV2Monitor).Run())
 
@@ -65,16 +67,19 @@ func TestSNMPClient(t *testing.T) {
 			require.ErrorContains(t, service.sendServiceError("test-service", testError),
 				"failed to send SNMP trap")
 
-			expectedVars := []gosnmp.SnmpPDU{{
-				Name:  SNMPTrapOID,
-				Type:  gosnmp.ObjectIdentifier,
-				Value: ServiceErrorNotifOID,
-			}, {
-				Name:  InstanceNameOID,
-				Type:  gosnmp.OctetString,
-				Value: []byte(db.Config.GatewayName),
-			}}
-			assertReceivedVar(t, v2Traps, expectedVars...)
+			expectedTrap := &gosnmp.SnmpTrap{
+				Variables: []gosnmp.SnmpPDU{{
+					Name:  SNMPTrapOID,
+					Type:  gosnmp.ObjectIdentifier,
+					Value: ServiceErrorNotifOID,
+				}, {
+					Name:  InstanceNameOID,
+					Type:  gosnmp.OctetString,
+					Value: []byte(db.Config.GatewayName),
+				}},
+				IsInform: snmpV2Monitor.UseInforms,
+			}
+			assertReceivedTraps(t, v2Traps, expectedTrap)
 		})
 
 		t.Run("Reporting a transfer error", func(t *testing.T) {
@@ -106,16 +111,19 @@ func TestSNMPClient(t *testing.T) {
 			require.ErrorContains(t, service.sendTransferError(transfer),
 				"failed to send SNMP trap")
 
-			expectedVars := []gosnmp.SnmpPDU{{
-				Name:  SNMPTrapOID,
-				Type:  gosnmp.ObjectIdentifier,
-				Value: TransferErrorNotifOID,
-			}, {
-				Name:  InstanceNameOID,
-				Type:  gosnmp.OctetString,
-				Value: []byte(db.Config.GatewayName),
-			}}
-			assertReceivedVar(t, v2Traps, expectedVars...)
+			expectedTrap := &gosnmp.SnmpTrap{
+				Variables: []gosnmp.SnmpPDU{{
+					Name:  SNMPTrapOID,
+					Type:  gosnmp.ObjectIdentifier,
+					Value: TransferErrorNotifOID,
+				}, {
+					Name:  InstanceNameOID,
+					Type:  gosnmp.OctetString,
+					Value: []byte(db.Config.GatewayName),
+				}},
+				IsInform: snmpV2Monitor.UseInforms,
+			}
+			assertReceivedTraps(t, v2Traps, expectedTrap)
 		})
 	})
 }
