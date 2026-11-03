@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`727` Gateway envoie désormais correctement un *inform* lorsqu'un moniteur
+  SNMP externe est configuré pour recevoir des *informs* via l'option ``useInforms``.
+  Précédemment, Gateway envoyait systématiquement un *trap* à la place, quelque
+  soit la configuration.
 * :bug:`819` En réception, R66 skip désormais la vérification de taille de
   fichier en fin de transfert si le partenaire n'a pas communiqué de taille.
 * :bug:`799` Correction de bugs de l'interface REST et du CLI qui empêchaient
