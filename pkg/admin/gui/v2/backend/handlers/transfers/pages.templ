@@ -59,7 +59,7 @@ templ listView(d listData) {
 				<details class="w-disclose" open?={ d.FiltersOpen }>
 					<summary class="w-btn w-btn--outline-dark w-btn--sm">
 						@gui.Icon("filter")
-						{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }
+						@filtersLabel(d)
 					</summary>
 					<div class="w-disclose__panel">
 						@filtersPanel(d.Filters)
@@ -93,6 +93,15 @@ templ liveHead(fullURL string, frame bool) {
 templ countsPart(d listData) {
 	@statesRow(d)
 	@countSpan(d)
+	@filtersLabel(d)
+}
+
+// filtersLabel: the label of the "Filters" button, with the number of the
+// filters that apply. A part of the counts, with the id of the page: a
+// filter changed in place refreshes it with the counts (#838), as the other
+// lists do; the frame renders it at once, the count comes from the query.
+templ filtersLabel(d listData) {
+	<span id="transfers-filters" data-live-part="counts">{ gui.T(ctx, "filters.title") + liststate.CountSuffix(d.FiltersCount) }</span>
 }
 
 // rowsPart: the part of the rows, which changes with the page, for

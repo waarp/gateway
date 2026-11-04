@@ -1230,6 +1230,11 @@ func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
 			assert.NotEqual(t, before, s.page.URL(), "the address carries the filter")
 		}
 
+		// The button counts the filter, applied in place or after a reload (#838).
+		label, err := s.page.Locator(`form[data-autosubmit] details.w-disclose > summary`).TextContent()
+		require.NoError(t, err)
+		assert.Regexp(t, `· 1$`, strings.TrimSpace(label), "the Filters button counts the filter applied")
+
 		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] details.w-disclose[open]`), "the filters stay open while one is active")
 	} else if s.count(t, `form[data-live-filter] input[type="search"]`) > 0 {
 		// A list searched by name only (no filters panel), applied in place

@@ -497,6 +497,12 @@ func TestList(t *testing.T) {
 		assert.NotContains(t, body, "<html", "the part alone")
 		indexes(t, body, `id="transfers-states"`, `data-live-part="counts"`, `id="transfers-count"`)
 		assert.NotContains(t, body, `id="transfers-table"`)
+
+		// The label of the "Filters" button is a part of the counts too: a filter
+		// changed in place refreshes it with them (#838).
+		assert.Contains(t, body, `<span id="transfers-filters" data-live-part="counts">Filtres</span>`)
+		assert.Contains(t, s.get(t, permRead, "/webui/transfers?rule=commandes&fragment=counts").Body.String(),
+			`<span id="transfers-filters" data-live-part="counts">Filtres · 1</span>`, "the count of the query")
 		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=state%3Derror",
 			"the state the list loads is the one to find again when coming back")
 

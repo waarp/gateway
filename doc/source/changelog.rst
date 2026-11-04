@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`838` Dans le Suivi des transferts, le bouton « Filtres » compte les
+  filtres actifs dès qu'un filtre change sur place, sans rechargement de la
+  page, comme sur les autres listes.
 * :feature:`840` Chaque écran atteint depuis un autre écran offre le retour à
   celui-ci, sur la ligne du fil d'Ariane, à droite (« Retour au tableau de
   bord », « Retour au transfert ») ; le retour se chaîne du tableau de bord à
