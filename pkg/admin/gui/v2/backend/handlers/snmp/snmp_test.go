@@ -590,7 +590,7 @@ func TestDeleteMonitor(t *testing.T) {
 	s.fixtures(t)
 
 	body := s.get(t, permAll, path(s.v2, "/delete")).Body.String()
-	indexes(t, body, "Supprimer le moniteur « supervision-v2 » ?", "Retour au moniteur",
+	indexes(t, body, "Retour à SNMP", "Supprimer le moniteur « supervision-v2 » ?",
 		"Ce moniteur ne recevra plus les notifications de la passerelle.", ">Supprimer</button>")
 
 	q := redirected(t, s.post(t, path(s.v2, "/delete"), url.Values{}), "/webui/snmp")

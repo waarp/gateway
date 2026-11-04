@@ -37,12 +37,6 @@ templ aboutPage(product, homeURL string, about *gui.About) {
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ gui.T(ctx, "about.title", "product", product) }</h1>
 		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(homeURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "action.back") }
-			</a>
-		</div>
 	</div>
 	<div class="w-card">
 		@gui.AboutBody(gui.Page{Product: product, About: about})

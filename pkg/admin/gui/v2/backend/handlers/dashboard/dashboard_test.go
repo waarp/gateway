@@ -346,7 +346,7 @@ func TestPage(t *testing.T) {
 		// The grouped resumption (#818): the only coloured action, saying how many
 		// will resume (the server transfer apart), the failed count it was shown.
 		assert.Equal(t, 1, strings.Count(body, "w-btn--primary"), "one coloured action: the grouped resumption")
-		indexes(t, body, `id="tdb-refresh"`, `<div id="tdb-resume" class="tdb-resume"><form method="post" action="/webui/transfers/resume?from=dashboard">`,
+		indexes(t, body, `id="tdb-refresh"`, `<div id="tdb-resume" class="tdb-resume"><form method="post" action="/webui/transfers/resume?origin=%2Fwebui%2Fdashboard">`,
 			`<input type="hidden" name="state" value="error">`, `<input type="hidden" name="all" value="1">`,
 			`<input type="hidden" name="expected" value="3">`, `Reprendre les 2 transferts en erreur</button>`, `id="tdb-body"`)
 		assert.NotContains(t, body, "¿", "no missing key")
@@ -356,14 +356,14 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, body, `<h2 class="w-section-title">Santé du nœud gw-test</h2>`)
 		assert.Equal(t, 8, strings.Count(health, `class="w-health__item `), "eight cells")
 		indexes(t, health,
-			`<a class="w-health__item w-health__item--ok" href="/webui/about" title="Démarrée le 09/10/2026 à 06:12:00 ; version 0.19.0-test"><span class="w-health__label">Disponibilité</span> <span class="w-health__value">12 j 09 h</span> <span class="w-status w-status--ok">v0.19.0-test, depuis le 09/10/2026</span></a>`,
-			`<a class="w-health__item w-health__item--ko" href="/webui/services" title="Services système 2 / 2 · Serveurs locaux 1 / 2 · Clients locaux 1 / 1"><span class="w-health__label">Services</span> <span class="w-health__value">4<small>/ 5</small></span> <span class="w-status w-status--ko">1 en erreur</span></a>`,
-			`<a class="w-health__item w-health__item--ok" href="/webui/services?group=core" title="Base memory ; dernière lecture des chiffres en `,
+			`<a class="w-health__item w-health__item--ok" href="/webui/about?origin=%2Fwebui%2Fdashboard" title="Démarrée le 09/10/2026 à 06:12:00 ; version 0.19.0-test"><span class="w-health__label">Disponibilité</span> <span class="w-health__value">12 j 09 h</span> <span class="w-status w-status--ok">v0.19.0-test, depuis le 09/10/2026</span></a>`,
+			`<a class="w-health__item w-health__item--ko" href="/webui/services?origin=%2Fwebui%2Fdashboard" title="Services système 2 / 2 · Serveurs locaux 1 / 2 · Clients locaux 1 / 1"><span class="w-health__label">Services</span> <span class="w-health__value">4<small>/ 5</small></span> <span class="w-status w-status--ko">1 en erreur</span></a>`,
+			`<a class="w-health__item w-health__item--ok" href="/webui/services?group=core&amp;origin=%2Fwebui%2Fdashboard" title="Base memory ; dernière lecture des chiffres en `,
 			`<span class="w-health__label">Base de données</span>`, `<small>ms</small></span> <span class="w-status w-status--ok">Répond</span></a>`,
 			`<div class="w-health__item w-health__item--ok" title="Part du processeur et mémoire prises par la passerelle"><span class="w-health__label">Processeur · mémoire</span> <span class="w-health__value">3<small>% · 48 Mo</small></span> <span class="w-status w-status--ok">Sur 4 cœurs et 8,0 Go</span></div>`,
 			`<div class="w-health__item w-health__item--warn" title="in 81 % (7,0 Go libres) · out 41 % (22 Go libres) · tmp 12 % (33 Go libres)"><span class="w-health__label">Espace disque</span> <span class="w-health__value">81<small>%</small></span> <span class="w-status w-status--warn">in : 7,0 Go libres</span></div>`,
 			`<div class="w-health__item w-health__item--ok" title="Moyenne des 30 dernières secondes ; 3 connexions entrantes, 2 sortantes"><span class="w-health__label">Réseau</span> <span class="w-health__value">1,2 Mo/s<small>reçus</small></span> <span class="w-status w-status--ok">400 Ko/s émis · 5 connexions</span></div>`,
-			`<a class="w-health__item w-health__item--ko" href="/webui/watchers"><span class="w-health__label">Surveillances</span> <span class="w-health__value">13<small>/ 14</small></span> <span class="w-status w-status--ko">1 en défaut</span></a>`)
+			`<a class="w-health__item w-health__item--ko" href="/webui/watchers?origin=%2Fwebui%2Fdashboard"><span class="w-health__label">Surveillances</span> <span class="w-health__value">13<small>/ 14</small></span> <span class="w-status w-status--ko">1 en défaut</span></a>`)
 
 		assert.Contains(t, body, `<h2 class="w-section-title">Transferts</h2>`)
 	})
@@ -422,7 +422,7 @@ func TestPage(t *testing.T) {
 		body := s.serve(t, write, "fr", "/webui/dashboard").Body.String()
 		tiles := part(t, body, "tdb-transfers")
 
-		running := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--info" href="/webui/transfers\?state=running">.*?</a>`).FindString(tiles)
+		running := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--info" href="/webui/transfers\?state=running&amp;origin=%2Fwebui%2Fdashboard">.*?</a>`).FindString(tiles)
 		require.NotEmpty(t, running)
 		assert.Contains(t, running, `<span class="w-tile__label">Transferts en cours</span>`)
 		assert.Contains(t, running, `<span aria-hidden="true">2</span><span class="visually-hidden">2 transferts en cours</span>`)
@@ -430,22 +430,22 @@ func TestPage(t *testing.T) {
 			`<span class="w-status w-status--warn">1 en cours depuis plus d&#39;une heure</span>`,
 			`<span class="w-status w-status--warn">1 planifié en retard</span>`)
 
-		failedTile := regexp.MustCompile(`(?s)<div class="w-card w-tile w-tile--ko"><a class="w-tile__main" href="/webui/transfers\?state=error">.*?</div>`).FindString(tiles)
+		failedTile := regexp.MustCompile(`(?s)<div class="w-card w-tile w-tile--ko"><a class="w-tile__main" href="/webui/transfers\?state=error&amp;origin=%2Fwebui%2Fdashboard">.*?</div>`).FindString(tiles)
 		require.NotEmpty(t, failedTile)
-		assert.Contains(t, failedTile, `<span class="w-muted"><a class="w-link" href="/webui/transfers?role=client&amp;state=error">2 côté client</a> · `+
-			`<a class="w-link" href="/webui/transfers?role=server&amp;state=error">1 côté serveur</a></span>`,
-			"the roles of the failed transfers (#835), each leading to the monitoring filtered by its role (#837)")
+		assert.Contains(t, failedTile, `<span class="w-muted"><a class="w-link" href="/webui/transfers?role=client&amp;state=error&amp;origin=%2Fwebui%2Fdashboard">2 côté client</a> · `+
+			`<a class="w-link" href="/webui/transfers?role=server&amp;state=error&amp;origin=%2Fwebui%2Fdashboard">1 côté serveur</a></span>`,
+			"the roles of the failed transfers (#835), each leading to the monitoring filtered by its role (#837), offering the return (#840)")
 
-		doneTile := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ok" href="/webui/transfers\?from=[^"]+state=done">.*?</a>`).FindString(tiles)
+		doneTile := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ok" href="/webui/transfers\?from=[^"]+state=done&amp;origin=%2Fwebui%2Fdashboard">.*?</a>`).FindString(tiles)
 		require.NotEmpty(t, doneTile)
 		assert.Contains(t, doneTile, `<span class="w-status w-status--ok">Dernier terminé à 15:30</span>`, "the last transfer done (#835)")
 
-		failed := regexp.MustCompile(`(?s)<div class="w-card w-tile w-tile--ko"><a class="w-tile__main" href="/webui/transfers\?state=error">.*?</div>`).FindString(tiles)
+		failed := regexp.MustCompile(`(?s)<div class="w-card w-tile w-tile--ko"><a class="w-tile__main" href="/webui/transfers\?state=error&amp;origin=%2Fwebui%2Fdashboard">.*?</div>`).FindString(tiles)
 		require.NotEmpty(t, failed)
 		assert.Contains(t, failed, `<span aria-hidden="true">3</span><span class="visually-hidden">3 transferts en erreur</span>`)
 		assert.Contains(t, failed, `<span class="w-status w-status--ko">1 depuis une heure</span>`)
 
-		done := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ok" href="/webui/transfers\?from=2026-10-20T17%3A00&amp;state=done">.*?</a>`).FindString(tiles)
+		done := regexp.MustCompile(`(?s)<a class="w-card w-tile w-tile--ok" href="/webui/transfers\?from=2026-10-20T17%3A00&amp;state=done&amp;origin=%2Fwebui%2Fdashboard">.*?</a>`).FindString(tiles)
 		require.NotEmpty(t, done, "the list of the done transfers is bounded by the window")
 		assert.Contains(t, done, `<span class="w-tile__label">Terminés sur 24 h</span>`)
 		assert.Contains(t, done, `<span aria-hidden="true">3</span>`, "the transfer of yesterday 15:00 is out, the one of 17:30 is in")
@@ -514,24 +514,24 @@ func TestPage(t *testing.T) {
 		assert.Contains(t, errors, `<span class="w-mono">15:35:00</span>`)
 		assert.Contains(t, errors, `<div class="w-cell-stack"><span class="w-mono">10:00:00</span><span class="w-cell-sub">20/10/2026</span></div>`,
 			"the date of a transfer not started today")
-		assert.Contains(t, errors, `<a class="w-link" href="/webui/transfers/`+itoa(s.failedRecent.ID)+`">releve-20102026.pdf</a></span><span class="w-cell-sub">releves · banque-demo</span>`)
+		assert.Contains(t, errors, `<a class="w-link" href="/webui/transfers/`+itoa(s.failedRecent.ID)+`?origin=%2Fwebui%2Fdashboard">releve-20102026.pdf</a></span><span class="w-cell-sub">releves · banque-demo</span>`)
 		assert.Contains(t, errors, `<span class="w-cell-sub">commandes · srv-sftp</span>`, "a server transfer names its server")
 		assert.Contains(t, errors, `<span class="w-cell-sub tdb-detail" title="dial tcp 127.0.0.1:10022: connection refused">dial tcp 127.0.0.1:10022: connection refused</span>`)
 
 		recent := regexp.MustCompile(`(?s)<div class="w-actions" id="tdb-act-` + itoa(s.failedRecent.ID) + `" popover>.*?</div>`).FindString(errors)
 		require.NotEmpty(t, recent)
-		indexes(t, recent, `href="/webui/transfers/`+itoa(s.failedRecent.ID)+`"`,
-			`<form method="post" action="/webui/transfers/`+itoa(s.failedRecent.ID)+`/resume?from=dashboard">`,
-			`href="/webui/transfers/`+itoa(s.failedRecent.ID)+`/retry?from=dashboard"`,
-			`<hr>`, `href="/webui/transfers/`+itoa(s.failedRecent.ID)+`/cancel?from=dashboard"`)
+		indexes(t, recent, `href="/webui/transfers/`+itoa(s.failedRecent.ID)+`?origin=%2Fwebui%2Fdashboard"`,
+			`<form method="post" action="/webui/transfers/`+itoa(s.failedRecent.ID)+`/resume?origin=%2Fwebui%2Fdashboard">`,
+			`href="/webui/transfers/`+itoa(s.failedRecent.ID)+`/retry?origin=%2Fwebui%2Fdashboard"`,
+			`<hr>`, `href="/webui/transfers/`+itoa(s.failedRecent.ID)+`/cancel?origin=%2Fwebui%2Fdashboard"`)
 
 		server := regexp.MustCompile(`(?s)<div class="w-actions" id="tdb-act-` + itoa(s.failedServer.ID) + `" popover>.*?</div>`).FindString(errors)
 		require.NotEmpty(t, server)
 		assert.NotContains(t, server, "/resume", "a server transfer resumes on the initiative of the partner")
 		assert.NotContains(t, server, "/retry")
-		assert.Contains(t, server, "/cancel?from=dashboard")
+		assert.Contains(t, server, "/cancel?origin=%2Fwebui%2Fdashboard")
 
-		assert.Contains(t, errors, `<p class="tdb-foot"><a class="w-link" href="/webui/transfers?state=error">Voir les 3 transferts en erreur</a></p>`)
+		assert.Contains(t, errors, `<p class="tdb-foot"><a class="w-link" href="/webui/transfers?state=error&amp;origin=%2Fwebui%2Fdashboard">Voir les 3 transferts en erreur</a></p>`)
 	})
 
 	t.Run("Given a user who reads the transfers only", func(t *testing.T) {
@@ -619,7 +619,7 @@ func TestEmptyPage(t *testing.T) {
 	body := s.serve(t, model.PermTransfersRead|model.PermTransfersWrite, "fr", "/webui/dashboard").Body.String()
 
 	tiles := part(t, body, "tdb-transfers")
-	assert.Contains(t, tiles, `w-tile--ok" href="/webui/transfers?state=error"`, "no failure: the tile is fine")
+	assert.Contains(t, tiles, `w-tile--ok" href="/webui/transfers?state=error&amp;origin=%2Fwebui%2Fdashboard"`, "no failure: the tile is fine")
 	assert.Contains(t, tiles, `<span class="w-status w-status--ok">Aucun transfert en erreur</span>`)
 	assert.Equal(t, 3, strings.Count(tiles, `<span aria-hidden="true">0</span>`))
 
@@ -693,7 +693,7 @@ func TestDegradedPage(t *testing.T) {
 	notice := part(t, body, "tdb-notice")
 	assert.Contains(t, notice, `<div class="w-banner w-banner--ko" role="alert">`)
 	assert.Contains(t, notice, `<strong>La base de données ne répond plus depuis 16:07:00.</strong>Les chiffres affichés datent de 16:05:00.`)
-	assert.Contains(t, notice, `href="/webui/services">`)
+	assert.Contains(t, notice, `href="/webui/services?origin=%2Fwebui%2Fdashboard">`)
 	assert.Contains(t, body, `<span aria-hidden="true">3</span><span class="visually-hidden">3 transferts en erreur</span>`,
 		"the last figures read stay")
 	assert.Contains(t, body, ">Actualisé à 16:07:00</span>", "the page says when it was rendered")

@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -316,14 +317,17 @@ func groupDigits(translate gui.Translator, n uint64) string { return format.Grou
 // the window (with its volume and the cancellations). Each one leads to the
 // list of the transfers in that state, the list of the done ones bounded by
 // the window.
-func tiles(txt texts, figs *figures) []gui.TileProps {
+func tiles(txt texts, figs *figures, origin string) []gui.TileProps {
+	// Each tile leads to the monitoring, which offers the return here (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
+
 	nbRunning := figs.Live[statusKey(types.StatusRunning)]
 	running := gui.TileProps{
 		Label:   txt.translate("dashboard.tile.running"),
 		Value:   groupDigits(txt.translate, nbRunning),
 		Variant: stateInfo,
 		SR:      txt.count(srKeys, "running", nbRunning),
-		Href:    transfers.FilteredListURL(transfers.StateRunning, time.Time{}),
+		Href:    linked(transfers.FilteredListURL(transfers.StateRunning, time.Time{})),
 	}
 
 	for _, waiting := range []struct {
@@ -360,7 +364,7 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 		Value:   groupDigits(txt.translate, nbFailed),
 		Variant: stateKO,
 		SR:      txt.count(srKeys, "error", nbFailed),
-		Href:    transfers.FilteredListURL(transfers.StateError, time.Time{}),
+		Href:    linked(transfers.FilteredListURL(transfers.StateError, time.Time{})),
 	}
 
 	switch {
@@ -379,11 +383,11 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 		failed.Links = []gui.Link{
 			{
 				Label: txt.count(footKeys, "client", figs.FailedClient),
-				URL:   transfers.RoleListURL(transfers.StateError, transfers.RoleClient),
+				URL:   linked(transfers.RoleListURL(transfers.StateError, transfers.RoleClient)),
 			},
 			{
 				Label: txt.count(footKeys, "server", figs.FailedServer),
-				URL:   transfers.RoleListURL(transfers.StateError, transfers.RoleServer),
+				URL:   linked(transfers.RoleListURL(transfers.StateError, transfers.RoleServer)),
 			},
 		}
 	}
@@ -399,7 +403,7 @@ func tiles(txt texts, figs *figures) []gui.TileProps {
 		Value:   groupDigits(txt.translate, nbDone),
 		Variant: stateOK,
 		SR:      txt.count(srKeys, "done", nbDone),
-		Href:    transfers.FilteredListURL(transfers.StateDone, since),
+		Href:    linked(transfers.FilteredListURL(transfers.StateDone, since)),
 	}
 
 	if figs.Volume > 0 {
@@ -560,7 +564,7 @@ type errorRow struct {
 	Actions []gui.Action
 }
 
-func errorRows(translate gui.Translator, figs *figures, now time.Time, write bool) []errorRow {
+func errorRows(translate gui.Translator, figs *figures, now time.Time, write bool, origin string) []errorRow {
 	rows := make([]errorRow, 0, len(figs.Errors))
 
 	for _, failed := range figs.Errors {
@@ -581,11 +585,11 @@ func errorRows(translate gui.Translator, figs *figures, now time.Time, write boo
 			Time:    clock,
 			Date:    date,
 			File:    transfers.FileNameOf(trans.LocalPath, trans.SrcFilename, trans.DestFilename),
-			URL:     transfers.SheetURL(trans.ID),
+			URL:     liststate.WithOrigin(transfers.SheetURL(trans.ID), origin),
 			Sub:     failed.Rule + " · " + failed.Agent,
 			Cause:   cause,
 			Detail:  trans.ErrDetails,
-			Actions: transfers.LiveActions(translate, trans, write),
+			Actions: transfers.LiveActions(translate, trans, write, origin),
 		})
 	}
 

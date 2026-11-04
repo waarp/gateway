@@ -30,20 +30,22 @@ func TestLiveActions(t *testing.T) {
 		Identifier: model.ID(43), Status: types.StatusError, LocalAccountID: sql.NullInt64{Int64: 1, Valid: true},
 	}
 
-	acts := LiveActions(keys, client, true)
+	const dashboard = "/webui/dashboard"
+
+	acts := LiveActions(keys, client, true, dashboard)
 	require.Len(t, acts, 4, "the sheet, resume, retry, cancel")
 	assert.Equal(t, "transfers.action.detail", acts[0].Label)
-	assert.Equal(t, "/webui/transfers/42", acts[0].URL)
-	assert.Equal(t, "/webui/transfers/42/resume?from=dashboard", acts[1].Action, "a POST, back to the dashboard")
-	assert.Equal(t, "/webui/transfers/42/retry?from=dashboard", acts[2].URL)
-	assert.Equal(t, "/webui/transfers/42/cancel?from=dashboard", acts[3].URL)
+	assert.Equal(t, "/webui/transfers/42?origin=%2Fwebui%2Fdashboard", acts[0].URL, "the sheet offers the return (#840)")
+	assert.Equal(t, "/webui/transfers/42/resume?origin=%2Fwebui%2Fdashboard", acts[1].Action, "a POST, back to the dashboard")
+	assert.Equal(t, "/webui/transfers/42/retry?origin=%2Fwebui%2Fdashboard", acts[2].URL)
+	assert.Equal(t, "/webui/transfers/42/cancel?origin=%2Fwebui%2Fdashboard", acts[3].URL)
 	assert.True(t, acts[3].Danger)
 
-	acts = LiveActions(keys, server, true)
+	acts = LiveActions(keys, server, true, dashboard)
 	require.Len(t, acts, 2, "a server transfer neither resumes nor retries from the gateway")
-	assert.Equal(t, "/webui/transfers/43/cancel?from=dashboard", acts[1].URL)
+	assert.Equal(t, "/webui/transfers/43/cancel?origin=%2Fwebui%2Fdashboard", acts[1].URL)
 
-	acts = LiveActions(keys, client, false)
+	acts = LiveActions(keys, client, false, dashboard)
 	require.Len(t, acts, 1, "the sheet alone without the right to write")
 
 	child := &model.Transfer{
@@ -51,7 +53,7 @@ func TestLiveActions(t *testing.T) {
 		ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
 		TransferInfo: map[string]any{model.SyncTransferID: int64(40)},
 	}
-	for _, act := range LiveActions(keys, child, true) {
+	for _, act := range LiveActions(keys, child, true, dashboard) {
 		assert.NotContains(t, act.Action, "/resume", "the child of a synchronous transfer resumes through its parent")
 	}
 }

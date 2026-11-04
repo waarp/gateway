@@ -375,6 +375,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("rules.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -493,7 +494,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Access:     e.accessText(translate),
 			Restricted: e.access > 0,
 			Comment:    e.rule.Comment,
-			Actions:    actions(translate, e, user, false, carried),
+			Actions:    actions(translate, e, user, false, carried, ""),
 		})
 	}
 
@@ -532,26 +533,28 @@ func sortEntries(translate gui.Translator, entries []entry, key, dir string) {
 
 // actions: the menu of a row, or of the sheet (no "view" nor "edit" there,
 // the sheet has its button).
-func actions(translate gui.Translator, item *entry, user rights, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, item *entry, user rights, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("rules.action.detail"), URL: withRet(ruleURL(item.rule.ID, ""), carried),
+			Icon: "eye", Label: translate("rules.action.detail"), URL: linked(withRet(ruleURL(item.rule.ID, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("rules.action.edit"), URL: withRet(ruleURL(item.rule.ID, "/edit"), carried),
+				Icon: "pen", Label: translate("rules.action.edit"), URL: linked(withRet(ruleURL(item.rule.ID, "/edit"), carried)),
 			})
 		}
 
 		acts = append(acts,
 			gui.Action{
-				Icon: "list", Label: translate("rules.action.tasks"), URL: withRet(tasksTabURL(item.rule.ID), carried),
+				Icon: "list", Label: translate("rules.action.tasks"), URL: linked(withRet(tasksTabURL(item.rule.ID), carried)),
 			},
 			gui.Action{
-				Icon: "shield", Label: translate("rules.action.access"), URL: withRet(accessURL(item.rule.ID, ""), carried),
+				Icon: "shield", Label: translate("rules.action.access"), URL: linked(withRet(accessURL(item.rule.ID, ""), carried)),
 			},
 		)
 	}
@@ -564,7 +567,9 @@ func actions(translate gui.Translator, item *entry, user rights, onSheet bool, c
 
 	if user.Delete {
 		acts = append(acts, gui.Action{
-			Icon: "trash", Label: translate("rules.action.delete"), URL: withRet(ruleURL(item.rule.ID, "/delete"), carried),
+			Icon:   "trash",
+			Label:  translate("rules.action.delete"),
+			URL:    linked(withRet(ruleURL(item.rule.ID, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -604,12 +609,15 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 // screen is a page of the screen: the chrome around the data.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionTreatments,
-		Menu:        constants.SidebarMenuRules,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionTreatments,
+		Menu:    constants.SidebarMenuRules,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("rules.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet},
 	}
 }
@@ -656,18 +664,28 @@ func (h *Handlers) load(w http.ResponseWriter, r *http.Request) (entry, bool) {
 
 // tabs is the tab strip of the sheet: Details, Tasks and Access; current is
 // the tab shown.
-func tabs(translate gui.Translator, e *entry, current string) []means.Tab {
+func tabs(translate gui.Translator, e *entry, current, through string) []means.Tab {
 	tasks, access := uint64(e.tasks()), uint64(e.access) //nolint:gosec // counts
 
 	return []means.Tab{
-		{Label: translate("rules.tab.details"), URL: ruleURL(e.rule.ID, ""), Current: current == tabDetails},
 		{
-			Label: translate("rules.tab.tasks"), URL: tasksTabURL(e.rule.ID), Count: tasks, HasCount: true,
-			Current: current == tabTasks,
+			Label:   translate("rules.tab.details"),
+			URL:     liststate.WithOrigin(ruleURL(e.rule.ID, ""), through),
+			Current: current == tabDetails,
 		},
 		{
-			Label: translate("rules.tab.access"), URL: accessURL(e.rule.ID, ""), Count: access, HasCount: true,
-			Current: current == tabAccess,
+			Label:    translate("rules.tab.tasks"),
+			URL:      liststate.WithOrigin(tasksTabURL(e.rule.ID), through),
+			Count:    tasks,
+			HasCount: true,
+			Current:  current == tabTasks,
+		},
+		{
+			Label:    translate("rules.tab.access"),
+			URL:      liststate.WithOrigin(accessURL(e.rule.ID, ""), through),
+			Count:    access,
+			HasCount: true,
+			Current:  current == tabAccess,
 		},
 	}
 }
@@ -740,14 +758,14 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Folders:    folders(translate, item.rule),
 		Access:     item.accessText(translate),
 		Restricted: item.access > 0,
-		Tabs:       tabs(translate, &item, tabDetails),
+		Tabs:       tabs(translate, &item, tabDetails, liststate.OriginThrough(r)),
 		BackURL:    listURL(carried),
-		Actions:    actions(translate, &item, user, true, carried),
+		Actions:    actions(translate, &item, user, true, carried, liststate.Origin(r)),
 	}
 	data.FoldersMeta = foldersMeta(translate, data.Folders)
 
 	if user.Write {
-		data.EditURL = withRet(ruleURL(item.rule.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(ruleURL(item.rule.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	screen := h.screen(translate, data.Title, carried, 0)

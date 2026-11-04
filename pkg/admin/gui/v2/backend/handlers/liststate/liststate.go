@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 )
 
 // The parameters of the state of a list, and the ones that carry the result
@@ -28,6 +29,10 @@ const (
 	PageParam  = "page"
 	SizeParam  = "size"
 	RetParam   = "ret"
+	// OriginParam is the page the user comes from (#840, common.OriginParam):
+	// part of the state a list carries (ret), so that a sheet reached from
+	// the list comes back to a list that still knows its origin.
+	OriginParam = common.OriginParam
 	// ResetParam is the explicit reset: a request without any criterion
 	// that clears the state kept for the session ("Reset", "Clear the
 	// search").
@@ -104,6 +109,9 @@ type Query struct {
 	Page    int
 	Size    int
 	Filters Filters
+	// Origin is the page of origin the list carries (?origin=), kept as given:
+	// the shell validates it when it renders the return link.
+	Origin string
 
 	sorts       []string
 	sizes       []int
@@ -136,6 +144,10 @@ func Parse(v url.Values, sorts []string, sizes []int) *Query {
 
 	if size, err := strconv.Atoi(v.Get(SizeParam)); err == nil && slices.Contains(sizes, size) {
 		query.Size = size
+	}
+
+	if origin := v.Get(OriginParam); strings.HasPrefix(origin, "/") && len(origin) <= common.MaxOriginLength {
+		query.Origin = origin
 	}
 
 	return query
@@ -175,6 +187,10 @@ func (q *Query) FilterValues() url.Values {
 
 	if q.Filters != nil {
 		maps.Copy(v, q.Filters.Values())
+	}
+
+	if q.Origin != "" {
+		v.Set(OriginParam, q.Origin)
 	}
 
 	return v
@@ -233,7 +249,7 @@ func (q *Query) Encode(page int) string { return q.WithPage(page).Encode() }
 func (q *Query) ToolbarHidden() map[string]string {
 	hidden := map[string]string{}
 
-	for _, key := range []string{SortParam, DirParam, SizeParam} {
+	for _, key := range []string{SortParam, DirParam, SizeParam, OriginParam} {
 		if value := q.Values().Get(key); value != "" {
 			hidden[key] = value
 		}
@@ -363,9 +379,13 @@ func (s *Spec) KeptState(r *http.Request) (*Query, bool) {
 // KeepState stores the state of the list for the browser session, or
 // forgets it when the state is the default one.
 func (s *Spec) KeepState(w http.ResponseWriter, query *Query) {
+	// The origin belongs to the navigation of the moment, not to the session.
+	kept := *query
+	kept.Origin = ""
+
 	cookie := &http.Cookie{
 		Name:     s.Cookie,
-		Value:    url.QueryEscape(query.Encode(query.Page)),
+		Value:    url.QueryEscape(kept.Encode(kept.Page)),
 		Path:     common.WebuiURL(s.Path),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -396,7 +416,9 @@ func (s *Spec) Restore(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	target := kept.WithPage(kept.Page)
-	for _, name := range []string{DoneParam, FailedParam, NameParam, ReasonParam} {
+	// The result of the previous action and the origin of the moment travel
+	// with the restored state.
+	for _, name := range []string{DoneParam, FailedParam, NameParam, ReasonParam, OriginParam} {
 		if params.Has(name) {
 			target.Set(name, params.Get(name))
 		}
@@ -425,6 +447,57 @@ func WithRet(u, ret string) string {
 	}
 
 	return WithQuery(u, url.Values{RetParam: {ret}})
+}
+
+// Origin is the address of the current page as the origin of its links to
+// other screens (#840): its path and its query, without what belongs to the
+// moment (the live fragment, the result of an action, the language switch);
+// bounded, the older origins of the chain dropped first. The shell checks
+// it names a screen when the link is followed.
+func Origin(r *http.Request) string {
+	q := r.URL.Query()
+	moment := []string{
+		FragmentParam, DoneParam, FailedParam, NameParam,
+		ReasonParam, KindParam, constants.LanguageParam,
+	}
+	for _, name := range moment {
+		q.Del(name)
+	}
+
+	origin := originURL(r.URL.Path, q)
+	if len(origin) > common.MaxOriginLength && q.Has(OriginParam) {
+		q.Del(OriginParam)
+		origin = originURL(r.URL.Path, q)
+	}
+
+	if len(origin) > common.MaxOriginLength {
+		return ""
+	}
+
+	return origin
+}
+
+func originURL(path string, q url.Values) string {
+	if encoded := q.Encode(); encoded != "" {
+		return path + "?" + encoded
+	}
+
+	return path
+}
+
+// OriginThrough is the origin the request carries, as given, for the links
+// that stay on the same page (the tabs of a sheet): they keep offering the
+// same return.
+func OriginThrough(r *http.Request) string { return r.URL.Query().Get(OriginParam) }
+
+// WithOrigin appends the origin to a link to another screen, which then
+// offers the return to it; an empty link (no screen) stays empty.
+func WithOrigin(u, origin string) string {
+	if origin == "" || u == "" {
+		return u
+	}
+
+	return WithQuery(u, url.Values{OriginParam: {origin}})
 }
 
 // WithQuery appends parameters to a URL.

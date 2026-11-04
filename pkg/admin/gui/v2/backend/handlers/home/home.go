@@ -84,6 +84,9 @@ func About(logger *log.Logger) http.Handler {
 				{Label: translate("home.title"), URL: common.WebuiURL("/home")},
 				{Label: translate("about.title", "product", constants.AppName)},
 			},
+			// Back to the home page by default; to the page of origin when
+			// the request carries one (the dashboard, #840).
+			Return: &gui.Link{Label: translate("action.back"), URL: common.WebuiURL("/home")},
 		}, aboutPage(constants.AppName, common.WebuiURL("/home"), common.About(translate)))
 	})
 }

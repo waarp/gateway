@@ -14,7 +14,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/batch"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
@@ -188,11 +187,11 @@ func expectedOf(r *http.Request) (int, bool) {
 }
 
 // ResumeFailedForm is the form another screen (the dashboard, #818) posts to
-// resume every failed transfer at once, coming back to it: the address of the
-// grouped resumption and its fields (the failed state, the whole filter, the
-// count of failed transfers the screen showed).
-func ResumeFailedForm(expected uint64) (action string, fields []liststate.Hidden) {
-	return actionURLFrom(string(batch.Resume), fromDashboard), []liststate.Hidden{
+// resume every failed transfer at once, coming back to it (its origin, #840):
+// the address of the grouped resumption and its fields (the failed state, the
+// whole filter, the count of failed transfers the screen showed).
+func ResumeFailedForm(expected uint64, origin string) (action string, fields []liststate.Hidden) {
+	return actionURLFrom(string(batch.Resume), origin), []liststate.Hidden{
 		{Name: paramState, Value: StateError},
 		{Name: "all", Value: "1"},
 		{Name: expectedParam, Value: strconv.FormatUint(expected, 10)},
@@ -200,36 +199,18 @@ func ResumeFailedForm(expected uint64) (action string, fields []liststate.Hidden
 }
 
 // actionURLFrom is the address of a gesture on a set, which keeps where the
-// gesture comes back to ("" for the list).
-func actionURLFrom(name, from string) string {
-	action := common.WebuiURL(pagePath + "/" + name)
-	if from != "" {
-		action = liststate.WithQuery(action, url.Values{fromParam: {from}})
-	}
-
-	return action
+// gesture comes back to (its origin; "" for the list). The origin is read on
+// the address alone, never in the form: the filters of the list have their
+// own fields there.
+func actionURLFrom(name, origin string) string {
+	return liststate.WithOrigin(common.WebuiURL(pagePath+"/"+name), origin)
 }
 
-// fromDashboardSet tells whether a gesture on a set was asked from the
-// dashboard, where it comes back. The parameter is read on the address alone:
-// the filters of the list name their period "from" too, in the form.
-func fromDashboardSet(r *http.Request) bool { return r.URL.Query().Get(fromParam) == fromDashboard }
-
-// originOf is where a gesture on a set was asked from, as actionURLFrom
-// carries it: the dashboard, or "" for the list.
-func originOf(r *http.Request) string {
-	if fromDashboardSet(r) {
-		return fromDashboard
-	}
-
-	return ""
-}
-
-// backOf is where a gesture on the selection comes back to: the dashboard
-// when it was asked from there, else the list as the user left it.
+// backOf is where a gesture on the selection comes back to: its origin (the
+// dashboard) when it was asked from there, else the list as the user left it.
 func backOf(r *http.Request, sel *selection) string {
-	if fromDashboardSet(r) {
-		return common.WebuiURL(constants.DashboardPath)
+	if origin := originOf(r); origin != "" {
+		return origin
 	}
 
 	return listURL(sel.carried())
@@ -237,8 +218,8 @@ func backOf(r *http.Request, sel *selection) string {
 
 // redirectBack sends back where the gesture was asked, with its result.
 func redirectBack(w http.ResponseWriter, r *http.Request, sel *selection, values url.Values) {
-	if fromDashboardSet(r) {
-		liststate.RedirectTo(w, r, common.WebuiURL(constants.DashboardPath), values)
+	if origin := originOf(r); origin != "" {
+		liststate.RedirectTo(w, r, origin, values)
 
 		return
 	}
@@ -313,6 +294,7 @@ func (h *Handlers) renderSet(w http.ResponseWriter, r *http.Request, sel *select
 	}
 
 	screen := h.screen(data.Title, crumbs(translate, data.Title, sel.carried()), status)
+	screen.Return = &gui.Link{Label: translate("transfers.back"), URL: data.CancelURL}
 	h.shell.Render(w, h.logger, r, screen, setView(data))
 }
 

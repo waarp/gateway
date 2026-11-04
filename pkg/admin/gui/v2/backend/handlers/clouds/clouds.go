@@ -285,6 +285,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("clouds.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -402,7 +403,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Type:     label(translate, e.cloud.Type),
 			Location: e.location(),
 			Auth:     translate(authKeyPrefix + e.auth()),
-			Actions:  actions(translate, e, user, false, carried),
+			Actions:  actions(translate, e, user, false, carried, ""),
 		})
 	}
 
@@ -447,19 +448,21 @@ func sortEntries(translate gui.Translator, entries []entry, key, dir string) {
 // sheet" and "Edit") and on the sheet (without: the buttons are there).
 // Entries follow the rights; the destructive one comes last. Every URL
 // carries the list state.
-func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	id := e.cloud.ID
 
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("clouds.action.detail"), URL: withRet(cloudURL(id, ""), carried),
+			Icon: "eye", Label: translate("clouds.action.detail"), URL: linked(withRet(cloudURL(id, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("clouds.action.edit"), URL: withRet(cloudURL(id, "/edit"), carried),
+				Icon: "pen", Label: translate("clouds.action.edit"), URL: linked(withRet(cloudURL(id, "/edit"), carried)),
 			})
 		}
 	}
@@ -468,7 +471,7 @@ func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carr
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("clouds.action.delete"),
-			URL:    withRet(cloudURL(id, "/delete"), carried),
+			URL:    linked(withRet(cloudURL(id, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -548,12 +551,15 @@ func (h *Handlers) cloud(w http.ResponseWriter, r *http.Request) (entry, bool) {
 // itself replaces the breadcrumb and the notices.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionAdministration,
-		Menu:        constants.SidebarMenuClouds,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionAdministration,
+		Menu:    constants.SidebarMenuClouds,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("clouds.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet},
 	}
 }
@@ -663,7 +669,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Type:    label(translate, inst.cloud.Type),
 		Path:    inst.cloud.Name + ":" + translate("clouds.detail.path_example"),
 		BackURL: listURL(carried),
-		Actions: actions(translate, &inst, user, true, carried),
+		Actions: actions(translate, &inst, user, true, carried, liststate.Origin(r)),
 		Key:     inst.cloud.Key,
 		Secret:  inst.cloud.Secret != "",
 		EnvAuth: inst.auth() == "env",
@@ -686,7 +692,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.UsageMeta = usageMeta(translate, &data.Usage)
 
 	if user.Write {
-		data.EditURL = withRet(cloudURL(inst.cloud.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(cloudURL(inst.cloud.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("clouds.detail.title", "name", inst.cloud.Name)

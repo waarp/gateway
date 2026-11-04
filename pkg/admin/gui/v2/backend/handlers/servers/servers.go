@@ -457,7 +457,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Protocol: e.proto.Family.Label,
 			TLS:      e.proto.TLS,
 			Address:  e.address(),
-			Actions:  actions(translate, e, user, false, carried),
+			Actions:  actions(translate, e, user, false, carried, ""),
 		})
 	}
 
@@ -502,24 +502,30 @@ func sortEntries(entries []entry, key, dir string) {
 // tabs of the sheet and "Edit") and on the details page (without: the tabs
 // and the buttons are there). Entries follow the rights; the destructive one
 // comes last. Every URL carries the list state.
-func actions(translate gui.Translator, item entry, user rights, onDetail bool, carried string) []gui.Action {
+func actions(translate gui.Translator, item entry, user rights, onDetail bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	agentID := item.agent.ID
 
 	var acts []gui.Action
 	if !onDetail {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("servers.action.detail"), URL: withRet(serverURL(agentID, ""), carried),
+			Icon: "eye", Label: translate("servers.action.detail"), URL: linked(withRet(serverURL(agentID, ""), carried)),
 		})
 	}
 
 	if user.Write {
 		if item.running() {
 			acts = append(acts, gui.Action{
-				Icon: "stop", Label: translate("servers.action.stop"), Action: withRet(serverURL(agentID, "/stop"), carried),
+				Icon:   "stop",
+				Label:  translate("servers.action.stop"),
+				Action: linked(withRet(serverURL(agentID, "/stop"), carried)),
 			})
 		} else {
 			acts = append(acts, gui.Action{
-				Icon: "play", Label: translate("servers.action.start"), Action: withRet(serverURL(agentID, "/start"), carried),
+				Icon:   "play",
+				Label:  translate("servers.action.start"),
+				Action: linked(withRet(serverURL(agentID, "/start"), carried)),
 			})
 		}
 	}
@@ -527,24 +533,24 @@ func actions(translate gui.Translator, item entry, user rights, onDetail bool, c
 	if !onDetail {
 		acts = append(acts,
 			gui.Action{
-				Icon: "key", Label: translate("servers.action.auth"), URL: withRet(serverURL(agentID, authSuffix), carried),
+				Icon: "key", Label: translate("servers.action.auth"), URL: linked(withRet(serverURL(agentID, authSuffix), carried)),
 			},
 			gui.Action{
 				Icon:  "users",
 				Label: translate("servers.action.accounts"),
-				URL:   withRet(serverURL(agentID, accountsSuffix), carried),
+				URL:   linked(withRet(serverURL(agentID, accountsSuffix), carried)),
 			})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("servers.action.edit"), URL: withRet(serverURL(agentID, "/edit"), carried),
+				Icon: "pen", Label: translate("servers.action.edit"), URL: linked(withRet(serverURL(agentID, "/edit"), carried)),
 			})
 		}
 	}
 
 	if user.Transfers {
 		acts = append(acts, gui.Action{
-			Icon: "clock", Label: translate("servers.action.transfers"), URL: transfersOf(item.agent.Name, ""),
+			Icon: "clock", Label: translate("servers.action.transfers"), URL: linked(transfersOf(item.agent.Name, "")),
 		})
 	}
 
@@ -552,7 +558,7 @@ func actions(translate gui.Translator, item entry, user rights, onDetail bool, c
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("servers.action.delete"),
-			URL:    withRet(serverURL(agentID, "/delete"), carried),
+			URL:    linked(withRet(serverURL(agentID, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -656,6 +662,9 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return: &gui.Link{Label: translate("servers.back"), URL: listURL(carried)},
 
 		Stylesheets: sheetStylesheets(),
 	}
@@ -693,7 +702,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	carried := ret(r)
 	user := rightsOf(r)
 
-	tabs, err := h.serverTabs(translate, srv, tabDetails, carried)
+	tabs, err := h.serverTabs(translate, srv, tabDetails, carried, liststate.OriginThrough(r))
 	if err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
@@ -713,7 +722,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Protocol: srv.proto.Family.Label,
 		Tabs:     tabs,
 		BackURL:  listURL(carried),
-		Actions:  actions(translate, srv, user, true, carried),
+		Actions:  actions(translate, srv, user, true, carried, liststate.Origin(r)),
 		Identity: []kv{
 			{Label: translate("servers.detail.protocol"), Value: protoform.Describe(translate, srv.proto)},
 			{Label: translate("servers.detail.address"), Value: srv.address(), Mono: true},
@@ -738,7 +747,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.OptionsMeta = protoform.OptionsMeta(translate, data.Options)
 
 	if user.Write {
-		data.EditURL = withRet(serverURL(srv.agent.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(serverURL(srv.agent.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	own := owner{srv: srv}
@@ -787,7 +796,7 @@ func (h *Handlers) deletePage(w http.ResponseWriter, r *http.Request, srv entry,
 		return
 	}
 
-	tabs, err := h.serverTabs(translate, srv, tabDetails, carried)
+	tabs, err := h.serverTabs(translate, srv, tabDetails, carried, liststate.OriginThrough(r))
 	if err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)

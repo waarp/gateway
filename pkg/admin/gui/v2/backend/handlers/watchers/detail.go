@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -77,7 +78,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data := detailData{
 		Name:         fw.Flow,
 		BackURL:      listURL(carried),
-		Actions:      actions(translate, &item, user, true, carried),
+		Actions:      actions(translate, &item, user, true, carried, liststate.Origin(r)),
 		Identity:     identityOf(translate, &item),
 		State:        status(translate, item.state),
 		Reason:       item.reason,
@@ -88,7 +89,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Write {
-		data.EditURL = withRet(watcherURL(fw.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(watcherURL(fw.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	h.shell.Render(w, h.logger, r, h.screen(translate, title, carried, 0), detailView(data))

@@ -119,12 +119,6 @@ templ formView(d *formData) {
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "overrides.back") }
-			</a>
-		</div>
 	</div>
 	if d.HasErrors {
 		<div class="overrides-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "overrides.form.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "overrides.form.refused_text"))})</div>
@@ -165,12 +159,6 @@ templ deleteView(d deleteData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "overrides.back") }
-			</a>
 		</div>
 	</div>
 	<div class="w-card">

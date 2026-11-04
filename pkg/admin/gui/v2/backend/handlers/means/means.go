@@ -161,6 +161,12 @@ type Owner struct {
 	// Carried is the state of the list of the screen (?ret=), carried by
 	// every link and form of the pages.
 	Carried string
+	// Origin is the page the links come from (#840, liststate.Origin): the
+	// pages they lead to offer the return to it.
+	Origin string
+	// Return is the return link of the pages by default (#840): the way out
+	// of the tab; the page of origin the request carries takes its place.
+	Return *gui.Link
 	// Title is the title of the sheet of the owner; Label names the owner
 	// in a sentence ("the server « x »"). Both are translated.
 	Title string
@@ -178,6 +184,10 @@ type Owner struct {
 
 // WithRet carries the list state on an address of the pages.
 func (o *Owner) WithRet(u string) string { return liststate.WithRet(u, o.Carried) }
+
+// Link is the address of another page of the means, with the list state and
+// the page of origin: the page reached offers the return here (#840).
+func (o *Owner) Link(u string) string { return liststate.WithOrigin(o.WithRet(u), o.Origin) }
 
 // CredURL is a page of one means of the owner.
 func (o *Owner) CredURL(id int64, suffix string) string {
@@ -223,6 +233,7 @@ func (o *Owner) screen(title, last string, status int, notices []gui.Notice) com
 		Crumbs:  o.Crumbs(last),
 		Status:  status,
 		Notices: notices,
+		Return:  o.Return,
 
 		Stylesheets: o.Chrome.Stylesheets,
 	}

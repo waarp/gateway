@@ -3332,7 +3332,6 @@ transfers:
     retry: Retry
     cancel: Cancel the transfer
   back: Back to the list
-  back_transfer: Back to the transfer
   toast:
     paused: "Transfer “{name}” paused"
     resumed: "Transfer “{name}” resumed"
@@ -3624,3 +3623,40 @@ format:
     mb: "{n} MB"
     gb: "{n} GB"
     tb: "{n} TB"
+
+# Return link to the page of origin (#840): one label per screen of origin.
+origin:
+  dashboard: "Back to the dashboard"
+  home: "Back to the home page"
+  about: "Back to the About page"
+  services: "Back to the service status"
+  transfers: "Back to the transfer monitoring"
+  transfer: "Back to the transfer"
+  servers: "Back to the local servers"
+  server: "Back to the server"
+  account: "Back to the account"
+  clients: "Back to the local clients"
+  client: "Back to the client"
+  partners: "Back to the remote partners"
+  partner: "Back to the partner"
+  rules: "Back to the transfer rules"
+  rule: "Back to the rule"
+  watchers: "Back to the partner watchers"
+  watcher: "Back to the watcher"
+  keys: "Back to the cryptographic keys"
+  key: "Back to the key"
+  smtp: "Back to the SMTP credentials"
+  smtp_credential: "Back to the SMTP credential"
+  email_templates: "Back to the email templates"
+  email_template: "Back to the email template"
+  users: "Back to the users"
+  user: "Back to the user"
+  authorities: "Back to the authentication authorities"
+  authority: "Back to the authority"
+  clouds: "Back to the cloud instances"
+  cloud: "Back to the cloud instance"
+  snmp: "Back to the SNMP page"
+  monitor: "Back to the SNMP monitor"
+  overrides: "Back to the configuration overrides"
+  config: "Back to the import and export"
+  credential: "Back to the authentication means"

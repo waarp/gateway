@@ -310,17 +310,21 @@ func (h *Handlers) AccessTab(w http.ResponseWriter, r *http.Request) {
 	data := accessData{
 		Title:   ruleTitle(translate, item.rule),
 		Name:    item.rule.Name,
-		Tabs:    tabs(translate, &item, tabAccess),
+		Tabs:    tabs(translate, &item, tabAccess, liststate.OriginThrough(r)),
 		BackURL: listURL(carried),
-		Actions: actions(translate, &item, user, true, carried),
+		Actions: actions(translate, &item, user, true, carried, liststate.Origin(r)),
 		Open:    len(grants) == 0,
 	}
 
+	// The pages of the tab offer the return to it (#840).
+	origin := liststate.Origin(r)
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
+
 	if user.Write {
-		data.In.AddURL = addURL(item.rule.ID, sideIn, carried)
-		data.Out.AddURL = addURL(item.rule.ID, sideOut, carried)
+		data.In.AddURL = linked(addURL(item.rule.ID, sideIn, carried))
+		data.Out.AddURL = linked(addURL(item.rule.ID, sideOut, carried))
 		if !data.Open {
-			data.OpenURL = withRet(accessURL(item.rule.ID, "/open"), carried)
+			data.OpenURL = linked(withRet(accessURL(item.rule.ID, "/open"), carried))
 		}
 	}
 
@@ -332,7 +336,9 @@ func (h *Handlers) AccessTab(w http.ResponseWriter, r *http.Request) {
 
 		if user.Write {
 			row.Actions = []gui.Action{{
-				Icon: "trash", Label: translate("rules.access.remove"), URL: withRet(grantURL(item.rule.ID, g, "/delete"), carried),
+				Icon:   "trash",
+				Label:  translate("rules.access.remove"),
+				URL:    linked(withRet(grantURL(item.rule.ID, g, "/delete"), carried)),
 				Danger: true,
 			}}
 		}

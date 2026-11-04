@@ -99,26 +99,30 @@ type accountsListData struct {
 // accountActions is the "⋯" menu of an account: view and edit in the list,
 // delete (delete right) everywhere.
 func accountActions(translate gui.Translator, agent string, sid int64, acc *model.LocalAccount, user rights,
-	onDetail bool, carried string,
+	onDetail bool, carried, origin string,
 ) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	aid := acc.ID
 	var acts []gui.Action
 
 	if !onDetail {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("accounts.action.detail"), URL: withRet(accountURL(sid, aid, ""), carried),
+			Icon: "eye", Label: translate("accounts.action.detail"), URL: linked(withRet(accountURL(sid, aid, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("accounts.action.edit"), URL: withRet(accountURL(sid, aid, editSuffix), carried),
+				Icon:  "pen",
+				Label: translate("accounts.action.edit"),
+				URL:   linked(withRet(accountURL(sid, aid, editSuffix), carried)),
 			})
 		}
 	}
 
 	if user.Transfers {
 		acts = append(acts, gui.Action{
-			Icon: "clock", Label: translate("accounts.action.transfers"), URL: transfersOf(agent, acc.Login),
+			Icon: "clock", Label: translate("accounts.action.transfers"), URL: linked(transfersOf(agent, acc.Login)),
 		})
 	}
 
@@ -126,7 +130,7 @@ func accountActions(translate gui.Translator, agent string, sid int64, acc *mode
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("accounts.action.delete"),
-			URL:    withRet(accountURL(sid, aid, deleteSuffix), carried),
+			URL:    linked(withRet(accountURL(sid, aid, deleteSuffix), carried)),
 			Danger: true,
 		})
 	}
@@ -137,7 +141,7 @@ func accountActions(translate gui.Translator, agent string, sid int64, acc *mode
 // buildAccountsList computes the "Local accounts" tab: the accounts searched
 // by login, sorted by login or by their means, paged.
 func buildAccountsList(translate gui.Translator, item entry, entries []accountEntry, query *listQuery,
-	user rights, carried string,
+	user rights, carried, origin string,
 ) accountsListData {
 	sid := item.agent.ID
 	base := serverURL(sid, accountsSuffix)
@@ -148,7 +152,7 @@ func buildAccountsList(translate gui.Translator, item entry, entries []accountEn
 	}
 
 	if user.Write {
-		data.AddURL = withRet(base+newSuffix, carried)
+		data.AddURL = liststate.WithOrigin(withRet(base+newSuffix, carried), origin)
 	}
 
 	kept := make([]accountEntry, 0, len(entries))
@@ -187,8 +191,8 @@ func buildAccountsList(translate gui.Translator, item entry, entries []accountEn
 			ID:      entry.acc.ID,
 			Login:   entry.acc.Login,
 			Auth:    entry.authText(translate),
-			URL:     withRet(accountURL(sid, entry.acc.ID, ""), carried),
-			Actions: accountActions(translate, item.agent.Name, sid, entry.acc, user, false, carried),
+			URL:     liststate.WithOrigin(withRet(accountURL(sid, entry.acc.ID, ""), carried), origin),
+			Actions: accountActions(translate, item.agent.Name, sid, entry.acc, user, false, carried, origin),
 		}
 
 		if len(entry.types) == 0 {
@@ -245,9 +249,10 @@ func (h *Handlers) Accounts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := buildAccountsList(translate, srv, entries, parseQuery(r.URL.Query(), accountSortKeys), rightsOf(r), carried)
+	data := buildAccountsList(translate, srv, entries, parseQuery(r.URL.Query(), accountSortKeys),
+		rightsOf(r), carried, liststate.Origin(r))
 
-	if data.Tabs, err = h.serverTabs(translate, srv, tabAccounts, carried); err != nil {
+	if data.Tabs, err = h.serverTabs(translate, srv, tabAccounts, carried, liststate.OriginThrough(r)); err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
@@ -321,7 +326,7 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 		Title:   own.title(translate),
 		Login:   own.acc.Login,
 		BackURL: withRet(serverURL(sid, accountsSuffix), carried),
-		Actions: accountActions(translate, own.srv.agent.Name, sid, own.acc, user, true, carried),
+		Actions: accountActions(translate, own.srv.agent.Name, sid, own.acc, user, true, carried, liststate.Origin(r)),
 		Identity: []kv{
 			{Label: translate("account.detail.server"), Value: own.srv.agent.Name + " (" + own.srv.proto.Label + ")"},
 			{Label: translate("account.detail.login"), Value: own.acc.Login, Mono: true},
@@ -331,10 +336,10 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Write {
-		data.EditURL = withRet(accountURL(sid, aid, editSuffix), carried)
+		data.EditURL = liststate.WithOrigin(withRet(accountURL(sid, aid, editSuffix), carried), liststate.Origin(r))
 	}
 
-	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried); err != nil {
+	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried, liststate.OriginThrough(r)); err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
@@ -474,7 +479,8 @@ func (h *Handlers) accountFormPage(w http.ResponseWriter, r *http.Request, own o
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
-	tabs, err := h.tabsOf(translate, own, map[bool]string{true: tabDetails, false: tabAccounts}[f.Edit], carried)
+	current := map[bool]string{true: tabDetails, false: tabAccounts}[f.Edit]
+	tabs, err := h.tabsOf(translate, own, current, carried, liststate.OriginThrough(r))
 	if err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
@@ -515,7 +521,8 @@ func (h *Handlers) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	if form.Means.Chosen(r) {
 		cred = &model.Credential{}
 
-		if err := form.Means.Read(translate, r, h.meansOwner(translate, own, carried, rightsOf(r)), cred, nil); err != nil {
+		owner := h.meansOwner(translate, own, carried, liststate.Origin(r), liststate.OriginThrough(r), rightsOf(r))
+		if err := form.Means.Read(translate, r, owner, cred, nil); err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 
 			return
@@ -677,7 +684,7 @@ func (h *Handlers) accountDeletePage(w http.ResponseWriter, r *http.Request, own
 		Blocked:      blocked,
 	}
 
-	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried); err != nil {
+	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried, liststate.OriginThrough(r)); err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 

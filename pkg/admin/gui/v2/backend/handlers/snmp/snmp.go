@@ -336,6 +336,7 @@ func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("snmp.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 
@@ -357,7 +358,7 @@ func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := buildPage(translate, list, query, rightsOf(r))
-	data.Agent = h.agentCard(translate, conf, rightsOf(r), query.Encode(query.Page))
+	data.Agent = h.agentCard(translate, conf, rightsOf(r), query.Encode(query.Page), liststate.Origin(r))
 	h.shell.Render(w, h.logger, r, screen, pageView(data))
 }
 
@@ -402,7 +403,7 @@ func buildPage(translate gui.Translator, all []*gwsnmp.MonitorConfig, query *lis
 			Version:  versionLabel(m.Version),
 			Address:  m.UDPAddress,
 			Security: securityText(translate, m),
-			Actions:  monitorActions(translate, m, user, false, carried),
+			Actions:  monitorActions(translate, m, user, false, carried, ""),
 		})
 	}
 
@@ -435,18 +436,21 @@ func sortMonitors(list []*gwsnmp.MonitorConfig, key, dir string) {
 }
 
 // monitorActions: the menu of a row, or of the sheet (no "view" there).
-func monitorActions(translate gui.Translator, m *gwsnmp.MonitorConfig, user rights, onSheet bool, carried string,
+func monitorActions(translate gui.Translator, m *gwsnmp.MonitorConfig, user rights, onSheet bool,
+	carried, origin string,
 ) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("snmp.action.detail"), URL: withRet(monitorURL(m.ID, ""), carried),
+			Icon: "eye", Label: translate("snmp.action.detail"), URL: linked(withRet(monitorURL(m.ID, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("snmp.action.edit"), URL: withRet(monitorURL(m.ID, "/edit"), carried),
+				Icon: "pen", Label: translate("snmp.action.edit"), URL: linked(withRet(monitorURL(m.ID, "/edit"), carried)),
 			})
 		}
 	}
@@ -455,7 +459,7 @@ func monitorActions(translate gui.Translator, m *gwsnmp.MonitorConfig, user righ
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("snmp.action.delete"),
-			URL:    withRet(monitorURL(m.ID, "/delete"), carried),
+			URL:    linked(withRet(monitorURL(m.ID, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -465,7 +469,7 @@ func monitorActions(translate gui.Translator, m *gwsnmp.MonitorConfig, user righ
 
 // agentCard builds the card of the agent: what is configured (never a
 // secret), the state of the SNMP service, the actions the rights allow.
-func (h *Handlers) agentCard(translate gui.Translator, conf *gwsnmp.ServerConfig, user rights, carried string,
+func (h *Handlers) agentCard(translate gui.Translator, conf *gwsnmp.ServerConfig, user rights, carried, origin string,
 ) agentData {
 	card := agentData{EditLabel: translate("snmp.agent.action.configure")}
 
@@ -475,7 +479,7 @@ func (h *Handlers) agentCard(translate gui.Translator, conf *gwsnmp.ServerConfig
 	}
 
 	if user.Write {
-		card.EditURL = withRet(common.WebuiURL(agentPath+"/edit"), carried)
+		card.EditURL = liststate.WithOrigin(withRet(common.WebuiURL(agentPath+"/edit"), carried), origin)
 	}
 
 	if conf == nil {
@@ -559,12 +563,15 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 // screen is a page of the screen: the chrome around the data.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionAdministration,
-		Menu:        constants.SidebarMenuSNMP,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionAdministration,
+		Menu:    constants.SidebarMenuSNMP,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("snmp.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet},
 	}
 }
@@ -696,12 +703,12 @@ func (h *Handlers) Monitor(w http.ResponseWriter, r *http.Request) {
 		ShowAuth:      usesAuth(level),
 		ShowPriv:      usesPriv(level),
 		BackURL:       listURL(carried),
-		Actions:       monitorActions(translate, item, user, true, carried),
+		Actions:       monitorActions(translate, item, user, true, carried, liststate.Origin(r)),
 	}
 	data.SecurityMeta = securityMeta(&data)
 
 	if user.Write {
-		data.EditURL = withRet(monitorURL(item.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(monitorURL(item.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("snmp.detail.title", "name", item.Name)

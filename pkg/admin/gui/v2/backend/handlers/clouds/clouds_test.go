@@ -416,7 +416,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, `href="/webui/servers/`)
 		assert.Contains(t, body, ">srv-cloud</a>")
 		assert.NotContains(t, body, "Transferts</dt>", "no transfer names it")
-		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.s3, "/edit")+`?ret=q%3Darch">`)
+		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.s3, "/edit")+`?ret=q%3Darch&amp;origin=`)
 		assert.NotContains(t, body, s3Secret)
 		assert.NotContains(t, body, "¿")
 	})
@@ -716,7 +716,7 @@ func TestEditCloud(t *testing.T) {
 		_, summary = foldCard(t, body, "Accès")
 		assert.Equal(t, "Clé renseignée", summary, "the key, the secret kept")
 		assert.Contains(t, body, ">acl=private</textarea>")
-		assert.Contains(t, body, `href="`+path(s.s3, "")+`?ret=page%3D2">`, "cancel goes back to the instance")
+		assert.Contains(t, body, `href="`+path(s.s3, "")+`?ret=page%3D2" data-leave>`, "cancel goes back to the instance")
 	})
 
 	t.Run("Given a saved edition without secret", func(t *testing.T) {

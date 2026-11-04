@@ -13,7 +13,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/constants"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -22,13 +21,6 @@ import (
 )
 
 const (
-	// The parameter that says an action was asked from the sheet of the
-	// transfer, where the user comes back; the list otherwise.
-	fromParam = "from"
-	fromSheet = "sheet"
-	// An action asked from the dashboard (fromDashboard) comes back to it.
-	fromDashboard = "dashboard"
-
 	// How long the pause and the cancellation of a running transfer may
 	// take, as the REST API allows.
 	actionTimeout = time.Second
@@ -66,15 +58,10 @@ func (h *Handlers) elsewhere(trans *model.NormalizedTransferView) bool {
 }
 
 // actionURL is the address of an action on a transfer, carrying the list
-// state and, from the sheet or the dashboard, where to come back ("" for
-// the list).
-func actionURL(id int64, action, carried, from string) string {
-	u := withRet(transferURL(id, "/"+action), carried)
-	if from != "" {
-		u = liststate.WithQuery(u, url.Values{fromParam: {from}})
-	}
-
-	return u
+// state and, from the sheet or the dashboard, the page to come back to
+// (#840, its origin; "" for the list).
+func actionURL(id int64, action, carried, origin string) string {
+	return liststate.WithOrigin(withRet(transferURL(id, "/"+action), carried), origin)
 }
 
 // rowActions is the "⋯" menu of a transfer of the list: its sheet, then the
@@ -86,9 +73,10 @@ func rowActions(translate gui.Translator, trans *model.NormalizedTransferView, w
 
 // LiveActions is the "⋯" menu of a live transfer shown by the dashboard: its
 // sheet, then the actions its state allows to whoever may write, which come
-// back to the dashboard with their result. The rules are those of the list.
-func LiveActions(translate gui.Translator, trans *model.Transfer, write bool) []gui.Action {
-	return menuActions(translate, liveView(trans), write, "", fromDashboard)
+// back to the dashboard (origin, #840) with their result. The rules are
+// those of the list.
+func LiveActions(translate gui.Translator, trans *model.Transfer, write bool, origin string) []gui.Action {
+	return menuActions(translate, liveView(trans), write, "", origin)
 }
 
 // liveView is what the rules of the actions read of a live transfer.
@@ -100,11 +88,13 @@ func liveView(trans *model.Transfer) *model.NormalizedTransferView {
 }
 
 // menuActions is the "⋯" menu of a transfer, the actions coming back to
-// from ("" for the list).
-func menuActions(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried, from string,
+// the origin ("" for the list), the sheet offering the return to it.
+func menuActions(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried, origin string,
 ) []gui.Action {
 	acts := []gui.Action{{
-		Icon: "eye", Label: translate("transfers.action.detail"), URL: withRet(transferURL(trans.ID, ""), carried),
+		Icon:  "eye",
+		Label: translate("transfers.action.detail"),
+		URL:   liststate.WithOrigin(withRet(transferURL(trans.ID, ""), carried), origin),
 	}}
 	if !write {
 		return acts
@@ -115,28 +105,28 @@ func menuActions(translate gui.Translator, trans *model.NormalizedTransferView, 
 	if can.Pause {
 		acts = append(acts, gui.Action{
 			Icon: "stop", Label: translate("transfers.action.pause"),
-			Action: actionURL(trans.ID, "pause", carried, from),
+			Action: actionURL(trans.ID, "pause", carried, origin),
 		})
 	}
 
 	if can.Resume {
 		acts = append(acts, gui.Action{
 			Icon: "play", Label: translate("transfers.action.resume"),
-			Action: actionURL(trans.ID, "resume", carried, from),
+			Action: actionURL(trans.ID, "resume", carried, origin),
 		})
 	}
 
 	if can.Retry {
 		acts = append(acts, gui.Action{
 			Icon: "rotate", Label: translate("transfers.action.retry"),
-			URL: actionURL(trans.ID, "retry", carried, from),
+			URL: actionURL(trans.ID, "retry", carried, origin),
 		})
 	}
 
 	if can.Cancel {
 		acts = append(acts, gui.Action{
 			Icon: "xmark", Label: translate("transfers.action.cancel"),
-			URL: actionURL(trans.ID, "cancel", carried, from), Danger: true,
+			URL: actionURL(trans.ID, "cancel", carried, origin), Danger: true,
 		})
 	}
 
@@ -145,8 +135,8 @@ func menuActions(translate gui.Translator, trans *model.NormalizedTransferView, 
 
 // sheetActions are the actions of the sheet: resuming (the main action of a
 // transfer that stopped) or pausing as buttons, retrying and cancelling in
-// the menu.
-func sheetActions(translate gui.Translator, trans *model.NormalizedTransferView, carried string,
+// the menu; each comes back to the sheet (its origin).
+func sheetActions(translate gui.Translator, trans *model.NormalizedTransferView, carried, origin string,
 ) ([]button, []gui.Action) {
 	can := allowedOf(trans)
 
@@ -158,60 +148,68 @@ func sheetActions(translate gui.Translator, trans *model.NormalizedTransferView,
 	if can.Resume {
 		buttons = append(buttons, button{
 			Label: translate("transfers.action.resume"), Icon: "play",
-			Action: actionURL(trans.ID, "resume", carried, fromSheet), Primary: true,
+			Action: actionURL(trans.ID, "resume", carried, origin), Primary: true,
 		})
 	}
 
 	if can.Pause {
 		buttons = append(buttons, button{
 			Label: translate("transfers.action.pause"), Icon: "stop",
-			Action: actionURL(trans.ID, "pause", carried, fromSheet),
+			Action: actionURL(trans.ID, "pause", carried, origin),
 		})
 	}
 
 	if can.Retry {
 		acts = append(acts, gui.Action{
 			Icon: "rotate", Label: translate("transfers.action.retry"),
-			URL: actionURL(trans.ID, "retry", carried, fromSheet),
+			URL: actionURL(trans.ID, "retry", carried, origin),
 		})
 	}
 
 	if can.Cancel {
 		acts = append(acts, gui.Action{
 			Icon: "xmark", Label: translate("transfers.action.cancel"),
-			URL: actionURL(trans.ID, "cancel", carried, fromSheet), Danger: true,
+			URL: actionURL(trans.ID, "cancel", carried, origin), Danger: true,
 		})
 	}
 
 	return buttons, acts
 }
 
-// done sends back where the action was asked, with its result: the sheet of
-// the transfer, the dashboard, or the list as the user left it.
+// originOf is the page an action was asked from, as its address carries it
+// (#840): the sheet of the transfer or the dashboard, when the address names
+// a screen of the interface; "" for the list.
+func originOf(r *http.Request) string {
+	if _, target, ok := common.OriginOf(r.URL.Query().Get(common.OriginParam)); ok {
+		return target
+	}
+
+	return ""
+}
+
+// done sends back where the action was asked, with its result: its origin
+// (the sheet of the transfer, the dashboard), or the list as the user left
+// it.
 func done(w http.ResponseWriter, r *http.Request, trans *model.NormalizedTransferView, result string) {
 	values := url.Values{liststate.DoneParam: {result}, liststate.NameParam: {fileName(trans)}}
 
-	switch r.URL.Query().Get(fromParam) {
-	case fromSheet:
-		liststate.RedirectTo(w, r, withRet(transferURL(trans.ID, ""), ret(r)), values)
-	case fromDashboard:
-		liststate.RedirectTo(w, r, common.WebuiURL(constants.DashboardPath), values)
-	default:
-		listSpec.RedirectList(w, r, ret(r), values)
+	if origin := originOf(r); origin != "" {
+		liststate.RedirectTo(w, r, origin, values)
+
+		return
 	}
+
+	listSpec.RedirectList(w, r, ret(r), values)
 }
 
-// backURL is where an action page comes back to: the sheet, the dashboard
-// or the list.
-func backURL(r *http.Request, trans *model.NormalizedTransferView) string {
-	switch r.URL.Query().Get(fromParam) {
-	case fromSheet:
-		return withRet(transferURL(trans.ID, ""), ret(r))
-	case fromDashboard:
-		return common.WebuiURL(constants.DashboardPath)
-	default:
-		return listURL(ret(r))
+// backURL is where an action page comes back to: its origin (the sheet, the
+// dashboard) or the list.
+func backURL(r *http.Request) string {
+	if origin := originOf(r); origin != "" {
+		return origin
 	}
+
+	return listURL(ret(r))
 }
 
 // refusedData is the page of an action the state of the transfer does not
@@ -234,10 +232,12 @@ func (h *Handlers) refuse(w http.ResponseWriter, r *http.Request, trans *model.N
 	title := translate(titleKey, "name", fileName(trans))
 	number := translate("transfers.detail.number", "id", trans.ID)
 
-	h.shell.Render(w, h.logger, r, h.screen(title, crumbs(translate, number, ret(r)), http.StatusConflict),
+	screen := h.screen(title, crumbs(translate, number, ret(r)), http.StatusConflict)
+	screen.Return = &gui.Link{Label: translate("transfers.back"), URL: backURL(r)}
+	h.shell.Render(w, h.logger, r, screen,
 		refusedView(refusedData{
 			Title: title, Reason: reason, File: fileName(trans), Status: StatusOf(translate, trans.Status),
-			Number: number, BackURL: backURL(r, trans),
+			Number: number, BackURL: backURL(r),
 		}))
 }
 
@@ -380,11 +380,13 @@ func (h *Handlers) CancelForm(w http.ResponseWriter, r *http.Request) {
 	title := translate("transfers.cancel.title", "name", fileName(trans))
 	number := translate("transfers.detail.number", "id", trans.ID)
 
-	h.shell.Render(w, h.logger, r, h.screen(title, crumbs(translate, number, ret(r)), 0),
+	screen := h.screen(title, crumbs(translate, number, ret(r)), 0)
+	screen.Return = &gui.Link{Label: translate("transfers.back"), URL: backURL(r)}
+	h.shell.Render(w, h.logger, r, screen,
 		cancelView(cancelData{
 			Title:     title,
 			Action:    r.URL.RequestURI(),
-			CancelURL: backURL(r, trans),
+			CancelURL: backURL(r),
 			Running:   trans.Status == types.StatusRunning,
 			File:      fileName(trans),
 			Number:    number,
@@ -472,12 +474,13 @@ func (h *Handlers) renderRetry(w http.ResponseWriter, r *http.Request, trans *mo
 	translate := h.shell.Translator(r)
 	data.Title = translate("transfers.retry.title", "name", fileName(trans))
 	data.Action = r.URL.RequestURI()
-	data.CancelURL = backURL(r, trans)
+	data.CancelURL = backURL(r)
 	data.File = fileName(trans)
 	data.Number = translate("transfers.detail.number", "id", trans.ID)
 
-	h.shell.Render(w, h.logger, r, h.screen(data.Title, crumbs(translate, data.Number, ret(r)), status),
-		retryView(data))
+	screen := h.screen(data.Title, crumbs(translate, data.Number, ret(r)), status)
+	screen.Return = &gui.Link{Label: translate("transfers.back"), URL: data.CancelURL}
+	h.shell.Render(w, h.logger, r, screen, retryView(data))
 }
 
 // Retry serves POST /webui/transfers/{id}/retry: a new transfer, with the

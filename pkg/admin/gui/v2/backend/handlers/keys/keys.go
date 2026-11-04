@@ -341,6 +341,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("keys.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -452,7 +453,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Type:    e.typeLabel(translate),
 			State:   e.info.state(translate, now),
 			Uses:    ruleuse.Count(translate, len(e.uses)),
-			Actions: actions(translate, e, user, false, carried),
+			Actions: actions(translate, e, user, false, carried, ""),
 		})
 		data.Rows[len(data.Rows)-1].Detail, data.Rows[len(data.Rows)-1].Code = e.detail(translate)
 	}
@@ -486,24 +487,26 @@ func sortEntries(translate gui.Translator, entries []entry, key, dir string) {
 }
 
 // actions: the menu of a row, or of the sheet (no "view" there).
-func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("keys.action.detail"), URL: withRet(keyURL(e.key.ID, ""), carried),
+			Icon: "eye", Label: translate("keys.action.detail"), URL: linked(withRet(keyURL(e.key.ID, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("keys.action.edit"), URL: withRet(keyURL(e.key.ID, "/edit"), carried),
+				Icon: "pen", Label: translate("keys.action.edit"), URL: linked(withRet(keyURL(e.key.ID, "/edit"), carried)),
 			})
 		}
 	}
 
 	if user.Delete {
 		acts = append(acts, gui.Action{
-			Icon: "trash", Label: translate("keys.action.delete"), URL: withRet(keyURL(e.key.ID, "/delete"), carried),
+			Icon: "trash", Label: translate("keys.action.delete"), URL: linked(withRet(keyURL(e.key.ID, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -538,12 +541,15 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 // screen is a page of the screen: the chrome around the data.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionTreatments,
-		Menu:        constants.SidebarMenuCryptoKeys,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionTreatments,
+		Menu:    constants.SidebarMenuCryptoKeys,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("keys.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet, ruleuse.Stylesheet},
 	}
 }
@@ -634,7 +640,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		State:     item.info.state(translate, h.now()),
 		Uses:      ruleuse.Rows(translate, item.uses),
 		BackURL:   listURL(carried),
-		Actions:   actions(translate, &item, user, true, carried),
+		Actions:   actions(translate, &item, user, true, carried, liststate.Origin(r)),
 		AESBits:   item.info.Bits,
 	}
 
@@ -657,7 +663,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.UsesMeta = ruleuse.Count(translate, len(item.uses))
 
 	if user.Write {
-		data.EditURL = withRet(keyURL(item.key.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(keyURL(item.key.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("keys.detail.title", "name", item.key.Name)

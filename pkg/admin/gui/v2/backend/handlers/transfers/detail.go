@@ -11,6 +11,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -78,17 +79,22 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 
 	translate := h.shell.Translator(r)
 	carried := ret(r)
-	data := detailOf(translate, h.shell.Catalog().Has, trans, canWrite(r), carried, h.sheetLinks(trans))
+	// The sheet is the origin of its links and of its actions (#840): the
+	// rule, the server or partner, the client offer the return to it, the
+	// actions come back to it.
+	origin := liststate.Origin(r)
+	data := detailOf(translate, h.shell.Catalog().Has, trans, canWrite(r), carried, origin, h.sheetLinks(trans, origin))
 	data.Files = append(data.Files, h.expectedRows(translate, trans)...)
 
 	screen := h.screen(data.File, crumbs(translate, data.Number, carried), 0)
 	screen.Notices = Notices(translate, r.URL.Query())
+	screen.Return = &gui.Link{Label: translate("transfers.back"), URL: data.BackURL}
 	h.shell.Render(w, h.logger, r, screen, detailView(data))
 }
 
 // detailOf lays out the sheet of a transfer.
 func detailOf(translate gui.Translator, has func(string) bool, trans *model.NormalizedTransferView,
-	write bool, carried string, links sheetLinks,
+	write bool, carried, origin string, links sheetLinks,
 ) detailData {
 	data := detailData{
 		ID:       trans.ID,
@@ -133,7 +139,7 @@ func detailOf(translate gui.Translator, has func(string) bool, trans *model.Norm
 	}
 
 	if write {
-		data.Buttons, data.Actions = sheetActions(translate, trans, carried)
+		data.Buttons, data.Actions = sheetActions(translate, trans, carried, origin)
 	}
 
 	return data
@@ -184,32 +190,37 @@ type sheetLinks struct{ Rule, Agent, Account, Client string }
 // sheetLinks finds the objects of the transfer by their names, as the REST
 // API does: the view of a transfer carries names, a history entry outlives
 // the objects it names.
-func (h *Handlers) sheetLinks(trans *model.NormalizedTransferView) sheetLinks {
+func (h *Handlers) sheetLinks(trans *model.NormalizedTransferView, origin string) sheetLinks {
 	var links sheetLinks
+
+	// Each link offers the return to the sheet (#840).
+	linked := func(path string) string { return liststate.WithOrigin(common.WebuiURL(path), origin) }
 
 	var rule model.Rule
 	if h.found(h.db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend).Run()) {
-		links.Rule = common.WebuiURL("/rules/" + strconv.FormatInt(rule.ID, 10))
+		links.Rule = linked("/rules/" + strconv.FormatInt(rule.ID, 10))
 	}
 
 	if trans.IsServer {
 		var server model.LocalAgent
 		if h.found(h.db.Get(&server, "name=?", trans.Agent).Run()) {
-			links.Agent = common.WebuiURL("/servers/" + strconv.FormatInt(server.ID, 10))
+			agent := "/servers/" + strconv.FormatInt(server.ID, 10)
+			links.Agent = linked(agent)
 
 			var account model.LocalAccount
 			if h.found(h.db.Get(&account, "local_agent_id=? AND login=?", server.ID, trans.Account).Run()) {
-				links.Account = links.Agent + "/accounts/" + strconv.FormatInt(account.ID, 10)
+				links.Account = linked(agent + "/accounts/" + strconv.FormatInt(account.ID, 10))
 			}
 		}
 	} else {
 		var partner model.RemoteAgent
 		if h.found(h.db.Get(&partner, "name=?", trans.Agent).Run()) {
-			links.Agent = common.WebuiURL("/partners/" + strconv.FormatInt(partner.ID, 10))
+			agent := "/partners/" + strconv.FormatInt(partner.ID, 10)
+			links.Agent = linked(agent)
 
 			var account model.RemoteAccount
 			if h.found(h.db.Get(&account, "remote_agent_id=? AND login=?", partner.ID, trans.Account).Run()) {
-				links.Account = links.Agent + "/accounts/" + strconv.FormatInt(account.ID, 10)
+				links.Account = linked(agent + "/accounts/" + strconv.FormatInt(account.ID, 10))
 			}
 		}
 	}
@@ -217,7 +228,7 @@ func (h *Handlers) sheetLinks(trans *model.NormalizedTransferView) sheetLinks {
 	if trans.Client != "" {
 		var client model.Client
 		if h.found(h.db.Get(&client, "name=?", trans.Client).Run()) {
-			links.Client = common.WebuiURL("/clients/" + strconv.FormatInt(client.ID, 10))
+			links.Client = linked("/clients/" + strconv.FormatInt(client.ID, 10))
 		}
 	}
 

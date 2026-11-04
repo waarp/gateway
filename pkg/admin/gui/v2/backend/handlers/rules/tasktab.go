@@ -443,11 +443,12 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 	user := rightsOf(r)
+	origin := liststate.Origin(r) // the pages of the tab offer the return to it (#840)
 	data := tasksData{
 		Title:   ruleTitle(translate, item.rule),
-		Tabs:    tabs(translate, &item, tabTasks),
+		Tabs:    tabs(translate, &item, tabTasks, liststate.OriginThrough(r)),
 		BackURL: listURL(carried),
-		Actions: actions(translate, &item, user, true, carried),
+		Actions: actions(translate, &item, user, true, carried, origin),
 	}
 
 	for _, slug := range chainSlugs {
@@ -459,7 +460,7 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if user.Write {
-			view.AddURL = withRet(newTaskURL(item.rule.ID, slug), carried)
+			view.AddURL = liststate.WithOrigin(withRet(newTaskURL(item.rule.ID, slug), carried), origin)
 
 			if len(list) > 1 {
 				view.OrderID = "order-" + slug
@@ -483,7 +484,7 @@ func (h *Handlers) TasksTab(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if user.Write {
-				row.Actions = taskActions(translate, place, row.Unknown, versionOf(list), carried)
+				row.Actions = taskActions(translate, place, row.Unknown, versionOf(list), carried, origin)
 			}
 
 			view.Rows = append(view.Rows, row)
@@ -528,13 +529,16 @@ func taskCount(translate gui.Translator, n int) string {
 
 // taskActions: the menu of a task: edit (a known type), move up, move down
 // (the kit has no upward chevron: the stylesheet turns the downward one),
-// delete; each one carries the version of the chain shown.
-func taskActions(translate gui.Translator, place *taskPlace, unknown bool, version, carried string,
+// delete; each one carries the version of the chain shown and the tab as
+// its origin (#840).
+func taskActions(translate gui.Translator, place *taskPlace, unknown bool, version, carried, origin string,
 ) []gui.Action {
 	var acts []gui.Action
 
 	at := func(suffix string) string {
-		return withRet(withVersion(taskURL(place.ruleID, place.slug, place.rank, suffix), version), carried)
+		u := withRet(withVersion(taskURL(place.ruleID, place.slug, place.rank, suffix), version), carried)
+
+		return liststate.WithOrigin(u, origin)
 	}
 
 	if !unknown {

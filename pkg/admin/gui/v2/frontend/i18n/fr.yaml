@@ -3334,7 +3334,6 @@ transfers:
     retry: Relancer
     cancel: Annuler le transfert
   back: Retour à la liste
-  back_transfer: Retour au transfert
   toast:
     paused: "Transfert « {name} » mis en pause"
     resumed: "Transfert « {name} » repris"
@@ -3626,3 +3625,40 @@ format:
     mb: "{n} Mo"
     gb: "{n} Go"
     tb: "{n} To"
+
+# Lien de retour vers la page d'origine (#840) : un libellé par écran d'origine, l'article porté par la clé.
+origin:
+  dashboard: "Retour au tableau de bord"
+  home: "Retour à l'accueil"
+  about: "Retour à la page À propos"
+  services: "Retour à l'état des services"
+  transfers: "Retour au suivi des transferts"
+  transfer: "Retour au transfert"
+  servers: "Retour aux serveurs locaux"
+  server: "Retour au serveur"
+  account: "Retour au compte"
+  clients: "Retour aux clients locaux"
+  client: "Retour au client"
+  partners: "Retour aux partenaires distants"
+  partner: "Retour au partenaire"
+  rules: "Retour aux règles de transfert"
+  rule: "Retour à la règle"
+  watchers: "Retour aux surveillances"
+  watcher: "Retour à la surveillance"
+  keys: "Retour aux clés cryptographiques"
+  key: "Retour à la clé"
+  smtp: "Retour aux identifiants SMTP"
+  smtp_credential: "Retour à l'identifiant SMTP"
+  email_templates: "Retour aux modèles d'e-mail"
+  email_template: "Retour au modèle d'e-mail"
+  users: "Retour aux utilisateurs"
+  user: "Retour à l'utilisateur"
+  authorities: "Retour aux autorités d'authentification"
+  authority: "Retour à l'autorité"
+  clouds: "Retour aux instances cloud"
+  cloud: "Retour à l'instance cloud"
+  snmp: "Retour à la page SNMP"
+  monitor: "Retour au moniteur SNMP"
+  overrides: "Retour aux surcharges de configuration"
+  config: "Retour à l'import et export"
+  credential: "Retour au moyen d'authentification"

@@ -323,7 +323,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Lire la taille du fichier avant de le recevoir</dt><dd>Activé</dd>")
 		assert.Contains(t, body, "<dt>Lecture parallèle</dt><dd>Activé</dd>", "an absent flag reads as the product default")
 		assert.Contains(t, body, `<span class="w-tabs__count">2</span>`, "the accounts tab counts them")
-		assert.Contains(t, body, `href="`+s.path(s.sftp, "/edit")+anyRet+`">`)
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/edit")+anyRet)
 		assert.NotContains(t, body, "Supprimer le partenaire", "no deletion without the right")
 	})
 
@@ -586,7 +586,7 @@ func TestAuthTab(t *testing.T) {
 	body := rec.Body.String()
 	assert.Contains(t, body, "Ce que la passerelle vérifie du partenaire")
 	assert.Contains(t, body, "Ajoutez ce que la passerelle doit vérifier du partenaire")
-	assert.Contains(t, body, `href="`+s.path(s.pesit, "/auth/new")+anyRet+`"`, "a password can be added")
+	assert.Contains(t, body, `href="`+s.path(s.pesit, "/auth/new")+anyRet, "a password can be added")
 	assert.Contains(t, body, `aria-label="Onglets de la fiche"`)
 
 	rec = s.get(t, permWrite, s.path(s.pesit, "/auth/new"))
@@ -660,14 +660,14 @@ func TestTransfersLinks(t *testing.T) {
 	perms := permRead | model.PermTransfersRead
 
 	body := s.get(t, perms, s.path(s.sftp, "")).Body.String()
-	assert.Contains(t, body, `href="/webui/transfers?partner=part-sftp-01"`, "the sheet of the partner")
+	assert.Contains(t, body, `href="/webui/transfers?partner=part-sftp-01&amp;origin=`, "the sheet of the partner")
 	assert.Contains(t, body, "Voir les transferts")
 	assert.NotContains(t, s.get(t, permRead, s.path(s.sftp, "")).Body.String(), "Voir les transferts",
 		"nothing without the right to read the transfers")
 
 	body = s.get(t, perms, s.accountPath(s.prod, "")).Body.String()
-	assert.Contains(t, body, `href="/webui/transfers?account=prod&amp;partner=part-sftp-01"`, "the sheet of an account")
+	assert.Contains(t, body, `href="/webui/transfers?account=prod&amp;partner=part-sftp-01&amp;origin=`, "the sheet of an account")
 
 	body = s.get(t, perms, s.path(s.sftp, "/accounts")).Body.String()
-	assert.Contains(t, body, `href="/webui/transfers?account=prod&amp;partner=part-sftp-01"`, "the menu of the accounts tab")
+	assert.Contains(t, body, `href="/webui/transfers?account=prod&amp;partner=part-sftp-01&amp;origin=`, "the menu of the accounts tab")
 }

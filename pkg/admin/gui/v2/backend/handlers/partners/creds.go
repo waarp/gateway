@@ -10,6 +10,7 @@ package partners
 import (
 	"net/http"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/means"
 )
 
@@ -21,7 +22,7 @@ func (h *Handlers) credPage(w http.ResponseWriter, r *http.Request) *means.Owner
 		return nil
 	}
 
-	return h.meansOwner(h.shell.Translator(r), own, ret(r), rightsOf(r))
+	return h.meansOwner(h.shell.Translator(r), own, ret(r), liststate.Origin(r), liststate.OriginThrough(r), rightsOf(r))
 }
 
 // Auth serves GET /webui/partners/{id}/auth and GET

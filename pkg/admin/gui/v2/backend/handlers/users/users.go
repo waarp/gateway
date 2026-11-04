@@ -372,6 +372,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("users.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -483,7 +484,7 @@ func buildList(translate gui.Translator, all []*model.User, query *listQuery, c 
 			URL:     withRet(userURL(user.ID, ""), carried),
 			Self:    c.is(user),
 			Letters: letters(user.Permissions),
-			Actions: actions(translate, user, c, false, carried),
+			Actions: actions(translate, user, c, false, carried, ""),
 		})
 	}
 
@@ -533,17 +534,19 @@ func sortUsers(users []*model.User, key, dir string) {
 // "Edit") and on the sheet (without: the buttons are there). Entries follow
 // the rights; the destructive one comes last, and never on the signed-in
 // user's own row. Every URL carries the list state.
-func actions(translate gui.Translator, user *model.User, c caller, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, user *model.User, c caller, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("users.action.detail"), URL: withRet(userURL(user.ID, ""), carried),
+			Icon: "eye", Label: translate("users.action.detail"), URL: linked(withRet(userURL(user.ID, ""), carried)),
 		})
 
 		if c.write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("users.action.edit"), URL: withRet(userURL(user.ID, "/edit"), carried),
+				Icon: "pen", Label: translate("users.action.edit"), URL: linked(withRet(userURL(user.ID, "/edit"), carried)),
 			})
 		}
 	}
@@ -552,7 +555,7 @@ func actions(translate gui.Translator, user *model.User, c caller, onSheet bool,
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("users.action.delete"),
-			URL:    withRet(userURL(user.ID, "/delete"), carried),
+			URL:    linked(withRet(userURL(user.ID, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -632,12 +635,15 @@ func (h *Handlers) user(w http.ResponseWriter, r *http.Request) (*model.User, bo
 // itself replaces the breadcrumb and the notices.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionAdministration,
-		Menu:        constants.SidebarMenuUsers,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionAdministration,
+		Menu:    constants.SidebarMenuUsers,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("users.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet, rights.Stylesheet},
 	}
 }
@@ -695,14 +701,14 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Self:      c.is(user),
 		LastAdmin: last,
 		BackURL:   listURL(carried),
-		Actions:   actions(translate, user, c, true, carried),
+		Actions:   actions(translate, user, c, true, carried, liststate.Origin(r)),
 		Caption:   translate("users.detail.rights_caption", "name", user.Username),
 		Rights:    rights.Rows(translate, user.Permissions),
 	}
 	data.RightsMeta = rights.Meta(translate, data.Rights)
 
 	if c.write {
-		data.EditURL = withRet(userURL(user.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(userURL(user.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("users.detail.title", "name", user.Username)

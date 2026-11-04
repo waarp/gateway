@@ -569,23 +569,31 @@ func TestDetail(t *testing.T) {
 		body := rec.Body.String()
 		assert.NotContains(t, body, "¿")
 		id := strconv.FormatInt(s.failed.ID, 10)
-		indexes(t, body, `<h1 class="w-page-header__title tf-title">releve-20102026.pdf</h1>`, "En erreur",
-			"Transfert n° "+id, `href="/webui/transfers?state=error"`, "Retour à la liste",
-			`action="/webui/transfers/`+id+`/resume?ret=state%3Derror&amp;from=sheet"`, "Reprendre",
+		// The return to the list, as the user left it, on the breadcrumb line
+		// (#840); the actions come back to the sheet, their origin.
+		sheet := url.QueryEscape("/webui/transfers/" + id + "?ret=state%3Derror")
+		indexes(t, body, `<a class="w-return" href="/webui/transfers?state=error">`, "Retour à la liste",
+			`<h1 class="w-page-header__title tf-title">releve-20102026.pdf</h1>`, "En erreur",
+			"Transfert n° "+id,
+			`action="/webui/transfers/`+id+`/resume?ret=state%3Derror&amp;origin=`+sheet+`"`, "Reprendre",
 			"Relancer", "Annuler le transfert")
+		assert.NotContains(t, body, `<div class="w-page-header__actions"><a class="w-btn w-btn--outline-dark"`,
+			"no back button in the header any more")
 		assert.Equal(t, 1, strings.Count(body, "w-btn--primary"))
 		indexes(t, body, `tf-error-card`, "<strong>Accès refusé</strong>", "TeForbidden",
 			"failed to make transfer request: FICHIER DEJA RECU", "Préparation du transfert")
 		indexes(t, body, "Règle", "releves", "Envoi · client", "Partenaire", "banque-demo", "Compte", "prod",
 			"Client", "cli-sftp", "Protocole", "SFTP", "Identifiant de suivi", "2112951385528143872")
-		// The objects of the transfer lead to their sheets (#783).
+		// The objects of the transfer lead to their sheets (#783), each
+		// offering the return to this sheet, the list state included (#840).
+		origin := "?origin=" + sheet
 		partner := "/webui/partners/" + strconv.FormatInt(s.bank.ID, 10)
-		assert.Contains(t, body, `<dt>Règle</dt><dd><a class="w-link" href="/webui/rules/`+strconv.FormatInt(s.send.ID, 10)+
+		assert.Contains(t, body, `<dt>Règle</dt><dd><a class="w-link" href="/webui/rules/`+strconv.FormatInt(s.send.ID, 10)+origin+
 			`"><code class="w-code">releves</code></a></dd>`)
-		assert.Contains(t, body, `<dt>Partenaire</dt><dd><a class="w-link" href="`+partner+`">banque-demo</a></dd>`)
-		assert.Contains(t, body, `<dt>Compte</dt><dd><a class="w-link" href="`+partner+"/accounts/"+strconv.FormatInt(s.prod.ID, 10)+
+		assert.Contains(t, body, `<dt>Partenaire</dt><dd><a class="w-link" href="`+partner+origin+`">banque-demo</a></dd>`)
+		assert.Contains(t, body, `<dt>Compte</dt><dd><a class="w-link" href="`+partner+"/accounts/"+strconv.FormatInt(s.prod.ID, 10)+origin+
 			`"><code class="w-code">prod</code></a></dd>`)
-		assert.Contains(t, body, `<dt>Client</dt><dd><a class="w-link" href="/webui/clients/`+strconv.FormatInt(s.client.ID, 10)+
+		assert.Contains(t, body, `<dt>Client</dt><dd><a class="w-link" href="/webui/clients/`+strconv.FormatInt(s.client.ID, 10)+origin+
 			`"><code class="w-code">cli-sftp</code></a></dd>`)
 		indexes(t, body, "Tentatives restantes", "2", "Prochaine tentative", "21/10/2026 à 10:43:02")
 		indexes(t, body, "Informations de transfert", `<dl class="w-deflist tf-infos">`, "Identifiant de suivi", "__followID__",
@@ -608,8 +616,9 @@ func TestDetail(t *testing.T) {
 		indexes(t, body, ">commandes-0457.edi</h1>", "Terminé", "Réception · serveur", "Serveur", "srv-sftp",
 			"Début", "21/10/2026 à 10:36:44", "Fin", "21/10/2026 à 10:36:45", "100 %", "48 Ko")
 		server := "/webui/servers/" + strconv.FormatInt(s.server.ID, 10)
-		assert.Contains(t, body, `<dt>Serveur</dt><dd><a class="w-link" href="`+server+`">srv-sftp</a></dd>`, "a history entry too")
-		assert.Contains(t, body, `<dt>Compte</dt><dd><a class="w-link" href="`+server+"/accounts/"+strconv.FormatInt(s.south.ID, 10)+
+		origin := "?origin=" + url.QueryEscape(pathOf(s.done.ID, ""))
+		assert.Contains(t, body, `<dt>Serveur</dt><dd><a class="w-link" href="`+server+origin+`">srv-sftp</a></dd>`, "a history entry too")
+		assert.Contains(t, body, `<dt>Compte</dt><dd><a class="w-link" href="`+server+"/accounts/"+strconv.FormatInt(s.south.ID, 10)+origin+
 			`"><code class="w-code">filiale-sud</code></a></dd>`)
 		assert.NotContains(t, body, "Tentatives restantes", "no retry for a server transfer")
 		assert.NotContains(t, body, "tf-error-card")
@@ -674,10 +683,15 @@ func TestActions(t *testing.T) {
 		assert.Equal(t, "/webui/transfers?done=paused&name=rapport-mensuel.pdf&state=planned", rec.Header().Get("Location"))
 		assert.Equal(t, types.StatusPaused, statusOfTransfer(t, s.db, s.planned.ID))
 
-		rec = s.post(t, permWrite, pathOf(s.running.ID, "/pause?from=sheet"), nil)
+		rec = s.post(t, permWrite, pathOf(s.running.ID, "/pause?origin="+url.QueryEscape(pathOf(s.running.ID, ""))), nil)
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		assert.Equal(t, pathOf(s.running.ID, "?done=paused&name=paie-octobre.xml"), rec.Header().Get("Location"),
 			"from the sheet, back to the sheet")
+
+		rec = s.post(t, permWrite, pathOf(s.planned.ID, "/resume?origin=https%3A%2F%2Fexample.com%2Fwebui%2Fdashboard"), nil)
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Equal(t, "/webui/transfers?done=resumed&name=rapport-mensuel.pdf", rec.Header().Get("Location"),
+			"a forged origin leads to the list")
 		assert.Equal(t, types.StatusPaused, statusOfTransfer(t, s.db, s.running.ID),
 			"without its pipeline on a single node, as the REST API")
 
@@ -727,16 +741,18 @@ func TestActions(t *testing.T) {
 		s := newSuite(t)
 		s.fixtures(t)
 
-		rec := s.get(t, permWrite, pathOf(s.failed.ID, "/cancel?from=sheet"))
+		fromSheet := "/cancel?origin=" + url.QueryEscape(pathOf(s.failed.ID, ""))
+		rec := s.get(t, permWrite, pathOf(s.failed.ID, fromSheet))
 		require.Equal(t, http.StatusOK, rec.Code)
 
 		body := rec.Body.String()
-		indexes(t, body, "Annuler le transfert « releve-20102026.pdf » ?", "passe à l&#39;historique",
+		indexes(t, body, `<a class="w-return" href="`+pathOf(s.failed.ID, "")+`">`, "Retour au transfert",
+			"Annuler le transfert « releve-20102026.pdf » ?", "passe à l&#39;historique",
 			"releve-20102026.pdf", "En erreur", "releves", "banque-demo",
 			`<a class="w-btn w-btn--outline-dark" href="`+pathOf(s.failed.ID, "")+`" data-leave>Annuler</a>`,
 			`class="w-btn w-btn--danger"`, "Annuler le transfert</button>")
 
-		rec = s.post(t, permWrite, pathOf(s.failed.ID, "/cancel?from=sheet"), nil)
+		rec = s.post(t, permWrite, pathOf(s.failed.ID, fromSheet), nil)
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 		assert.Equal(t, pathOf(s.failed.ID, "?done=cancelled&name=releve-20102026.pdf"), rec.Header().Get("Location"))
 		assert.Equal(t, types.StatusCancelled, statusOfTransfer(t, s.db, s.failed.ID), "to the history")

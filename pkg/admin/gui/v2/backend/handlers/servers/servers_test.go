@@ -601,7 +601,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<title>Serveur « srv-pesit-01 » · gw-test · Waarp Gateway</title>")
 		assert.Contains(t, body, `href="/webui/servers?dir=desc&amp;q=srv&amp;sort=state">`, "back to the list as the user left it")
 		assert.Contains(t, body, `<a href="/webui/servers?dir=desc&amp;q=srv&amp;sort=state">Serveurs locaux</a>`, "the breadcrumb too")
-		assert.Contains(t, body, `href="`+s.path(s.pesit, "/edit")+`?ret=dir%3Ddesc%26q%3Dsrv%26sort%3Dstate">`)
+		assert.Contains(t, body, `href="`+s.path(s.pesit, "/edit")+`?ret=dir%3Ddesc%26q%3Dsrv%26sort%3Dstate&amp;origin=`)
 		assert.Contains(t, body, `w-status w-status--off">Hors ligne<`)
 		assert.Contains(t, body, "<dt>Protocole</dt><dd>PeSIT</dd>")
 		assert.Contains(t, body, `<dt>Adresse d&#39;écoute</dt><dd><code class="w-code">10.20.30.40:5000</code></dd>`)
@@ -618,7 +618,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Mode PeSIT</dt><dd>Non standard</dd>")
 		assert.NotContains(t, body, "Version TLS minimale", "no TLS options for a plain PeSIT server")
 		assert.NotContains(t, body, "Voir le détail", "no link to itself")
-		assert.Contains(t, body, `action="`+s.path(s.pesit, "/start")+`?ret=dir%3Ddesc%26q%3Dsrv%26sort%3Dstate"`)
+		assert.Contains(t, body, `action="`+s.path(s.pesit, "/start")+`?ret=dir%3Ddesc%26q%3Dsrv%26sort%3Dstate&amp;origin=`)
 		assert.NotContains(t, body, "¿")
 	})
 
@@ -845,7 +845,7 @@ func TestEditServer(t *testing.T) {
 		body := rec.Body.String()
 		assert.Contains(t, body, "<title>Modifier « srv-r66-01 » · gw-test · Waarp Gateway</title>")
 		assert.Contains(t, body, `action="`+s.path(s.r66, "/edit")+`?ret=page%3D2" novalidate>`)
-		assert.Contains(t, body, `href="`+s.path(s.r66, "")+`?ret=page%3D2">`, "cancel goes back to the server")
+		assert.Contains(t, body, `href="`+s.path(s.r66, "")+`?ret=page%3D2" data-leave>`, "cancel goes back to the server")
 		assert.Contains(t, body, `id="name" name="name" value="srv-r66-01"`)
 		assert.Contains(t, body, `<option value="r66" selected>R66</option>`)
 		assert.Contains(t, body, `name="tls" value="1" data-switch="tls" aria-describedby="tls-h" checked>`, "TLS on")
@@ -1105,11 +1105,11 @@ func TestTransfersLinks(t *testing.T) {
 	perms := permRead | model.PermTransfersRead
 
 	body := s.get(t, perms, s.path(s.sftp, "")).Body.String()
-	assert.Contains(t, body, `href="/webui/transfers?partner=srv-sftp-01"`, "the sheet of the server")
+	assert.Contains(t, body, `href="/webui/transfers?partner=srv-sftp-01&amp;origin=`, "the sheet of the server")
 	assert.Contains(t, body, "Voir les transferts")
 	assert.NotContains(t, s.get(t, permRead, s.path(s.sftp, "")).Body.String(), "Voir les transferts",
 		"nothing without the right to read the transfers")
 
 	body = s.get(t, perms, s.accountPath(f.partner, "")).Body.String()
-	assert.Contains(t, body, `href="/webui/transfers?account=partner&amp;partner=srv-sftp-01"`, "the sheet of an account")
+	assert.Contains(t, body, `href="/webui/transfers?account=partner&amp;partner=srv-sftp-01&amp;origin=`, "the sheet of an account")
 }

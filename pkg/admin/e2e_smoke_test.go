@@ -1656,6 +1656,45 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 		assert.Equal(t, 0, session.count(t, "#tdb-resume form"), "nothing left to resume: the button is gone")
 	})
 
+	// A screen reached from another screen offers the return to it (#840):
+	// the dashboard leads to the running transfers (the tile, one transfer
+	// in the fixtures), the list to a sheet, and each page comes back to the
+	// previous one, the list as it was left.
+	t.Run("a screen reached from another offers the return to it", func(t *testing.T) {
+		session.visit(t, "/webui/dashboard")
+		require.NoError(t, page.Locator(`a.w-tile[href*="state=running"]`).Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/transfers?state=running&origin=%2Fwebui%2Fdashboard")+"$")))
+		require.NoError(t, session.tracker.settle())
+
+		back := page.Locator(".w-crumbs .w-return")
+		label, err := back.TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, label, "Retour au tableau de bord")
+		assert.Equal(t, "/webui/dashboard", attribute(t, back, "href"))
+
+		require.NoError(t, page.Locator(`tbody a[href^="/webui/transfers/"]`).First().Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/transfers/")+`\d+\?ret=`)))
+		require.NoError(t, session.tracker.settle())
+
+		label, err = back.TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, label, "Retour à la liste", "a sheet reached from its list")
+		assert.Contains(t, attribute(t, back, "href"), "origin=%2Fwebui%2Fdashboard", "the list still knows its origin")
+
+		require.NoError(t, back.Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/transfers?")+`.*origin=%2Fwebui%2Fdashboard`)))
+		require.NoError(t, session.tracker.settle())
+
+		require.NoError(t, back.Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/dashboard")+"$")))
+		require.NoError(t, session.tracker.settle())
+		assert.Equal(t, 0, session.count(t, ".w-return"), "the dashboard is an origin, not a page to come back from")
+	})
+
 	// A row of transfer information carries its "⋯" menu (#824): on a row
 	// added in place, "Insert a variable" opens the list of the variables on
 	// the value, which the kit attaches to the rows put in place.

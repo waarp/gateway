@@ -414,7 +414,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "Comparés au nom d&#39;hôte du serveur, sans port")
 		assert.Contains(t, body, `href="/webui/partners/`+strconv.FormatInt(s.partner.ID, 10)+`/auth/`+
 			strconv.FormatInt(s.signedCert.ID, 10)+`">cert-partner</a> · Partenaire « part-r66-tls »`)
-		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.tls, "/edit")+`"`)
+		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.tls, "/edit")+`?origin=`)
 	})
 
 	t.Run("Given the SSH authority", func(t *testing.T) {

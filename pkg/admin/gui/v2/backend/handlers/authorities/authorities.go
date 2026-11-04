@@ -418,6 +418,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("authorities.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -532,7 +533,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Readable: e.Readable,
 			Validity: e.validity(translate, now),
 			Hosts:    hostsText(translate, e.authority.ValidHosts),
-			Actions:  actions(translate, e, user, false, carried),
+			Actions:  actions(translate, e, user, false, carried, ""),
 		})
 	}
 
@@ -593,19 +594,21 @@ func sortEntries(translate gui.Translator, entries []entry, key, dir string) {
 
 // actions is the "⋯" menu of an authority, in the list (with "View the
 // sheet" and "Edit") and on the sheet (without: the buttons are there).
-func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	id := e.authority.ID
 
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("authorities.action.detail"), URL: withRet(authorityURL(id, ""), carried),
+			Icon: "eye", Label: translate("authorities.action.detail"), URL: linked(withRet(authorityURL(id, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("authorities.action.edit"), URL: withRet(authorityURL(id, "/edit"), carried),
+				Icon: "pen", Label: translate("authorities.action.edit"), URL: linked(withRet(authorityURL(id, "/edit"), carried)),
 			})
 		}
 	}
@@ -614,7 +617,7 @@ func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carr
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("authorities.action.delete"),
-			URL:    withRet(authorityURL(id, "/delete"), carried),
+			URL:    linked(withRet(authorityURL(id, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -693,12 +696,15 @@ func (h *Handlers) authority(w http.ResponseWriter, r *http.Request) (entry, boo
 // screen is a page of the screen: the chrome around the data.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionAdministration,
-		Menu:        constants.SidebarMenuAuthorities,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionAdministration,
+		Menu:    constants.SidebarMenuAuthorities,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("authorities.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet},
 	}
 }
@@ -753,7 +759,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Hosts:    item.authority.ValidHosts,
 		Signed:   found,
 		BackURL:  listURL(carried),
-		Actions:  actions(translate, &item, user, true, carried),
+		Actions:  actions(translate, &item, user, true, carried, liststate.Origin(r)),
 	}
 
 	data.TypeLabel = item.authority.Type
@@ -775,7 +781,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.SignedMeta = signedMeta(translate, len(data.Signed))
 
 	if user.Write {
-		data.EditURL = withRet(authorityURL(item.authority.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(authorityURL(item.authority.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("authorities.detail.title", "name", item.authority.Name)

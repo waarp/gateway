@@ -243,6 +243,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("email_templates.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -338,7 +339,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Format:      formatLabel(translate, e.tpl.MIMEType),
 			Attachments: attachmentsCount(translate, len(e.tpl.Attachments)),
 			Uses:        ruleuse.Count(translate, len(e.uses)),
-			Actions:     actions(translate, e, user, false, carried),
+			Actions:     actions(translate, e, user, false, carried, ""),
 		})
 	}
 
@@ -373,26 +374,32 @@ func sortEntries(entries []entry, key, dir string) {
 
 // actions is the "⋯" menu of a template, in the list (with "View the sheet"
 // and "Edit") and on the sheet (without: the buttons are there).
-func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	id := e.tpl.ID
 
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("email_templates.action.detail"), URL: withRet(templateURL(id, ""), carried),
+			Icon: "eye", Label: translate("email_templates.action.detail"), URL: linked(withRet(templateURL(id, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("email_templates.action.edit"), URL: withRet(templateURL(id, "/edit"), carried),
+				Icon:  "pen",
+				Label: translate("email_templates.action.edit"),
+				URL:   linked(withRet(templateURL(id, "/edit"), carried)),
 			})
 		}
 	}
 
 	if user.Delete {
 		acts = append(acts, gui.Action{
-			Icon: "trash", Label: translate("email_templates.action.delete"), URL: withRet(templateURL(id, "/delete"), carried),
+			Icon:   "trash",
+			Label:  translate("email_templates.action.delete"),
+			URL:    linked(withRet(templateURL(id, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -427,12 +434,15 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 // screen is a page of the screen: the chrome around the data.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionTreatments,
-		Menu:        constants.SidebarMenuEmailTemplates,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionTreatments,
+		Menu:    constants.SidebarMenuEmailTemplates,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("email_templates.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet, ruleuse.Stylesheet},
 	}
 }
@@ -516,7 +526,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Attachments: item.tpl.Attachments,
 		Uses:        ruleuse.Rows(translate, item.uses),
 		BackURL:     listURL(carried),
-		Actions:     actions(translate, &item, user, true, carried),
+		Actions:     actions(translate, &item, user, true, carried, liststate.Origin(r)),
 	}
 
 	query := r.URL.Query()
@@ -526,7 +536,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.UsesMeta = ruleuse.Count(translate, len(item.uses))
 
 	if user.Write {
-		data.EditURL = withRet(templateURL(item.tpl.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(templateURL(item.tpl.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("email_templates.detail.title", "name", item.tpl.Name)

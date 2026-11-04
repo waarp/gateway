@@ -424,7 +424,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Protocol: e.proto.Family.Label,
 			TLS:      e.proto.TLS,
 			Address:  e.address(),
-			Actions:  actions(translate, e, user, false, carried),
+			Actions:  actions(translate, e, user, false, carried, ""),
 		})
 	}
 
@@ -489,37 +489,43 @@ func transfersOf(client string) string {
 // "Edit") and on the details page (without: the buttons are there). Entries
 // follow the rights; the destructive one comes last. Every URL carries the
 // list state.
-func actions(translate gui.Translator, item *entry, user rights, onDetail bool, carried string) []gui.Action {
+func actions(translate gui.Translator, item *entry, user rights, onDetail bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	clientID := item.client.ID
 
 	var acts []gui.Action
 	if !onDetail {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("clients.action.detail"), URL: withRet(clientURL(clientID, ""), carried),
+			Icon: "eye", Label: translate("clients.action.detail"), URL: linked(withRet(clientURL(clientID, ""), carried)),
 		})
 	}
 
 	if user.Write {
 		if item.running() {
 			acts = append(acts, gui.Action{
-				Icon: "stop", Label: translate("clients.action.stop"), Action: withRet(clientURL(clientID, "/stop"), carried),
+				Icon:   "stop",
+				Label:  translate("clients.action.stop"),
+				Action: linked(withRet(clientURL(clientID, "/stop"), carried)),
 			})
 		} else {
 			acts = append(acts, gui.Action{
-				Icon: "play", Label: translate("clients.action.start"), Action: withRet(clientURL(clientID, "/start"), carried),
+				Icon:   "play",
+				Label:  translate("clients.action.start"),
+				Action: linked(withRet(clientURL(clientID, "/start"), carried)),
 			})
 		}
 
 		if !onDetail {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("clients.action.edit"), URL: withRet(clientURL(clientID, "/edit"), carried),
+				Icon: "pen", Label: translate("clients.action.edit"), URL: linked(withRet(clientURL(clientID, "/edit"), carried)),
 			})
 		}
 	}
 
 	if user.Transfers {
 		acts = append(acts, gui.Action{
-			Icon: "clock", Label: translate("clients.action.transfers"), URL: transfersOf(item.client.Name),
+			Icon: "clock", Label: translate("clients.action.transfers"), URL: linked(transfersOf(item.client.Name)),
 		})
 	}
 
@@ -527,7 +533,7 @@ func actions(translate gui.Translator, item *entry, user rights, onDetail bool, 
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("clients.action.delete"),
-			URL:    withRet(clientURL(clientID, "/delete"), carried),
+			URL:    linked(withRet(clientURL(clientID, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -632,6 +638,9 @@ func (h *Handlers) screen(translate gui.Translator, title, carried string, statu
 		Doc:     docPage,
 		Crumbs:  crumbs(translate, title, carried),
 		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return: &gui.Link{Label: translate("clients.back"), URL: listURL(carried)},
 
 		Stylesheets: []string{protoStylesheet, stylesheet},
 	}
@@ -708,7 +717,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		Reason:   cli.reason,
 		Protocol: cli.proto.Family.Label,
 		BackURL:  listURL(carried),
-		Actions:  actions(translate, &cli, user, true, carried),
+		Actions:  actions(translate, &cli, user, true, carried, liststate.Origin(r)),
 		Identity: []kv{
 			{Label: translate("clients.detail.protocol"), Value: protoform.Describe(translate, cli.proto)},
 			address,
@@ -735,7 +744,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.PartnersMeta = partnersMeta(translate, len(data.Partners))
 
 	if user.Write {
-		data.EditURL = withRet(clientURL(cli.client.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(clientURL(cli.client.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("clients.detail.title", "name", cli.client.Name)

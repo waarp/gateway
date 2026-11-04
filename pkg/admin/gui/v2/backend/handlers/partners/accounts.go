@@ -118,28 +118,32 @@ type accountsListData struct {
 // accountActions is the "⋯" menu of an account: view and edit in the list,
 // delete (delete right) everywhere.
 func accountActions(translate gui.Translator, agent string, pid int64, acc *model.RemoteAccount, user rights,
-	onDetail bool, carried string,
+	onDetail bool, carried, origin string,
 ) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	aid := acc.ID
 	var acts []gui.Action
 
 	if !onDetail {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("remote_accounts.action.detail"), URL: withRet(accountURL(pid, aid, ""), carried),
+			Icon:  "eye",
+			Label: translate("remote_accounts.action.detail"),
+			URL:   linked(withRet(accountURL(pid, aid, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
 				Icon:  "pen",
 				Label: translate("remote_accounts.action.edit"),
-				URL:   withRet(accountURL(pid, aid, editSuffix), carried),
+				URL:   linked(withRet(accountURL(pid, aid, editSuffix), carried)),
 			})
 		}
 	}
 
 	if user.Transfers {
 		acts = append(acts, gui.Action{
-			Icon: "clock", Label: translate("remote_accounts.action.transfers"), URL: transfersOf(agent, acc.Login),
+			Icon: "clock", Label: translate("remote_accounts.action.transfers"), URL: linked(transfersOf(agent, acc.Login)),
 		})
 	}
 
@@ -147,7 +151,7 @@ func accountActions(translate gui.Translator, agent string, pid int64, acc *mode
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("remote_accounts.action.delete"),
-			URL:    withRet(accountURL(pid, aid, deleteSuffix), carried),
+			URL:    linked(withRet(accountURL(pid, aid, deleteSuffix), carried)),
 			Danger: true,
 		})
 	}
@@ -158,7 +162,7 @@ func accountActions(translate gui.Translator, agent string, pid int64, acc *mode
 // buildAccountsList computes the "Remote accounts" tab: the accounts
 // searched by login, sorted by login or by their means, paged.
 func buildAccountsList(translate gui.Translator, item entry, entries []accountEntry, query *listQuery,
-	user rights, carried string,
+	user rights, carried, origin string,
 ) accountsListData {
 	pid := item.agent.ID
 	base := partnerURL(pid, accountsSuffix)
@@ -169,7 +173,7 @@ func buildAccountsList(translate gui.Translator, item entry, entries []accountEn
 	}
 
 	if user.Write {
-		data.AddURL = withRet(base+newSuffix, carried)
+		data.AddURL = liststate.WithOrigin(withRet(base+newSuffix, carried), origin)
 	}
 
 	kept := make([]accountEntry, 0, len(entries))
@@ -208,8 +212,8 @@ func buildAccountsList(translate gui.Translator, item entry, entries []accountEn
 			ID:      entry.acc.ID,
 			Login:   entry.acc.Login,
 			Auth:    entry.authText(translate),
-			URL:     withRet(accountURL(pid, entry.acc.ID, ""), carried),
-			Actions: accountActions(translate, item.agent.Name, pid, entry.acc, user, false, carried),
+			URL:     liststate.WithOrigin(withRet(accountURL(pid, entry.acc.ID, ""), carried), origin),
+			Actions: accountActions(translate, item.agent.Name, pid, entry.acc, user, false, carried, origin),
 		}
 
 		if len(entry.types) == 0 {
@@ -251,7 +255,7 @@ func sortAccountEntries(translate gui.Translator, entries []accountEntry, key, d
 
 // Accounts serves GET /webui/partners/{id}/accounts.
 func (h *Handlers) Accounts(w http.ResponseWriter, r *http.Request) {
-	e, ok := h.partner(w, r)
+	ptn, ok := h.partner(w, r)
 	if !ok {
 		return
 	}
@@ -259,24 +263,25 @@ func (h *Handlers) Accounts(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	carried := ret(r)
 
-	entries, err := h.accountsOf(e.agent.ID)
+	entries, err := h.accountsOf(ptn.agent.ID)
 	if err != nil {
-		h.logger.Errorf("failed to list the accounts of the partner %d: %v", e.agent.ID, err)
+		h.logger.Errorf("failed to list the accounts of the partner %d: %v", ptn.agent.ID, err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
 		return
 	}
 
-	data := buildAccountsList(translate, e, entries, parseQuery(r.URL.Query(), accountSortKeys), rightsOf(r), carried)
+	data := buildAccountsList(translate, ptn, entries, parseQuery(r.URL.Query(), accountSortKeys),
+		rightsOf(r), carried, liststate.Origin(r))
 
-	if data.Tabs, err = h.partnerTabs(translate, e, tabAccounts, carried); err != nil {
+	if data.Tabs, err = h.partnerTabs(translate, ptn, tabAccounts, carried, liststate.OriginThrough(r)); err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
 		return
 	}
 
-	own := owner{ptn: e}
+	own := owner{ptn: ptn}
 	if liststate.IsListFragment(r) {
 		h.shell.RenderFragment(w, h.logger, r, accountsFragment(data))
 
@@ -324,7 +329,7 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 		Title:   own.title(translate),
 		Login:   own.acc.Login,
 		BackURL: withRet(partnerURL(pid, accountsSuffix), carried),
-		Actions: accountActions(translate, own.ptn.agent.Name, pid, own.acc, user, true, carried),
+		Actions: accountActions(translate, own.ptn.agent.Name, pid, own.acc, user, true, carried, liststate.Origin(r)),
 		Identity: []kv{
 			{Label: translate("remote_account.detail.partner"), Value: own.ptn.agent.Name + " (" + own.ptn.proto.Label + ")"},
 			{Label: translate("remote_account.detail.login"), Value: own.acc.Login, Mono: true},
@@ -333,10 +338,10 @@ func (h *Handlers) AccountDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Write {
-		data.EditURL = withRet(accountURL(pid, aid, editSuffix), carried)
+		data.EditURL = liststate.WithOrigin(withRet(accountURL(pid, aid, editSuffix), carried), liststate.Origin(r))
 	}
 
-	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried); err != nil {
+	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried, liststate.OriginThrough(r)); err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 
@@ -449,7 +454,7 @@ func (h *Handlers) accountFormPage(w http.ResponseWriter, r *http.Request, own o
 		current = tabDetails
 	}
 
-	tabs, err := h.tabsOf(translate, own, current, carried)
+	tabs, err := h.tabsOf(translate, own, current, carried, liststate.OriginThrough(r))
 	if err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
@@ -490,7 +495,8 @@ func (h *Handlers) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	if form.Means.Chosen(r) {
 		cred = &model.Credential{}
 
-		if err := form.Means.Read(translate, r, h.meansOwner(translate, own, carried, rightsOf(r)), cred, nil); err != nil {
+		owner := h.meansOwner(translate, own, carried, liststate.Origin(r), liststate.OriginThrough(r), rightsOf(r))
+		if err := form.Means.Read(translate, r, owner, cred, nil); err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 
 			return
@@ -653,7 +659,7 @@ func (h *Handlers) accountDeletePage(w http.ResponseWriter, r *http.Request, own
 		Watchers:     watchers,
 	}
 
-	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried); err != nil {
+	if data.Tabs, err = h.accountTabs(translate, own, tabDetails, carried, liststate.OriginThrough(r)); err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 

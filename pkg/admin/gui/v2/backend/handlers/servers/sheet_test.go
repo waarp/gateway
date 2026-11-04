@@ -182,13 +182,13 @@ func TestServerAuthTab(t *testing.T) {
 		assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/auth")+`?ret=q%3Dsrv" aria-current="page">Authentification <span class="w-tabs__count">1</span></a>`)
 		assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/accounts")+`?ret=q%3Dsrv">Comptes locaux <span class="w-tabs__count">2</span></a>`)
 		assert.Contains(t, body, "Identité présentée par le serveur aux partenaires")
-		assert.Contains(t, body, `href="`+s.path(s.sftp, "/auth/new")+`?ret=q%3Dsrv">`, "a second host key may be added")
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/auth/new")+`?ret=q%3Dsrv&amp;origin=`, "a second host key may be added")
 		assert.Contains(t, body, `>cle-hote</a>`)
 		assert.Contains(t, body, "<td>Clé privée SSH</td>")
 		assert.Contains(t, body, "<td>Clé privée ssh-rsa, non affichée</td>")
 		assert.Contains(t, body, "1 moyen")
-		assert.Contains(t, body, `href="`+s.path(s.sftp, fmt.Sprintf("/auth/%d", f.hostKey.ID))+`?ret=q%3Dsrv">`)
-		assert.Contains(t, body, `class="is-danger" href="`+s.path(s.sftp, fmt.Sprintf("/auth/%d/delete", f.hostKey.ID))+`?ret=q%3Dsrv">`)
+		assert.Contains(t, body, `href="`+s.path(s.sftp, fmt.Sprintf("/auth/%d", f.hostKey.ID))+`?ret=q%3Dsrv&amp;origin=`)
+		assert.Contains(t, body, `class="is-danger" href="`+s.path(s.sftp, fmt.Sprintf("/auth/%d/delete", f.hostKey.ID))+`?ret=q%3Dsrv&amp;origin=`)
 		assert.Contains(t, body, `<input type="hidden" name="ret" value="q=srv">`, "the search keeps the list state")
 		assert.NotContains(t, body, "¿")
 	})
@@ -211,7 +211,7 @@ func TestServerAuthTab(t *testing.T) {
 		body := s.get(t, permWrite, s.path(s.r66, "/auth")).Body.String()
 		assert.Contains(t, body, "<td>Mot de passe</td>")
 		assert.Contains(t, body, "<td>Défini, non affiché</td>")
-		assert.Contains(t, body, `href="`+s.path(s.r66, "/auth/new")+`">`, "a certificate may still be added")
+		assert.Contains(t, body, `href="`+s.path(s.r66, "/auth/new")+`?origin=`, "a certificate may still be added")
 		assert.NotContains(t, body, "/delete", "no deletion without the delete right")
 	})
 
@@ -260,14 +260,14 @@ func TestAccountsTab(t *testing.T) {
 
 		body := rec.Body.String()
 		assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/accounts")+`?ret=q%3Dsrv" aria-current="page">Comptes locaux <span class="w-tabs__count">2</span></a>`)
-		assert.Contains(t, body, `href="`+s.path(s.sftp, "/accounts/new")+`?ret=q%3Dsrv">`)
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/accounts/new")+`?ret=q%3Dsrv&amp;origin=`)
 		assert.Contains(t, body, "2 comptes")
 		indexes(t, body, "<tbody>", `>nobody</a>`, `>partner</a>`)
 		assert.Contains(t, body, `<span class="w-status w-status--warn">Aucun moyen : ne peut pas se connecter</span>`)
 		assert.Contains(t, body, "<td>Mot de passe, Clé publique SSH</td>")
-		assert.Contains(t, body, `href="`+s.accountPath(f.partner, "")+`?ret=q%3Dsrv">`)
-		assert.Contains(t, body, `href="`+s.accountPath(f.partner, "/edit")+`?ret=q%3Dsrv">`)
-		assert.Contains(t, body, `class="is-danger" href="`+s.accountPath(f.partner, "/delete")+`?ret=q%3Dsrv">`)
+		assert.Contains(t, body, `href="`+s.accountPath(f.partner, "")+`?ret=q%3Dsrv&amp;origin=`)
+		assert.Contains(t, body, `href="`+s.accountPath(f.partner, "/edit")+`?ret=q%3Dsrv&amp;origin=`)
+		assert.Contains(t, body, `class="is-danger" href="`+s.accountPath(f.partner, "/delete")+`?ret=q%3Dsrv&amp;origin=`)
 		assert.NotContains(t, body, "¿")
 	})
 
@@ -293,7 +293,7 @@ func TestAccountsTab(t *testing.T) {
 
 		body := s.get(t, permAll, s.path(f.https, "/accounts")).Body.String()
 		assert.Contains(t, body, "Aucun compte local pour l&#39;instant")
-		assert.Contains(t, body, `href="`+s.path(f.https, "/accounts/new")+`">`)
+		assert.Contains(t, body, `href="`+s.path(f.https, "/accounts/new")+`?origin=`)
 	})
 }
 
@@ -319,8 +319,8 @@ func TestAccountDetail(t *testing.T) {
 		assert.Contains(t, body, `<dt>Identifiant</dt><dd><code class="w-code">partner</code></dd>`)
 		assert.Contains(t, body, `<dt>Adresses IP autorisées</dt><dd><code class="w-code">10.20.30.4, ::1</code></dd>`)
 		assert.Contains(t, body, "<dt>Moyens d&#39;authentification</dt><dd>Mot de passe, Clé publique SSH</dd>")
-		assert.Contains(t, body, `href="`+s.accountPath(f.partner, "/edit")+`?ret=q%3Dsrv">`)
-		assert.Contains(t, body, `class="w-icon-btn is-danger" href="`+s.accountPath(f.partner, "/delete")+`?ret=q%3Dsrv"`,
+		assert.Contains(t, body, `href="`+s.accountPath(f.partner, "/edit")+`?ret=q%3Dsrv&amp;origin=`)
+		assert.Contains(t, body, `class="w-icon-btn is-danger" href="`+s.accountPath(f.partner, "/delete")+`?ret=q%3Dsrv&amp;origin=`,
 			"the only entry of the menu is an icon button")
 		assert.NotContains(t, body, "Voir le compte", "no link to itself")
 	})
@@ -368,12 +368,12 @@ func TestAccountAuthTab(t *testing.T) {
 	assert.Contains(t, body, "<td>Mot de passe</td>")
 	assert.Contains(t, body, "<td>Clé publique SSH</td>")
 	assert.Contains(t, body, "<td>ssh-rsa · SHA256:")
-	assert.Contains(t, body, `href="`+s.accountPath(f.partner, "/auth/new")+`">`, "a second key may be added")
-	assert.Contains(t, body, `href="`+s.path(s.sftp, "/accounts")+`">`, "back to the server")
+	assert.Contains(t, body, `href="`+s.accountPath(f.partner, "/auth/new")+`?origin=`, "a second key may be added")
+	assert.Contains(t, body, `<a class="w-return" href="`+s.path(s.sftp, "/accounts")+`">`, "the return by default: the accounts tab of the server")
 
 	body = s.get(t, permAll, s.accountPath(f.nobody, "/auth")).Body.String()
 	assert.Contains(t, body, "Ce compte ne peut pas se connecter tant qu&#39;il n&#39;a aucun moyen")
-	assert.Contains(t, body, `href="`+s.accountPath(f.nobody, "/auth/new")+`">`)
+	assert.Contains(t, body, `href="`+s.accountPath(f.nobody, "/auth/new")+`?origin=`)
 }
 
 func TestCredDetail(t *testing.T) {
@@ -399,8 +399,8 @@ func TestCredDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Clé privée</dt><dd>Définie, jamais affichée</dd>")
 		assert.Contains(t, body, "Certificat (PEM)")
 		assert.Contains(t, body, "-----BEGIN CERTIFICATE-----")
-		assert.Contains(t, body, `href="`+s.path(f.https, fmt.Sprintf("/auth/%d/edit", f.cert.ID))+`?ret=q%3Dsrv">`)
-		assert.Contains(t, body, `class="w-icon-btn is-danger" href="`+s.path(f.https, fmt.Sprintf("/auth/%d/delete", f.cert.ID))+`?ret=q%3Dsrv"`)
+		assert.Contains(t, body, `href="`+s.path(f.https, fmt.Sprintf("/auth/%d/edit", f.cert.ID))+`?ret=q%3Dsrv&amp;origin=`)
+		assert.Contains(t, body, `class="w-icon-btn is-danger" href="`+s.path(f.https, fmt.Sprintf("/auth/%d/delete", f.cert.ID))+`?ret=q%3Dsrv&amp;origin=`)
 		assert.Contains(t, body, `<a href="`+s.path(f.https, "")+`?ret=q%3Dsrv">srv-https-01</a></li>`)
 	})
 
@@ -466,7 +466,7 @@ func TestCreateCred(t *testing.T) {
 		assert.Contains(t, body, `<input type="file" id="file" name="file"`)
 		assert.Contains(t, body, `name="pem"`)
 		assert.Contains(t, body, `Authentification <span class="w-tabs__count">1</span>`)
-		assert.Contains(t, body, `href="`+s.path(s.sftp, "/auth")+`?ret=q%3Dsrv">`, "cancel goes back to the tab")
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/auth")+`?ret=q%3Dsrv" data-leave>`, "cancel goes back to the tab")
 	})
 
 	t.Run("Given the form of the HTTPS server with its certificate already set", func(t *testing.T) {
@@ -701,7 +701,7 @@ func TestCreateAccount(t *testing.T) {
 		assert.Contains(t, body, `data-case="password" data-of="means_type"`)
 		assert.Contains(t, body, `name="means_password"`)
 		assert.Contains(t, body, `aria-current="page">Comptes locaux`, "under the accounts tab")
-		assert.Contains(t, body, `href="`+s.path(s.pesit, "/accounts")+`?ret=q%3Dsrv">`)
+		assert.Contains(t, body, `href="`+s.path(s.pesit, "/accounts")+`?ret=q%3Dsrv" data-leave>`)
 	})
 
 	t.Run("Given an account posted with its first means", func(t *testing.T) {

@@ -50,6 +50,10 @@ type Screen struct {
 	Menu    string      // active entry of the sidebar (constants.SidebarMenu*)
 	Doc     string      // documentation page of the screen, relative to the guide
 	Crumbs  []gui.Crumb // breadcrumb, the last item being the screen
+	// Return is the return link of the page by default (#840): the list of a
+	// sheet, as the user left it; nil for a screen with none. The page of
+	// origin the request carries (?from=), when valid, takes its place.
+	Return *gui.Link
 	// Stylesheets and Scripts are the files of the screen, as paths under the
 	// web interface ("/static_v2/services/services.css"), linked in <head>
 	// and at the end of <body>.
@@ -161,6 +165,7 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		NavState:  gui.NavStateOf(r),
 		NavClosed: gui.NavClosedOf(r),
 		Crumbs:    screen.Crumbs,
+		Return:    ReturnOf(r, translate, screen.Return),
 		Notices:   screen.Notices,
 		Head:      headOf(screen.Stylesheets, screen.Editor, screen.Head),
 		Scripts:   scriptsOf(screen.Scripts),

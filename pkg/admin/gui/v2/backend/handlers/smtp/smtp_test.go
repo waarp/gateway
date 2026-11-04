@@ -282,7 +282,7 @@ func TestDetail(t *testing.T) {
 		assert.NotContains(t, body, "<table", "no table in a card")
 		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="smtp-server">`, "the cards after the first fold (#807)")
 		assert.Contains(t, body, `<details class="w-card w-card--fold" data-key="smtp-uses">`)
-		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.alerts, "/edit")+`"`)
+		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.alerts, "/edit")+`?origin=`)
 		assert.NotContains(t, body, secret)
 	})
 

@@ -64,11 +64,11 @@ func buildDetail(translate gui.Translator, own *Owner, cred *view, now time.Time
 	}
 
 	if own.Rights.Write {
-		data.EditURL = own.WithRet(own.CredURL(cred.ID, EditSuffix))
+		data.EditURL = own.Link(own.CredURL(cred.ID, EditSuffix))
 	}
 
 	if own.Rights.Delete {
-		data.DeleteURL = own.WithRet(own.CredURL(cred.ID, DeleteSuffix))
+		data.DeleteURL = own.Link(own.CredURL(cred.ID, DeleteSuffix))
 	}
 
 	never := translate("auth.detail.never_shown")

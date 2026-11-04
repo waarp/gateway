@@ -149,7 +149,9 @@ func (own owner) texts() means.Texts {
 // meansOwner describes the owner to the shared pages of the means: the
 // partner holds what the gateway checks of it (the internal registry of the
 // model), a remote account what the gateway presents (the external one).
-func (h *Handlers) meansOwner(translate gui.Translator, own owner, carried string, user rights) *means.Owner {
+func (h *Handlers) meansOwner(translate gui.Translator, own owner, carried, origin, through string,
+	user rights,
+) *means.Owner {
 	back := listURL(carried)
 	if own.acc != nil {
 		back = withRet(partnerURL(own.ptn.agent.ID, accountsSuffix), carried)
@@ -163,11 +165,13 @@ func (h *Handlers) meansOwner(translate gui.Translator, own owner, carried strin
 		AuthURL:  own.authURL(),
 		BackURL:  back,
 		Carried:  carried,
+		Origin:   origin,
+		Return:   sheetReturn(translate, own, carried),
 		Title:    own.title(translate),
 		Label:    own.label(translate),
 		Texts:    own.texts(),
 		Rights:   means.Rights{Write: user.Write, Delete: user.Delete},
-		Tabs:     func(current string) ([]tab, error) { return h.tabsOf(translate, own, current, carried) },
+		Tabs:     func(current string) ([]tab, error) { return h.tabsOf(translate, own, current, carried, through) },
 		Crumbs:   func(last string) []gui.Crumb { return sheetCrumbs(translate, own, last, carried) },
 		Chrome:   chrome(),
 	}
@@ -243,7 +247,7 @@ func (h *Handlers) notFoundPage(w http.ResponseWriter, r *http.Request, crumbs [
 
 // partnerTabs is the tab strip of a partner: its details, its authentication
 // means and its remote accounts, counted.
-func (h *Handlers) partnerTabs(translate gui.Translator, e entry, current, carried string) ([]tab, error) {
+func (h *Handlers) partnerTabs(translate gui.Translator, e entry, current, carried, through string) ([]tab, error) {
 	creds, err := h.db.Count(&model.Credential{}).Where(e.agent.GetCredCond()).Run()
 	if err != nil {
 		return nil, fmt.Errorf("failed to count the authentication means of the partner: %w", err)
@@ -252,13 +256,19 @@ func (h *Handlers) partnerTabs(translate gui.Translator, e entry, current, carri
 	id := e.agent.ID
 
 	return []tab{
-		{Label: translate("partners.tab.details"), URL: withRet(partnerURL(id, ""), carried), Current: current == tabDetails},
 		{
-			Label: translate("partners.tab.auth"), URL: withRet(partnerURL(id, authSuffix), carried),
+			Label:   translate("partners.tab.details"),
+			URL:     liststate.WithOrigin(withRet(partnerURL(id, ""), carried), through),
+			Current: current == tabDetails,
+		},
+		{
+			Label: translate("partners.tab.auth"),
+			URL:   liststate.WithOrigin(withRet(partnerURL(id, authSuffix), carried), through),
 			Count: creds, HasCount: true, Current: current == tabAuth,
 		},
 		{
-			Label: translate("partners.tab.accounts"), URL: withRet(partnerURL(id, accountsSuffix), carried),
+			Label: translate("partners.tab.accounts"),
+			URL:   liststate.WithOrigin(withRet(partnerURL(id, accountsSuffix), carried), through),
 			Count: uint64(e.accounts), HasCount: true, Current: current == tabAccounts, //nolint:gosec // a count of rows
 		},
 	}, nil
@@ -272,7 +282,7 @@ func newPartnerTabs(translate gui.Translator) []tab {
 }
 
 // accountTabs is the tab strip of a remote account: its details and its means.
-func (h *Handlers) accountTabs(translate gui.Translator, own owner, current, carried string) ([]tab, error) {
+func (h *Handlers) accountTabs(translate gui.Translator, own owner, current, carried, through string) ([]tab, error) {
 	creds, err := h.db.Count(&model.Credential{}).Where(own.acc.GetCredCond()).Run()
 	if err != nil {
 		return nil, fmt.Errorf("failed to count the authentication means of the account: %w", err)
@@ -282,11 +292,13 @@ func (h *Handlers) accountTabs(translate gui.Translator, own owner, current, car
 
 	return []tab{
 		{
-			Label: translate("remote_account.tab.details"), URL: withRet(accountURL(pid, aid, ""), carried),
+			Label:   translate("remote_account.tab.details"),
+			URL:     liststate.WithOrigin(withRet(accountURL(pid, aid, ""), carried), through),
 			Current: current == tabDetails,
 		},
 		{
-			Label: translate("remote_account.tab.auth"), URL: withRet(accountURL(pid, aid, authSuffix), carried),
+			Label: translate("remote_account.tab.auth"),
+			URL:   liststate.WithOrigin(withRet(accountURL(pid, aid, authSuffix), carried), through),
 			Count: creds, HasCount: true, Current: current == tabAuth,
 		},
 	}, nil
@@ -294,12 +306,12 @@ func (h *Handlers) accountTabs(translate gui.Translator, own owner, current, car
 
 // tabsOf is the tab strip of a page of an owner: the account's on the sheet
 // of an account, the partner's otherwise.
-func (h *Handlers) tabsOf(translate gui.Translator, own owner, current, carried string) ([]tab, error) {
+func (h *Handlers) tabsOf(translate gui.Translator, own owner, current, carried, through string) ([]tab, error) {
 	if own.acc != nil {
-		return h.accountTabs(translate, own, current, carried)
+		return h.accountTabs(translate, own, current, carried, through)
 	}
 
-	return h.partnerTabs(translate, own.ptn, current, carried)
+	return h.partnerTabs(translate, own.ptn, current, carried, through)
 }
 
 // sheetCrumbs is the breadcrumb of a page of the sheet: the list (as the
@@ -340,6 +352,21 @@ func sheetCrumbs(translate gui.Translator, own owner, last, carried string) []gu
 	return c
 }
 
+// sheetReturn is the return by default of a page of the sheet (#840): the
+// list as the user left it for a partner, the accounts tab of the partner for
+// one of its accounts; the page of origin the request carries takes its
+// place.
+func sheetReturn(translate gui.Translator, own owner, carried string) *gui.Link {
+	if own.acc != nil {
+		return &gui.Link{
+			Label: translate("partners.back_partner"),
+			URL:   withRet(partnerURL(own.ptn.agent.ID, accountsSuffix), carried),
+		}
+	}
+
+	return &gui.Link{Label: translate("partners.back"), URL: listURL(carried)}
+}
+
 // sheetScreen is a page of the sheet: the chrome of the screen around the
 // data, with the result of the previous action when the page is a tab.
 func (h *Handlers) sheetScreen(translate gui.Translator, title string, own owner, last, carried string,
@@ -353,6 +380,7 @@ func (h *Handlers) sheetScreen(translate gui.Translator, title string, own owner
 		Crumbs:  sheetCrumbs(translate, own, last, carried),
 		Status:  status,
 		Notices: notices,
+		Return:  sheetReturn(translate, own, carried),
 
 		Stylesheets: sheetStylesheets(),
 	}

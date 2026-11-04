@@ -228,6 +228,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("smtp.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -323,7 +324,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Auth:    e.auth(translate),
 			NoAuth:  e.cred.Login == "",
 			Uses:    ruleuse.Count(translate, len(e.uses)),
-			Actions: actions(translate, e, user, false, carried),
+			Actions: actions(translate, e, user, false, carried, ""),
 		})
 	}
 
@@ -357,26 +358,28 @@ func sortEntries(entries []entry, key, dir string) {
 
 // actions is the "⋯" menu of a credential, in the list (with "View the
 // sheet" and "Edit") and on the sheet (without: the buttons are there).
-func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, e *entry, user rights, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	id := e.cred.ID
 
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("smtp.action.detail"), URL: withRet(credURL(id, ""), carried),
+			Icon: "eye", Label: translate("smtp.action.detail"), URL: linked(withRet(credURL(id, ""), carried)),
 		})
 
 		if user.Write {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("smtp.action.edit"), URL: withRet(credURL(id, "/edit"), carried),
+				Icon: "pen", Label: translate("smtp.action.edit"), URL: linked(withRet(credURL(id, "/edit"), carried)),
 			})
 		}
 	}
 
 	if user.Delete {
 		acts = append(acts, gui.Action{
-			Icon: "trash", Label: translate("smtp.action.delete"), URL: withRet(credURL(id, "/delete"), carried),
+			Icon: "trash", Label: translate("smtp.action.delete"), URL: linked(withRet(credURL(id, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -411,12 +414,15 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 // screen is a page of the screen: the chrome around the data.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionTreatments,
-		Menu:        constants.SidebarMenuSMTPCreds,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionTreatments,
+		Menu:    constants.SidebarMenuSMTPCreds,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("smtp.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet, ruleuse.Stylesheet},
 	}
 }
@@ -503,7 +509,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 		PasswordSet: item.cred.Password != "",
 		Uses:        ruleuse.Rows(translate, item.uses),
 		BackURL:     listURL(carried),
-		Actions:     actions(translate, &item, user, true, carried),
+		Actions:     actions(translate, &item, user, true, carried, liststate.Origin(r)),
 	}
 
 	if addr.Port != 0 {
@@ -515,7 +521,7 @@ func (h *Handlers) Detail(w http.ResponseWriter, r *http.Request) {
 	data.UsesMeta = ruleuse.Count(translate, len(item.uses))
 
 	if user.Write {
-		data.EditURL = withRet(credURL(item.cred.ID, "/edit"), carried)
+		data.EditURL = liststate.WithOrigin(withRet(credURL(item.cred.ID, "/edit"), carried), liststate.Origin(r))
 	}
 
 	title := translate("smtp.detail.title", "name", item.cred.EmailAddress)

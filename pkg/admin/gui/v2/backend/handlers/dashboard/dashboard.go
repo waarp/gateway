@@ -112,8 +112,11 @@ func (h *Handlers) Page(w http.ResponseWriter, r *http.Request) {
 	// failed transfers resumed at once): the figures are read again, so that
 	// the tiles and the resumption button say what the action left.
 	fresh := r.URL.Query().Get(liststate.DoneParam) != ""
+	// The page is the origin of every link to another screen (#840): each
+	// offers the return to it, each action comes back to it.
 	data := h.makePageData(translate,
-		perms.HasPermission(model.PermTransfersRead), perms.HasPermission(model.PermTransfersWrite), fresh)
+		perms.HasPermission(model.PermTransfersRead), perms.HasPermission(model.PermTransfersWrite), fresh,
+		liststate.Origin(r))
 
 	if r.URL.Query().Get(constants.FragmentParam) == bodyFragment {
 		h.shell.RenderFragment(w, h.logger, r, fragment(data))
@@ -172,8 +175,8 @@ type resumeAction struct {
 // makePageData reads what the page shows (again, when fresh). Without the
 // right to read the transfers, the page shows the health of the node alone,
 // and reads nothing else (the database cell then says what the last reading
-// left).
-func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh bool) pageData {
+// left). Every link to another screen carries the origin.
+func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh bool, origin string) pageData {
 	now := h.now()
 	data := pageData{
 		RefreshedAt:    now.Format(timeLayout),
@@ -201,7 +204,7 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh boo
 
 	data.Health = gui.HealthProps{Items: healthCells(translate, &healthInput{
 		node: h.info, now: now, dbType: h.db.Config.Database.Type, last: last, certs: certs,
-		services: services.Sum(translate, h.shell.Catalog().Has, h.list), monitors: h.monitors,
+		services: services.Sum(translate, h.shell.Catalog().Has, h.list), monitors: h.monitors, origin: origin,
 	})}
 
 	if !read {
@@ -218,7 +221,7 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh boo
 			Kind:   stateKO,
 			Title:  translate("dashboard.degraded.title", "time", last.failing.Format(timeLayout)),
 			Text:   text,
-			Action: &gui.Link{Label: translate("nav.services"), URL: common.WebuiURL("/services")},
+			Action: &gui.Link{Label: translate("nav.services"), URL: liststate.WithOrigin(common.WebuiURL("/services"), origin)},
 		}
 	}
 
@@ -228,14 +231,14 @@ func (h *Handlers) makePageData(translate gui.Translator, read, write, fresh boo
 
 	data.Figures = true
 	texts := texts{translate}
-	data.Tiles = tiles(texts, figs)
+	data.Tiles = tiles(texts, figs, origin)
 	data.Chart, data.Days, data.ValuesMeta = activity(texts, figs)
-	data.Errors = errorRows(translate, figs, now, write)
+	data.Errors = errorRows(translate, figs, now, write, origin)
 	data.ErrorsAll = texts.count(errorsKeys, "all", figs.Live[statusKey(types.StatusError)])
-	data.ErrorsURL = transfers.FilteredListURL(transfers.StateError, time.Time{})
+	data.ErrorsURL = liststate.WithOrigin(transfers.FilteredListURL(transfers.StateError, time.Time{}), origin)
 
 	if write && figs.Resumable > 0 {
-		action, fields := transfers.ResumeFailedForm(figs.Live[statusKey(types.StatusError)])
+		action, fields := transfers.ResumeFailedForm(figs.Live[statusKey(types.StatusError)], origin)
 		data.Resume = &resumeAction{Label: texts.count(resumeKeys, "resume", figs.Resumable), Action: action, Fields: fields}
 	}
 

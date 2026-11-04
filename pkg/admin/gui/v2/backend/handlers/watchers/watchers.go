@@ -481,6 +481,7 @@ func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	translate := h.shell.Translator(r)
 	query := parseListQuery(r.URL.Query())
 	screen := h.screen(translate, translate("watchers.title"), "", 0)
+	screen.Return = nil // the list is where the other pages come back to
 	screen.Crumbs = crumbs(translate, "", "")
 	screen.Notices = notices(translate, r.URL.Query())
 	screen.Head = gui.LiveAssets()
@@ -593,7 +594,7 @@ func buildList(translate gui.Translator, all []entry, query *listQuery, user rig
 			Interval: intervalText(translate, e.fw.Interval),
 			State:    status(translate, e.state),
 			Reason:   e.reason,
-			Actions:  actions(translate, e, user, false, carried),
+			Actions:  actions(translate, e, user, false, carried, ""),
 			URL:      withRet(watcherURL(e.fw.ID, ""), carried),
 		}
 
@@ -639,40 +640,52 @@ func sortEntries(entries []entry, key, dir string) {
 // actions: the menu of a row, or of the sheet: the sheet (from a row),
 // start or stop (according to the state), run once, edit (from a row: the
 // sheet has its button), delete.
-func actions(translate gui.Translator, item *entry, user rights, onSheet bool, carried string) []gui.Action {
+func actions(translate gui.Translator, item *entry, user rights, onSheet bool, carried, origin string) []gui.Action {
+	// The links of a sheet carry its origin (#840).
+	linked := func(u string) string { return liststate.WithOrigin(u, origin) }
 	var acts []gui.Action
 
 	if !onSheet {
 		acts = append(acts, gui.Action{
-			Icon: "eye", Label: translate("watchers.action.detail"), URL: withRet(watcherURL(item.fw.ID, ""), carried),
+			Icon: "eye", Label: translate("watchers.action.detail"), URL: linked(withRet(watcherURL(item.fw.ID, ""), carried)),
 		})
 	}
 
 	if user.Write {
 		if item.state == stateRunning {
 			acts = append(acts, gui.Action{
-				Icon: "stop", Label: translate("watchers.action.stop"), Action: withRet(watcherURL(item.fw.ID, "/stop"), carried),
+				Icon:   "stop",
+				Label:  translate("watchers.action.stop"),
+				Action: linked(withRet(watcherURL(item.fw.ID, "/stop"), carried)),
 			})
 		} else {
 			acts = append(acts, gui.Action{
-				Icon: "play", Label: translate("watchers.action.start"), Action: withRet(watcherURL(item.fw.ID, "/start"), carried),
+				Icon:   "play",
+				Label:  translate("watchers.action.start"),
+				Action: linked(withRet(watcherURL(item.fw.ID, "/start"), carried)),
 			})
 		}
 
 		acts = append(acts, gui.Action{
-			Icon: "rotate", Label: translate("watchers.action.fire"), Action: withRet(watcherURL(item.fw.ID, "/fire"), carried),
+			Icon:   "rotate",
+			Label:  translate("watchers.action.fire"),
+			Action: linked(withRet(watcherURL(item.fw.ID, "/fire"), carried)),
 		})
 
 		if !onSheet {
 			acts = append(acts, gui.Action{
-				Icon: "pen", Label: translate("watchers.action.edit"), URL: withRet(watcherURL(item.fw.ID, "/edit"), carried),
+				Icon:  "pen",
+				Label: translate("watchers.action.edit"),
+				URL:   linked(withRet(watcherURL(item.fw.ID, "/edit"), carried)),
 			})
 		}
 	}
 
 	if user.Delete {
 		acts = append(acts, gui.Action{
-			Icon: "trash", Label: translate("watchers.action.delete"), URL: withRet(watcherURL(item.fw.ID, "/delete"), carried),
+			Icon:   "trash",
+			Label:  translate("watchers.action.delete"),
+			URL:    linked(withRet(watcherURL(item.fw.ID, "/delete"), carried)),
 			Danger: true,
 		})
 	}
@@ -732,12 +745,15 @@ func notices(translate gui.Translator, values url.Values) []gui.Notice {
 // screen is a page of the screen: the chrome around the data.
 func (h *Handlers) screen(translate gui.Translator, title, carried string, status int) common.Screen {
 	return common.Screen{
-		Title:       title,
-		Section:     constants.SidebarSectionTreatments,
-		Menu:        constants.SidebarMenuWatchers,
-		Doc:         docPage,
-		Crumbs:      crumbs(translate, title, carried),
-		Status:      status,
+		Title:   title,
+		Section: constants.SidebarSectionTreatments,
+		Menu:    constants.SidebarMenuWatchers,
+		Doc:     docPage,
+		Crumbs:  crumbs(translate, title, carried),
+		Status:  status,
+		// The return by default (#840): the list as the user left it; the
+		// page of origin the request carries takes its place.
+		Return:      &gui.Link{Label: translate("watchers.back"), URL: listURL(carried)},
 		Stylesheets: []string{stylesheet},
 	}
 }
