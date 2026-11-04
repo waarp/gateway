@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -232,7 +231,7 @@ func parseTLSCertChain(cert *tls.Certificate) ([]*x509.Certificate, error) {
 func makeRootCAs(db database.ReadAccess, owner authentication.Owner,
 ) (*x509.CertPool, []*x509.Certificate, error,
 ) {
-	rootCAs := utils.TLSCertPool()
+	rootCAs := systemRoots()
 
 	var trustedCreds model.Credentials
 	if err := db.Select(&trustedCreds).Where("type=?", TLSTrustedCertificate).

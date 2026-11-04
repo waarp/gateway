@@ -2,7 +2,6 @@ package auth
 
 import (
 	"crypto/x509"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -185,18 +184,20 @@ func TestAuthentCert(t *testing.T) {
 	t.Run("Valid public", func(t *testing.T) {
 		t.Parallel()
 
+		// The chain is signed by the root TestMain gives the handlers as a
+		// root of the system: neither an authority of the base nor a trusted
+		// certificate vouches for it, and nothing is fetched (#844).
 		publicPartner := &model.RemoteAgent{
-			Name:     "waarp.fr",
+			Name:     "test_public",
 			Protocol: protocol,
-			Address:  types.Addr("waarp.fr", 443),
+			Address:  types.Addr(publicHost, 443),
 		}
 		require.NoError(t, db.Insert(publicPartner).Run())
 
-		resp, err := http.Get("https://waarp.fr")
+		chain, err := utils.ParsePEMCertChain(publicLeafCertPEM)
 		require.NoError(t, err)
-		require.NoError(t, resp.Body.Close())
 
-		result, err := handler.Authenticate(db, publicPartner, resp.TLS.PeerCertificates)
+		result, err := handler.Authenticate(db, publicPartner, chain)
 		require.NoError(t, err)
 		assert.True(t, result.Success)
 		assert.Empty(t, result.Reason)

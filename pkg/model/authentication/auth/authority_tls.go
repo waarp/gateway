@@ -19,6 +19,13 @@ const (
 
 var ErrNotCACertificate = errors.New("the provided certificate is not a CA certificate")
 
+// systemRoots gives the certification authorities the system trusts, the
+// roots of the public authorities. The tests of the package replace it with
+// a pool they fill, so that the public-authority path runs off the network.
+//
+//nolint:gochecknoglobals //the tests of the package replace it
+var systemRoots = utils.TLSCertPool
+
 //nolint:gochecknoinits //init is required here
 func init() {
 	authentication.AddAuthorityType(AuthorityTLS, &TLSAuthorityHandler{})
@@ -53,7 +60,7 @@ func addTLSAuthorities(db database.ReadAccess, store *x509.CertPool, host string
 	}
 
 	if store == nil {
-		store = utils.TLSCertPool()
+		store = systemRoots()
 	}
 
 	for _, authority := range authorities {
@@ -70,7 +77,7 @@ func addTLSAuthorities(db database.ReadAccess, store *x509.CertPool, host string
 }
 
 func newTLSRootPool(db database.ReadAccess, host string) (*x509.CertPool, error) {
-	pool := utils.TLSCertPool()
+	pool := systemRoots()
 	if err := addTLSAuthorities(db, pool, host); err != nil {
 		return nil, err
 	}
