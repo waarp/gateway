@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`843` La liste des transferts de l'API REST (``GET /api/transfers``)
+  applique les filtres ``requester`` (le compte demandeur) et ``requested`` (le
+  serveur ou partenaire sollicité), comme la liste de l'historique ; sa page de
+  référence les annonçait sous les noms ``remote`` et ``account``, que le
+  serveur ignorait sans erreur. Les gestes groupés (``resume-all``,
+  ``retry-all`` et ``DELETE /api/transfers``) les acceptent aussi, et la ligne
+  de commande gagne ``--requester`` et ``--requested`` sur ``transfer list``,
+  ``transfer resume-all``, ``transfer retry-all`` et ``transfer cancel-all``.
 * :feature:`793` L'API REST et la ligne de commande reprennent, relancent et
   annulent d'un coup les transferts qui remplissent les filtres de la liste,
   comme le Suivi des transferts : ``PUT /api/transfers/resume-all``,

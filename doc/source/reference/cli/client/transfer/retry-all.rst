@@ -43,6 +43,18 @@ identifiants des nouveaux transferts.
    sont : ``PLANNED``, ``RUNNING``, ``PAUSED``, ``INTERRUPTED``, ``ERROR``,
    ``CANCELLED`` et ``DONE``.
 
+.. option:: -q <ACCOUNT>, --requester=<ACCOUNT>
+
+   Restreint l'ensemble aux transferts dont le compte demandeur porte le nom
+   renseigné. L'option peut être renseignée plusieurs fois pour plusieurs
+   comptes.
+
+.. option:: --requested=<AGENT>
+
+   Restreint l'ensemble aux transferts demandés au serveur ou partenaire
+   renseigné. L'option peut être renseignée plusieurs fois pour plusieurs
+   serveurs ou partenaires.
+
 .. option:: --start=<DATE>
 
    Restreint l'ensemble aux transferts dont la date de début est postérieure ou

@@ -29,6 +29,14 @@ Reprogrammer plusieurs transferts
       (``PLANNED``, ``RUNNING``, ``PAUSED``, ``INTERRUPTED``, ``ERROR``,
       ``DONE`` ou ``CANCELLED``). Peut être renseigné plusieurs fois.
    :type status: string
+   :param requester: Restreint l'ensemble aux transferts dont le compte demandeur
+      porte le nom renseigné. Peut être renseigné plusieurs fois pour plusieurs
+      comptes.
+   :type requester: string
+   :param requested: Restreint l'ensemble aux transferts demandés au serveur ou
+      partenaire renseigné. Peut être renseigné plusieurs fois pour plusieurs
+      serveurs ou partenaires.
+   :type requested: string
    :param start: Restreint l'ensemble aux transferts dont la date de début est
       postérieure ou égale à celle renseignée (:rfc:`3339`).
    :type start: date

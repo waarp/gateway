@@ -176,6 +176,9 @@ type TransferList struct {
 	Statuses []string `short:"t" long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"RUNNING" choice:"INTERRUPTED" choice:"PAUSED" choice:"CANCELLED" choice:"DONE" choice:"ERROR" choice:"AVAILABLE"`
 	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in ISO 8601 format."`
 	FollowID string   `short:"f" long:"follow-id" description:"Filter the transfers based on their follow ID."`
+	// The requested has no short option: "-d" is the date of the list.
+	Requester []string `short:"q" long:"requester" description:"Filter the transfers based on the login of the account that requested them. Can be repeated multiple times to filter multiple accounts."`
+	Requested []string `long:"requested" description:"Filter the transfers based on the name of the partner or server they were requested to. Can be repeated multiple times to filter multiple partners or servers."`
 }
 
 func (t *TransferList) listURL() error {
@@ -205,6 +208,14 @@ func (t *TransferList) listURL() error {
 
 	if t.FollowID != "" {
 		query.Set("followID", t.FollowID)
+	}
+
+	for _, account := range t.Requester {
+		query.Add("requester", account)
+	}
+
+	for _, agent := range t.Requested {
+		query.Add("requested", agent)
 	}
 
 	addr.RawQuery = query.Encode()
@@ -337,23 +348,27 @@ func (t *TransferRetry) execute(w io.Writer) error {
 // ######################## SETS ##########################
 
 // transferSetOptions name the set of transfers a gesture is applied to at
-// once (#793): the filters of the list (the rules, the statuses, the start
-// date, the follow ID), minus the transfers left out. Without any, the set is
-// every transfer. The status has no short option: "-t" stays the target of
-// "cancel-all".
+// once (#793): the filters of the list (the rules, the statuses, the
+// requesters and the requested (#843), the start date, the follow ID), minus
+// the transfers left out. Without any, the set is every transfer. The status
+// has no short option: "-t" stays the target of "cancel-all"; the requested
+// has none either: "-d" is the date of "retry-all".
 //
 //nolint:lll // struct tags are long
 type transferSetOptions struct {
-	Rules    []string `short:"r" long:"rule" description:"Only the transfers using the given rule. Can be repeated to name several rules."`
-	Statuses []string `long:"status" description:"Only the transfers in the given status. Can be repeated to name several statuses." choice:"PLANNED" choice:"RUNNING" choice:"PAUSED" choice:"INTERRUPTED" choice:"ERROR" choice:"CANCELLED" choice:"DONE"`
-	Start    string   `long:"start" description:"Only the transfers started at or after the given date. Date must be in RFC3339 format."`
-	FollowID string   `short:"f" long:"follow-id" description:"Only the transfers with the given follow ID."`
-	Except   []uint64 `long:"except" description:"Leave the transfer with the given ID out of the set. Can be repeated."`
+	Rules     []string `short:"r" long:"rule" description:"Only the transfers using the given rule. Can be repeated to name several rules."`
+	Statuses  []string `long:"status" description:"Only the transfers in the given status. Can be repeated to name several statuses." choice:"PLANNED" choice:"RUNNING" choice:"PAUSED" choice:"INTERRUPTED" choice:"ERROR" choice:"CANCELLED" choice:"DONE"`
+	Requester []string `short:"q" long:"requester" description:"Only the transfers requested by the account with the given login. Can be repeated to name several accounts."`
+	Requested []string `long:"requested" description:"Only the transfers requested to the partner or server with the given name. Can be repeated to name several partners or servers."`
+	Start     string   `long:"start" description:"Only the transfers started at or after the given date. Date must be in RFC3339 format."`
+	FollowID  string   `short:"f" long:"follow-id" description:"Only the transfers with the given follow ID."`
+	Except    []uint64 `long:"except" description:"Leave the transfer with the given ID out of the set. Can be repeated."`
 }
 
 // given says whether any option names the set.
 func (o *transferSetOptions) given() bool {
-	return len(o.Rules) > 0 || len(o.Statuses) > 0 || o.Start != "" || o.FollowID != "" || len(o.Except) > 0
+	return len(o.Rules) > 0 || len(o.Statuses) > 0 || len(o.Requester) > 0 || len(o.Requested) > 0 ||
+		o.Start != "" || o.FollowID != "" || len(o.Except) > 0
 }
 
 // values are the parameters of the request the options make.
@@ -366,6 +381,14 @@ func (o *transferSetOptions) values() (url.Values, error) {
 
 	for _, status := range o.Statuses {
 		query.Add("status", status)
+	}
+
+	for _, account := range o.Requester {
+		query.Add("requester", account)
+	}
+
+	for _, agent := range o.Requested {
+		query.Add("requested", agent)
 	}
 
 	if o.Start != "" {

@@ -17,12 +17,14 @@ Lister les transferts
       ``status-``.
       *(défaut: start+)*
    :type sort: string
-   :param remote: Filtre uniquement les transferts avec le partenaire renseigné.
-      Peut être renseigné plusieurs fois pour filtrer plusieurs partenaires.
-   :type remote: int
-   :param account: Filtre uniquement les transferts avec le compte renseigné.
-      Peut être renseigné plusieurs fois pour filtrer plusieurs comptes.
-   :type account: int
+   :param requester: Filtre uniquement les transferts dont le compte demandeur
+      porte le nom renseigné. Peut être renseigné plusieurs fois pour filtrer
+      plusieurs comptes.
+   :type requester: string
+   :param requested: Filtre uniquement les transferts demandés au serveur ou
+      partenaire renseigné. Peut être renseigné plusieurs fois pour filtrer
+      plusieurs serveurs ou partenaires.
+   :type requested: string
    :param rule: Filtre uniquement les transferts avec la règle renseignée.
       Peut être renseigné plusieurs fois pour filtrer plusieurs règles.
    :type rule: int

@@ -39,7 +39,7 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
    Par défaut, les transferts sont triés par date en ordre décroissant
    (transferts plus récents en premier).
 
-.. option:: -r <RULE>, --rule_=<RULE>
+.. option:: -r <RULE>, --rule=<RULE>
 
    Filtre les transferts utilisant la règle renseigné avec ce paramètre.
    Le paramètre peut être renseigné plusieurs fois pour filtrer plusieurs
@@ -64,6 +64,18 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
    Filtre les transferts ayant l'ID de flux renseigné avec ce paramètre. Les
    transferts renvoyés feront donc partie du même flux.
 
+.. option:: -q <ACCOUNT>, --requester=<ACCOUNT>
+
+   Filtre les transferts dont le compte demandeur porte le nom renseigné avec
+   ce paramètre. Le paramètre peut être renseigné plusieurs fois pour filtrer
+   plusieurs comptes à la fois.
+
+.. option:: --requested=<AGENT>
+
+   Filtre les transferts demandés au serveur ou partenaire renseigné avec ce
+   paramètre. Le paramètre peut être renseigné plusieurs fois pour filtrer
+   plusieurs serveurs ou partenaires à la fois.
+
 .. option:: --format=<FORMAT>
 
    Spécifie le format du retour de la commande. Les valeurs acceptées sont :
@@ -76,4 +88,4 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway transfer list -l 10 -o 5 -s id- -r 'règle_1' -t 'PLANNED' -d '2019-01-01T12:00:00+02:00' -f '12345'
+   waarp-gateway transfer list -l 10 -o 5 -s id- -r 'règle_1' -t 'PLANNED' -d '2019-01-01T12:00:00+02:00' -f '12345' -q 'toto' --requested 'waarp_sftp'
