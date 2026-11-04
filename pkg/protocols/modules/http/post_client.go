@@ -19,7 +19,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const resumeTimeout = 3 * time.Second
+const (
+	resumeTimeout = 3 * time.Second
+	// The wait for the outcome of a request whose body the transport has
+	// closed (outcomeTimeout): the response or the error is on its way.
+	outcomeTimeout = 5 * time.Second
+)
 
 type postClient struct {
 	pip    *pipeline.Pipeline
@@ -237,16 +242,43 @@ func (p *postClient) Send(file protocol.SendFile) *pipeline.Error {
 
 	p.pip.Logger.Errorf("Failed to write to remote HTTP file: %s", copyErr)
 
+	// The transport closes the request body once the request has ended, with
+	// a response or an error: the write then fails on the closed pipe while
+	// the goroutine of the request is about to deliver the outcome. The server
+	// may have refused the file (its pre-tasks failed): its answer is the
+	// error of the transfer, the write failure only its consequence (#841).
+	if errors.Is(copyErr, io.ErrClosedPipe) {
+		return p.outcome(copyErr)
+	}
+
 	select {
 	case reqErr := <-p.reqErr:
-		return p.wrapAndSendError(reqErr, types.TeDataTransfer, "HTTP transfer failed")
+		return p.wrapAndSendError(reqErr, "HTTP transfer failed")
 	case resp := <-p.resp:
 		//nolint:errcheck,gosec //error is irrelevant here
 		defer resp.Body.Close()
 
 		return getResponseStatus(resp, p.pip)
 	default:
-		return p.wrapAndSendError(copyErr, types.TeDataTransfer,
+		return p.wrapAndSendError(copyErr,
+			"failed to write to remote HTTP file")
+	}
+}
+
+// outcome waits for the outcome of the request after the transport closed
+// its body: the status the server answered, or the error of the request; the
+// write failure itself when neither comes in time.
+func (p *postClient) outcome(copyErr error) *pipeline.Error {
+	select {
+	case reqErr := <-p.reqErr:
+		return p.wrapAndSendError(reqErr, "HTTP transfer failed")
+	case resp := <-p.resp:
+		//nolint:errcheck,gosec //error is irrelevant here
+		defer resp.Body.Close()
+
+		return getResponseStatus(resp, p.pip)
+	case <-time.After(outcomeTimeout):
+		return p.wrapAndSendError(copyErr,
 			"failed to write to remote HTTP file")
 	}
 }
@@ -260,7 +292,7 @@ func (p *postClient) EndTransfer() *pipeline.Error {
 
 	select {
 	case err := <-p.reqErr:
-		return p.wrapAndSendError(err, types.TeDataTransfer, "HTTP transfer failed")
+		return p.wrapAndSendError(err, "HTTP transfer failed")
 	case resp := <-p.resp:
 		defer resp.Body.Close()
 
@@ -304,12 +336,13 @@ func (p *postClient) Cancel() *pipeline.Error {
 	return nil
 }
 
-func (p *postClient) wrapAndSendError(cause error, code types.TransferErrorCode,
-	details string,
-) *pipeline.Error {
+// wrapAndSendError reports a failure of the transfer to the server and
+// returns it: the error of the pipeline the cause carries, else a data
+// transfer error with the given details.
+func (p *postClient) wrapAndSendError(cause error, details string) *pipeline.Error {
 	var tErr *pipeline.Error
 	if !errors.As(cause, &tErr) {
-		tErr = pipeline.NewError(code, details)
+		tErr = pipeline.NewError(types.TeDataTransfer, details)
 	}
 
 	p.pip.Logger.Errorf("%s: %v", details, cause)
