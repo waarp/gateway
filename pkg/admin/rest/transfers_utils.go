@@ -131,27 +131,8 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 
 	query.Limit(limit, offset)
 
-	if rules, ok := r.Form["rule"]; ok {
-		query.In("rule", rules)
-	}
-
-	if statuses, ok := r.Form["status"]; ok {
-		query.In("status", statuses)
-	}
-
-	if followID := r.FormValue("followID"); followID != "" {
-		query.Where("id IN (SELECT COALESCE(transfer_id, history_id) "+
-			"FROM transfer_info WHERE name=? AND value=?)",
-			model.FollowID, followID)
-	}
-
-	if startStr := r.FormValue("start"); startStr != "" {
-		start, err := time.Parse(time.RFC3339Nano, startStr)
-		if err != nil {
-			return nil, badRequestf("%q is not a valid date", startStr)
-		}
-
-		query.Where("start >= ?", start.UTC())
+	if err := transferFilters(r, query); err != nil {
+		return nil, err
 	}
 
 	sort := sorting["default"]
@@ -168,4 +149,35 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query.OrderBy(sort.col, sort.asc)
 
 	return query, nil
+}
+
+// transferFilters adds to the query the filters of the list of the transfers
+// the request gives: the rules, the statuses, the follow ID and the start
+// date. The gestures applied to a set of transfers at once work on the very
+// set these filters list (#793).
+func transferFilters(r *http.Request, query *database.SelectQuery) error {
+	if rules, ok := r.Form[filterRuleParam]; ok {
+		query.In("rule", rules)
+	}
+
+	if statuses, ok := r.Form[filterStatusParam]; ok {
+		query.In("status", statuses)
+	}
+
+	if followID := r.FormValue(filterFollowIDParam); followID != "" {
+		query.Where("id IN (SELECT COALESCE(transfer_id, history_id) "+
+			"FROM transfer_info WHERE name=? AND value=?)",
+			model.FollowID, followID)
+	}
+
+	if startStr := r.FormValue(filterStartParam); startStr != "" {
+		start, err := time.Parse(time.RFC3339Nano, startStr)
+		if err != nil {
+			return badRequestf("%q is not a valid date", startStr)
+		}
+
+		query.Where("start >= ?", start.UTC())
+	}
+
+	return nil
 }

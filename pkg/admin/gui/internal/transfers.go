@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/batch"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -164,18 +165,7 @@ func (q *TransferListQuery) Among(ids ...int64) *TransferListQuery {
 // of them, in the order of the query (an order by a column read: the
 // identifier).
 func (q *TransferListQuery) IDs() ([]int64, error) {
-	q.query.Distinct("id")
-
-	if err := q.query.Run(); err != nil {
-		return nil, fmt.Errorf("failed to list the transfers: %w", err)
-	}
-
-	ids := make([]int64, len(q.transfers))
-	for i, trans := range q.transfers {
-		ids[i] = trans.ID
-	}
-
-	return ids, nil
+	return batch.IDsOf(q.query, &q.transfers) //nolint:wrapcheck // the error of the shared enumeration, as is
 }
 
 func (q *TransferListQuery) Count() (uint64, error) {

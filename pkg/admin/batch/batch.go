@@ -14,6 +14,7 @@ import (
 	"slices"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -35,31 +36,32 @@ const (
 	Cancel Gesture = "cancel"
 )
 
-// Reason says why a transfer of the set was left aside.
+// Reason says why a transfer of the set was left aside; its values are
+// those the REST API answers (api.Refusal*).
 type Reason string
 
 const (
 	// ReasonServer: a server transfer resumes, or is retried, on the
 	// initiative of the partner.
-	ReasonServer Reason = "server"
+	ReasonServer Reason = api.RefusalServer
 	// ReasonSync: the child of a synchronous transfer resumes through its
 	// parent.
-	ReasonSync Reason = "sync"
+	ReasonSync Reason = api.RefusalSync
 	// ReasonState: the state of the transfer does not allow the gesture (a
 	// done transfer neither resumes nor cancels, a running one is not
 	// retried).
-	ReasonState Reason = "state"
+	ReasonState Reason = api.RefusalState
 	// ReasonMissing: the transfer no longer exists (another gesture took it
 	// meanwhile).
-	ReasonMissing Reason = "missing"
+	ReasonMissing Reason = api.RefusalMissing
 	// ReasonGone: the rule, the partner, the account or the client of the
 	// transfer no longer exists (a retry).
-	ReasonGone Reason = "gone"
+	ReasonGone Reason = api.RefusalGone
 	// ReasonElsewhere: the transfer runs on another node of the cluster,
 	// which alone can cancel it.
-	ReasonElsewhere Reason = "elsewhere"
+	ReasonElsewhere Reason = api.RefusalElsewhere
 	// ReasonBusy: the running transfer did not stop in time.
-	ReasonBusy Reason = "busy"
+	ReasonBusy Reason = api.RefusalBusy
 )
 
 // Reasons are the reasons in the order they are reported.
@@ -124,6 +126,26 @@ func (p *Preview) Total() int {
 	}
 
 	return n
+}
+
+// IDsOf reads the identifiers of the transfers of the query, and nothing
+// else of them, in the order of the query: the set a gesture is applied to,
+// as the web interface and the REST API enumerate it from their filters (the
+// query orders by a column it reads, the identifier). The query was made on
+// transfers, which receives what is read.
+func IDsOf(query *database.SelectQuery, transfers *model.NormalizedTransfers) ([]int64, error) {
+	query.Distinct("id")
+
+	if err := query.Run(); err != nil {
+		return nil, fmt.Errorf("failed to list the transfers: %w", err)
+	}
+
+	set := make([]int64, len(*transfers))
+	for i, trans := range *transfers {
+		set[i] = trans.ID
+	}
+
+	return set, nil
 }
 
 // ids sorts and deduplicates the identifiers of a set.
