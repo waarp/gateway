@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :support:`842` La page « Surveillances de partenaires » du guide de
+  l'interface web retrouve une décoration de titre de la longueur du titre
+  (la construction de la documentation ne signale plus cette page).
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,
   les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
   L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône
