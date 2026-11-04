@@ -445,7 +445,7 @@ func TestListTransfer(t *testing.T) {
 
 			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
-				Login:         "toto",
+				Login:         "tata",
 			}
 			So(db.Insert(a2).Run(), ShouldBeNil)
 
@@ -600,6 +600,90 @@ func TestListTransfer(t *testing.T) {
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqualJSON, string(exp))
+					})
+				})
+			})
+
+			Convey("Given a request with a valid 'requested' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?requested="+p1.Name, nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then it should reply 'OK'", func() {
+						So(w.Code, ShouldEqual, http.StatusOK)
+					})
+
+					Convey("Then it should return the transfers requested to the partner (#843)", func() {
+						expected["transfers"] = []OutTransfer{*trans1, *trans3}
+						exp, err := json.Marshal(expected)
+
+						So(err, ShouldBeNil)
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+
+			Convey("Given a request with a valid 'requester' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?requester="+a2.Login, nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then it should reply 'OK'", func() {
+						So(w.Code, ShouldEqual, http.StatusOK)
+					})
+
+					Convey("Then it should return the transfers requested by the account (#843)", func() {
+						expected["transfers"] = []OutTransfer{*trans2}
+						exp, err := json.Marshal(expected)
+
+						So(err, ShouldBeNil)
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+
+			Convey("Given a request with the 'requester' and 'rule' parameters", func() {
+				req, err := http.NewRequest(http.MethodGet, "?requester="+a1.Login+"&rule="+r2.Name, nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then it should reply 'OK'", func() {
+						So(w.Code, ShouldEqual, http.StatusOK)
+					})
+
+					Convey("Then it should return the transfers of both filters (#843)", func() {
+						expected["transfers"] = []OutTransfer{*trans3}
+						exp, err := json.Marshal(expected)
+
+						So(err, ShouldBeNil)
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+
+			Convey("Given a request with the former 'remote' and 'account' parameters", func() {
+				req, err := http.NewRequest(http.MethodGet, "?remote="+p2.Name+"&account="+a2.Login, nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then it should reply 'OK'", func() {
+						So(w.Code, ShouldEqual, http.StatusOK)
+					})
+
+					Convey("Then it should return every transfer: the former parameters stay ignored (#843)", func() {
+						expected["transfers"] = []OutTransfer{*trans1, *trans2, *trans3}
+						exp, err := json.Marshal(expected)
+
+						So(err, ShouldBeNil)
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 					})
 				})
 			})

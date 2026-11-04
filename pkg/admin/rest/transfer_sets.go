@@ -29,12 +29,14 @@ import (
 // The parameters of the filters of the list of the transfers, and those of
 // the identifiers of a set.
 const (
-	filterRuleParam     = "rule"
-	filterStatusParam   = "status"
-	filterFollowIDParam = "followID"
-	filterStartParam    = "start"
-	setIDsParam         = "ids"
-	setExceptParam      = "except"
+	filterRuleParam      = "rule"
+	filterStatusParam    = "status"
+	filterRequesterParam = "requester"
+	filterRequestedParam = "requested"
+	filterFollowIDParam  = "followID"
+	filterStartParam     = "start"
+	setIDsParam          = "ids"
+	setExceptParam       = "except"
 
 	// The stop of the running transfers of a set is bounded by setCancelTimeout.
 	setCancelTimeout = 10 * time.Second
@@ -43,7 +45,10 @@ const (
 // setParams are the parameters that name a set: the filters of the list and
 // the identifiers.
 func setParams() []string {
-	return []string{filterRuleParam, filterStatusParam, filterFollowIDParam, filterStartParam, setIDsParam, setExceptParam}
+	return []string{
+		filterRuleParam, filterStatusParam, filterRequesterParam, filterRequestedParam,
+		filterFollowIDParam, filterStartParam, setIDsParam, setExceptParam,
+	}
 }
 
 // namesSet says whether a request names a set of transfers; without any of

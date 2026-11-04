@@ -9,8 +9,9 @@ Annuler plusieurs transferts
    statut renseigné, comme auparavant : la réponse est un ``202`` sans
    décompte.
 
-   Avec les filtres de la liste (``rule``, ``status``, ``start``, ``followID``,
-   ``except`` ou ``ids``), annule les transferts qui les remplissent : ceux que
+   Avec les filtres de la liste (``rule``, ``status``, ``requester``,
+   ``requested``, ``start``, ``followID``, ``except`` ou ``ids``), annule les
+   transferts qui les remplissent : ceux que
    :http:get:`/api/transfers` listerait avec les mêmes filtres, moins les
    identifiants exclus par ``except``, ou seulement les identifiants donnés par
    ``ids`` qui remplissent les critères ; ``target``, s'il est renseigné,
@@ -32,6 +33,14 @@ Annuler plusieurs transferts
       (``PLANNED``, ``RUNNING``, ``PAUSED``, ``INTERRUPTED`` ou ``ERROR``).
       Peut être renseigné plusieurs fois.
    :type status: string
+   :param requester: Restreint l'ensemble aux transferts dont le compte demandeur
+      porte le nom renseigné. Peut être renseigné plusieurs fois pour plusieurs
+      comptes.
+   :type requester: string
+   :param requested: Restreint l'ensemble aux transferts demandés au serveur ou
+      partenaire renseigné. Peut être renseigné plusieurs fois pour plusieurs
+      serveurs ou partenaires.
+   :type requested: string
    :param start: Restreint l'ensemble aux transferts dont la date de début est
       postérieure ou égale à celle renseignée (:rfc:`3339`).
    :type start: date

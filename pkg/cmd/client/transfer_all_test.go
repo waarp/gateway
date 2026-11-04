@@ -17,7 +17,7 @@ func TestTransfersResumeAll(t *testing.T) {
 		expected := &expectedRequest{
 			method: http.MethodPut,
 			path:   "/api/transfers/resume-all",
-			values: url.Values{"rule": {"orders"}, "status": {"ERROR"}, "except": {"5"}},
+			values: url.Values{"rule": {"orders"}, "status": {"ERROR"}, "requested": {"partner"}, "except": {"5"}},
 		}
 
 		result := &expectedResponse{status: http.StatusOK, body: map[string]any{
@@ -29,7 +29,8 @@ func TestTransfersResumeAll(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				require.NoError(t, executeCommand(t, w, command, "--rule", "orders", "--status", "ERROR", "--except", "5"),
+				require.NoError(t, executeCommand(t, w, command,
+					"--rule", "orders", "--status", "ERROR", "--requested", "partner", "--except", "5"),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -51,7 +52,7 @@ func TestTransfersRetryAll(t *testing.T) {
 		expected := &expectedRequest{
 			method: http.MethodPut,
 			path:   "/api/transfers/retry-all",
-			values: url.Values{"status": {"CANCELLED"}, "date": {"2031-01-01T00:00:00Z"}},
+			values: url.Values{"status": {"CANCELLED"}, "requester": {"login"}, "date": {"2031-01-01T00:00:00Z"}},
 		}
 
 		result := &expectedResponse{status: http.StatusOK, body: map[string]any{
@@ -62,7 +63,8 @@ func TestTransfersRetryAll(t *testing.T) {
 			testServer(t, expected, result)
 
 			t.Run("When executing the command", func(t *testing.T) {
-				require.NoError(t, executeCommand(t, w, command, "--status", "CANCELLED", "--date", "2031-01-01T00:00:00Z"),
+				require.NoError(t, executeCommand(t, w, command,
+					"--status", "CANCELLED", "--requester", "login", "--date", "2031-01-01T00:00:00Z"),
 					"Then it should not return an error")
 
 				assert.Equal(t,
@@ -96,6 +98,31 @@ func TestTransfersCancelAllByFilters(t *testing.T) {
 					"Then it should not return an error")
 
 				assert.Equal(t, "3 transfers canceled, 0 refused.\n", w.String(),
+					"Then it should display the counted answer")
+			})
+		})
+	})
+
+	t.Run(`Testing the transfer "cancel all" command with the requested alone`, func(t *testing.T) {
+		w := newTestOutput()
+		command := &TransferCancelAll{}
+
+		expected := &expectedRequest{
+			method: http.MethodDelete,
+			path:   "/api/transfers",
+			values: url.Values{"requested": {"other"}},
+		}
+
+		result := &expectedResponse{status: http.StatusOK, body: map[string]any{"done": 1, "refused": 0}}
+
+		t.Run("Given a dummy gateway REST interface", func(t *testing.T) {
+			testServer(t, expected, result)
+
+			t.Run("When executing the command", func(t *testing.T) {
+				require.NoError(t, executeCommand(t, w, command, "--requested", "other"),
+					"Then it should name the set without a target (#843)")
+
+				assert.Equal(t, "1 transfer canceled, 0 refused.\n", w.String(),
 					"Then it should display the counted answer")
 			})
 		})

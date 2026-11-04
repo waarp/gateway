@@ -152,9 +152,11 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 }
 
 // transferFilters adds to the query the filters of the list of the transfers
-// the request gives: the rules, the statuses, the follow ID and the start
-// date. The gestures applied to a set of transfers at once work on the very
-// set these filters list (#793).
+// the request gives: the rules, the statuses, the requesters (the login of the
+// account) and the requested (the name of the partner or of the server), as
+// the list of the history names them (#843), the follow ID and the start date.
+// The gestures applied to a set of transfers at once work on the very set
+// these filters list (#793).
 func transferFilters(r *http.Request, query *database.SelectQuery) error {
 	if rules, ok := r.Form[filterRuleParam]; ok {
 		query.In("rule", rules)
@@ -162,6 +164,14 @@ func transferFilters(r *http.Request, query *database.SelectQuery) error {
 
 	if statuses, ok := r.Form[filterStatusParam]; ok {
 		query.In("status", statuses)
+	}
+
+	if accounts, ok := r.Form[filterRequesterParam]; ok {
+		query.In("account", accounts)
+	}
+
+	if agents, ok := r.Form[filterRequestedParam]; ok {
+		query.In("agent", agents)
 	}
 
 	if followID := r.FormValue(filterFollowIDParam); followID != "" {

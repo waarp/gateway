@@ -124,6 +124,32 @@ func (f *setFixtures) view(t *testing.T, id int64) *model.NormalizedTransferView
 	return &view
 }
 
+// guestFailure adds a failed transfer of the first rule requested by another
+// account, "guest", to another partner, "other": the requester and the
+// requested then tell the transfers of the fixtures apart (#843).
+func (f *setFixtures) guestFailure(t *testing.T) *model.Transfer {
+	t.Helper()
+
+	other := &model.RemoteAgent{Name: "other", Protocol: testProto1, Address: types.Addr("localhost", 2)}
+	require.NoError(t, f.db.Insert(other).Run())
+
+	guest := &model.RemoteAccount{RemoteAgentID: other.ID, Login: "guest"}
+	require.NoError(t, f.db.Insert(guest).Run())
+
+	var client model.Client
+	require.NoError(t, f.db.Get(&client, "name=?", "client").Run())
+
+	trans := &model.Transfer{
+		RuleID: f.orders.ID, ClientID: client.NullableID(), RemoteAccountID: guest.NullableID(),
+		SrcFilename: "order-9.edi", DestFilename: "order-9.edi", Status: types.StatusError,
+		Filesize: model.UnknownSize, Start: time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+		ErrCode: types.TeDataTransfer, ErrDetails: "connection lost", Step: types.StepData,
+	}
+	require.NoError(t, f.db.Insert(trans).Run())
+
+	return trans
+}
+
 func TestResumeTransferSet(t *testing.T) {
 	t.Parallel()
 
@@ -146,6 +172,33 @@ func TestResumeTransferSet(t *testing.T) {
 
 		assert.Equal(t, types.StatusPlanned, f.view(t, f.failed.ID).Status, "resumed: planned again")
 		assert.Equal(t, types.StatusError, f.view(t, f.otherFail.ID).Status, "out of the filters: intact")
+	})
+
+	t.Run("Given the requested and the requester", func(t *testing.T) {
+		t.Parallel()
+
+		f := newSetFixtures(t)
+		guest := f.guestFailure(t)
+		handler := resumeTransfers(logger, f.db)
+
+		rec, answer := f.call(t, handler, http.MethodPut, "/api/transfers/resume-all?rule=orders&requested=partner")
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+		assert.Equal(t, 1, answer.Done, "the failed transfer of the rule requested to the partner")
+		assert.Equal(t, []api.OutTransferRefusal{
+			{ID: f.planned.ID, Reason: api.RefusalState},
+			{ID: f.cancelled.ID, Reason: api.RefusalState},
+		}, answer.Refusals, "the other transfers of the rule requested to the partner, refused as before")
+		assert.Equal(t, types.StatusPlanned, f.view(t, f.failed.ID).Status, "resumed")
+		assert.Equal(t, types.StatusError, f.view(t, guest.ID).Status, "requested to another partner: intact")
+
+		rec, answer = f.call(t, handler, http.MethodPut, "/api/transfers/resume-all?requester=guest")
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+		assert.Equal(t, 1, answer.Done, "the transfer requested by the account")
+		assert.Equal(t, 0, answer.Refused)
+		assert.Equal(t, types.StatusPlanned, f.view(t, guest.ID).Status, "resumed")
+		assert.Equal(t, types.StatusError, f.view(t, f.otherFail.ID).Status, "requested by another account: intact")
 	})
 
 	t.Run("Given transfers left out", func(t *testing.T) {
@@ -296,6 +349,20 @@ func TestCancelTransferSet(t *testing.T) {
 		assert.Equal(t, 1, answer.Done, "the planned transfer of the rule")
 		assert.Equal(t, 0, answer.Refused)
 		assert.Equal(t, types.StatusError, f.view(t, f.failed.ID).Status, "the failed one is not of the target")
+	})
+
+	t.Run("Given the requested alone", func(t *testing.T) {
+		t.Parallel()
+
+		f := newSetFixtures(t)
+		guest := f.guestFailure(t)
+		rec, answer := f.call(t, cancelTransfers(logger, f.db), http.MethodDelete, "/api/transfers?requested=other")
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+		assert.Equal(t, 1, answer.Done, "the requested names a set: the transfer requested to that partner")
+		assert.Equal(t, 0, answer.Refused)
+		assert.False(t, f.view(t, guest.ID).IsTransfer, "cancelled, gone to the history")
+		assert.True(t, f.view(t, f.failed.ID).IsTransfer, "requested to another partner: intact")
 	})
 
 	t.Run("Given a target alone", func(t *testing.T) {
