@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :support:`842` La page « Surveillances de partenaires » du guide de
+  l'interface web retrouve une décoration de titre de la longueur du titre
+  (la construction de la documentation ne signale plus cette page).
 * :support:`797` Les pages de l'ancienne interface web sont retirées, avec
   leurs gabarits, leurs scripts, Bootstrap et leurs traductions. Leurs
   adresses mènent à l'écran qui les remplace, et à l'objet qu'elles

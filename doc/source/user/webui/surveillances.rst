@@ -1,8 +1,8 @@
 .. _user-webui-watchers:
 
-###########################
+############################
 Surveillances de partenaires
-###########################
+############################
 
 Section *Traitements*, adresse ``/webui/watchers``. La consultation requiert le
 droit de lecture sur les serveurs ; la création, la modification, le démarrage,
