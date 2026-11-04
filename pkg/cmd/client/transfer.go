@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
@@ -333,16 +334,222 @@ func (t *TransferRetry) execute(w io.Writer) error {
 	}
 }
 
-//nolint:lll // struct tags can be long for command line args
+// ######################## SETS ##########################
+
+// transferSetOptions name the set of transfers a gesture is applied to at
+// once (#793): the filters of the list (the rules, the statuses, the start
+// date, the follow ID), minus the transfers left out. Without any, the set is
+// every transfer. The status has no short option: "-t" stays the target of
+// "cancel-all".
+//
+//nolint:lll // struct tags are long
+type transferSetOptions struct {
+	Rules    []string `short:"r" long:"rule" description:"Only the transfers using the given rule. Can be repeated to name several rules."`
+	Statuses []string `long:"status" description:"Only the transfers in the given status. Can be repeated to name several statuses." choice:"PLANNED" choice:"RUNNING" choice:"PAUSED" choice:"INTERRUPTED" choice:"ERROR" choice:"CANCELLED" choice:"DONE"`
+	Start    string   `long:"start" description:"Only the transfers started at or after the given date. Date must be in RFC3339 format."`
+	FollowID string   `short:"f" long:"follow-id" description:"Only the transfers with the given follow ID."`
+	Except   []uint64 `long:"except" description:"Leave the transfer with the given ID out of the set. Can be repeated."`
+}
+
+// given says whether any option names the set.
+func (o *transferSetOptions) given() bool {
+	return len(o.Rules) > 0 || len(o.Statuses) > 0 || o.Start != "" || o.FollowID != "" || len(o.Except) > 0
+}
+
+// values are the parameters of the request the options make.
+func (o *transferSetOptions) values() (url.Values, error) {
+	query := url.Values{}
+
+	for _, rule := range o.Rules {
+		query.Add("rule", rule)
+	}
+
+	for _, status := range o.Statuses {
+		query.Add("status", status)
+	}
+
+	if o.Start != "" {
+		if _, err := time.Parse(time.RFC3339Nano, o.Start); err != nil {
+			return nil, fmt.Errorf("'%s' is not a valid date (accepted format: '%s'): %w",
+				o.Start, time.RFC3339Nano, errInvalidDate)
+		}
+
+		query.Set("start", o.Start)
+	}
+
+	if o.FollowID != "" {
+		query.Set("followID", o.FollowID)
+	}
+
+	for _, id := range o.Except {
+		query.Add("except", utils.FormatUint(id))
+	}
+
+	return query, nil
+}
+
+// setRequest sends a gesture on a set and prints its counted answer.
+func setRequest(w io.Writer, method string, query url.Values, done string) error {
+	addr.RawQuery = query.Encode()
+
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, method)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck,gosec // error is irrelevant
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var answer api.OutTransferSet
+		if decodeErr := unmarshalBody(resp.Body, &answer); decodeErr != nil {
+			return decodeErr
+		}
+
+		displayTransferSet(w, &answer, done)
+
+		return nil
+	case http.StatusBadRequest:
+		return getResponseErrorMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
+	}
+}
+
+// displayTransferSet prints what a gesture did on a set: how many transfers,
+// how many were left aside and why, the new transfers of a retry.
+func displayTransferSet(w io.Writer, answer *api.OutTransferSet, done string) {
+	fmt.Fprintf(w, "%s %s, %d refused.\n", countTransfers(answer.Done), done, answer.Refused)
+
+	for _, refusal := range answer.Refusals {
+		fmt.Fprintf(w, "  - transfer %d: %s\n", refusal.ID, refusalText(refusal.Reason))
+	}
+
+	if len(answer.Created) > 0 {
+		created := make([]string, len(answer.Created))
+		for i, id := range answer.Created {
+			created[i] = utils.FormatInt(id)
+		}
+
+		fmt.Fprintf(w, "New transfers: %s\n", strings.Join(created, ", "))
+	}
+}
+
+// countTransfers counts the transfers in words.
+func countTransfers(n int) string {
+	if n == 1 {
+		return "1 transfer"
+	}
+
+	return fmt.Sprintf("%d transfers", n)
+}
+
+// refusalText says in clear why a transfer of the set was left aside.
+func refusalText(reason string) string {
+	switch reason {
+	case api.RefusalServer:
+		return "a server transfer resumes or is retried on the initiative of the partner"
+	case api.RefusalSync:
+		return "the child of a synchronous transfer resumes through its parent"
+	case api.RefusalState:
+		return "the state of the transfer does not allow it"
+	case api.RefusalMissing:
+		return "the transfer no longer exists"
+	case api.RefusalGone:
+		return "the rule, the partner, the account or the client of the transfer no longer exists"
+	case api.RefusalElsewhere:
+		return "the transfer runs on another node of the cluster"
+	case api.RefusalBusy:
+		return "the running transfer did not stop in time"
+	default:
+		return reason
+	}
+}
+
+// ######################## RESUME ALL ##########################
+
+type TransferResumeAll struct {
+	transferSetOptions
+}
+
+func (t *TransferResumeAll) Execute([]string) error { return execute(t) }
+func (t *TransferResumeAll) execute(w io.Writer) error {
+	addr.Path = apiTransfersPath + "/resume-all"
+
+	query, err := t.values()
+	if err != nil {
+		return err
+	}
+
+	return setRequest(w, http.MethodPut, query, "resumed")
+}
+
+// ######################## RETRY ALL ##########################
+
+//nolint:lll // struct tags are long
+type TransferRetryAll struct {
+	transferSetOptions
+
+	Date string `short:"d" long:"date" description:"Set the date at which the new transfers start. Date must be in RFC3339 format."`
+}
+
+func (t *TransferRetryAll) Execute([]string) error { return execute(t) }
+func (t *TransferRetryAll) execute(w io.Writer) error {
+	addr.Path = apiTransfersPath + "/retry-all"
+
+	query, err := t.values()
+	if err != nil {
+		return err
+	}
+
+	if t.Date != "" {
+		start, parseErr := time.Parse(time.RFC3339Nano, t.Date)
+		if parseErr != nil {
+			return fmt.Errorf("'%s' is not a valid date (accepted format: '%s'): %w",
+				t.Date, time.RFC3339Nano, errInvalidDate)
+		}
+
+		query.Set("date", start.Format(time.RFC3339Nano))
+	}
+
+	return setRequest(w, http.MethodPut, query, "retried")
+}
+
+// ######################## CANCEL ALL ##########################
+
+//nolint:lll // struct tags are long
 type TransferCancelAll struct {
-	Target string `required:"yes" short:"t" long:"target" description:"The status of the transfers to cancel" choice:"planned" choice:"running" choice:"paused" choice:"interrupted" choice:"error" choice:"all"`
+	transferSetOptions
+
+	Target string `short:"t" long:"target" description:"The status of the transfers to cancel. Required when no other option names the set." choice:"planned" choice:"running" choice:"paused" choice:"interrupted" choice:"error" choice:"all"`
 }
 
 func (t *TransferCancelAll) Execute([]string) error { return execute(t) }
 func (t *TransferCancelAll) execute(w io.Writer) error {
 	addr.Path = apiTransfersPath
-	query := url.Values{}
-	query.Set("target", t.Target)
+
+	query, err := t.values()
+	if err != nil {
+		return err
+	}
+
+	if t.Target != "" {
+		query.Set("target", t.Target)
+	}
+
+	// The set named by its options is cancelled and counted (#793); a target
+	// alone cancels the transfers of that status as before.
+	if t.given() {
+		return setRequest(w, http.MethodDelete, query, "canceled")
+	}
+
+	if t.Target == "" {
+		return errMissingTarget
+	}
+
 	addr.RawQuery = query.Encode()
 
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)

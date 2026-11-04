@@ -28,6 +28,48 @@ type InTransfer struct {
 	StartDate  Nullable[time.Time] `json:"startDate,omitzero"`   // Deprecated: replaced by Start
 }
 
+// The reasons a gesture applied to a set of transfers at once leaves one of
+// them aside (OutTransferRefusal.Reason).
+const (
+	// RefusalServer: a server transfer resumes, or is retried, on the
+	// initiative of the partner.
+	RefusalServer = "server"
+	// RefusalSync: the child of a synchronous transfer resumes through its
+	// parent.
+	RefusalSync = "sync"
+	// RefusalState: the state of the transfer does not allow the gesture (a
+	// done transfer neither resumes nor cancels, a running one is not retried).
+	RefusalState = "state"
+	// RefusalMissing: the transfer no longer exists.
+	RefusalMissing = "missing"
+	// RefusalGone: the rule, the partner, the account or the client of the
+	// transfer no longer exists (a retry).
+	RefusalGone = "gone"
+	// RefusalElsewhere: the transfer runs on another node of the cluster,
+	// which alone can cancel it.
+	RefusalElsewhere = "elsewhere"
+	// RefusalBusy: the running transfer did not stop in time.
+	RefusalBusy = "busy"
+)
+
+// OutTransferSet is the answer of a gesture applied to the transfers of a set
+// at once (resume-all, retry-all, the cancellation by the filters of the
+// list): how many transfers it was applied to, how many it left aside and why
+// and, for a retry, the transfers it created.
+type OutTransferSet struct {
+	Done     int                  `json:"done" yaml:"done"`
+	Refused  int                  `json:"refused" yaml:"refused"`
+	Refusals []OutTransferRefusal `json:"refusals,omitempty" yaml:"refusals,omitempty"`
+	Created  []int64              `json:"created,omitempty" yaml:"created,omitempty"`
+}
+
+// OutTransferRefusal is a transfer of a set a gesture left aside, and why (one
+// of the Refusal constants).
+type OutTransferRefusal struct {
+	ID     int64  `json:"id" yaml:"id"`
+	Reason string `json:"reason" yaml:"reason"`
+}
+
 // OutTransfer is the JSON representation of a transfer in responses sent by
 // the REST interface.
 type OutTransfer struct {

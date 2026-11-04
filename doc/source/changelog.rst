@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`793` L'API REST et la ligne de commande reprennent, relancent et
+  annulent d'un coup les transferts qui remplissent les filtres de la liste,
+  comme le Suivi des transferts : ``PUT /api/transfers/resume-all``,
+  ``PUT /api/transfers/retry-all`` et ``DELETE /api/transfers`` avec les
+  filtres de la liste (``rule``, ``status``, ``start``, ``followID``), moins
+  les identifiants exclus (``except``) ou seulement ceux donnés (``ids``) ;
+  la réponse compte les transferts traités et ceux laissés de côté, avec la
+  raison de chacun. En ligne de commande : ``transfer resume-all``,
+  ``transfer retry-all``, et les mêmes options sur ``transfer cancel-all``
+  (voir :ref:`REST_transfers` et :ref:`reference-cli-client-transfers`).
+  L'annulation par ``target`` seul reste inchangée.
 * :bug:`862` Le champ ``password`` des comptes locaux et distants du fichier
   d'import/export est désormais correctement importé et exporté en YAML. Un bug
   introduit en version 0.17.1 faisait que ce champ n'était pas correctement

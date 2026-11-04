@@ -452,6 +452,20 @@ func cancelRunningTransfers(rCtx context.Context, db *database.DB,
 //nolint:gocognit //there is no way to further simplify this function
 func cancelTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// A request that names a set by the filters of the list cancels that
+		// set and counts (#793); a target alone keeps its former behaviour.
+		if err := r.ParseForm(); err != nil {
+			handleError(w, logger, badRequestf("cannot parse form data: %v", err))
+
+			return
+		}
+
+		if namesSet(r.Form) {
+			cancelTransferSet(w, r, logger, db)
+
+			return
+		}
+
 		switch target := r.FormValue("target"); target {
 		case "":
 			handleError(w, logger, badRequest("missing 'target' parameter"))

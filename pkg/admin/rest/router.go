@@ -96,12 +96,18 @@ func makeTransferHandlers(mkHandler HandlerFactory) {
 		transResumePath = "/transfers/{transfer}/resume"
 		transCancelPath = "/transfers/{transfer}/cancel"
 		transRetryPath  = "/transfers/{transfer}/retry"
+
+		// The gestures applied to a set of transfers at once (#793).
+		transResumeAllPath = "/transfers/resume-all"
+		transRetryAllPath  = "/transfers/retry-all"
 	)
 
 	mkHandler(transfersPath, listTransfers, model.PermTransfersRead, http.MethodGet)
 	mkHandler(transfersPath, addTransfer, model.PermTransfersWrite, http.MethodPost)
 	mkHandler(transfersPath, preregisterServerTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(transfersPath, cancelTransfers, model.PermTransfersWrite, http.MethodDelete)
+	mkHandler(transResumeAllPath, resumeTransfers, model.PermTransfersWrite, http.MethodPut)
+	mkHandler(transRetryAllPath, retryTransfers, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(transferPath, getTransfer, model.PermTransfersRead, http.MethodGet)
 	mkHandler(transPausePath, pauseTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(transResumePath, resumeTransfer, model.PermTransfersWrite, http.MethodPut)
