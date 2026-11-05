@@ -75,12 +75,14 @@ func TestTranscodeForm(t *testing.T) {
 		indexes(t, body, "<h2 class=\"w-card__title\">Encodage</h2>",
 			`name="transcode.direction" value="ascii-ebcdic" required data-switch="transcode-direction"`,
 			`name="transcode.direction" value="ebcdic-ebcdic" required data-switch="transcode-direction"`,
-			`data-case="ascii-ebcdic ascii-ascii" data-of="transcode-direction"`, `name="transcode.fromCharset_ascii"`,
-			`<optgroup label="Unicode">`, `<option value="UTF-8">UTF-8 — Unicode sur 8 bits</option>`,
-			`data-case="ebcdic-ascii ebcdic-ebcdic" data-of="transcode-direction"`, `name="transcode.fromCharset_ebcdic"`,
-			`<optgroup label="Alphabet latin">`, `<option value="IBM Code Page 297">IBM Code Page 297 — France</option>`,
+			`data-case="ascii-ebcdic ascii-ascii" data-of="transcode-direction"`,
+			`name="transcode.fromCharset_ascii" required data-combobox=`, `<optgroup label="Unicode">`,
+			`<option value="UTF-8" data-label="UTF-8 — Unicode sur 8 bits">UTF-8 — Unicode sur 8 bits</option>`,
+			`data-case="ebcdic-ascii ebcdic-ebcdic" data-of="transcode-direction"`,
+			`name="transcode.fromCharset_ebcdic" required data-combobox=`, `<optgroup label="Alphabet latin">`,
+			`<option value="IBM Code Page 297" data-label="IBM Code Page 297 — France">IBM Code Page 297 — France</option>`,
 			`<optgroup label="Autres alphabets">`, `name="transcode.toCharset_ascii"`, `name="transcode.toCharset_ebcdic"`)
-		assert.NotContains(t, body, `<option value="X-User-Defined">`, "a deprecated character set is not offered")
+		assert.NotContains(t, body, `<option value="X-User-Defined"`, "a deprecated character set is not offered")
 	})
 
 	t.Run("Given a stored task", func(t *testing.T) {
@@ -98,8 +100,8 @@ func TestTranscodeForm(t *testing.T) {
 			body := s.get(t, permWrite, path(rule, "/tasks/pre/0/edit")).Body.String()
 			direction := charsetSide(stored["fromCharset"]) + "-" + charsetSide(stored["toCharset"])
 			assert.Contains(t, body, `name="transcode.direction" value="`+direction+`" checked`, "the direction of the character sets")
-			assert.Contains(t, body, `<option value="`+stored["fromCharset"]+`" selected>`, "the source selected")
-			assert.Contains(t, body, `<option value="`+stored["toCharset"]+`" selected>`, "the target selected")
+			assert.Contains(t, body, `<option value="`+stored["fromCharset"]+`" selected data-label=`, "the source selected")
+			assert.Contains(t, body, `<option value="`+stored["toCharset"]+`" selected data-label=`, "the target selected")
 
 			action, values := postedForm(t, body)
 			require.Equal(t, http.StatusSeeOther, s.post(t, permWrite, action, values).Code)

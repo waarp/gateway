@@ -391,10 +391,14 @@ templ encodingSideFields(slug string, s encodingSide) {
 		</fieldset>
 		for _, l := range s.Lists {
 			<fieldset class="w-fieldset rules-switched" data-case={ l.Cases } data-of={ slug + "-" + encodingDirection }>
-				@taskField(fieldView{
-					ID: l.ID, Name: l.Name, Kind: fieldSelect, Label: s.Label, Hint: s.Hint, Error: s.Err, Required: true,
-					None: s.None, Groups: l.Groups,
-				})
+				<div class={ "w-field", templ.KV("is-invalid", s.Err != "") }>
+					<label class="w-field__label" for={ l.ID }>{ s.Label }@argMark(true, false)</label>
+					@gui.Combobox(gui.ComboboxProps{
+						ID: l.ID, Name: l.Name, Groups: l.Groups, Placeholder: s.None, Required: true,
+						Invalid: s.Err != "", Describe: l.ID + "-h",
+					})
+					@protoform.Message(l.ID+"-h", s.Err, s.Hint)
+				</div>
 			</fieldset>
 		}
 	</div>

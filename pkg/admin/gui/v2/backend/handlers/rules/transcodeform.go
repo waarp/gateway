@@ -206,11 +206,29 @@ type encodingSide struct {
 	Lists                      []charsetList
 }
 
-// charsetList is the list of a side, shown for its directions (data-case).
+// charsetList is the list of a side, shown for its directions (data-case): a
+// list to type in (the Combobox of the kit), which finds a character set by
+// its number as by what it is for ("297", "France").
 type charsetList struct {
 	Cases    string
 	ID, Name string
-	Groups   []taskGroup
+	Groups   []gui.ComboGroup
+}
+
+// comboGroups are the groups of a list, as the Combobox of the kit takes them.
+func comboGroups(groups []taskGroup) []gui.ComboGroup {
+	out := make([]gui.ComboGroup, 0, len(groups))
+
+	for _, g := range groups {
+		group := gui.ComboGroup{Label: g.Label}
+		for _, o := range g.Options {
+			group.Choices = append(group.Choices, gui.ComboChoice{Value: o.Value, Label: o.Label, Selected: o.Selected})
+		}
+
+		out = append(out, group)
+	}
+
+	return out
 }
 
 // encodingOf builds the encoding card of a TRANSCODE task with what the form
@@ -256,7 +274,7 @@ func encodingSideOf(translate gui.Translator, spec *taskSpec, arg string, positi
 
 		view.Lists = append(view.Lists, charsetList{
 			Cases: strings.Join(cases, " "), ID: argID(spec, arg+"_"+side), Name: argName(spec, arg+"_"+side),
-			Groups: withMissing(translate, charsetGroups(translate, side, chosen), chosen),
+			Groups: comboGroups(withMissing(translate, charsetGroups(translate, side, chosen), chosen)),
 		})
 	}
 
