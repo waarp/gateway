@@ -350,7 +350,7 @@ templ encodingFields(x *encodingView) {
 			@choiceButtons(fieldView{
 				ID: x.Slug + "-" + encodingDirection, Name: x.Slug + "." + encodingDirection,
 				Label: gui.T(ctx, "task_types.transcode.direction_label"), Hint: gui.T(ctx, "task_types.transcode.direction_hint"),
-				Error: x.DirErr, Required: true, Options: x.Directions, Switch: x.Slug + "-" + encodingDirection,
+				Error: x.DirErr, Required: true, Options: x.Directions, Switch: x.Slug + "-" + encodingDirection, Wide: true,
 			})
 		</div>
 		@encodingSideFields(x.Slug, x.From)
@@ -527,9 +527,10 @@ templ argInput(f fieldView) {
 
 // choiceButtons: two or three values as joined buttons (w-segmented of the
 // kit): radio buttons, the checked one with its border, its weight and its
-// check; a switch for the fields that depend on it.
+// check; a switch for the fields that depend on it. Wide: over the whole
+// width of the card, for more buttons (the four directions of TRANSCODE).
 templ choiceButtons(f fieldView) {
-	<fieldset class={ "w-fieldset", "rules-choice", templ.KV("is-invalid", f.Error != "") } aria-describedby={ f.ID + "-h" }>
+	<fieldset class={ "w-fieldset", "rules-choice", templ.KV("w-fieldset--wide", f.Wide), templ.KV("is-invalid", f.Error != "") } aria-describedby={ f.ID + "-h" }>
 		<legend class="w-field__label">{ f.Label }@argMark(f.Required, f.NoMark)</legend>
 		<div class="w-segmented">
 			for _, o := range f.Options {
