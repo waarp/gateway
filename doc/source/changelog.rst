@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`846` Sous Windows, un fichier que Gateway réécrit est désormais vidé au
+  préalable : un contenu plus court ne garde plus la fin de l'ancien (tâches
+  ICAP, ARCHIVE, SIGN…).
 * :bug:`727` Gateway envoie désormais correctement un *inform* lorsqu'un moniteur
   SNMP externe est configuré pour recevoir des *informs* via l'option ``useInforms``.
   Précédemment, Gateway envoyait systématiquement un *trap* à la place, quelque

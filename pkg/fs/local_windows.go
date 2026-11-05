@@ -60,7 +60,19 @@ func openFile(path string, flags Flags, mode FileMode) (File, error) {
 		0,
 	)
 	if err == nil {
-		return os.NewFile(uintptr(handle), path), nil
+		file := os.NewFile(uintptr(handle), path)
+
+		// OPEN_ALWAYS keeps the content of an existing file: it is truncated
+		// afterwards, as os.OpenFile does (see syscall.Open).
+		if createMode == windows.OPEN_ALWAYS && HasFlag(flags, FlagTruncate) {
+			if truncErr := file.Truncate(0); truncErr != nil {
+				_ = file.Close()
+
+				return nil, truncErr //nolint:wrapcheck //no need to wrap here
+			}
+		}
+
+		return file, nil
 	}
 
 	// Fallback to os.OpenFile if CreateFile failed in case the target FS does
