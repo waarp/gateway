@@ -231,7 +231,7 @@ func parseTLSCertChain(cert *tls.Certificate) ([]*x509.Certificate, error) {
 func makeRootCAs(db database.ReadAccess, owner authentication.Owner,
 ) (*x509.CertPool, []*x509.Certificate, error,
 ) {
-	rootCAs := systemRoots()
+	rootCAs := systemRoots.Clone()
 
 	var trustedCreds model.Credentials
 	if err := db.Select(&trustedCreds).Where("type=?", TLSTrustedCertificate).

@@ -13,9 +13,9 @@ import (
 	"github.com/studio-b12/gowebdav"
 	weblib "golang.org/x/net/webdav"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httptransport"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/gwtesting"
 )
 
@@ -33,7 +33,7 @@ func makeTransport(ctx *gwtesting.TestServerCtx) http.RoundTripper {
 	transport.DisableKeepAlives = true
 
 	if ctx.Server.Protocol == webdav.WebdavTLS {
-		rootCAs := utils.TLSCertPool()
+		rootCAs := auth.SystemRoots()
 		rootCAs.AddCert(gwtesting.ServerCert.Leaf)
 		transport.TLSClientConfig = &tls.Config{RootCAs: rootCAs}
 	}
