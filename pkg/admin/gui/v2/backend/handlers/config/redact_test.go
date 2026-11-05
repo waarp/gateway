@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 )
 
@@ -22,7 +23,7 @@ func TestRedactSecrets(t *testing.T) {
 			},
 			Certificates: []file.Certificate{{Name: "old", PublicKey: "PUB", PrivateKey: "PRIV", Certificate: "CRT"}},
 			Accounts: []file.LocalAccount{{
-				Login: "filiale", Password: "clear-password", PasswordHash: "$2a$hash",
+				Login: "filiale", Password: api.NewNullable("clear-password"), PasswordHash: "$2a$hash",
 				Credentials: []file.Credential{
 					{Name: "password", Type: "password", Value: "clear-password"},
 					{Name: "ssh", Type: "ssh_public_key", Value: "ssh-rsa AAAA"},
@@ -33,7 +34,7 @@ func TestRedactSecrets(t *testing.T) {
 			Name: "banque-demo", Protocol: "pesit-tls",
 			Credentials: []file.Credential{{Name: "legacy", Type: "r66_legacy_certificate", Value: "CRT", Value2: "KEY"}},
 			Accounts: []file.RemoteAccount{{
-				Login: "prod", Password: "p",
+				Login: "prod", Password: api.NewNullable("p"),
 				Credentials: []file.Credential{
 					{Name: "pre", Type: "pesit_pre-connection_auth", Value: "login-pre", Value2: "pass-pre"},
 					{Name: "key", Type: "ssh_private_key", Value: "PRIVATE"},
@@ -65,7 +66,7 @@ func TestRedactSecrets(t *testing.T) {
 		server.Certificates[0])
 
 	account := server.Accounts[0]
-	assert.Equal(t, "__PWD__servers/srv-https-443/filiale:password", account.Password)
+	assert.Equal(t, api.NewNullable("__PWD__servers/srv-https-443/filiale:password"), account.Password)
 	assert.Equal(t, "$2a$hash", account.PasswordHash, "a hash is not a secret in clear")
 	assert.Equal(t, "__PWD__servers/srv-https-443/filiale:password", account.Credentials[0].Value)
 	assert.Equal(t, "__PEM__$GWPKIDIR/servers/srv-https-443/filiale/ssh.pem", account.Credentials[1].Value)
@@ -75,7 +76,7 @@ func TestRedactSecrets(t *testing.T) {
 	assert.Equal(t, "__KEY__$GWPKIDIR/partners/banque-demo/legacy.key", partner.Credentials[0].Value2)
 
 	remote := partner.Accounts[0]
-	assert.Equal(t, "__PWD__partners/banque-demo/prod:password", remote.Password)
+	assert.Equal(t, api.NewNullable("__PWD__partners/banque-demo/prod:password"), remote.Password)
 	assert.Equal(t, "login-pre", remote.Credentials[0].Value, "the login of the pre-connection stays")
 	assert.Equal(t, "__PWD__partners/banque-demo/prod:pre", remote.Credentials[0].Value2)
 	assert.Equal(t, "__KEY__$GWPKIDIR/partners/banque-demo/prod/key.key", remote.Credentials[1].Value)
