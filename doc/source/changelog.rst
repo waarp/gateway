@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`841` Un envoi HTTP refusé par les pré-traitements du serveur alors que le
+  client écrit encore enregistre l'erreur rapportée par le partenaire, et non
+  plus l'échec d'écriture qui en découle.
 * :bug:`846` Sous Windows, un fichier que Gateway réécrit est désormais vidé au
   préalable : un contenu plus court ne garde plus la fin de l'ancien (tâches
   ICAP, ARCHIVE, SIGN…).
