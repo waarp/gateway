@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 )
 
 type CertValidator struct {
@@ -15,7 +15,7 @@ type CertValidator struct {
 func (c CertValidator) Validate(cert, issuer *x509.Certificate) error {
 	validOpts := x509.VerifyOptions{
 		DNSName:       c.Host,
-		Roots:         utils.TLSCertPool(),
+		Roots:         auth.SystemRoots(),
 		Intermediates: x509.NewCertPool(),
 		KeyUsages:     c.Usages,
 	}

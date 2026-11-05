@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :support:`844` Les tests unitaires de l'authentification par certificat
+  n'ouvrent plus de connexion vers l'extérieur : la chaîne « publique » qu'ils
+  vérifient est signée par une autorité de test, donnée aux tests comme racine
+  du système.
 * :bug:`841` Un envoi HTTP refusé par les pré-traitements du serveur alors que le
   client écrit encore enregistre l'erreur rapportée par le partenaire, et non
   plus l'échec d'écriture qui en découle.

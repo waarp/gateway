@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 const (
@@ -53,7 +52,7 @@ func addTLSAuthorities(db database.ReadAccess, store *x509.CertPool, host string
 	}
 
 	if store == nil {
-		store = utils.TLSCertPool()
+		store = systemRoots.Clone()
 	}
 
 	for _, authority := range authorities {
@@ -70,7 +69,7 @@ func addTLSAuthorities(db database.ReadAccess, store *x509.CertPool, host string
 }
 
 func newTLSRootPool(db database.ReadAccess, host string) (*x509.CertPool, error) {
-	pool := utils.TLSCertPool()
+	pool := systemRoots.Clone()
 	if err := addTLSAuthorities(db, pool, host); err != nil {
 		return nil, err
 	}

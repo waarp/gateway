@@ -13,15 +13,6 @@ var (
 	errNoCertInPEM = errors.New("no certificate found in PEM block")
 )
 
-func TLSCertPool() *x509.CertPool {
-	pool, err := x509.SystemCertPool()
-	if err != nil {
-		pool = x509.NewCertPool()
-	}
-
-	return pool
-}
-
 // ParsePEMCertChain takes a certification chain in PEM format, parses it, and
 // returns it as a slice of x509.Certificate. If the decoding or the parsing
 // fails, an error is returned.

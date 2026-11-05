@@ -151,6 +151,38 @@ gmmQk8B1RYcONpLUmrhhufKvoXSgZNUIqGBIDuWCbbXVrXDlrzpwJaztW9d26xly
 RQofO+NMTLpRABuxMLZnang=
 -----END PRIVATE KEY-----`
 
+	// The chain of a "public" partner: publicRootCertPEM is the only root
+	// TestMain gives the handlers as a root of the system, publicLeafCertPEM
+	// is the server certificate it signs for publicHost, a host the address
+	// check of the partner resolves without the network (#844).
+	publicHost = "localhost"
+
+	publicRootCertPEM = `-----BEGIN CERTIFICATE-----
+MIIBrjCCAVSgAwIBAgIBATAKBggqhkjOPQQDAjA8MRwwGgYDVQQKExNXYWFycCBH
+YXRld2F5IHRlc3RzMRwwGgYDVQQDExNUZXN0IFB1YmxpYyBSb290IENBMCAXDTI2
+MDEwMTAwMDAwMFoYDzIxMjYwMTAxMDAwMDAwWjA8MRwwGgYDVQQKExNXYWFycCBH
+YXRld2F5IHRlc3RzMRwwGgYDVQQDExNUZXN0IFB1YmxpYyBSb290IENBMFkwEwYH
+KoZIzj0CAQYIKoZIzj0DAQcDQgAEifDMviYqFVXhsUHOPdaBYHGjBADe39nD7qRc
+5usrIRtg7FUIu8uslopdL0opIb+ROUu8ejMBBLPAkHPKFIjclaNFMEMwDgYDVR0P
+AQH/BAQDAgGGMBIGA1UdEwEB/wQIMAYBAf8CAQEwHQYDVR0OBBYEFAjIQgAxyHhs
+UlXqE3HV9QhuJYytMAoGCCqGSM49BAMCA0gAMEUCIQDNb54u0BVpdbMvZqUDNW6M
+VhMuMTV0UO2opiG+8//DQQIgD4lxk8WCqXWsgdpLxuhA9qkC9GfAeB2DQaa8fKhX
+HnQ=
+-----END CERTIFICATE-----`
+
+	publicLeafCertPEM = `-----BEGIN CERTIFICATE-----
+MIIBvTCCAWOgAwIBAgIBAjAKBggqhkjOPQQDAjA8MRwwGgYDVQQKExNXYWFycCBH
+YXRld2F5IHRlc3RzMRwwGgYDVQQDExNUZXN0IFB1YmxpYyBSb290IENBMCAXDTI2
+MDEwMTAwMDAwMFoYDzIxMjYwMTAxMDAwMDAwWjAyMRwwGgYDVQQKExNXYWFycCBH
+YXRld2F5IHRlc3RzMRIwEAYDVQQDEwlsb2NhbGhvc3QwWTATBgcqhkjOPQIBBggq
+hkjOPQMBBwNCAASQC9YCkvAhuJexwPQxa7q6Pde0PpDVVeknM5cuiYeaJcc6vKei
+nWfy29LfjA0Pl+n72xATMVrJrQ2QZHny9Yv4o14wXDAOBgNVHQ8BAf8EBAMCB4Aw
+EwYDVR0lBAwwCgYIKwYBBQUHAwEwHwYDVR0jBBgwFoAUCMhCADHIeGxSVeoTcdX1
+CG4ljK0wFAYDVR0RBA0wC4IJbG9jYWxob3N0MAoGCCqGSM49BAMCA0gAMEUCIHVj
+SSBJgjvgCGFzh2EVW9zFG19EvKXBPcatYIeFe1EjAiEAgzl35wbpnYUTIJhmOicP
+pdi/x8wm+qYlKe2JKqb5p68=
+-----END CERTIFICATE-----`
+
 	clientCertPEM = testhelpers.ClientFooCert
 	clientPKeyPEM = testhelpers.ClientFooKey
 	serverCertPEM = testhelpers.LocalhostCert
