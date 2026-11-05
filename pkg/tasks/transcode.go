@@ -23,12 +23,13 @@ import (
 //nolint:gochecknoglobals //the registry is built once and only read
 var transcodeRegistry = sync.OnceValue(transcode.NewRegistry)
 
-// TranscodeCharsets returns the character sets that the TRANSCODE task
-// accepts: Unicode encodings, single-byte code pages (EBCDIC ones by number),
-// then multi-byte encodings. A deprecated one is still accepted, but is not
-// to be offered for a new task.
-func TranscodeCharsets() []transcode.Entry {
-	return transcodeRegistry().List()
+// TranscodeRegistry returns the registry of the character sets that the
+// TRANSCODE task accepts. Its list gives the Unicode encodings, the
+// single-byte code pages (EBCDIC ones by number), then the multi-byte
+// encodings; a deprecated one is still accepted, but is not to be offered for
+// a new task.
+func TranscodeRegistry() *transcode.Registry {
+	return transcodeRegistry()
 }
 
 var (

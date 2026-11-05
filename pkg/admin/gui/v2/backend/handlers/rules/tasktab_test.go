@@ -289,7 +289,7 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, `<p class="rules-fixed"><code class="w-code">PGP</code> <span class="w-muted">seule valeur possible</span></p>`+
 			`<input type="hidden" name="encrypt_sign.method" value="PGP">`, "the only method possible, said and sent")
 		assert.Contains(t, body, `name="preregister.isSend" value="true" required>`, "two values as joined buttons")
-		assert.Contains(t, body, `<select class="w-select" id="transcode-fromCharset" name="transcode.fromCharset" required`,
+		assert.Contains(t, body, `<select class="w-select" id="transcode-fromCharset_ascii" name="transcode.fromCharset_ascii" required`,
 			"more values, a list")
 	})
 
@@ -396,7 +396,8 @@ func TestTaskAdd(t *testing.T) {
 		t.Parallel()
 
 		rec := s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
-			"type": {tasks.Transcode}, "transcode.fromCharset": {"klingon"}, "transcode.toCharset": {"UTF-8"},
+			"type": {tasks.Transcode}, "transcode.direction": {"ascii-ascii"},
+			"transcode.fromCharset_ascii": {"klingon"}, "transcode.toCharset_ascii": {"UTF-8"},
 		})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		body := rec.Body.String()

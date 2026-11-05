@@ -104,6 +104,7 @@ const (
 	groupArgs     groupKind = iota // the arguments of Args, side by side
 	groupInfos                     // the transfer information: its copy and its rows (copyInfo, info)
 	groupExchange                  // TRANSFER: the direction, the rule, the partner and its account, the client
+	groupEncoding                  // TRANSCODE: the direction, then the character sets of its two sides
 )
 
 // argGroup is a card of the form of a task: its title (a key under
@@ -126,6 +127,8 @@ func (g *argGroup) covers() []string {
 		return []string{"copyInfo", "info"}
 	case groupExchange:
 		return []string{"to", "from", "as", "rule", "using"}
+	case groupEncoding:
+		return []string{encodingFrom, encodingTo}
 	case groupArgs:
 	}
 
@@ -210,13 +213,14 @@ func keysOf(keys func() []string) func() []choiceValue {
 	return func() []choiceValue { return choiceValues(keys()) }
 }
 
-// transcodeCharsets are the character sets of the TRANSCODE task.
+// transcodeCharsets are the character sets of the TRANSCODE task, each with
+// the key of what it is for.
 func transcodeCharsets() []choiceValue {
-	charsets := tasks.TranscodeCharsets()
+	charsets := tasks.TranscodeRegistry().List()
 
 	out := make([]choiceValue, 0, len(charsets))
 	for _, charset := range charsets {
-		out = append(out, choiceValue{Value: charset.Name})
+		out = append(out, choiceValue{Value: charset.Name, Key: charsetKeyPrefix + charsetKey(charset.Name)})
 	}
 
 	return out
@@ -337,9 +341,9 @@ var taskSpecs = []taskSpec{
 		{Name: "pairs", Kind: argPairs},
 	}, Groups: []argGroup{group("", "pairs")}, Mapped: true},
 	{Type: tasks.Transcode, Slug: "transcode", Family: familyAlteration, Args: []argSpec{
-		choiceArg("fromCharset", transcodeCharsets),
-		choiceArg("toCharset", transcodeCharsets),
-	}, Groups: []argGroup{group("", "fromCharset", "toCharset")}},
+		choiceArg(encodingFrom, transcodeCharsets),
+		choiceArg(encodingTo, transcodeCharsets),
+	}, Groups: []argGroup{{Title: "encoding", Kind: groupEncoding}}},
 	{Type: tasks.ChangeNewline, Slug: "chnewline", Family: familyAlteration, Args: []argSpec{
 		textArg("from", true), textArg("to", true),
 	}, Groups: []argGroup{group("", "from", "to")}},

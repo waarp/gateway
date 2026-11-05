@@ -115,14 +115,15 @@ type fieldView struct {
 }
 
 // groupView is a card of the page: its title, its note, its fields side by
-// side, or the exchange of a TRANSFER task; Empty, the card of a type without
-// parameter.
+// side, the exchange of a TRANSFER task or the encoding of a TRANSCODE one;
+// Empty, the card of a type without parameter.
 type groupView struct {
 	Title    string
 	Note     string
 	Columns  int
 	Fields   []fieldView
 	Exchange *exchangeView
+	Encoding *encodingView
 	Empty    bool
 }
 
@@ -193,14 +194,15 @@ type taskFormData struct {
 
 // taskInput is what the form holds for the type chosen: the values of its
 // arguments and their errors, the rows of its transfer information, its
-// exchange; posted says whether the values come from the form (as typed) or
-// from the task stored.
+// exchange, its encoding; posted says whether the values come from the form
+// (as typed) or from the task stored.
 type taskInput struct {
 	values   map[string]string
 	errors   map[string]string
 	rows     []transfers.InfoPair
 	infoErr  string
 	exchange exchangeInput
+	encoding encodingInput
 	posted   bool
 }
 
@@ -227,6 +229,7 @@ func inputOf(stored map[string]string) *taskInput {
 	}
 
 	exchange.rule, exchange.login = stored["rule"], stored["as"]
+	input.encoding = encodingOfStored(stored)
 
 	return input
 }
@@ -602,7 +605,7 @@ func exchangeOf(translate gui.Translator, spec *taskSpec, held *exchangeInput, b
 
 // layout puts the fields of a type in its cards, before and after the card
 // of the transfer information; it says whether the type has that card.
-func layout(translate gui.Translator, spec *taskSpec, all []fieldView, exchange *exchangeView,
+func layout(translate gui.Translator, spec *taskSpec, all []fieldView, exchange *exchangeView, encoding *encodingView,
 ) (before, after []groupView, infos bool) {
 	if len(spec.Groups) == 0 {
 		return []groupView{{Empty: true}}, nil, false
@@ -625,8 +628,12 @@ func layout(translate gui.Translator, spec *taskSpec, all []fieldView, exchange 
 			view.Note = translate(g.Note)
 		}
 
-		if g.Kind == groupExchange {
+		switch g.Kind {
+		case groupExchange:
 			view.Exchange = exchange
+		case groupEncoding:
+			view.Encoding = encoding
+		case groupArgs, groupInfos:
 		}
 
 		for _, name := range g.Args {
@@ -692,6 +699,10 @@ func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored 
 
 	if spec.has(groupExchange) {
 		valid = readExchange(translate, r, spec, args, input) && valid
+	}
+
+	if spec.has(groupEncoding) {
+		valid = readEncoding(translate, r, spec, args, input) && valid
 	}
 
 	for _, name := range unknownArgs(spec, stored) {
@@ -1113,6 +1124,7 @@ func asTyped(translate gui.Translator, r *http.Request, spec *taskSpec, stored m
 	_, input, _ := readArgs(translate, r, spec, stored)
 	input.errors, input.infoErr = map[string]string{}, ""
 	input.exchange.sensErr, input.exchange.ruleErr, input.exchange.accountErr = "", "", ""
+	input.encoding.dirErr, input.encoding.fromErr, input.encoding.toErr = "", "", ""
 
 	for i := range input.rows {
 		input.rows[i].Invalid = false
@@ -1162,13 +1174,18 @@ func (h *Handlers) taskPage(translate gui.Translator, form *taskFormData, specs 
 			exchange = exchangeOf(translate, spec, &shown.exchange, byDirection, found, &all[spec.arg("using")])
 		}
 
+		var encoding *encodingView
+		if spec.has(groupEncoding) {
+			encoding = encodingOf(translate, spec, &shown.encoding, shown.errors)
+		}
+
 		block := typeBlock{
 			Type: spec.Type, Label: typeLabel(translate, spec.Type), Tip: typeTip(translate, spec), Active: active,
 		}
 
 		var infos bool
 
-		block.Before, block.After, infos = layout(translate, spec, all, exchange)
+		block.Before, block.After, infos = layout(translate, spec, all, exchange, encoding)
 		form.Blocks = append(form.Blocks, block)
 
 		if infos {

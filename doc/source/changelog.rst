@@ -5,7 +5,8 @@ Historique des versions
 
 * :feature:`845` La tâche TRANSCODE propose 53 pages EBCDIC de plus et
   accepte aussi les noms usuels des encodages (``utf8``, ``IBM1147``,
-  ``CP037``).
+  ``CP037``). Son formulaire demande d'abord le sens de la conversion et dit à
+  quoi sert chaque encodage.
 * :bug:`845` Avec les pages IBM 500 et 1148, la tâche TRANSCODE convertit
   désormais correctement les caractères ``[ ] ! ^ ¢ ¬ |``, dans les deux sens.
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,

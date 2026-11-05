@@ -290,6 +290,8 @@ templ groupContent(g groupView) {
 			<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
 		case g.Exchange != nil:
 			@exchangeFields(g.Exchange)
+		case g.Encoding != nil:
+			@encodingFields(g.Encoding)
 		default:
 			<div class={ "w-grid", templ.KV("w-grid--3", g.Columns == threeColumns), templ.KV("w-grid--2", g.Columns != threeColumns) }>
 				for _, f := range g.Fields {
@@ -336,6 +338,47 @@ templ exchangeFields(x *exchangeView) {
 			Error: x.AccountErr, Required: true, None: gui.T(ctx, "transfers.form.choose_account"), Groups: x.Accounts,
 		})
 		@taskField(x.Client)
+	</div>
+}
+
+// encodingFields: the encoding of a TRANSCODE task: the direction, then the
+// character set of the source and the one of the target, each in the list of
+// its side, switched by the direction.
+templ encodingFields(x *encodingView) {
+	<div class="w-grid w-grid--2">
+		<div class="rules-span">
+			@choiceButtons(fieldView{
+				ID: x.Slug + "-" + encodingDirection, Name: x.Slug + "." + encodingDirection,
+				Label: gui.T(ctx, "task_types.transcode.direction_label"), Hint: gui.T(ctx, "task_types.transcode.direction_hint"),
+				Error: x.DirErr, Required: true, Options: x.Directions, Switch: x.Slug + "-" + encodingDirection,
+			})
+		</div>
+		@encodingSideFields(x.Slug, x.From)
+		@encodingSideFields(x.Slug, x.To)
+	</div>
+}
+
+// encodingSideFields: an argument of the encoding, a list per side; before a
+// direction is chosen, an empty list says to choose it first.
+templ encodingSideFields(slug string, s encodingSide) {
+	<div>
+		<fieldset class="w-fieldset rules-switched" data-case="" data-of={ slug + "-" + encodingDirection } hidden disabled>
+			<div class="w-field">
+				<label class="w-field__label" for={ s.ID + "-none" }>{ s.Label }@argMark(true, false)</label>
+				<select class="w-select" id={ s.ID + "-none" } disabled>
+					<option value="">{ gui.T(ctx, "task_types.transcode.direction_first") }</option>
+				</select>
+				<span class="w-field__hint">{ s.Hint }</span>
+			</div>
+		</fieldset>
+		for _, l := range s.Lists {
+			<fieldset class="w-fieldset rules-switched" data-case={ l.Cases } data-of={ slug + "-" + encodingDirection }>
+				@taskField(fieldView{
+					ID: l.ID, Name: l.Name, Kind: fieldSelect, Label: s.Label, Hint: s.Hint, Error: s.Err, Required: true,
+					None: s.None, Groups: l.Groups,
+				})
+			</fieldset>
+		}
 	</div>
 }
 
