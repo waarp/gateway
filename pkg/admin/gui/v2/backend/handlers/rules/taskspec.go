@@ -210,6 +210,18 @@ func keysOf(keys func() []string) func() []choiceValue {
 	return func() []choiceValue { return choiceValues(keys()) }
 }
 
+// transcodeCharsets are the character sets of the TRANSCODE task.
+func transcodeCharsets() []choiceValue {
+	charsets := tasks.TranscodeCharsets()
+
+	out := make([]choiceValue, 0, len(charsets))
+	for _, charset := range charsets {
+		out = append(out, choiceValue{Value: charset.Name})
+	}
+
+	return out
+}
+
 // execArgs: the program, its arguments, its time limit; the program and the
 // limit make the folded line of the task (#784).
 func execArgs() []argSpec {
@@ -325,8 +337,8 @@ var taskSpecs = []taskSpec{
 		{Name: "pairs", Kind: argPairs},
 	}, Groups: []argGroup{group("", "pairs")}, Mapped: true},
 	{Type: tasks.Transcode, Slug: "transcode", Family: familyAlteration, Args: []argSpec{
-		choiceArg("fromCharset", keysOf(tasks.TranscodeFormats.Keys)),
-		choiceArg("toCharset", keysOf(tasks.TranscodeFormats.Keys)),
+		choiceArg("fromCharset", transcodeCharsets),
+		choiceArg("toCharset", transcodeCharsets),
 	}, Groups: []argGroup{group("", "fromCharset", "toCharset")}},
 	{Type: tasks.ChangeNewline, Slug: "chnewline", Family: familyAlteration, Args: []argSpec{
 		textArg("from", true), textArg("to", true),
