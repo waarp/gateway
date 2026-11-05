@@ -464,6 +464,16 @@ Historique des versions
   premier guide de l'interface web accompagne cet écran
   (:ref:`user-guide-webui`).
 
+* :support:`844` Les tests unitaires de l'authentification par certificat
+  n'ouvrent plus de connexion vers l'extérieur : la chaîne « publique » qu'ils
+  vérifient est signée par une autorité de test, donnée aux tests comme racine
+  du système.
+* :bug:`841` Un envoi HTTP refusé par les pré-traitements du serveur alors que le
+  client écrit encore enregistre l'erreur rapportée par le partenaire, et non
+  plus l'échec d'écriture qui en découle.
+* :bug:`846` Sous Windows, un fichier que Gateway réécrit est désormais vidé au
+  préalable : un contenu plus court ne garde plus la fin de l'ancien (tâches
+  ICAP, ARCHIVE, SIGN…).
 * :bug:`727` Gateway envoie désormais correctement un *inform* lorsqu'un moniteur
   SNMP externe est configuré pour recevoir des *informs* via l'option ``useInforms``.
   Précédemment, Gateway envoyait systématiquement un *trap* à la place, quelle

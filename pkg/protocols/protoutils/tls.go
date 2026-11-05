@@ -114,7 +114,7 @@ func GetClientTLSConf(logger *log.Logger, partner *model.RemoteAgent,
 
 	config := &tls.Config{
 		ServerName:       partner.Address.Host,
-		RootCAs:          utils.TLSCertPool(),
+		RootCAs:          auth.SystemRoots(),
 		VerifyConnection: LogTLSConn(logger),
 		MinVersion:       minVersion,
 		CipherSuites:     cipherSuites,

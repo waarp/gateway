@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"net"
 	"slices"
 
@@ -21,7 +22,10 @@ func getTLSConf(host string, tlsVersion protoutils.TLSVersion, partnerCreds, acc
 		MinVersion: tlsVersion.TLS(),
 	}
 
-	rootCA := utils.TLSCertPool()
+	rootCA, caErr := x509.SystemCertPool()
+	if caErr != nil {
+		rootCA = x509.NewCertPool()
+	}
 
 	for _, authority := range authorities {
 		if authority.Type == auth.AuthorityTLS {
