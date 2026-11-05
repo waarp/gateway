@@ -25,7 +25,10 @@ var (
 		tasks.Icap:             {"uploadURL": "icap://127.0.0.1:1344/avscan"},
 		tasks.Archive:          {"outputPath": "/tmp/archive.zip"},
 		tasks.Email:            {"recipients": "exploitation@example.org"},
-		tasks.Transcode:        {"toCharset": "UTF-16BE"},
+		tasks.Transcode: {
+			// A single-byte target: a length of one byte makes a whole record.
+			"toCharset": "ISO 8859-1", "records": "fixed", "recordLength": "80", "outputRecords": "fixed", "outputLength": "80",
+		},
 		tasks.Sign:             {"keyName": "hmac"},
 		tasks.Verify:           {"keyName": "hmac"},
 		tasks.EncryptAndSign:   {"encryptKeyName": "pgp-public", "signKeyName": "pgp-private"},
@@ -33,6 +36,8 @@ var (
 	}
 	sampleExtras = map[string]map[string]string{
 		tasks.Transfer: {"to": "banque-demo"},
+		// The result is laid out in records only when the source has some.
+		tasks.Transcode: {"records": "lines"},
 	}
 
 	// The arguments the form requires and the product does not, each with

@@ -107,6 +107,60 @@ func TestTranscodeForm(t *testing.T) {
 		}
 	})
 
+	t.Run("Given the cards of the records", func(t *testing.T) {
+		t.Parallel()
+
+		body := s.get(t, permWrite, path(s.orders, "/tasks/pre/new")+"?type="+tasks.Transcode).Body.String()
+		indexes(t, body, `name="transcode.substitute"`, "<h2 class=\"w-card__title\">Fichier source</h2>",
+			`id="transcode-records" name="transcode.records"`, `data-switch="transcode-records"`,
+			`<option value="">Fichier entier</option>`, `<option value="lines">Lignes</option>`,
+			`data-case="fixed" data-of="transcode-records"`, `name="transcode.recordLength"`, `name="transcode.trimPadding"`,
+			`data-case="lines fixed rdw" data-of="transcode-records"`, "<h2 class=\"w-card__title\">Fichier converti</h2>",
+			`<option value="">Comme le fichier source</option>`, `<option value="none">Sans séparateur</option>`,
+			`data-case="lines" data-of="transcode-outputRecords"`, `name="transcode.outputSeparator" value=""`,
+			`name="transcode.outputSeparator" value="NEL"`, "NL EBCDIC",
+			`data-case="fixed" data-of="transcode-outputRecords"`, `name="transcode.outputLength"`,
+			`data-case="fixed rdw" data-of="transcode-outputRecords"`, `name="transcode.truncate"`)
+	})
+
+	t.Run("Given a task in lines", func(t *testing.T) {
+		t.Parallel()
+
+		rule := &model.Rule{Name: "lignes", IsSend: true, Path: "lignes"}
+		require.NoError(t, s.db.Insert(rule).Run())
+
+		rec := s.post(t, permWrite, path(rule, "/tasks/pre/new"), url.Values{
+			"type": {tasks.Transcode}, "transcode.direction": {"ebcdic-ascii"},
+			"transcode.fromCharset_ebcdic": {"IBM Code Page 297"}, "transcode.toCharset_ascii": {"ISO 8859-1"},
+			"transcode.records": {"lines"}, "transcode.outputRecords": {"lines"}, "transcode.outputSeparator": {"CRLF"},
+			"transcode.recordLength": {"80"}, "transcode.outputLength": {"80"},
+		})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Equal(t, map[string]string{
+			"fromCharset": "IBM Code Page 297", "toCharset": "ISO 8859-1",
+			"records": "lines", "outputRecords": "lines", "outputSeparator": "CRLF",
+		}, map[string]string(s.chain(t, rule, model.ChainPre)[0].Args), "the lengths that do not apply are left out")
+	})
+
+	t.Run("Given a task back to the whole file", func(t *testing.T) {
+		t.Parallel()
+
+		rule := &model.Rule{Name: "entier", IsSend: true, Path: "entier"}
+		require.NoError(t, s.db.Insert(rule).Run())
+		require.NoError(t, s.db.Insert(&model.Task{RuleID: rule.ID, Chain: model.ChainPre, Type: tasks.Transcode, Args: map[string]string{
+			"fromCharset": "IBM Code Page 297", "toCharset": "ISO 8859-1", "records": "fixed", "recordLength": "80",
+			"trimPadding": "true", "outputRecords": "lines", "outputSeparator": "CRLF",
+		}}).Run())
+
+		// Without JavaScript, every card is sent: the server reads none of those
+		// that the choice of the whole file hides.
+		action, values := postedForm(t, s.get(t, permWrite, path(rule, "/tasks/pre/0/edit")).Body.String())
+		values.Set("transcode.records", "")
+		require.Equal(t, http.StatusSeeOther, s.post(t, permWrite, action, values).Code)
+		assert.Equal(t, map[string]string{"fromCharset": "IBM Code Page 297", "toCharset": "ISO 8859-1"},
+			map[string]string(s.chain(t, rule, model.ChainPre)[0].Args))
+	})
+
 	t.Run("Given a task without its direction", func(t *testing.T) {
 		t.Parallel()
 

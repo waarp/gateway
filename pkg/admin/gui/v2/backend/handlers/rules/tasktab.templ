@@ -256,8 +256,19 @@ templ typePart(b typeBlock, groups []groupView) {
 
 // groupCard: a card of parameters, side by side; a titled card folds (Driss,
 // 2026-10-23), open as the page comes, so that nothing typed nor refused is
-// ever hidden from the user.
+// ever hidden from the user. A card that only applies to some values of a
+// parameter sits in the block that its switch shows.
 templ groupCard(g groupView) {
+	if g.CaseOf != "" {
+		<fieldset class="w-fieldset w-fieldset--wide rules-switched" data-case={ g.CaseValue } data-of={ g.CaseOf }>
+			@groupCardBody(g)
+		</fieldset>
+	} else {
+		@groupCardBody(g)
+	}
+}
+
+templ groupCardBody(g groupView) {
 	if g.Title == "" {
 		<div class="w-card">
 			<fieldset class="w-fieldset w-fieldset--wide">
@@ -292,6 +303,13 @@ templ groupContent(g groupView) {
 			@exchangeFields(g.Exchange)
 		case g.Encoding != nil:
 			@encodingFields(g.Encoding)
+			if len(g.Fields) > 0 {
+				<div class="w-grid w-grid--2">
+					for _, f := range g.Fields {
+						@taskField(f)
+					}
+				</div>
+			}
 		default:
 			<div class={ "w-grid", templ.KV("w-grid--3", g.Columns == threeColumns), templ.KV("w-grid--2", g.Columns != threeColumns) }>
 				for _, f := range g.Fields {
@@ -487,6 +505,9 @@ templ argInput(f fieldView) {
 					aria-describedby={ f.ID + "-h" }
 					if f.Error != "" {
 						aria-invalid="true"
+					}
+					if f.Switch != "" {
+						data-switch={ f.Switch }
 					}
 				>
 					<option value="">{ f.None }</option>

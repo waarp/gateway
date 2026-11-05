@@ -2357,6 +2357,8 @@ task_types:
     method_keys: "Méthode et clés"
     produced: "Fichier produit"
     encoding: "Encodage"
+    source_file: "Fichier source"
+    converted_file: "Fichier converti"
   copy:
     label: "Copier le fichier"
     text: "Crée une copie du fichier de transfert dans un autre dossier. Le nom du nouveau fichier restera identique au fichier d'origine."
@@ -2558,6 +2560,46 @@ task_types:
       toCharset:
         label: "Vers"
         hint: "L’encodage souhaité (destination) du fichier."
+      substitute:
+        label: "Remplacer les caractères absents"
+        hint: "Écrit le caractère de substitution de l'encodage cible à la place d'un caractère qu'il ne sait pas représenter. Sinon, la tâche échoue et le fichier reste tel quel."
+      records:
+        label: "Découpage"
+        hint: "Fichier entier : le fichier est converti d'un seul tenant, comme jusqu'ici. Lignes : seul le contenu de chaque ligne est converti. Longueur variable : chaque enregistrement est précédé de sa longueur (RDW), comme z/OS l'écrit."
+      recordLength:
+        label: "Longueur des enregistrements"
+        hint: "En octets, de 1 à 32 760."
+      trimPadding:
+        label: "Retirer les espaces de fin"
+        hint: "Retire les espaces qui complètent chaque enregistrement avant de le convertir."
+      outputRecords:
+        label: "Mise en forme"
+        hint: "Comme le fichier source : chaque ligne garde sa fin de ligne, octet pour octet, et un enregistrement de longueur fixe garde sa longueur. Sans séparateur : les enregistrements se suivent sans rien entre eux."
+      outputSeparator:
+        label: "Fin de ligne"
+        hint: "LF et CRLF s'écrivent 0x0A et 0x0D 0x0A, en EBCDIC aussi : c'est là que le PeSIT de la Gateway découpe les articles. NL EBCDIC : 0x15, pour un fichier EBCDIC seulement."
+      outputLength:
+        label: "Longueur des enregistrements"
+        hint: "En octets, de 1 à 32 760 ; un enregistrement plus court est complété par des espaces."
+      truncate:
+        label: "Couper les enregistrements trop longs"
+        hint: "Sinon, la tâche échoue sur le premier enregistrement trop long et le fichier reste tel quel."
+    # Les valeurs des arguments d'enregistrements.
+    records_none: "Fichier entier"
+    records:
+      lines: "Lignes"
+      fixed: "Longueur fixe"
+      rdw: "Longueur variable"
+    output_same: "Comme le fichier source"
+    output:
+      none: "Sans séparateur"
+      lines: "Lignes"
+      fixed: "Longueur fixe"
+      rdw: "Longueur variable"
+    separator_lf: "LF"
+    separator:
+      crlf: "CRLF"
+      nel: "NL EBCDIC"
     # Le sens de la conversion, demandé d'abord ; il n'est pas enregistré.
     direction_label: "Sens"
     direction_hint: "ASCII : les encodages des systèmes ouverts, UTF-8 compris. EBCDIC : les pages de codes des systèmes IBM (z/OS, IBM i)."

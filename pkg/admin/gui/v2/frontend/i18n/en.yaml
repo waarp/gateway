@@ -2356,6 +2356,8 @@ task_types:
     method_keys: "Method and keys"
     produced: "File produced"
     encoding: "Encoding"
+    source_file: "Source file"
+    converted_file: "Converted file"
   copy:
     label: "Copy the file"
     text: "Make a copy of the transfer file to another folder. The new file's name will remain identical to the original file."
@@ -2556,6 +2558,46 @@ task_types:
       toCharset:
         label: "To"
         hint: "The desired (destination) charset of the file."
+      substitute:
+        label: "Replace missing characters"
+        hint: "Writes the substitution character of the target encoding in place of a character it cannot represent. Otherwise, the task fails and the file stays as it was."
+      records:
+        label: "Splitting"
+        hint: "Whole file: the file is converted in one piece, as before. Lines: only the content of each line is converted. Variable length: each record is preceded by its length (RDW), as z/OS writes it."
+      recordLength:
+        label: "Record length"
+        hint: "In bytes, from 1 to 32,760."
+      trimPadding:
+        label: "Remove trailing spaces"
+        hint: "Removes the spaces that pad each record before converting it."
+      outputRecords:
+        label: "Layout"
+        hint: "As the source file: each line keeps its line end, byte for byte, and a fixed-length record keeps its length. No separator: the records follow each other with nothing between them."
+      outputSeparator:
+        label: "Line end"
+        hint: "LF and CRLF are written as 0x0A and 0x0D 0x0A, in EBCDIC too: the PeSIT module of the Gateway cuts the articles there. EBCDIC NL: 0x15, for an EBCDIC file only."
+      outputLength:
+        label: "Record length"
+        hint: "In bytes, from 1 to 32,760; a shorter record is padded with spaces."
+      truncate:
+        label: "Cut records that are too long"
+        hint: "Otherwise, the task fails on the first record that is too long and the file stays as it was."
+    # The values of the record arguments.
+    records_none: "Whole file"
+    records:
+      lines: "Lines"
+      fixed: "Fixed length"
+      rdw: "Variable length"
+    output_same: "As the source file"
+    output:
+      none: "No separator"
+      lines: "Lines"
+      fixed: "Fixed length"
+      rdw: "Variable length"
+    separator_lf: "LF"
+    separator:
+      crlf: "CRLF"
+      nel: "EBCDIC NL"
     # The direction of the conversion, asked first; it is not stored.
     direction_label: "Direction"
     direction_hint: "ASCII: the encodings of open systems, UTF-8 included. EBCDIC: the code pages of IBM systems (z/OS, IBM i)."

@@ -7,6 +7,9 @@ Historique des versions
   accepte aussi les noms usuels des encodages (``utf8``, ``IBM1147``,
   ``CP037``). Son formulaire demande d'abord le sens de la conversion et dit à
   quoi sert chaque encodage.
+* :feature:`845` La tâche TRANSCODE peut convertir un fichier par
+  enregistrements : lignes, longueur fixe ou variable (RDW). En lignes, les fins
+  de ligne restent telles quelles, ce qui garde les articles d'un envoi PeSIT.
 * :bug:`845` Avec les pages IBM 500 et 1148, la tâche TRANSCODE convertit
   désormais correctement les caractères ``[ ] ! ^ ¢ ¬ |``, dans les deux sens.
 * :support:`800` Dans la barre latérale repliée de l'interface web refondue,

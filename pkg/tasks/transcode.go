@@ -37,24 +37,37 @@ var (
 	ErrTranscodeNoDstEncoding      = errors.New("missing destination encoding")
 	ErrTranscodeInvalidEncoding    = errors.New("invalid encoding")
 	ErrTranscodeIdenticalEncodings = errors.New("source and destination encodings are identical")
+	ErrTranscodeRecords            = errors.New("invalid records")
 )
 
+// transcodeTask converts the transfer file from a character set to another,
+// as a whole, or record by record when its arguments describe the records of
+// the file and of the result (transcode_records.go). Without them, it behaves
+// as before records were added.
 type transcodeTask struct {
-	FromCharset string `json:"fromCharset"`
-	ToCharset   string `json:"toCharset"`
+	FromCharset     string   `json:"fromCharset"`
+	ToCharset       string   `json:"toCharset"`
+	Records         string   `json:"records"`
+	RecordLength    jsonInt  `json:"recordLength"`
+	TrimPadding     jsonBool `json:"trimPadding"`
+	OutputRecords   string   `json:"outputRecords"`
+	OutputSeparator string   `json:"outputSeparator"`
+	OutputLength    jsonInt  `json:"outputLength"`
+	Truncate        jsonBool `json:"truncate"`
+	Substitute      jsonBool `json:"substitute"`
 
 	conversion transcode.Conversion
 }
 
-// transcodeCharset returns the name of the character set called name, which
-// may be one of its aliases ("utf8", "IBM1147", "CP037").
-func transcodeCharset(name string) (string, error) {
+// transcodeCharset returns the character set called name, which may be one of
+// its aliases ("utf8", "IBM1147", "CP037").
+func transcodeCharset(name string) (transcode.Entry, error) {
 	entry, ok := transcodeRegistry().Lookup(name)
 	if !ok || entry.Kind == transcode.KindTable {
-		return "", fmt.Errorf("%w %q", ErrTranscodeInvalidEncoding, name)
+		return transcode.Entry{}, fmt.Errorf("%w %q", ErrTranscodeInvalidEncoding, name)
 	}
 
-	return entry.Name, nil
+	return entry, nil
 }
 
 func (t *transcodeTask) parseParams(params map[string]string) error {
@@ -80,11 +93,27 @@ func (t *transcodeTask) parseParams(params map[string]string) error {
 		return fmt.Errorf("destination encoding: %w", err)
 	}
 
-	if from == to {
+	if from.Name == to.Name {
 		return ErrTranscodeIdenticalEncodings
 	}
 
-	t.conversion = transcode.Conversion{Source: from, Target: to}
+	conversion := transcode.Conversion{Source: from.Name, Target: to.Name, Substitute: bool(t.Substitute)}
+
+	if conversion.Input, err = t.inputFormat(&from); err != nil {
+		return err
+	}
+
+	if conversion.Output, err = t.outputFormat(&to); err != nil {
+		return err
+	}
+
+	// The library checks the rest: a separator or a padding that a character
+	// set cannot write, a record that a multi-byte encoding cannot cut.
+	if _, err = transcodeRegistry().NewConverter(&conversion); err != nil {
+		return fmt.Errorf("%w: %w", ErrTranscodeRecords, err)
+	}
+
+	t.conversion = conversion
 
 	return nil
 }

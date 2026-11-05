@@ -116,15 +116,18 @@ type fieldView struct {
 
 // groupView is a card of the page: its title, its note, its fields side by
 // side, the exchange of a TRANSFER task or the encoding of a TRANSCODE one;
-// Empty, the card of a type without parameter.
+// Empty, the card of a type without parameter. CaseOf and CaseValue: the
+// switch that shows the card, and its values.
 type groupView struct {
-	Title    string
-	Note     string
-	Columns  int
-	Fields   []fieldView
-	Exchange *exchangeView
-	Encoding *encodingView
-	Empty    bool
+	Title     string
+	Note      string
+	Columns   int
+	Fields    []fieldView
+	Exchange  *exchangeView
+	Encoding  *encodingView
+	Empty     bool
+	CaseOf    string
+	CaseValue string
 }
 
 // typeBlock is what the page shows of a type: its label, its code and what it
@@ -296,7 +299,8 @@ func fields(translate gui.Translator, spec *taskSpec, input *taskInput, found na
 			field.CaseOf, field.CaseValue = argID(spec, arg.When.Arg), arg.When.Value
 		}
 
-		if slices.ContainsFunc(spec.Args, func(a argSpec) bool { return a.When != nil && a.When.Arg == arg.Name }) {
+		if slices.ContainsFunc(spec.Args, func(a argSpec) bool { return a.When != nil && a.When.Arg == arg.Name }) ||
+			slices.ContainsFunc(spec.Groups, func(g argGroup) bool { return g.When != nil && g.When.Arg == arg.Name }) {
 			field.Switch = field.ID
 		}
 
@@ -612,23 +616,27 @@ func layout(translate gui.Translator, spec *taskSpec, all []fieldView, exchange 
 	}
 
 	for i := range spec.Groups {
-		g := &spec.Groups[i]
-		if g.Kind == groupInfos {
+		card := &spec.Groups[i]
+		if card.Kind == groupInfos {
 			infos = true
 
 			continue
 		}
 
-		view := groupView{Columns: cmp.Or(g.Columns, twoColumns)}
-		if g.Title != "" {
-			view.Title = translate(taskTypesPrefix + "group." + g.Title)
+		view := groupView{Columns: cmp.Or(card.Columns, twoColumns)}
+		if card.Title != "" {
+			view.Title = translate(taskTypesPrefix + "group." + card.Title)
 		}
 
-		if g.Note != "" {
-			view.Note = translate(g.Note)
+		if card.Note != "" {
+			view.Note = translate(card.Note)
 		}
 
-		switch g.Kind {
+		if card.When != nil {
+			view.CaseOf, view.CaseValue = argID(spec, card.When.Arg), card.When.Value
+		}
+
+		switch card.Kind {
 		case groupExchange:
 			view.Exchange = exchange
 		case groupEncoding:
@@ -636,7 +644,7 @@ func layout(translate gui.Translator, spec *taskSpec, all []fieldView, exchange 
 		case groupArgs, groupInfos:
 		}
 
-		for _, name := range g.Args {
+		for _, name := range card.Args {
 			view.Fields = append(view.Fields, all[spec.arg(name)])
 		}
 
@@ -655,41 +663,21 @@ func layout(translate gui.Translator, spec *taskSpec, all []fieldView, exchange 
 // the stored task has stays, as "false"), checked as far as the form can
 // (required, numbers, seconds, JSON, key=value lines). An argument that only
 // matters when another one has a value is read only then, and kept as stored
-// otherwise; a number of seconds that says the stored duration keeps it as
-// written; the arguments of the stored task the description does not know
-// are kept. It answers what the form holds, with its errors.
+// otherwise (left out, when the product refuses it then); a number of seconds
+// that says the stored duration keeps it as written; the arguments of the
+// stored task the description does not know are kept. It answers what the
+// form holds, with its errors.
 func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored map[string]string,
 ) (map[string]string, *taskInput, bool) {
 	input := &taskInput{values: map[string]string{}, errors: map[string]string{}, posted: true}
 	args := map[string]string{}
 	valid := true
-	posted := func(name string) string { return strings.TrimSpace(r.PostFormValue(argName(spec, name))) }
+	posted := postedValues(r, spec)
 	special := spec.special()
 
 	for i := range spec.Args {
-		arg := &spec.Args[i]
-		if special[arg.Name] {
-			continue
-		}
-
-		raw := posted(arg.Name)
-		input.values[arg.Name] = raw
-		old, had := stored[arg.Name]
-
-		if keptAsStored(arg, raw, old, had, posted) {
-			if had {
-				args[arg.Name] = old
-			}
-
-			continue
-		}
-
-		if msg := checkArg(translate, arg, raw, args); msg != "" {
-			input.errors[arg.Name], valid = msg, false
-		}
-
-		if had && arg.Kind == argBool && raw != trueValue {
-			args[arg.Name] = falseValue
+		if arg := &spec.Args[i]; !special[arg.Name] {
+			valid = readArg(translate, arg, posted, stored, args, input) && valid
 		}
 	}
 
@@ -712,14 +700,63 @@ func readArgs(translate gui.Translator, r *http.Request, spec *taskSpec, stored 
 	return args, input, valid
 }
 
-// keptAsStored says whether an argument keeps what the task stored: one that
-// only matters with another one that does not have its value, or a value the
-// user left as the product saved it (a number of seconds that says the
-// stored duration among them), which is not judged again.
-func keptAsStored(arg *argSpec, raw, old string, had bool, posted func(string) string) bool {
-	switch {
-	case arg.When != nil && posted(arg.When.Arg) != arg.When.Value:
+// postedValues reads the posted arguments of a type as the browser sends
+// them: nothing from a card that its switch hides (the page sends all its
+// cards without JavaScript).
+func postedValues(r *http.Request, spec *taskSpec) func(string) string {
+	form := func(name string) string { return strings.TrimSpace(r.PostFormValue(argName(spec, name))) }
+
+	return func(name string) string {
+		if card := spec.cardOf(name); card != nil && card.When != nil && !card.When.holds(form(card.When.Arg)) {
+			return ""
+		}
+
+		return form(name)
+	}
+}
+
+// readArg reads one posted argument into args (see readArgs); it answers
+// whether its value is accepted.
+func readArg(translate gui.Translator, arg *argSpec, posted func(string) string, stored, args map[string]string,
+	input *taskInput,
+) bool {
+	raw := posted(arg.Name)
+	input.values[arg.Name] = raw
+	old, had := stored[arg.Name]
+
+	if arg.When != nil && !arg.When.holds(posted(arg.When.Arg)) {
+		if had && !arg.Exclusive {
+			args[arg.Name] = old
+		}
+
 		return true
+	}
+
+	if keptAsStored(arg, raw, old, had) {
+		if had {
+			args[arg.Name] = old
+		}
+
+		return true
+	}
+
+	valid := true
+	if msg := checkArg(translate, arg, raw, args); msg != "" {
+		input.errors[arg.Name], valid = msg, false
+	}
+
+	if had && arg.Kind == argBool && raw != trueValue {
+		args[arg.Name] = falseValue
+	}
+
+	return valid
+}
+
+// keptAsStored says whether an argument keeps what the task stored: a value
+// the user left as the product saved it (a number of seconds that says the
+// stored duration among them), which is not judged again.
+func keptAsStored(arg *argSpec, raw, old string, had bool) bool {
+	switch {
 	case !had:
 		return false
 	case arg.Seconds && raw != "" && secondsText(old) == raw:

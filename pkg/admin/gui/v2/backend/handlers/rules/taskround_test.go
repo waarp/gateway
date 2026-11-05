@@ -17,10 +17,11 @@ import (
 )
 
 // The arguments left out of a task with every argument set: TRANSFER takes a
-// partner on one side only.
+// partner on one side only; TRANSCODE writes its result in lines or in
+// fixed-length records, not both.
 //
 //nolint:gochecknoglobals // reference data of the test
-var sampleOmit = map[string][]string{tasks.Transfer: {"from"}}
+var sampleOmit = map[string][]string{tasks.Transfer: {"from"}, tasks.Transcode: {"outputSeparator"}}
 
 // fullArgs are the arguments of a type, every one set with a value the
 // product accepts; the boxes take boxValue.
