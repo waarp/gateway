@@ -464,6 +464,19 @@ Historique des versions
   premier guide de l'interface web accompagne cet écran
   (:ref:`user-guide-webui`).
 
+* :bug:`727` Gateway envoie désormais correctement un *inform* lorsqu'un moniteur
+  SNMP externe est configuré pour recevoir des *informs* via l'option ``useInforms``.
+  Précédemment, Gateway envoyait systématiquement un *trap* à la place, quelle
+  que soit la configuration.
+* :bug:`819` En réception, R66 skip désormais la vérification de taille de
+  fichier en fin de transfert si le partenaire n'a pas communiqué de taille.
+* :bug:`799` Correction de bugs de l'interface REST et du CLI qui empêchaient
+  d'attribuer un mot de passe vide à un compte ou agent. Un autre bug invalidant
+  la vérification d'un mot de passe vide lors de l'authentification a également
+  été corrigé. Il est donc désormais bien possible d'attribuer explicitement un
+  mot de passe vide à un partenaire, serveur ou compte lorsque cela est nécessaire.
+* :bug:`822` Correction d'un bug de la tâche TRANSCODE pouvant parfois provoquer
+  un crash d'application (*panic*).
 * :bug:`798` Ajout d'options de filtrage et de tri manquantes à la commande
   ``transfer list`` du CLI. Par ailleurs, la commande trie maintenant les
   transferts du plus récent au plus ancien par défaut (au lieu de l'inverse).

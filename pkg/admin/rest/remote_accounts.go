@@ -189,7 +189,7 @@ func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return fmt.Errorf("failed to insert remote account: %w", err)
 			}
 
-			if restAccount.Password.Value != "" {
+			if restAccount.Password.Valid {
 				if err := ses.Insert(&model.Credential{
 					RemoteAccountID: dbAccount.NullableID(),
 					Type:            auth.Password,

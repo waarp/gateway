@@ -3,6 +3,11 @@ package backup
 import (
 	"testing"
 
+	r66lib "code.waarp.fr/lib/r66"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
@@ -16,9 +21,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
-	r66lib "code.waarp.fr/lib/r66"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestImportLocalAgents(t *testing.T) {
@@ -65,10 +67,10 @@ func TestImportLocalAgents(t *testing.T) {
 			Accounts: []LocalAccount{
 				{
 					Login:    "acc1",
-					Password: "pwd",
+					Password: api.NewNullable("pwd"),
 				}, {
 					Login:    "acc2",
-					Password: "pwd",
+					Password: api.NewNullable("pwd"),
 				},
 			},
 		}
@@ -133,7 +135,7 @@ func TestImportLocalAgents(t *testing.T) {
 			Accounts: []LocalAccount{
 				{
 					Login:    "toto",
-					Password: "pwd",
+					Password: api.NewNullable("pwd"),
 				},
 			},
 			Credentials: []Credential{
@@ -223,8 +225,8 @@ func TestImportLocalAccounts(t *testing.T) {
 	t.Run("New accounts", func(t *testing.T) {
 		db, logger, dbAgent, dbAccount, dbPswd := setup(t)
 
-		fileAccount1 := LocalAccount{Login: "toto", Password: "pwd"}
-		fileAccount2 := LocalAccount{Login: "tata", Password: "pwd"}
+		fileAccount1 := LocalAccount{Login: "toto", Password: api.NewNullable("pwd")}
+		fileAccount2 := LocalAccount{Login: "tata", Password: api.NewNullable("pwd")}
 		fileAccounts := []LocalAccount{fileAccount1, fileAccount2}
 		require.NoError(t, preprocessLocalAccounts(fileAccounts, dbAgent.Protocol))
 		require.NoError(t, importLocalAccounts(logger, db, fileAccounts, dbAgent))
@@ -250,12 +252,12 @@ func TestImportLocalAccounts(t *testing.T) {
 
 			assert.Equal(t, accounts[1].ID, creds[1].LocalAccountID.Int64)
 			assert.Equal(t, auth.Password, creds[1].Type)
-			assert.True(t, utils.IsHashOf(creds[1].Value, fileAccount1.Password))
+			assert.True(t, utils.IsHashOf(creds[1].Value, fileAccount1.Password.Value))
 
 			assert.Equal(t, accounts[2].ID, creds[2].LocalAccountID.Int64)
 			assert.Equal(t, auth.Password, creds[2].Type)
-			assert.True(t, utils.IsHashOf(creds[2].Value, fileAccount2.Password))
-			assert.True(t, utils.IsHashOf(creds[2].Value, fileAccount2.Password))
+			assert.True(t, utils.IsHashOf(creds[2].Value, fileAccount2.Password.Value))
+			assert.True(t, utils.IsHashOf(creds[2].Value, fileAccount2.Password.Value))
 		})
 	})
 
@@ -314,7 +316,7 @@ func TestR66PasswordImport(t *testing.T) {
 
 	accounts := []LocalAccount{{
 		Login:    "foo",
-		Password: pswd,
+		Password: api.NewNullable(pswd),
 	}}
 	require.NoError(t, preprocessLocalAccounts(accounts, server.Protocol))
 

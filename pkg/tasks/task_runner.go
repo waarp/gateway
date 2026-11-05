@@ -84,13 +84,19 @@ func (r *Runner) runTask(updTicker *time.Ticker, task *model.Task, taskInfo stri
 
 	r.Logger.Debugf("Executing task %s with args %s", taskInfo, mapToStr(args))
 
-	var runErr error
+	runErr := func() (err error) {
+		defer func() {
+			if cause := recover(); cause != nil {
+				err = newPanicError(cause)
+			}
+		}()
 
-	if task.Chain == model.ChainError {
-		runErr = runner.Run(context.Background(), args, r.db, r.Logger, r.transCtx, r.Remote)
-	} else {
-		runErr = runner.Run(r.Ctx, args, r.db, r.Logger, r.transCtx, r.Remote)
-	}
+		if task.Chain == model.ChainError {
+			return runner.Run(context.Background(), args, r.db, r.Logger, r.transCtx, r.Remote)
+		}
+
+		return runner.Run(r.Ctx, args, r.db, r.Logger, r.transCtx, r.Remote)
+	}()
 
 	if runErr != nil {
 		warnErr, isWarn := errors.AsType[*WarningError](runErr)

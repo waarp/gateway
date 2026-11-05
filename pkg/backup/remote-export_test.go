@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -34,7 +33,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 			cert := &model.Credential{
 				Name:          "test_cert",
-				RemoteAgentID: utils.NewNullInt64(agent1.ID),
+				RemoteAgentID: agent1.NullableID(),
 				Type:          auth.TLSTrustedCertificate,
 				Value:         testhelpers.LocalhostCert,
 			}
@@ -115,7 +114,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			pswd := &model.Credential{
-				RemoteAccountID: utils.NewNullInt64(account1.ID),
+				RemoteAccountID: account1.NullableID(),
 				Type:            auth.Password,
 				Value:           pwd1,
 			}
@@ -129,7 +128,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 
 			cert := &model.Credential{
 				Name:            "test_cert",
-				RemoteAccountID: utils.NewNullInt64(account2.ID),
+				RemoteAccountID: account2.NullableID(),
 				Type:            auth.TLSCertificate,
 				Value:           testhelpers.ClientFooCert,
 				Value2:          testhelpers.ClientFooKey,
@@ -143,7 +142,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 
 				Convey("Then it should have exported the first account", func() {
 					So(res[0].Login, ShouldEqual, account1.Login)
-					So(res[0].Password, ShouldEqual, pwd1)
+					So(res[0].Password.Value, ShouldEqual, pwd1)
 					So(res[0].Certificates, ShouldHaveLength, 0)
 
 					So(res[0].Credentials, ShouldHaveLength, 1)
@@ -154,7 +153,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 
 				Convey("Then it should have exported the second account", func() {
 					So(res[1].Login, ShouldEqual, account2.Login)
-					So(res[1].Password, ShouldBeEmpty)
+					So(res[1].Password.Value, ShouldBeEmpty)
 
 					So(res[1].Certificates, ShouldHaveLength, 1)
 					So(res[1].Certificates[0].Name, ShouldEqual, cert.Name)

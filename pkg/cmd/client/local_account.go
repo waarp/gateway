@@ -46,7 +46,7 @@ func displayLocalAccount(w io.Writer, account *api.OutLocalAccount) error {
 type LocAccAdd struct {
 	Login       string   `required:"yes" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
 	IPAddresses []string `short:"i" long:"ip-address" description:"The account's authorized IP addresses. Can be repeated." json:"ipAddresses,omitempty"`
-	Password    string   `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
+	Password    *string  `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (l *LocAccAdd) Execute([]string) error { return execute(l) }

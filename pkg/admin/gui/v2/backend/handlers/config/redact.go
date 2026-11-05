@@ -58,7 +58,7 @@ func redactSecrets(data *file.Data) {
 		for j := range server.Accounts {
 			account := &server.Accounts[j]
 			acc := owner + "/" + segment(account.Login)
-			replace(&account.Password, password(acc, "password"))
+			replace(&account.Password.Value, password(acc, "password"))
 			redactCredentials(acc, account.Credentials)
 			redactCertificates(acc, account.Certificates)
 		}
@@ -73,7 +73,7 @@ func redactSecrets(data *file.Data) {
 		for j := range partner.Accounts {
 			account := &partner.Accounts[j]
 			acc := owner + "/" + segment(account.Login)
-			replace(&account.Password, password(acc, "password"))
+			replace(&account.Password.Value, password(acc, "password"))
 			redactCredentials(acc, account.Credentials)
 			redactCertificates(acc, account.Certificates)
 		}

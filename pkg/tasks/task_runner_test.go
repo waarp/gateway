@@ -9,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
-	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -541,6 +541,7 @@ func TestRunTasks(t *testing.T) {
 	})
 
 	t.Run("Unknown task", func(t *testing.T) {
+		t.Parallel()
 		proc := setup(t)
 		dummyTaskCheck = make(chan string, 1)
 		tasks := []*model.Task{{
@@ -555,6 +556,7 @@ func TestRunTasks(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
+		t.Parallel()
 		proc := setup(t)
 		logOut := &strings.Builder{}
 		proc.Logger = logtest.GetTestLogger(t,
@@ -575,5 +577,30 @@ func TestRunTasks(t *testing.T) {
 		require.Nil(t, rv)
 
 		assert.Empty(t, logOut.String())
+	})
+
+	t.Run("Panic", func(t *testing.T) {
+		t.Parallel()
+		proc := setup(t)
+
+		const panicTaskType = "panic"
+		model.ValidTasks[panicTaskType] = newPanicTask
+		defer delete(model.ValidTasks, panicTaskType)
+
+		tasks := []*model.Task{{
+			RuleID: proc.transCtx.Rule.ID,
+			Chain:  model.ChainPre,
+			Rank:   0,
+			Type:   panicTaskType,
+			Args:   map[string]string{},
+		}}
+
+		var rv *Error
+		require.NotPanics(t, func() {
+			rv = proc.runTasks(tasks, nil)
+		})
+
+		var panicErr *PanicError
+		require.ErrorAs(t, rv, &panicErr)
 	})
 }

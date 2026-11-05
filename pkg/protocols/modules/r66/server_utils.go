@@ -10,7 +10,10 @@ import (
 )
 
 func (t *serverTransfer) checkSize() *pipeline.Error {
-	if t.pip.TransCtx.Rule.IsSend || !t.conf.Filesize || t.pip.TransCtx.Transfer.Step > types.StepData {
+	expFilesize := t.pip.TransCtx.Transfer.Filesize
+
+	if t.pip.TransCtx.Rule.IsSend || !t.conf.Filesize || expFilesize < 0 ||
+		t.pip.TransCtx.Transfer.Step > types.StepData {
 		return nil
 	}
 
@@ -21,9 +24,8 @@ func (t *serverTransfer) checkSize() *pipeline.Error {
 		return pipeline.NewError(types.TeInternal, "failed to retrieve file info")
 	}
 
-	if stat.Size() != t.pip.TransCtx.Transfer.Filesize {
-		msg := fmt.Sprintf("incorrect file size (expected %d, got %d)",
-			t.pip.TransCtx.Transfer.Filesize, stat.Size())
+	if stat.Size() != expFilesize {
+		msg := fmt.Sprintf("incorrect file size (expected %d, got %d)", expFilesize, stat.Size())
 		t.pip.Logger.Error(msg)
 
 		return pipeline.NewError(types.TeBadSize, msg)

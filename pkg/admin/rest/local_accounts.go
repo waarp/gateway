@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
@@ -116,8 +117,12 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			if restAccount.Password.Valid {
-				if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value); err != nil {
-					return err
+				if err := ses.Insert(&model.Credential{
+					LocalAccountID: dbAccount.NullableID(),
+					Type:           auth.Password,
+					Value:          restAccount.Password.Value,
+				}).Run(); err != nil {
+					return fmt.Errorf("failed to insert password credential: %w", err)
 				}
 			}
 

@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"context"
 	"runtime"
 	"strings"
 	"testing"
@@ -8,7 +9,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/modeltest"
 )
 
@@ -57,4 +61,14 @@ func TestISOTSFormat(t *testing.T) {
 	str := formatTime(isoTSFormat, ts)
 
 	assert.Equal(t, ts.Format(time.RFC3339), str)
+}
+
+type panicTask struct{}
+
+func newPanicTask() model.TaskRunner { return panicTask{} }
+
+func (panicTask) Run(context.Context, map[string]string, *database.DB, *log.Logger,
+	*model.TransferContext, any,
+) error {
+	panic("deliberate panic task")
 }
