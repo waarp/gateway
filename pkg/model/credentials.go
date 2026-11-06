@@ -112,7 +112,7 @@ func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentic
 		return nil, nil, fmt.Errorf("failed to retrieve the owner's protocol: %w", protoErr)
 	}
 
-	handler, handlErr := c.getHandler(protocol)
+	handler, handlErr := c.AuthHandler(protocol)
 	if handlErr != nil {
 		return nil, nil, handlErr
 	}
@@ -120,7 +120,12 @@ func (c *Credential) getOwner(db database.ReadAccess) (CredOwnerTable, authentic
 	return owner, handler, nil
 }
 
-func (c *Credential) getHandler(protocol string) (authentication.Handler, error) {
+// AuthHandler returns the handler of the credential's authentication method,
+// given its owner (an agent presents external credentials, an account
+// authenticating to us is checked against internal ones) and the owner's
+// protocol. It returns a validation error when the protocol does not support
+// this method for this owner.
+func (c *Credential) AuthHandler(protocol string) (authentication.Handler, error) {
 	var handler authentication.Handler
 
 	switch {

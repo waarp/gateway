@@ -7,7 +7,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 )
 
 func credentialsImport(logger *log.Logger, db database.Access, list []file.Credential,
@@ -39,12 +38,10 @@ func credentialsImport(logger *log.Logger, db database.Access, list []file.Crede
 		credential.Value2 = src.Value2
 		owner.SetCredOwner(&credential)
 
-		// Check for unique credentials
-		var handler authentication.Handler
-		if credential.IsInternal() {
-			handler = authentication.GetInternalAuthHandler(credential.Type, protocol)
-		} else {
-			handler = authentication.GetExternalAuthMethod(credential.Type, protocol)
+		// Check that the owner accepts this type, then for unique credentials
+		handler, handlErr := credential.AuthHandler(protocol)
+		if handlErr != nil {
+			return fmt.Errorf("failed to import credential %q: %w", src.Name, handlErr)
 		}
 
 		if handler.CanOnlyHaveOne() {
