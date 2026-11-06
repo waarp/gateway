@@ -3,7 +3,6 @@ package gui
 
 import (
 	"context"
-	"io/fs"
 	"net/http"
 	"net/url"
 
@@ -32,67 +31,10 @@ func LanguageMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func RouterAutocompletions(secureRouter *mux.Router, db *database.DB) {
-	handlePage(secureRouter, "/autocompletion/users", autocompletionFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/partners", autocompletionPartnersFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/credentialPartner", autocompletionCredentialsPartnersFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/remoteAccount", autocompletionRemoteAccountFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/credentialRemoteAccount",
-		autocompletionCredentialsRemoteAccountsFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/servers", autocompletionServersFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/credentialServer", autocompletionCredentialsServersFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/localAccount", autocompletionLocalAccountFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/credentialLocalAccount",
-		autocompletionCredentialsLocalAccountsFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/localClients", autocompletionLocalClientsFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/rules", autocompletionRulesFunc(db)).Methods("GET")
-	handlePage(secureRouter, "/autocompletion/instanceCloud", autocompletionCloudFunc(db)).Methods("GET")
-}
-
+// RouterPages registers the screens of the web interface and the former
+// addresses of its historic pages.
 func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) {
-	handlePage(secureRouter, "/user_management", userManagementPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/partner_management", partnerManagementPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/partner_authentication", partnerAuthenticationPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/remote_account_management", remoteAccountPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/remote_account_authentication",
-		remoteAccountAuthenticationPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/server_management", serverManagementPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/server_authentication", serverAuthenticationPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/local_account_management", localAccountPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/local_account_authentication",
-		localAccountAuthenticationPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/local_client_management", localClientManagementPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/transfer_rules_management", ruleManagementPage(logger, db)).Methods("GET", "POST")
-	// secureRouter.HandleFunc("/tasks_transfer_rules", tasksTransferRulesPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/management_usage_rights_rules",
-		managementUsageRightsRulesPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/transfer_monitoring", transferMonitoringPage(logger, db)).Methods("GET", "POST")
-	handlePage(secureRouter, "/status_services", statusServicesPage(logger)).Methods("GET", "POST")
-	handlePage(secureRouter, "/cloud_instance_management", cloudInstanceManagementPage(logger, db)).Methods("GET", "POST")
-	// The cryptographic keys screen of the reworked interface replaces this
-	// page, which only pointed to the command line (#735).
-	secureRouter.Handle("/cryptographic_key_management",
-		http.RedirectHandler("keys", http.StatusMovedPermanently))
-	// The SNMP screen of the reworked interface replaces this page, which
-	// only pointed to the command line (#723).
-	secureRouter.Handle("/snmp_management", http.RedirectHandler("snmp", http.StatusMovedPermanently))
-	// The authorities screen of the reworked interface replaces this page,
-	// which only pointed to the command line (#722).
-	secureRouter.Handle("/managing_authentication_authorities",
-		http.RedirectHandler("authorities", http.StatusMovedPermanently))
-	// The configuration overrides screen of the reworked interface replaces
-	// this page, which only pointed to the command line (#730).
-	secureRouter.Handle("/managing_configuration_overrides",
-		http.RedirectHandler("overrides", http.StatusMovedPermanently))
-	// The email templates screen of the reworked interface replaces this page,
-	// which only pointed to the command line (#744).
-	secureRouter.Handle("/email_templates_management",
-		http.RedirectHandler("email-templates", http.StatusMovedPermanently))
-	// The SMTP credentials screen of the reworked interface replaces this
-	// page, which only pointed to the command line (#741).
-	secureRouter.Handle("/smtp_credentials_management",
-		http.RedirectHandler("smtp", http.StatusMovedPermanently))
-
+	routeFormerPages(secureRouter, db)
 	backend.MakeRouter(secureRouter, db, logger)
 }
 
@@ -102,27 +44,15 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	// Add HTTP handlers to the router here.
 	// Example:
 	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
-	// The kit chrome signs out with a POST form; the historic pages link the
-	// GET route.
+	// The kit chrome signs out with a POST form; the GET route, which the
+	// historic pages linked, stays for the addresses saved since.
 	router.HandleFunc("/logout", logout()).Methods("GET", "POST")
 
-	subFS, err := fs.Sub(webFS, "front-end")
-	if err != nil {
-		logger.Errorf("error accessing css file: %v", err)
-
-		return
-	}
-
-	// The kit files live under the historic static prefix: their route must
-	// come first, mux keeping the first prefix that matches.
 	backend.MakeKitStaticRouter(router)
-	router.PathPrefix("/static/").Handler(http.StripPrefix(Prefix+"/static/", http.FileServerFS(subFS)))
 
 	secureRouter := router.PathPrefix("/").Subrouter()
 	secureRouter.Use(AuthenticationMiddleware(logger, db))
 	secureRouter.StrictSlash(true)
-
-	RouterAutocompletions(secureRouter, db)
 
 	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, pagePath(homePath), http.StatusFound)

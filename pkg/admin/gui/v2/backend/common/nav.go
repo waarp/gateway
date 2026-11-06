@@ -33,9 +33,8 @@ type navGroup struct {
 const navKeyPrefix = "nav."
 
 // navigation is the screen map of the web interface, in the order of the
-// glossary. The screens not reworked yet lead to their historic page. Every
-// screen has an icon of its own: the rail of the collapsed sidebar shows
-// nothing else (#772).
+// glossary. Every screen has an icon of its own: the rail of the collapsed
+// sidebar shows nothing else (#772).
 func navigation() []navGroup {
 	return []navGroup{
 		{section: constants.SidebarSectionConnection, key: "nav.connections", entries: []navEntry{

@@ -9,9 +9,7 @@ le service d'administration, sur la même adresse et le même port que l'API
 REST (section ``[admin]`` du :ref:`fichier de configuration
 <configuration-file>`), à l'adresse ``http://<hôte>:<port>/webui/``.
 
-Ce guide décrit l'interface écran par écran. Il naît avec la refonte de
-l'interface : chaque écran refondu y ajoute sa page, les écrans historiques
-restent décrits par l'interface elle-même.
+Ce guide décrit l'interface écran par écran.
 
 .. toctree::
    :maxdepth: 1
@@ -155,11 +153,12 @@ les transferts : lecture pour la liste et la fiche, écriture pour toute
 action.
 
 
-Ancienne et nouvelle interface
-==============================
+Adresses de l'ancienne interface
+================================
 
-L'interface est refondue écran par écran. Un écran refondu remplace l'ancien
-dans la navigation et sur la page d'accueil dès sa livraison ; l'ancien écran
-reste accessible à son adresse jusqu'à la version suivante, puis est retiré.
-Les écrans non encore refondus conservent leur présentation historique et
-restent accessibles depuis la barre latérale.
+Les pages de l'ancienne interface sont retirées, mais leurs adresses restent
+valides : chacune mène à l'écran qui la remplace. Une adresse qui désignait un
+objet (serveur, partenaire, compte ou règle) mène à cet objet, s'il existe
+encore et si l'utilisateur a le droit de le lire ; sinon, à la liste de
+l'écran. Les favoris enregistrés avant la refonte continuent ainsi de
+fonctionner.

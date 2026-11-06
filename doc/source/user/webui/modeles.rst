@@ -206,6 +206,3 @@ Les mêmes modèles se gèrent par l':ref:`API REST <reference-rest-email>`
 <ref-cli-client-email>` (``waarp-gateway email template``). Un modèle créé par
 l'un s'affiche et se modifie par les autres ; l'API REST accepte un marqueur
 que l'écran refuse, et l'aperçu montre alors ce qu'il produit.
-
-L'ancienne page *Templates d'email*, qui renvoyait à la ligne de commande, mène
-désormais à cet écran.

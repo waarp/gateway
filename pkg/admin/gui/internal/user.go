@@ -6,26 +6,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-const LimitLike = 5
-
 func GetUserByID(db database.ReadAccess, id int64) (*model.User, error) {
 	var user model.User
 
 	return &user, db.Get(&user, "id=?", id).Run()
 }
 
-func GetUsersLike(db *database.DB, prefix string) ([]*model.User, error) {
-	var users model.Users
-
-	return users, db.Select(&users).Owner().Where("username LIKE ?", prefix+"%").
-		OrderBy("username", true).Limit(LimitLike, 0).Run()
-}
-
 func ListUsers(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
 ) ([]*model.User, error) {
 	var users model.Users
 
-	return users, db.Select(&users).Owner().Limit(limit, offset).OrderBy(orderByCol, orderByAsc).Run()
+	return users, db.Select(&users).Limit(limit, offset).OrderBy(orderByCol, orderByAsc).Run()
 }
 
 func InsertUser(db database.Access, user *model.User) error {

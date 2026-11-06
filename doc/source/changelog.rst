@@ -222,8 +222,7 @@ Historique des versions
   étant fermé ; chaque accès en carte, son type au-dessus de sa cible ; les
   pages d'ajout d'un accès (la cible se tape ou se choisit dans une liste groupée
   par type, celles qui l'ont déjà sont écartées), de retrait (le dernier rouvre
-  la règle à tous) et de réouverture à tous. L'ancienne page reste accessible à
-  son adresse jusqu'à la version suivante.
+  la règle à tous) et de réouverture à tous.
 
 * :feature:`757` L'interface web propose un nouvel écran des règles de transfert
   (voir :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace
@@ -236,7 +235,6 @@ Historique des versions
   création, un nom ne peut plus contenir « / », le renommage d'une règle que
   l'historique emploie est signalé, et la suppression d'une règle que des
   transferts ou des dossiers surveillés désignent encore est expliquée.
-  L'ancienne page reste accessible à son adresse jusqu'à la version suivante.
 
 * :feature:`745` L'interface web propose un nouvel écran de suivi des transferts
   (voir :ref:`le guide de l'interface web <user-webui-transfers>`), qui remplace
@@ -255,8 +253,7 @@ Historique des versions
   pause, reprise, annulation après confirmation, relance maintenant ou à une
   date ; un transfert en cours sur un autre nœud d'une grappe n'est ni mis en
   pause ni annulé depuis ce nœud. Les pages d'ajout d'un transfert client et de
-  pré-enregistrement d'un transfert serveur complètent l'écran. L'ancienne page
-  reste accessible à son adresse jusqu'à la version suivante.
+  pré-enregistrement d'un transfert serveur complètent l'écran.
 
 * :feature:`744` L'interface web propose un écran des modèles d'e-mail (voir
   :ref:`le guide de l'interface web <user-webui-email-templates>`), qui n'existait
@@ -357,8 +354,7 @@ Historique des versions
   chemin à employer et les règles, serveurs et transferts qui nomment
   l'instance ; la page de suppression les liste. Le secret n'est plus jamais
   réaffiché (l'ancienne page le montrait en clair dans sa fenêtre de
-  modification). L'écran remplace l'ancienne page dans la navigation ; elle
-  reste accessible à son adresse jusqu'à la version suivante.
+  modification). L'écran remplace l'ancienne page dans la navigation.
 
 * :feature:`718` L'écran des utilisateurs de l'interface web est refondu sur
   le kit (voir :ref:`le guide de l'interface web <user-webui-users>`) : liste
@@ -369,8 +365,7 @@ Historique des versions
   pages de création, de modification et de suppression, le mot de passe saisi
   deux fois et vérifié par le serveur, jamais réaffiché. La suppression du
   dernier administrateur et celle de son propre compte sont refusées dans la
-  page, comme par l'API. L'écran remplace l'ancienne page dans la navigation ;
-  elle reste accessible à son adresse jusqu'à la version suivante.
+  page, comme par l'API. L'écran remplace l'ancienne page dans la navigation.
 
 * :feature:`717` Le formulaire d'un client local de l'interface web refondue
   dit combien de temps prennent les reprises automatiques : sous les trois
@@ -410,9 +405,7 @@ Historique des versions
   lit (comme le client, activées, désactivées) ; le délai d'acquittement
   PeSIT, l'algorithme du hachage final R66, le mot de passe d'un partenaire
   PeSIT et celui d'un compte sur un partenaire PeSIT chiffré par TLS, que
-  l'ancien écran ne montrait pas, sont exposés. Les anciennes
-  pages restent accessibles à leur adresse jusqu'à la version suivante
-  (:ref:`user-webui-partners`).
+  l'ancien écran ne montrait pas, sont exposés (:ref:`user-webui-partners`).
 * :feature:`711` L'écran des clients locaux de l'interface web est refondu sur
   le kit : liste triée par colonne et filtrée (recherche, familles de
   protocole, avec ou sans TLS), fiche en lecture (état, adresse locale,
@@ -423,8 +416,7 @@ Historique des versions
   locaux, le protocole se choisit par sa famille (R66, HTTP, SFTP, FTP,
   PeSIT, WebDAV, AS2) et TLS par une case à cocher ; les listes montrent la
   famille et un badge *TLS* ; les clés enregistrées, l'API et la ligne de
-  commande ne changent pas. L'ancien écran reste accessible à son adresse
-  jusqu'à la version suivante (:ref:`user-webui-clients`).
+  commande ne changent pas (:ref:`user-webui-clients`).
 * :feature:`710` La page d'accueil de l'interface web est refondue sur le kit :
   une carte par section et une tuile par écran, avec une phrase qui dit ce que
   l'écran contient ; seuls les écrans que l'utilisateur a le droit de lire sont
@@ -442,26 +434,22 @@ Historique des versions
   sont plus affichés : un certificat montre son sujet, sa validité et son
   empreinte, une clé son type et son empreinte. Un certificat ou une clé se
   dépose depuis le poste ou se colle au format PEM ; un compte se crée avec son
-  premier moyen d'authentification. Les anciennes pages (``/webui/server_authentication``,
-  ``/webui/local_account_management``, ``/webui/local_account_authentication``)
-  restent accessibles jusqu'à la version suivante. Le guide de l'interface web
-  décrit la fiche (:ref:`user-webui-server-sheet`).
+  premier moyen d'authentification. Le guide de l'interface web décrit la
+  fiche (:ref:`user-webui-server-sheet`).
 * :feature:`708` L'écran « Serveurs locaux » de l'interface web est refondu :
   liste triable par colonne, recherche et filtres par protocole appliqués
   immédiatement, nombre de lignes par page, actions regroupées dans un menu par
   ligne, page de détail en lecture, pages de création, de modification et de
   suppression (une carte par bloc, options du protocole choisi, listes
   d'algorithmes en deux colonnes). Il remplace l'ancien écran dans la navigation
-  et sur la page d'accueil ; l'ancien reste accessible à son adresse
-  (``/webui/server_management``) jusqu'à la version suivante. Le guide de
-  l'interface web décrit l'écran (:ref:`user-webui-servers`).
+  et sur la page d'accueil. Le guide de l'interface web décrit l'écran
+  (:ref:`user-webui-servers`).
 * :feature:`706` L'écran « État des services » de l'interface web est
   refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
   sélectionne le tableau affiché), états lisibles sans la couleur, message
   persistant en cas d'échec de l'actualisation automatique. Il remplace l'ancien écran dans
-  la navigation et sur la page d'accueil ; l'ancien reste accessible à son
-  adresse (``/webui/status_services``) jusqu'à la version suivante. Un
-  premier guide de l'interface web accompagne cet écran
+  la navigation et sur la page d'accueil. Un premier guide de l'interface web
+  accompagne cet écran
   (:ref:`user-guide-webui`).
 
 * :support:`844` Les tests unitaires de l'authentification par certificat
@@ -573,6 +561,12 @@ Historique des versions
   requiert l'adressage par chemin, sans l'option ``force_path_style``, utilisait
   l'adressage par sous-domaine (``https://<bucket>.<endpoint>/…``) au lieu de
   l'adressage par chemin (``https://<endpoint>/<bucket>/…``).
+* :support:`797` Les pages de l'ancienne interface web sont retirées, avec
+  leurs gabarits, leurs scripts, Bootstrap et leurs traductions. Leurs
+  adresses mènent à l'écran qui les remplace, et à l'objet qu'elles
+  désignaient (serveur, partenaire, compte, règle) quand il existe encore :
+  les favoris restent valides (voir :ref:`le guide de l'interface web
+  <user-guide-webui>`).
 
 * :release:`0.17.0 <2026-10-16>`
 * :bug:`699` Correction d'une erreur ``failed to insert transfer info: Duplicate entry``

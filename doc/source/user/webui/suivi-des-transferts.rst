@@ -310,11 +310,3 @@ La page demande le fichier, la règle, le serveur et le compte local avec
 lequel le partenaire se connectera (seuls les comptes que la règle autorise
 sont proposés), et la date limite ; les informations de transfert sont
 facultatives.
-
-
-Ancienne page
-=============
-
-L'ancienne page de suivi des transferts reste accessible à son adresse,
-``/webui/transfer_monitoring``, jusqu'à la version suivante ; la barre
-latérale mène au nouvel écran.

@@ -185,6 +185,3 @@ Les moniteurs et l'agent se gèrent aussi par l':doc:`API REST
 </reference/rest/snmp/index>` (``/api/snmp``) et par la ligne de commande
 (``waarp-gateway snmp``). Ce qui est enregistré par l'un s'affiche et se
 modifie par les autres.
-
-L'ancienne page *SNMP*, qui renvoyait à la ligne de commande, mène désormais à
-cet écran.

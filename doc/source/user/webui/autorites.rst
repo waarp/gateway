@@ -213,6 +213,3 @@ Les mêmes autorités se gèrent par l':doc:`API REST
 :ref:`ligne de commande <reference-cli-client-authority>`
 (``waarp-gateway authority``). Une autorité créée par l'un s'affiche et se
 modifie par les autres.
-
-L'ancienne page *Autorités d'authentification*, qui renvoyait à la ligne de
-commande, mène désormais à cet écran.

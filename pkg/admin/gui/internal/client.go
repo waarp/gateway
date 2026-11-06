@@ -1,3 +1,4 @@
+//nolint:dupl // the same helpers for the servers and the partners
 package internal
 
 import (
@@ -15,13 +16,6 @@ func GetClientByID(db database.ReadAccess, id int64) (*model.Client, error) {
 	var client model.Client
 
 	return &client, db.Get(&client, "id=?", id).Run()
-}
-
-func GetClientsLike(db *database.DB, prefix string) ([]*model.Client, error) {
-	var clients model.Clients
-
-	return clients, db.Select(&clients).Where("name LIKE ?", prefix+"%").
-		OrderBy("name", true).Limit(LimitLike, 0).Run()
 }
 
 func ListClients(db database.ReadAccess, orderByCol string, orderByAsc bool, limit, offset int,
