@@ -177,6 +177,3 @@ Les mêmes identifiants se gèrent par l':ref:`API REST <reference-rest-email>`
 (``/api/email/credentials``) et par la :ref:`ligne de commande
 <ref-cli-client-email>` (``waarp-gateway email credential``). Un identifiant
 créé par l'un s'affiche et se modifie par les autres.
-
-L'ancienne page *Identifiants SMTP*, qui renvoyait à la ligne de commande, mène
-désormais à cet écran.

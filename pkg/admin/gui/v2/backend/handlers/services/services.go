@@ -66,7 +66,7 @@ type Lister func() (core, servers, clients []internal.Service)
 type groupSpec struct {
 	id      string // value of groupParam, id of the panel, suffix of the catalogue keys
 	kindKey string // catalogue key of the object name, heading of the first column
-	path    string // historic page that lists the objects, linked from the empty state
+	path    string // screen that lists the objects, linked from the empty state
 	core    bool   // system services: functional names taken from the catalogue
 }
 

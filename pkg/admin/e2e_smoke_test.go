@@ -1510,7 +1510,7 @@ func TestE2ESmokeEveryScreen(t *testing.T) {
 	})
 
 	// And the former tasks page of a rule, which the historic rules page
-	// still links.
+	// linked.
 	t.Run("/webui/tasks?ruleID=2", func(t *testing.T) {
 		session.visit(t, "/webui/tasks?ruleID=2")
 

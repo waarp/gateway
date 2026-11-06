@@ -16,9 +16,6 @@ phrase qui dit ce qu'il contient ; la tuile entière mène à l'écran. Seuls le
 sans écran accessible n'apparaît pas : un utilisateur sans aucun droit ne
 voit que le :doc:`tableau-de-bord` et l'écran :doc:`etat-des-services`.
 
-Les écrans déjà refondus mènent à leur nouvelle page ; les autres mènent à
-leur page historique, jusqu'à leur refonte.
-
 
 Menu du compte
 ==============

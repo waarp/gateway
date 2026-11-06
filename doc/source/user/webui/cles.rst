@@ -203,6 +203,3 @@ Et par l'API
 Les mêmes clés se gèrent par l':ref:`API REST <rest_keys>` (``/api/keys``) et
 par la :ref:`ligne de commande <ref-cli-client-keys>` (``waarp-gateway
 key``). Une clé créée par l'un s'affiche et se modifie par les autres.
-
-L'ancienne page *Clés cryptographiques*, qui renvoyait à la ligne de
-commande, mène désormais à cet écran.

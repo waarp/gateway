@@ -43,8 +43,8 @@ const (
 	pagePath        = "/partners"
 
 	// The pages the sheet leads to: the transfers (the way out of a refused
-	// deletion) and the historic page of the transfer rules (where the
-	// accesses of a partner are managed).
+	// deletion) and the transfer rules (where the accesses of a partner are
+	// managed).
 	transfersPath = "/transfers"
 	rulesPath     = "/rules"
 

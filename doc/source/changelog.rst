@@ -3,6 +3,129 @@
 Historique des versions
 =======================
 
+* :support:`797` Les pages de l'ancienne interface web sont retirées, avec
+  leurs gabarits, leurs scripts, Bootstrap et leurs traductions. Leurs
+  adresses mènent à l'écran qui les remplace, et à l'objet qu'elles
+  désignaient (serveur, partenaire, compte, règle) quand il existe encore :
+  les favoris restent valides (voir :ref:`le guide de l'interface web
+  <user-guide-webui>`).
+* :feature:`758` L'écran des règles de transfert gagne l'onglet *Accès* (voir
+  :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
+  des droits d'usage : l'état de la règle, ouverte à tous ou réservée, dit en
+  clair ; ses accès en deux blocs, quand un partenaire se connecte (serveurs et
+  comptes locaux) et quand la passerelle se connecte (partenaires et comptes
+  distants) ; un signalement quand la règle n'est réservée que d'un côté, l'autre
+  étant fermé ; chaque accès en carte, son type au-dessus de sa cible ; les
+  pages d'ajout d'un accès (la cible se tape ou se choisit dans une liste groupée
+  par type, celles qui l'ont déjà sont écartées), de retrait (le dernier rouvre
+  la règle à tous) et de réouverture à tous.
+* :feature:`757` L'interface web propose un nouvel écran des règles de transfert
+  (voir :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace
+  l'ancienne page dans la navigation : la liste des règles avec leur sens,
+  leur chemin, le nombre de tâches de chaque chaîne et l'état de leurs accès,
+  recherche par nom ou chemin, filtre par sens, tri et pagination ; la fiche
+  d'une règle avec ses dossiers et ce que la Gateway emploie quand l'un est
+  vide, et des onglets vers ses tâches et ses accès ; les pages d'ajout, de
+  modification et de suppression. Le sens d'une règle ne change plus après sa
+  création, un nom ne peut plus contenir « / », le renommage d'une règle que
+  l'historique emploie est signalé, et la suppression d'une règle que des
+  transferts ou des dossiers surveillés désignent encore est expliquée.
+* :feature:`745` L'interface web propose un nouvel écran de suivi des transferts
+  (voir :ref:`le guide de l'interface web <user-webui-transfers>`), qui remplace
+  l'ancienne page dans la navigation : les transferts et l'historique ensemble,
+  le nom du fichier en tête ; une rangée compacte donne le nombre de transferts
+  de chaque statut et filtre la liste d'un clic ; recherche par fichier ou par
+  identifiant de suivi, filtres par règle, sens, partenaire ou serveur, compte,
+  protocole et période, tri (les derniers transferts en tête) et pagination,
+  le tout conservé dans l'adresse ; ouverture immédiate, la rangée des statuts et
+  la liste arrivant ensuite en parallèle, pages voisines lues d'avance et retour
+  à la liste immédiat, même sur un historique de plus d'un million de
+  transferts ; actualisation toutes les 5 secondes sans recharger la page, qui
+  reprend après un échec. La fiche d'un transfert donne la cause d'une erreur
+  par un libellé lisible, avec le code technique et le message, et montre les
+  informations de transfert. Les actions sont contrôlées selon l'état par le serveur : mise en
+  pause, reprise, annulation après confirmation, relance maintenant ou à une
+  date ; un transfert en cours sur un autre nœud d'une grappe n'est ni mis en
+  pause ni annulé depuis ce nœud. Les pages d'ajout d'un transfert client et de
+  pré-enregistrement d'un transfert serveur complètent l'écran.
+* :feature:`719` L'écran des instances cloud de l'interface web est refondu sur
+  le kit (voir :ref:`le guide de l'interface web <user-webui-clouds>`) et
+  propose les cinq types de stockage de la Gateway (S3, Azure Blob, Azure
+  Files, Google Cloud Storage, OneDrive), alors que l'ancienne page ne
+  proposait que S3 : les options de chaque type sont des champs nommés, les
+  obligatoires marquées et les valeurs par défaut dites, les identifiants
+  peuvent venir des variables d'environnement, et une zone libre reçoit les
+  autres réglages de la bibliothèque de stockage, dont elle propose les
+  options acceptées à la saisie (l'option choisie s'inscrit dans la zone) et
+  refuse les options inconnues, imposées par la Gateway ou sensibles. La liste montre le type,
+  l'emplacement et l'authentification de chaque instance ; la fiche dit le
+  chemin à employer et les règles, serveurs et transferts qui nomment
+  l'instance ; la page de suppression les liste. Le secret n'est plus jamais
+  réaffiché (l'ancienne page le montrait en clair dans sa fenêtre de
+  modification). L'écran remplace l'ancienne page dans la navigation.
+* :feature:`718` L'écran des utilisateurs de l'interface web est refondu sur
+  le kit (voir :ref:`le guide de l'interface web <user-webui-users>`) : liste
+  triée par colonne et filtrée par domaine et par droit, avec les droits de
+  chaque utilisateur dans la notation de l'API (``rwd``) ; fiche en lecture
+  avec les droits en toutes lettres, une carte par domaine comme sur « Mon
+  compte » ;
+  pages de création, de modification et de suppression, le mot de passe saisi
+  deux fois et vérifié par le serveur, jamais réaffiché. La suppression du
+  dernier administrateur et celle de son propre compte sont refusées dans la
+  page, comme par l'API. L'écran remplace l'ancienne page dans la navigation.
+* :feature:`714` L'écran des partenaires distants de l'interface web est
+  refondu sur le kit : liste triée par colonne et filtrée (recherche, familles
+  de protocole, avec ou sans TLS), avec le nombre de comptes de chaque
+  partenaire ; fiche à onglets (détails, authentification, comptes distants)
+  qui dit par quel client passent les transferts et quelles règles le
+  partenaire peut utiliser ; pages de création, de modification et de
+  suppression, celle-ci refusée tant que des transferts en cours ou une
+  surveillance de dossiers utilisent un de ses comptes. L'onglet des comptes
+  distants liste les comptes du partenaire avec leurs moyens
+  d'authentification, crée un compte avec son premier moyen (mot de passe,
+  certificat et clé, clé privée SSH ou pré-connexion PeSIT selon le
+  protocole) et refuse de supprimer un compte qu'un transfert en cours ou une
+  surveillance de dossiers utilise. Les options PeSIT
+  « reprise » et « points de synchronisation » se règlent comme le produit les
+  lit (comme le client, activées, désactivées) ; le délai d'acquittement
+  PeSIT, l'algorithme du hachage final R66, le mot de passe d'un partenaire
+  PeSIT et celui d'un compte sur un partenaire PeSIT chiffré par TLS, que
+  l'ancien écran ne montrait pas, sont exposés (:ref:`user-webui-partners`).
+* :feature:`711` L'écran des clients locaux de l'interface web est refondu sur
+  le kit : liste triée par colonne et filtrée (recherche, familles de
+  protocole, avec ou sans TLS), fiche en lecture (état, adresse locale,
+  reprise des transferts, options du protocole, partenaires joignables par le
+  client), pages de création, de modification et de suppression, démarrage
+  et arrêt. L'algorithme du hachage final d'un client R66, que l'ancien écran
+  ne montrait pas, est exposé. Sur cet écran et sur celui des serveurs
+  locaux, le protocole se choisit par sa famille (R66, HTTP, SFTP, FTP,
+  PeSIT, WebDAV, AS2) et TLS par une case à cocher ; les listes montrent la
+  famille et un badge *TLS* ; les clés enregistrées, l'API et la ligne de
+  commande ne changent pas (:ref:`user-webui-clients`).
+* :feature:`709` La fiche d'un serveur local, dans l'interface web, regroupe
+  en onglets ses détails, son authentification (l'identité qu'il présente aux
+  partenaires) et ses comptes locaux ; chaque compte a sa propre fiche
+  (détails, adresses IP autorisées, moyens d'authentification). Les secrets ne
+  sont plus affichés : un certificat montre son sujet, sa validité et son
+  empreinte, une clé son type et son empreinte. Un certificat ou une clé se
+  dépose depuis le poste ou se colle au format PEM ; un compte se crée avec son
+  premier moyen d'authentification. Le guide de l'interface web décrit la
+  fiche (:ref:`user-webui-server-sheet`).
+* :feature:`708` L'écran « Serveurs locaux » de l'interface web est refondu :
+  liste triable par colonne, recherche et filtres par protocole appliqués
+  immédiatement, nombre de lignes par page, actions regroupées dans un menu par
+  ligne, page de détail en lecture, pages de création, de modification et de
+  suppression (une carte par bloc, options du protocole choisi, listes
+  d'algorithmes en deux colonnes). Il remplace l'ancien écran dans la navigation
+  et sur la page d'accueil. Le guide de l'interface web décrit l'écran
+  (:ref:`user-webui-servers`).
+* :feature:`706` L'écran « État des services » de l'interface web est
+  refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
+  sélectionne le tableau affiché), états lisibles sans la couleur, message
+  persistant en cas d'échec de l'actualisation automatique. Il remplace l'ancien écran dans
+  la navigation et sur la page d'accueil. Un premier guide de l'interface web
+  accompagne cet écran
+  (:ref:`user-guide-webui`).
 * :bug:`785` Les options d'acquittement d'un partenaire PeSIT disent qui attend
   l'acquittement de qui : « Attendre l'acquittement du partenaire après chaque
   transfert », dans le formulaire et la fiche du partenaire comme dans la
@@ -273,22 +396,6 @@ Historique des versions
   n'est demandé sans modification, à la validation, ni sur *Annuler*, et un
   formulaire refusé compte comme modifié (voir :ref:`le guide de l'interface
   web <user-guide-webui>`).
-* :feature:`719` L'écran des instances cloud de l'interface web est refondu sur
-  le kit (voir :ref:`le guide de l'interface web <user-webui-clouds>`) et
-  propose les cinq types de stockage de la Gateway (S3, Azure Blob, Azure
-  Files, Google Cloud Storage, OneDrive), alors que l'ancienne page ne
-  proposait que S3 : les options de chaque type sont des champs nommés, les
-  obligatoires marquées et les valeurs par défaut dites, les identifiants
-  peuvent venir des variables d'environnement, et une zone libre reçoit les
-  autres réglages de la bibliothèque de stockage, dont elle propose les
-  options acceptées à la saisie (l'option choisie s'inscrit dans la zone) et
-  refuse les options inconnues, imposées par la Gateway ou sensibles. La liste montre le type,
-  l'emplacement et l'authentification de chaque instance ; la fiche dit le
-  chemin à employer et les règles, serveurs et transferts qui nomment
-  l'instance ; la page de suppression les liste. Le secret n'est plus jamais
-  réaffiché (l'ancienne page le montrait en clair dans sa fenêtre de
-  modification). L'écran remplace l'ancienne page dans la navigation ; elle
-  reste accessible à son adresse jusqu'à la version suivante.
 * :feature:`717` Le formulaire d'un client local de l'interface web refondue
   dit combien de temps prennent les reprises automatiques : sous les trois
   réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
@@ -322,48 +429,6 @@ Historique des versions
   conservés. Les liens « Utilisée par » des clés, des identifiants SMTP et des
   modèles d'e-mail mènent à cet onglet, comme l'adresse de l'ancienne page des
   tâches, dont le module est retiré.
-* :feature:`758` L'écran des règles de transfert gagne l'onglet *Accès* (voir
-  :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
-  des droits d'usage : l'état de la règle, ouverte à tous ou réservée, dit en
-  clair ; ses accès en deux blocs, quand un partenaire se connecte (serveurs et
-  comptes locaux) et quand la passerelle se connecte (partenaires et comptes
-  distants) ; un signalement quand la règle n'est réservée que d'un côté, l'autre
-  étant fermé ; chaque accès en carte, son type au-dessus de sa cible ; les
-  pages d'ajout d'un accès (la cible se tape ou se choisit dans une liste groupée
-  par type, celles qui l'ont déjà sont écartées), de retrait (le dernier rouvre
-  la règle à tous) et de réouverture à tous. L'ancienne page reste accessible à
-  son adresse jusqu'à la version suivante.
-* :feature:`757` L'interface web propose un nouvel écran des règles de transfert
-  (voir :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace
-  l'ancienne page dans la navigation : la liste des règles avec leur sens,
-  leur chemin, le nombre de tâches de chaque chaîne et l'état de leurs accès,
-  recherche par nom ou chemin, filtre par sens, tri et pagination ; la fiche
-  d'une règle avec ses dossiers et ce que la Gateway emploie quand l'un est
-  vide, et des onglets vers ses tâches et ses accès ; les pages d'ajout, de
-  modification et de suppression. Le sens d'une règle ne change plus après sa
-  création, un nom ne peut plus contenir « / », le renommage d'une règle que
-  l'historique emploie est signalé, et la suppression d'une règle que des
-  transferts ou des dossiers surveillés désignent encore est expliquée.
-  L'ancienne page reste accessible à son adresse jusqu'à la version suivante.
-* :feature:`745` L'interface web propose un nouvel écran de suivi des transferts
-  (voir :ref:`le guide de l'interface web <user-webui-transfers>`), qui remplace
-  l'ancienne page dans la navigation : les transferts et l'historique ensemble,
-  le nom du fichier en tête ; une rangée compacte donne le nombre de transferts
-  de chaque statut et filtre la liste d'un clic ; recherche par fichier ou par
-  identifiant de suivi, filtres par règle, sens, partenaire ou serveur, compte,
-  protocole et période, tri (les derniers transferts en tête) et pagination,
-  le tout conservé dans l'adresse ; ouverture immédiate, la rangée des statuts et
-  la liste arrivant ensuite en parallèle, pages voisines lues d'avance et retour
-  à la liste immédiat, même sur un historique de plus d'un million de
-  transferts ; actualisation toutes les 5 secondes sans recharger la page, qui
-  reprend après un échec. La fiche d'un transfert donne la cause d'une erreur
-  par un libellé lisible, avec le code technique et le message, et montre les
-  informations de transfert. Les actions sont contrôlées selon l'état par le serveur : mise en
-  pause, reprise, annulation après confirmation, relance maintenant ou à une
-  date ; un transfert en cours sur un autre nœud d'une grappe n'est ni mis en
-  pause ni annulé depuis ce nœud. Les pages d'ajout d'un transfert client et de
-  pré-enregistrement d'un transfert serveur complètent l'écran. L'ancienne page
-  reste accessible à son adresse jusqu'à la version suivante.
 * :feature:`744` L'interface web propose un écran des modèles d'e-mail (voir
   :ref:`le guide de l'interface web <user-webui-email-templates>`), qui n'existait
   jusqu'ici que par l'API REST et la ligne de commande : liste triée par nom et
@@ -443,17 +508,6 @@ Historique des versions
   ou collée, vérifiée avant l'enregistrement, et les hôtes autorisés saisis un
   par ligne, avec la règle de comparaison de chaque type. L'ancienne page, qui
   renvoyait à la ligne de commande, mène désormais à l'écran.
-* :feature:`718` L'écran des utilisateurs de l'interface web est refondu sur
-  le kit (voir :ref:`le guide de l'interface web <user-webui-users>`) : liste
-  triée par colonne et filtrée par domaine et par droit, avec les droits de
-  chaque utilisateur dans la notation de l'API (``rwd``) ; fiche en lecture
-  avec les droits en toutes lettres, une carte par domaine comme sur « Mon
-  compte » ;
-  pages de création, de modification et de suppression, le mot de passe saisi
-  deux fois et vérifié par le serveur, jamais réaffiché. La suppression du
-  dernier administrateur et celle de son propre compte sont refusées dans la
-  page, comme par l'API. L'écran remplace l'ancienne page dans la navigation ;
-  elle reste accessible à son adresse jusqu'à la version suivante.
 * :feature:`716` Dans les formulaires de l'interface web refondue, les listes
   d'algorithmes SSH (échange de clés, chiffrement, intégrité) et de suites de
   chiffrement TLS se composent en étiquettes : les algorithmes retenus
@@ -463,38 +517,6 @@ Historique des versions
   décimal ; les algorithmes SSH fondés sur SHA-1 sont dits historiques, ceux
   que le module n'active plus par défaut le disent aussi. Kit graphique en
   version 0.8.0.
-* :feature:`714` L'écran des partenaires distants de l'interface web est
-  refondu sur le kit : liste triée par colonne et filtrée (recherche, familles
-  de protocole, avec ou sans TLS), avec le nombre de comptes de chaque
-  partenaire ; fiche à onglets (détails, authentification, comptes distants)
-  qui dit par quel client passent les transferts et quelles règles le
-  partenaire peut utiliser ; pages de création, de modification et de
-  suppression, celle-ci refusée tant que des transferts en cours ou une
-  surveillance de dossiers utilisent un de ses comptes. L'onglet des comptes
-  distants liste les comptes du partenaire avec leurs moyens
-  d'authentification, crée un compte avec son premier moyen (mot de passe,
-  certificat et clé, clé privée SSH ou pré-connexion PeSIT selon le
-  protocole) et refuse de supprimer un compte qu'un transfert en cours ou une
-  surveillance de dossiers utilise. Les options PeSIT
-  « reprise » et « points de synchronisation » se règlent comme le produit les
-  lit (comme le client, activées, désactivées) ; le délai d'acquittement
-  PeSIT, l'algorithme du hachage final R66, le mot de passe d'un partenaire
-  PeSIT et celui d'un compte sur un partenaire PeSIT chiffré par TLS, que
-  l'ancien écran ne montrait pas, sont exposés. Les anciennes
-  pages restent accessibles à leur adresse jusqu'à la version suivante
-  (:ref:`user-webui-partners`).
-* :feature:`711` L'écran des clients locaux de l'interface web est refondu sur
-  le kit : liste triée par colonne et filtrée (recherche, familles de
-  protocole, avec ou sans TLS), fiche en lecture (état, adresse locale,
-  reprise des transferts, options du protocole, partenaires joignables par le
-  client), pages de création, de modification et de suppression, démarrage
-  et arrêt. L'algorithme du hachage final d'un client R66, que l'ancien écran
-  ne montrait pas, est exposé. Sur cet écran et sur celui des serveurs
-  locaux, le protocole se choisit par sa famille (R66, HTTP, SFTP, FTP,
-  PeSIT, WebDAV, AS2) et TLS par une case à cocher ; les listes montrent la
-  famille et un badge *TLS* ; les clés enregistrées, l'API et la ligne de
-  commande ne changent pas. L'ancien écran reste accessible à son adresse
-  jusqu'à la version suivante (:ref:`user-webui-clients`).
 * :feature:`710` La page d'accueil de l'interface web est refondue sur le kit :
   une carte par section et une tuile par écran, avec une phrase qui dit ce que
   l'écran contient ; seuls les écrans que l'utilisateur a le droit de lire sont
@@ -505,34 +527,6 @@ Historique des versions
   ``/webui/about`` ; le bouton « Documentation » mène à la dernière
   documentation publiée. L'ancienne page d'accueil est retirée, à la même
   adresse (:ref:`user-webui-home`).
-* :feature:`709` La fiche d'un serveur local, dans l'interface web, regroupe
-  en onglets ses détails, son authentification (l'identité qu'il présente aux
-  partenaires) et ses comptes locaux ; chaque compte a sa propre fiche
-  (détails, adresses IP autorisées, moyens d'authentification). Les secrets ne
-  sont plus affichés : un certificat montre son sujet, sa validité et son
-  empreinte, une clé son type et son empreinte. Un certificat ou une clé se
-  dépose depuis le poste ou se colle au format PEM ; un compte se crée avec son
-  premier moyen d'authentification. Les anciennes pages (``/webui/server_authentication``,
-  ``/webui/local_account_management``, ``/webui/local_account_authentication``)
-  restent accessibles jusqu'à la version suivante. Le guide de l'interface web
-  décrit la fiche (:ref:`user-webui-server-sheet`).
-* :feature:`708` L'écran « Serveurs locaux » de l'interface web est refondu :
-  liste triable par colonne, recherche et filtres par protocole appliqués
-  immédiatement, nombre de lignes par page, actions regroupées dans un menu par
-  ligne, page de détail en lecture, pages de création, de modification et de
-  suppression (une carte par bloc, options du protocole choisi, listes
-  d'algorithmes en deux colonnes). Il remplace l'ancien écran dans la navigation
-  et sur la page d'accueil ; l'ancien reste accessible à son adresse
-  (``/webui/server_management``) jusqu'à la version suivante. Le guide de
-  l'interface web décrit l'écran (:ref:`user-webui-servers`).
-* :feature:`706` L'écran « État des services » de l'interface web est
-  refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
-  sélectionne le tableau affiché), états lisibles sans la couleur, message
-  persistant en cas d'échec de l'actualisation automatique. Il remplace l'ancien écran dans
-  la navigation et sur la page d'accueil ; l'ancien reste accessible à son
-  adresse (``/webui/status_services``) jusqu'à la version suivante. Un
-  premier guide de l'interface web accompagne cet écran
-  (:ref:`user-guide-webui`).
 * :feature:`873` La liste des transferts peut désormais être filtrée par
   acquittement, dans l'API REST (paramètre ``ack``) comme en ligne de commande
   (option ``--ack``) : attendu, reçu, non reçu, envoyé ou sans acquittement,

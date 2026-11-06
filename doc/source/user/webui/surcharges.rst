@@ -119,6 +119,3 @@ Les mêmes règles se gèrent par l':doc:`API REST </reference/rest/override/ind
 (``/api/override/addresses``) et par la ligne de commande
 (``waarp-gateway override address``). Une règle écrite par l'un s'affiche et se
 modifie par les autres.
-
-L'ancienne page *Surcharges de configuration*, qui renvoyait à la ligne de
-commande, mène désormais à cet écran.
