@@ -108,23 +108,58 @@ func createDir(file string) *Error {
 // For remote paths, only the rule's remote dir is added (if defined) before the
 // file name.
 func (p *Pipeline) setFilePaths() error {
-	srcFilename := p.TransCtx.Transfer.SrcFilename
-	destFilename := p.TransCtx.Transfer.DestFilename
-
-	if destFilename == "" {
-		destFilename = p.TransCtx.Transfer.SrcFilename
-	}
+	srcFilename, destFilename := fileNames(p.TransCtx.Transfer)
 
 	return p.setCustomFilePaths(srcFilename, destFilename)
 }
 
+// fileNames are the names the paths of a transfer are built from: the name
+// at the destination is the one at the source when it is empty.
+func fileNames(trans *model.Transfer) (srcFilename, destFilename string) {
+	srcFilename, destFilename = trans.SrcFilename, trans.DestFilename
+	if destFilename == "" {
+		destFilename = srcFilename
+	}
+
+	return srcFilename, destFilename
+}
+
+// remotePath is the path of the file of a client transfer at the partner:
+// the remote dir of the rule, then the name of the file there.
+func remotePath(transCtx *model.TransferContext, srcFilename, destFilename string) string {
+	if transCtx.Rule.IsSend {
+		return path.Join(transCtx.Rule.RemoteDir, destFilename)
+	}
+
+	return path.Join(transCtx.Rule.RemoteDir, srcFilename)
+}
+
+// ExpectedPaths gives the local path of a transfer and, for a client
+// transfer, its remote path, as the pipeline sets them when the transfer
+// starts (setFilePaths); a path already set is kept. The transfer is not
+// changed: the web interface shows where the file of a transfer not started
+// yet will be read or written.
+func ExpectedPaths(transCtx *model.TransferContext) (localPath, remote string, err error) {
+	trans := transCtx.Transfer
+	srcFilename, destFilename := fileNames(trans)
+	localPath, remote = trans.LocalPath, trans.RemotePath
+
+	if !trans.IsServer() && remote == "" {
+		remote = remotePath(transCtx, srcFilename, destFilename)
+	}
+
+	if localPath == "" {
+		if localPath, err = makeLocalPath(transCtx, srcFilename, destFilename); err != nil {
+			return "", "", fmt.Errorf("failed to build local path: %w", err)
+		}
+	}
+
+	return localPath, remote, nil
+}
+
 func (p *Pipeline) setCustomFilePaths(srcFilename, destFilename string) error {
 	if !p.TransCtx.Transfer.IsServer() && p.TransCtx.Transfer.RemotePath == "" {
-		if p.TransCtx.Rule.IsSend {
-			p.TransCtx.Transfer.RemotePath = path.Join(p.TransCtx.Rule.RemoteDir, destFilename)
-		} else {
-			p.TransCtx.Transfer.RemotePath = path.Join(p.TransCtx.Rule.RemoteDir, srcFilename)
-		}
+		p.TransCtx.Transfer.RemotePath = remotePath(p.TransCtx, srcFilename, destFilename)
 	}
 
 	if p.TransCtx.Transfer.LocalPath == "" {
