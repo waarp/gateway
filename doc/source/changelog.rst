@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`696` Le client et serveur PeSIT envoie désormais plusieurs articles par
+  message lorsque cela est possible. Cela devrait drastiquement améliorer les
+  performances des transferts de fichiers contenant de nombreux articles.
+* :bug:`691` Correction d'un bug du serveur PeSIT produisant un message
+  d'avertissement sur la taille des données reçues à la fin des transferts.
 * :bug:`856` L'import refuse désormais, avec un message qui le nomme, un identifiant
   dont le type n'est pas admis pour son propriétaire (un certificat sans clé sur un
   compte local, par exemple), au lieu de s'interrompre.

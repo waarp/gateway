@@ -390,9 +390,7 @@ func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
 		article, aErr := trans.GetNextRecvArticle()
 		if errors.Is(aErr, pesit.ErrNoMoreArticle) {
 			return nil
-		} else if aErr != nil {
-			t.handleError(aErr)
-
+		} else if aErr != nil && t.handleError(aErr) {
 			//nolint:wrapcheck //wrapping adds nothing here
 			return aErr
 		}
@@ -448,9 +446,7 @@ func (t *transferHandler) multiSend(trans *pesit.ServerTransfer, lengths *articl
 
 	for length := range lengths.All() {
 		article, aErr := trans.StartNextSendArticle()
-		if aErr != nil {
-			t.handleError(aErr)
-
+		if aErr != nil && t.handleError(aErr) {
 			return aErr //nolint:wrapcheck //wrapping adds nothing here
 		}
 
@@ -505,11 +501,11 @@ func (t *transferHandler) DataTransfer(trans *pesit.ServerTransfer) error {
 }
 
 func (t *transferHandler) EndTransfer(_ *pesit.ServerTransfer, err error) error {
-	if err != nil {
-		t.pip.Logger.Warningf("Data transfer ended with error: %v", err)
-	} else {
-		t.pip.Logger.Debug("Data transfer finished")
+	if err != nil && t.handleError(err) {
+		return nil
 	}
+
+	t.pip.Logger.Debug("Data transfer finished")
 
 	return nil
 }
@@ -517,9 +513,7 @@ func (t *transferHandler) EndTransfer(_ *pesit.ServerTransfer, err error) error 
 func (t *transferHandler) CloseFile(pErr error) error {
 	t.pip.Logger.Debug("Closing file")
 
-	if pErr != nil {
-		t.handleError(pErr)
-
+	if pErr != nil && t.handleError(pErr) {
 		return nil
 	}
 
@@ -553,9 +547,7 @@ func (t *transferHandler) DeselectFile(pErr error) error {
 		t.cancel = nil
 	}()
 
-	if pErr != nil {
-		t.handleError(pErr)
-
+	if pErr != nil && t.handleError(pErr) {
 		return nil
 	}
 
@@ -602,20 +594,27 @@ func (t *transferHandler) Cancel(context.Context) error {
 	return t.stop(errServerCanceled)
 }
 
-func (t *transferHandler) handleError(err error) {
+func (t *transferHandler) handleError(err error) bool {
 	// The transfer may already have been reset by DeselectFile (for instance
 	// when a late error comes from the data exchange): there is nothing left
 	// to update, and the error must not stop the server.
 	if t.pip == nil {
 		t.logger.Warningf("Error after the end of the transfer: %v", err)
 
-		return
+		return false
 	}
 
 	var pesitErr pesit.Diagnostic
-	errors.As(err, &pesitErr)
+	if !errors.As(err, &pesitErr) {
+		t.pip.Logger.Errorf("Unexpected error: %v", err)
+		t.pip.SetError(types.TeUnknown, err.Error())
+
+		return true
+	}
 
 	switch pesitErr.GetCode() {
+	case pesit.CodeSuccess:
+		return false
 	case pesit.CodeVolontaryTermination:
 		t.pip.Logger.Info("Transfer canceled by remote client")
 
@@ -633,6 +632,8 @@ func (t *transferHandler) handleError(err error) {
 		pipErr := pesitErrToPipErr("error on remote client", pesitErr)
 		t.pip.SetError(pipErr.Code(), pipErr.Details())
 	}
+
+	return true
 }
 
 // recoveryPoint returns the last synchronisation point reached before

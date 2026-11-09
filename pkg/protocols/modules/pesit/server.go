@@ -154,11 +154,6 @@ func (s *service) authenticate(conn *pesit.ServerConnection) (*model.LocalAccoun
 	login := conn.ClientLogin()
 	password := conn.ClientPassword()
 
-	// TODO: remove once pesit lib fixes empty passwords
-	if password == "        " {
-		password = ""
-	}
-
 	var addr string
 	if rawConn, _ := conn.ClientAddr(); rawConn != nil {
 		addr = rawConn.RemoteAddr().String()
