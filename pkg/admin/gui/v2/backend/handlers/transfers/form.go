@@ -18,7 +18,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/compatibility"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
@@ -60,6 +59,10 @@ type option struct {
 	// Rules lists, space separated, the restricted rules that authorize the
 	// account: those that list it, or its partner or server. Empty when none.
 	Rules string
+	// Protocol is the protocol key of a client, or of the partner of an
+	// account (data-protocol): transfers.js offers, for the account chosen,
+	// the clients of its partner's protocol alone.
+	Protocol string
 }
 
 type optGroup struct {
@@ -297,11 +300,14 @@ func (h *Handlers) clientChoices(form *formData, grants ruleGrants) error {
 		group := optGroup{Label: partner.Name}
 
 		for _, account := range accounts {
-			if account.RemoteAgentID == partner.ID {
-				opt := accountOption(account.ID, account.Login, form.Account.Value)
-				opt.Rules = grants.rulesOf(account.ID, partner.ID, grants.byRemoteAccount, grants.byRemoteAgent)
-				group.Options = append(group.Options, opt)
+			if account.RemoteAgentID != partner.ID {
+				continue
 			}
+
+			opt := accountOption(account.ID, account.Login, form.Account.Value)
+			opt.Rules = grants.rulesOf(account.ID, partner.ID, grants.byRemoteAccount, grants.byRemoteAgent)
+			opt.Protocol = partner.Protocol
+			group.Options = append(group.Options, opt)
 		}
 
 		if len(group.Options) > 0 {
@@ -317,11 +323,24 @@ func (h *Handlers) clientChoices(form *formData, grants ruleGrants) error {
 	for _, client := range clients {
 		form.Clients = append(form.Clients, option{
 			Value: client.Name, Label: client.Name + " · " + protocolLabel(client.Protocol),
-			Selected: client.Name == form.Client.Value,
+			Selected: client.Name == form.Client.Value, Protocol: client.Protocol,
 		})
 	}
 
 	return nil
+}
+
+// ClientMismatch is the message that refuses a client whose protocol is not
+// the protocol of the partner, "" when they match; the page that adds
+// a transfer and the TRANSFER task of a rule share it, under the client
+// field, before the model says the same in its own words.
+func ClientMismatch(translate gui.Translator, clientProtocol, partnerProtocol string) string {
+	if clientProtocol == partnerProtocol {
+		return ""
+	}
+
+	return translate("transfers.form.error.client_protocol",
+		"client", protocolLabel(clientProtocol), "partner", protocolLabel(partnerProtocol))
 }
 
 // serverChoices are the local accounts by server.
@@ -460,6 +479,12 @@ func (h *Handlers) validate(translate gui.Translator, form *formData) (parsed, b
 		fail(&form.Account, "transfers.form.error.choose")
 	} else {
 		out.account = id
+	}
+
+	if !form.Server && form.Client.Value == "" {
+		// The model still takes a client by default; the interface asks for
+		// what the product will require.
+		fail(&form.Client, "transfers.form.error.choose")
 	}
 
 	switch start, ok := parseLocal(form.Start.Value); {
@@ -641,8 +666,9 @@ func (h *Handlers) save(w http.ResponseWriter, r *http.Request, server bool) {
 	h.render(w, r, form, http.StatusUnprocessableEntity)
 }
 
-// add plans a client transfer: the client chosen, or the client of the
-// protocol of the partner as the REST API chooses it.
+// add plans a client transfer with the client chosen, which must be of the
+// protocol of the partner: the refusal goes under the client field,
+// before the model says the same in its own words.
 func (h *Handlers) add(translate gui.Translator, form *formData, checked *parsed) (*model.Transfer, error) {
 	account, err := internal.GetPartnerAccountByID(h.db, checked.account)
 	if err != nil {
@@ -662,21 +688,18 @@ func (h *Handlers) add(translate gui.Translator, form *formData, checked *parsed
 		return nil, getErr //nolint:wrapcheck // logged by the caller
 	}
 
-	var client *model.Client
-
-	if form.Client.Value != "" {
-		if client, err = internal.GetClient(h.db, form.Client.Value); err != nil {
-			form.Client.Error, form.HasErrors = translate("transfers.form.error.choose"), true
-
-			return nil, err //nolint:wrapcheck // turned into the error of the field
-		}
-	} else if client, err = compatibility.GetDefaultTransferClient(h.db, partner.Protocol); err != nil {
-		if database.IsValidationError(err) {
-			form.Client.Error = translate("transfers.form.error.client", "protocol", protocolLabel(partner.Protocol))
-			form.HasErrors = true
-		}
+	client, err := internal.GetClient(h.db, form.Client.Value)
+	if err != nil {
+		form.Client.Error, form.HasErrors = translate("transfers.form.error.choose"), true
 
 		return nil, err //nolint:wrapcheck // turned into the error of the field
+	}
+
+	if msg := ClientMismatch(translate, client.Protocol, partner.Protocol); msg != "" {
+		form.Client.Error, form.HasErrors = msg, true
+
+		return nil, database.NewValidationErrorf("the client %q is not of the protocol of the partner %q",
+			client.Name, partner.Name)
 	}
 
 	output := form.Output.Value

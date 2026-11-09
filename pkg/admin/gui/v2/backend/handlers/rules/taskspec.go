@@ -305,7 +305,7 @@ var taskSpecs = []taskSpec{
 		{Name: "synchronous", Kind: argBool, Modes: [2]string{"task_types.choice.async", "task_types.choice.sync"}},
 		textArg("file", true), textArg("output", false),
 		refArg("to", refPartner, false), refArg("from", refPartner, false), refArg("as", refRemoteAccount, true),
-		{Name: "using", Kind: argRef, Ref: refClient, None: "transfers.form.client_default"},
+		refArg("using", refClient, true), // required by the form, the product falling back on a client of the protocol
 		refArg("rule", refRule, true),
 		{Name: "info", Kind: argJSON},
 		boolArg("copyInfo"),

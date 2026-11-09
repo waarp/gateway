@@ -684,6 +684,9 @@ templ selectField(id, label string, f field, groups []optGroup, empty, hint stri
 								if o.Rules != "" {
 									data-rules={ o.Rules }
 								}
+								if o.Protocol != "" {
+									data-protocol={ o.Protocol }
+								}
 							>{ o.Label }</option>
 						}
 					</optgroup>
@@ -745,20 +748,26 @@ templ formView(d *formData) {
 					@dateField(fieldStart, gui.T(ctx, "transfers.detail.due"), d.Start, gui.T(ctx, "transfers.form.due_hint"), true)
 				} else {
 					@selectField(fieldAccount, gui.T(ctx, "transfers.form.remote_account"), d.Account, d.Accounts, gui.T(ctx, "transfers.form.choose_account"), gui.T(ctx, "transfers.form.remote_account_hint"), accountAttrs(ctx))
+					// The client is required and of the protocol of the partner:
+					// transfers.js keeps the clients of the protocol of the account
+					// chosen (data-account-filter, data-protocol); the server refuses
+					// the others, as the TRANSFER task of a rule does.
 					<div class={ "w-field", templ.KV("is-invalid", d.Client.Error != "") }>
-						<label class="w-field__label" for={ fieldClient }>{ gui.T(ctx, "transfers.detail.client") } <span class="w-field__opt">{ gui.T(ctx, "form.optional") }</span></label>
+						<label class="w-field__label" for={ fieldClient }>{ gui.T(ctx, "transfers.detail.client") }@protoform.ReqMark(true)</label>
 						<select
 							class="w-select"
 							id={ fieldClient }
 							name={ fieldClient }
+							required
 							aria-describedby="client-h"
+							data-account-filter={ fieldAccount }
 							if d.Client.Error != "" {
 								aria-invalid="true"
 							}
 						>
-							<option value="">{ gui.T(ctx, "transfers.form.client_default") }</option>
+							<option value="">{ gui.T(ctx, "transfers.form.choose_client") }</option>
 							for _, o := range d.Clients {
-								<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+								<option value={ o.Value } data-protocol={ o.Protocol } selected?={ o.Selected }>{ o.Label }</option>
 							}
 						</select>
 						@protoform.Message("client-h", d.Client.Error, gui.T(ctx, "transfers.form.client_hint"))

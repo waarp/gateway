@@ -836,8 +836,10 @@ func TestForms(t *testing.T) {
 		body := rec.Body.String()
 		assert.NotContains(t, body, "¿")
 		indexes(t, body, "Nouveau transfert", `<optgroup label="Envoi">`, ">releves</option>",
-			`<optgroup label="Réception">`, ">commandes</option>", `<optgroup label="banque-demo">`, ">prod</option>",
-			"Le client du protocole du partenaire", "cli-sftp · SFTP", `type="datetime-local"`,
+			`<optgroup label="Réception">`, ">commandes</option>", `<optgroup label="banque-demo">`,
+			`<option value="`+strconv.FormatInt(s.prod.ID, 10)+`" data-protocol="sftp">prod</option>`,
+			`<select class="w-select" id="client" name="client" required aria-describedby="client-h" data-account-filter="account">`,
+			"Choisir un client", `<option value="cli-sftp" data-protocol="sftp">cli-sftp · SFTP</option>`, `type="datetime-local"`,
 			`id="tries" name="tries" value="" type="number" inputmode="numeric" step="1" min="0" max="127"`,
 			"Facteur de progression du délai", `id="factor" name="factor" value="" type="number" inputmode="decimal" step="any" min="0"`,
 			"1 : délai constant ; 2 : délai doublé à chaque reprise")
@@ -858,6 +860,31 @@ func TestForms(t *testing.T) {
 		assert.Contains(t, body, `data-key="tf-form-retries" open>`, "a card without error keeps its key")
 		indexes(t, body, `id="info-name-1"`, `value=""`, `aria-invalid="true"`, `value="sans nom"`,
 			`id="info-name-2"`, `value="lot"`, `value="B"`, `id="info-name-3"`, `<template id="tf-info-row">`)
+
+		// The client is required and of the protocol of the partner: the
+		// same rules as the TRANSFER task, the refusal under the field, the
+		// message of the model never in the banner.
+		exchange := url.Values{
+			fieldFile: {"sortie/sans-client.pdf"}, fieldRule: {strconv.FormatInt(s.send.ID, 10)},
+			fieldAccount: {strconv.FormatInt(s.prod.ID, 10)},
+		}
+		rec = s.post(t, permWrite, "/webui/transfers/new", exchange)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "no client")
+		body = rec.Body.String()
+		assert.Contains(t, body, `id="client" name="client" required aria-describedby="client-h" data-account-filter="account" aria-invalid="true"`)
+		assert.Contains(t, body, "Choisissez une valeur dans la liste.")
+
+		require.NoError(t, s.db.Insert(&model.Client{Name: "cli-r66", Protocol: "r66"}).Run())
+		exchange.Set(fieldClient, "cli-r66")
+		rec = s.post(t, permWrite, "/webui/transfers/new", exchange)
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "a client of another protocol")
+		body = rec.Body.String()
+		assert.Contains(t, body, "Le partenaire est en SFTP et ce client en R66 : choisissez un client SFTP.")
+		assert.Contains(t, body, `<option value="cli-r66" data-protocol="r66" selected>cli-r66 · R66</option>`, "the refused choice stays shown")
+		assert.NotContains(t, body, "does not match", "the message of the model stays out of the banner")
+		n, err := s.db.Count(&model.Transfer{}).Where("src_filename=?", "sortie/sans-client.pdf").Run()
+		require.NoError(t, err)
+		assert.Zero(t, n, "nothing saved")
 
 		// The growth factor is a decimal, 0 or more, read as the TRANSFER task
 		// reads its own: the same field, the same message.
@@ -884,7 +911,7 @@ func TestForms(t *testing.T) {
 		body = rec.Body.String()
 		assert.NotContains(t, body, "n&#39;a pas été créé", "nothing checked")
 		indexes(t, body, `value="x.pdf"`, `id="info-name-1"`, `value="lot"`, `value="B"`, `id="info-name-2"`, `value=""`)
-		n, err := s.db.Count(&model.Transfer{}).Where("src_filename=?", "x.pdf").Run()
+		n, err = s.db.Count(&model.Transfer{}).Where("src_filename=?", "x.pdf").Run()
 		require.NoError(t, err)
 		assert.Zero(t, n, "nothing saved")
 
@@ -892,7 +919,7 @@ func TestForms(t *testing.T) {
 			fieldFile: {"sortie/releve.pdf"}, fieldRule: {strconv.FormatInt(s.send.ID, 10)},
 			fieldAccount:  {strconv.FormatInt(s.prod.ID, 10)},
 			fieldInfoName: {"lot", "", " flux "}, fieldInfoValue: {"B", "", "paie"},
-			fieldTries: {"3"}, fieldDelay: {"60"}, fieldFactor: {"1,5"},
+			fieldTries: {"3"}, fieldDelay: {"60"}, fieldFactor: {"1,5"}, fieldClient: {"cli-sftp"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code)
 
@@ -945,9 +972,9 @@ func TestForms(t *testing.T) {
 		assert.Contains(t, body, `<div class="w-main__inner">`, "the form keeps the usual width")
 		assert.Contains(t, body, `<option value="`+sendID+`" data-restricted>releves</option>`, "a rule that lists who may use it")
 		assert.Contains(t, body, `<option value="`+receiveID+`">commandes</option>`, "an open rule")
-		assert.Contains(t, body, `<option value="`+prodID+`" data-rules="`+sendID+`">prod</option>`,
+		assert.Contains(t, body, `<option value="`+prodID+`" data-rules="`+sendID+`" data-protocol="sftp">prod</option>`,
 			"the account of a partner the rule lists")
-		assert.Contains(t, body, `<option value="`+devID+`">dev</option>`, "no restricted rule authorizes it")
+		assert.Contains(t, body, `<option value="`+devID+`" data-protocol="sftp">dev</option>`, "no restricted rule authorizes it")
 		for _, attr := range []string{
 			`data-rule-filter="rule"`, `data-access-url="/webui/rules/{id}/access"`,
 			`data-allowed="{n} comptes autorisés par cette règle"`, `data-allowed-one="Un compte autorisé par cette règle"`,
@@ -960,7 +987,7 @@ func TestForms(t *testing.T) {
 		// The server keeps the last word: a posted account the rule does not
 		// authorize is refused under its field, nothing saved.
 		rec := s.post(t, permWrite, "/webui/transfers/new", url.Values{
-			fieldFile: {"x.pdf"}, fieldRule: {sendID}, fieldAccount: {devID},
+			fieldFile: {"x.pdf"}, fieldRule: {sendID}, fieldAccount: {devID}, fieldClient: {"cli-sftp"},
 		})
 		require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 		body = rec.Body.String()
@@ -971,7 +998,7 @@ func TestForms(t *testing.T) {
 		assert.Zero(t, n, "nothing saved")
 
 		rec = s.post(t, permWrite, "/webui/transfers/new", url.Values{
-			fieldFile: {"x.pdf"}, fieldRule: {sendID}, fieldAccount: {prodID},
+			fieldFile: {"x.pdf"}, fieldRule: {sendID}, fieldAccount: {prodID}, fieldClient: {"cli-sftp"},
 		})
 		require.Equal(t, http.StatusSeeOther, rec.Code, "the account of the partner the rule lists")
 	})

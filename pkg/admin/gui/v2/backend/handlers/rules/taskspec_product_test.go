@@ -40,6 +40,7 @@ var (
 	formStricter = map[string]string{
 		tasks.Preregister + ".isSend":   "the form always says the direction; the product reads none as receiving",
 		tasks.Verify + ".signatureFile": "the product checks it only when the task runs, which then fails",
+		tasks.Transfer + ".using":       "the product falls back on the client of the protocol of the partner; the form asks the client the product will require",
 	}
 	sampleRefs = map[refKind]string{
 		refKey: "aes", refSMTP: sender, refTemplate: template, refPartner: "banque-demo", refRemoteAccount: "prod",

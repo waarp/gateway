@@ -78,6 +78,7 @@ type taskOption struct {
 	Value    string
 	Label    string
 	Selected bool
+	Protocol string // the protocol key of a client, or of the partner of an account (data-protocol)
 }
 
 // taskGroup is a group of a select; one group without label for a flat
@@ -113,6 +114,7 @@ type fieldView struct {
 	CaseValue string
 	Check     gui.Check // the type the page checks as soon as the user leaves the field
 	Vars      string    // the id of the variables list the field offers; "" when the gateway does not substitute it
+	Follow    string    // the id of the account select whose partner's protocol keeps the clients of this list
 }
 
 // groupView is a card of the page: its title, its note, its fields side by
@@ -552,6 +554,7 @@ func exchangeOf(translate gui.Translator, spec *taskSpec, held *exchangeInput, b
 	view := &exchangeView{
 		Slug: spec.Slug, SensErr: held.sensErr, RuleErr: held.ruleErr, AccountErr: held.accountErr, Client: *client,
 	}
+	view.Client.Follow = argID(spec, exchangeAccount)
 
 	for _, dir := range directions {
 		view.Senses = append(view.Senses, taskOption{
@@ -582,7 +585,9 @@ func exchangeOf(translate gui.Translator, spec *taskSpec, held *exchangeInput, b
 		group := taskGroup{Label: g.Label}
 		for _, o := range g.Options {
 			value := accountValue(g.Label, o.Value)
-			group.Options = append(group.Options, taskOption{Value: value, Label: o.Label, Selected: value == chosen})
+			group.Options = append(group.Options, taskOption{
+				Value: value, Label: o.Label, Selected: value == chosen, Protocol: o.Protocol,
+			})
 		}
 
 		view.Accounts = append(view.Accounts, group)
@@ -812,8 +817,15 @@ func readExchange(translate gui.Translator, r *http.Request, spec *taskSpec, arg
 		exchange.accountErr, valid = required, false
 	}
 
+	// The client is required by the form: the product still falls back
+	// on a client of the protocol of the partner, so a task saved without one
+	// runs as before and asks for one at its next modification.
 	using := strings.TrimSpace(r.PostFormValue(argName(spec, "using")))
 	input.values["using"] = using
+
+	if using == "" {
+		input.errors["using"], valid = required, false
+	}
 
 	if !valid {
 		return false
@@ -824,12 +836,37 @@ func readExchange(translate gui.Translator, r *http.Request, spec *taskSpec, arg
 		side = "to"
 	}
 
-	args[side], args["as"], args["rule"] = exchange.partner, exchange.login, exchange.rule
-	if using != "" {
-		args["using"] = using
-	}
+	args[side], args["as"], args["rule"], args["using"] = exchange.partner, exchange.login, exchange.rule, using
 
 	return true
+}
+
+// checkClient refuses, under the client field, a client of a TRANSFER task
+// whose protocol is not the protocol of the partner of the account chosen,
+// with the message of the page that adds a transfer; a client or a
+// partner the gateway no longer has is left to the product, which names it.
+func (h *Handlers) checkClient(translate gui.Translator, args map[string]string, input *taskInput) (bool, error) {
+	var client model.Client
+	if err := h.db.Get(&client, "name=?", args["using"]).Run(); database.IsNotFound(err) {
+		return true, nil
+	} else if err != nil {
+		return false, err //nolint:wrapcheck // logged by the caller
+	}
+
+	var partner model.RemoteAgent
+	if err := h.db.Get(&partner, "name=?", input.exchange.partner).Run(); database.IsNotFound(err) {
+		return true, nil
+	} else if err != nil {
+		return false, err //nolint:wrapcheck // logged by the caller
+	}
+
+	if msg := transfers.ClientMismatch(translate, client.Protocol, partner.Protocol); msg != "" {
+		input.errors["using"] = msg
+
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // checkArg checks one posted argument and stores it; it answers the message
@@ -1227,6 +1264,19 @@ func (h *Handlers) saveTask(w http.ResponseWriter, r *http.Request, form *taskFo
 	args, input, valid := readArgs(translate, r, spec, stored)
 	if !valid {
 		return false, input
+	}
+
+	if spec.has(groupExchange) {
+		ok, err := h.checkClient(translate, args, input)
+		if err != nil {
+			h.internal(w, "read the client of the transfer task", err)
+
+			return true, nil
+		}
+
+		if !ok {
+			return false, input
+		}
 	}
 
 	task := &model.Task{Type: spec.Type, Args: args}

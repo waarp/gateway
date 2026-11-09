@@ -2583,7 +2583,7 @@ task_types:
         hint: "The login of the account to use for the transfer."
       using:
         label: "Client"
-        hint: "Useful when several clients exist for the same protocol."
+        hint: "A client of the protocol of the partner; the list follows the chosen account."
       rule:
         label: "Rule"
         hint: "The new transfer follows its folders and runs its tasks."
@@ -3488,8 +3488,8 @@ transfers:
     account_allowed_none: No account authorized by this rule
     account_cleared: "The account “{login}” is not authorized by this rule."
     rule_access: See the access of the rule
-    client_default: The client of the protocol of the partner
-    client_hint: Useful when several clients exist for the same protocol.
+    choose_client: Choose a client
+    client_hint: "A client of the protocol of the partner; the list follows the chosen account."
     start: Start
     start_hint: "Time of the gateway; empty: now."
     due_hint: Time of the gateway. After it, the partner can no longer exchange the file.
@@ -3520,7 +3520,7 @@ transfers:
       info_twice: "The information “{name}” is given twice."
       tries: "Enter a number from 0 to {max}."
       delay: Enter a number of seconds, 0 or more.
-      client: "Several clients exist for the protocol {protocol}: choose one."
+      client_protocol: "The partner is on {partner} and this client on {client}: choose a {partner} client."
   # Names of the reserved transfer information of the product; a key without an entry keeps its technical name.
   info_key:
     __followID__: Follow ID

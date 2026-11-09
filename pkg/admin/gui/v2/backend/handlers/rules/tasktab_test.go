@@ -282,8 +282,9 @@ func TestTaskAdd(t *testing.T) {
 			`data-case="send" data-of="transfer-sens"`, `name="transfer.rule_send"`, "Choisir une règle d&#39;envoi",
 			`<option value="releves">releves</option>`,
 			`data-case="receive" data-of="transfer-sens"`, `name="transfer.rule_receive"`, `<option value="commandes">commandes</option>`,
-			`name="transfer.account"`, `<optgroup label="banque-demo"><option value="login=prod&amp;partner=banque-demo">prod</option>`,
-			`name="transfer.using"`, "Le client du protocole du partenaire", "cli-sftp · SFTP",
+			`name="transfer.account"`, `<optgroup label="banque-demo"><option value="login=prod&amp;partner=banque-demo" data-protocol="sftp">prod</option>`,
+			`id="transfer-using" name="transfer.using" required aria-describedby="transfer-using-h" data-account-filter="transfer-account">`,
+			"Choisissez", `<option value="cli-sftp" data-protocol="sftp">cli-sftp · SFTP</option>`,
 			"<h2 class=\"w-card__title\">Informations de transfert</h2>", `name="info_copy"`, `data-infos`,
 			"<h2 class=\"w-card__title\">Tentatives en cas d&#39;erreur</h2>", "Vides : celles du client.",
 			`name="transfer.nbOfAttempts" value="" type="number" inputmode="numeric" step="1" min="0" max="127"`, "Premier délai (s)",
@@ -424,7 +425,7 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, "Indiquez un nombre, 0 ou plus (1,5 par exemple).")
 		assert.Contains(t, body, "Indiquez un nombre de secondes.")
 		assert.Contains(t, body, `name="transfer.synchronous" value="true" checked`, "the mode chosen stays chosen")
-		assert.Contains(t, body, `<option value="login=prod&amp;partner=banque-demo" selected>prod</option>`, "the account stays chosen")
+		assert.Contains(t, body, `<option value="login=prod&amp;partner=banque-demo" data-protocol="sftp" selected>prod</option>`, "the account stays chosen")
 		assert.Contains(t, body, `name="info_value" value="orpheline"`, "the rows stay as typed")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
@@ -452,7 +453,8 @@ func TestTaskAdd(t *testing.T) {
 		transfer := func(factor string) url.Values {
 			return url.Values{
 				"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
-				"transfer.account": {accountValue("banque-demo", "prod")}, "transfer.retryIncrementFactor": {factor},
+				"transfer.account": {accountValue("banque-demo", "prod")}, "transfer.using": {"cli-sftp"},
+				"transfer.retryIncrementFactor": {factor},
 			}
 		}
 
@@ -476,6 +478,44 @@ func TestTaskAdd(t *testing.T) {
 
 		body := s.get(t, permWrite, path(rule, "/tasks/post/0/edit")).Body.String()
 		assert.Contains(t, body, `name="transfer.retryIncrementFactor" value="1.5" type="number" inputmode="decimal" step="any" min="0"`)
+	})
+
+	// The client of a TRANSFER task is required and of the protocol of the
+	// partner of the account chosen, as on the page that adds a
+	// transfer: the same message, under the field, never from the model.
+	t.Run("Given the client of a TRANSFER task", func(t *testing.T) {
+		t.Parallel()
+
+		rule := &model.Rule{Name: "client-requis", IsSend: true, Path: "client-requis"}
+		require.NoError(t, s.db.Insert(rule).Run())
+		require.NoError(t, s.db.Insert(&model.Client{Name: "cli-r66", Protocol: "r66"}).Run())
+
+		transfer := func(using string) url.Values {
+			return url.Values{
+				"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
+				"transfer.account": {accountValue("banque-demo", "prod")}, "transfer.using": {using},
+			}
+		}
+
+		rec := s.post(t, permWrite, path(rule, "/tasks/post/new"), transfer(""))
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "no client")
+		body := rec.Body.String()
+		assert.Contains(t, body, `name="transfer.using" required aria-describedby="transfer-using-h" data-account-filter="transfer-account" aria-invalid="true"`)
+		assert.Contains(t, body, "Ce champ est obligatoire.")
+
+		rec = s.post(t, permWrite, path(rule, "/tasks/post/new"), transfer("cli-r66"))
+		require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "a client of another protocol")
+		body = rec.Body.String()
+		assert.Contains(t, body, "Le partenaire est en SFTP et ce client en R66 : choisissez un client SFTP.")
+		assert.Contains(t, body, `<option value="cli-r66" data-protocol="r66" selected>cli-r66 · R66</option>`, "the refused choice stays shown")
+		assert.NotContains(t, body, "La passerelle refuse la tâche", "the message of the model stays out of the banner")
+		assert.Empty(t, s.chain(t, rule, model.ChainPost), "nothing saved")
+
+		rec = s.post(t, permWrite, path(rule, "/tasks/post/new"), transfer("cli-sftp"))
+		require.Equal(t, http.StatusSeeOther, rec.Code, "a client of the protocol of the partner")
+		got := s.chain(t, rule, model.ChainPost)
+		require.Len(t, got, 1)
+		assert.Equal(t, "cli-sftp", got[0].Args["using"])
 	})
 
 	t.Run("Given parameters the product refuses", func(t *testing.T) {

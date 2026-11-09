@@ -2586,7 +2586,7 @@ task_types:
         hint: "Le compte à utiliser pour le transfert."
       using:
         label: "Client"
-        hint: "Utile quand plusieurs clients existent pour le même protocole."
+        hint: "Un client du protocole du partenaire ; la liste suit le compte choisi."
       rule:
         label: "Règle"
         hint: "Le nouveau transfert suit ses dossiers et exécute ses tâches."
@@ -3491,8 +3491,8 @@ transfers:
     account_allowed_none: Aucun compte autorisé par cette règle
     account_cleared: "Le compte « {login} » n'est pas autorisé par cette règle."
     rule_access: Voir les accès de la règle
-    client_default: Le client du protocole du partenaire
-    client_hint: Utile quand plusieurs clients existent pour le même protocole.
+    choose_client: Choisir un client
+    client_hint: "Un client du protocole du partenaire ; la liste suit le compte choisi."
     start: Départ
     start_hint: "Heure de la passerelle ; vide : maintenant."
     due_hint: Heure de la passerelle. Passé ce moment, le partenaire ne peut plus échanger le fichier.
@@ -3523,7 +3523,7 @@ transfers:
       info_twice: "L'information « {name} » est indiquée deux fois."
       tries: "Indiquez un nombre de 0 à {max}."
       delay: Indiquez un nombre de secondes, 0 ou plus.
-      client: "Plusieurs clients existent pour le protocole {protocol} : choisissez-en un."
+      client_protocol: "Le partenaire est en {partner} et ce client en {client} : choisissez un client {partner}."
   # Noms des informations de transfert réservées du produit ; une clé sans entrée garde son nom technique.
   info_key:
     __followID__: Identifiant de suivi

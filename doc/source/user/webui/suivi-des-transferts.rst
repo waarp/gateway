@@ -335,8 +335,10 @@ est vide).
        en donne le nombre et mène aux accès de la règle. Un compte que la
        règle n'autorise pas est refusé.
    * - Client
-     - Facultatif ; vide, le client du protocole du partenaire. Quand
-       plusieurs clients existent pour ce protocole, il faut en choisir un.
+     - Obligatoire : un client du protocole du partenaire du compte choisi. La
+       liste suit le compte et ne garde que les clients de ce protocole ; sans
+       JavaScript, tous les clients sont proposés et la Gateway refuse, sous
+       le champ, un client d'un autre protocole.
    * - Départ
      - Facultatif, à l'heure de la Gateway ; vide, maintenant.
    * - Informations de transfert

@@ -383,6 +383,18 @@ templ taskField(f fieldView) {
 	}
 }
 
+// selectOption: an option of a select; a client or an account carries its
+// protocol (data-protocol) for the client list to follow the account.
+templ selectOption(o taskOption) {
+	<option
+		value={ o.Value }
+		if o.Protocol != "" {
+			data-protocol={ o.Protocol }
+		}
+		selected?={ o.Selected }
+	>{ o.Label }</option>
+}
+
 // argInput: the field of a parameter.
 templ argInput(f fieldView) {
 	switch f.Kind {
@@ -440,6 +452,9 @@ templ argInput(f fieldView) {
 					name={ f.Name }
 					required?={ f.Required }
 					aria-describedby={ f.ID + "-h" }
+					if f.Follow != "" {
+						data-account-filter={ f.Follow }
+					}
 					if f.Error != "" {
 						aria-invalid="true"
 					}
@@ -448,12 +463,12 @@ templ argInput(f fieldView) {
 					for _, g := range f.Groups {
 						if g.Label == "" {
 							for _, o := range g.Options {
-								<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+								@selectOption(o)
 							}
 						} else {
 							<optgroup label={ g.Label }>
 								for _, o := range g.Options {
-									<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+									@selectOption(o)
 								}
 							</optgroup>
 						}

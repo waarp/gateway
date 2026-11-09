@@ -108,6 +108,28 @@
     apply();
   }
 
+  // The clients of the protocol of the partner: an account carries the protocol of its partner
+  // (data-protocol), a client its own; for the account chosen, the clients of another protocol are hidden and a
+  // chosen one that no longer fits is cleared; without an account, every client. Without JavaScript, the full list
+  // and the refusal of the server. The page that adds a transfer and the TRANSFER task of a rule share it.
+  const clients = document.querySelector("select[data-account-filter]");
+  const partnerAccounts = clients && document.getElementById(clients.dataset.accountFilter);
+  if (clients && partnerAccounts) {
+    const follow = () => {
+      const account = partnerAccounts.selectedOptions[0];
+      const protocol = account ? account.dataset.protocol || "" : "";
+      clients.querySelectorAll("option").forEach((o) => {
+        if (!o.value) return;
+        const ok = !protocol || o.dataset.protocol === protocol;
+        o.hidden = !ok;
+        o.disabled = !ok;
+        if (!ok && o.selected) clients.value = "";
+      });
+    };
+    partnerAccounts.addEventListener("change", follow);
+    follow();
+  }
+
   // The selection bar of the list (kit 0.21.0). The live list changes the filters, the sort and the page in
   // place and the address follows: at the submission, the bar takes the state of the list from the address, so that
   // the set it names is the one shown, and says how many transfers the selection counts (expected), so that the server

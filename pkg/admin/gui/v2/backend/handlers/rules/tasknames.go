@@ -57,7 +57,7 @@ func offers(groups []taskGroup, value string) bool {
 func (h *Handlers) namesOf(kind refKind) ([]taskGroup, error) {
 	var (
 		names     []string
-		protocols map[string]string // the protocols of the clients
+		protocols map[string]string // the protocol keys of the clients
 		err       error
 	)
 
@@ -85,7 +85,7 @@ func (h *Handlers) namesOf(kind refKind) ([]taskGroup, error) {
 		protocols = map[string]string{}
 
 		for _, c := range list {
-			protocols[c.Name] = protoform.ProtocolOf(c.Protocol).Label
+			protocols[c.Name] = c.Protocol
 		}
 	case refServer:
 		var list model.LocalAgents
@@ -109,7 +109,10 @@ func (h *Handlers) namesOf(kind refKind) ([]taskGroup, error) {
 	for _, name := range names {
 		option := taskOption{Value: name, Label: name}
 		if protocol := protocols[name]; protocol != "" {
-			option.Label += " · " + protocol // a client with its protocol, as the page that adds a transfer says it
+			// A client with its protocol, as the page that adds a transfer says it;
+			// the key for the script that keeps the clients of the partner.
+			option.Label += " · " + protoform.ProtocolOf(protocol).Label
+			option.Protocol = protocol
 		}
 
 		group.Options = append(group.Options, option)
@@ -182,8 +185,10 @@ func (h *Handlers) accountNames(kind refKind) ([]taskGroup, error) {
 		}
 	} else {
 		for _, a := range t.remotes {
-			owner := t.partners[a.RemoteAgentID].Name
-			byOwner[owner] = append(byOwner[owner], taskOption{Value: a.Login, Label: a.Login})
+			partner := t.partners[a.RemoteAgentID]
+			// The protocol of the partner, for the client list to follow.
+			byOwner[partner.Name] = append(byOwner[partner.Name],
+				taskOption{Value: a.Login, Label: a.Login, Protocol: partner.Protocol})
 		}
 	}
 

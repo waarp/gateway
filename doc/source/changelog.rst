@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`852` Dans l'interface Web, le client d'un transfert est obligatoire,
+  sur la page d'ajout d'un transfert comme dans la tâche ``TRANSFER`` d'une
+  règle, et il est du protocole du partenaire du compte choisi : la liste des
+  clients suit le compte, et un client d'un autre protocole est refusé sous
+  le champ, dans la langue de l'utilisateur, avant que le modèle ne le refuse
+  dans la sienne. Une tâche ``TRANSFER`` enregistrée sans client continue de
+  s'exécuter avec le client de ce protocole ; son formulaire demande un client
+  à sa prochaine modification.
 * :bug:`851` Dans l'interface Web, le facteur de progression du délai de
   reprise se saisit dans un champ numérique, dans la tâche ``TRANSFER`` comme
   dans la page d'ajout d'un transfert : le champ porte ses bornes et son pas,

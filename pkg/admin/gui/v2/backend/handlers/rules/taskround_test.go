@@ -236,9 +236,21 @@ func TestTaskTransferKeepsItsValues(t *testing.T) {
 	assert.Contains(t, body, `name="transfer.firstRetryDelay" value="90"`, "a duration in seconds")
 	assert.Contains(t, body, `name="transfer.sens" value="send" checked`, "the direction of the partner")
 
+	// A task saved without a client runs with the client of the protocol of
+	// the partner; its form asks for one at its next modification.
+	assert.Contains(t, body, `name="transfer.using" required`, "the client the task lacks is asked")
+
 	action, values := postedForm(t, body)
+	rec := s.post(t, permWrite, action, values)
+	require.Equal(t, http.StatusUnprocessableEntity, rec.Code, "saved as rendered: the client is missing")
+	assert.Contains(t, rec.Body.String(), "Ce champ est obligatoire.")
+
+	values.Set("transfer.using", "cli-sftp")
 	require.Equal(t, http.StatusSeeOther, s.post(t, permWrite, action, values).Code)
-	assert.Equal(t, stored, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args), "saved as written")
+
+	withClient := maps.Clone(stored)
+	withClient["using"] = "cli-sftp"
+	assert.Equal(t, withClient, map[string]string(s.chain(t, rule, model.ChainPost)[0].Args), "saved as written, the client added")
 
 	action, values = postedForm(t, s.get(t, permWrite, path(rule, "/tasks/post/0/edit")).Body.String())
 	values["info_value"][1] = "4"
@@ -249,4 +261,5 @@ func TestTaskTransferKeepsItsValues(t *testing.T) {
 	assert.JSONEq(t, `{"lot":"A","n":"4","ok":true}`, got["info"], "the row changed takes the text typed")
 	assert.Equal(t, "60s", got["firstRetryDelay"])
 	assert.Equal(t, "2m", got["timeout"], "the duration not changed stays as written")
+	assert.Equal(t, "cli-sftp", got["using"], "the client stays chosen")
 }

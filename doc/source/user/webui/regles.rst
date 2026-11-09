@@ -232,6 +232,12 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
      - Les valeurs que la tâche accepte (méthodes de chiffrement, jeux de
        caractères) ou les objets de la Gateway (clés, identifiants SMTP,
        modèles d'e-mail, partenaires, comptes, clients, serveurs, règles).
+       Le client d'une tâche ``TRANSFER`` est obligatoire et du protocole du
+       partenaire du compte choisi : la liste suit le compte, et un client
+       d'un autre protocole est refusé sous le champ, comme sur la page qui
+       ajoute un transfert. Une tâche enregistrée sans client continue de
+       s'exécuter avec le client de ce protocole ; son formulaire demande un
+       client à sa prochaine modification.
    * - Informations de transfert
      - Celles d'une tâche ``TRANSFER`` ou ``PREREGISTER``, et celles que pose
        une tâche ``SETINFO`` : une ligne par information (nom, valeur), comme
