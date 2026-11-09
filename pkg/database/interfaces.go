@@ -112,6 +112,18 @@ type Access interface {
 	// The request can then be executed using the DeleteAllQuery.Run method.
 	DeleteAll(obj DeleteAllBean) *DeleteAllQuery
 
+	// UpdateAll starts building a SQL 'UPDATE' query which writes the named
+	// columns of the given bean to every entry matching its conditions, in
+	// one statement. The columns (UpdateAllQuery.Cols) and the conditions
+	// (Where, In) are both mandatory.
+	//
+	// Be aware, since UpdateAll writes multiple entries with only one SQL
+	// command, the model's hooks (`BeforeWrite`, `AfterUpdate`) are not called:
+	// the caller has checked the entries one by one beforehand.
+	//
+	// The request can then be executed using the UpdateAllQuery.Run method.
+	UpdateAll(obj UpdateAllBean) *UpdateAllQuery
+
 	// Exec executes the given custom SQL query, and returns any error encountered.
 	// The query uses the '?' character as a placeholder for arguments.
 	//
