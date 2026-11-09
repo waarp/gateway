@@ -74,6 +74,8 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		return nil, NewErrorWith(err, types.TeInternal, "failed to build the file paths")
 	}
 
+	analytics.SeenLocalPath(transCtx.Transfer.LocalPath) // its volume joins the disk measure
+
 	if transCtx.Rule.IsSend {
 		transCtx.Transfer.Filesize = getFilesize(transCtx.Transfer.LocalPath)
 	}

@@ -7,10 +7,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
-const ServiceName = "Analytics"
+const (
+	ServiceName = "Analytics"
+
+	// Bound of the transfers and of the history entries read at start-up to
+	// seed the directories seen by the transfers (seedLimit).
+	seedLimit = 1000
+)
 
 //nolint:gochecknoglobals //global var is better for simplicity
 var GlobalService *Service
@@ -52,20 +59,27 @@ func (s *Service) start() error {
 	now := time.Now()
 	s.StartTime.Store(&now)
 
+	s.seedSeen(now)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	s.stopSampling = cancel
 
-	go s.sampleEvery(ctx, SamplePeriod)
+	go s.sampleEvery(ctx, SamplePeriod, DiskPeriod)
 
 	return nil
 }
 
-// sampleEvery samples the counters now, then every period, until ctx ends.
-func (s *Service) sampleEvery(ctx context.Context, period time.Duration) {
+// sampleEvery samples the counters now, then every period, and measures the
+// volumes now, then every diskPeriod, until ctx ends.
+func (s *Service) sampleEvery(ctx context.Context, period, diskPeriod time.Duration) {
 	s.Sample(time.Now())
+	s.measureDisks(ctx, time.Now())
 
 	ticker := time.NewTicker(period)
 	defer ticker.Stop()
+
+	disks := time.NewTicker(diskPeriod)
+	defer disks.Stop()
 
 	for {
 		select {
@@ -73,7 +87,149 @@ func (s *Service) sampleEvery(ctx context.Context, period time.Duration) {
 			return
 		case now := <-ticker.C:
 			s.Sample(now)
+		case now := <-disks.C:
+			s.measureDisks(ctx, now)
 		}
+	}
+}
+
+// measureDisks measures, in the background, the volumes of every local
+// directory the transfers use.
+func (s *Service) measureDisks(ctx context.Context, now time.Time) {
+	s.Measure(ctx, s.localDirs(now), now)
+}
+
+// localDirs lists the directories to measure, each path once: the gateway's
+// own (given by the daemon), those of the servers and the rules and the
+// destinations of the tasks (read in the database), then the directories the
+// transfers used within the window.
+func (s *Service) localDirs(now time.Time) []LocalDir {
+	var list []LocalDir
+
+	for _, d := range s.Dirs() {
+		list = append(list, LocalDir{Path: d.Path, Role: d.Name, Origin: OriginConfigured})
+	}
+
+	if s.DB != nil {
+		list = append(list, s.configuredDirs()...)
+	}
+
+	list = append(list, s.seenDirs(now)...)
+
+	seen := map[string]bool{}
+	out := make([]LocalDir, 0, len(list))
+
+	for _, d := range list {
+		if d.Path == "" || seen[d.Path] {
+			continue
+		}
+
+		seen[d.Path] = true
+		out = append(out, d)
+	}
+
+	return out
+}
+
+// configuredDirs reads in the database the directories of the servers (root,
+// receive, send, temporary), of the rules (local, temporary receive) and the
+// fixed part of the destinations of the tasks, resolved as the transfers
+// resolve them; a reading that fails is logged and leaves its part out.
+func (s *Service) configuredDirs() []LocalDir {
+	var (
+		servers model.LocalAgents
+		rules   model.Rules
+		tasks   model.Tasks
+		out     []LocalDir
+	)
+
+	if err := s.DB.Select(&servers).Run(); err != nil {
+		s.logger.Warningf("Failed to read the servers for the disk measure: %v", err)
+	}
+
+	for _, srv := range servers {
+		root := s.Resolve(srv.RootDir)
+		for _, d := range []struct{ dir, role string }{
+			{root, RoleServerRoot},
+			{s.Resolve(srv.ReceiveDir, root), RoleServerReceive},
+			{s.Resolve(srv.SendDir, root), RoleServerSend},
+			{s.Resolve(srv.TmpReceiveDir, root), RoleServerTmp},
+		} {
+			if d.dir != "" {
+				out = append(out, LocalDir{Path: d.dir, Role: d.role, Owner: srv.Name, Origin: OriginConfigured})
+			}
+		}
+	}
+
+	if err := s.DB.Select(&rules).Run(); err != nil {
+		s.logger.Warningf("Failed to read the rules for the disk measure: %v", err)
+	}
+
+	names := map[int64]string{}
+
+	for _, rule := range rules {
+		names[rule.ID] = rule.Name
+
+		for _, d := range []struct{ dir, role string }{{rule.LocalDir, RoleRuleLocal}, {rule.TmpLocalRcvDir, RoleRuleTmp}} {
+			if resolved := s.Resolve(d.dir); resolved != "" {
+				out = append(out, LocalDir{Path: resolved, Role: d.role, Owner: rule.Name, Origin: OriginConfigured})
+			}
+		}
+	}
+
+	if err := s.DB.Select(&tasks).Run(); err != nil {
+		s.logger.Warningf("Failed to read the tasks for the disk measure: %v", err)
+	}
+
+	for _, task := range tasks {
+		dest, known := TaskDestinations[task.Type]
+		if !known {
+			continue
+		}
+
+		dir, cloud := DestinationDir(task.Args[dest.Arg], dest.Dir)
+		if dir == "" {
+			continue
+		}
+
+		if !cloud {
+			dir = s.Resolve(dir)
+		}
+
+		out = append(out, LocalDir{Path: dir, Role: RoleTask, Owner: names[task.RuleID], Origin: OriginTask})
+	}
+
+	return out
+}
+
+// seedSeen records the directories of the transfers of the last SeenWindow,
+// current and finished, a bounded number of each, so that the volumes they
+// use are measured from the start.
+func (s *Service) seedSeen(now time.Time) {
+	if s.DB == nil {
+		return
+	}
+
+	since := now.Add(-SeenWindow)
+
+	var transfers model.Transfers
+	if err := s.DB.Select(&transfers).Where("start > ?", since).OrderBy("start", false).
+		Limit(seedLimit, 0).Run(); err != nil {
+		s.logger.Warningf("Failed to read the transfers for the disk measure: %v", err)
+	}
+
+	for _, t := range transfers {
+		s.Seen(t.LocalPath, t.Start)
+	}
+
+	var history model.HistoryEntries
+	if err := s.DB.Select(&history).Where("start > ?", since).OrderBy("start", false).
+		Limit(seedLimit, 0).Run(); err != nil {
+		s.logger.Warningf("Failed to read the history for the disk measure: %v", err)
+	}
+
+	for _, h := range history {
+		s.Seen(h.LocalPath, h.Start)
 	}
 }
 

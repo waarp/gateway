@@ -55,8 +55,14 @@ func (a *analytics) Dirs() []Dir {
 	return slices.Clone(a.dirs.list)
 }
 
-// DiskUsageOf measures, now, the file system of the directory of that name.
+// DiskUsageOf is the usage of the file system of the directory of that name:
+// the last measure of its volume when there is one, a measure taken
+// now otherwise.
 func (a *analytics) DiskUsageOf(name string) (DiskUsage, error) {
+	if usage, ok := a.Disks().Usage(name); ok {
+		return usage, nil
+	}
+
 	for _, dir := range a.Dirs() {
 		if dir.Name != name {
 			continue

@@ -3,6 +3,21 @@
 Historique des versions
 =======================
 
+* :feature:`847` La passerelle mesure l'espace disque de tous les dossiers
+  locaux que les transferts utilisent, regroupés par volume et en arrière-plan :
+  ses dossiers par défaut, ceux des serveurs et des règles, le dossier de sa
+  base et de ses journaux, la partie fixe des destinations des tâches (avant
+  la première variable) et les dossiers des transferts des sept derniers jours.
+  Chaque volume est mesuré toutes les 30 secondes, deux secondes au plus, dans
+  sa propre routine : un montage qui ne répond plus ne bloque ni l'interface
+  Web ni SNMP. Un volume est en alerte à 80 % occupés ou sous 10 Go libres, en
+  défaut à 90 % ou sous 2 Go, les mêmes seuils valant pour les inodes sous
+  Linux ; un dossier qui n'existe pas encore est mesuré par le volume qui
+  l'accueillera ; un dossier local qui ne se mesure pas (accès refusé, volume
+  sans réponse ou disparu) est une alerte avec sa raison ; un stockage cloud
+  est dit non mesurable. La case « Espace disque » du tableau de bord montre le volume le
+  plus grave et tous les volumes au survol. Les destinations des scripts
+  (``EXEC``, ``EXECMOVE``, ``EXECOUTPUT``) restent hors de portée.
 * :feature:`830` La passerelle mesure l'espace disque de ses dossiers de travail
   (réception, émission, temporaire) et du dossier de sa base de données quand
   elle est un fichier ; SNMP l'expose par huit objets de la MIB, part utilisée

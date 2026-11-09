@@ -69,9 +69,11 @@ func getDir(root, dir string) string {
 	return path.Join(root, dir)
 }
 
-// dirsToMeasure lists the directories whose file system the analytics
-// service measures: the working directories and, for a database kept
-// in a file, its directory.
+// dirsToMeasure lists the directories of the gateway itself whose file system
+// the analytics service measures: the working directories, the
+// directory of a database kept in a file, and the directory of the log file
+// when the gateway logs to one. The service adds those of the servers, the
+// rules, the tasks and the transfers.
 func (wg *WG) dirsToMeasure(root, in, out, tmp string) []analytics.Dir {
 	dirs := []analytics.Dir{
 		{Name: analytics.DirIn, Path: in},
@@ -83,6 +85,12 @@ func (wg *WG) dirsToMeasure(root, in, out, tmp string) []analytics.Dir {
 		dirs = append(dirs, analytics.Dir{
 			Name: analytics.DirDatabase, Path: getDir(root, path.Dir(wg.Config.Database.Address)),
 		})
+	}
+
+	switch logTo := wg.Config.Log.LogTo; logTo {
+	case "", "stdout", "stderr", "syslog", "/dev/null":
+	default:
+		dirs = append(dirs, analytics.Dir{Name: analytics.DirLog, Path: getDir(root, path.Dir(logTo))})
 	}
 
 	return dirs
@@ -119,6 +127,7 @@ func (wg *WG) makeDirs() error {
 		return fmt.Errorf("failed to create gateway out directory: %w", err)
 	}
 
+	wg.Analytics.SetHome(root)
 	wg.Analytics.SetDirs(wg.dirsToMeasure(root, in, out, tmp))
 
 	if err := fs.MkdirAll(tmp); err != nil {
