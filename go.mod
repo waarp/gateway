@@ -11,6 +11,7 @@ require (
 	code.waarp.fr/lib/migration v1.5.0
 	code.waarp.fr/lib/pesit v0.1.12-0.20261109155246-c633bcb44320
 	code.waarp.fr/lib/r66 v1.0.8
+	code.waarp.fr/lib/transcode v0.2.0
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.10.1
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/ProtonMail/gopenpgp/v3 v3.5.2
@@ -25,7 +26,6 @@ require (
 	github.com/gookit/color v1.6.3
 	github.com/gorilla/mux v1.8.1
 	github.com/gosnmp/gosnmp v1.47.0
-	github.com/indece-official/go-ebcdic v1.2.0
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/jessevdk/go-flags v1.6.1
@@ -240,6 +240,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/huandu/xstrings v1.6.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/indece-official/go-ebcdic v1.2.0 // indirect
 	github.com/internxt/rclone-adapter v0.2.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

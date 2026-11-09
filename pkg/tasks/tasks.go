@@ -34,8 +34,10 @@ const (
 	Archive = "ARCHIVE"
 	Extract = "EXTRACT"
 
-	Transcode     = "TRANSCODE"
-	ChangeNewline = "CHNEWLINE"
+	Transcode            = "TRANSCODE"
+	TranscodeAndReformat = "TRANSCODE&REFORMAT"
+	Reformat             = "REFORMAT"
+	ChangeNewline        = "CHNEWLINE"
 
 	Icap         = "ICAP"
 	Email        = "EMAIL"
@@ -79,6 +81,8 @@ func init() {
 
 	// Content manipulation
 	model.ValidTasks[Transcode] = newRunner[*transcodeTask]
+	model.ValidTasks[TranscodeAndReformat] = newRunner[*transcodeReformatTask]
+	model.ValidTasks[Reformat] = newRunner[*reformatTask]
 	model.ValidTasks[ChangeNewline] = newRunner[*chNewlineTask]
 
 	// Network

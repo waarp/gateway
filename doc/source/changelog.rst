@@ -4,6 +4,19 @@ Historique des versions
 =======================
 
 
+* :feature:`845` La tâche TRANSCODE propose 53 pages EBCDIC de plus et
+  accepte aussi les noms usuels des encodages (``utf8``, ``IBM1147``,
+  ``CP037``). Son formulaire demande d'abord le sens de la conversion et dit à
+  quoi sert chaque encodage.
+* :feature:`845` Nouvelle tâche TRANSCODE&REFORMAT : elle convertit un
+  fichier par enregistrements (lignes, longueur fixe ou variable) et en change
+  la mise en forme, en une seule lecture. En lignes, les fins de ligne restent
+  telles quelles, ce qui garde les articles d'un envoi PeSIT.
+* :feature:`845` Nouvelle tâche REFORMAT : elle change la mise en forme d'un
+  fichier (lignes, longueur fixe ou variable) sans toucher à son contenu,
+  recopié octet pour octet.
+* :bug:`845` Avec les pages IBM 500 et 1148, la tâche TRANSCODE convertit
+  désormais correctement les caractères ``[ ] ! ^ ¢ ¬ |``, dans les deux sens.
 * :release:`0.17.2 <2026-11-13>`
 * :bug:`871` Une tâche ``SETINFO`` qui emploie ``key`` ou ``value`` autrement que
   dans son ancienne forme seule est refusée à l'enregistrement, au lieu de ne

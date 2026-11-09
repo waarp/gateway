@@ -46,6 +46,8 @@ Liste des traitements
    sendmessage
    setinfo
    transcode
+   transcode_reformat
+   reformat
    change_newline
    archive
    extract

@@ -30,6 +30,8 @@ code.waarp.fr/lib/pesit v0.1.12-0.20261109155246-c633bcb44320 h1:FqtiP63XTXRGmVx
 code.waarp.fr/lib/pesit v0.1.12-0.20261109155246-c633bcb44320/go.mod h1:tFN8SMuVOaayyBFP5EfunaUQIwBRXYElrIRzYaNAHyk=
 code.waarp.fr/lib/r66 v1.0.8 h1:RHNbOzY95eKPA/yYHU559tdY2eAqQvjR+Fz+R3WTS7w=
 code.waarp.fr/lib/r66 v1.0.8/go.mod h1:APiI1uK3RliA/0opgYWCzS7q3GxdypkRiaesjhclUZI=
+code.waarp.fr/lib/transcode v0.2.0 h1:xckYlxo5aSs/s/lOqYNSj+HKcJwobv9JZNRwT9clKB8=
+code.waarp.fr/lib/transcode v0.2.0/go.mod h1:6tXl70jzmtGt8+9HbZGSDvjZyzmuipmMbPqAWsEdcBY=
 codeberg.org/chavacava/garif v0.2.1 h1:K9oYxSlvlXrHXyW26Z4q61bTpJDo1wbvXcYKar/F/LM=
 codeberg.org/chavacava/garif v0.2.1/go.mod h1:oHnDSmc0f9K1MeE+MQD/yjkiIB5Xsn5y3S9Dg96Xk84=
 codeberg.org/polyfloyd/go-errorlint v1.9.0 h1:VkdEEmA1VBpH6ecQoMR4LdphVI3fA4RrCh2an7YmodI=
