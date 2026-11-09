@@ -108,6 +108,65 @@ func (s *SelectQuery) Count() (uint64, error) {
 	return countQuery.Run()
 }
 
+// CountBy counts the entries of the query for each value of the given column
+// ('SELECT column, COUNT(*) ... GROUP BY column'): one reading where a count
+// per value would read the table as many times. The conditions apply; the
+// order, the limit and the offset do not. The column is written from
+// constants of the caller, never from a user input.
+func (s *SelectQuery) CountBy(column string) (map[string]uint64, error) {
+	logger := s.db.getLogger()
+	query := s.db.getUnderlying().Table(s.bean.TableName())
+	addOwnerCond(query, s.all, s.bean, s.db.getOwner())
+
+	for _, cond := range s.conds {
+		query.Where(cond.sql, cond.args...)
+	}
+
+	var groups []struct {
+		Grp string `gorm:"column:grp"`
+		Cnt int64  `gorm:"column:cnt"`
+	}
+
+	if err := query.Select(column + " AS grp, COUNT(*) AS cnt").Group(column).Scan(&groups).Error; err != nil {
+		logger.Errorf("Failed to count the %s entries by %s: %v", s.bean.Elem(), column, err)
+
+		return nil, NewInternalError(err)
+	}
+
+	counts := make(map[string]uint64, len(groups))
+	for _, group := range groups {
+		counts[group.Grp] = uint64(group.Cnt)
+	}
+
+	return counts, nil
+}
+
+// Sum adds the values of the given column over the entries of the query
+// ('SELECT SUM(column) ...'), 0 without any entry. The conditions apply; the
+// order, the limit and the offset do not. The column is written from
+// constants of the caller, never from a user input.
+func (s *SelectQuery) Sum(column string) (int64, error) {
+	logger := s.db.getLogger()
+	query := s.db.getUnderlying().Table(s.bean.TableName())
+	addOwnerCond(query, s.all, s.bean, s.db.getOwner())
+
+	for _, cond := range s.conds {
+		query.Where(cond.sql, cond.args...)
+	}
+
+	var total struct {
+		Total int64 `gorm:"column:total"`
+	}
+
+	if err := query.Select("COALESCE(SUM(" + column + "), 0) AS total").Scan(&total).Error; err != nil {
+		logger.Errorf("Failed to sum the %s of the %s entries: %v", column, s.bean.Elem(), err)
+
+		return 0, NewInternalError(err)
+	}
+
+	return total.Total, nil
+}
+
 // Run executes the 'SELECT' query.
 func (s *SelectQuery) Run() error {
 	logger := s.db.getLogger()
