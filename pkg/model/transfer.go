@@ -543,19 +543,52 @@ func (t *Transfer) CheckResumable() error {
 	return nil
 }
 
+// Resume plans the transfer again where it stopped (see CheckResumable): its
+// next attempt is at when.
 func (t *Transfer) Resume(db database.Access, when time.Time) error {
 	if err := t.CheckResumable(); err != nil {
 		return err
 	}
 
+	t.setResumed(when)
+
+	if err := db.Update(t).Run(); err != nil {
+		return fmt.Errorf("failed to update transfer: %w", err)
+	}
+
+	return nil
+}
+
+// setResumed puts the transfer in the state of one that resumes: planned
+// again, its error cleared, its next attempt at when, its end forgotten. The
+// columns written are resumedCols.
+func (t *Transfer) setResumed(when time.Time) {
 	t.Status = types.StatusPlanned
 	t.ErrCode = types.TeOk
 	t.ErrDetails = ""
 	t.NextRetry = when
 	t.Stop = time.Time{}
+}
 
-	if err := db.Update(t).Run(); err != nil {
-		return fmt.Errorf("failed to update transfer: %w", err)
+// resumedCols are the columns setResumed writes.
+func resumedCols() []string {
+	return []string{"status", "error_code", "error_details", "next_retry", "stop"}
+}
+
+// ResumeTransfers plans the given transfers again at once, in one statement,
+// as Resume does each of them: the caller has checked them (CheckResumable)
+// and gives a transaction when the resumption of the set must hold or fall as
+// one. Nothing is written without an identifier.
+func ResumeTransfers(db database.Access, ids []int64, when time.Time) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	resumed := &Transfer{}
+	resumed.setResumed(when)
+
+	if err := db.UpdateAll(resumed).Cols(resumedCols()...).In("id", utils.AsAny(ids)...).Run(); err != nil {
+		return fmt.Errorf("failed to resume the transfers: %w", err)
 	}
 
 	return nil

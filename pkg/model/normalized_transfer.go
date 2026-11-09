@@ -14,6 +14,10 @@ var (
 	ErrResumeDone    = errors.New("cannot resume a transfer that is already done")
 	ErrResumeRunning = errors.New("cannot resume a transfer that is already running")
 	ErrResumeServer  = errors.New("cannot resume server transfers")
+
+	ErrRetryServer  = errors.New("cannot retry server transfers")
+	ErrRetryRunning = errors.New("cannot retry a transfer that has not stopped")
+	ErrCancelDone   = errors.New("cannot cancel a transfer that is already done or cancelled")
 )
 
 type NormalizedTransferView struct {
@@ -121,6 +125,33 @@ func (n *NormalizedTransferView) CheckResumable() error {
 	}
 
 	return trans.CheckResumable()
+}
+
+// CheckRetryable says whether a new transfer can be made from this one
+// (Restart): a client transfer that no longer runs nor waits to run (paused,
+// interrupted, failed, done or cancelled). The gateway starts client transfers
+// only: a server transfer is retried by the partner.
+func (n *NormalizedTransferView) CheckRetryable() error {
+	if n.IsServer {
+		return ErrRetryServer
+	}
+
+	if !n.Status.IsOneOf(types.StatusPaused, types.StatusInterrupted, types.StatusError,
+		types.StatusDone, types.StatusCancelled) {
+		return ErrRetryRunning
+	}
+
+	return nil
+}
+
+// CheckCancellable says whether the transfer can still be cancelled: a live
+// transfer, neither done nor cancelled.
+func (n *NormalizedTransferView) CheckCancellable() error {
+	if !n.IsTransfer || n.Status.IsOneOf(types.StatusDone, types.StatusCancelled) {
+		return ErrCancelDone
+	}
+
+	return nil
 }
 
 func (n *NormalizedTransferView) Resume(db database.Access, when time.Time) error {
