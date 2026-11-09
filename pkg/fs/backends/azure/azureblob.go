@@ -12,12 +12,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/backends/internal"
 )
 
+// BlobStorage is the storage of rclone the Azure Blob backend is built on.
+const BlobStorage = "azureblob"
+
 func parseBlobOpts(account, key string, userOpts map[string]string) configmap.Mapper {
 	// Credential options
 	credOpts := azureCredOpts(account, key)
 
 	// Make config map
-	config := internal.MakeOptions("azureblob", userOpts, credOpts)
+	config := internal.MakeOptions(BlobStorage, userOpts, credOpts)
 
 	return config
 }

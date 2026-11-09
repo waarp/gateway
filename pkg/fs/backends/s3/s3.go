@@ -16,6 +16,9 @@ import (
 
 var ErrMissingBucket = errors.New("no S3 bucket specified")
 
+// Storage is the storage of rclone the backend is built on.
+const Storage = "s3"
+
 func parseOpts(key, secret string, userOpts map[string]string,
 ) (config configmap.Mapper, root string, err error) {
 	// Credential options
@@ -25,7 +28,7 @@ func parseOpts(key, secret string, userOpts map[string]string,
 	}
 
 	// Make config map
-	config = internal.MakeOptions("s3", userOpts, overrides)
+	config = internal.MakeOptions(Storage, userOpts, overrides)
 
 	// Check mandatory options
 	if bucket, _ := config.Get("bucket"); bucket == "" {

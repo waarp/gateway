@@ -19,6 +19,9 @@ import (
 
 var ErrMissingDriveID = errors.New(`missing onedrive "drive_id" parameter`)
 
+// Storage is the storage of rclone the backend is built on.
+const Storage = "onedrive"
+
 func NewFS(name, clientID, clientSecret string, userOpts map[string]string) (fs.FS, error) {
 	token, err := makeTokenFunc(clientID, clientSecret, configmap.Simple(userOpts))
 	if err != nil {
@@ -103,7 +106,7 @@ func parseOpts(clientID, clientSecret, token string, userOpts map[string]string,
 	}
 
 	// Make config map
-	config := internal.MakeOptions("onedrive", userOpts, overrides)
+	config := internal.MakeOptions(Storage, userOpts, overrides)
 
 	// Check mandatory values
 	if drive, _ := config.Get("drive_id"); drive == "" {
