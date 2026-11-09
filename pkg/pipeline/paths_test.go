@@ -122,6 +122,46 @@ func TestPathBuilder(t *testing.T) {
 			}
 		})
 
+		Convey("Given a client transfer not started yet", func(c C) {
+			client := &model.Client{Name: "client", Protocol: testProtocol}
+			So(db.Insert(client).Run(), ShouldBeNil)
+
+			partner := &model.RemoteAgent{Name: "partner", Protocol: testProtocol, Address: types.Addr("localhost", 1)}
+			So(db.Insert(partner).Run(), ShouldBeNil)
+
+			account := &model.RemoteAccount{RemoteAgentID: partner.ID, Login: "titi"}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:          send.ID,
+				ClientID:        client.NullableID(),
+				RemoteAccountID: account.NullableID(),
+				SrcFilename:     "dir/file.txt",
+			}
+			So(db.Insert(trans).Run(), ShouldBeNil)
+
+			logger := testhelpers.TestLogger(c, "test_pipeline_path")
+			transCtx, err := model.GetTransferContext(db, logger, trans)
+			So(err, ShouldBeNil)
+
+			Convey("When computing its expected paths", func() {
+				local, remote, err := ExpectedPaths(transCtx)
+				So(err, ShouldBeNil)
+
+				Convey("Then they are the paths the pipeline sets at the start", func() {
+					So(trans.LocalPath, ShouldBeEmpty)
+					So(trans.RemotePath, ShouldBeEmpty)
+
+					pip := &Pipeline{TransCtx: transCtx}
+					So(pip.setFilePaths(), ShouldBeNil)
+					So(local, ShouldEqual, trans.LocalPath)
+					So(remote, ShouldEqual, trans.RemotePath)
+					So(local, ShouldEqual, path.Join(db.Config.Paths.GatewayHome, "sendLoc", "dir/file.txt"))
+					So(remote, ShouldEqual, "sendRem/dir/file.txt")
+				})
+			})
+		})
+
 		Convey("Given an outgoing transfer", func(c C) {
 			trans := &model.Transfer{
 				RuleID:         send.ID,
