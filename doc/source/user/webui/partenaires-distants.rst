@@ -121,8 +121,12 @@ de quatre blocs :
        Pour PeSIT, l'identifiant que le partenaire attend, la reprise des
        transferts interrompus et les points de synchronisation se règlent
        *comme le client* (la valeur du client local s'applique), *activés*
-       ou *désactivés* ; le délai d'attente de l'acquittement se saisit en
-       heures, minutes et secondes. Les options d'une famille qui en a
+       ou *désactivés* ; la case *Attendre l'acquittement du partenaire après
+       chaque transfert* fait attendre à la Gateway, après chaque transfert
+       avec ce partenaire, son message d'acquittement, pendant le délai
+       d'attente de l'acquittement, qui se saisit en heures, minutes et
+       secondes (10 minutes s'il est vide) ; sans acquittement dans ce délai,
+       le transfert passe en erreur. Les options d'une famille qui en a
        beaucoup sont groupées par thème (pour PeSIT : identification,
        reprise et synchronisation, messages, acquittement). Le détail de
        chaque option se trouve dans la référence des :ref:`options de

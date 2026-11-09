@@ -152,14 +152,15 @@ type PartnerConfig struct {
 	// connecting to this partner. By default, the pre-connection authentication
 	// is activated.
 	DisablePreConnection bool `json:"disablePreConnection,omitempty"`
-	// ExpectsAck specifies that the partner expects an acknowledgement for pull
-	// transfers. If this is set, then pull transfers will not be finalized until
-	// an acknowledgement is received.
+	// ExpectsAck makes the gateway wait, after each transfer it runs with this
+	// partner, for the partner's acknowledgement (a PeSIT message, the one the
+	// SENDMESSAGE task sends): the transfer stays running until the
+	// acknowledgement arrives, and falls in error once AckTimeout has elapsed
+	// without it.
 	ExpectsAck bool `json:"expectsAck,omitempty"`
-	// AckTimeout specifies the amount of time that Gateway will wait for the
-	// partner's acknowledgement. If no acknowledgement has been received once
-	// the timeout has elapsed, the transfer will fall in error. The duration
-	// must be specified in a valid Go duration format (e.g., "10s", "1m", "1h", ...).
+	// AckTimeout is how long the gateway waits for the partner's
+	// acknowledgement before the transfer falls in error, as a Go duration
+	// ("10s", "1m", "1h"); 10 minutes when empty.
 	AckTimeout string `json:"ackTimeout,omitempty"`
 	// NoPI37 disables sending the PI37 in push transfers with the partner.
 	NoPI37 bool `json:"noPI37,omitempty"` //nolint:tagliatelle //PI is an acronym

@@ -289,6 +289,19 @@ func TestRows(t *testing.T) {
 	assert.Equal(t, "N'importe quel port libre", labels["Dernier port du mode actif"])
 	assert.NotContains(t, labels, "Mode passif")
 
+	// The acknowledgement options say who waits for whom: the gateway
+	// waits for the partner's acknowledgement after each transfer, for 10
+	// minutes unless a delay is set.
+	rows = Rows(translate, RolePartner, ProtocolOf("pesit"), map[string]any{"expectsAck": true})
+	labels = map[string]string{}
+
+	for _, row := range rows {
+		labels[row.Label] = row.Value
+	}
+
+	assert.Equal(t, "Activé", labels["Attendre l'acquittement du partenaire après chaque transfert"])
+	assert.Equal(t, "10 min (par défaut)", labels["Délai d'attente de l'acquittement"])
+
 	// A number of bytes reads with its unit when it is a whole number of it, to the byte otherwise.
 	rows = Rows(translate, RoleServer, ProtocolOf("pesit"), map[string]any{"checkpointSize": 10485760, "maxMessageSize": 32700})
 	labels = map[string]string{}

@@ -94,10 +94,16 @@ JSON de configuration du protocole pour un partenaire PeSIT est donc la suivante
 * **disablePreConnection** (*boolean*) - Permet de désactiver le processus de
   pré-connexion (et la pré-authentification qui va avec) pour ce partenaire. Par
   défaut, un échange de pré-connexion est attendu à chaque nouvelle connexion.
-* **expectsAck** (*boolean*) - Spécifie que le partenaire attend systématiquement
-  un *acknowledgement* pour les transferts *pull*. Voir la section ":ref:`Messages
-  <ref-pesit-messages>`" de la documentation PeSIT pour plus de détails sur les
-  *acknowledgements*.
+* **expectsAck** (*boolean*) - Fait attendre à Gateway, après chaque transfert
+  qu'elle effectue avec ce partenaire, le message d'acquittement (*acknowledgement*)
+  du partenaire : le transfert reste en cours jusqu'à sa réception et passe en
+  erreur une fois le délai ``ackTimeout`` écoulé sans acquittement. Voir la
+  section ":ref:`Messages <ref-pesit-messages>`" de la documentation PeSIT pour
+  plus de détails sur les *acknowledgements*.
+* **ackTimeout** (*string*) - Délai pendant lequel Gateway attend l'acquittement
+  du partenaire avant de mettre le transfert en erreur, sous la forme d'une durée
+  Go (``10s``, ``1m``, ``1h``). Sans valeur, 10 minutes. Sans effet si
+  ``expectsAck`` n'est pas activé.
 * **minTLSVersion** (*string*) - [PeSIT-TLS uniquement] Spécifie la version
   minimale de TLS autorisée pour ce partenaire. Par défaut, la valeur "v1.2"
   (pour TLS 1.2) est utilisée.

@@ -366,10 +366,10 @@ proto:
       off: Disabled
     pesit_nsdu: Use NSDU packets
     pesit_nsdu_hint: Enabled by default
-    pesit_expects_ack: Expects an acknowledgement of received transfers
+    pesit_expects_ack: Wait for the partner's acknowledgement after each transfer
     pesit_ack_timeout: Acknowledgement timeout
-    pesit_ack_timeout_hint: "When an acknowledgement is expected; empty: no limit"
-    pesit_ack_no_limit: No limit
+    pesit_ack_timeout_hint: "After each transfer, the gateway waits for the acknowledgement message of the partner for that long; without one, the transfer fails. Empty: 10 minutes."
+    pesit_ack_default: 10 min (default)
     pesit_no_pi37: Do not send the PI 37
     pesit_pi37: Sending of the PI 37
     sftp_use_stat: Read the size of the file before receiving it

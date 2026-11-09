@@ -379,7 +379,7 @@ var (
 				Name: "pesit_ack_timeout", Cfg: cfgAckTimeout, Kind: KindDuration, Roles: partnerOnly,
 				Section: secAck,
 				Parse:   parseDuration, ErrorKey: "proto.error_duration", Label: "proto.opt.pesit_ack_timeout",
-				Hint: "proto.opt.pesit_ack_timeout_hint", DefaultKey: "proto.opt.pesit_ack_no_limit",
+				Hint: "proto.opt.pesit_ack_timeout_hint", DefaultKey: "proto.opt.pesit_ack_default",
 			},
 			{
 				Name: "pesit_no_pi37", Cfg: cfgNoPI37, Kind: KindCheck, Roles: partnerOnly,

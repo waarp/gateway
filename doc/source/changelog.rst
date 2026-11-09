@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :bug:`785` Les options d'acquittement d'un partenaire PeSIT disent qui attend
+  l'acquittement de qui : « Attendre l'acquittement du partenaire après chaque
+  transfert », dans le formulaire et la fiche du partenaire comme dans la
+  référence des options et le code ; l'aide du délai d'attente dit que, sans
+  acquittement dans ce délai, le transfert passe en erreur, et que le délai vaut
+  10 minutes quand il est vide (la fiche disait « Sans limite »). L'option
+  ``ackTimeout`` entre dans la référence des options PeSIT.
 * :bug:`852` Dans l'interface Web, le client d'un transfert est obligatoire,
   sur la page d'ajout d'un transfert comme dans la tâche ``TRANSFER`` d'une
   règle, et il est du protocole du partenaire du compte choisi : la liste des

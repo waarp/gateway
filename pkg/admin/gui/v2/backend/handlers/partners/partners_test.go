@@ -367,7 +367,8 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Identifiant du partenaire</dt><dd><code class=\"w-code\">gw</code></dd>")
 		assert.Contains(t, body, "<dt>Reprise des transferts interrompus</dt><dd>Désactivé</dd>")
 		assert.Contains(t, body, "<dt>Points de synchronisation</dt><dd>Comme le client (par défaut)</dd>")
-		assert.Contains(t, body, "<dt>Attend un acquittement des transferts reçus</dt><dd>Activé</dd>")
+		assert.Contains(t, body, "<dt>Attendre l&#39;acquittement du partenaire après chaque transfert</dt><dd>Activé</dd>",
+			"said from the seat of the operator: the gateway waits, the partner acknowledges")
 		assert.Contains(t, body, "<dt>Délai d&#39;attente de l&#39;acquittement</dt><dd>10 s</dd>", "a duration in words")
 		assert.Contains(t, body, "<dt>Comptes distants</dt><dd>Aucun</dd>")
 

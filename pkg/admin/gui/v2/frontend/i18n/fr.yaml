@@ -365,10 +365,10 @@ proto:
       off: Désactivé
     pesit_nsdu: Utiliser les paquets NSDU
     pesit_nsdu_hint: Activé par défaut
-    pesit_expects_ack: Attend un acquittement des transferts reçus
+    pesit_expects_ack: Attendre l'acquittement du partenaire après chaque transfert
     pesit_ack_timeout: Délai d'attente de l'acquittement
-    pesit_ack_timeout_hint: "Quand un acquittement est attendu ; vide : sans limite"
-    pesit_ack_no_limit: Sans limite
+    pesit_ack_timeout_hint: "Après chaque transfert, la passerelle attend le message d'acquittement du partenaire pendant ce délai ; sans acquittement, le transfert passe en erreur. Vide : 10 minutes."
+    pesit_ack_default: 10 min (par défaut)
     pesit_no_pi37: Ne pas envoyer le PI 37
     pesit_pi37: Envoi du PI 37
     sftp_use_stat: Lire la taille du fichier avant de le recevoir
