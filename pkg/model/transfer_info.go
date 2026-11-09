@@ -18,15 +18,6 @@ func (e *ResumeSyncError) Error() string {
 	)
 }
 
-const (
-	// FollowID defines the name of the transfer info value containing the R66
-	// follow ID.
-	FollowID = "__followID__"
-
-	SyncTransferID   = "__syncTransferID__"
-	SyncTransferRank = "__syncTransferRank__"
-)
-
 // TransferInfo represents the transfer_info database table, which contains all the
 // protocol-specific information attached to a transfer.
 type TransferInfo struct {

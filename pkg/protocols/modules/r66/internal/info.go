@@ -17,7 +17,7 @@ import (
 
 // UserContent defines the name of the transfer info value containing the R66
 // user content.
-const UserContent = "__userContent__"
+const UserContent = model.InfoUserContent
 
 // UpdateFileInfo updates the pipeline file info with the ones given.
 func UpdateFileInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *pipeline.Error {

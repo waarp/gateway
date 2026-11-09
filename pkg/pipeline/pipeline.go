@@ -573,10 +573,10 @@ func incrementRetryDelay(trans *model.Transfer) {
 
 const (
 	AckExpected      = tasks.SendMessageAckExpectedKey
-	AckWaitSince     = "__ackWaitSince__"
-	AckWaitTimeout   = "__ackWaitTimeout__"
-	AckReceived      = "__ackReceived__"
-	AckReceivedOnKey = "__ackReceivedOn__"
+	AckWaitSince     = model.InfoAckWaitSince
+	AckWaitTimeout   = model.InfoAckWaitTimeout
+	AckReceived      = model.InfoAckReceived
+	AckReceivedOnKey = model.InfoAckReceivedOn
 
 	ackDefaultTimeout = 10 * time.Minute
 )
