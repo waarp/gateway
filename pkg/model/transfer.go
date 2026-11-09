@@ -490,9 +490,7 @@ func (t *Transfer) setRetryParameters(client *Client) {
 		}
 	}
 
-	if t.RemainingTries != 0 && t.NextRetryDelay == 0 {
-		t.NextRetryDelay = 1
-	}
+	t.NextRetryDelay = FirstRetryDelay(t.RemainingTries, t.NextRetryDelay)
 
 	if t.NextRetryDelay != 0 && t.RetryIncrementFactor == 0 {
 		t.RetryIncrementFactor = 1.0
