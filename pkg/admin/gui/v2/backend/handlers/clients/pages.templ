@@ -300,7 +300,7 @@ templ formView(d *formData) {
 					<p class="w-form__note clients-note">{ gui.T(ctx, "clients.form.address_hint") }</p>
 					<div class="w-grid w-grid--2">
 						@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "clients.form.host"), F: d.Fields["host"], Hint: gui.T(ctx, "clients.form.host_hint")})
-						@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "clients.form.port"), F: d.Fields["port"], Hint: gui.T(ctx, "clients.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+						@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "clients.form.port"), F: d.Fields["port"], Hint: gui.T(ctx, "clients.form.port_hint"), Short: true, Num: &protoform.Number{Min: 1, Max: 65535}})
 					</div>
 				</fieldset>
 			</div>
@@ -312,7 +312,7 @@ templ formView(d *formData) {
 					<legend class="visually-hidden">{ gui.T(ctx, "clients.form.retries") }</legend>
 					<p class="w-form__note clients-note">{ gui.T(ctx, "clients.form.retries_hint") }</p>
 					<div class="w-grid w-grid--2">
-						@protoform.FieldOf(protoform.FieldProps{ID: "attempts", Label: gui.T(ctx, "clients.retries.attempts"), F: d.Fields["attempts"], Hint: gui.T(ctx, "clients.retries.attempts_hint"), Short: true, Num: true, Min: 0, Max: 127, Code: "nbOfAttempts"})
+						@protoform.FieldOf(protoform.FieldProps{ID: "attempts", Label: gui.T(ctx, "clients.retries.attempts"), F: d.Fields["attempts"], Hint: gui.T(ctx, "clients.retries.attempts_hint"), Short: true, Num: &protoform.Number{Max: 127}, Code: "nbOfAttempts"})
 						@protoform.FieldOf(protoform.FieldProps{ID: "factor", Label: gui.T(ctx, "clients.retries.factor"), F: d.Fields["factor"], Hint: gui.T(ctx, "clients.retries.factor_hint"), Short: true, Code: "retryIncrementFactor"})
 					</div>
 					<fieldset class="w-fieldset clients-delay" aria-describedby="delay-h">

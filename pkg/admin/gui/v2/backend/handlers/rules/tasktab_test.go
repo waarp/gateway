@@ -287,6 +287,8 @@ func TestTaskAdd(t *testing.T) {
 			"<h2 class=\"w-card__title\">Informations de transfert</h2>", `name="info_copy"`, `data-infos`,
 			"<h2 class=\"w-card__title\">Tentatives en cas d&#39;erreur</h2>", "Vides : celles du client.",
 			`name="transfer.nbOfAttempts" value="" type="number" inputmode="numeric" step="1" min="0" max="127"`, "Premier délai (s)",
+			"Facteur de progression du délai", `name="transfer.retryIncrementFactor" value="" type="number" inputmode="decimal" step="any" min="0"`,
+			"1 : délai constant ; 2 : délai doublé à chaque reprise",
 			"<h2 class=\"w-card__title\">Exécution</h2>", `name="transfer.synchronous" value="" checked data-switch="transfer-synchronous"`,
 			`name="transfer.synchronous" value="true" data-switch="transfer-synchronous"`,
 			`data-case="true" data-of="transfer-synchronous"`, `name="transfer.timeout"`)
@@ -387,7 +389,7 @@ func TestTaskAdd(t *testing.T) {
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
 			"type": {tasks.Archive}, "archive.files": {"*.csv"}, "archive.compressionLevel": {"12"}, "archive.outputPath": {"/a.zip"},
 		}).Body.String()
-		assert.Contains(t, body, "Entre 0 et 9.")
+		assert.Contains(t, body, "Indiquez un nombre entier entre 0 et 9.")
 		assert.Contains(t, body, `value="*.csv"`, "the typed values stay")
 
 		body = s.post(t, permWrite, path(s.orders, "/tasks/pre/new"), url.Values{
@@ -419,7 +421,7 @@ func TestTaskAdd(t *testing.T) {
 			"transfer.retryIncrementFactor": {"deux"}, "transfer.firstRetryDelay": {"trente"}, "transfer.synchronous": {"true"},
 		}).Body.String()
 		assert.Contains(t, body, "Indiquez le nom de l&#39;information 2.")
-		assert.Contains(t, body, "Indiquez un nombre.")
+		assert.Contains(t, body, "Indiquez un nombre, 0 ou plus (1,5 par exemple).")
 		assert.Contains(t, body, "Indiquez un nombre de secondes.")
 		assert.Contains(t, body, `name="transfer.synchronous" value="true" checked`, "the mode chosen stays chosen")
 		assert.Contains(t, body, `<option value="login=prod&amp;partner=banque-demo" selected>prod</option>`, "the account stays chosen")
@@ -436,6 +438,44 @@ func TestTaskAdd(t *testing.T) {
 		assert.Contains(t, body, "Indiquez le nom de l&#39;information 2.", "a SETINFO row needs its name")
 
 		assert.Empty(t, s.chain(t, s.orders, model.ChainPre), "nothing saved")
+	})
+
+	// The growth factor of the retry delay is the decimal argument of the
+	// tasks: asked in a number field, read with the same bounds and the
+	// same message as the page that adds a transfer.
+	t.Run("Given the decimal argument of a TRANSFER task", func(t *testing.T) {
+		t.Parallel()
+
+		rule := &model.Rule{Name: "decimale", IsSend: true, Path: "decimale"}
+		require.NoError(t, s.db.Insert(rule).Run())
+
+		transfer := func(factor string) url.Values {
+			return url.Values{
+				"type": {tasks.Transfer}, "transfer.file": {"f"}, "transfer.sens": {"send"}, "transfer.rule_send": {"releves"},
+				"transfer.account": {accountValue("banque-demo", "prod")}, "transfer.retryIncrementFactor": {factor},
+			}
+		}
+
+		for _, factor := range []string{"-1", "deux", "1,5,2"} {
+			rec := s.post(t, permWrite, path(rule, "/tasks/post/new"), transfer(factor))
+			require.Equalf(t, http.StatusUnprocessableEntity, rec.Code, "%q is refused", factor)
+			body := rec.Body.String()
+			assert.Contains(t, body, "Indiquez un nombre, 0 ou plus (1,5 par exemple).", "the message of the page that adds a transfer")
+			assert.Contains(t, body, `name="transfer.retryIncrementFactor" value="`+factor+`" type="number" inputmode="decimal" step="any" min="0"`,
+				"the typed value stays, in its number field")
+		}
+
+		assert.Empty(t, s.chain(t, rule, model.ChainPost), "nothing saved")
+
+		rec := s.post(t, permWrite, path(rule, "/tasks/post/new"), transfer("1,5"))
+		require.Equal(t, http.StatusSeeOther, rec.Code, "a decimal comma is accepted")
+
+		got := s.chain(t, rule, model.ChainPost)
+		require.Len(t, got, 1)
+		assert.Equal(t, "1.5", got[0].Args["retryIncrementFactor"], "stored as the product reads it")
+
+		body := s.get(t, permWrite, path(rule, "/tasks/post/0/edit")).Body.String()
+		assert.Contains(t, body, `name="transfer.retryIncrementFactor" value="1.5" type="number" inputmode="decimal" step="any" min="0"`)
 	})
 
 	t.Run("Given parameters the product refuses", func(t *testing.T) {

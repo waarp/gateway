@@ -1393,7 +1393,7 @@ func formView(d *formData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = protoform.FieldOf(protoform.FieldProps{ID: fieldPort, Label: gui.T(ctx, "smtp.form.port"), Req: true, F: d.Port, Hint: gui.T(ctx, "smtp.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = protoform.FieldOf(protoform.FieldProps{ID: fieldPort, Label: gui.T(ctx, "smtp.form.port"), Req: true, F: d.Port, Hint: gui.T(ctx, "smtp.form.port_hint"), Short: true, Num: &protoform.Number{Min: 1, Max: 65535}}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -774,9 +774,9 @@ templ formView(d *formData) {
 			@formCard(true, keyIf(d.Tries.Error == "" && d.Delay.Error == "" && d.Factor.Error == "", "tf-form-retries"), gui.T(ctx, "transfers.form.retries")) {
 				<p class="w-muted tf-note">{ gui.T(ctx, "transfers.form.retries_hint") }</p>
 				<div class="w-grid w-grid--3">
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldTries, Label: gui.T(ctx, "transfers.retries.attempts"), F: d.Tries, Short: true, Num: true, Max: maxTries})
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldDelay, Label: gui.T(ctx, "transfers.form.delay"), F: d.Delay, Short: true, Num: true})
-					@protoform.FieldOf(protoform.FieldProps{ID: fieldFactor, Label: gui.T(ctx, "transfers.retries.factor"), F: d.Factor, Short: true})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldTries, Label: gui.T(ctx, "transfers.retries.attempts"), F: d.Tries, Short: true, Num: &protoform.Number{Max: maxTries}})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldDelay, Label: gui.T(ctx, "transfers.form.delay"), F: d.Delay, Short: true, Num: &protoform.Number{}})
+					@protoform.FieldOf(protoform.FieldProps{ID: fieldFactor, Label: gui.T(ctx, "transfers.retries.factor"), F: d.Factor, Hint: gui.T(ctx, "transfers.retries.factor_hint"), Short: true, Num: factorNumber()})
 				</div>
 			}
 		}

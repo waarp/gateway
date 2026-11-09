@@ -163,6 +163,15 @@ type OptionView struct {
 	Hours, Mins, Secs string
 }
 
+// Number is the number field of a "number" option, nil for the others.
+func (v *OptionView) Number() *Number {
+	if v.Kind != "number" {
+		return nil
+	}
+
+	return &Number{Min: float64(v.Min), Max: float64(v.Max)}
+}
+
 // NewForm builds the protocol part of a form for a role, with the defaults
 // of the product selected.
 func NewForm(role Role) *Form {

@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/lib/gui"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/varlist"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -37,14 +38,13 @@ import (
 
 // The kinds of field of the form, as the template renders them.
 const (
-	fieldText    = "text"
-	fieldBool    = "bool"
-	fieldNumber  = "number"
-	fieldDecimal = "decimal"
-	fieldSelect  = "select"
-	fieldChoice  = "choice" // two or three values, as joined buttons
-	fieldFixed   = "fixed"  // the only value possible, said and sent
-	fieldJSON    = "json"
+	fieldText   = "text"
+	fieldBool   = "bool"
+	fieldNumber = "number"
+	fieldSelect = "select"
+	fieldChoice = "choice" // two or three values, as joined buttons
+	fieldFixed  = "fixed"  // the only value possible, said and sent
+	fieldJSON   = "json"
 
 	// The most values a choice offers as joined buttons; beyond, a list.
 	maxButtons = 3
@@ -100,9 +100,9 @@ type fieldView struct {
 	Value     string
 	Checked   bool
 	Required  bool
-	NoMark    bool // a choice always made: no star, no "(optional)"
-	Min, Max  int
-	None      string // the empty option of a select
+	NoMark    bool              // a choice always made: no star, no "(optional)"
+	Num       *protoform.Number // the bounds and the step of a number field, nil for the others
+	None      string            // the empty option of a select
 	Groups    []taskGroup
 	Options   []taskOption // the joined buttons of a choice
 	Fixed     string       // the label of the only value possible
@@ -317,10 +317,8 @@ func fields(translate gui.Translator, spec *taskSpec, input *taskInput, found na
 		switch arg.Kind {
 		case argBool:
 			boolField(translate, arg, value, &field)
-		case argInt:
-			field.Kind, field.Min, field.Max = fieldNumber, arg.Min, arg.Max
-		case argDecimal:
-			field.Kind = fieldDecimal
+		case argInt, argDecimal:
+			field.Kind, field.Num = fieldNumber, arg.number()
 		case argDuration:
 			durationField(translate, arg, value, &field)
 		case argOctal:
@@ -375,7 +373,7 @@ func durationField(translate gui.Translator, arg *argSpec, value string, field *
 	default:
 		field.Value = secondsText(value)
 		if _, err := strconv.Atoi(field.Value); err == nil || field.Value == "" {
-			field.Kind, field.Min = fieldNumber, 0
+			field.Kind, field.Num = fieldNumber, &protoform.Number{}
 		}
 	}
 }
@@ -854,14 +852,13 @@ func checkArg(translate gui.Translator, arg *argSpec, raw string, args map[strin
 	}
 
 	switch arg.Kind {
-	case argInt:
-		if msg := checkNumber(translate, arg, raw); msg != "" {
+	case argInt, argDecimal:
+		value, msg := arg.number().Read(translate, raw)
+		if msg != "" {
 			return msg
 		}
-	case argDecimal:
-		if _, err := strconv.ParseFloat(raw, 64); err != nil {
-			return translate("rules.tasks.error.decimal")
-		}
+
+		raw = protoform.NumberText(value)
 	case argDuration:
 		value, msg := durationValue(translate, arg, raw)
 		if msg != "" {
@@ -898,22 +895,6 @@ func icapAddress(raw string) bool {
 	address, err := url.Parse(raw)
 
 	return err == nil && address.Hostname() != "" && !strings.ContainsAny(address.Hostname(), "/:@")
-}
-
-// checkNumber checks a whole number against the bounds of its argument.
-func checkNumber(translate gui.Translator, arg *argSpec, raw string) string {
-	n, err := strconv.Atoi(raw)
-
-	switch {
-	case err != nil:
-		return translate("rules.tasks.error.number")
-	case arg.Max > 0 && (n < arg.Min || n > arg.Max):
-		return translate("rules.tasks.error.range", "min", arg.Min, "max", arg.Max)
-	case n < arg.Min:
-		return translate("rules.tasks.error.min", "min", arg.Min)
-	}
-
-	return ""
 }
 
 // secondsValue is a number of seconds typed as the duration stored ("90"

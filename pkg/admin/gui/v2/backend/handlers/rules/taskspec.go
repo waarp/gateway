@@ -5,6 +5,7 @@ import (
 
 	"code.waarp.fr/lib/gui"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
@@ -24,7 +25,7 @@ const (
 	argText     argKind = iota // a line of text: a path, a pattern, a variable
 	argBool                    // a box: "true" when ticked, nothing otherwise
 	argInt                     // a whole number, between Min and Max
-	argDecimal                 // a decimal number
+	argDecimal                 // a decimal number, between Min and Max
 	argDuration                // a duration: 30s, 5m, 1h30m
 	argOctal                   // permissions in octal: 640
 	argChoice                  // one of the values of Choices
@@ -86,7 +87,8 @@ type argSpec struct {
 	Name     string
 	Kind     argKind
 	Required bool
-	Min, Max int // bounds of a number; Max 0: none
+	Min, Max float64 // bounds of a number, decimals for a decimal argument; Max 0: none
+	Step     float64 // the step of the arrows of a number field; 0: 1 for a whole number, any for a decimal
 	Choices  func() []choiceValue
 	None     string // the catalogue key of the empty choice of an optional argument; "": "None"
 	Ref      refKind
@@ -425,6 +427,12 @@ func (a *argSpec) check() gui.Check {
 	}
 
 	return ""
+}
+
+// number is the number field of a whole or decimal argument: its bounds and
+// its step, as the browser checks them and the server reads them.
+func (a *argSpec) number() *protoform.Number {
+	return &protoform.Number{Decimal: a.Kind == argDecimal, Min: a.Min, Max: a.Max, Step: a.Step}
 }
 
 // specOf is the description of a type of task, nil for a type the screen

@@ -17,8 +17,8 @@ import (
 
 // FieldProps feeds FieldOf: an input with its label, hint or error. Num
 // makes it a number field (browser arrows to go up and down, typing still
-// possible) with Min and Max; Password makes it a password field, whose
-// value is never rendered back; Autocomplete tells the browser what the
+// possible), whole or decimal, with its bounds and its step; Password makes
+// it a password field, whose value is never rendered back; Autocomplete tells the browser what the
 // field holds ("username", "new-password"); Req marks it required; Code is
 // the technical name shown after the label of an optional option;
 // Placeholder shows an example of a value, or the default, in the empty
@@ -31,9 +31,7 @@ type FieldProps struct {
 	Hint         string
 	Short        bool
 	Code         string
-	Num          bool
-	Min          int
-	Max          int
+	Num          *Number
 	Password     bool
 	Autocomplete string
 	Placeholder  string
@@ -71,14 +69,14 @@ templ FieldOf(p FieldProps) {
 			if p.Placeholder != "" {
 				placeholder={ p.Placeholder }
 			}
-			if p.Num {
+			if p.Num != nil {
 				type="number"
-				inputmode="numeric"
-				step="1"
-				min={ strconv.Itoa(p.Min) }
+				inputmode={ p.Num.InputMode() }
+				step={ p.Num.StepAttr() }
+				min={ p.Num.MinAttr() }
 			}
-			if p.Num && p.Max != 0 {
-				max={ strconv.Itoa(p.Max) }
+			if p.Num != nil && p.Num.MaxAttr() != "" {
+				max={ p.Num.MaxAttr() }
 			}
 			if p.F.Error != "" {
 				aria-invalid="true"
@@ -267,7 +265,7 @@ templ option(v OptionView) {
 	} else if v.Kind == "duration" {
 		@durationOf(v)
 	} else {
-		@FieldOf(FieldProps{ID: v.Name, Label: v.Label, F: Field{Value: v.Value, Error: v.Error}, Hint: v.Hint, Short: v.Short, Code: v.Code, Num: v.Kind == "number", Min: v.Min, Max: v.Max})
+		@FieldOf(FieldProps{ID: v.Name, Label: v.Label, F: Field{Value: v.Value, Error: v.Error}, Hint: v.Hint, Short: v.Short, Code: v.Code, Num: v.Number()})
 	}
 }
 

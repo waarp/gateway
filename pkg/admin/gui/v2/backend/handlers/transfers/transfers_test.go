@@ -837,7 +837,10 @@ func TestForms(t *testing.T) {
 		assert.NotContains(t, body, "¿")
 		indexes(t, body, "Nouveau transfert", `<optgroup label="Envoi">`, ">releves</option>",
 			`<optgroup label="Réception">`, ">commandes</option>", `<optgroup label="banque-demo">`, ">prod</option>",
-			"Le client du protocole du partenaire", "cli-sftp · SFTP", `type="datetime-local"`)
+			"Le client du protocole du partenaire", "cli-sftp · SFTP", `type="datetime-local"`,
+			`id="tries" name="tries" value="" type="number" inputmode="numeric" step="1" min="0" max="127"`,
+			"Facteur de progression du délai", `id="factor" name="factor" value="" type="number" inputmode="decimal" step="any" min="0"`,
+			"1 : délai constant ; 2 : délai doublé à chaque reprise")
 
 		assert.Equal(t, 1, strings.Count(body, `name="info_name"`)-1, "one empty row, besides the template")
 
@@ -855,6 +858,18 @@ func TestForms(t *testing.T) {
 		assert.Contains(t, body, `data-key="tf-form-retries" open>`, "a card without error keeps its key")
 		indexes(t, body, `id="info-name-1"`, `value=""`, `aria-invalid="true"`, `value="sans nom"`,
 			`id="info-name-2"`, `value="lot"`, `value="B"`, `id="info-name-3"`, `<template id="tf-info-row">`)
+
+		// The growth factor is a decimal, 0 or more, read as the TRANSFER task
+		// reads its own: the same field, the same message.
+		for _, factor := range []string{"-1", "abc", "1,5,2"} {
+			rec = s.post(t, permWrite, "/webui/transfers/new", url.Values{fieldFile: {"x.pdf"}, fieldFactor: {factor}})
+			require.Equalf(t, http.StatusUnprocessableEntity, rec.Code, "%q is refused", factor)
+			body = rec.Body.String()
+			assert.Contains(t, body, "Indiquez un nombre, 0 ou plus (1,5 par exemple).")
+			assert.Contains(t, body, `id="factor" name="factor" value="`+factor+`" type="number" inputmode="decimal" step="any" min="0" aria-invalid="true"`,
+				"refused under its field, the typed value kept")
+			assert.NotContains(t, body, `data-key="tf-form-retries"`, "the refused card opens")
+		}
 
 		rec = s.post(t, permWrite, "/webui/transfers/new",
 			url.Values{fieldInfoName: {"lot", "lot"}, fieldInfoValue: {"A", "B"}})

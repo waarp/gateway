@@ -217,7 +217,10 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        possible est affichée, sans choix à faire.
    * - Nombre
      - Un entier, borné quand la tâche le borne (niveau de compression de 0 à
-       9).
+       9), ou un nombre décimal (facteur de progression du délai d'une tâche
+       ``TRANSFER`` : 0 ou plus, virgule ou point). Le champ porte ses bornes
+       et son pas : le navigateur vérifie la valeur avant l'envoi, la Gateway
+       garde le dernier mot, avec les mêmes bornes.
    * - Durée
      - Sous la forme ``30s``, ``5m`` ou ``1h30m`` ; en secondes pour les
        délais d'une tâche ``TRANSFER``. La durée maximale d'exécution d'une

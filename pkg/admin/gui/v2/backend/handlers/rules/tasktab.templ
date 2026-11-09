@@ -386,7 +386,7 @@ templ taskField(f fieldView) {
 // argInput: the field of a parameter.
 templ argInput(f fieldView) {
 	switch f.Kind {
-		case fieldText, fieldDecimal, fieldNumber:
+		case fieldText, fieldNumber:
 			<div class={ "w-field", templ.KV("w-field--short", f.Kind != fieldText), templ.KV("is-invalid", f.Error != "") }>
 				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required, false)</label>
 				<input
@@ -397,13 +397,13 @@ templ argInput(f fieldView) {
 					if f.Vars != "" {
 						data-vars={ f.Vars }
 					}
-					if f.Kind == fieldNumber {
+					if f.Num != nil {
 						type="number"
-						inputmode="numeric"
-						step="1"
-						min={ strconv.Itoa(f.Min) }
-						if f.Max > 0 {
-							max={ strconv.Itoa(f.Max) }
+						inputmode={ f.Num.InputMode() }
+						step={ f.Num.StepAttr() }
+						min={ f.Num.MinAttr() }
+						if f.Num.MaxAttr() != "" {
+							max={ f.Num.MaxAttr() }
 						}
 					}
 					required?={ f.Required }

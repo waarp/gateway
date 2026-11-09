@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :bug:`851` Dans l'interface Web, le facteur de progression du délai de
+  reprise se saisit dans un champ numérique, dans la tâche ``TRANSFER`` comme
+  dans la page d'ajout d'un transfert : le champ porte ses bornes et son pas,
+  le navigateur vérifie la valeur avant l'envoi et la Gateway garde le dernier
+  mot, avec les mêmes bornes. Les deux champs portent le même libellé et le
+  même message ; la virgule décimale est acceptée aux deux endroits, une valeur
+  négative refusée aux deux endroits. Les nombres entiers des tâches annoncent
+  de même leurs bornes dans leur message.
 * :bug:`838` Dans le Suivi des transferts, le bouton « Filtres » compte les
   filtres actifs dès qu'un filtre change sur place, sans rechargement de la
   page, comme sur les autres listes.

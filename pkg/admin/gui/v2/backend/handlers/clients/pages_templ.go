@@ -1695,7 +1695,7 @@ func formView(d *formData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "clients.form.port"), F: d.Fields["port"], Hint: gui.T(ctx, "clients.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "clients.form.port"), F: d.Fields["port"], Hint: gui.T(ctx, "clients.form.port_hint"), Short: true, Num: &protoform.Number{Min: 1, Max: 65535}}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1773,7 +1773,7 @@ func formView(d *formData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = protoform.FieldOf(protoform.FieldProps{ID: "attempts", Label: gui.T(ctx, "clients.retries.attempts"), F: d.Fields["attempts"], Hint: gui.T(ctx, "clients.retries.attempts_hint"), Short: true, Num: true, Min: 0, Max: 127, Code: "nbOfAttempts"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = protoform.FieldOf(protoform.FieldProps{ID: "attempts", Label: gui.T(ctx, "clients.retries.attempts"), F: d.Fields["attempts"], Hint: gui.T(ctx, "clients.retries.attempts_hint"), Short: true, Num: &protoform.Number{Max: 127}, Code: "nbOfAttempts"}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -237,6 +237,10 @@ proto:
   options_meta_one: 1 option
   options_meta: "{n} options"
   error_number: Indiquez un nombre entier.
+  error_number_min: "Indiquez un nombre entier, {min} ou plus."
+  error_number_range: "Indiquez un nombre entier entre {min} et {max}."
+  error_decimal_min: "Indiquez un nombre, {min} ou plus (1,5 par exemple)."
+  error_decimal_range: "Indiquez un nombre entre {min} et {max}."
   error_duration: "Indiquez des nombres entiers d'heures, de minutes et de secondes."
   options_default: Options par défaut de la passerelle
   options_set_one: 1 option renseignée
@@ -2363,10 +2367,6 @@ rules:
     refused_product: "La passerelle refuse la tâche : {cause}"
     error:
       required: Ce champ est obligatoire.
-      number: Indiquez un nombre entier.
-      decimal: Indiquez un nombre.
-      min: "{min} au moins."
-      range: "Entre {min} et {max}."
       json: "Indiquez un objet JSON, par exemple {\"lot\": \"A\"}."
       markers: "Variables que les tâches ne connaissent pas : {markers}. Tapez # pour choisir dans la liste."
       info_self: "La valeur de « {name} » fait référence à l'information « {ref} », que cette tâche pose : les variables sont remplacées avant la tâche, avec les valeurs d'avant."
@@ -2603,8 +2603,8 @@ task_types:
         label: "Premier délai (s)"
         hint: "Le délai avant la première nouvelle tentative, en secondes."
       retryIncrementFactor:
-        label: "Facteur d'augmentation"
-        hint: "Le facteur par lequel le délai entre chaque nouvelle tentative sera multiplié. Les nombres décimaux sont acceptés."
+        label: "Facteur de progression du délai"
+        hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
       timeout:
         label: "Durée limite (s)"
         hint: "Au-delà, le transfert est interrompu et la tâche échoue. Vide : sans limite."
@@ -3386,7 +3386,8 @@ transfers:
     next: Prochaine tentative
     delay: Délai avant la prochaine
     seconds: "{n} s"
-    factor: Facteur d'augmentation
+    factor: Facteur de progression du délai
+    factor_hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
   refused:
     title: Action impossible
     elsewhere: Ce transfert s'exécute sur un autre nœud de la grappe. Agissez depuis l'interface de ce nœud.
@@ -3522,7 +3523,6 @@ transfers:
       info_twice: "L'information « {name} » est indiquée deux fois."
       tries: "Indiquez un nombre de 0 à {max}."
       delay: Indiquez un nombre de secondes, 0 ou plus.
-      factor: "Indiquez un nombre, 0 ou plus (1,5 par exemple)."
       client: "Plusieurs clients existent pour le protocole {protocol} : choisissez-en un."
   # Noms des informations de transfert réservées du produit ; une clé sans entrée garde son nom technique.
   info_key:

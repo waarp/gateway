@@ -238,6 +238,10 @@ proto:
   options_meta_one: 1 option
   options_meta: "{n} options"
   error_number: Enter a whole number.
+  error_number_min: "Enter a whole number, {min} or more."
+  error_number_range: "Enter a whole number between {min} and {max}."
+  error_decimal_min: "Enter a number, {min} or more (1.5 for example)."
+  error_decimal_range: "Enter a number between {min} and {max}."
   error_duration: "Give whole numbers of hours, minutes and seconds."
   options_default: Default options of the gateway
   options_set_one: 1 option set
@@ -2362,10 +2366,6 @@ rules:
     refused_product: "The gateway refuses the task: {cause}"
     error:
       required: This field is required.
-      number: Give a whole number.
-      decimal: Give a number.
-      min: "{min} at least."
-      range: "Between {min} and {max}."
       json: "Give a JSON object, for instance {\"batch\": \"A\"}."
       markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
       info_self: "The value of “{name}” refers to the information “{ref}”, which this task sets: the variables are replaced before the task, with the values from before."
@@ -2600,8 +2600,8 @@ task_types:
         label: "First delay (s)"
         hint: "The delay before the first retry, in seconds."
       retryIncrementFactor:
-        label: "Increase factor"
-        hint: "The factor by which the delay between each new attempts will be multiplied. Decimal numbers are allowed."
+        label: "Delay growth factor"
+        hint: "1: constant delay; 2: the delay doubles at each retry"
       timeout:
         label: "Time limit (s)"
         hint: "Beyond it, the transfer is interrupted and the task fails. Empty: no limit."
@@ -3383,7 +3383,8 @@ transfers:
     next: Next attempt
     delay: Delay before the next one
     seconds: "{n} s"
-    factor: Growth factor
+    factor: Delay growth factor
+    factor_hint: "1: constant delay; 2: the delay doubles at each retry"
   refused:
     title: Action impossible
     elsewhere: This transfer runs on another node of the cluster. Act from the interface of that node.
@@ -3519,7 +3520,6 @@ transfers:
       info_twice: "The information “{name}” is given twice."
       tries: "Enter a number from 0 to {max}."
       delay: Enter a number of seconds, 0 or more.
-      factor: "Enter a number, 0 or more (1.5 for example)."
       client: "Several clients exist for the protocol {protocol}: choose one."
   # Names of the reserved transfer information of the product; a key without an entry keeps its technical name.
   info_key:

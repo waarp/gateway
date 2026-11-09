@@ -348,7 +348,10 @@ est vide).
        la règle peuvent les lire.
    * - Tentatives en cas d'erreur
      - Facultatives : nombre de tentatives, premier délai en secondes,
-       facteur d'augmentation ; vides, celles du client.
+       facteur de progression du délai (1 : délai constant ; 2 : délai doublé
+       à chaque reprise ; décimales acceptées, 0 ou plus) ; vides, celles du
+       client. Ces champs numériques portent leurs bornes : le navigateur
+       vérifie la valeur avant l'envoi, la Gateway garde le dernier mot.
 
 
 Pré-enregistrer un transfert

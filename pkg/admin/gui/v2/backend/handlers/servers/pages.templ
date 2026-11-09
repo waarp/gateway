@@ -294,7 +294,7 @@ templ formView(d *formData) {
 					<legend class="visually-hidden">{ gui.T(ctx, "servers.form.address") }</legend>
 					<div class="w-grid w-grid--2">
 						@protoform.FieldOf(protoform.FieldProps{ID: "host", Label: gui.T(ctx, "servers.form.host"), F: d.Fields["host"], Hint: gui.T(ctx, "servers.form.host_hint")})
-						@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "servers.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "servers.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+						@protoform.FieldOf(protoform.FieldProps{ID: "port", Label: gui.T(ctx, "servers.form.port"), Req: true, F: d.Fields["port"], Hint: gui.T(ctx, "servers.form.port_hint"), Short: true, Num: &protoform.Number{Min: 1, Max: 65535}})
 					</div>
 				</fieldset>
 			</div>

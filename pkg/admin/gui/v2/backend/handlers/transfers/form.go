@@ -438,10 +438,11 @@ type parsed struct {
 func (h *Handlers) validate(translate gui.Translator, form *formData) (parsed, bool) {
 	var out parsed
 
-	fail := func(fld *field, key string, args ...any) {
-		fld.Error = translate(key, args...)
+	refuse := func(fld *field, msg string) {
+		fld.Error = msg
 		form.HasErrors = true
 	}
+	fail := func(fld *field, key string) { refuse(fld, translate(key)) }
 
 	if form.File.Value == "" {
 		fail(&form.File, "transfers.form.error.required")
@@ -472,18 +473,23 @@ func (h *Handlers) validate(translate gui.Translator, form *formData) (parsed, b
 	}
 
 	out.info = form.infos(translate)
-	out.tries, out.delay, out.factor = form.retries(fail)
+	out.tries, out.delay, out.factor = form.retries(translate, refuse)
 
 	return out, !form.HasErrors
 }
 
+// factorNumber is the field of the growth factor of the retry delay: a
+// decimal, 0 or more (0: the factor of the client), the same as the
+// retryIncrementFactor argument of the TRANSFER task.
+func factorNumber() *protoform.Number { return &protoform.Number{Decimal: true} }
+
 // retries reads the retries of a client transfer, each one optional: the
-// attempts, the first delay in seconds, the growth factor (a decimal comma
-// is accepted).
-func (f *formData) retries(fail func(fld *field, key string, args ...any)) (tries int8, delay int32, factor float32) {
+// attempts, the first delay in seconds, the growth factor.
+func (f *formData) retries(translate gui.Translator, refuse func(fld *field, msg string),
+) (tries int8, delay int32, factor float32) {
 	if f.Tries.Value != "" {
 		if n, err := strconv.ParseInt(f.Tries.Value, 10, 8); err != nil || n < 0 {
-			fail(&f.Tries, "transfers.form.error.tries", "max", maxTries)
+			refuse(&f.Tries, translate("transfers.form.error.tries", "max", maxTries))
 		} else {
 			tries = int8(n)
 		}
@@ -491,18 +497,17 @@ func (f *formData) retries(fail func(fld *field, key string, args ...any)) (trie
 
 	if f.Delay.Value != "" {
 		if n, err := strconv.ParseInt(f.Delay.Value, 10, 32); err != nil || n < 0 {
-			fail(&f.Delay, "transfers.form.error.delay")
+			refuse(&f.Delay, translate("transfers.form.error.delay"))
 		} else {
 			delay = int32(n)
 		}
 	}
 
 	if f.Factor.Value != "" {
-		value := strings.Replace(f.Factor.Value, ",", ".", 1)
-		if x, err := strconv.ParseFloat(value, 32); err != nil || x < 0 {
-			fail(&f.Factor, "transfers.form.error.factor")
+		if value, msg := factorNumber().Read(translate, f.Factor.Value); msg != "" {
+			refuse(&f.Factor, msg)
 		} else {
-			factor = float32(x)
+			factor = float32(value)
 		}
 	}
 

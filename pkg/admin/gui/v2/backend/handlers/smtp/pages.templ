@@ -271,7 +271,7 @@ templ formView(d *formData) {
 					<legend class="visually-hidden">{ gui.T(ctx, "smtp.detail.server") }</legend>
 					<div class="w-grid w-grid--2">
 						@protoform.FieldOf(protoform.FieldProps{ID: fieldHost, Label: gui.T(ctx, "smtp.form.host"), Req: true, F: d.Host, Hint: gui.T(ctx, "smtp.form.host_hint"), Placeholder: "smtp.example.org"})
-						@protoform.FieldOf(protoform.FieldProps{ID: fieldPort, Label: gui.T(ctx, "smtp.form.port"), Req: true, F: d.Port, Hint: gui.T(ctx, "smtp.form.port_hint"), Short: true, Num: true, Min: 1, Max: 65535})
+						@protoform.FieldOf(protoform.FieldProps{ID: fieldPort, Label: gui.T(ctx, "smtp.form.port"), Req: true, F: d.Port, Hint: gui.T(ctx, "smtp.form.port_hint"), Short: true, Num: &protoform.Number{Min: 1, Max: 65535}})
 					</div>
 				</fieldset>
 			</div>
