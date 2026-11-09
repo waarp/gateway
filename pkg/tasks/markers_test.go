@@ -38,6 +38,15 @@ func TestUnknownMarkers(t *testing.T) {
 	assert.Empty(t, UnknownMarkers("Transfer #TRANSFERID# done: #ERRORMSG#"))
 }
 
+// TestInfoMarkers checks the keys of the transfer info a text reads.
+func TestInfoMarkers(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, []string{"lot", "__followID__", "b"},
+		InfoMarkers("#TI_lot# #TRUEFILENAME# #TI___followID__# #TI_lot# #TI_b# #FOO# #TI#"))
+	assert.Empty(t, InfoMarkers("no marker #DATE# TI_lot"))
+}
+
 // A marker the tasks do not implement still makes them fail.
 func TestUnimplementedMarkersFail(t *testing.T) {
 	t.Parallel()
