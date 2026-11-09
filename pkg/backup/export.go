@@ -30,7 +30,9 @@ func printExportFileHeader(f io.Writer, prefix string) {
 	)
 }
 
-type exportFile interface {
+// ExportFile is where an export is written: its name gives the format (YAML
+// for .yaml and .yml, JSON otherwise).
+type ExportFile interface {
 	io.Writer
 	Name() string
 }
@@ -41,14 +43,29 @@ type exportFile interface {
 // Possible values for targets are 'rules' for the transfer rules, 'servers' for
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
-func ExportData(db database.ReadAccess, w exportFile, targets []string) error {
+func ExportData(db database.ReadAccess, w ExportFile, targets []string) error {
 	logger := logging.NewLogger("export")
 
 	return Export(db, logger, w, targets)
 }
 
+// Export collects the subsets specified in targets and writes them to w:
+// Collect, then Serialize.
+func Export(db database.ReadAccess, logger *log.Logger, w ExportFile, targets []string) error {
+	data, err := Collect(db, logger, targets)
+	if err != nil {
+		return err
+	}
+
+	return Serialize(data, w)
+}
+
+// Collect extracts from the database the subsets specified in targets, as
+// Export writes them, without serializing them: what a caller may read or
+// amend before Serialize.
+//
 //nolint:funlen,gocognit,cyclop //function cannot be easily split
-func Export(db database.ReadAccess, logger *log.Logger, w exportFile, targets []string) error {
+func Collect(db database.ReadAccess, logger *log.Logger, targets []string) (*file.Data, error) {
 	var expErr error
 
 	data := &file.Data{}
@@ -56,80 +73,85 @@ func Export(db database.ReadAccess, logger *log.Logger, w exportFile, targets []
 	if utils.ContainsOneOf(targets, "servers", "all") {
 		data.Locals, expErr = exportLocals(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "clients", "all") {
 		data.Clients, expErr = exportClients(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "partners", "all") {
 		data.Remotes, expErr = exportRemotes(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "rules", "all") {
 		data.Rules, expErr = exportRules(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "users", "all") {
 		data.Users, expErr = exportUsers(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "clouds", "all") {
 		data.Clouds, expErr = exportClouds(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "snmp", "all") {
 		data.SNMPConfig, expErr = exportSNMPConfig(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "authorities", "all") {
 		data.Authorities, expErr = exportAuthorities(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "keys", "all") {
 		data.CryptoKeys, expErr = exportCryptoKeys(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "email", "all") {
 		data.EmailConfig, expErr = exportEmailConf(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
 	if utils.ContainsOneOf(targets, "filewatchers", "all") {
 		data.Filewatchers, expErr = exportFilewatchers(logger, db)
 		if expErr != nil {
-			return expErr
+			return nil, expErr
 		}
 	}
 
+	return data, nil
+}
+
+// Serialize writes the data to the file, in the format its name gives.
+func Serialize(data *file.Data, w ExportFile) error {
 	if err := serializeFile(data, w); err != nil {
 		return fmt.Errorf("cannot encode data: %w", err)
 	}
@@ -137,7 +159,7 @@ func Export(db database.ReadAccess, logger *log.Logger, w exportFile, targets []
 	return nil
 }
 
-func serializeFile(data *file.Data, f exportFile) error {
+func serializeFile(data *file.Data, f ExportFile) error {
 	var serErr error
 
 	ext := filepath.Ext(f.Name())
