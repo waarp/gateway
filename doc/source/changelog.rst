@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`856` L'import refuse désormais, avec un message qui le nomme, un identifiant
+  dont le type n'est pas admis pour son propriétaire (un certificat sans clé sur un
+  compte local, par exemple), au lieu de s'interrompre.
 * :support:`844` Les tests unitaires de l'authentification par certificat
   n'ouvrent plus de connexion vers l'extérieur : la chaîne « publique » qu'ils
   vérifient est signée par une autorité de test, donnée aux tests comme racine

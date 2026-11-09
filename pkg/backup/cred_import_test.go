@@ -4,9 +4,12 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -152,4 +155,40 @@ func TestImportAuth(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestImportAuthTypeNotAllowedForOwner(t *testing.T) {
+	t.Parallel()
+
+	db := dbtest.TestDatabase(t)
+
+	server := &model.LocalAgent{
+		Name: "server", Protocol: testProtocol,
+		Address: types.Addr("localhost", 6666),
+	}
+	require.NoError(t, db.Insert(server).Run())
+
+	account := &model.LocalAccount{LocalAgentID: server.ID, Login: "partner"}
+	require.NoError(t, db.Insert(account).Run())
+
+	// A certificate with its private key is what an agent presents: it is not
+	// a credential an account authenticating to us can hold.
+	credentials := []file.Credential{{
+		Name:  "partner-cert",
+		Type:  auth.TLSCertificate,
+		Value: testhelpers.LocalhostCert,
+	}}
+
+	var err error
+
+	require.NotPanics(t, func() {
+		err = credentialsImport(nolog(t), db, credentials, account)
+	})
+	require.Error(t, err)
+	assert.ErrorAs(t, err, new(*database.ValidationError))
+	assert.ErrorContains(t, err, auth.TLSCertificate)
+
+	var stored model.Credentials
+	require.NoError(t, db.Select(&stored).Where(account.GetCredCond()).Run())
+	assert.Empty(t, stored)
 }
