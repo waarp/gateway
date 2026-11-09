@@ -2,6 +2,7 @@ package rules
 
 import (
 	"slices"
+	"strings"
 
 	"code.waarp.fr/lib/gui"
 
@@ -33,6 +34,7 @@ const (
 	argJSON                    // a JSON object
 	argICAP                    // the address of an ICAP server, "icap://" optional (the gateway adds it)
 	argPairs                   // free keys and values, one "key=value" a line (SETINFO)
+	argCharset                 // a character set alone (REFORMAT), in a list to type in, by groups
 )
 
 // refKind is the kind of object an argument names.
@@ -69,10 +71,16 @@ func choiceValues(list []string) []choiceValue {
 
 // argWhen: an argument that only matters when another one has a value (the
 // path of a refused file when it is moved, the time limit of a synchronous
-// transfer); it is shown, read and, when Required, required only then.
+// transfer); it is shown, read and, when Required, required only then. Value
+// may hold several values, separated by spaces.
 type argWhen struct {
 	Arg   string
 	Value string
+}
+
+// holds says whether a value is one of those of the condition.
+func (w *argWhen) holds(value string) bool {
+	return slices.Contains(strings.Fields(w.Value), value)
 }
 
 // argSpec is an argument of a task. Seconds: a duration the form asks in
@@ -82,23 +90,25 @@ type argWhen struct {
 // Modes: a box asked as two buttons, the catalogue keys of the labels of ""
 // and of "true". Wide: over the whole width of its card. Check: the type the
 // kit checks a text against (the durations and the permissions take theirs
-// from their kind).
+// from their kind). Exclusive: an argument that the product refuses when its
+// condition does not hold, left out then rather than kept as stored.
 type argSpec struct {
-	Name     string
-	Kind     argKind
-	Required bool
-	Min, Max float64 // bounds of a number, decimals for a decimal argument; Max 0: none
-	Step     float64 // the step of the arrows of a number field; 0: 1 for a whole number, any for a decimal
-	Choices  func() []choiceValue
-	None     string // the catalogue key of the empty choice of an optional argument; "": "None"
-	Ref      refKind
-	Seconds  bool
-	Millis   bool
-	Summary  bool
-	Modes    [2]string
-	When     *argWhen
-	Wide     bool
-	Check    gui.Check
+	Name      string
+	Kind      argKind
+	Required  bool
+	Min, Max  float64 // bounds of a number, decimals for a decimal argument; Max 0: none
+	Step      float64 // the step of the arrows of a number field; 0: 1 for a whole number, any for a decimal
+	Choices   func() []choiceValue
+	None      string // the catalogue key of the empty choice of an optional argument; "": "None"
+	Ref       refKind
+	Seconds   bool
+	Millis    bool
+	Summary   bool
+	Modes     [2]string
+	When      *argWhen
+	Exclusive bool
+	Wide      bool
+	Check     gui.Check
 }
 
 // groupKind is what a card of the form of a task holds.
@@ -108,25 +118,28 @@ const (
 	groupArgs     groupKind = iota // the arguments of Args, side by side
 	groupInfos                     // the transfer information: its copy and its rows (copyInfo, info)
 	groupExchange                  // TRANSFER: the direction, the rule, the partner and its account, the client
+	groupEncoding                  // TRANSCODE: the direction, then the character sets of its two sides
 )
 
 // argGroup is a card of the form of a task: its title (a key under
 // task_types.group, "" for none), what it holds, a note under its title (a
-// catalogue key) and its columns (two, or three short fields).
+// catalogue key), its columns (two, or three short fields), and the value of
+// an argument that shows it (When; nil, always shown).
 type argGroup struct {
 	Title   string
 	Kind    groupKind
 	Args    []string
 	Note    string
 	Columns int
+	When    *argWhen
 }
 
 func group(title string, args ...string) argGroup { return argGroup{Title: title, Args: args} }
 
-// covers are the arguments a card asks for: those of the kind of the card,
-// unless the card names its own (the pairs of SETINFO, its card of the
-// transfer information).
-func (g *argGroup) covers() []string {
+// own are the arguments a card of information, of exchange or of encoding
+// reads itself; the card of the transfer information reads those it names,
+// when it names some (the pairs of SETINFO).
+func (g *argGroup) own() []string {
 	switch g.Kind {
 	case groupInfos:
 		if len(g.Args) > 0 {
@@ -136,10 +149,22 @@ func (g *argGroup) covers() []string {
 		return []string{"copyInfo", "info"}
 	case groupExchange:
 		return []string{"to", "from", "as", "rule", "using"}
+	case groupEncoding:
+		return []string{encodingFrom, encodingTo}
 	case groupArgs:
 	}
 
-	return g.Args
+	return nil
+}
+
+// covers are the arguments a card asks for: those it reads itself, then the
+// fields of Args (which the card of the transfer information reads itself).
+func (g *argGroup) covers() []string {
+	if g.Kind == groupInfos {
+		return g.own()
+	}
+
+	return append(g.own(), g.Args...)
 }
 
 // taskSpec is a type of task: its name in the product, its key in the
@@ -172,16 +197,25 @@ func (s *taskSpec) has(kind groupKind) bool {
 	return false
 }
 
-// special are the arguments its cards of information and of exchange ask
-// for, read by those cards.
+// cardOf is the card that asks for an argument.
+func (s *taskSpec) cardOf(name string) *argGroup {
+	for i := range s.Groups {
+		if slices.Contains(s.Groups[i].covers(), name) {
+			return &s.Groups[i]
+		}
+	}
+
+	return nil
+}
+
+// special are the arguments its cards of information, of exchange and of
+// encoding read themselves.
 func (s *taskSpec) special() map[string]bool {
 	out := map[string]bool{}
 
 	for i := range s.Groups {
-		if s.Groups[i].Kind != groupArgs {
-			for _, name := range s.Groups[i].covers() {
-				out[name] = true
-			}
+		for _, name := range s.Groups[i].own() {
+			out[name] = true
 		}
 	}
 
@@ -226,6 +260,70 @@ func keysOf(keys func() []string) func() []choiceValue {
 	return func() []choiceValue { return choiceValues(keys()) }
 }
 
+// transcodeChoices are values of a record argument of TRANSCODE, each with
+// its label under task_types.transcode.<kind> (by the value in lower case).
+func transcodeChoices(kind string, values ...string) func() []choiceValue {
+	return func() []choiceValue {
+		out := make([]choiceValue, 0, len(values))
+		for _, v := range values {
+			out = append(out, choiceValue{Value: v, Key: "task_types.transcode." + kind + "." + strings.ToLower(v)})
+		}
+
+		return out
+	}
+}
+
+// transcodeCharsets are the character sets of the TRANSCODE task, each with
+// the key of what it is for.
+func transcodeCharsets() []choiceValue {
+	charsets := tasks.TranscodeRegistry().List()
+
+	out := make([]choiceValue, 0, len(charsets))
+	for _, charset := range charsets {
+		out = append(out, choiceValue{Value: charset.Name, Key: charsetKeyPrefix + charsetKey(charset.Name)})
+	}
+
+	return out
+}
+
+// recordSpecs are the record arguments of TRANSCODE&REFORMAT and REFORMAT.
+// The first converts the whole file and lays the result out as the source by
+// default; the second has nothing to do without records on both sides, which
+// it requires.
+func recordSpecs(required bool) []argSpec {
+	records := argSpec{
+		Name: "records", Kind: argChoice, Required: required, Choices: transcodeChoices("records", "lines", "fixed", "rdw"),
+	}
+	output := argSpec{
+		Name: "outputRecords", Kind: argChoice, Required: required,
+		Choices: transcodeChoices("output", "none", "lines", "fixed", "rdw"),
+	}
+
+	if !required {
+		records.None, output.None = "task_types.transcode.records_none", "task_types.transcode.output_same"
+	}
+
+	return []argSpec{
+		records,
+		{
+			Name: "recordLength", Kind: argInt, Required: true, Min: 1, Max: maxRecordLength,
+			When: &argWhen{Arg: "records", Value: "fixed"}, Exclusive: true,
+		},
+		{Name: "trimPadding", Kind: argBool, When: &argWhen{Arg: "records", Value: "fixed"}, Exclusive: true},
+		output,
+		{
+			Name: "outputSeparator", Kind: argChoice, None: "task_types.transcode.separator_lf",
+			Choices: transcodeChoices("separator", "CRLF", "NEL"),
+			When:    &argWhen{Arg: "outputRecords", Value: "lines"}, Exclusive: true,
+		},
+		{
+			Name: "outputLength", Kind: argInt, Required: true, Min: 1, Max: maxRecordLength,
+			When: &argWhen{Arg: "outputRecords", Value: "fixed"}, Exclusive: true,
+		},
+		{Name: "truncate", Kind: argBool, When: &argWhen{Arg: "outputRecords", Value: "fixed rdw"}, Exclusive: true},
+	}
+}
+
 // execArgs: the program, its arguments, its time limit; the program and the
 // limit make the folded line of the task.
 func execArgs() []argSpec {
@@ -249,8 +347,9 @@ const (
 	familyNetwork    = "network"
 	familyCrypto     = "crypto"
 
-	maxCompression = 9
-	maxAttempts    = 127 // the attempts of a transfer are an int8
+	maxCompression  = 9
+	maxAttempts     = 127   // the attempts of a transfer are an int8
+	maxRecordLength = 32760 // the longest record of TRANSCODE, as z/OS bounds it
 
 	// The columns of a card: two fields side by side, or three short ones.
 	twoColumns   = 2
@@ -262,7 +361,7 @@ var families = []string{
 	familyFiles, familyExec, familyTransfer, familyAlteration, familyArchive, familyNetwork, familyCrypto,
 }
 
-// taskSpecs are the 28 types of task, in the order of the former tasks page.
+// taskSpecs are the 30 types of task, in the order of the former tasks page.
 // The cards of TRANSFER follow the page that adds a transfer.
 //
 //nolint:gochecknoglobals,funlen // reference data of the screen
@@ -342,9 +441,24 @@ var taskSpecs = []taskSpec{
 		{Name: "pairs", Kind: argPairs},
 	}, Groups: []argGroup{{Title: "infos", Kind: groupInfos, Args: []string{"pairs"}}}, Mapped: true},
 	{Type: tasks.Transcode, Slug: "transcode", Family: familyAlteration, Args: []argSpec{
-		choiceArg("fromCharset", keysOf(tasks.TranscodeFormats.Keys)),
-		choiceArg("toCharset", keysOf(tasks.TranscodeFormats.Keys)),
-	}, Groups: []argGroup{group("", "fromCharset", "toCharset")}},
+		choiceArg(encodingFrom, transcodeCharsets), choiceArg(encodingTo, transcodeCharsets), boolArg("substitute"),
+	}, Groups: []argGroup{{Title: "encoding", Kind: groupEncoding, Args: []string{"substitute"}}}},
+	{Type: tasks.TranscodeAndReformat, Slug: "transcode_reformat", Family: familyAlteration, Args: append([]argSpec{
+		choiceArg(encodingFrom, transcodeCharsets), choiceArg(encodingTo, transcodeCharsets), boolArg("substitute"),
+	}, recordSpecs(false)...), Groups: []argGroup{
+		{Title: "encoding", Kind: groupEncoding, Args: []string{"substitute"}},
+		group("source_file", "records", "recordLength", "trimPadding"),
+		{
+			Title: "converted_file", Args: []string{"outputRecords", "outputSeparator", "outputLength", "truncate"},
+			When: &argWhen{Arg: "records", Value: "lines fixed rdw"},
+		},
+	}},
+	{Type: tasks.Reformat, Slug: "reformat", Family: familyAlteration, Args: append([]argSpec{
+		{Name: "charset", Kind: argCharset, Required: true, Wide: true},
+	}, recordSpecs(true)...), Groups: []argGroup{
+		group("source_file", "charset", "records", "recordLength", "trimPadding"),
+		group("produced", "outputRecords", "outputSeparator", "outputLength", "truncate"),
+	}},
 	{Type: tasks.ChangeNewline, Slug: "chnewline", Family: familyAlteration, Args: []argSpec{
 		textArg("from", true), textArg("to", true),
 	}, Groups: []argGroup{group("", "from", "to")}},

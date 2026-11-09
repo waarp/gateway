@@ -249,8 +249,19 @@ templ typePart(b typeBlock, groups []groupView) {
 
 // groupCard: a card of parameters, side by side; a titled card folds,
 // open as the page comes, so that nothing typed nor refused is
-// ever hidden from the user.
+// ever hidden from the user. A card that only applies to some values of a
+// parameter sits in the block that its switch shows.
 templ groupCard(g groupView) {
+	if g.CaseOf != "" {
+		<fieldset class="w-fieldset w-fieldset--wide rules-switched" data-case={ g.CaseValue } data-of={ g.CaseOf }>
+			@groupCardBody(g)
+		</fieldset>
+	} else {
+		@groupCardBody(g)
+	}
+}
+
+templ groupCardBody(g groupView) {
 	if g.Title == "" {
 		<div class="w-card">
 			<fieldset class="w-fieldset w-fieldset--wide">
@@ -283,6 +294,15 @@ templ groupContent(g groupView) {
 			<p class="rules-none w-muted">{ gui.T(ctx, "rules.tasks.no_args") }</p>
 		case g.Exchange != nil:
 			@exchangeFields(g.Exchange)
+		case g.Encoding != nil:
+			@encodingFields(g.Encoding)
+			if len(g.Fields) > 0 {
+				<div class="w-grid w-grid--2">
+					for _, f := range g.Fields {
+						@taskField(f)
+					}
+				</div>
+			}
 		default:
 			<div class={ "w-grid", templ.KV("w-grid--3", g.Columns == threeColumns), templ.KV("w-grid--2", g.Columns != threeColumns) }>
 				for _, f := range g.Fields {
@@ -329,6 +349,51 @@ templ exchangeFields(x *exchangeView) {
 			Error: x.AccountErr, Required: true, None: gui.T(ctx, "transfers.form.choose_account"), Groups: x.Accounts,
 		})
 		@taskField(x.Client)
+	</div>
+}
+
+// encodingFields: the encoding of a TRANSCODE task: the direction, then the
+// character set of the source and the one of the target, each in the list of
+// its side, switched by the direction.
+templ encodingFields(x *encodingView) {
+	<div class="w-grid w-grid--2">
+		<div class="rules-span">
+			@choiceButtons(fieldView{
+				ID: x.Slug + "-" + encodingDirection, Name: x.Slug + "." + encodingDirection,
+				Label: gui.T(ctx, "task_types.transcode.direction_label"), Hint: gui.T(ctx, "task_types.transcode.direction_hint"),
+				Error: x.DirErr, Required: true, Options: x.Directions, Switch: x.Slug + "-" + encodingDirection, Wide: true,
+			})
+		</div>
+		@encodingSideFields(x.Slug, x.From)
+		@encodingSideFields(x.Slug, x.To)
+	</div>
+}
+
+// encodingSideFields: an argument of the encoding, a list per side; before a
+// direction is chosen, an empty list says to choose it first.
+templ encodingSideFields(slug string, s encodingSide) {
+	<div>
+		<fieldset class="w-fieldset rules-switched" data-case="" data-of={ slug + "-" + encodingDirection } hidden disabled>
+			<div class="w-field">
+				<label class="w-field__label" for={ s.ID + "-none" }>{ s.Label }@argMark(true, false)</label>
+				<select class="w-select" id={ s.ID + "-none" } disabled>
+					<option value="">{ gui.T(ctx, "task_types.transcode.direction_first") }</option>
+				</select>
+				<span class="w-field__hint">{ s.Hint }</span>
+			</div>
+		</fieldset>
+		for _, l := range s.Lists {
+			<fieldset class="w-fieldset rules-switched" data-case={ l.Cases } data-of={ slug + "-" + encodingDirection }>
+				<div class={ "w-field", templ.KV("is-invalid", s.Err != "") }>
+					<label class="w-field__label" for={ l.ID }>{ s.Label }@argMark(true, false)</label>
+					@gui.Combobox(gui.ComboboxProps{
+						ID: l.ID, Name: l.Name, Groups: l.Groups, Placeholder: s.None, Required: true,
+						Invalid: s.Err != "", Describe: l.ID + "-h",
+					})
+					@protoform.Message(l.ID+"-h", s.Err, s.Hint)
+				</div>
+			</fieldset>
+		}
 	</div>
 }
 
@@ -437,6 +502,15 @@ templ argInput(f fieldView) {
 			</div>
 		case fieldChoice:
 			@choiceButtons(f)
+		case fieldCombo:
+			<div class={ "w-field", templ.KV("is-invalid", f.Error != "") }>
+				<label class="w-field__label" for={ f.ID }>{ f.Label }@argMark(f.Required, false)</label>
+				@gui.Combobox(gui.ComboboxProps{
+					ID: f.ID, Name: f.Name, Groups: comboGroups(f.Groups), Placeholder: f.None, Required: f.Required,
+					Invalid: f.Error != "", Describe: f.ID + "-h",
+				})
+				@protoform.Message(f.ID+"-h", f.Error, f.Hint)
+			</div>
 		case fieldFixed:
 			<div class="w-field">
 				<span class="w-field__label">{ f.Label }</span>
@@ -457,6 +531,9 @@ templ argInput(f fieldView) {
 					}
 					if f.Error != "" {
 						aria-invalid="true"
+					}
+					if f.Switch != "" {
+						data-switch={ f.Switch }
 					}
 				>
 					<option value="">{ f.None }</option>
@@ -500,9 +577,10 @@ templ argInput(f fieldView) {
 
 // choiceButtons: two or three values as joined buttons (w-segmented of the
 // kit): radio buttons, the checked one with its border, its weight and its
-// check; a switch for the fields that depend on it.
+// check; a switch for the fields that depend on it. Wide: over the whole
+// width of the card, for more buttons (the four directions of TRANSCODE).
 templ choiceButtons(f fieldView) {
-	<fieldset class={ "w-fieldset", "rules-choice", templ.KV("is-invalid", f.Error != "") } aria-describedby={ f.ID + "-h" }>
+	<fieldset class={ "w-fieldset", "rules-choice", templ.KV("w-fieldset--wide", f.Wide), templ.KV("is-invalid", f.Error != "") } aria-describedby={ f.ID + "-h" }>
 		<legend class="w-field__label">{ f.Label }@argMark(f.Required, f.NoMark)</legend>
 		<div class="w-segmented">
 			for _, o := range f.Options {

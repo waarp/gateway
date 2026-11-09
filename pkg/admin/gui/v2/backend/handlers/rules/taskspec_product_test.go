@@ -22,10 +22,15 @@ import (
 //nolint:gochecknoglobals // reference data of the test
 var (
 	sampleOverrides = map[string]map[string]string{
-		tasks.Icap:             {"uploadURL": "icap://127.0.0.1:1344/avscan"},
-		tasks.Archive:          {"outputPath": "/tmp/archive.zip"},
-		tasks.Email:            {"recipients": "exploitation@example.org"},
-		tasks.Transcode:        {"toCharset": "UTF-16BE"},
+		tasks.Icap:      {"uploadURL": "icap://127.0.0.1:1344/avscan"},
+		tasks.Archive:   {"outputPath": "/tmp/archive.zip"},
+		tasks.Email:     {"recipients": "exploitation@example.org"},
+		tasks.Transcode: {"toCharset": "ISO 8859-1"},
+		tasks.TranscodeAndReformat: {
+			// A single-byte target: a length of one byte makes a whole record.
+			"toCharset": "ISO 8859-1", "records": "fixed", "recordLength": "80", "outputRecords": "fixed", "outputLength": "80",
+		},
+		tasks.Reformat:         {"records": "fixed", "recordLength": "80", "outputRecords": "fixed", "outputLength": "80"},
 		tasks.Sign:             {"keyName": "hmac"},
 		tasks.Verify:           {"keyName": "hmac"},
 		tasks.EncryptAndSign:   {"encryptKeyName": "pgp-public", "signKeyName": "pgp-private"},
@@ -33,6 +38,10 @@ var (
 	}
 	sampleExtras = map[string]map[string]string{
 		tasks.Transfer: {"to": "banque-demo"},
+		// The result is laid out in records only when the source has some.
+		tasks.TranscodeAndReformat: {"records": "lines"},
+		// The lengths of the records that the samples of REFORMAT make fixed.
+		tasks.Reformat: {"recordLength": "80", "outputLength": "80"},
 	}
 
 	// The arguments the form requires and the product does not, each with
@@ -48,7 +57,7 @@ var (
 	}
 	sampleKinds = map[argKind]string{
 		argText: "/tmp/fichier", argBool: "true", argInt: "1", argDecimal: "1.5",
-		argDuration: "1s", argOctal: "640", argJSON: "{}",
+		argDuration: "1s", argOctal: "640", argJSON: "{}", argCharset: "UTF-8",
 	}
 )
 
