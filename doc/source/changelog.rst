@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+
+* :release:`0.17.1 <2026-11-09>`
 * :bug:`696` Le client et serveur PeSIT envoie désormais plusieurs articles par
   message lorsque cela est possible. Cela devrait drastiquement améliorer les
   performances des transferts de fichiers contenant de nombreux articles.
