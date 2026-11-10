@@ -200,10 +200,16 @@ func (f *Form) options() []*Option {
 	var out []*Option
 
 	for _, family := range Families() {
-		out = append(out, optionsOf(family.Key, f.Role)...)
+		for _, opt := range optionsOf(family.Key, f.Role) {
+			out = append(out, opt.Option)
+		}
 	}
 
-	return append(out, tlsOptionList()...)
+	for _, opt := range tlsOptionList() {
+		out = append(out, opt.Option)
+	}
+
+	return out
 }
 
 // chosen lists the options that apply to the chosen family and TLS: what
@@ -213,12 +219,14 @@ func (f *Form) chosen() []*Option {
 
 	for _, opt := range optionsOf(f.Family, f.Role) {
 		if !opt.TLSOnly || f.tlsOn() {
-			out = append(out, opt)
+			out = append(out, opt.Option)
 		}
 	}
 
 	if f.tlsOn() {
-		out = append(out, tlsOptionList()...)
+		for _, opt := range tlsOptionList() {
+			out = append(out, opt.Option)
+		}
 	}
 
 	return out
@@ -448,8 +456,8 @@ func (f *Form) Prepare(translate gui.Translator) {
 		}
 
 		view := &FamilyView{Key: family.Key, Label: family.Label}
-		if note, ok := familyNotes[family.Key]; ok {
-			view.Note = translate(note)
+		if fam := familyByKey(family.Key); fam != nil && fam.note != "" {
+			view.Note = translate(fam.note)
 		}
 
 		set := 0
@@ -461,7 +469,7 @@ func (f *Form) Prepare(translate gui.Translator) {
 				view.Plain.add(f.view(translate, opt))
 			}
 
-			if f.isSet(opt) {
+			if f.isSet(opt.Option) {
 				set++
 			}
 
@@ -552,8 +560,8 @@ func (f *Form) tlsSummary(translate gui.Translator) (bool, string) {
 	return open, translate("proto.tls_summary", "version", label, "suites", chosen)
 }
 
-// view renders one option with its current value.
-func (f *Form) view(translate gui.Translator, opt *Option) *OptionView {
+// view renders one option with its current value, under its theme.
+func (f *Form) view(translate gui.Translator, opt placed) *OptionView {
 	item := &OptionView{
 		Name: opt.Name, Label: translate(opt.Label), Code: opt.Cfg, Short: opt.Short, Min: opt.Min, Max: opt.Max,
 	}

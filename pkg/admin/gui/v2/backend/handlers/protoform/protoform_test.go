@@ -31,7 +31,8 @@ func TestFamiliesFollowTheRegistry(t *testing.T) {
 
 	for key := range protocols.List() {
 		p := ProtocolOf(key)
-		assert.Containsf(t, variants, key, "protocol %q is registered but unknown to the interface", key)
+		_, _, known := variantOf(key)
+		assert.Truef(t, known, "protocol %q is registered but unknown to the interface", key)
 		assert.True(t, IsFamily(p.Family.Key), key)
 		assert.Equal(t, p.Family.Key, FamilyKeyOf(key), "a product key reads as its family")
 
@@ -102,11 +103,17 @@ func TestOptionsByRole(t *testing.T) {
 		names(RolePartner, FamilyR66))
 	assert.Equal(t, []string{"ftp_disable_active", "ftp_disable_epsv", "ftp_implicit_tls", "ftp_no_session_reuse"},
 		names(RolePartner, FamilyFTP))
+	// The order of the table: the identity in two parts, so that the
+	// partner card opens on the login and the server card on the synchronisation.
 	assert.Equal(t, []string{
 		"pesit_login", "pesit_restart", "pesit_checkpoints", "pesit_checkpoint_size",
 		"pesit_checkpoint_window", "pesit_nsdu", "pesit_max_message", "pesit_mode", "pesit_disable_preconnection",
-		"pesit_expects_ack", "pesit_ack_timeout", "pesit_no_pi37",
+		"pesit_no_pi37", "pesit_expects_ack", "pesit_ack_timeout",
 	}, names(RolePartner, FamilyPeSIT))
+	assert.Equal(t, []string{
+		"pesit_disable_restart", "pesit_disable_checkpoints", "pesit_checkpoint_size", "pesit_checkpoint_window",
+		"pesit_max_message", "pesit_mode", "pesit_disable_preconnection",
+	}, names(RoleServer, FamilyPeSIT), "the server opens on the synchronisation, as before")
 	assert.Equal(t, []string{"sftp_kex", "sftp_ciphers", "sftp_macs", "sftp_use_stat", "sftp_no_concurrent_reads"},
 		names(RolePartner, FamilySFTP))
 	assert.Equal(t, []string{"as2_sign_algo", "as2_encrypt_algo", "as2_async_mdn", "as2_handle_async_mdn"},
@@ -114,31 +121,47 @@ func TestOptionsByRole(t *testing.T) {
 	assert.Empty(t, names(RolePartner, FamilyHTTP))
 	assert.Empty(t, names(RolePartner, FamilyWebDAV))
 
-	// Every option has a label the catalogue knows, and a hint when it names one.
+	// Every option has a label the catalogue knows, and a hint when it names
+	// one; every theme of the table is a section the catalogue knows.
 	translate := translator(t)
 
-	for family, opts := range familyOptions {
-		for _, opt := range opts {
-			assert.NotEqual(t, opt.Label, translate(opt.Label), "%s.%s: label %q unknown", family, opt.Name, opt.Label)
-
-			if opt.Hint != "" {
-				assert.NotEqual(t, opt.Hint, translate(opt.Hint), "%s.%s: hint unknown", family, opt.Name)
+	for _, fam := range families {
+		for _, sec := range fam.sections {
+			if sec.key != "" {
+				assert.NotEqual(t, sec.key, translate(sec.key), "%s: section %q unknown", fam.key, sec.key)
 			}
 
-			if opt.Kind == KindSelect {
-				require.NotNil(t, opt.Choices, opt.Name)
-			}
+			for _, opt := range sec.options {
+				assert.NotEqual(t, opt.Label, translate(opt.Label), "%s.%s: label %q unknown", fam.key, opt.Name, opt.Label)
 
-			if opt.Kind == KindTri {
-				assert.NotEmpty(t, opt.DefaultKey, opt.Name)
-				assert.NotEqual(t, opt.DefaultKey, translate(opt.DefaultKey), "%s: default key unknown", opt.Name)
-			}
+				if opt.Hint != "" {
+					assert.NotEqual(t, opt.Hint, translate(opt.Hint), "%s.%s: hint unknown", fam.key, opt.Name)
+				}
 
-			if opt.Kind == KindList {
-				require.NotNil(t, opt.Values, opt.Name)
-				assert.NotEmpty(t, opt.Values(RoleServer), opt.Name)
+				if opt.Kind == KindSelect {
+					require.NotNil(t, opt.Choices, opt.Name)
+				}
+
+				if opt.Kind == KindTri {
+					assert.NotEmpty(t, opt.DefaultKey, opt.Name)
+					assert.NotEqual(t, opt.DefaultKey, translate(opt.DefaultKey), "%s: default key unknown", opt.Name)
+				}
+
+				if opt.Kind == KindList {
+					require.NotNil(t, opt.Values, opt.Name)
+					assert.NotEmpty(t, opt.Values(RoleServer), opt.Name)
+				}
 			}
 		}
+	}
+
+	// One entry per family, each with its label, its plain variant and the
+	// product name of each variant.
+	for _, fam := range families {
+		assert.NotEmpty(t, fam.label, fam.key)
+		assert.Equal(t, fam.key, fam.plain.Key, "the key of a family is the key of its plain variant")
+		assert.NotEmpty(t, fam.plain.Name, fam.key)
+		assert.Equal(t, fam.tls.Key != "", fam.tls.Name != "", "%s: a TLS variant has a key and a name", fam.key)
 	}
 }
 
@@ -409,7 +432,7 @@ func TestPartnerTriState(t *testing.T) {
 	assert.Equal(t, KV{Label: "Reprise des transferts interrompus", Value: "Activé", Section: sync}, rows[1])
 	assert.Equal(t, KV{Label: "Points de synchronisation", Value: "Comme le client (par défaut)", Section: sync}, rows[2])
 	assert.Equal(t, KV{Label: "Utiliser les paquets NSDU", Value: "Activé", Section: "Messages"}, rows[5])
-	assert.Equal(t, KV{Label: "Envoi du PI 37", Value: "Activé", Section: identity}, rows[11])
+	assert.Equal(t, KV{Label: "Envoi du PI 37", Value: "Activé", Section: identity}, rows[9], "with the mode and the pre-connection")
 
 	groups := Grouped(rows)
 	require.Len(t, groups, 4, "the rows of a details page gather by theme")

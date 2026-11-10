@@ -26,56 +26,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/as2"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
-	httpconst "code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/webdav"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
-)
-
-// The families: the key of a family is the key of its plain variant.
-const (
-	FamilyR66    = "r66"
-	FamilyHTTP   = "http"
-	FamilySFTP   = "sftp"
-	FamilyFTP    = "ftp"
-	FamilyPeSIT  = "pesit"
-	FamilyWebDAV = "webdav"
-	FamilyAS2    = "as2"
-)
-
-// variant is one protocol key of the product: its family, whether it is the
-// TLS variant, and the name the product shows for it (a datum rather than a
-// label: the historic pages show it, the documentation names it).
-type variant struct {
-	family string
-	tls    bool
-	label  string
-}
-
-//nolint:gochecknoglobals // reference data of the product
-var (
-	variants = map[string]variant{
-		r66.R66:          {FamilyR66, false, "R66"},
-		r66.R66TLS:       {FamilyR66, true, "R66-TLS"},
-		httpconst.HTTP:   {FamilyHTTP, false, "HTTP"},
-		httpconst.HTTPS:  {FamilyHTTP, true, "HTTPS"},
-		sftp.SFTP:        {FamilySFTP, false, "SFTP"},
-		ftp.FTP:          {FamilyFTP, false, "FTP"},
-		ftp.FTPS:         {FamilyFTP, true, "FTPS"},
-		pesit.Pesit:      {FamilyPeSIT, false, "PeSIT"},
-		pesit.PesitTLS:   {FamilyPeSIT, true, "PeSIT-TLS"},
-		webdav.Webdav:    {FamilyWebDAV, false, "WebDAV"},
-		webdav.WebdavTLS: {FamilyWebDAV, true, "WebDAV over HTTPS"},
-		as2.AS2:          {FamilyAS2, false, "AS2"},
-		as2.AS2TLS:       {FamilyAS2, true, "AS2 over HTTPS"},
-	}
-
-	familyLabels = map[string]string{
-		FamilyR66: "R66", FamilyHTTP: "HTTP", FamilySFTP: "SFTP", FamilyFTP: "FTP",
-		FamilyPeSIT: "PeSIT", FamilyWebDAV: "WebDAV", FamilyAS2: "AS2",
-	}
 )
 
 // Family is a protocol as the interface shows it: the family and, when the
@@ -98,34 +51,38 @@ type Protocol struct {
 	TLS    bool
 }
 
-// ProtocolOf describes a protocol key. An unknown key (a protocol the
-// interface does not know yet) is its own family, without TLS variant.
+// ProtocolOf describes a protocol key, read in the table of the families. An
+// unknown key (a protocol the interface does not know yet) is its own family,
+// without TLS variant.
 func ProtocolOf(key string) *Protocol {
-	v, ok := variants[key]
+	fam, withTLS, ok := variantOf(key)
 	if !ok {
 		return &Protocol{Key: key, Label: key, Family: Family{Key: key, Label: key, Plain: key}}
 	}
 
-	return &Protocol{Key: key, Label: v.label, Family: familyOf(v.family), TLS: v.tls}
-}
-
-// familyOf builds a family from the protocols registered in the gateway: its
-// plain and TLS variants exist only when their modules do.
-func familyOf(key string) Family {
-	f := Family{Key: key, Label: familyLabels[key]}
-	if f.Label == "" {
-		f.Label = key
+	name := fam.plain.Name
+	if withTLS {
+		name = fam.tls.Name
 	}
 
-	for variantKey, v := range variants {
-		if v.family != key || !protocols.Exists(variantKey) {
-			continue
+	return &Protocol{Key: key, Label: name, Family: familyOf(fam.key), TLS: withTLS}
+}
+
+// familyOf builds a family from its entry of the table and the protocols
+// registered in the gateway: its plain and TLS variants exist only when their
+// modules do. A key the table does not know is its own family.
+func familyOf(key string) Family {
+	f := Family{Key: key, Label: key}
+
+	if fam := familyByKey(key); fam != nil {
+		f.Label = fam.label
+
+		if protocols.Exists(fam.plain.Key) {
+			f.Plain = fam.plain.Key
 		}
 
-		if v.tls {
-			f.TLS = variantKey
-		} else {
-			f.Plain = variantKey
+		if fam.tls.Key != "" && protocols.Exists(fam.tls.Key) {
+			f.TLS = fam.tls.Key
 		}
 	}
 

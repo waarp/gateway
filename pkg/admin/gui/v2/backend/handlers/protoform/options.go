@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,9 +14,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/ftp"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/pesit"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
 )
 
 // Role is what the object is for the protocol: a server listens, a client
@@ -123,7 +119,9 @@ var r66HashAlgos = []string{"SHA-256", "ADLER32", "MD5", "SHA-1", "SHA-384", "SH
 
 // Option is one option of a family for one or several roles: how it is
 // entered (field name, kind, bounds, choices), how it is stored (the key the
-// product reads) and how a details page shows it.
+// product reads) and how a details page shows it. The theme it belongs to
+// (identification, synchronisation…) is the section of the table of the
+// families it sits in (families.go, placed).
 type Option struct {
 	Name  string // form field name, unique in a form
 	Cfg   string // configuration key the product reads
@@ -133,10 +131,6 @@ type Option struct {
 	Label string // catalogue key of the label
 	Hint  string // catalogue key of the hint, optional
 	Short bool   // a short field (a number, a port)
-	// Section is the catalogue key of the theme the option belongs to in
-	// its card (identification, synchronisation…); the form and the details
-	// page group the options by section when the family names two at least.
-	Section string
 	// TLSOnly options belong to the TLS variant of the family (the TLS
 	// requirement of an FTPS server): shown with the TLS checkbox on.
 	TLSOnly bool
@@ -175,326 +169,6 @@ type Option struct {
 }
 
 func (o *Option) forRole(role Role) bool { return slices.Contains(o.Roles, role) }
-
-// The sections of the cards of options: the themes the options are grouped
-// by (catalogue keys). A family that names two at least shows them.
-const (
-	secIdentity   = "proto.section.identity"
-	secSync       = "proto.section.sync"
-	secMessages   = "proto.section.messages"
-	secAck        = "proto.section.ack"
-	secTransfer   = "proto.section.transfer"
-	secIntegrity  = "proto.section.integrity"
-	secModes      = "proto.section.modes"
-	secAlgorithms = "proto.section.algorithms"
-	secCompat     = "proto.section.compat"
-	secSecurity   = "proto.section.security"
-	secMDN        = "proto.section.mdn"
-	secTLS        = "proto.tls_title"
-)
-
-//nolint:gochecknoglobals // reference data of the screens
-var (
-	all              = []Role{RoleServer, RoleClient, RolePartner}
-	serverOnly       = []Role{RoleServer}
-	clientOnly       = []Role{RoleClient}
-	partnerOnly      = []Role{RolePartner}
-	serverAndClient  = []Role{RoleServer, RoleClient}
-	serverAndPartner = []Role{RoleServer, RolePartner}
-	clientAndPartner = []Role{RoleClient, RolePartner}
-
-	// The options of each family (familyOptions), in the order of the form,
-	// for every role; the note shown at the top of the card of a family
-	// (familyNotes). A partner is read by the client of its protocol: its
-	// options are what the product reads from the partner (the partner
-	// configuration of each module), merged with the client's.
-	familyOptions = map[string][]Option{
-		FamilyR66: {
-			{
-				Name: "r66_login", Cfg: cfgServerLogin, Kind: KindText, Roles: serverOnly,
-				Section: secIdentity,
-				Label:   "proto.opt.r66_login", Hint: "proto.opt.r66_login_hint", DefaultKey: "proto.opt.default_login",
-			},
-			{
-				Name: "r66_server_login", Cfg: cfgServerLogin, Kind: KindText, Roles: partnerOnly,
-				Section: secIdentity,
-				Label:   "proto.opt.r66_server_login", Hint: "proto.opt.r66_server_login_hint",
-				DefaultKey: "proto.opt.default_partner_login",
-			},
-			{
-				Name: "r66_block", Cfg: cfgBlockSize, Kind: KindNumber, Roles: all, Short: true, Min: 1,
-				Section: secTransfer,
-				Parse:   parseUnsigned[uint32], Label: "proto.opt.r66_block", Hint: "proto.opt.r66_block_hint",
-				DefaultKey: "proto.opt.default_block",
-			},
-			{
-				Name: "r66_final_hash_algo", Cfg: cfgFinalHashAlgo, Kind: KindSelect, Roles: clientAndPartner, Short: true,
-				Section: secIntegrity,
-				Choices: r66HashChoices, Default: r66HashAlgos[0], Label: "proto.opt.r66_final_hash_algo",
-				Hint: "proto.opt.r66_final_hash_algo_hint",
-			},
-			{
-				Name: "r66_no_final_hash", Cfg: cfgNoFinalHash, Kind: KindCheck, Roles: all,
-				Section: secIntegrity,
-				Label:   "proto.opt.r66_no_final_hash", Row: "proto.opt.r66_final_hash", Checked: true, Inverted: true,
-			},
-			{
-				Name: "r66_check_block_hash", Cfg: cfgCheckBlockHash, Kind: KindCheck, Roles: all,
-				Section: secIntegrity,
-				Label:   "proto.opt.r66_check_block_hash", Row: "proto.opt.r66_block_hash", Checked: true,
-			},
-		},
-		FamilyFTP: {
-			{
-				Name: "ftp_disable_passive", Cfg: cfgDisablePassiveMode, Kind: KindCheck, Roles: serverOnly,
-				Section: secModes,
-				Label:   "proto.opt.ftp_disable_passive", Row: "proto.opt.ftp_passive", Inverted: true,
-			},
-			{
-				Name: "ftp_disable_active", Cfg: cfgDisableActiveMode, Kind: KindCheck, Roles: serverAndPartner,
-				Section: secModes,
-				Label:   "proto.opt.ftp_disable_active", Row: "proto.opt.ftp_active", Inverted: true,
-			},
-			{
-				Name: "ftp_disable_epsv", Cfg: cfgDisableEPSV, Kind: KindCheck, Roles: partnerOnly,
-				Section: secModes,
-				Label:   "proto.opt.ftp_disable_epsv", Row: "proto.opt.ftp_epsv", Inverted: true,
-			},
-			{
-				Name: "ftp_passive_min", Cfg: cfgPassiveModeMinPort, Kind: KindNumber, Roles: serverOnly, Short: true,
-				Section: secModes,
-				Min:     1, Max: maxPort, Parse: parsePort, Label: "proto.opt.ftp_passive_min",
-				Hint: "proto.opt.any_port_hint", DefaultKey: "proto.opt.any_port",
-			},
-			{
-				Name: "ftp_passive_max", Cfg: cfgPassiveModeMaxPort, Kind: KindNumber, Roles: serverOnly, Short: true,
-				Section: secModes,
-				Min:     1, Max: maxPort, Parse: parsePort, Label: "proto.opt.ftp_passive_max",
-				DefaultKey: "proto.opt.any_port",
-			},
-			{
-				Name: "ftp_enable_active", Cfg: cfgEnableActiveMode, Kind: KindCheck, Roles: clientOnly,
-				Section: secModes,
-				Label:   "proto.opt.ftp_enable_active", Row: "proto.opt.ftp_active",
-			},
-			{
-				Name: "ftp_active_address", Cfg: cfgActiveModeAddress, Kind: KindText, Roles: clientOnly,
-				Section: secModes,
-				Label:   "proto.opt.ftp_active_address", Hint: "proto.opt.ftp_active_address_hint",
-				DefaultKey: "proto.opt.default_active_address",
-			},
-			{
-				Name: "ftp_active_min", Cfg: cfgActiveModeMinPort, Kind: KindNumber, Roles: clientOnly, Short: true,
-				Section: secModes,
-				Min:     1, Max: maxPort, Parse: parsePort, Label: "proto.opt.ftp_active_min",
-				Hint: "proto.opt.any_port_hint", DefaultKey: "proto.opt.any_port",
-			},
-			{
-				Name: "ftp_active_max", Cfg: cfgActiveModeMaxPort, Kind: KindNumber, Roles: clientOnly, Short: true,
-				Section: secModes,
-				Min:     1, Max: maxPort, Parse: parsePort, Label: "proto.opt.ftp_active_max",
-				DefaultKey: "proto.opt.any_port",
-			},
-			{
-				Name: "ftp_tls_requirement", Cfg: cfgTLSRequirement, Kind: KindSelect, Roles: serverOnly, TLSOnly: true,
-				Choices: tlsRequirementChoices, Default: string(ftp.TLSOptional), Label: "proto.opt.tls_requirement",
-			},
-			{
-				Name: "ftp_implicit_tls", Cfg: cfgUseImplicitTLS, Kind: KindCheck, Roles: partnerOnly, TLSOnly: true,
-				Label: "proto.opt.ftp_implicit_tls", Hint: "proto.opt.ftp_implicit_tls_hint",
-			},
-			{
-				Name: "ftp_no_session_reuse", Cfg: cfgDisableTLSSessionReuse, Kind: KindCheck, Roles: partnerOnly,
-				Section: secTLS,
-				TLSOnly: true, Label: "proto.opt.ftp_no_session_reuse", Row: "proto.opt.ftp_session_reuse", Inverted: true,
-			},
-		},
-		FamilyPeSIT: {
-			{
-				Name: "pesit_login", Cfg: cfgLogin, Kind: KindText, Roles: partnerOnly,
-				Section: secIdentity,
-				Label:   "proto.opt.pesit_login", Hint: "proto.opt.pesit_login_hint", DefaultKey: "proto.opt.pesit_login_none",
-			},
-			{
-				Name: "pesit_disable_restart", Cfg: cfgDisableRestart, Kind: KindCheck, Roles: serverAndClient,
-				Section: secSync,
-				Label:   "proto.opt.pesit_disable_restart", Row: "proto.opt.pesit_restart", Inverted: true,
-			},
-			{
-				Name: "pesit_restart", Cfg: cfgDisableRestart, Kind: KindTri, Roles: partnerOnly,
-				Section: secSync,
-				Label:   "proto.opt.pesit_restart", Inverted: true, DefaultKey: "proto.opt.tristate.client",
-			},
-			{
-				Name: "pesit_disable_checkpoints", Cfg: cfgDisableCheckpoints, Kind: KindCheck, Roles: serverAndClient,
-				Section: secSync,
-				Label:   "proto.opt.pesit_disable_checkpoints", Row: "proto.opt.pesit_checkpoints", Inverted: true,
-			},
-			{
-				Name: "pesit_checkpoints", Cfg: cfgDisableCheckpoints, Kind: KindTri, Roles: partnerOnly,
-				Section: secSync,
-				Label:   "proto.opt.pesit_checkpoints", Inverted: true, DefaultKey: "proto.opt.tristate.client",
-			},
-			{
-				Name: "pesit_checkpoint_size", Cfg: cfgCheckpointSize, Kind: KindNumber, Roles: all,
-				Section: secSync,
-				Short:   true, Min: 1, Parse: parseUnsigned[uint32], Label: "proto.opt.pesit_checkpoint_size",
-				Hint: "proto.opt.bytes", DefaultKey: "proto.opt.default_value", Bytes: true,
-			},
-			{
-				Name: "pesit_checkpoint_window", Cfg: cfgCheckpointWindow, Kind: KindNumber, Roles: all,
-				Section: secSync,
-				Short:   true, Min: 1, Max: math.MaxUint8, Parse: parseUnsigned[uint8],
-				Label: "proto.opt.pesit_checkpoint_window", Hint: "proto.opt.pesit_checkpoint_window_hint",
-				DefaultKey: "proto.opt.default_value",
-			},
-			{
-				Name: "pesit_nsdu", Cfg: cfgUseNSDU, Kind: KindCheck, Roles: partnerOnly, DefaultOn: true,
-				Section: secMessages,
-				Label:   "proto.opt.pesit_nsdu", Hint: "proto.opt.pesit_nsdu_hint",
-			},
-			{
-				Name: "pesit_max_message", Cfg: cfgMaxMessageSize, Kind: KindNumber, Roles: serverAndPartner, Short: true,
-				Section: secMessages,
-				Min:     1, Max: maxPort, Parse: parseUnsigned[uint16], Label: "proto.opt.pesit_max_message",
-				Hint: "proto.opt.bytes", DefaultKey: "proto.opt.default_value", Bytes: true,
-			},
-			{
-				Name: "pesit_mode", Cfg: cfgCompatibilityMode, Kind: KindSelect, Roles: serverAndPartner, Short: true,
-				Section: secIdentity,
-				Choices: pesitModeChoices, Default: pesit.CompatibilityModeStandard, Label: "proto.opt.pesit_mode",
-				Hint: "proto.opt.pesit_mode_hint",
-			},
-			{
-				Name: "pesit_disable_preconnection", Cfg: cfgDisablePreConnection, Kind: KindCheck, Roles: serverAndPartner,
-				Section: secIdentity,
-				Label:   "proto.opt.pesit_disable_preconnection", Row: "proto.opt.pesit_preconnection", Inverted: true,
-			},
-			{
-				Name: "pesit_expects_ack", Cfg: cfgExpectsAck, Kind: KindCheck, Roles: partnerOnly,
-				Section: secAck,
-				Label:   "proto.opt.pesit_expects_ack",
-			},
-			{
-				Name: "pesit_ack_timeout", Cfg: cfgAckTimeout, Kind: KindDuration, Roles: partnerOnly,
-				Section: secAck,
-				Parse:   parseDuration, ErrorKey: "proto.error_duration", Label: "proto.opt.pesit_ack_timeout",
-				Hint: "proto.opt.pesit_ack_timeout_hint", DefaultKey: "proto.opt.pesit_ack_default",
-			},
-			{
-				Name: "pesit_no_pi37", Cfg: cfgNoPI37, Kind: KindCheck, Roles: partnerOnly,
-				Section: secIdentity,
-				Label:   "proto.opt.pesit_no_pi37", Row: "proto.opt.pesit_pi37", Inverted: true,
-			},
-		},
-		FamilySFTP: {
-			{
-				Name: "sftp_kex", Cfg: cfgKeyExchanges, Kind: KindList, Roles: all, Values: sftpKeyExchanges,
-				Section: secAlgorithms,
-				Label:   "proto.opt.sftp_kex", Hint: "proto.opt.sftp_kex_hint", DefaultKey: "proto.opt.default_algos",
-			},
-			{
-				Name: "sftp_ciphers", Cfg: cfgCiphers, Kind: KindList, Roles: all, Values: sftpCiphers,
-				Section: secAlgorithms,
-				Label:   "proto.opt.sftp_ciphers", Hint: "proto.opt.sftp_ciphers_hint", DefaultKey: "proto.opt.default_algos",
-			},
-			{
-				Name: "sftp_macs", Cfg: cfgMACs, Kind: KindList, Roles: all, Values: sftpMACs,
-				Section: secAlgorithms,
-				Label:   "proto.opt.sftp_macs", Hint: "proto.opt.sftp_macs_hint", DefaultKey: "proto.opt.default_algos",
-			},
-			{
-				Name: "sftp_use_stat", Cfg: cfgUseStat, Kind: KindCheck, Roles: partnerOnly,
-				Section: secCompat,
-				Label:   "proto.opt.sftp_use_stat",
-			},
-			{
-				Name: "sftp_no_concurrent_reads", Cfg: cfgNoConcurrentReads, Kind: KindCheck, Roles: partnerOnly,
-				Section: secCompat,
-				Label:   "proto.opt.sftp_no_concurrent_reads", Hint: "proto.opt.sftp_no_concurrent_reads_hint",
-				Row: "proto.opt.sftp_concurrent_reads", Inverted: true,
-			},
-		},
-		FamilyAS2: {
-			{
-				Name: "as2_max_file_size", Cfg: cfgMaxFileSize, Kind: KindNumber, Roles: serverAndClient, Short: true,
-				Section: secTransfer,
-				Min:     1, Parse: parseSigned[int64], Label: "proto.opt.as2_max_file_size",
-				Hint: "proto.opt.as2_max_file_size_hint", DefaultKey: "proto.opt.default_value", Bytes: true,
-			},
-			{
-				Name: "as2_mdn_algo", Cfg: cfgMDNSignatureAlgo, Kind: KindSelect, Roles: serverOnly, Short: true,
-				Section: secSecurity,
-				Choices: mdnAlgoChoices, Label: "proto.opt.as2_mdn_algo", DefaultKey: "proto.opt.mdn.none",
-			},
-			{
-				Name: "as2_sign_algo", Cfg: cfgSignatureAlgo, Kind: KindSelect, Roles: partnerOnly, Short: true,
-				Section: secSecurity,
-				Choices: as2SignChoices, Label: "proto.opt.as2_sign_algo", DefaultKey: "proto.opt.default_value",
-			},
-			{
-				Name: "as2_encrypt_algo", Cfg: cfgEncryptionAlgo, Kind: KindSelect, Roles: partnerOnly, Short: true,
-				Section: secSecurity,
-				Choices: as2EncryptChoices, Label: "proto.opt.as2_encrypt_algo", DefaultKey: "proto.opt.default_value",
-			},
-			{
-				Name: "as2_async_mdn", Cfg: cfgAsyncMDNAddress, Kind: KindText, Roles: partnerOnly,
-				Section: secMDN,
-				Label:   "proto.opt.as2_async_mdn", Hint: "proto.opt.as2_async_mdn_hint",
-				DefaultKey: "proto.opt.as2_async_mdn_none",
-			},
-			{
-				Name: "as2_handle_async_mdn", Cfg: cfgHandleAsyncMDN, Kind: KindCheck, Roles: partnerOnly,
-				Section: secMDN,
-				Label:   "proto.opt.as2_handle_async_mdn", Hint: "proto.opt.as2_handle_async_mdn_hint",
-			},
-		},
-	}
-
-	familyNotes = map[string]string{FamilySFTP: "proto.opt.sftp_note"}
-
-	// The TLS block (tlsOptions), the same for the TLS variant of every
-	// family: the minimum version and the cipher suites.
-	tlsOptions = []Option{
-		{
-			Name: FieldMinTLS, Cfg: cfgMinTLSVersion, Kind: KindSelect, Roles: all, Short: true,
-			Section: secTLS,
-			Choices: func(_ gui.Translator, current string) []Choice { return TLSVersionChoices(current) },
-			Default: protoutils.TLSv12, Label: "proto.opt.min_tls", Hint: "proto.opt.min_tls_hint",
-		},
-		{
-			Name: FieldTLSCiphers, Cfg: cfgCipherSuites, Kind: KindList, Roles: all,
-			Section: secTLS,
-			Values:  func(Role) []string { return tlsCipherNames() },
-			Label:   "proto.opt.tls_ciphers", Hint: "proto.opt.tls_ciphers_hint", Row: "proto.opt.tls_ciphers_short",
-			DefaultKey: "proto.opt.default_ciphers",
-		},
-	}
-)
-
-// optionsOf lists the options of a family for a role, in the order of the form.
-func optionsOf(family string, role Role) []*Option {
-	var out []*Option
-
-	opts := familyOptions[family]
-	for i := range opts {
-		if opts[i].forRole(role) {
-			out = append(out, &opts[i])
-		}
-	}
-
-	return out
-}
-
-// tlsOptionList lists the options of the TLS block.
-func tlsOptionList() []*Option {
-	out := make([]*Option, 0, len(tlsOptions))
-	for i := range tlsOptions {
-		out = append(out, &tlsOptions[i])
-	}
-
-	return out
-}
 
 // parseUnsigned and parseSigned type a whole number for the product.
 func parseUnsigned[T constraints.Unsigned](s string) (any, error) {
@@ -791,10 +465,10 @@ func (o *Option) row(translate gui.Translator, cfg map[string]any) KV {
 }
 
 // sectioned is the row of the option with the theme it belongs to.
-func (o *Option) sectioned(translate gui.Translator, cfg map[string]any) KV {
-	row := o.row(translate, cfg)
-	if o.Section != "" {
-		row.Section = translate(o.Section)
+func (p placed) sectioned(translate gui.Translator, cfg map[string]any) KV {
+	row := p.row(translate, cfg)
+	if p.Section != "" {
+		row.Section = translate(p.Section)
 	}
 
 	return row
