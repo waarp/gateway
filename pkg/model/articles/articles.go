@@ -133,6 +133,20 @@ func (l *Lengths) Max() uint16 {
 	return longest
 }
 
+// Uniform tells whether the articles all have the same length, as articles of
+// a fixed length do; none and one do.
+func (l *Lengths) Uniform() bool {
+	if l != nil {
+		for _, run := range *l {
+			if run.L != (*l)[0].L {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 // All iterates over the length of each article, in order.
 func (l *Lengths) All() iter.Seq[uint16] {
 	return func(yield func(uint16) bool) {

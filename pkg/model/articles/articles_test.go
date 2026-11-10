@@ -74,11 +74,20 @@ func TestArticleLengthsMethods(t *testing.T) {
 	assert.Equal(t, 0, nilLengths.Len())
 	assert.Equal(t, uint16(0), nilLengths.Max())
 	assert.Empty(t, slices.Collect(nilLengths.All()))
+	assert.True(t, nilLengths.Uniform())
 
 	lengths := NewLengths(5, 5, 300, 7)
 	assert.Equal(t, 4, lengths.Len())
 	assert.Equal(t, uint16(300), lengths.Max())
 	assert.Equal(t, `[{"l":5,"c":2},300,7]`, lengths.String())
+	assert.False(t, lengths.Uniform())
+	assert.True(t, NewLengths(5, 5, 5).Uniform())
+	assert.True(t, NewLengths().Uniform())
+
+	// Lengths read back keep the runs they were written with.
+	var read Lengths
+	require.NoError(t, json.Unmarshal([]byte(`[5,5]`), &read))
+	assert.True(t, read.Uniform())
 
 	lengths.Add(7)
 	assert.Equal(t, `[{"l":5,"c":2},300,{"l":7,"c":2}]`, lengths.String())

@@ -43,6 +43,12 @@ des deux encodages de la tâche.
 ``X-User-Defined`` reste accepté pour les tâches existantes, mais n'est plus
 proposé.
 
+Le traitement ne touche pas aux informations de transfert qui décrivent les
+articles du fichier. Il avertit dans le journal quand leurs
+longueurs peuvent ne plus tenir, parce qu'un caractère change de taille (de ou
+vers UTF-8, par exemple) : :doc:`transcode_reformat` avec ``records: articles``
+les garde justes.
+
 .. _transcode-encodages:
 
 Encodages ASCII

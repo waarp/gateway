@@ -69,7 +69,9 @@ func (t *transcodeTask) parseParams(params map[string]string) error {
 		return fmt.Errorf("failed to parse transcode task params: %w", ErrBadTaskArguments)
 	}
 
-	t.task = transcodeReformatTask{FromCharset: t.FromCharset, ToCharset: t.ToCharset, Substitute: t.Substitute}
+	t.task = transcodeReformatTask{
+		FromCharset: t.FromCharset, ToCharset: t.ToCharset, Substitute: t.Substitute, leavesArticles: true,
+	}
 
 	return t.task.prepare()
 }
@@ -85,7 +87,7 @@ func (t *transcodeTask) Run(_ context.Context, params map[string]string, _ *data
 		return err
 	}
 
-	return convertFile(logger, transCtx, &t.task.conversion)
+	return t.task.convert(logger, transCtx)
 }
 
 // convertFile converts the transfer file as conversion describes it, into a

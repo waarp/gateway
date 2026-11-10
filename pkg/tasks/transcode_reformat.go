@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 
@@ -9,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/articles"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -24,6 +26,12 @@ type transcodeReformatTask struct {
 	Substitute  jsonBool `json:"substitute"`
 
 	conversion transcode.Conversion
+	from, to   transcode.Entry
+
+	// leavesArticles keeps the article keys of the transfer information as
+	// they are after a conversion of the whole file: TRANSCODE, which is older
+	// than these keys, only warns.
+	leavesArticles bool
 }
 
 func (t *transcodeReformatTask) parseParams(params map[string]string) error {
@@ -66,6 +74,7 @@ func (t *transcodeReformatTask) prepare() error {
 // build makes the conversion between two character sets, with the records of
 // the task.
 func (t *transcodeReformatTask) build(from, to *transcode.Entry) error {
+	t.from, t.to = *from, *to
 	conversion := transcode.Conversion{Source: from.Name, Target: to.Name, Substitute: bool(t.Substitute)}
 
 	var err error
@@ -99,5 +108,76 @@ func (t *transcodeReformatTask) Run(_ context.Context, params map[string]string,
 		return err
 	}
 
-	return convertFile(logger, transCtx, &t.conversion)
+	return t.convert(logger, transCtx)
+}
+
+// convert converts the transfer file, cut at the lengths of the articles
+// that the transfer information gives when the task says so, then keeps the
+// article keys there true.
+func (t *transcodeReformatTask) convert(logger *log.Logger, transCtx *model.TransferContext) error {
+	if cmp.Or(t.Records, recordsNone) != recordsNone {
+		if t.Records == recordsArticles {
+			lengths, err := transferLengths(transCtx.Transfer.TransferInfo)
+			if err != nil {
+				return err
+			}
+
+			t.lengths = lengths
+		}
+
+		t.written, t.tooLong = &articles.Lengths{}, false
+
+		from, to := t.from, t.to
+		if err := t.build(&from, &to); err != nil {
+			return err
+		}
+	}
+
+	if err := convertFile(logger, transCtx, &t.conversion); err != nil {
+		return err
+	}
+
+	t.keepArticles(logger, transCtx)
+
+	return nil
+}
+
+// keepArticles keeps the article keys of the transfer information true: the
+// records of the task rewrite them; a conversion of the whole file leaves
+// them, but for the lengths of the articles when it may change them, which
+// it leaves out with a warning (TRANSCODE only warns).
+func (t *transcodeReformatTask) keepArticles(logger *log.Logger, transCtx *model.TransferContext) {
+	info := transCtx.Transfer.TransferInfo
+
+	if cmp.Or(t.Records, recordsNone) == recordsNone {
+		if _, has := info[articles.LengthsKey]; has && t.resizes() {
+			done := "they are left as they are"
+			if !t.leavesArticles {
+				delete(info, articles.LengthsKey)
+
+				done = "they are left out"
+			}
+
+			logger.Warningf("The transfer info gives the lengths of the articles of the file, which a conversion "+
+				"of the whole file from %s to %s may change: %s; TRANSCODE&REFORMAT with records %q keeps them true",
+				t.from.Name, t.to.Name, done, recordsArticles)
+		}
+
+		return
+	}
+
+	if info == nil {
+		info = map[string]any{}
+		transCtx.Transfer.TransferInfo = info
+	}
+
+	if problem := t.describe(info, t.resizes()); problem != "" {
+		logger.Warningf("Article keys of the transfer info: %s", problem)
+	}
+}
+
+// resizes tells whether the conversion may change the number of bytes of a
+// character: lengths counted in bytes before it may be wrong after it.
+func (t *transcodeReformatTask) resizes() bool {
+	return t.from.Kind != transcode.KindSingleByte || t.to.Kind != transcode.KindSingleByte
 }
