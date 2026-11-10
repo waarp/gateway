@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`862` Le champ ``password`` des comptes locaux et distants du fichier
+  d'import/export est désormais correctement importé et exporté en YAML. Un bug
+  introduit en version 0.17.1 faisait que ce champ n'était pas correctement
+  traité en YAML (JSON n'est pas affecté).
 
 * :release:`0.17.1 <2026-11-09>`
 * :bug:`696` Le client et serveur PeSIT envoie désormais plusieurs articles par

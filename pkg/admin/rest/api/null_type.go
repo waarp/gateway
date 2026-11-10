@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"reflect"
 )
 
 // Nullable represents a nullable JSON type. Can be used instead of pointers
@@ -12,6 +13,10 @@ type Nullable[T any] struct {
 }
 
 func NewNullable[T any](value T) Nullable[T] {
+	if isNil(value) {
+		return Nullable[T]{}
+	}
+
 	return Nullable[T]{
 		Value: value,
 		Valid: true,
@@ -34,10 +39,43 @@ func (n *Nullable[T]) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func (n *Nullable[T]) MarshalJSON() ([]byte, error) {
+func (n Nullable[T]) MarshalJSON() ([]byte, error) {
 	if !n.Valid {
 		return []byte("null"), nil
 	}
 
 	return json.Marshal(n.Value) //nolint:wrapcheck //no need to wrap error here
+}
+
+func (n *Nullable[T]) UnmarshalYAML(f func(any) error) error {
+	if err := f(&n.Value); err != nil {
+		return err
+	}
+
+	if !isNil(n.Value) {
+		n.Valid = true
+	}
+
+	return nil
+}
+
+func (n Nullable[T]) MarshalYAML() (any, error) {
+	if !n.Valid {
+		//nolint:nilnil //nil, nil is correct here according to the interface's spec
+		return nil, nil
+	}
+
+	return n.Value, nil
+}
+
+func isNil[T any](value T) (isNil bool) {
+	defer func() {
+		if recover() != nil {
+			isNil = false
+		}
+	}()
+
+	rvalue := reflect.ValueOf(value)
+
+	return !rvalue.IsValid() || rvalue.IsNil()
 }

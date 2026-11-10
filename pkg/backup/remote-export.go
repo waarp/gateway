@@ -3,7 +3,6 @@ package backup
 import (
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -71,7 +70,7 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 
 		account := file.RemoteAccount{
 			Login:        src.Login,
-			Password:     api.NewNullable(pswd),
+			Password:     pswd,
 			Credentials:  credentials,
 			Certificates: certs,
 		}

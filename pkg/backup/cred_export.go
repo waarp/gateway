@@ -3,6 +3,7 @@ package backup
 import (
 	"fmt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
@@ -13,17 +14,18 @@ import (
 
 func exportCredentials(logger *log.Logger, db database.ReadAccess,
 	owner model.CredOwnerTable,
-) ([]file.Credential, []file.Certificate, string, error) {
+) ([]file.Credential, []file.Certificate, api.Nullable[string], error) {
 	credentials, err := owner.GetCredentials(db)
 	if err != nil {
 		logger.Errorf("Failed to retrieve the %s's credentials: %v",
 			owner.Appellation(), err)
 
-		return nil, nil, "", fmt.Errorf("failed to retrieve the %s's credentials: %w",
-			owner.Appellation(), err)
+		return nil, nil, api.Nullable[string]{},
+			fmt.Errorf("failed to retrieve the %s's credentials: %w",
+				owner.Appellation(), err)
 	}
 
-	var pswd string
+	var pswd api.Nullable[string]
 
 	fAuths := make([]file.Credential, len(credentials))
 	certs := make([]file.Certificate, 0, len(credentials))
@@ -43,11 +45,11 @@ func exportCredentials(logger *log.Logger, db database.ReadAccess,
 }
 
 func exportLegacyCredentials(src *model.Credential, certs *[]file.Certificate,
-	pswd *string,
+	pswd *api.Nullable[string],
 ) {
 	switch src.Type {
 	case auth.Password:
-		*pswd = src.Value
+		pswd.Value, pswd.Valid = src.Value, true
 	case auth.TLSTrustedCertificate:
 		*certs = append(*certs, file.Certificate{
 			Name:        src.Name,
