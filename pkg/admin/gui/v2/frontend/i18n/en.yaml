@@ -176,6 +176,9 @@ proto:
   filter_tls_no: Without TLS
   options: "{protocol} options"
   options_label: Options
+  options_meta_none: No option
+  options_meta_one: 1 option
+  options_meta: "{n} options"
   error_number: Enter a whole number.
   error_duration: "Give whole numbers of hours, minutes and seconds."
   options_default: Default options of the gateway
@@ -375,6 +378,7 @@ servers:
     accounts: Local accounts
     dirs: Directories
     undefined: Not set
+    dirs_meta_default: Default directories
   dirs:
     root: Root directory
     receive: Receive directory
@@ -732,6 +736,10 @@ about:
   link_contact: "Contact: {email}"
 # Rights of a user by domain: the table shared by "My account" and the "Users" screen.
 rights:
+  meta_all: Every right
+  meta_one: 1 right
+  meta: "{n} rights"
+  meta_none: No right
   col:
     read: Read
     write: Write
@@ -1020,6 +1028,11 @@ clients:
     partners: Partners this client can reach
     partners_hint: "The remote partners of its protocol; a transfer to one of them goes through this client, unless another one is named."
     partners_none: No partner of this protocol yet.
+    retries_meta_one: 1 attempt
+    retries_meta: "{n} attempts"
+    partners_meta_none: None
+    partners_meta_one: 1 partner
+    partners_meta: "{n} partners"
   retries:
     attempts: Automatic retries after a failure
     attempts_hint: "0: no retry; 127 at most"
@@ -1273,6 +1286,19 @@ clouds:
     "no": "No"
     options: Options
     options_none: No option.
+    options_meta_none: None
+    options_meta_one: 1 option
+    options_meta: "{n} options"
+    access_meta_env: From the environment
+    access_meta_secret: Secret set
+    access_meta_none: No secret
+    usage_meta_none: Unused
+    usage_meta_rules_one: 1 rule
+    usage_meta_rules: "{n} rules"
+    usage_meta_servers_one: 1 server
+    usage_meta_servers: "{n} servers"
+    usage_meta_transfers_one: 1 transfer
+    usage_meta_transfers: "{n} transfers"
     default: Default value of the gateway
     unset: Not set
     masked: Hidden
@@ -1453,8 +1479,15 @@ authorities:
     ko: Expired
   identity:
     unreadable: Unreadable
+    meta_expires: "expires on {date}"
+  signed:
+    meta_none: None
+    meta_one: 1 certificate
+    meta: "{n} certificates"
   hosts:
     all: Any host
+    meta_one: 1 host
+    meta: "{n} hosts"
     more: "{hosts} and {n} more"
     more_one: "{hosts} and 1 more"
   # Who holds a registered certificate the authority signs.
@@ -2171,6 +2204,9 @@ rules:
     title_receive: "Receive rule “{name}”"
     card: Rule
     folders: Directories
+    folders_meta_none: Default directories
+    folders_meta_one: 1 directory set
+    folders_meta: "{n} directories set"
     no_comment: No comment
     path_hint: "SFTP, FTP, WebDAV, AS2 and standard PeSIT servers recognise the rule by this path; in R66, HTTP and non-standard PeSIT, the partner names it."
     open_hint: Any server, partner or account can use it.
@@ -3212,6 +3248,12 @@ transfers:
     retries: Retries
     infos: Transfer information
     infos_none: No transfer information.
+    infos_meta_none: None
+    infos_meta_one: 1 entry
+    infos_meta: "{n} entries"
+    retries_meta_none: No retry left
+    retries_meta_one: 1 retry left
+    retries_meta: "{n} retries left"
     progress: Progress
     rule: Rule
     direction: Direction

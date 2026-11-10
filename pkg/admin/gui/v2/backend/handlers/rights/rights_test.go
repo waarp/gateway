@@ -1,6 +1,7 @@
 package rights
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,4 +60,17 @@ func TestRows(t *testing.T) {
 	for _, row := range all[1:] {
 		assert.True(t, row.Read && row.Write && row.Delete, row.Key)
 	}
+}
+
+// The summary of a folded rights card: every right, none, one or how many.
+func TestMeta(t *testing.T) {
+	t.Parallel()
+
+	translate := func(key string, args ...any) string { return fmt.Sprintf("%s|%v", key, args) }
+	all := []Row{{Read: true, Write: true, Delete: true}, {Read: true, Write: true, NoDelete: true}}
+
+	assert.Equal(t, "rights.meta_all|[]", Meta(translate, all))
+	assert.Equal(t, "rights.meta_none|[]", Meta(translate, []Row{{}, {NoDelete: true}}))
+	assert.Equal(t, "rights.meta_one|[]", Meta(translate, []Row{{Read: true}, {}}))
+	assert.Equal(t, "rights.meta|[n 3]", Meta(translate, []Row{{Read: true, Write: true}, {Read: true}}))
 }

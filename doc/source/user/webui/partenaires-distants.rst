@@ -219,8 +219,10 @@ sa fiche. Les règles sans aucune restriction, que tout partenaire peut
 utiliser, ne sont pas listées : une phrase les compte. Les accès aux règles
 se gèrent depuis l'écran des règles de transfert.
 
-Les cartes de la fiche se replient, sauf la première : le résumé de chaque
-carte repliée reste visible (le client utilisé, le compte des règles).
+Les cartes de la fiche, sauf la première, sont pliées par défaut ; l'en-tête
+de chacune résume ce qu'elle contient (le client utilisé, le compte des
+règles, le nombre d'options du protocole). Une carte dépliée le reste au
+retour sur la fiche : le navigateur retient l'état choisi.
 
 
 Moyens d'authentification

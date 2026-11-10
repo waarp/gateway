@@ -3,6 +3,20 @@
 Historique des versions
 =======================
 
+* :feature:`810` Les cartes des fiches de l'interface web refondue, sauf la
+  première, sont pliées par défaut et résumées dans leur en-tête ; le
+  navigateur retient l'état déplié. Les blocs facultatifs vides des
+  formulaires se plient de même.
+* :support:`810` Le kit d'interface 0.26.0 est épinglé : l'éditeur du corps des
+  modèles d'e-mail insère un tableau simple, rendu par les clients de
+  messagerie, dont une barre gère les lignes et les colonnes.
+* :bug:`807` Dans l'interface web refondue, les cartes des écrans livrés
+  avant la règle du 25 octobre se replient à leur tour : sur la page Mon
+  compte, les fiches et les formulaires des identifiants SMTP, des clés
+  cryptographiques, des modèles d'e-mail, des utilisateurs et des transferts,
+  chaque carte après la première se replie et se déplie, ouverte par défaut,
+  son état retenu par le navigateur ; une carte qui porte une erreur de
+  saisie s'ouvre d'office.
 * :feature:`809` Le Suivi des transferts et l'onglet Tâches d'une règle occupent
   toute la largeur de l'écran, par le gabarit de page large du kit, qui
   remplace l'exception de style du Suivi.

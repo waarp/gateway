@@ -70,6 +70,12 @@ Navigation
        focus. Les états de repli sont mémorisés.
    * - Fil d'Ariane
      - Le chemin de l'écran courant, depuis l'accueil.
+   * - Fiches
+     - Les cartes d'une fiche, sauf la première, sont pliées par défaut et
+       résumées dans leur en-tête ; un clic sur le titre les déplie, et le
+       navigateur retient l'état choisi. Dans un formulaire, un bloc reste
+       ouvert dès qu'il porte une valeur, une erreur ou un champ requis ;
+       un bloc facultatif vide est plié.
    * - Contenu
      - L'écran lui-même : en-tête de page (section, titre, description,
        action), puis tableaux et cartes.

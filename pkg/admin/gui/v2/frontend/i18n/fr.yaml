@@ -175,6 +175,9 @@ proto:
   filter_tls_no: Sans TLS
   options: "Options du protocole {protocol}"
   options_label: Options
+  options_meta_none: Aucune option
+  options_meta_one: 1 option
+  options_meta: "{n} options"
   error_number: Indiquez un nombre entier.
   error_duration: "Indiquez des nombres entiers d'heures, de minutes et de secondes."
   options_default: Options par défaut de la passerelle
@@ -374,6 +377,7 @@ servers:
     accounts: Comptes locaux
     dirs: Dossiers
     undefined: Non défini
+    dirs_meta_default: Dossiers par défaut
   dirs:
     root: Dossier racine
     receive: Dossier de réception
@@ -731,6 +735,10 @@ about:
   link_contact: "Contact : {email}"
 # Droits d'un utilisateur par domaine : le tableau partagé par « Mon compte » et l'écran « Utilisateurs ».
 rights:
+  meta_all: Tous les droits
+  meta_one: 1 droit
+  meta: "{n} droits"
+  meta_none: Aucun droit
   col:
     read: Lecture
     write: Écriture
@@ -1020,6 +1028,11 @@ clients:
     partners: Partenaires joignables par ce client
     partners_hint: "Les partenaires distants de son protocole ; un transfert vers l'un d'eux passe par ce client, sauf à en nommer un autre."
     partners_none: Aucun partenaire de ce protocole pour l'instant.
+    retries_meta_one: 1 tentative
+    retries_meta: "{n} tentatives"
+    partners_meta_none: Aucun
+    partners_meta_one: 1 partenaire
+    partners_meta: "{n} partenaires"
   retries:
     attempts: Tentatives automatiques après un échec
     attempts_hint: "0 : aucune reprise ; 127 au plus"
@@ -1273,6 +1286,19 @@ clouds:
     "no": Non
     options: Options
     options_none: Aucune option.
+    options_meta_none: Aucune
+    options_meta_one: 1 option
+    options_meta: "{n} options"
+    access_meta_env: Par l'environnement
+    access_meta_secret: Secret fourni
+    access_meta_none: Sans secret
+    usage_meta_none: Aucun usage
+    usage_meta_rules_one: 1 règle
+    usage_meta_rules: "{n} règles"
+    usage_meta_servers_one: 1 serveur
+    usage_meta_servers: "{n} serveurs"
+    usage_meta_transfers_one: 1 transfert
+    usage_meta_transfers: "{n} transferts"
     default: Valeur par défaut de la passerelle
     unset: Non défini
     masked: Masquée
@@ -1453,8 +1479,15 @@ authorities:
     ko: Expirée
   identity:
     unreadable: Illisible
+    meta_expires: "expire le {date}"
+  signed:
+    meta_none: Aucun
+    meta_one: 1 certificat
+    meta: "{n} certificats"
   hosts:
     all: Tous les hôtes
+    meta_one: 1 hôte
+    meta: "{n} hôtes"
     more: "{hosts} et {n} autres"
     more_one: "{hosts} et 1 autre"
   # Qui porte un certificat enregistré que l'autorité signe.
@@ -2171,6 +2204,9 @@ rules:
     title_receive: "Règle de réception « {name} »"
     card: Règle
     folders: Dossiers
+    folders_meta_none: Dossiers par défaut
+    folders_meta_one: 1 dossier défini
+    folders_meta: "{n} dossiers définis"
     no_comment: Aucun commentaire
     path_hint: "Les serveurs SFTP, FTP, WebDAV, AS2 et PeSIT standard reconnaissent la règle à ce chemin ; en R66, HTTP et PeSIT non standard, le partenaire la nomme."
     open_hint: "Tout serveur, partenaire ou compte peut l'employer."
@@ -3215,6 +3251,12 @@ transfers:
     retries: Tentatives
     infos: Informations de transfert
     infos_none: Aucune information de transfert.
+    infos_meta_none: Aucune
+    infos_meta_one: 1 information
+    infos_meta: "{n} informations"
+    retries_meta_none: Plus de tentative
+    retries_meta_one: 1 tentative restante
+    retries_meta: "{n} tentatives restantes"
     progress: Progression
     rule: Règle
     direction: Sens

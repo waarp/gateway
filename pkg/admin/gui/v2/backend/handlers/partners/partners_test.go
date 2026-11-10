@@ -319,7 +319,7 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "Il peut aussi utiliser la règle sans restriction, comme tout partenaire.")
 		assert.Contains(t, body, `<span class="w-fold__meta">1 réservées · 1 sans restriction</span>`)
 		assert.Contains(t, body, `<span class="w-fold__meta">cli-sftp</span>`, "the client card folds, its summary names the client")
-		assert.Equal(t, 3, strings.Count(body, `<details class="w-card w-card--fold" open>`), "every card but the first folds")
+		assert.Equal(t, 3, strings.Count(body, `<details class="w-card w-card--fold" data-key="ptn-`), "every card but the first folds")
 		assert.Contains(t, body, "<dt>Lire la taille du fichier avant de le recevoir</dt><dd>Activé</dd>")
 		assert.Contains(t, body, "<dt>Lecture parallèle</dt><dd>Activé</dd>", "an absent flag reads as the product default")
 		assert.Contains(t, body, `<span class="w-tabs__count">2</span>`, "the accounts tab counts them")
