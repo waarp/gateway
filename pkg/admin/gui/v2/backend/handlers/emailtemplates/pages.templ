@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/ruleuse"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/varlist"
 )
 
 // listView: the email templates (Treatments). Presentation only: the handler
@@ -360,7 +361,7 @@ templ formView(d *formData) {
 					<div data-case={ d.HTMLCase }>
 						<div class={ "w-field", templ.KV("is-invalid", d.BodyHTML.Error != "") }>
 							<label class="w-field__label" for="body_html">{ gui.T(ctx, "email_templates.form.body") } <span class="w-field__req" aria-hidden="true">*</span></label>
-							@gui.RichText(gui.RichTextProps{ID: fieldBodyHTML, Name: fieldBodyHTML, Value: d.BodyHTML.Value, Describe: describe(fieldBodyHTML, d.BodyHTML), Vars: varListID, Required: true, Invalid: d.BodyHTML.Error != ""})
+							@gui.RichText(gui.RichTextProps{ID: fieldBodyHTML, Name: fieldBodyHTML, Value: d.BodyHTML.Value, Describe: describe(fieldBodyHTML, d.BodyHTML), Vars: varlist.ListID, Required: true, Invalid: d.BodyHTML.Error != ""})
 							@hintOrError(fieldBodyHTML, gui.T(ctx, "email_templates.form.body_html_hint"), d.BodyHTML)
 						</div>
 					</div>
@@ -411,7 +412,7 @@ templ varField(id, label, hint string, f field, area bool) {
 				rows={ rowsOf(id) }
 				spellcheck="false"
 				autocomplete="off"
-				data-vars={ varListID }
+				data-vars={ varlist.ListID }
 				aria-describedby={ describe(id, f) }
 				if f.Error != "" {
 					aria-invalid="true"
@@ -424,7 +425,7 @@ templ varField(id, label, hint string, f field, area bool) {
 				name={ id }
 				value={ f.Value }
 				autocomplete="off"
-				data-vars={ varListID }
+				data-vars={ varlist.ListID }
 				aria-describedby={ describe(id, f) }
 				if f.Error != "" {
 					aria-invalid="true"

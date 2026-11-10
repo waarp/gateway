@@ -2309,6 +2309,7 @@ rules:
       range: "Between {min} and {max}."
       json: "Give a JSON object, for instance {\"batch\": \"A\"}."
       pairs: "One line per information, as key=value."
+      markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
       type: Choose a type.
       sens: Choose a direction.
       icap: "Enter the address of the ICAP server, for example icap://antivirus.example.com:1344/avscan."
@@ -3005,8 +3006,11 @@ email_templates:
   error:
     title: The list of the email templates could not be loaded.
     text: "An internal error occurred; the details are in the log of the gateway."
+
+# The variables the tasks substitute, offered by the variables list (email templates, tasks of the rules).
+vars:
   # The groups of the list of the variables.
-  var_group:
+  group:
     file: File
     transfer: Transfer
     partners: Partners
