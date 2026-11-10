@@ -3346,6 +3346,57 @@ transfers:
     date: Start
     refused: The retry was not created
     gone: The rule, the partner, the account or the client of this transfer no longer exists.
+  set:
+    objects: transfers
+    row: "transfer No. {id}"
+    resume: Resume the transfers
+    retry: Retry the transfers
+    cancel: Cancel the transfers
+    empty: No transfer selected
+    search: Search
+    period: Start period
+    period_both: "from {from} to {to}"
+    period_from: "from {from}"
+    period_to: "until {to}"
+    except: Except
+    count: Count
+    changed_title: The set changed since the page was shown
+    changed: "The count went from {expected} to {n}. Check the set before you confirm."
+    resume_title: "Resume {n} transfers?"
+    resume_title_one: "Resume 1 transfer?"
+    resume_text: "The transfers resume where they stopped; their next attempt is now. Those their status or their nature keeps from resuming stay as they are."
+    retry_title: "Retry {n} transfers"
+    retry_title_one: Retry 1 transfer
+    retry_text: "A new transfer is created for each one, with the same rule, partner, account and file; the transfers of origin stay as they are."
+    cancel_title: "Cancel {n} transfers?"
+    cancel_title_one: "Cancel 1 transfer?"
+    cancel_text: "The transfers go to the history, cancelled; they will not be tried again. To do them again, retry them. A running transfer is stopped first."
+    will_resume: Will be resumed
+    will_retry: Will be retried
+    will_cancel: Will be cancelled
+    running: Of which running, stopped
+    aside:
+      server: Server transfers, up to the partner
+      sync: Children of a synchronous transfer, which resume through their parent
+      state: Transfers whose status does not allow this gesture
+      missing: Transfers that no longer exist
+      gone: Transfers whose rule, partner, account or client no longer exists
+      elsewhere: Transfers running on another node of the cluster
+      busy: Running transfers that did not stop in time
+    resumed: "{n} transfers resumed"
+    resumed_one: 1 transfer resumed
+    retried: "{n} transfers retried"
+    retried_one: 1 transfer retried
+    cancelled: "{n} transfers cancelled"
+    cancelled_one: 1 transfer cancelled
+    left_resumed: "{n} not resumed"
+    left_resumed_one: 1 not resumed
+    left_retried: "{n} not retried"
+    left_retried_one: 1 not retried
+    left_cancelled: "{n} not cancelled"
+    left_cancelled_one: 1 not cancelled
+    left_sep: ": "
+    reason_sep: ": "
   new:
     title: New transfer
   preregister:

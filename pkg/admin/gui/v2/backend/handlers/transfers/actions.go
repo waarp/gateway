@@ -50,11 +50,11 @@ func allowedOf(trans *model.NormalizedTransferView) allowed {
 		// A paused, interrupted or failed client transfer which is not the
 		// child of a synchronous transfer (the model says so).
 		Resume: trans.IsTransfer && trans.CheckResumable() == nil,
-		Cancel: !trans.Status.IsOneOf(types.StatusDone, types.StatusCancelled),
+		// A live transfer (the model says so).
+		Cancel: trans.CheckCancellable() == nil,
 		// A new transfer from a client transfer that no longer runs nor waits
-		// to: the gateway starts client transfers only.
-		Retry: !trans.IsServer && trans.Status.IsOneOf(types.StatusPaused, types.StatusInterrupted, types.StatusError,
-			types.StatusDone, types.StatusCancelled),
+		// to: the gateway starts client transfers only (the model says so).
+		Retry: trans.CheckRetryable() == nil,
 	}
 }
 
@@ -459,7 +459,7 @@ func (h *Handlers) RetryForm(w http.ResponseWriter, r *http.Request) {
 
 // retryRefusal says why a transfer cannot be retried.
 func (h *Handlers) retryRefusal(translate gui.Translator, trans *model.NormalizedTransferView) string {
-	if trans.IsServer {
+	if errors.Is(trans.CheckRetryable(), model.ErrRetryServer) {
 		return translate("transfers.refused.retry_server")
 	}
 

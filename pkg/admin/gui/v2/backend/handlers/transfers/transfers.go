@@ -345,6 +345,10 @@ func Notices(translate gui.Translator, values url.Values) []gui.Notice {
 		}}
 	}
 
+	if notice, ok := setNotice(translate, values); ok {
+		return []gui.Notice{notice}
+	}
+
 	return nil
 }
 

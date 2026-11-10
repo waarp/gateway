@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`792` Le Suivi des transferts agit sur un ensemble : les transferts
+  des filtres, moins les lignes décochées, ou les lignes cochées seules, se
+  reprennent, se relancent ou s'annulent en une fois ; la notification compte
+  ce qui a été fait et ce qui a été laissé de côté, avec la raison.
 * :feature:`816` Les clés réservées des informations de transfert (textes
   libres et attributs PeSIT, acquittements, identifiant de flux…) sont tenues
   dans un registre unique du produit, décrit par une page de référence ; la
