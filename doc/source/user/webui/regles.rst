@@ -234,7 +234,10 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        information (nom, valeur), comme sur la page qui ajoute un transfert,
        et la case qui copie d'abord celles du transfert en cours. Une valeur
        enregistrée et non modifiée garde son type (un nombre reste un
-       nombre) ; les valeurs admettent les variables, comme un texte.
+       nombre) ; les valeurs admettent les variables, comme un texte, et le
+       nom propose les clés réservées de la Gateway (``__ackExpected__``,
+       ``__followID__``…) avec leur sens, une clé libre restant possible
+       (:ref:`reference-transfer-info`).
    * - Lignes clé=valeur
      - Les informations de transfert que pose une tâche ``SETINFO``, une par
        ligne ; une valeur vide retire la clé au moment de l'exécution. Les

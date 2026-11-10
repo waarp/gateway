@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`816` Les clés réservées des informations de transfert (textes
+  libres et attributs PeSIT, acquittements, identifiant de flux…) sont tenues
+  dans un registre unique du produit, décrit par une page de référence ; la
+  liste des variables les propose par famille et le nom d'une information les
+  suggère.
 * :feature:`812` Dans le formulaire d'une tâche, chaque champ que la Gateway
   substitue (textes, paires de ``SETINFO``, informations de transfert)
   propose la liste des variables, par ``#`` ou le bouton *Variables* ; une
