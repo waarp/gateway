@@ -122,8 +122,11 @@ dashboard:
   activity:
     title: Activity of the last 24 hours
     chart: "Transfers per hour over the last 24 hours: done and still failed"
-    desc: The exact values are in the “Values per hour” table after the chart.
+    desc: The exact values are in the “Values per hour” table after the chart; a line parts yesterday from today.
     hour: "{hour}:00"
+    today: "Today · {date}"
+    yesterday: "Yesterday · {date}"
+    date: Jan 2
   legend:
     done: Done
     error: Still failed (hatched, figure above)
@@ -136,7 +139,7 @@ dashboard:
     total_done_one: 1 done
     total_error: "{n} failed"
     total_error_one: 1 failed
-    caption: Done and still failed transfers, by start hour, over the last 24 hours
+    caption: Done and still failed transfers, by start hour, most recent first, over the last 24 hours
     hour: Start hour
     done: Done
     error: Still failed

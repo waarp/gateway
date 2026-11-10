@@ -45,8 +45,11 @@ toujours celui de l'écran qu'il ouvre.
    * - Activité des 24 dernières heures
      - Un graphique en barres, une par heure de début : les transferts
        terminés en plein, les transferts encore en erreur en hachuré avec leur
-       nombre au-dessus. La section *Valeurs par heure*, repliée, donne les
-       valeurs exactes ; son titre porte les totaux.
+       nombre au-dessus. Un trait sépare les heures d'hier de celles
+       d'aujourd'hui, le jour est nommé sous ses heures. La section *Valeurs
+       par heure*, repliée, donne les valeurs exactes, de l'heure la plus
+       récente à la plus ancienne, groupées par jour avec les totaux du jour ;
+       son titre porte les totaux de la période.
      -
    * - Dernières erreurs
      - Les cinq transferts en erreur les plus récents : heure de début,

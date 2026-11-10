@@ -93,11 +93,14 @@ templ body(d pageData) {
 								<table class="w-table">
 									<caption class="visually-hidden">{ gui.T(ctx, "dashboard.values.caption") }</caption>
 									<thead><tr><th scope="col">{ gui.T(ctx, "dashboard.values.hour") }</th><th scope="col" class="w-num">{ gui.T(ctx, "dashboard.values.done") }</th><th scope="col" class="w-num">{ gui.T(ctx, "dashboard.values.error") }</th></tr></thead>
-									<tbody>
-										for _, v := range d.Values {
-											<tr><td class="w-mono">{ v.Hour }</td><td class="w-num">{ v.Done }</td><td class="w-num">{ v.Failed }</td></tr>
-										}
-									</tbody>
+									for _, day := range d.Days {
+										<tbody>
+											<tr class="tdb-day"><th scope="rowgroup" colspan="3">{ day.Label }<span class="tdb-day__meta">{ day.Meta }</span></th></tr>
+											for _, v := range day.Rows {
+												<tr><td class="w-mono">{ v.Hour }</td><td class="w-num">{ v.Done }</td><td class="w-num">{ v.Failed }</td></tr>
+											}
+										</tbody>
+									}
 								</table>
 							</div>
 						</details>

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`832` Le tableau de bord distingue hier d'aujourd'hui dans
+  l'activité des 24 dernières heures : un trait à minuit et le jour sous ses
+  heures ; les valeurs par heure vont de la plus récente à la plus ancienne,
+  groupées par jour.
 * :bug:`824` Chaque ligne d'information d'une tâche porte son menu « ⋯ »
   (insérer une variable, retirer l'information) : le bouton « Variables » ne
   déborde plus de la ligne, et une ligne ajoutée propose aussi les variables.

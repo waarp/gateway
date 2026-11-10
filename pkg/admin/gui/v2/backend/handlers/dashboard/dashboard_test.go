@@ -279,8 +279,10 @@ func TestPage(t *testing.T) {
 		body := s.serve(t, write, "fr", "/webui/dashboard").Body.String()
 
 		activity := part(t, body, "tdb-activity")
-		assert.Contains(t, activity, `<svg class="w-chart w-chart--wide" viewBox="0 0 600 220" role="img"`)
+		assert.Contains(t, activity, `<svg class="w-chart w-chart--wide" viewBox="0 0 600 240" role="img"`, "grouped by day")
 		assert.Contains(t, activity, `<svg class="w-chart w-chart--narrow"`, "24 slots: a narrow rendering too")
+		indexes(t, activity, `>Hier · 20/10</text>`, `>Aujourd&#39;hui · 21/10</text>`)
+		assert.Contains(t, activity, `<line class="group"`, "a line at midnight")
 		assert.Contains(t, activity, `<title id="tdb-activity-chart-t">Transferts par heure sur les 24 dernières heures : terminés et encore en erreur</title>`)
 		assert.Contains(t, activity, "15:00 · 1 terminés", "the transfer done at 15:30 today")
 		assert.Contains(t, activity, "15:00 · 1 en erreur", "the transfer failed at 15:35 today, hatched")
@@ -296,10 +298,33 @@ func TestPage(t *testing.T) {
 
 		values := part(t, body, "tdb-values")
 		assert.Equal(t, 24, strings.Count(values, "<tr><td"), "one row per hour")
-		indexes(t, values, `<td class="w-mono">17:00</td><td class="w-num">1</td><td class="w-num">0</td>`,
-			`<td class="w-mono">13:00</td><td class="w-num">0</td><td class="w-num">1</td>`,
+		assert.Equal(t, 2, strings.Count(values, "<tbody>"), "a group per day")
+		indexes(t, values,
+			`<tr class="tdb-day"><th scope="rowgroup" colspan="3">Aujourd&#39;hui · 21/10<span class="tdb-day__meta">2 terminés · 2 en erreur</span></th></tr>`,
+			`<td class="w-mono">16:00</td><td class="w-num">0</td><td class="w-num">0</td>`,
 			`<td class="w-mono">15:00</td><td class="w-num">1</td><td class="w-num">1</td>`,
-			`<td class="w-mono">16:00</td><td class="w-num">0</td><td class="w-num">0</td>`)
+			`<td class="w-mono">13:00</td><td class="w-num">0</td><td class="w-num">1</td>`,
+			`<td class="w-mono">00:00</td>`,
+			`<tr class="tdb-day"><th scope="rowgroup" colspan="3">Hier · 20/10<span class="tdb-day__meta">1 terminé · 0 en erreur</span></th></tr>`,
+			`<td class="w-mono">23:00</td>`,
+			`<td class="w-mono">17:00</td><td class="w-num">1</td><td class="w-num">0</td>`)
+	})
+
+	t.Run("Given a window that starts at midnight", func(t *testing.T) {
+		s.now = at(21, 23, 30)
+		body := s.serve(t, write, "fr", "/webui/dashboard").Body.String()
+
+		activity := part(t, body, "tdb-activity")
+		assert.Contains(t, activity, `>Aujourd&#39;hui · 21/10</text>`, "one group, today")
+		assert.NotContains(t, activity, "Hier")
+		assert.NotContains(t, activity, `<line class="group"`, "no boundary with one group")
+
+		values := part(t, body, "tdb-values")
+		assert.Equal(t, 1, strings.Count(values, "<tbody>"))
+		indexes(t, values, `<td class="w-mono">23:00</td>`, `<td class="w-mono">00:00</td>`)
+
+		s.now = at(21, 16, 5)
+		s.h.last = reading{} // the figures of 23:30 are not those of the clock set back
 	})
 
 	t.Run("Given the latest errors", func(t *testing.T) {
