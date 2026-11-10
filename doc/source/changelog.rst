@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`802` Sur l'écran d'import et d'export de la configuration, la page
+  s'ouvre en YAML, l'option de remplacement des secrets et des certificats par
+  des repères cochée ; un export demandé sans format est en YAML. Après un
+  import refusé, la page garde le format et l'option tels qu'ils ont été
+  choisis.
 * :bug:`815` Dans la référence de l'API REST, les points qui listent et créent
   les clients sont documentés à leur vrai chemin, ``GET /api/clients`` et
   ``POST /api/clients``, et non plus ``/api/clients/{nom}``.
