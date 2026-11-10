@@ -9,7 +9,8 @@ arguments sont :
   :doc:`transcode`, qui en donne :ref:`la liste <transcode-encodages>`.
 * ``records`` (*string*) - Le découpage du fichier : ``lines`` des lignes,
   ``fixed`` des enregistrements de longueur fixe, ``rdw`` des enregistrements
-  précédés de leur longueur (RDW), comme z/OS les écrit.
+  précédés de leur longueur (RDW), comme z/OS les écrit, ``articles`` des
+  articles, aux longueurs que donnent les informations de transfert.
 * ``recordLength`` (*int*) - Avec ``fixed`` : la longueur des enregistrements,
   en octets, de 1 à 32760.
 * ``trimPadding`` (*bool*) - Avec ``fixed`` : retire les espaces qui terminent
@@ -49,7 +50,9 @@ sert qu'à reconnaître et à écrire ces octets : la fin de ligne LF vaut ``0x2
 et l'espace ``0x40`` en EBCDIC, et une fin de ligne tient sur deux octets en
 UTF-16.
 
-Les fins de ligne suivent les règles de :doc:`transcode_reformat`. Côté EBCDIC,
+Les fins de ligne suivent les règles de :doc:`transcode_reformat`, et les
+informations de transfert aussi : le traitement lit les longueurs des
+articles, et réécrit ensuite les clés qui décrivent le fichier. Côté EBCDIC,
 ``LF`` et ``CRLF`` s'écrivent ``0x0A`` et ``0x0D 0x0A``, là où le module PeSIT
 de la passerelle découpe un fichier texte en articles. Un fichier EBCDIC a de
 plus ses lignes reconnues sur ``0x25`` et ``0x15`` ; ``NEL`` écrit ``0x15``.

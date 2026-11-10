@@ -22,6 +22,10 @@ Historique des versions
   en cours et l'historique par ``UNION ALL``, sans le dédoublonnage de ``UNION``
   qui n'écartait aucune ligne.
 
+* :feature:`850` Les tâches TRANSCODE&REFORMAT et REFORMAT découpent un fichier
+  aux longueurs d'articles des informations de transfert (``records: articles``),
+  posées par une réception PeSIT ou par SETINFO, puis y décrivent le fichier
+  converti.
 * :feature:`845` La tâche TRANSCODE propose 53 pages EBCDIC de plus et
   accepte aussi les noms usuels des encodages (``utf8``, ``IBM1147``,
   ``CP037``). Son formulaire demande d'abord le sens de la conversion et dit à

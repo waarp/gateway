@@ -11,7 +11,7 @@ require (
 	code.waarp.fr/lib/migration v1.5.0
 	code.waarp.fr/lib/pesit v0.1.12-0.20261110175536-bbc896e1eca3
 	code.waarp.fr/lib/r66 v1.0.8
-	code.waarp.fr/lib/transcode v0.2.0
+	code.waarp.fr/lib/transcode v0.3.1
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.10.1
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/ProtonMail/gopenpgp/v3 v3.5.2
