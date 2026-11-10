@@ -1,10 +1,11 @@
-package pesit
+package articles
 
 import (
 	"encoding/json"
 	"slices"
 	"testing"
 
+	"code.waarp.fr/lib/pesit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,13 +29,13 @@ func TestArticleLengthsJSON(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			lengths := newArticleLengths(test.lengths...)
+			lengths := NewLengths(test.lengths...)
 
 			marshalled, err := json.Marshal(lengths)
 			require.NoError(t, err)
 			assert.JSONEq(t, test.expected, string(marshalled))
 
-			var unmarshalled articleLengths
+			var unmarshalled Lengths
 			require.NoError(t, json.Unmarshal(marshalled, &unmarshalled))
 			assert.Equal(t, test.lengths, slices.Collect(unmarshalled.All()))
 			assert.Equal(t, len(test.lengths), unmarshalled.Len())
@@ -59,7 +60,7 @@ func TestArticleLengthsLegacyJSON(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			var lengths articleLengths
+			var lengths Lengths
 			require.NoError(t, json.Unmarshal([]byte(test.json), &lengths))
 			assert.Equal(t, test.expected, slices.Collect(lengths.All()))
 		})
@@ -69,12 +70,12 @@ func TestArticleLengthsLegacyJSON(t *testing.T) {
 func TestArticleLengthsMethods(t *testing.T) {
 	t.Parallel()
 
-	var nilLengths *articleLengths
+	var nilLengths *Lengths
 	assert.Equal(t, 0, nilLengths.Len())
 	assert.Equal(t, uint16(0), nilLengths.Max())
 	assert.Empty(t, slices.Collect(nilLengths.All()))
 
-	lengths := newArticleLengths(5, 5, 300, 7)
+	lengths := NewLengths(5, 5, 300, 7)
 	assert.Equal(t, 4, lengths.Len())
 	assert.Equal(t, uint16(300), lengths.Max())
 	assert.Equal(t, `[{"l":5,"c":2},300,7]`, lengths.String())
@@ -88,4 +89,13 @@ func TestArticleLengthsMethods(t *testing.T) {
 
 		break
 	}
+}
+
+// The values of the format are the names that the PeSIT library gives its
+// formats, which the PeSIT module compares them with.
+func TestFormatValues(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, pesit.FormatFixed.String(), FormatFixed)
+	assert.Equal(t, pesit.FormatVariable.String(), FormatVariable)
 }

@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/lib/pesit"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/articles"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
@@ -36,9 +37,9 @@ const (
 	serverConnFreetextKey     = "__serverConnFreetext__"
 	serverTransFreetextKey    = "__serverTransFreetext__"
 
-	articlesLengthsKey   = "__articlesLengths__"
-	articlesFormatKey    = "__articlesFormat__"
-	articlesSeparatorKey = "__articlesSeparator__"
+	articlesLengthsKey   = articles.LengthsKey
+	articlesFormatKey    = articles.FormatKey
+	articlesSeparatorKey = articles.SeparatorKey
 )
 
 func setPesitInfo[T cmp.Ordered, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {
