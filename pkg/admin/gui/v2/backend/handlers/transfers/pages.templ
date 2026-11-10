@@ -162,6 +162,14 @@ templ filtersPanel(f filterView) {
 		</select>
 	</div>
 	<div class="w-field">
+		<label class="w-field__label" for="f-role">{ gui.T(ctx, "transfers.filter.role") }</label>
+		<select class="w-select" id="f-role" name={ paramRole }>
+			<option value="">{ gui.T(ctx, "transfers.filter.role_all") }</option>
+			<option value={ RoleClient } selected?={ f.Role == RoleClient }>{ gui.T(ctx, "transfers.filter.role_client") }</option>
+			<option value={ RoleServer } selected?={ f.Role == RoleServer }>{ gui.T(ctx, "transfers.filter.role_server") }</option>
+		</select>
+	</div>
+	<div class="w-field">
 		<label class="w-field__label" for="f-partner">{ gui.T(ctx, "transfers.filter.partner") }</label>
 		<select class="w-select" id="f-partner" name={ paramPartner }>
 			<option value="">{ gui.T(ctx, "transfers.filter.partner_all") }</option>

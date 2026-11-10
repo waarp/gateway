@@ -161,7 +161,10 @@ dashboard:
     late: "{n} planned and overdue"
     late_one: 1 planned and overdue
     last_done: "Last done at {time}"
-    roles: "{client} as client · {server} as server"
+    client: "{n} as client"
+    client_one: 1 as client
+    server: "{n} as server"
+    server_one: 1 as server
   sr:
     running: "{n} running transfers"
     running_one: 1 running transfer
@@ -3230,6 +3233,10 @@ transfers:
     rule_all: Every rule
     direction: Direction
     direction_all: Send and receive
+    role: Role of the gateway
+    role_all: Client and server
+    role_client: Client
+    role_server: Server
     partner: Partner or server
     partner_all: Every partner and server
     partners: Remote partners

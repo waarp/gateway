@@ -160,7 +160,10 @@ dashboard:
     late: "{n} planifiés en retard"
     late_one: 1 planifié en retard
     last_done: "Dernier terminé à {time}"
-    roles: "{client} côté client · {server} côté serveur"
+    client: "{n} côté client"
+    client_one: 1 côté client
+    server: "{n} côté serveur"
+    server_one: 1 côté serveur
   sr:
     running: "{n} transferts en cours"
     running_one: 1 transfert en cours
@@ -3233,6 +3236,10 @@ transfers:
     rule_all: Toutes les règles
     direction: Sens
     direction_all: Envoi et réception
+    role: Rôle de la passerelle
+    role_all: Client et serveur
+    role_client: Client
+    role_server: Serveur
     partner: Partenaire ou serveur
     partner_all: Tous les partenaires et serveurs
     partners: Partenaires distants

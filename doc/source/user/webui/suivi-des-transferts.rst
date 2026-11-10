@@ -30,14 +30,15 @@ La barre d'outils recherche un transfert par le nom ou le chemin de son
 fichier, tels que la colonne *Fichier* les affiche (:ref:`règle commune
 <user-webui-search>`, majuscules et minuscules confondues, accents compris),
 ou par son identifiant de suivi exact. Le bouton *Filtres* ouvre les
-critères : règle, sens (envoi ou réception), partenaire ou serveur (une liste en
-deux groupes, partenaires distants et serveurs locaux), compte (les comptes de
-chaque partenaire ou serveur, ceux du seul partenaire choisi quand il l'est),
-protocole (la famille, avec sa variante TLS), période de début. Un filtre
-s'applique dès qu'il change ; le
-nombre de filtres actifs s'affiche sur le bouton, *Réinitialiser* les
-retire tous. Les nombres de la rangée des statuts suivent la recherche et les
-filtres.
+critères : règle, sens (envoi ou réception), rôle de la passerelle (client,
+quand elle a demandé le transfert, ou serveur, quand un partenaire l'a
+demandé), partenaire ou serveur (une liste en deux groupes, partenaires
+distants et serveurs locaux), compte (les comptes de chaque partenaire ou
+serveur, ceux du seul partenaire choisi quand il l'est), protocole (la
+famille, avec sa variante TLS), période de début. Un filtre s'applique dès
+qu'il change ; le nombre de filtres actifs s'affiche sur le bouton,
+*Réinitialiser* les retire tous. Les nombres de la rangée des statuts suivent
+la recherche et les filtres.
 
 La liste montre un transfert par ligne et occupe toute la largeur de l'écran.
 Un texte trop long pour sa colonne se termine par « … » ; il se lit en entier
