@@ -290,6 +290,19 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 		setTransInfo(c.pip, fileTypeKey, c.pTrans.FileType())
 		setTransInfo(c.pip, organizationKey, c.pTrans.FileOrganization().String())
 
+		// The answer to a retrieval (ACK(SELECT)) carries the file identifiers,
+		// the space to reserve and the dates; not the priority nor the key. A
+		// server that echoes the identifiers of the connection in PGI 9 says
+		// nothing new: only different ones are kept.
+		keepAnnounced(c.pip, &announced{
+			callerID:      unlessSame(c.pTrans.ClientLogin(), c.client.ClientLogin()),
+			serverID:      unlessSame(c.pTrans.ServerLogin(), c.client.ServerLogin()),
+			reservedSpace: c.pTrans.ReservationSpaceMaxSize(),
+			reservedUnit:  c.pTrans.ReservationSpaceUnit(),
+			creation:      c.pTrans.CreationDate(),
+			lastAccess:    c.pTrans.LastAccess(),
+		})
+
 		addArticleFormat(c.pip, c.pTrans)
 	}
 

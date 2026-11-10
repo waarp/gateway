@@ -126,6 +126,18 @@ le marqueur à utiliser est le suivant:
 À l'exécution, ce marqueur sera alors substitué par la valeur associée à la clé
 renseignée.
 
+Deux marqueurs mettent en forme les dates du fichier annoncées par un partenaire
+PeSIT (voir les :ref:`attributs PeSIT <ref-pesit-attributes>`), avec les mêmes tokens
+que ``#STARTTIMESTAMP(format)#`` :
+
+- ``#CREATIONTIMESTAMP(format)#`` pour la date de création du fichier ;
+- ``#LASTACCESSTIMESTAMP(format)#`` pour sa date de dernière extraction.
+
+Ces dates sont gardées à l'heure transmise par le partenaire, sans conversion de
+fuseau. Par exemple, ``#CREATIONTIMESTAMP(YYYYMMDD)#_#CREATIONTIMESTAMP(HHmmss)#``
+donne ``20261103_231311``. Sans date reçue, le marqueur est remplacé par une chaîne
+vide ; une valeur mal formée met le traitement en erreur.
+
 Ces valeurs de substitutions sont également disponibles pour les programmes externes
 appelés par les tâches EXEC sous forme de variables d'environnement. Ces variables
 d'environnement ont la forme ``WAARP_<nom_de_variable>`` sans les dièses ``#``
@@ -143,7 +155,10 @@ le chemin du fichier de configuration de Waarp Gateway, et le dossier parent de 
    En conséquence, les variables ``#TIMESTAMP(format)#`` et ``#STARTTIMESTAMP(format)#``
    décrites ci-dessus sont disponibles sous les noms ``WAARP_TIMESTAMP`` et
    ``WAARP_STARTTIMESTAMP`` respectivement, et la date sera toujours au format
-   ISO-8601.
+   ISO-8601. De même, ``WAARP_CREATIONTIMESTAMP`` et ``WAARP_LASTACCESSTIMESTAMP``
+   donnent les dates du fichier au format ISO-8601, sans décalage horaire puisqu'elles
+   n'ont pas de fuseau (ex: ``2026-11-03T23:13:11``) ; une date mal formée est
+   absente de l'environnement.
 
 .. _ref-timestamp-format:
 

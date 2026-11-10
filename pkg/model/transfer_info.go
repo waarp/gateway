@@ -18,6 +18,27 @@ func (e *ResumeSyncError) Error() string {
 	)
 }
 
+const (
+	// FollowID defines the name of the transfer info value containing the R66
+	// follow ID.
+	FollowID = "__followID__"
+
+	SyncTransferID   = "__syncTransferID__"
+	SyncTransferRank = "__syncTransferRank__"
+
+	// FileCreationDate and FileLastAccessDate name the transfer information
+	// that holds the creation date and the last access date of the file, as
+	// announced by the partner (PeSIT PI 51 and PI 52). The protocol module
+	// writes them, the task replacers read them.
+	FileCreationDate   = "__creationDate__"
+	FileLastAccessDate = "__lastAccessDate__"
+
+	// FileDateLayout is the layout of FileCreationDate and FileLastAccessDate:
+	// the wall clock as transmitted, without time zone, since PeSIT dates carry
+	// none. Converting them to another zone would shift them.
+	FileDateLayout = "2006-01-02T15:04:05"
+)
+
 // TransferInfo represents the transfer_info database table, which contains all the
 // protocol-specific information attached to a transfer.
 type TransferInfo struct {
