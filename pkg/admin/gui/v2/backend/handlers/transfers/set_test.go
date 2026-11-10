@@ -175,7 +175,7 @@ func TestSetResume(t *testing.T) {
 		assert.Contains(t, body, "<title>Reprendre 1 transfert ? · gw-test · Waarp Gateway</title>")
 		assert.Contains(t, body, "L&#39;ensemble a changé depuis l&#39;affichage")
 		assert.Contains(t, body, "Le nombre est passé de 4 à 1.")
-		indexes(t, body, `<a class="w-btn w-btn--outline-dark" href="/webui/transfers?state=error">`,
+		indexes(t, body, `<a class="w-return" href="/webui/transfers?state=error">`,
 			`<form class="w-form" method="post" action="/webui/transfers/resume"`,
 			`<input type="hidden" name="state" value="error">`, `<input type="hidden" name="all" value="1">`,
 			`<input type="hidden" name="expected" value="1">`,
@@ -334,8 +334,8 @@ func TestSetRetry(t *testing.T) {
 func TestSetFromDashboard(t *testing.T) {
 	t.Parallel()
 
-	action, fields := ResumeFailedForm(3)
-	assert.Equal(t, "/webui/transfers/resume?from=dashboard", action)
+	action, fields := ResumeFailedForm(3, "/webui/dashboard")
+	assert.Equal(t, "/webui/transfers/resume?origin=%2Fwebui%2Fdashboard", action)
 	assert.Equal(t, []liststate.Hidden{{Name: "state", Value: "error"}, {Name: "all", Value: "1"}, {Name: "expected", Value: "3"}},
 		fields)
 
@@ -344,8 +344,8 @@ func TestSetFromDashboard(t *testing.T) {
 
 	rec := s.post(t, permWrite, action, url.Values{"state": {"error"}, "all": {"1"}, "expected": {"9"}})
 	require.Equal(t, http.StatusOK, rec.Code, "the count changed: the page asks")
-	indexes(t, rec.Body.String(), `<a class="w-btn w-btn--outline-dark" href="/webui/dashboard">`,
-		`<form class="w-form" method="post" action="/webui/transfers/resume?from=dashboard"`, `Reprendre les transferts</button>`)
+	indexes(t, rec.Body.String(), `<a class="w-return" href="/webui/dashboard">`, "Retour au tableau de bord",
+		`<form class="w-form" method="post" action="/webui/transfers/resume?origin=%2Fwebui%2Fdashboard"`, `Reprendre les transferts</button>`)
 	assert.Equal(t, types.StatusError, statusOfTransfer(t, s.db, s.failed.ID))
 
 	rec = s.post(t, permWrite, action, url.Values{"state": {"error"}, "all": {"1"}, "expected": {"1"}})

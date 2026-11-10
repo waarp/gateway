@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`840` Chaque écran atteint depuis un autre écran offre le retour à
+  celui-ci, sur la ligne du fil d'Ariane, à droite (« Retour au tableau de
+  bord », « Retour au transfert ») ; le retour se chaîne du tableau de bord à
+  la liste puis à la fiche, et une fiche atteinte sans origine revient à sa
+  liste. Les boutons de retour des en-têtes de page disparaissent au profit
+  de ce lien, au même endroit sur toutes les pages.
 * :feature:`837` Le Suivi des transferts se filtre par le rôle de la passerelle
   dans le transfert, client ou serveur ; les deux chiffres du pied de la tuile
   « Transferts en erreur » du tableau de bord mènent au suivi filtré sur leur

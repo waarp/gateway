@@ -357,8 +357,8 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, `<strong class="rights-domain">Transferts</strong> <span class="rights-granted w-muted">Aucun droit</span>`)
 		assert.Contains(t, body, `href="/webui/static_v2/rights/rights.css"`, "the cards of the rights")
 		assert.NotContains(t, body, "<table", "no table in a card")
-		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.viewer, "/edit")+`?ret=q%3Dvi">`)
-		assert.Contains(t, body, `href="`+path(s.viewer, "/delete")+`?ret=q%3Dvi"`)
+		assert.Contains(t, body, `class="w-btn w-btn--primary" href="`+path(s.viewer, "/edit")+`?ret=q%3Dvi&amp;origin=`)
+		assert.Contains(t, body, `href="`+path(s.viewer, "/delete")+`?ret=q%3Dvi&amp;origin=`)
 		assert.NotContains(t, body, "Voir la fiche", "no link to itself")
 		assert.NotContains(t, body, "¿")
 	})
@@ -509,7 +509,7 @@ func TestEditUser(t *testing.T) {
 		assert.Contains(t, body, `name="servers" value="w">`, "not checked")
 		assert.Equal(t, 1, strings.Count(body, " checked"), "one right held")
 		assert.NotContains(t, body, "C&#39;est votre compte")
-		assert.Contains(t, body, `href="`+path(s.viewer, "")+`?ret=page%3D2">`, "cancel goes back to the user")
+		assert.Contains(t, body, `href="`+path(s.viewer, "")+`?ret=page%3D2" data-leave>`, "cancel goes back to the user")
 	})
 
 	t.Run("Given the signed-in user's own form", func(t *testing.T) {

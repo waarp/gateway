@@ -406,10 +406,6 @@ templ detailView(d detailData) {
 			<p class="tf-subtitle">@gui.StatusOf(d.Status)<span class="w-muted">{ d.Number }</span></p>
 		</div>
 		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "transfers.back") }
-			</a>
 			for _, b := range d.Buttons {
 				<form class="tf-inline" method="post" action={ templ.SafeURL(b.Action) }>
 					<button type="submit" class={ buttonClass(b.Primary) }>
@@ -580,12 +576,6 @@ templ cancelView(d cancelData) {
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title tf-title">{ d.Title }</h1>
 		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "transfers.back_transfer") }
-			</a>
-		</div>
 	</div>
 	<div class="w-card">
 		<p class="tf-lead">
@@ -616,12 +606,6 @@ templ retryView(d *retryData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title tf-title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "transfers.back_transfer") }
-			</a>
 		</div>
 	</div>
 	if d.Refused != "" {
@@ -723,12 +707,6 @@ templ formView(d *formData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "transfers.back") }
-			</a>
 		</div>
 	</div>
 	if d.HasErrors {
@@ -933,12 +911,6 @@ templ setView(d *setData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title tf-title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "transfers.back") }
-			</a>
 		</div>
 	</div>
 	<form class="w-form" method="post" action={ templ.SafeURL(d.Action) } novalidate>

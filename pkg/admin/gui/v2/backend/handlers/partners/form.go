@@ -12,6 +12,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/protoform"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -230,7 +231,7 @@ func (h *Handlers) Create(w http.ResponseWriter, r *http.Request) {
 // editTabs is the tab strip of the sheet on the form of an existing
 // partner, or an internal error.
 func (h *Handlers) editTabs(w http.ResponseWriter, r *http.Request, e entry) ([]tab, bool) {
-	tabs, err := h.partnerTabs(h.shell.Translator(r), e, tabDetails, ret(r))
+	tabs, err := h.partnerTabs(h.shell.Translator(r), e, tabDetails, ret(r), liststate.OriginThrough(r))
 	if err != nil {
 		h.logger.Errorf("%v", err)
 		http.Error(w, "Internal error", http.StatusInternalServerError)

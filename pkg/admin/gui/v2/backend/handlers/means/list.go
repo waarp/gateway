@@ -41,11 +41,11 @@ type listData struct {
 // actions is the "⋯" menu of a means: view, edit (write right), delete
 // (delete right).
 func actions(translate gui.Translator, own *Owner, id int64) []gui.Action {
-	acts := []gui.Action{{Icon: "eye", Label: translate("auth.action.detail"), URL: own.WithRet(own.CredURL(id, ""))}}
+	acts := []gui.Action{{Icon: "eye", Label: translate("auth.action.detail"), URL: own.Link(own.CredURL(id, ""))}}
 
 	if own.Rights.Write {
 		acts = append(acts, gui.Action{
-			Icon: "pen", Label: translate("auth.action.edit"), URL: own.WithRet(own.CredURL(id, EditSuffix)),
+			Icon: "pen", Label: translate("auth.action.edit"), URL: own.Link(own.CredURL(id, EditSuffix)),
 		})
 	}
 
@@ -53,7 +53,7 @@ func actions(translate gui.Translator, own *Owner, id int64) []gui.Action {
 		acts = append(acts, gui.Action{
 			Icon:   "trash",
 			Label:  translate("auth.action.delete"),
-			URL:    own.WithRet(own.CredURL(id, DeleteSuffix)),
+			URL:    own.Link(own.CredURL(id, DeleteSuffix)),
 			Danger: true,
 		})
 	}
@@ -81,7 +81,7 @@ func buildList(translate gui.Translator, own *Owner, creds []*model.Credential, 
 	}
 
 	if own.Rights.Write && len(own.Remaining(creds)) > 0 {
-		data.AddURL = own.WithRet(base + NewSuffix)
+		data.AddURL = own.Link(base + NewSuffix)
 	}
 
 	views := make([]view, 0, len(creds))
@@ -122,7 +122,7 @@ func buildList(translate gui.Translator, own *Owner, creds []*model.Credential, 
 			Type:    TypeLabel(translate, v.Type),
 			Summary: v.summary(translate),
 			Expiry:  v.expiry(translate, now),
-			URL:     own.WithRet(own.CredURL(v.ID, "")),
+			URL:     own.Link(own.CredURL(v.ID, "")),
 			Actions: actions(translate, own, v.ID),
 		})
 	}

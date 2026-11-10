@@ -70,6 +70,13 @@ Navigation
        focus. Les états de repli sont mémorisés.
    * - Fil d'Ariane
      - Le chemin de l'écran courant, depuis l'accueil.
+   * - Retour
+     - À droite du fil d'Ariane, le lien vers la page d'où l'on vient quand
+       un lien d'un autre écran a mené ici : « Retour au tableau de bord »,
+       « Retour au transfert ». Le retour se chaîne : du tableau de bord à
+       la liste, puis à la fiche, chaque page ramène à la précédente, telle
+       qu'elle a été laissée. Une fiche ouverte sans ce chemin ramène à sa
+       liste.
    * - Fiches
      - Les cartes d'une fiche, sauf la première, sont pliées par défaut et
        résumées dans leur en-tête ; un clic sur le titre les déplie, et le

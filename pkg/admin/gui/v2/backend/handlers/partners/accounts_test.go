@@ -98,14 +98,14 @@ func TestAccountsTab(t *testing.T) {
 
 		body := rec.Body.String()
 		assert.Contains(t, body, `<a href="`+s.path(s.sftp, "/accounts")+`?ret=q%3Dpart" aria-current="page">Comptes distants <span class="w-tabs__count">2</span></a>`)
-		assert.Contains(t, body, `href="`+s.path(s.sftp, "/accounts/new")+`?ret=q%3Dpart">`)
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/accounts/new")+`?ret=q%3Dpart&amp;origin=`)
 		assert.Contains(t, body, "2 comptes")
 		indexes(t, body, "<tbody>", `>prod</a>`, `>test</a>`)
 		assert.Contains(t, body, `<span class="w-status w-status--warn">Aucun moyen : ne peut pas se connecter</span>`)
 		assert.Contains(t, body, "<td>Mot de passe</td>")
-		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "")+`?ret=q%3Dpart">`)
-		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "/edit")+`?ret=q%3Dpart">`)
-		assert.Contains(t, body, `class="is-danger" href="`+s.accountPath(s.prod, "/delete")+`?ret=q%3Dpart">`)
+		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "")+`?ret=q%3Dpart&amp;origin=`)
+		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "/edit")+`?ret=q%3Dpart&amp;origin=`)
+		assert.Contains(t, body, `class="is-danger" href="`+s.accountPath(s.prod, "/delete")+`?ret=q%3Dpart&amp;origin=`)
 		assert.NotContains(t, body, prodPassword)
 		assert.NotContains(t, body, "¿")
 	})
@@ -132,7 +132,7 @@ func TestAccountsTab(t *testing.T) {
 
 		body := s.get(t, permAll, s.path(s.r66, "/accounts")).Body.String()
 		assert.Contains(t, body, "Aucun compte distant pour l&#39;instant")
-		assert.Contains(t, body, `href="`+s.path(s.r66, "/accounts/new")+`">`)
+		assert.Contains(t, body, `href="`+s.path(s.r66, "/accounts/new")+`?origin=`)
 	})
 }
 
@@ -157,8 +157,8 @@ func TestAccountDetail(t *testing.T) {
 		assert.Contains(t, body, "<dt>Partenaire</dt><dd>part-sftp-01 (SFTP)</dd>")
 		assert.Contains(t, body, `<dt>Identifiant</dt><dd><code class="w-code">prod</code></dd>`)
 		assert.Contains(t, body, "<dt>Moyens d&#39;authentification</dt><dd>Mot de passe</dd>")
-		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "/edit")+`?ret=q%3Dpart">`)
-		assert.Contains(t, body, `class="w-icon-btn is-danger" href="`+s.accountPath(s.prod, "/delete")+`?ret=q%3Dpart"`,
+		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "/edit")+`?ret=q%3Dpart&amp;origin=`)
+		assert.Contains(t, body, `class="w-icon-btn is-danger" href="`+s.accountPath(s.prod, "/delete")+`?ret=q%3Dpart&amp;origin=`,
 			"the only entry of the menu is an icon button")
 		assert.NotContains(t, body, "Voir le compte", "no link to itself")
 	})
@@ -213,7 +213,7 @@ func TestCreateAccount(t *testing.T) {
 		assert.Contains(t, body, `name="means_pre_password"`)
 		assert.Contains(t, body, "huit caractères ASCII au plus chacun")
 		assert.Contains(t, body, `aria-current="page">Comptes distants`, "under the accounts tab")
-		assert.Contains(t, body, `href="`+s.path(s.pesit, "/accounts")+`?ret=q%3Dpart">`)
+		assert.Contains(t, body, `href="`+s.path(s.pesit, "/accounts")+`?ret=q%3Dpart" data-leave>`)
 	})
 
 	t.Run("Given an account posted with a pre-connection as its first means", func(t *testing.T) {
@@ -431,7 +431,7 @@ func TestAccountAuthTab(t *testing.T) {
 		body := rec.Body.String()
 		assert.Contains(t, body, "Ce que la passerelle présente au partenaire")
 		assert.Contains(t, body, `aria-current="page">Authentification <span class="w-tabs__count">1</span></a>`)
-		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "/auth/new")+anyRet+`"`, "a private key can still be added")
+		assert.Contains(t, body, `href="`+s.accountPath(s.prod, "/auth/new")+anyRet, "a private key can still be added")
 		assert.Contains(t, body, "Défini, non affiché")
 		assert.NotContains(t, body, prodPassword)
 

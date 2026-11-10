@@ -31,16 +31,16 @@ func TestAccessTab(t *testing.T) {
 		assert.Contains(t, body, "<strong>Ouverte à tous</strong>")
 		assert.NotContains(t, body, "Rouvrir à tous", "nothing to open")
 		assert.Contains(t, body, "Quand un partenaire se connecte", "both sides, each with its addition")
-		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.receive.ID)+`/access/new?side=in">`)
+		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.receive.ID)+`/access/new?side=in&amp;origin=`)
 		assert.Contains(t, body, "Ajouter un serveur ou un compte local")
-		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.receive.ID)+`/access/new?side=out">`)
+		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.receive.ID)+`/access/new?side=out&amp;origin=`)
 		assert.Contains(t, body, "Ajouter un partenaire ou un compte distant")
 		assert.Contains(t, body, "Aucun accès de ce côté : la règle est ouverte à tous.")
 		assert.Contains(t, body, `data-key="rule-access-in" open>`, "the cards fold, their state remembered")
 		assert.NotContains(t, body, "Modifier la règle", "the edition concerns the Details tab")
 
 		body = s.get(t, permAll, path(s.receive, "/access")).Body.String()
-		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.receive.ID)+`/delete" aria-label="Supprimer la règle"`,
+		assert.Contains(t, body, `href="/webui/rules/`+itoa64(s.receive.ID)+`/delete?origin=`,
 			"the actions of the rule in the header")
 		assert.NotContains(t, body, "Modifier la règle")
 	})

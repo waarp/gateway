@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/common"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/format"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/liststate"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/handlers/transfers"
 )
@@ -30,6 +31,7 @@ type healthInput struct {
 	services services.Summary
 	certs    *certSummary // the certificates of the node; nil when the figures are not read
 	monitors Monitors
+	origin   string // the page, as the origin of the links of the cells
 }
 
 // healthCells builds the cells of the strip: uptime, services, database,
@@ -39,7 +41,7 @@ type healthInput struct {
 func healthCells(translate gui.Translator, in *healthInput) []gui.HealthItem {
 	txt := texts{translate}
 
-	return []gui.HealthItem{
+	cells := []gui.HealthItem{
 		uptimeCell(txt, in.node, in.now),
 		servicesCell(txt, in.services),
 		databaseCell(txt, in.dbType, in.last),
@@ -48,6 +50,15 @@ func healthCells(translate gui.Translator, in *healthInput) []gui.HealthItem {
 		certsCell(txt, in.certs),
 		monitorsCell(txt, in.monitors),
 	}
+
+	// Each cell that leads to a screen offers the return here.
+	for i := range cells {
+		if cells[i].Href != "" {
+			cells[i].Href = liststate.WithOrigin(cells[i].Href, in.origin)
+		}
+	}
+
+	return cells
 }
 
 // certsCell counts the certificates of the node about to expire: the

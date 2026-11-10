@@ -24,10 +24,6 @@ templ tasksView(d tasksData) {
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
 		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "rules.back") }
-			</a>
 			if len(d.Actions) > 0 {
 				@gui.Actions(gui.ActionsProps{ID: "act-tasks", Name: d.Title, Items: d.Actions})
 			}
@@ -154,12 +150,6 @@ templ taskFormView(d *taskFormData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "rules.tasks.back") }
-			</a>
 		</div>
 	</div>
 	if d.HasErrors {
@@ -529,12 +519,6 @@ templ taskDeleteView(d taskDeleteData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "rules.tasks.back") }
-			</a>
 		</div>
 	</div>
 	<div class="w-card">

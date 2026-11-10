@@ -30,10 +30,6 @@ templ accountsView(d accountsListData) {
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
 		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "partners.back") }
-			</a>
 			if d.AddURL != "" {
 				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.AddURL) }>
 					@gui.Icon("plus")
@@ -129,12 +125,6 @@ templ accountFormView(d *accountFormData) {
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				@accountBackLabel(d.Edit)
-			</a>
-		</div>
 	</div>
 	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)
 	if d.HasErrors {
@@ -195,10 +185,6 @@ templ accountDetailView(d accountDetailData) {
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
 		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "partners.back_partner") }
-			</a>
 			if d.EditURL != "" {
 				<a class="w-btn w-btn--primary" href={ templ.SafeURL(d.EditURL) }>
 					@gui.Icon("pen")
@@ -231,12 +217,6 @@ templ accountDeleteView(d accountDeleteData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "action.back") }
-			</a>
 		</div>
 	</div>
 	@means.TabsNav(gui.T(ctx, "partners.tabs"), d.Tabs)

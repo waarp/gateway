@@ -22,10 +22,6 @@ templ accessView(d accessData) {
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
 		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.BackURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "rules.back") }
-			</a>
 			if len(d.Actions) > 0 {
 				@gui.Actions(gui.ActionsProps{ID: "act-access", Name: d.Title, Items: d.Actions})
 			}
@@ -96,12 +92,6 @@ templ accessFormView(d *accessForm) {
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ " " + gui.T(ctx, "rules.access.back") }
-			</a>
-		</div>
 	</div>
 	if d.HasErrors {
 		<div class="rules-banner">@gui.Banner(gui.BannerProps{Kind: "ko", Title: gui.T(ctx, "rules.access.refused"), Text: protoform.Or(d.Refused, gui.T(ctx, "rules.form.refused_text"))})</div>
@@ -135,12 +125,6 @@ templ removeView(d removeData) {
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
 		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "rules.access.back") }
-			</a>
-		</div>
 	</div>
 	<div class="w-card">
 		if d.Last {
@@ -164,12 +148,6 @@ templ openView(d openData) {
 	<div class="w-page-header">
 		<div class="w-page-header__text">
 			<h1 class="w-page-header__title">{ d.Title }</h1>
-		</div>
-		<div class="w-page-header__actions">
-			<a class="w-btn w-btn--outline-dark" href={ templ.SafeURL(d.CancelURL) }>
-				@gui.Icon("arrow-left")
-				{ gui.T(ctx, "rules.access.back") }
-			</a>
 		</div>
 	</div>
 	<div class="w-card">

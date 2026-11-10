@@ -390,8 +390,8 @@ func TestDetail(t *testing.T) {
 		assert.Contains(t, body, "Partenaires joignables par ce client")
 		assert.Contains(t, body, `href="/webui/partners/`+strconv.FormatInt(s.partner.ID, 10)+`">part-sftp</a>`)
 		assert.NotContains(t, body, "part-r66", "only the partners of its protocol")
-		assert.Contains(t, body, `href="`+s.path(s.sftp, "/edit")+`?ret=q%3Dcli">`)
-		assert.Contains(t, body, `action="`+s.path(s.sftp, "/stop")+`?ret=q%3Dcli"`)
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "/edit")+`?ret=q%3Dcli&amp;origin=`)
+		assert.Contains(t, body, `action="`+s.path(s.sftp, "/stop")+`?ret=q%3Dcli&amp;origin=`)
 		assert.NotContains(t, body, "Voir le détail", "no link to itself")
 		assert.NotContains(t, body, "¿")
 	})
@@ -583,7 +583,7 @@ func TestEditClient(t *testing.T) {
 			`<li>Après 2 h 3 min d&#39;attente, à +3 h 4 min 30 s du premier échec.</li>`, "the list of the attempts")
 		assert.NotContains(t, body, "<table", "no table in a card")
 		assert.Contains(t, body, `<option value="diffie-hellman-group-exchange-sha256" selected>`)
-		assert.Contains(t, body, `href="`+s.path(s.sftp, "")+`?ret=page%3D2">`, "cancel goes back to the client")
+		assert.Contains(t, body, `href="`+s.path(s.sftp, "")+`?ret=page%3D2" data-leave>`, "cancel goes back to the client")
 	})
 
 	t.Run("Given the form of the R66 over TLS client", func(t *testing.T) {
@@ -779,7 +779,7 @@ func TestTransfersLink(t *testing.T) {
 	perms := permRead | model.PermTransfersRead
 
 	body := s.get(t, perms, s.path(s.sftp, "")).Body.String()
-	assert.Contains(t, body, `href="/webui/transfers?client=cli-sftp"`)
+	assert.Contains(t, body, `href="/webui/transfers?client=cli-sftp&amp;origin=`)
 	assert.Contains(t, body, "Voir les transferts")
 	assert.NotContains(t, s.get(t, permRead, s.path(s.sftp, "")).Body.String(), "Voir les transferts",
 		"nothing without the right to read the transfers")

@@ -527,6 +527,7 @@ func (h *Handlers) render(w http.ResponseWriter, r *http.Request, form *formData
 
 	screen := h.screen(form.Title, crumbs(translate, form.Title, ret(r)), status)
 	screen.Scripts = []string{script} // the rows of the transfer information
+	screen.Return = &gui.Link{Label: translate("transfers.back"), URL: listURL(ret(r))}
 	h.shell.Render(w, h.logger, r, screen, formView(form))
 }
 
