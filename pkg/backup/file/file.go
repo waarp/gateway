@@ -54,11 +54,11 @@ type LocalAgent struct {
 //nolint:lll //tags are long
 type LocalAccount struct {
 	Login       string               `json:"login" yaml:"login"`
-	Password    api.Nullable[string] `json:"password" yaml:"password"`
+	Password    api.Nullable[string] `json:"password,omitzero" yaml:"password,omitzero"`
 	Credentials []Credential         `json:"credentials" yaml:"credentials"`
 
 	// Deprecated fields.
-	PasswordHash string        `json:"passwordHash,omitempty" yaml:"passwordHash,omitempty"` // Deprecated: use Credentials instead.
+	PasswordHash string        `json:"passwordHash,omitzero" yaml:"passwordHash,omitzero"`   // Deprecated: use Credentials instead.
 	Certificates []Certificate `json:"certificates,omitempty" yaml:"certificates,omitempty"` // Deprecated: use Credentials instead.
 }
 
@@ -94,7 +94,7 @@ type RemoteAgent struct {
 //nolint:lll //tags are long
 type RemoteAccount struct {
 	Login       string               `json:"login" yaml:"login"`
-	Password    api.Nullable[string] `json:"password" yaml:"password"`
+	Password    api.Nullable[string] `json:"password,omitzero" yaml:"password,omitzero"`
 	Credentials []Credential         `json:"credentials" yaml:"credentials"`
 
 	// Deprecated fields.
@@ -103,7 +103,7 @@ type RemoteAccount struct {
 
 // Certificate is the JSON struct representing a certificate.
 //
-// Deprecated: replaced by Credential.
+// Replaced by Credential.
 type Certificate struct {
 	Name       string `json:"name" yaml:"name"`
 	PublicKey  string `json:"publicKey,omitempty" yaml:"publicKey,omitempty"`

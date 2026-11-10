@@ -81,7 +81,7 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 		res[i] = file.LocalAccount{
 			Login:        src.Login,
 			Credentials:  credentials,
-			PasswordHash: pswd,
+			PasswordHash: pswd.Value,
 			Certificates: certs,
 		}
 	}
