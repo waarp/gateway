@@ -95,10 +95,11 @@ n'en ont aucun dans le domaine choisi (ou nulle part). *Réinitialiser* revient
 à la liste complète. Le compteur, à droite, indique le nombre d'utilisateurs
 et, quand une recherche ou un filtre est actif, le nombre affiché.
 
-Le pied de liste permet de changer de page et de choisir le nombre de lignes
-par page (10 par défaut, 25, 50 ou 100). La recherche, les filtres, le tri et
-la page sont portés par l'adresse de la page et conservés pour la durée de la
-session du navigateur, comme pour les autres listes.
+Le pied de liste permet de changer de page et de choisir le nombre de lignes par
+page (10 par défaut, 25, 50 ou 100). La recherche, les filtres, le tri, le
+nombre de lignes par page et la page sont portés par l'adresse de la page et, la
+page exceptée, conservés pour la durée de la session du navigateur, comme pour
+les autres listes.
 
 Le menu « ⋯ » de chaque ligne donne accès aux actions sur l'utilisateur,
 selon les droits de l'utilisateur connecté :

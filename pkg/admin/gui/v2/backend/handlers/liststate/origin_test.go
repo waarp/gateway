@@ -34,7 +34,7 @@ func TestQueryOrigin(t *testing.T) {
 	w := httptest.NewRecorder()
 	spec.KeepState(w, query)
 	cookie := w.Result().Cookies()[0]
-	assert.Equal(t, url.QueryEscape("page=2"), cookie.Value, "the session keeps the state without the origin")
+	assert.Empty(t, cookie.Value, "the session keeps neither the origin nor the page")
 }
 
 // A request that carries only an origin is restored to the kept state, the

@@ -526,7 +526,9 @@ func TestList(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code, "nothing kept yet: the bare list")
 		assert.Empty(t, rec.Header().Values("Set-Cookie"))
 
-		rec = serveWith("/webui/servers?q=srv&sort=state", "")
+		// The search, the filters, the sort and the rows per page are kept;
+		// the page is not.
+		rec = serveWith("/webui/servers?q=srv&sort=state&page=2", "")
 		require.Equal(t, http.StatusOK, rec.Code)
 		cookies := rec.Result().Cookies()
 		require.Len(t, cookies, 1)
@@ -538,7 +540,7 @@ func TestList(t *testing.T) {
 		kept := cookies[0].Name + "=" + cookies[0].Value
 
 		rec = serveWith("/webui/servers", kept)
-		require.Equal(t, http.StatusSeeOther, rec.Code, "the bare list comes back as it was left")
+		require.Equal(t, http.StatusSeeOther, rec.Code, "the bare list comes back as it was left, on the first page")
 		assert.Equal(t, "/webui/servers?dir=asc&q=srv&sort=state", rec.Header().Get("Location"))
 
 		rec = serveWith("/webui/servers?done=created&name=srv-x", kept)
@@ -548,7 +550,7 @@ func TestList(t *testing.T) {
 
 		rec = serveWith("/webui/servers?protocol=sftp", kept)
 		require.Equal(t, http.StatusOK, rec.Code, "an explicit address wins")
-		assert.Equal(t, "protocol%3Dsftp", rec.Result().Cookies()[0].Value)
+		assert.Equal(t, "protocol%3Dsftp", rec.Result().Cookies()[0].Value, "a filter alone is kept")
 
 		body := serveWith("/webui/servers?q=zzz", kept).Body.String()
 		assert.Contains(t, body, `href="/webui/servers?reset=1">Effacer la recherche</a>`, "clearing is explicit")

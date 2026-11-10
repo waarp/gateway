@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`806` Dans l'interface web refondue, une liste ouverte depuis la
+  navigation revient telle qu'on l'a laissée, recherche, filtres, tri et
+  nombre de lignes par page compris, mais toujours en page 1 : la page n'est
+  plus retenue pour la session, elle ne revient que par le retour d'une page
+  d'action. Un filtre, un tri ou un nombre de lignes changé en place, sans
+  rechargement, est retenu lui aussi.
 * :support:`842` La page « Surveillances de partenaires » du guide de
   l'interface web retrouve une décoration de titre de la longueur du titre
   (la construction de la documentation ne signale plus cette page).

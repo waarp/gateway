@@ -507,6 +507,11 @@ func TestList(t *testing.T) {
 		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=state%3Derror",
 			"the state the list loads is the one to find again when coming back")
 
+		// A sort changed in place is kept too, from the part.
+		rec = s.get(t, permRead, "/webui/transfers?state=error&sort=file&dir=asc&fragment=counts")
+		require.Equal(t, http.StatusOK, rec.Code, "a part is never redirected")
+		assert.Contains(t, rec.Header().Get("Set-Cookie"), "webui_transfers_list=dir%3Dasc%26sort%3Dfile%26state%3Derror")
+
 		// The part of the rows: the feet of the list and the table, which change with the page.
 		rec = s.get(t, permRead, "/webui/transfers?state=error&fragment=rows")
 		body = rec.Body.String()

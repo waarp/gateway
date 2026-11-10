@@ -129,24 +129,51 @@ func TestKeptState(t *testing.T) {
 
 	spec := testSpec()
 
-	// A request that says something keeps its state and is not redirected.
+	// A request that says something keeps its state, the page apart, and is
+	// not redirected.
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/webui/things?kind=a&sort=state&dir=asc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/webui/things?q=ab&kind=a&sort=state&dir=asc&size=25&page=2", nil)
 	assert.False(t, spec.Restore(rec, req))
 	require.Len(t, rec.Result().Cookies(), 1)
 	cookie := rec.Result().Cookies()[0]
 	assert.Equal(t, "webui_things_list", cookie.Name)
 	assert.Equal(t, "/webui/things", cookie.Path)
 	assert.True(t, cookie.HttpOnly)
+	assert.Equal(t, "dir=asc&kind=a&q=ab&size=25&sort=state", unescape(t, cookie.Value), "the page apart")
 
-	// A request that says nothing is sent to the kept state, with the
-	// result of the previous action.
+	// A request that says nothing is sent to the kept state, on the first
+	// page, with the result of the previous action.
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/webui/things?done=created&name=x", nil)
 	req.AddCookie(cookie)
 	assert.True(t, spec.Restore(rec, req))
 	assert.Equal(t, http.StatusSeeOther, rec.Code)
-	assert.Equal(t, "/webui/things?dir=asc&done=created&kind=a&name=x&sort=state", unescape(t, rec.Header().Get("Location")))
+	assert.Equal(t, "/webui/things?dir=asc&done=created&kind=a&name=x&q=ab&size=25&sort=state",
+		unescape(t, rec.Header().Get("Location")))
+
+	// A fragment of the live list that changes a filter or the sort keeps
+	// them, and is never redirected, even when it says nothing.
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/webui/things?fragment=list&kind=b&sort=name&dir=desc", nil)
+	req.AddCookie(cookie)
+	assert.False(t, spec.Restore(rec, req))
+	require.Len(t, rec.Result().Cookies(), 1)
+	assert.Equal(t, "dir=desc&kind=b&sort=name", unescape(t, rec.Result().Cookies()[0].Value),
+		"the search and the size went back to the default")
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/webui/things?fragment=list", nil)
+	req.AddCookie(cookie)
+	assert.False(t, spec.Restore(rec, req), "a fragment is rendered as asked")
+	assert.Empty(t, rec.Result().Cookies())
+
+	// A page alone: nothing to keep, the cookie is forgotten.
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/webui/things?page=3", nil)
+	req.AddCookie(cookie)
+	assert.False(t, spec.Restore(rec, req))
+	require.Len(t, rec.Result().Cookies(), 1)
+	assert.Equal(t, -1, rec.Result().Cookies()[0].MaxAge)
 
 	// The explicit reset forgets the kept state.
 	rec = httptest.NewRecorder()

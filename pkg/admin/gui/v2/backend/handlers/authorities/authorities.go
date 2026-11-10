@@ -411,7 +411,7 @@ func (h *Handlers) all() ([]entry, error) {
 // List serves GET /webui/authorities.
 func (h *Handlers) List(w http.ResponseWriter, r *http.Request) {
 	fragment := liststate.IsListFragment(r)
-	if !fragment && listSpec.Restore(w, r) {
+	if listSpec.Restore(w, r) {
 		return
 	}
 

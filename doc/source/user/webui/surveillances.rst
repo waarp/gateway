@@ -64,8 +64,8 @@ La recherche porte sur le nom (voir :ref:`user-webui-search`). Les filtres
 retiennent les partenaires et les états choisis ; ils s'appliquent dès qu'ils
 changent. Les colonnes *Surveillance*, *Partenaire* et *Règle* se trient. Le
 nombre de lignes par page se choisit dans le pied de la liste ; l'état de la
-liste (recherche, filtres, tri, page) suit l'utilisateur dans les pages
-d'action et se conserve pour la session du navigateur.
+liste (recherche, filtres, tri, page) suit l'utilisateur dans les pages d'action
+et, la page exceptée, se conserve pour la session du navigateur.
 
 Le nom de la surveillance mène à sa fiche. Le menu « ⋯ » de chaque ligne
 donne accès aux actions, selon les droits :
