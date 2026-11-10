@@ -8,6 +8,9 @@ import (
 const (
 	defaultTSFormat = "YYYY-MM-DD_HHmmss"
 	isoTSFormat     = "YYYY-MM-DDTHH:mm:sszz"
+	// ISO 8601 without an offset, for the dates of the file announced by a
+	// partner, which carry no zone.
+	fileDateISOFormat = "YYYY-MM-DDTHH:mm:ss"
 )
 
 func formatTime(tsFormat string, t time.Time) string {

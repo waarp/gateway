@@ -137,12 +137,18 @@ func addEnvVar(cmd *exec.Cmd, transCtx *model.TransferContext, key string, repla
 		value, err = replaceFunc(transCtx, fmt.Sprintf("#TIMESTAMP(%s)#", isoTSFormat))
 	case `STARTTIMESTAMP`:
 		value, err = replaceFunc(transCtx, fmt.Sprintf("#STARTTIMESTAMP(%s)#", isoTSFormat))
+	case `CREATIONTIMESTAMP`, `LASTACCESSTIMESTAMP`:
+		// The dates of the file have no zone: ISO 8601 without an offset.
+		value, err = replaceFunc(transCtx, fmt.Sprintf("#%s(%s)#", varName, fileDateISOFormat))
 	default:
 		value, err = replaceFunc(transCtx, key)
 	}
 
 	if err != nil {
-		if errors.Is(err, errNotImplemented) {
+		// A malformed date of the file leaves its variable out of the
+		// environment: the script that does not use it still runs, while a
+		// task argument that uses it fails with the reason.
+		if errors.Is(err, errNotImplemented) || errors.Is(err, errBadFileDate) {
 			return nil
 		}
 
@@ -185,7 +191,11 @@ func runCmd(ctx context.Context, cmd *exec.Cmd, timeout time.Duration, logger *l
 		if hErr := haltExec(cmd); hErr != nil {
 			logger.Warningf("failed to halt external program: %v", hErr)
 		}
-		<-result
+		// Wait for the halted program: its own error gives way to the cause
+		// of the halt, returned below.
+		if waitErr := <-result; waitErr != nil {
+			logger.Debugf("halted external program ended with: %v", waitErr)
+		}
 
 		switch {
 		case errors.Is(ctx.Err(), context.DeadlineExceeded):

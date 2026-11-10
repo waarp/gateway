@@ -89,6 +89,9 @@ func getReplacers() replacersMap {
 
 			return formatTime(format, ctx.Transfer.Start), nil
 		},
+		`#CREATIONTIMESTAMP(\([^\)]*\))?#`:   fileDateReplacer(model.FileCreationDate, "#CREATIONTIMESTAMP"),
+		`#LASTACCESSTIMESTAMP(\([^\)]*\))?#`: fileDateReplacer(model.FileLastAccessDate, "#LASTACCESSTIMESTAMP"),
+
 		"#REMOTEHOST#":   getRemote,
 		"#REMOTEHOSTIP#": notImplemented("#REMOTEHOSTIP#"),
 		"#LOCALHOST#":    getLocal,
@@ -128,6 +131,35 @@ func getReplacers() replacersMap {
 		},
 		"#NOWAIT#":    notImplemented("#NOWAIT#"),
 		"#LOCALEXEC#": notImplemented("#LOCALEXEC#"),
+	}
+}
+
+// errBadFileDate is returned for a date of the file, in the transfer
+// information, that does not follow model.FileDateLayout.
+var errBadFileDate = errors.New("invalid file date in the transfer information")
+
+// fileDateReplacer formats the date of the file kept under key (the creation or
+// the last access date announced by the partner), with the tokens of
+// #STARTTIMESTAMP#. The stored value is a wall clock without zone: it is read
+// in the local zone, so that formatTime, which converts to the local zone,
+// keeps it as transmitted. Without the key, the variable is empty.
+func fileDateReplacer(key, prefix string) replacer {
+	return func(ctx *model.TransferContext, match string) (string, error) {
+		raw, ok := ctx.Transfer.TransferInfo[key]
+		if !ok {
+			return "", nil
+		}
+
+		str, isStr := raw.(string)
+
+		date, err := time.ParseInLocation(model.FileDateLayout, str, time.Local)
+		if !isStr || err != nil {
+			return "", fmt.Errorf("%w: %s = %v", errBadFileDate, key, raw)
+		}
+
+		format := strings.TrimSuffix(strings.TrimPrefix(match, prefix), "#")
+
+		return formatTime(format, date), nil
 	}
 }
 
