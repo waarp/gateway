@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -10,14 +11,70 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
+// The arguments of the deprecated form of the SETINFO task (before 0.17.0),
+// {"key": name, "value": value}, which sets the one key it names. Both names
+// stay reserved to that form: no transfer information can be named after them.
+const (
+	setInfoKeyArg   = "key"
+	setInfoValueArg = "value"
+)
+
+// ErrSetInfoReservedArgs is returned when the arguments of a SETINFO task use
+// "key" or "value" otherwise than as its deprecated form alone.
+var ErrSetInfoReservedArgs = errors.New(`the "key" and "value" arguments of SETINFO are reserved to its ` +
+	`deprecated form (the one key named by "key", set to "value") and cannot be mixed with other keys`)
+
 type setInfoTask struct {
 	args map[string]jsonValue
 }
 
+// SetInfoPairs are the transfer information a SETINFO task sets, read from its
+// arguments: each argument names a key and gives its value, except in the
+// deprecated form {"key": name, "value": value}, which sets the one key it
+// names (and removes it when "value" is missing). The other arguments of a
+// mixed form are dropped, as the task drops them when it runs; Validate
+// refuses such a form.
+func SetInfoPairs(args map[string]string) map[string]string {
+	if key, deprecated := args[setInfoKeyArg]; deprecated {
+		return map[string]string{key: args[setInfoValueArg]}
+	}
+
+	return args
+}
+
+// SetInfoReserved tells whether a name is one of the arguments reserved to the
+// deprecated form of SETINFO, which no transfer information can be named after.
+func SetInfoReserved(name string) bool {
+	return name == setInfoKeyArg || name == setInfoValueArg
+}
+
+// Validate parses the arguments, in either form, and refuses "key" and "value"
+// used otherwise than as the deprecated form alone: such a task would set the
+// one key of that form and drop the others without a word.
 func (t *setInfoTask) Validate(args map[string]string) error {
+	if err := t.parse(args); err != nil {
+		return err
+	}
+
+	// In the deprecated form, every argument is a reserved one; in the current
+	// form, none is.
+	_, deprecated := args[setInfoKeyArg]
+
+	for name := range args {
+		if SetInfoReserved(name) != deprecated {
+			return ErrSetInfoReservedArgs
+		}
+	}
+
+	return nil
+}
+
+// parse reads the arguments, in either form, as the keys to set and their
+// typed values.
+func (t *setInfoTask) parse(args map[string]string) error {
 	*t = setInfoTask{}
 
-	if err := utils.JSONConvert(args, &t.args); err != nil {
+	if err := utils.JSONConvert(SetInfoPairs(args), &t.args); err != nil {
 		return fmt.Errorf("failed to parse SETINFO arguments: %w", err)
 	}
 
@@ -27,7 +84,9 @@ func (t *setInfoTask) Validate(args map[string]string) error {
 func (t *setInfoTask) Run(_ context.Context, args map[string]string, _ *database.DB,
 	logger *log.Logger, transCtx *model.TransferContext, _ any,
 ) error {
-	if err := t.Validate(args); err != nil {
+	// Parsed, not validated: a stored task of a mixed form keeps running as it
+	// did, setting the one key of its deprecated form.
+	if err := t.parse(args); err != nil {
 		return err
 	}
 
@@ -35,14 +94,6 @@ func (t *setInfoTask) Run(_ context.Context, args map[string]string, _ *database
 		transCtx.Transfer.TransferInfo = map[string]any{}
 	}
 
-	// Old behavior: set 1 key
-	if key, hasKey := args["key"]; hasKey {
-		t.setInfo(logger, transCtx, key, t.args["value"])
-
-		return nil
-	}
-
-	// New behavior: set multiple keys
 	for key, val := range t.args {
 		t.setInfo(logger, transCtx, key, val)
 	}

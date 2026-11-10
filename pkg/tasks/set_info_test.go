@@ -72,6 +72,19 @@ func TestSetInfoOld(t *testing.T) {
 			transCtx.Transfer.TransferInfo,
 		)
 	})
+
+	t.Run("Mixed with other keys", func(t *testing.T) {
+		t.Parallel()
+		task, transCtx := &setInfoTask{}, mkCtx()
+		params := map[string]string{"key": "newKey", "value": "newValue", "otherKey": "dropped"}
+
+		require.NoError(t, task.Run(t.Context(), params, nil, logger, transCtx, nil),
+			"a stored task of a mixed form keeps running as before: the one key of the deprecated form")
+		assert.Equal(t,
+			map[string]any{"existingKey": "existingValue", "newKey": "newValue"},
+			transCtx.Transfer.TransferInfo,
+		)
+	})
 }
 
 func TestSetInfo(t *testing.T) {
@@ -135,4 +148,41 @@ func TestSetInfo(t *testing.T) {
 			transCtx.Transfer.TransferInfo,
 		)
 	})
+}
+
+func TestSetInfoPairs(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, map[string]string{"k": "v"}, SetInfoPairs(map[string]string{"key": "k", "value": "v"}),
+		"the deprecated form sets the one key it names")
+	assert.Equal(t, map[string]string{"k": ""}, SetInfoPairs(map[string]string{"key": "k"}),
+		"without a value, the deprecated form removes its key")
+	assert.Equal(t, map[string]string{"a": "1", "b": "2"}, SetInfoPairs(map[string]string{"a": "1", "b": "2"}),
+		"the current form is read as it is")
+	assert.Equal(t, map[string]string{"k": "v"}, SetInfoPairs(map[string]string{"key": "k", "value": "v", "a": "1"}),
+		"a mixed form is read as the deprecated one: its other keys are dropped")
+
+	assert.True(t, SetInfoReserved("key"))
+	assert.True(t, SetInfoReserved("value"))
+	assert.False(t, SetInfoReserved("__followID__"))
+}
+
+func TestSetInfoValidate(t *testing.T) {
+	t.Parallel()
+
+	for name, args := range map[string]map[string]string{
+		"the current form":              {"a": "1", "b": "2"},
+		"the deprecated form":           {"key": "k", "value": "v"},
+		"the deprecated form, no value": {"key": "k"},
+	} {
+		assert.NoError(t, (&setInfoTask{}).Validate(args), name)
+	}
+
+	for name, args := range map[string]map[string]string{
+		"a mixed form":                    {"key": "k", "value": "v", "a": "1"},
+		"a key named value":               {"value": "v"},
+		"a key named value, among others": {"a": "1", "value": "v"},
+	} {
+		assert.ErrorIs(t, (&setInfoTask{}).Validate(args), ErrSetInfoReservedArgs, name)
+	}
 }
