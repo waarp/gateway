@@ -247,11 +247,11 @@ func inputOf(spec *taskSpec, stored map[string]string) *taskInput {
 }
 
 // infoRows are the rows of the transfer information a stored task shows: its
-// free keys for a task that sets them (SETINFO), else its "info"
-// object.
+// free keys for a task that sets them (SETINFO; its deprecated form
+// {key, value} as the one row it names), else its "info" object.
 func infoRows(spec *taskSpec, stored map[string]string) []transfers.InfoPair {
 	if spec != nil && spec.pairs() {
-		return transfers.PairRows(stored)
+		return transfers.PairRows(tasks.SetInfoPairs(stored))
 	}
 
 	return rowsOf(stored["info"])
@@ -818,6 +818,18 @@ func readInfos(translate gui.Translator, r *http.Request, spec *taskSpec, stored
 	}
 
 	if spec.pairs() {
+		// The free keys are stored as they are, in the current form of the
+		// task: "key" and "value" are reserved to its deprecated form, which
+		// the rows showed as the one key it names.
+		for i, row := range input.rows {
+			if tasks.SetInfoReserved(row.Name) {
+				input.rows[i].Invalid = true
+				input.infoErr = translate("rules.tasks.error.info_reserved", "name", row.Name)
+
+				return false
+			}
+		}
+
 		for _, row := range input.rows {
 			args[row.Name] = row.Value
 		}

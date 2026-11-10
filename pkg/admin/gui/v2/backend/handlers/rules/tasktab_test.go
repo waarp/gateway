@@ -583,6 +583,42 @@ func TestTaskEdit(t *testing.T) {
 		assert.Equal(t, map[string]string{"path": "/b", "ancien": "x"}, map[string]string(got[0].Args))
 	})
 
+	t.Run("Given a SETINFO task of the deprecated form", func(t *testing.T) {
+		t.Parallel()
+
+		// Before 0.17.0, a SETINFO task set the one key named by its "key"
+		// argument to its "value" argument; a configuration imported from
+		// then still reads so.
+		rule := &model.Rule{Name: "ancienne", IsSend: true, Path: "ancienne"}
+		require.NoError(t, s.db.Insert(rule).Run())
+		require.NoError(t, s.db.Insert(&model.Task{
+			RuleID: rule.ID, Chain: model.ChainPre, Type: tasks.SetInfo,
+			Args: map[string]string{"key": "__articlesSeparator__", "value": "LF"},
+		}).Run())
+
+		body := s.get(t, permWrite, s.at(t, rule, model.ChainPre, "pre", 0, "/edit")).Body.String()
+		assert.Contains(t, body, `name="info_name" value="__articlesSeparator__"`, "the one row the task sets")
+		assert.Contains(t, body, `name="info_value" value="LF"`)
+		assert.NotContains(t, body, `name="info_name" value="key"`, "not the arguments of the form")
+		assert.NotContains(t, body, `name="info_name" value="value"`)
+
+		rec := s.post(t, permWrite, s.at(t, rule, model.ChainPre, "pre", 0, "/edit"), url.Values{
+			"info_name": {"__articlesSeparator__", "__fileEncoding__"}, "info_value": {"LF", "ASCII"},
+		})
+		require.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Equal(t, map[string]string{"__articlesSeparator__": "LF", "__fileEncoding__": "ASCII"},
+			map[string]string(s.chain(t, rule, model.ChainPre)[0].Args),
+			"stored in the current form: the task would set the one key of the deprecated form otherwise")
+
+		for _, name := range []string{"key", "value"} {
+			rec = s.post(t, permWrite, s.at(t, rule, model.ChainPre, "pre", 0, "/edit"),
+				url.Values{"info_name": {name, "lot"}, "info_value": {"x", "A"}})
+			require.Equal(t, http.StatusUnprocessableEntity, rec.Code, name)
+			assert.Contains(t, rec.Body.String(), "Le nom « "+name+" » est réservé par la tâche SETINFO", name)
+			assert.Contains(t, rec.Body.String(), `aria-invalid="true"`, "the row marked")
+		}
+	})
+
 	t.Run("Given a SETINFO task", func(t *testing.T) {
 		t.Parallel()
 

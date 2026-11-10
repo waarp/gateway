@@ -2369,6 +2369,7 @@ rules:
       json: "Give a JSON object, for instance {\"batch\": \"A\"}."
       markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
       info_self: "The value of “{name}” refers to the information “{ref}”, which this task sets: the variables are replaced before the task, with the values from before."
+      info_reserved: "The name “{name}” is reserved by the SETINFO task (former key/value spelling): give the key of the information itself."
       type: Choose a type.
       sens: Choose a direction.
       icap: "Enter the address of the ICAP server, for example icap://antivirus.example.com:1344/avscan."

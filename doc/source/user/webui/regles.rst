@@ -251,7 +251,11 @@ la fin de la chaîne. Un paramètre se saisit selon sa nature :
        admettent les variables, comme un texte. Pour ``TRANSFER`` et
        ``PREREGISTER``, une valeur enregistrée et non modifiée garde son type
        (un nombre reste un nombre) ; pour ``SETINFO``, une valeur vide retire
-       l'information au moment de l'exécution. Une valeur ne peut pas faire
+       l'information au moment de l'exécution, et une tâche enregistrée à
+       l'ancienne écriture (paramètres ``key`` et ``value``) s'affiche comme la
+       ligne qu'elle pose, puis s'enregistre à l'écriture actuelle ; les noms
+       ``key`` et ``value`` sont refusés comme nom d'information. Une valeur ne
+       peut pas faire
        référence, par ``#TI_…#``, à une information que la même tâche pose,
        elle-même comprise : les variables sont remplacées avant la tâche,
        avec les valeurs d'avant ; une information posée par une tâche
