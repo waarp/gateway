@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`836` La bande de santé du tableau de bord compte les certificats
+  du nœud expirés ou à échéance sous trente jours (serveurs, partenaires,
+  comptes, autorités), nommés avec leur date au survol.
 * :feature:`835` Les tuiles du tableau de bord disent ce que leur chiffre
   cache : les transferts en erreur côté client et côté serveur, ceux en cours
   depuis plus d'une heure, les planifiés en retard, l'heure du dernier

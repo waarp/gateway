@@ -116,6 +116,19 @@ dashboard:
     network: Connections
     network_text: "Incoming: {in} · outgoing: {out}"
     network_title: Connections open on the gateway
+    certs: Certificates
+    certs_unread: Not read
+    certs_none: None
+    certs_ok: All valid
+    certs_expiring: "Expiring within 30 days"
+    certs_expiring_one: Expiring within 30 days
+    certs_expired: "{n} expired"
+    certs_expired_one: 1 expired
+    cert_item: "{owner}: {date}"
+    cert_server: "server {name}"
+    cert_partner: "partner {name}"
+    cert_account: "account {name}"
+    cert_authority: "authority {name}"
     monitors: Monitors
     monitors_ok: All active
     monitors_ko: "{n} failing"
