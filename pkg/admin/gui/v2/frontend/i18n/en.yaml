@@ -2663,6 +2663,7 @@ task_types:
       lines: "Lines"
       fixed: "Fixed length"
       rdw: "Variable length"
+      articles: "Articles"
     output_same: "As the source file"
     output:
       none: "No separator"
@@ -2830,7 +2831,7 @@ task_types:
         hint: "Writes the substitution character of the target encoding in place of a character it cannot represent. Otherwise, the task fails and the file stays as it was."
       records:
         label: "Splitting"
-        hint: "Whole file: the file is converted in one piece, as the TRANSCODE task does. Lines: only the content of each line is converted. Variable length: each record is preceded by its length (RDW), as z/OS writes it."
+        hint: "Whole file: the file is converted in one piece, as the TRANSCODE task does. Lines: only the content of each line is converted. Variable length: each record is preceded by its length (RDW), as z/OS writes it. Articles: the file is cut at the article lengths that the transfer info gives (set by a PeSIT reception or by SETINFO)."
       recordLength:
         label: "Record length"
         hint: "In bytes, from 1 to 32,760."
@@ -2839,7 +2840,7 @@ task_types:
         hint: "Removes the spaces that pad each record before converting it."
       outputRecords:
         label: "Layout"
-        hint: "As the source file: each line keeps its line end, byte for byte, and a fixed-length record keeps its length. No separator: the records follow each other with nothing between them."
+        hint: "As the source file: each line keeps its line end, byte for byte, a fixed-length record keeps its length, and articles stay end to end. No separator: the records follow each other with nothing between them."
       outputSeparator:
         label: "Line end"
         hint: "LF and CRLF are written as 0x0A and 0x0D 0x0A, in EBCDIC too: the PeSIT module of the Gateway cuts the articles there. EBCDIC NL: 0x15, for an EBCDIC file only."
@@ -2858,7 +2859,7 @@ task_types:
         hint: "It gives the bytes of the line ends and of the spaces (0x25 and 0x40 in EBCDIC). The content of the records is copied byte for byte, neither checked nor converted."
       records:
         label: "Splitting"
-        hint: "Variable length: each record is preceded by its length (RDW), as z/OS writes it."
+        hint: "Variable length: each record is preceded by its length (RDW), as z/OS writes it. Articles: the file is cut at the article lengths that the transfer info gives (set by a PeSIT reception or by SETINFO)."
       recordLength:
         label: "Record length"
         hint: "In bytes, from 1 to 32,760."

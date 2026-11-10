@@ -292,7 +292,8 @@ func transcodeCharsets() []choiceValue {
 // it requires.
 func recordSpecs(required bool) []argSpec {
 	records := argSpec{
-		Name: "records", Kind: argChoice, Required: required, Choices: transcodeChoices("records", "lines", "fixed", "rdw"),
+		Name: "records", Kind: argChoice, Required: required,
+		Choices: transcodeChoices("records", "lines", "fixed", "rdw", "articles"),
 	}
 	output := argSpec{
 		Name: "outputRecords", Kind: argChoice, Required: required,
@@ -450,7 +451,7 @@ var taskSpecs = []taskSpec{
 		group("source_file", "records", "recordLength", "trimPadding"),
 		{
 			Title: "converted_file", Args: []string{"outputRecords", "outputSeparator", "outputLength", "truncate"},
-			When: &argWhen{Arg: "records", Value: "lines fixed rdw"},
+			When: &argWhen{Arg: "records", Value: "lines fixed rdw articles"},
 		},
 	}},
 	{Type: tasks.Reformat, Slug: "reformat", Family: familyAlteration, Args: append([]argSpec{

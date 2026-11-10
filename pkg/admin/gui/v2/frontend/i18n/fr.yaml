@@ -2666,6 +2666,7 @@ task_types:
       lines: "Lignes"
       fixed: "Longueur fixe"
       rdw: "Longueur variable"
+      articles: "Articles"
     output_same: "Comme le fichier source"
     output:
       none: "Sans séparateur"
@@ -2833,7 +2834,7 @@ task_types:
         hint: "Écrit le caractère de substitution de l'encodage cible à la place d'un caractère qu'il ne sait pas représenter. Sinon, la tâche échoue et le fichier reste tel quel."
       records:
         label: "Découpage"
-        hint: "Fichier entier : le fichier est converti d'un seul tenant, comme la tâche TRANSCODE. Lignes : seul le contenu de chaque ligne est converti. Longueur variable : chaque enregistrement est précédé de sa longueur (RDW), comme z/OS l'écrit."
+        hint: "Fichier entier : le fichier est converti d'un seul tenant, comme la tâche TRANSCODE. Lignes : seul le contenu de chaque ligne est converti. Longueur variable : chaque enregistrement est précédé de sa longueur (RDW), comme z/OS l'écrit. Articles : le fichier est découpé aux longueurs d'articles que donnent les informations de transfert (posées par une réception PeSIT ou par SETINFO)."
       recordLength:
         label: "Longueur des enregistrements"
         hint: "En octets, de 1 à 32 760."
@@ -2842,7 +2843,7 @@ task_types:
         hint: "Retire les espaces qui complètent chaque enregistrement avant de le convertir."
       outputRecords:
         label: "Mise en forme"
-        hint: "Comme le fichier source : chaque ligne garde sa fin de ligne, octet pour octet, et un enregistrement de longueur fixe garde sa longueur. Sans séparateur : les enregistrements se suivent sans rien entre eux."
+        hint: "Comme le fichier source : chaque ligne garde sa fin de ligne, octet pour octet, un enregistrement de longueur fixe garde sa longueur et des articles restent bout à bout. Sans séparateur : les enregistrements se suivent sans rien entre eux."
       outputSeparator:
         label: "Fin de ligne"
         hint: "LF et CRLF s'écrivent 0x0A et 0x0D 0x0A, en EBCDIC aussi : c'est là que le PeSIT de la Gateway découpe les articles. NL EBCDIC : 0x15, pour un fichier EBCDIC seulement."
@@ -2861,7 +2862,7 @@ task_types:
         hint: "Il donne les octets des fins de ligne et des espaces (0x25 et 0x40 en EBCDIC). Le contenu des enregistrements est recopié octet pour octet, sans être vérifié ni converti."
       records:
         label: "Découpage"
-        hint: "Longueur variable : chaque enregistrement est précédé de sa longueur (RDW), comme z/OS l'écrit."
+        hint: "Longueur variable : chaque enregistrement est précédé de sa longueur (RDW), comme z/OS l'écrit. Articles : le fichier est découpé aux longueurs d'articles que donnent les informations de transfert (posées par une réception PeSIT ou par SETINFO)."
       recordLength:
         label: "Longueur des enregistrements"
         hint: "En octets, de 1 à 32 760."

@@ -119,7 +119,7 @@ func TestTranscodeForm(t *testing.T) {
 			`id="transcode_reformat-records" name="transcode_reformat.records"`, `data-switch="transcode_reformat-records"`,
 			`<option value="">Fichier entier</option>`, `<option value="lines">Lignes</option>`,
 			`data-case="fixed" data-of="transcode_reformat-records"`, `name="transcode_reformat.recordLength"`, `name="transcode_reformat.trimPadding"`,
-			`data-case="lines fixed rdw" data-of="transcode_reformat-records"`, "<h2 class=\"w-card__title\">Fichier converti</h2>",
+			`data-case="lines fixed rdw articles" data-of="transcode_reformat-records"`, "<h2 class=\"w-card__title\">Fichier converti</h2>",
 			`<option value="">Comme le fichier source</option>`, `<option value="none">Sans séparateur</option>`,
 			`data-case="lines" data-of="transcode_reformat-outputRecords"`, `name="transcode_reformat.outputSeparator" value=""`,
 			`name="transcode_reformat.outputSeparator" value="NEL"`, "NL EBCDIC",
@@ -174,10 +174,9 @@ func TestTranscodeForm(t *testing.T) {
 			`<option value="UTF-8" data-label="UTF-8 — Unicode 8 bits">`, `<optgroup label="EBCDIC — Alphabet latin">`,
 			`<option value="IBM Code Page 297" data-label="IBM Code Page 297 — France">`,
 			`<optgroup label="EBCDIC — Autres alphabets">`,
-			`name="reformat.records" value="lines"`, `name="reformat.records" value="rdw"`,
+			`id="reformat-records" name="reformat.records" required`, `<option value="articles">Articles</option>`,
 			"<h2 class=\"w-card__title\">Fichier produit</h2>", `name="reformat.outputRecords"`,
 			`<option value="none">Sans séparateur</option>`)
-		assert.NotContains(t, body, `name="reformat.records" value=""`, "the records are required")
 		_, output, _ := strings.Cut(body, `id="reformat-outputRecords"`)
 		output, _, _ = strings.Cut(output, "</select>")
 		assert.NotContains(t, output, "Comme le fichier source", "the result is laid out")
