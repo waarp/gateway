@@ -425,22 +425,50 @@ func totalText(n int) string {
 	return strconv.Itoa(n)
 }
 
-// Tiles sums up the three groups of services for another screen (the
-// dashboard): the tiles of this screen, each a link to its group here, without
-// the tab it controls here. One source of truth for the figures of the
-// services.
-func Tiles(translate gui.Translator, has func(key string) bool, list Lister) []gui.TileProps {
+// Summary sums up every service of the node for another screen (the
+// dashboard): how many run and how many there are, those in error, offline
+// or unknown, and the same figures by group, each with its label. One source
+// of truth for the figures of the services.
+type Summary struct {
+	Running, Total, Failed, Offline, Unknown int
+	Groups                                   []GroupSummary
+}
+
+// GroupSummary is one group of services summed up: its label, how many of
+// its services run, how many there are.
+type GroupSummary struct {
+	Label          string
+	Running, Total int
+}
+
+// Sum builds the Summary of the services of the node.
+func Sum(translate gui.Translator, has func(key string) bool, list Lister) Summary {
 	core, servers, clients := list()
 	lists := [][]internal.Service{core, servers, clients}
-	specs := groupSpecs()
-	tiles := make([]gui.TileProps, 0, len(specs))
 
-	for i, spec := range specs {
+	var sum Summary
+
+	for i, spec := range groupSpecs() {
 		rows := makeRows(translate, has, spec.core, lists[i])
-		tile := makeTile(translate, translate("services.group."+spec.id), spec.id, rows)
-		tile.Controls = ""
-		tiles = append(tiles, tile)
+		group := GroupSummary{Label: translate("services.group." + spec.id), Total: len(rows)}
+
+		for _, line := range rows {
+			switch line.Status.State {
+			case stateOK:
+				group.Running++
+			case stateKO:
+				sum.Failed++
+			case stateOffline:
+				sum.Offline++
+			default:
+				sum.Unknown++
+			}
+		}
+
+		sum.Running += group.Running
+		sum.Total += group.Total
+		sum.Groups = append(sum.Groups, group)
 	}
 
-	return tiles
+	return sum
 }

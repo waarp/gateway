@@ -43,7 +43,7 @@ func TestDashboardRouter(t *testing.T) {
 		rec := serve(0, http.MethodGet, "/dashboard")
 		require.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), `id="tdb-body"`)
-		assert.Contains(t, rec.Body.String(), "Services of node gw-test")
+		assert.Contains(t, rec.Body.String(), "Health of node gw-test")
 		assert.NotContains(t, rec.Body.String(), `id="tdb-transfers"`, "no transfers without the right to read them")
 	})
 

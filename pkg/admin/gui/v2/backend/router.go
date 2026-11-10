@@ -168,7 +168,7 @@ func MakeKitStaticRouter(router *mux.Router) {
 // authenticated user as the service status; the blocks about the transfers
 // follow the rights on the transfers inside the page.
 func MakeDashboardRouter(router *mux.Router, db *database.DB, logger *log.Logger) {
-	handlers := dashboard.New(db, logger, internal.ListServices)
+	handlers := dashboard.New(db, logger, internal.ListServices, dashboard.GatewayNode{}, watchers.Counter(db))
 
 	router.Path("/dashboard").Methods(http.MethodGet).
 		Handler(withPermissions(permAuthenticated, http.HandlerFunc(handlers.Page)))

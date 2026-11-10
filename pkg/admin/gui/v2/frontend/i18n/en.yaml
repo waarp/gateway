@@ -90,7 +90,38 @@ dashboard:
   title: Dashboard
   live: "Refreshed at {time}"
   refreshing: Refreshing…
-  node: "Services of node {node}"
+  health_title: "Health of node {node}"
+  health:
+    unmeasured: Not measured
+    uptime: Uptime
+    uptime_text: "v{version}, since {date}"
+    uptime_title: "Started on {date} at {time}; version {version}"
+    uptime_unknown: "v{version}"
+    days_hours: "{days} d {hours} h"
+    hours_minutes: "{hours} h {minutes} min"
+    services: Services
+    group_running: "{group} {running} / {total}"
+    database: Database
+    ms: ms
+    db_ok: Responding
+    db_down: Unreachable
+    db_ko: "Since {time}"
+    db_unread: Not read yet
+    db_title: "{type} database; last reading of the figures in {ms} ms"
+    db_title_down: "{type} database"
+    memory: Memory
+    memory_text: "Of {memory} · {cores} cores"
+    cores: "Of {cores} cores"
+    memory_title: Memory taken by the gateway
+    network: Connections
+    network_text: "Incoming: {in} · outgoing: {out}"
+    network_title: Connections open on the gateway
+    monitors: Monitors
+    monitors_ok: All active
+    monitors_ko: "{n} failing"
+    monitors_ko_one: 1 failing
+    monitors_none: None
+    monitors_error: State unknown
   transfers: Transfers
   resume: "Resume the {n} failed transfers"
   resume_one: Resume the failed transfer
