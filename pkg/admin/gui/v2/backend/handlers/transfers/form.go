@@ -698,8 +698,7 @@ func (h *Handlers) add(translate gui.Translator, form *formData, checked *parsed
 	if msg := ClientMismatch(translate, client.Protocol, partner.Protocol); msg != "" {
 		form.Client.Error, form.HasErrors = msg, true
 
-		return nil, database.NewValidationErrorf("the client %q is not of the protocol of the partner %q",
-			client.Name, partner.Name)
+		return nil, refused("the client %q is not of the protocol of the partner %q", client.Name, partner.Name)
 	}
 
 	output := form.Output.Value
@@ -742,10 +741,18 @@ func (h *Handlers) authorized(translate gui.Translator, form *formData, rule *mo
 	if !allowed {
 		form.Account.Error, form.HasErrors = translate("transfers.form.error.not_allowed", "rule", rule.Name), true
 
-		return database.NewValidationErrorf("the rule %q does not authorize the account", rule.Name)
+		return refused("the rule %q does not authorize the account", rule.Name)
 	}
 
 	return nil
+}
+
+// refused is the error of a form the handler refuses before the model does: a
+// validation error, which the caller tells from a failure of the product
+// (database.IsValidationError). The field refused carries the message for the
+// user; the error only says why in the logs.
+func refused(format string, args ...any) error {
+	return database.NewValidationErrorf(format, args...) //nolint:wrapcheck // the kind of the error is the signal
 }
 
 // baseName is the last element of a path, "/" or "\" separated.
