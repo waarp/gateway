@@ -75,6 +75,16 @@ Affiche une liste des entrées d'historique remplissant les critères ci-dessous
    La date doit être renseignée en suivant le format standard ISO 8601 tel
    qu'il est décrit dans la :rfc:`3339`.
 
+.. option:: --ack=<ACK>
+
+   Filtre les entrées selon leur acquittement, lu dans les informations du
+   transfert (voir :ref:`ref-pesit-messages`), que l'acquittement vienne de
+   l'option du partenaire, d'une tâche SETINFO ou de la demande de transfert.
+   Les valeurs acceptées sont : ``expected`` (acquittement attendu, pas encore
+   reçu, transfert non terminé), ``received`` (acquittement reçu), ``missed``
+   (transfert terminé sans l'acquittement attendu), ``sent`` (acquittement
+   envoyé par Gateway) et ``none`` (aucun acquittement attendu, reçu ni envoyé).
+
 **Exemple**
 
 .. code-block:: shell

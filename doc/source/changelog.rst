@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`873` Les listes des transferts et de l'historique se filtrent par
+  acquittement, dans l'API REST (paramètre ``ack``) comme en ligne de commande
+  (option ``--ack``) : attendu, reçu, non reçu, envoyé ou sans acquittement,
+  d'après les informations de chaque transfert.
 * :feature:`746` La liste des transferts et ses comptages se lisent plus vite sur
   une base volumineuse : la vue ``normalized_transfers`` réunit les transferts
   en cours et l'historique par ``UNION ALL``, sans le dédoublonnage de ``UNION``

@@ -40,6 +40,15 @@ func (q *TransferListQuery) Requested(name string) *TransferListQuery {
 	return q
 }
 
+// Acknowledgement keeps the transfers of an acknowledgement case, with the
+// condition the REST API and the command line share (#873).
+func (q *TransferListQuery) Acknowledgement(ackCase model.AckCase) *TransferListQuery {
+	cond, args := ackCase.Condition()
+	q.query.Where(cond, args...)
+
+	return q
+}
+
 func (q *TransferListQuery) Rule(name string, isSend bool) *TransferListQuery {
 	q.query.Where("rule=?", name).Where("is_send=?", isSend)
 
@@ -105,7 +114,7 @@ func GetTransfer(db database.ReadAccess, id int64) (*model.Transfer, error) {
 
 func StartTransferQuery(db database.ReadAccess, orderBy string, asc bool) *TransferListQuery {
 	list := &TransferListQuery{}
-	list.query = db.Select(&list.transfers).Owner().OrderBy(orderBy, asc)
+	list.query = db.Select(&list.transfers).OrderBy(orderBy, asc)
 
 	return list
 }

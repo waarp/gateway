@@ -178,6 +178,7 @@ func TestListHistory(t *testing.T) {
 				Start:            time.Date(2019, 1, 1, 1, 0, 0, 1000, time.Local),
 				Stop:             time.Date(2019, 1, 1, 3, 0, 0, 1000, time.Local),
 				Status:           types.StatusDone,
+				TransferInfo:     map[string]any{model.InfoAckReceived: true},
 				SrcFilename:      "/source/file1.test",
 				DestFilename:     "/dest/file1.test",
 				LocalPath:        localPath("/local/file1.test"),
@@ -218,6 +219,7 @@ func TestListHistory(t *testing.T) {
 				Start:            time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
 				Stop:             time.Date(2019, 1, 1, 5, 0, 0, 3000, time.Local),
 				Status:           types.StatusCancelled,
+				TransferInfo:     map[string]any{model.InfoAckExpected: true},
 				SrcFilename:      "/source/file3.test",
 				DestFilename:     "/dest/file3.test",
 				LocalPath:        localPath("/local/file3.test"),
@@ -272,6 +274,51 @@ func TestListHistory(t *testing.T) {
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+
+			// The acknowledgement filter reads the keys of each entry (#873).
+			for _, tc := range []struct {
+				name string
+				exp  []OutHistory
+			}{
+				{"received", []OutHistory{*hist1}},
+				{"missed", []OutHistory{*hist3}},
+				{"none", []OutHistory{*hist2, *hist4}},
+				{"expected", []OutHistory{}},
+				{"sent", []OutHistory{}},
+			} {
+				Convey("Given a request with the 'ack' parameter "+tc.name, func() {
+					req, err := http.NewRequest(http.MethodGet, "?ack="+tc.name, nil)
+					So(err, ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, req)
+
+						Convey("Then it should reply 'OK' with the entries of the case", func() {
+							So(w.Code, ShouldEqual, http.StatusOK)
+
+							expected["history"] = tc.exp
+							body, err := json.Marshal(expected)
+
+							So(err, ShouldBeNil)
+							So(w.Body.String(), ShouldEqualJSON, string(body))
+						})
+					})
+				})
+			}
+
+			Convey("Given a request with an unknown 'ack' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?ack=later", nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then it should reply 'Bad Request' and name the accepted values", func() {
+						So(w.Code, ShouldEqual, http.StatusBadRequest)
+						So(w.Body.String(), ShouldContainSubstring, "expected, received, missed, sent, none")
 					})
 				})
 			})

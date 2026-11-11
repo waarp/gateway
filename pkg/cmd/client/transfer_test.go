@@ -232,6 +232,7 @@ func TestTransferList(t *testing.T) {
 		status   = "DONE"
 		date     = "2019-01-01T00:00:00Z"
 		followID = "12345"
+		ack      = "expected"
 
 		id1         = 1
 		remoteID1   = "456"
@@ -279,7 +280,7 @@ func TestTransferList(t *testing.T) {
 			values: url.Values{
 				"sort": {sort}, "limit": {limit}, "offset": {offset},
 				"rule": {rule}, "status": {status}, "start": {date},
-				"followID": {followID},
+				"followID": {followID}, "ack": {ack},
 			},
 		}
 
@@ -333,7 +334,7 @@ func TestTransferList(t *testing.T) {
 					"--limit", limit, "--offset", offset,
 					"--sort", sort, "--rule", rule,
 					"--status", status, "--date", date,
-					"--follow-id", followID,
+					"--follow-id", followID, "--ack", ack,
 				),
 					"Then it should not return an error",
 				)

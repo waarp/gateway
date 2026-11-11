@@ -98,6 +98,7 @@ type HistoryList struct {
 	Protocol  []string `short:"p" long:"protocol" description:"Filter the transfers based on the protocol used. Can be repeated multiple times to filter multiple protocols."`
 	Start     string   `short:"b" long:"start" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
 	Stop      string   `short:"e" long:"stop" description:"Filter the transfers which ended before a given date. Date must be in RFC3339 format."`
+	Ack       string   `long:"ack" description:"Filter the transfers by their acknowledgement: expected (waits for one), received, missed (over without it), sent (acknowledged by the gateway) or none." choice:"expected" choice:"received" choice:"missed" choice:"sent" choice:"none"`
 }
 
 func (h *HistoryList) listURL() error {
@@ -145,6 +146,10 @@ func (h *HistoryList) listURL() error {
 		}
 
 		query.Set("stop", stop.Format(time.RFC3339Nano))
+	}
+
+	if h.Ack != "" {
+		query.Set("ack", h.Ack)
 	}
 
 	addr.RawQuery = query.Encode()

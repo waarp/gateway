@@ -145,6 +145,10 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 			model.FollowID, followID)
 	}
 
+	if err := parseAckFilter(r, query); err != nil {
+		return nil, err
+	}
+
 	if startStr := r.FormValue("start"); startStr != "" {
 		start, err := time.Parse(time.RFC3339Nano, startStr)
 		if err != nil {
@@ -168,4 +172,25 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query.OrderBy(sort.col, sort.asc)
 
 	return query, nil
+}
+
+// parseAckFilter adds the acknowledgement filter of a list when the request
+// gives one (#873): the "ack" parameter names a case of the model, the same
+// cases as the web interface and the command line; an unknown name is a bad
+// request that lists the accepted ones.
+func parseAckFilter(r *http.Request, query *database.SelectQuery) error {
+	name := r.FormValue("ack")
+	if name == "" {
+		return nil
+	}
+
+	ackCase, err := model.ParseAckCase(name)
+	if err != nil {
+		return badRequest(err.Error())
+	}
+
+	cond, args := ackCase.Condition()
+	query.Where(cond, args...)
+
+	return nil
 }
