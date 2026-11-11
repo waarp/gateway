@@ -143,7 +143,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 		query.Where("stop <= ?", stop.UTC())
 	}
 
-	return nil
+	return parseAckFilter(r, query)
 }
 
 func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {

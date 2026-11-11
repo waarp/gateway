@@ -175,6 +175,7 @@ type TransferList struct {
 	Statuses []string `short:"t" long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"RUNNING" choice:"INTERRUPTED" choice:"PAUSED" choice:"CANCELLED" choice:"DONE" choice:"ERROR" choice:"AVAILABLE"`
 	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in ISO 8601 format."`
 	FollowID string   `short:"f" long:"follow-id" description:"Filter the transfers based on their follow ID."`
+	Ack      string   `long:"ack" description:"Filter the transfers by their acknowledgement: expected (waits for one), received, missed (over without it), sent (acknowledged by the gateway) or none." choice:"expected" choice:"received" choice:"missed" choice:"sent" choice:"none"`
 }
 
 func (t *TransferList) listURL() error {
@@ -204,6 +205,10 @@ func (t *TransferList) listURL() error {
 
 	if t.FollowID != "" {
 		query.Set("followID", t.FollowID)
+	}
+
+	if t.Ack != "" {
+		query.Set("ack", t.Ack)
 	}
 
 	addr.RawQuery = query.Encode()

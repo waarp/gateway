@@ -64,6 +64,16 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
    Filtre les transferts ayant l'ID de flux renseigné avec ce paramètre. Les
    transferts renvoyés feront donc partie du même flux.
 
+.. option:: --ack=<ACK>
+
+   Filtre les transferts selon leur acquittement, lu dans les informations du
+   transfert (voir :ref:`ref-pesit-messages`), que l'acquittement vienne de
+   l'option du partenaire, d'une tâche SETINFO ou de la demande de transfert.
+   Les valeurs acceptées sont : ``expected`` (acquittement attendu, pas encore
+   reçu, transfert non terminé), ``received`` (acquittement reçu), ``missed``
+   (transfert terminé sans l'acquittement attendu), ``sent`` (acquittement
+   envoyé par Gateway) et ``none`` (aucun acquittement attendu, reçu ni envoyé).
+
 .. option:: --format=<FORMAT>
 
    Spécifie le format du retour de la commande. Les valeurs acceptées sont :

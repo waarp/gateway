@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`873` Les listes des transferts et de l'historique se filtrent par
+  acquittement, dans l'API REST (paramètre ``ack``) comme en ligne de commande
+  (option ``--ack``) : attendu, reçu, non reçu, envoyé ou sans acquittement,
+  d'après les informations de chaque transfert.
 * :bug:`862` Le champ ``password`` des comptes locaux et distants du fichier
   d'import/export est désormais correctement importé et exporté en YAML. Un bug
   introduit en version 0.17.1 faisait que ce champ n'était pas correctement

@@ -142,6 +142,7 @@ func TestListHistory(t *testing.T) {
 		rule   = "rule"
 		status = "DONE"
 		date   = "2019-01-01T00:00:00Z"
+		ack    = "missed"
 
 		id1         = 1
 		remoteID1   = "456"
@@ -188,7 +189,7 @@ func TestListHistory(t *testing.T) {
 			path:   path,
 			values: url.Values{
 				"sort": {sort}, "limit": {limit}, "offset": {offset},
-				"rule": {rule}, "status": {status}, "start": {date},
+				"rule": {rule}, "status": {status}, "start": {date}, "ack": {ack},
 			},
 		}
 
@@ -241,7 +242,7 @@ func TestListHistory(t *testing.T) {
 				require.NoError(t, executeCommand(t, w, command,
 					"--limit", limit, "--offset", offset,
 					"--sort", sort, "--rule", rule,
-					"--status", status, "--start", date,
+					"--status", status, "--start", date, "--ack", ack,
 				),
 					"Then it should not return an error",
 				)

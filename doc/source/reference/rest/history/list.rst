@@ -46,6 +46,15 @@ Filtrer l'historique
       renseignée. La date doit être renseignée en format ISO 8601 tel qu'il
       est spécifié dans la :rfc:`3339`.
    :type stop: date
+   :param ack: Filtre uniquement les entrées selon leur acquittement, lu dans
+      les informations du transfert (voir :ref:`ref-pesit-messages`), que
+      l'acquittement vienne de l'option du partenaire, d'une tâche SETINFO ou
+      de la demande de transfert. Valeurs possibles : ``expected``
+      (acquittement attendu, pas encore reçu, transfert non terminé),
+      ``received`` (acquittement reçu), ``missed`` (transfert terminé sans
+      l'acquittement attendu), ``sent`` (acquittement envoyé par Gateway) ou
+      ``none`` (aucun acquittement attendu, reçu ni envoyé).
+   :type ack: string
 
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides

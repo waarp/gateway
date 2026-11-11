@@ -466,6 +466,7 @@ func TestListTransfer(t *testing.T) {
 				Start:           time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 				Step:            types.StepFinalization,
 				Status:          types.StatusPlanned,
+				TransferInfo:    map[string]any{model.InfoAckExpected: true},
 			}
 			So(db.Insert(t1).Run(), ShouldBeNil)
 
@@ -478,6 +479,7 @@ func TestListTransfer(t *testing.T) {
 				Start:           time.Date(2021, 1, 1, 2, 0, 0, 234000, time.Local),
 				Step:            types.StepPostTasks,
 				Status:          types.StatusError,
+				TransferInfo:    map[string]any{model.InfoAckExpected: true},
 			}
 			So(db.Insert(t2).Run(), ShouldBeNil)
 
@@ -600,6 +602,51 @@ func TestListTransfer(t *testing.T) {
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqualJSON, string(exp))
+					})
+				})
+			})
+
+			// The acknowledgement filter reads the keys of each transfer (#873).
+			for _, tc := range []struct {
+				name string
+				exp  []OutTransfer
+			}{
+				{"expected", []OutTransfer{*trans1}},
+				{"missed", []OutTransfer{*trans2}},
+				{"none", []OutTransfer{*trans3}},
+				{"received", []OutTransfer{}},
+				{"sent", []OutTransfer{}},
+			} {
+				Convey("Given a request with the 'ack' parameter "+tc.name, func() {
+					req, err := http.NewRequest(http.MethodGet, "?ack="+tc.name, nil)
+					So(err, ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, req)
+
+						Convey("Then it should reply 'OK' with the transfers of the case", func() {
+							So(w.Code, ShouldEqual, http.StatusOK)
+
+							expected["transfers"] = tc.exp
+							body, err := json.Marshal(expected)
+
+							So(err, ShouldBeNil)
+							So(w.Body.String(), ShouldEqualJSON, string(body))
+						})
+					})
+				})
+			}
+
+			Convey("Given a request with an unknown 'ack' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?ack=later", nil)
+				So(err, ShouldBeNil)
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then it should reply 'Bad Request' and name the accepted values", func() {
+						So(w.Code, ShouldEqual, http.StatusBadRequest)
+						So(w.Body.String(), ShouldContainSubstring, "expected, received, missed, sent, none")
 					})
 				})
 			})
