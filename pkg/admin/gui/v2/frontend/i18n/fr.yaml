@@ -3479,6 +3479,8 @@ transfers:
     protocol_all: Tous les protocoles
     from: Début à partir du
     to: Début jusqu'au
+    ack: Acquittement
+    ack_all: Tous les transferts
   dir:
     send: Envoi
     receive: Réception
@@ -3496,6 +3498,7 @@ transfers:
     size: Taille
     start: Début
     stop: Fin
+    ack: ACK
     actions: Actions
   error_tip: "{cause} : {message}"
   # Le sens et le rôle de la passerelle, dans les mots de l'écran historique.
@@ -3510,6 +3513,21 @@ transfers:
   no_stop: Pas encore terminé
   no_progress: Aucune progression
   no_size: Taille inconnue
+  # L'acquittement de chaque transfert : un mot dans la colonne ACK, le détail en infobulle.
+  ack:
+    expected: Attendu
+    received: Reçu
+    missed: Non reçu
+    sent: Envoyé
+    none: Sans acquittement
+  ack_tip:
+    expected: "La passerelle attendra l'acquittement du partenaire jusqu'à {limit} après le transfert"
+    waiting: "Acquittement du partenaire attendu jusqu'au {until} : délai de {limit}, en attente depuis le {since}"
+    received: "Acquittement du partenaire reçu le {at}"
+    missed: "Aucun acquittement du partenaire reçu, délai de {limit}"
+    missed_since: "Aucun acquittement du partenaire dans le délai de {limit}, attendu depuis le {since}"
+    sent: "Acquittement envoyé le {at} au partenaire {partner}, en tant que {account}"
+    sent_on: "Acquittement envoyé le {at}"
   percent: "{pct} %"
   progress_label: "Progression {pct} %"
   # Dates et nombres (disposition Go pour la date).

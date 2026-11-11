@@ -34,6 +34,7 @@ const (
 	paramProtocol = "protocol"
 	paramFrom     = "from"
 	paramTo       = "to"
+	paramAck      = "ack" // a case of the acknowledgement
 
 	dirSend    = "send"
 	dirReceive = "receive"
@@ -50,14 +51,14 @@ const (
 )
 
 // tableCols are the columns of the list: the direction, the number, the
-// state, the file, the rule, the partner, the start, the end, the progress,
-// the size and the actions.
-const tableCols = 11
+// state, the file, the rule, the partner, the start, the end, the
+// acknowledgement, the progress, the size and the actions.
+const tableCols = 12
 
 //nolint:gochecknoglobals // reference data of the screen
 var filterParams = []string{
 	paramState, paramRule, paramDir, paramRole, paramPartner, paramAccount, paramClient, paramProtocol,
-	paramFrom, paramTo,
+	paramFrom, paramTo, paramAck,
 }
 
 // filters is the part of the state of the list that belongs to the screen.
@@ -72,6 +73,7 @@ type filters struct {
 	Protocol string // a protocol family of the gateway, which covers its TLS variant
 	From     string // datetime-local values (localLayout)
 	To       string
+	Ack      string // a case of the acknowledgement (model.AckCase), "" for every transfer
 }
 
 // parseFilters reads the filters of a query, dropping what is unknown or
@@ -106,6 +108,10 @@ func parseFilters(values url.Values) *filters {
 		crit.To = values.Get(paramTo)
 	}
 
+	if ackCase, err := model.ParseAckCase(values.Get(paramAck)); err == nil {
+		crit.Ack = ackCase.String()
+	}
+
 	return crit
 }
 
@@ -126,6 +132,7 @@ func (f *filters) criteria() map[string]string {
 	return map[string]string{
 		paramState: f.State, paramRule: f.Rule, paramDir: f.Dir, paramRole: f.Role, paramPartner: f.Partner,
 		paramAccount: f.Account, paramClient: f.Client, paramProtocol: f.Protocol, paramFrom: f.From, paramTo: f.To,
+		paramAck: f.Ack,
 	}
 }
 
@@ -214,6 +221,10 @@ func (h *Handlers) selectQuery(q *liststate.Query, crit *filters, status types.T
 	// The end of a period includes its last minute.
 	if to, ok := parseLocal(crit.To); ok {
 		query.StartedUntil(to.Add(time.Minute - time.Nanosecond))
+	}
+
+	if ackCase, err := model.ParseAckCase(crit.Ack); err == nil {
+		query.Acknowledgement(ackCase)
 	}
 
 	return query
@@ -305,6 +316,7 @@ type row struct {
 	Start         moment
 	End           moment // the end, or the next attempt (Next)
 	Next          bool
+	Ack           ackView // the acknowledgement, after the end
 	Actions       []gui.Action
 }
 
@@ -395,6 +407,8 @@ type filterView struct {
 	Protocols    []gui.Choice
 	From         string
 	To           string
+	Ack          string
+	Acks         []gui.Choice // the cases of the acknowledgement
 }
 
 // accountGroup is the accounts of a partner or of a server, in the filters.
@@ -489,7 +503,7 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 		Size:           query.Size,
 		ResetURL:       listSpec.ResetURL(),
 		Hidden:         query.ToolbarHidden(),
-		Filters:        h.filterView(crit),
+		Filters:        h.filterView(translate, crit),
 		FiltersCount:   crit.Count(),
 		FiltersOpen:    crit.Count() > 0,
 	}
@@ -538,8 +552,15 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 		pageErr   error
 	)
 
+	var acks map[int64]map[string]any
+
 	if withRows {
 		transfers, pageErr = h.readPage(query, crit, query.Page)
+	}
+
+	// The acknowledgements of the page, in one query.
+	if pageErr == nil {
+		acks, pageErr = h.ackInfos(transfers)
 	}
 
 	counted := <-read
@@ -601,7 +622,7 @@ func (h *Handlers) buildList(translate gui.Translator, query *liststate.Query, w
 		"page", bounds.Page, "pages", bounds.Pages, "sort", translate(sortKeyPrefix+query.Sort))
 
 	for _, trans := range transfers {
-		data.Rows = append(data.Rows, rowOf(translate, trans, write, carried))
+		data.Rows = append(data.Rows, rowOf(translate, trans, write, carried, acks[trans.ID]))
 	}
 
 	data.Sizes = pageSizes
@@ -726,10 +747,10 @@ func countText(translate gui.Translator, n uint64) string {
 // of the partners and of the servers, the protocols of the gateway
 // (offered to whoever reads the transfers, which show
 // these names anyway).
-func (h *Handlers) filterView(crit *filters) filterView {
+func (h *Handlers) filterView(translate gui.Translator, crit *filters) filterView {
 	view := filterView{
 		Rule: crit.Rule, Dir: crit.Dir, Role: crit.Role, Partner: crit.Partner, Account: crit.Account,
-		Client: crit.Client, Protocol: crit.Protocol, From: crit.From, To: crit.To,
+		Client: crit.Client, Protocol: crit.Protocol, From: crit.From, To: crit.To, Ack: crit.Ack,
 	}
 
 	if rules, err := internal.ListRules(h.db, "name", true, 0, 0); err == nil {
@@ -770,6 +791,11 @@ func (h *Handlers) filterView(crit *filters) filterView {
 	// servers and the clients.
 	for _, family := range protoform.Families() {
 		view.Protocols = append(view.Protocols, gui.Choice{Value: family.Key, Label: family.Label})
+	}
+
+	// The cases of the acknowledgement, in the order of the model.
+	for ackCase := range model.AckCases() {
+		view.Acks = append(view.Acks, gui.Choice{Value: ackCase.String(), Label: translate(ackLabelKey(ackCase))})
 	}
 
 	return view
@@ -847,7 +873,11 @@ func appendAccounts[A any](groups []accountGroup, agent string, accounts []A, lo
 // the progress and the size. The state is strong, its label in the colour
 // of the state; a failed transfer says "Failed" alone, its cause and message
 // in the tooltip (no part of the error under the state).
-func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried string) row {
+// The acknowledgement, after the end, comes from the keys of the transfer
+// read for the page.
+func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write bool, carried string,
+	info map[string]any,
+) row {
 	// The direction and the role as one icon, in the words of the historic
 	// screen in the tooltip ("Sending from the server to the client").
 	dir, icon, role := "receive", "download", "client"
@@ -883,6 +913,7 @@ func rowOf(translate gui.Translator, trans *model.NormalizedTransferView, write 
 		Progress:   progress,
 		Size:       progress.Size,
 		Start:      momentOf(translate, trans.Start),
+		Ack:        ackCell(translate, trans, info),
 		Actions:    rowActions(translate, trans, write, carried),
 	}
 	line.Status.Strong = true

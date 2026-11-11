@@ -33,16 +33,18 @@
    the end, the progress and the size. Every column but the file has its width: the file takes the rest of the line.
    The partner stays whatever the width: "to whom did this file go" is the first question of an operator.
    Under 1 500 px of screen, the size folds into the tooltip of the progress: the list is the window less
-   346 px (the sidebar and the margins, measured), so the container query fires under 1 154 px of list. Under 1 000 px
-   of list, the table scrolls in its frame. */
+   346 px (the sidebar and the margins, measured), so the container query fires under 1 154 px of list. Under 1 100 px
+   of list, the table scrolls in its frame (1 000 px before the acknowledgement column: 6.75 rem after the end,
+   the status column narrowed to 6.75 rem at every width paying for part of it, the start and the end whole). */
 .tf-list { container-type: inline-size; }
 .tf-table .w-status { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .tf-col-dir { width: 2.5rem; }
 .tf-col-id { width: 5rem; }   /* seven digits */
-.tf-col-state { width: 7.5rem; }
+.tf-col-state { width: 6.75rem; }   /* narrowed for the acknowledgement */
 .tf-col-rule { width: 12%; }
 .tf-col-partner { width: 10%; }
 .tf-col-date { width: 9.5rem; }
+.tf-col-ack { width: 6.75rem; }   /* "ACK": an icon and one word, the detail in the tooltip */
 .tf-col-progress { width: 7.75rem; }   /* the header "Progression" whole */
 .tf-col-size { width: 5.5rem; }
 .tf-col-actions { width: 52px; }
@@ -53,12 +55,13 @@
 .tf-file { color: var(--tp); font-weight: 700; }
 .tf-time { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }   /* the date and the time to the second, smaller */
 .tf-next { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--g600); }
+.tf-ack { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
+.tf-ack .i { flex: none; }
 @container (max-width: 1153px) {
   .tf-table .tf-x { display: none; }
-  .tf-col-state { width: 6.75rem; }
 }
-@container (max-width: 999px) {
-  .tf-table { width: 70rem; }
+@container (max-width: 1100px) {
+  .tf-table { width: 76rem; }
 }
 
 /* The progress: a native bar (its value is read out). In the list, the percentage is written in the bar, taller for it;

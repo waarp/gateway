@@ -35,7 +35,8 @@ quand elle a demandé le transfert, ou serveur, quand un partenaire l'a
 demandé), partenaire ou serveur (une liste en deux groupes, partenaires
 distants et serveurs locaux), compte (les comptes de chaque partenaire ou
 serveur, ceux du seul partenaire choisi quand il l'est), protocole (la
-famille, avec sa variante TLS), période de début. Un filtre s'applique dès
+famille, avec sa variante TLS), acquittement (sans acquittement, attendu,
+reçu, non reçu, envoyé), période de début. Un filtre s'applique dès
 qu'il change ; le nombre de filtres actifs s'affiche sur le bouton,
 *Réinitialiser* les retire tous. Les nombres de la rangée des statuts suivent
 la recherche et les filtres.
@@ -78,6 +79,16 @@ dans l'infobulle de sa cellule, comme les informations secondaires.
    * - Fin
      - La fin ; pour un transfert en erreur qui sera retenté, l'heure de la
        prochaine tentative, précédée de l'icône de reprise.
+   * - ACK
+     - L'acquittement du transfert, pour les échanges PeSIT qui en demandent
+       un, en un mot avec sa forme : *Attendu* (la Gateway attend
+       l'acquittement du partenaire, avant ou pendant le délai), *Reçu*,
+       *Non reçu* (le transfert s'est terminé sans l'acquittement attendu),
+       *Envoyé* (la Gateway a acquitté le fichier au partenaire) ; « — »
+       quand le transfert n'en porte pas. En infobulle, le détail : les
+       heures, le délai, le partenaire. L'acquittement se lit sur le
+       transfert lui-même, qu'il vienne de l'option du partenaire, d'une
+       tâche SETINFO de la règle ou de la demande de transfert.
    * - Progression
      - Une barre qui porte le pourcentage quand la taille du fichier est
        connue, les octets transférés sinon ; en infobulle, la taille du
@@ -91,7 +102,8 @@ partout de la même façon, à la seconde (« 21/10/2026 18:00:00 ») ; l'infobu
 les répète en toutes lettres. Sur un écran de moins de 1 500 pixels de large,
 la colonne *Taille* se replie : la taille se lit dans l'infobulle de la
 progression. La colonne *Partenaire*, elle, reste toujours visible. Sur un
-écran étroit, le tableau défile dans son cadre.
+écran étroit, le tableau défile dans son cadre, la colonne *Fichier* gardant
+sa place.
 
 Par défaut, les derniers transferts créés viennent en premier : le tri se
 fait sur le numéro, décroissant. Les colonnes *N°*, *Fichier*, *Statut*,

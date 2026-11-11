@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`874` Le suivi des transferts dit l'acquittement de chaque transfert
+  dans une colonne « ACK » (attendu, reçu, non reçu, envoyé ; le détail au
+  survol) et se filtre par acquittement (voir :ref:`le guide
+  <user-webui-transfers>`).
 * :bug:`805` Sur l'écran d'import et d'export de la configuration, les
   catégories dont le libellé tient sur une ligne viennent en premier, les
   serveurs locaux et les partenaires distants, aux libellés longs, en dernier ;

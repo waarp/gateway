@@ -239,6 +239,15 @@ templ filtersPanel(f filterView) {
 		</select>
 	</div>
 	<div class="w-field">
+		<label class="w-field__label" for="f-ack">{ gui.T(ctx, "transfers.filter.ack") }</label>
+		<select class="w-select" id="f-ack" name={ paramAck }>
+			<option value="">{ gui.T(ctx, "transfers.filter.ack_all") }</option>
+			for _, c := range f.Acks {
+				<option value={ c.Value } selected?={ c.Value == f.Ack }>{ c.Label }</option>
+			}
+		</select>
+	</div>
+	<div class="w-field">
 		<label class="w-field__label" for="f-from">{ gui.T(ctx, "transfers.filter.from") }</label>
 		<input class="w-input" id="f-from" name={ paramFrom } type="datetime-local" value={ f.From }/>
 	</div>
@@ -266,7 +275,7 @@ templ tableRegion(d listData) {
 						if d.Select {
 							<col class="tf-col-select"/>
 						}
-						<col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-progress"/><col class="tf-col-size tf-x"/><col class="tf-col-actions"/>
+						<col class="tf-col-dir"/><col class="tf-col-id"/><col class="tf-col-state"/><col/><col class="tf-col-rule"/><col class="tf-col-partner"/><col class="tf-col-date"/><col class="tf-col-date"/><col class="tf-col-ack"/><col class="tf-col-progress"/><col class="tf-col-size tf-x"/><col class="tf-col-actions"/>
 					</colgroup>
 					<thead>
 						<tr>
@@ -281,6 +290,7 @@ templ tableRegion(d listData) {
 							<th scope="col">{ gui.T(ctx, "transfers.col.partner") }</th>
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.start"), Key: sortStart, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
 							@gui.Th(gui.ThProps{Label: gui.T(ctx, "transfers.col.stop"), Key: sortStop, Sort: d.Sort, Dir: d.Dir, Base: d.Base})
+							<th scope="col">{ gui.T(ctx, "transfers.col.ack") }</th>
 							<th scope="col">{ gui.T(ctx, "transfers.col.progress") }</th>
 							<th scope="col" class="w-num tf-x">{ gui.T(ctx, "transfers.col.size") }</th>
 							<th scope="col"><span class="visually-hidden">{ gui.T(ctx, "transfers.col.actions") }</span></th>
@@ -319,6 +329,16 @@ templ tableRegion(d listData) {
 										</span>
 									} else {
 										@momentCell(r.End)
+									}
+								</td>
+								<td class="tf-ack-cell" title={ r.Ack.Title }>
+									if r.Ack.None {
+										<span class="w-muted" aria-hidden="true">—</span><span class="visually-hidden">{ r.Ack.Label }</span>
+									} else {
+										<span class="tf-ack">
+											@gui.Icon(r.Ack.Icon)
+											<span>{ r.Ack.Label }</span>
+										</span>
 									}
 								</td>
 								<td

@@ -3476,6 +3476,8 @@ transfers:
     protocol_all: Every protocol
     from: Start from
     to: Start until
+    ack: Acknowledgement
+    ack_all: Every transfer
   dir:
     send: Send
     receive: Receive
@@ -3493,6 +3495,7 @@ transfers:
     size: Size
     start: Start
     stop: End
+    ack: ACK
     actions: Actions
   error_tip: "{cause}: {message}"
   # The direction and the role of the gateway, in the words of the historic screen.
@@ -3507,6 +3510,21 @@ transfers:
   no_stop: Not over yet
   no_progress: No progress
   no_size: Size unknown
+  # The acknowledgement of each transfer: one word in the ACK column, the detail in the tooltip.
+  ack:
+    expected: Expected
+    received: Received
+    missed: Not received
+    sent: Sent
+    none: No acknowledgement
+  ack_tip:
+    expected: "The gateway will wait for the partner's acknowledgement up to {limit} after the transfer"
+    waiting: "Partner's acknowledgement expected until {until}: limit {limit}, waiting since {since}"
+    received: "Partner's acknowledgement received on {at}"
+    missed: "No acknowledgement received from the partner, limit {limit}"
+    missed_since: "No acknowledgement from the partner within {limit}, waited since {since}"
+    sent: "Acknowledgement sent on {at} to {partner}, as {account}"
+    sent_on: "Acknowledgement sent on {at}"
   percent: "{pct}%"
   progress_label: "Progress {pct}%"
   # Dates and numbers (Go layout for the date).
