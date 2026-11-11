@@ -36,6 +36,7 @@ type ServerConfig struct {
 	Database   DatabaseConfig   `group:"database"`
 	Controller ControllerConfig `group:"controller"`
 	Security   SecurityConfig   `group:"security"`
+	Analytics  AnalyticsConfig  `group:"analytics"`
 }
 
 // PathsConfig holds the server paths.
@@ -116,6 +117,17 @@ type SecurityConfig struct {
 	AuthFailureWindow      time.Duration `ini-name:"AuthFailureWindow" default:"5m" description:"The period after which failed authentications are forgotten if no new failure occurs."`
 	AuthLockDuration       time.Duration `ini-name:"AuthLockDuration" default:"1m" description:"How long new attempts are refused once the maximum number of failures is reached. The duration doubles at each new lock."`
 	AuthMaxLockDuration    time.Duration `ini-name:"AuthMaxLockDuration" default:"30m" description:"The maximum duration of a lock."`
+}
+
+// AnalyticsConfig holds the options of the measures the gateway takes on
+// itself for the dashboard and SNMP: the disk space of the volumes that hold
+// the local directories of the transfers, and the survey of those directories.
+//
+//nolint:lll // cannot split struct tags
+type AnalyticsConfig struct {
+	DiskMeasurePeriod    time.Duration `ini-name:"DiskMeasurePeriod" default:"30s" description:"How often the free space of the volumes that hold the local directories of the transfers is measured."`
+	DiskSurveyPeriod     time.Duration `ini-name:"DiskSurveyPeriod" default:"5m" description:"How often the first level of each local directory is surveyed (number and size of its files). A survey spends at most a fifth of this period; a directory left out is surveyed at the next one."`
+	DiskSurveyMaxEntries int           `ini-name:"DiskSurveyMaxEntries" default:"10000" description:"The number of entries read in a directory before the survey stops and reports 'more than' that many files."`
 }
 
 func normalizePaths(configFile *ServerConfig) error {

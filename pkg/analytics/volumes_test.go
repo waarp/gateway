@@ -331,3 +331,133 @@ func TestVolumeKey(t *testing.T) {
 	assert.Equal(t, alone, key, "without mount points, the drive or the directory itself")
 	assert.False(t, mounted)
 }
+
+// One directory per path, whatever its origins and its spellings: the first
+// configured role kept, the last use by a transfer attached.
+func TestMergeDirs(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 11, 11, 22, 0, 0, 0, time.UTC)
+
+	merged := mergeDirs([]LocalDir{
+		{Path: abs("/gw/in"), Role: DirIn, Origin: OriginConfigured},
+		{Path: abs("/gw//in/"), Role: RoleServerReceive, Owner: "sftp", OwnerID: 3, Origin: OriginConfigured},
+		{Path: filepath.FromSlash(abs("/gw/in")), Role: RoleTransfer, Origin: OriginSeen, SeenAt: now.Add(-time.Hour)},
+		{Path: abs("/gw/in"), Role: RoleTransfer, Origin: OriginSeen, SeenAt: now},
+		{Path: abs("/data/flux"), Role: RoleTransfer, Origin: OriginSeen, SeenAt: now},
+		{Path: abs("/data/flux"), Role: RoleRuleLocal, Owner: "flux", OwnerID: 5, Origin: OriginConfigured},
+		{Path: "S3-X:reception/jour", Role: RoleTask, Owner: "archives", Origin: OriginTask},
+		{Path: "", Role: DirTmp, Origin: OriginConfigured},
+	})
+	require.Len(t, merged, 3, "the spellings of one directory merged, the empty path left out")
+
+	in := merged[0]
+	assert.Equal(t, filepath.Clean(abs("/gw/in")), in.Path, "written as the system writes its paths")
+	assert.Equal(t, DirIn, in.Role, "the first configured role")
+	assert.Equal(t, OriginConfigured, in.Origin)
+	assert.Equal(t, now, in.SeenAt, "the last transfer that used it")
+
+	flux := merged[1]
+	assert.Equal(t, RoleRuleLocal, flux.Role, "seen by a transfer first: the configuration still wins")
+	assert.Equal(t, "flux", flux.Owner)
+	assert.Equal(t, int64(5), flux.OwnerID)
+	assert.Equal(t, OriginConfigured, flux.Origin)
+	assert.Equal(t, now, flux.SeenAt)
+
+	assert.Equal(t, "S3-X:reception/jour", merged[2].Path, "a cloud path as it is")
+
+	if runtime.GOOS == "windows" {
+		merged = mergeDirs([]LocalDir{{Path: `C:\GW\IN`, Role: DirIn}, {Path: `c:/gw/in`, Role: DirOut}})
+		require.Len(t, merged, 1, "the case does not tell two directories apart")
+		assert.Equal(t, `C:\GW\IN`, merged[0].Path, "the first spelling")
+	}
+}
+
+// Every directory of the report says whether it exists, and a directory given
+// twice is measured once.
+func TestPresence(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 11, 11, 22, 0, 0, 0, time.UTC)
+	root := t.TempDir()
+	present := filepath.Join(root, "in")
+	require.NoError(t, os.MkdirAll(present, 0o750))
+
+	var a analytics
+
+	a.disks.mounts = func() ([]string, error) { return []string{root}, nil }
+	a.disks.usage = func(path string) (*disk.UsageStat, error) {
+		return &disk.UsageStat{Path: path, Total: 100 << 30, Free: 50 << 30, UsedPercent: 50}, nil
+	}
+
+	report := a.Measure(context.Background(), []LocalDir{
+		{Path: present, Role: DirIn, Origin: OriginConfigured},
+		{Path: present + "/", Role: RoleServerReceive, Owner: "sftp", OwnerID: 3, Origin: OriginConfigured},
+		{Path: filepath.Join(present, "later"), Role: RoleRuleLocal, Owner: "flux", OwnerID: 5, Origin: OriginConfigured},
+		{Path: "S3-X:reception", Role: RoleTask, Owner: "archives", Origin: OriginTask},
+	}, now)
+
+	require.Len(t, report.Volumes, 1)
+	require.Len(t, report.Volumes[0].Dirs, 2, "the two spellings of the present directory make one")
+	assert.Equal(t, PresencePresent, report.Volumes[0].Dirs[0].Presence)
+	assert.Equal(t, DirIn, report.Volumes[0].Dirs[0].Role)
+	assert.Equal(t, PresenceToCreate, report.Volumes[0].Dirs[1].Presence, "measured by the volume that will hold it")
+	require.Len(t, report.Unmeasured, 1)
+	assert.Equal(t, PresenceCloud, report.Unmeasured[0].Presence)
+
+	t.Run("Given a volume that does not answer", func(t *testing.T) {
+		t.Parallel()
+
+		release := make(chan struct{})
+
+		var b analytics
+
+		b.disks.timeout = 50 * time.Millisecond
+		b.disks.mounts = func() ([]string, error) { return nil, nil }
+		b.disks.usage = func(path string) (*disk.UsageStat, error) {
+			<-release
+
+			return &disk.UsageStat{Path: path}, nil
+		}
+
+		report := b.Measure(context.Background(), []LocalDir{{Path: present, Role: DirIn}}, now)
+		close(release)
+
+		require.Len(t, report.Unmeasured, 1)
+		assert.Equal(t, PresenceUnresponsive, report.Unmeasured[0].Presence)
+	})
+
+	t.Run("Given a directory with nothing above it", func(t *testing.T) {
+		t.Parallel()
+
+		if runtime.GOOS != "windows" {
+			t.Skip("on Unix the root always exists; a gone drive is a Windows case")
+		}
+
+		var c analytics
+
+		c.disks.mounts = func() ([]string, error) { return nil, nil }
+
+		report := c.Measure(context.Background(), []LocalDir{{Path: `Q:\flux\in`, Role: RoleRuleLocal}}, now)
+		require.Len(t, report.Unmeasured, 1)
+		assert.Equal(t, PresenceMissing, report.Unmeasured[0].Presence, "the drive is gone")
+	})
+
+	t.Run("Given a directory the process may not look up", func(t *testing.T) {
+		t.Parallel()
+
+		if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+			t.Skip("the permissions of a directory stop neither Windows nor root")
+		}
+
+		locked := filepath.Join(root, "locked")
+		require.NoError(t, os.MkdirAll(filepath.Join(locked, "inner"), 0o750))
+		require.NoError(t, os.Chmod(locked, 0o000))
+		t.Cleanup(func() { _ = os.Chmod(locked, 0o750) })
+
+		report := a.Measure(context.Background(), []LocalDir{{Path: filepath.Join(locked, "inner"), Role: DirOut}}, now)
+		require.Len(t, report.Unmeasured, 1)
+		assert.Equal(t, PresenceDenied, report.Unmeasured[0].Presence)
+		assert.Equal(t, ReasonDenied, report.Unmeasured[0].Reason)
+	})
+}

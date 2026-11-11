@@ -311,3 +311,36 @@ préfixe /64. Les blocages suivent les mêmes durées que ceux par compte.
    La durée maximale d'un blocage.
 
    Valeur par défaut : ``30m``
+
+Section ``[analytics]``
+=======================
+
+La section ``[analytics]`` regroupe les options des mesures que Gateway prend
+sur elle-même pour le tableau de bord et SNMP : la place libre des volumes qui
+portent les dossiers locaux des transferts (ses propres dossiers, ceux des
+serveurs et des règles, la partie fixe des destinations des tâches, les
+dossiers des transferts des sept derniers jours), et le relevé du premier
+niveau de chacun de ces dossiers (nombre et taille de ses fichiers).
+
+.. confval:: DiskMeasurePeriod
+
+   L'intervalle entre deux mesures de la place libre des volumes. Les unités de
+   temps acceptées sont : "ns", "us" (ou "µs"), "ms", "s", "m", "h".
+
+   Valeur par défaut : ``30s``
+
+.. confval:: DiskSurveyPeriod
+
+   L'intervalle entre deux relevés des dossiers. Un relevé lit le premier niveau
+   de chaque dossier présent, jamais ses sous-dossiers, et ne dépasse pas un
+   cinquième de cet intervalle : un dossier qu'il n'a pas eu le temps de lire
+   l'est au relevé suivant.
+
+   Valeur par défaut : ``5m``
+
+.. confval:: DiskSurveyMaxEntries
+
+   Le nombre d'entrées lues dans un dossier avant que le relevé s'arrête et
+   indique « plus de » ce nombre de fichiers.
+
+   Valeur par défaut : ``10000``

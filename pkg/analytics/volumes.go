@@ -22,10 +22,13 @@ import (
 // reads from or writes to, from three sources (configured, destinations of
 // the tasks, seen by the transfers), reduced to the volumes that hold them
 // and measured in the background with a time limit, so that a mount that no
-// longer answers blocks neither the web interface nor SNMP.
+// longer answers blocks neither the web interface nor SNMP. The measure gives
+// one entry per directory, whatever its origins and spellings, says whether
+// the directory exists, and carries the last survey of its first level
+// (survey.go).
 
 const (
-	// DiskPeriod is how often the service measures the volumes.
+	// DiskPeriod is how often the service measures the volumes, by default.
 	DiskPeriod = 30 * time.Second
 	// DiskTimeout is how long one volume may take to answer before it is
 	// reported as not responding.
@@ -69,7 +72,7 @@ const (
 )
 
 // DirOrigin is where the service learnt a directory from.
-type DirOrigin int
+type DirOrigin uint8
 
 const (
 	// OriginConfigured: the configuration file, a server or a rule.
@@ -80,17 +83,46 @@ const (
 	OriginSeen
 )
 
-// LocalDir is a local directory the transfers use: its path, its role (a
-// constant above, named by the catalogue), the object it belongs to (the
-// name of the server or of the rule, the type of the task; "" for the
-// gateway's own directories), its origin and, for a directory seen by a
-// transfer, when the last one used it.
+// Presence is whether a directory exists, as the measure found it when it
+// looked the directory up to find its volume.
+type Presence uint8
+
+const (
+	// PresenceUnknown: the system refused to look the directory up for a
+	// reason the measure does not read (its error is reported).
+	PresenceUnknown Presence = iota
+	// PresencePresent: the directory exists.
+	PresencePresent
+	// PresenceToCreate: the directory does not exist yet but a directory
+	// above it does; the gateway creates it at the first transfer, and its
+	// volume is measured through that ancestor.
+	PresenceToCreate
+	// PresenceDenied: the process may not look it up, or may not read it.
+	PresenceDenied
+	// PresenceUnresponsive: its volume did not answer within the time limit.
+	PresenceUnresponsive
+	// PresenceMissing: nothing above it exists (a drive that is gone).
+	PresenceMissing
+	// PresenceCloud: a cloud storage, which has no volume to look up.
+	PresenceCloud
+)
+
+// LocalDir is a local directory the transfers use: its path, cleaned as the
+// system writes it; its role (a constant above, named by the catalogue); the
+// object it belongs to (the name and the identifier of the server or of the
+// rule, the rule of a task; "" and 0 for the gateway's own directories); when
+// the last transfer used it (zero when none did); its origin; whether it
+// exists; and the last survey of its first level, nil until it is surveyed.
+// The small fields sit together: the directories are copied by value.
 type LocalDir struct {
-	Path   string
-	Role   string
-	Owner  string
-	Origin DirOrigin
-	SeenAt time.Time
+	Path     string
+	Role     string
+	Owner    string
+	OwnerID  int64
+	SeenAt   time.Time
+	Origin   DirOrigin
+	Presence Presence
+	Survey   *DirSurvey
 }
 
 // DiskState is the state of a volume against the thresholds.
@@ -144,15 +176,17 @@ type UnmeasuredDir struct {
 
 // Local says whether the directory should have been measured: every reason
 // but the cloud storage is an incident of production.
-func (u UnmeasuredDir) Local() bool { return u.Reason != ReasonCloud }
+func (u *UnmeasuredDir) Local() bool { return u.Reason != ReasonCloud }
 
 // DiskReport is the last measure of the volumes: the volumes, the most severe
-// first then the fullest, the directories that could not be measured, and
-// when the measure was taken.
+// first then the fullest, the directories that could not be measured, when
+// the measure was taken, and when the last survey of the directories ran
+// (zero before the first).
 type DiskReport struct {
 	Volumes    []Volume
 	Unmeasured []UnmeasuredDir
 	MeasuredAt time.Time
+	SurveyedAt time.Time
 }
 
 // Worst is the most severe volume of the report, the fullest among equals;
@@ -183,6 +217,62 @@ func (r *DiskReport) Usage(role string) (DiskUsage, bool) {
 	return DiskUsage{}, false
 }
 
+// add puts the directories of a volume in the report, each with its presence:
+// those the system refused to look up (access denied, nothing above them)
+// among the unmeasured; then the volume with its usage, or every directory
+// among the unmeasured when the volume itself refused the measure.
+func (r *DiskReport) add(key string, dirs []LocalDir, res *measure, now time.Time) {
+	var measured []LocalDir
+
+	for j, d := range dirs {
+		d.Presence = res.presenceOf(j)
+
+		if err, bad := res.bad[j]; bad {
+			r.Unmeasured = append(r.Unmeasured, UnmeasuredDir{LocalDir: d, Reason: reasonOf(err), Error: err.Error()})
+
+			continue
+		}
+
+		measured = append(measured, d)
+	}
+
+	switch {
+	case len(measured) == 0:
+		// Every directory of the volume refused: nothing to measure.
+	case res.err != nil:
+		for _, d := range measured {
+			r.Unmeasured = append(r.Unmeasured, UnmeasuredDir{LocalDir: d, Reason: res.reason, Error: res.err.Error()})
+		}
+	default:
+		r.Volumes = append(r.Volumes, Volume{
+			Key: key, Dirs: measured, UsedPercent: res.usage.UsedPercent, Free: res.usage.Free, Total: res.usage.Total,
+			InodesPercent: res.usage.InodesUsedPercent, InodesKnown: res.usage.InodesTotal > 0,
+			State: stateOf(res.usage), MeasuredAt: now,
+		})
+	}
+}
+
+// sort orders the volumes, the most severe first then the fullest, and the
+// unmeasured directories by their path.
+func (r *DiskReport) sort() {
+	slices.SortFunc(r.Volumes, func(x, y Volume) int {
+		if x.State != y.State {
+			return int(y.State) - int(x.State)
+		}
+
+		if x.UsedPercent != y.UsedPercent {
+			if x.UsedPercent > y.UsedPercent {
+				return -1
+			}
+
+			return 1
+		}
+
+		return strings.Compare(x.Key, y.Key)
+	})
+	slices.SortFunc(r.Unmeasured, func(x, y UnmeasuredDir) int { return strings.Compare(x.Path, y.Path) })
+}
+
 // stateOf is the state of a measure against the thresholds: the share used
 // and the bytes free, then the share of the inodes.
 func stateOf(usage *disk.UsageStat) DiskState {
@@ -198,18 +288,60 @@ func stateOf(usage *disk.UsageStat) DiskState {
 	}
 }
 
+// DiskSettings are the periods of the measure and of the survey, and the cap
+// of the survey, as the configuration sets them; a zero value takes its
+// default.
+type DiskSettings struct {
+	MeasurePeriod    time.Duration // how often the volumes are measured
+	SurveyPeriod     time.Duration // how often the directories are surveyed
+	SurveyMaxEntries int           // the entries read in a directory before the survey says "more than"
+}
+
+// DefaultDiskSettings are the settings without a configuration.
+func DefaultDiskSettings() DiskSettings {
+	return DiskSettings{MeasurePeriod: DiskPeriod, SurveyPeriod: DiskSurveyPeriod, SurveyMaxEntries: DiskSurveyMaxEntries}
+}
+
+// withDefaults fills the settings left at zero or below.
+func (s DiskSettings) withDefaults() DiskSettings {
+	def := DefaultDiskSettings()
+
+	if s.MeasurePeriod <= 0 {
+		s.MeasurePeriod = def.MeasurePeriod
+	}
+
+	if s.SurveyPeriod <= 0 {
+		s.SurveyPeriod = def.SurveyPeriod
+	}
+
+	if s.SurveyMaxEntries <= 0 {
+		s.SurveyMaxEntries = def.SurveyMaxEntries
+	}
+
+	return s
+}
+
+// Budget is the time a survey cycle may spend listing directories: a share
+// of its period, so that the volumes are measured on time whatever a listing
+// costs.
+func (s DiskSettings) Budget() time.Duration { return s.SurveyPeriod / surveyBudgetShare }
+
 // disks is the part of the service that knows the volumes: the home of the
 // gateway (what a relative directory is resolved against), the directories
-// seen by the transfers, the last report, and the functions that read the
-// system, which the tests replace.
+// seen by the transfers, the last report, the settings, the survey of the
+// directories, and the functions that read the system, which the tests
+// replace.
 type disks struct {
-	mu      sync.Mutex
-	home    string
-	seen    map[string]time.Time
-	report  atomic.Pointer[DiskReport]
-	usage   func(path string) (*disk.UsageStat, error)
-	mounts  func() ([]string, error)
-	timeout time.Duration
+	mu       sync.Mutex
+	home     string
+	seen     map[string]time.Time
+	report   atomic.Pointer[DiskReport]
+	settings DiskSettings
+	survey   surveyState
+	usage    func(path string) (*disk.UsageStat, error)
+	mounts   func() ([]string, error)
+	readDir  func(path string, maxEntries int) (files int, size int64, more bool, err error)
+	timeout  time.Duration
 }
 
 // SetHome tells the service the home directory of the gateway, which a
@@ -219,6 +351,23 @@ func (a *analytics) SetHome(home string) {
 	defer a.disks.mu.Unlock()
 
 	a.disks.home = home
+}
+
+// SetDiskSettings gives the service the settings of the disk measure, before
+// it starts; a zero value takes its default.
+func (a *analytics) SetDiskSettings(settings DiskSettings) {
+	a.disks.mu.Lock()
+	defer a.disks.mu.Unlock()
+
+	a.disks.settings = settings.withDefaults()
+}
+
+// DiskSettings are the settings of the disk measure in force.
+func (a *analytics) DiskSettings() DiskSettings {
+	a.disks.mu.Lock()
+	defer a.disks.mu.Unlock()
+
+	return a.disks.settings.withDefaults()
 }
 
 // Seen records that a transfer uses a local path, now: its directory joins
@@ -362,21 +511,75 @@ func DestinationDir(arg string, isDir bool) (dir string, cloud bool) {
 	return filepath.Clean(dir), false // written as the system writes its paths
 }
 
-// Measure measures the volumes of the directories, now: the directories
-// grouped by the volume that holds them, each volume read within the time
-// limit in its own routine, and keeps the report.
+// pathKey is what tells two spellings of the same directory apart: the path
+// itself, without its case on Windows, whose file systems ignore it.
+func pathKey(path string) string {
+	if runtime.GOOS == "windows" {
+		return strings.ToLower(path)
+	}
+
+	return path
+}
+
+// mergeDirs gives one directory per path: the local paths cleaned as the
+// system writes them (the separators made one, the duplicates and the trailing
+// ones dropped) and compared by their key, the empty ones left out. Of two
+// entries of one directory, the configured one is kept (the first of them when
+// both are) and the use by a transfer is attached to it as the last time one
+// used it.
+func mergeDirs(list []LocalDir) []LocalDir {
+	index := map[string]int{}
+	out := make([]LocalDir, 0, len(list))
+
+	for _, dir := range list {
+		if dir.Path == "" {
+			continue
+		}
+
+		if fs.IsLocalPath(dir.Path) {
+			dir.Path = filepath.Clean(dir.Path)
+		}
+
+		key := pathKey(dir.Path)
+
+		i, seen := index[key]
+		if !seen {
+			index[key] = len(out)
+			out = append(out, dir)
+
+			continue
+		}
+
+		kept := &out[i]
+		if kept.Origin == OriginSeen && dir.Origin != OriginSeen {
+			dir.SeenAt = kept.SeenAt
+			*kept = dir
+		}
+
+		if dir.SeenAt.After(kept.SeenAt) {
+			kept.SeenAt = dir.SeenAt
+		}
+	}
+
+	return out
+}
+
+// Measure measures the volumes of the directories, now: one entry per
+// directory, the directories grouped by the volume that holds them, each
+// volume read within the time limit in its own routine, each directory with
+// its presence and the last survey of its first level, and keeps the report.
 func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time) *DiskReport {
 	report := &DiskReport{MeasuredAt: now}
 	groups := map[string][]LocalDir{}
+	mounted := map[string]bool{}
 
 	var keys []string
 
 	mounts := a.mountPoints()
 
-	mounted := map[string]bool{}
-
-	for _, d := range dirs {
+	for _, d := range mergeDirs(dirs) {
 		if !fs.IsLocalPath(d.Path) {
+			d.Presence = PresenceCloud
 			report.Unmeasured = append(report.Unmeasured, UnmeasuredDir{LocalDir: d, Reason: ReasonCloud})
 
 			continue
@@ -404,54 +607,11 @@ func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time)
 	wg.Wait()
 
 	for i, key := range keys {
-		res := results[i]
-
-		var measured []LocalDir
-
-		for j, d := range groups[key] {
-			if err, bad := res.bad[j]; bad {
-				report.Unmeasured = append(report.Unmeasured, UnmeasuredDir{LocalDir: d, Reason: reasonOf(err), Error: err.Error()})
-
-				continue
-			}
-
-			measured = append(measured, d)
-		}
-
-		switch {
-		case len(measured) == 0:
-			// Every directory of the volume refused: nothing to measure.
-		case res.err != nil:
-			for _, d := range measured {
-				report.Unmeasured = append(report.Unmeasured,
-					UnmeasuredDir{LocalDir: d, Reason: res.reason, Error: res.err.Error()})
-			}
-		default:
-			report.Volumes = append(report.Volumes, Volume{
-				Key: key, Dirs: measured, UsedPercent: res.usage.UsedPercent, Free: res.usage.Free, Total: res.usage.Total,
-				InodesPercent: res.usage.InodesUsedPercent, InodesKnown: res.usage.InodesTotal > 0,
-				State: stateOf(res.usage), MeasuredAt: now,
-			})
-		}
+		report.add(key, groups[key], &results[i], now)
 	}
 
-	slices.SortFunc(report.Volumes, func(x, y Volume) int {
-		if x.State != y.State {
-			return int(y.State) - int(x.State)
-		}
-
-		if x.UsedPercent != y.UsedPercent {
-			if x.UsedPercent > y.UsedPercent {
-				return -1
-			}
-
-			return 1
-		}
-
-		return strings.Compare(x.Key, y.Key)
-	})
-	slices.SortFunc(report.Unmeasured, func(x, y UnmeasuredDir) int { return strings.Compare(x.Path, y.Path) })
-
+	report.sort()
+	a.attachSurveys(report)
 	a.disks.report.Store(report)
 
 	return report
@@ -459,12 +619,24 @@ func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time)
 
 // measure is the reading of one volume: its usage, or the refusal of the
 // volume (err, reason); bad holds, by their index, the directories that
-// could not be looked up (access denied, nothing above them).
+// could not be looked up (access denied, nothing above them), presence what
+// the look-up said of each, empty when the volume did not answer.
 type measure struct {
-	usage  *disk.UsageStat
-	err    error
-	reason DiskReason
-	bad    map[int]error
+	usage    *disk.UsageStat
+	err      error
+	reason   DiskReason
+	bad      map[int]error
+	presence []Presence
+}
+
+// presenceOf is the presence of the directory at index i, as it was looked
+// up, or what the refusal of the volume says when it was not.
+func (m *measure) presenceOf(i int) Presence {
+	if i < len(m.presence) {
+		return m.presence[i]
+	}
+
+	return presenceOfReason(m.reason)
 }
 
 // measureVolume reads one volume within the time limit. The volume is read
@@ -480,7 +652,7 @@ func (a *analytics) measureVolume(ctx context.Context, key string, mounted bool,
 	done := make(chan measure, 1)
 
 	go func() {
-		res := measure{bad: map[int]error{}}
+		res := measure{bad: map[int]error{}, presence: make([]Presence, len(dirs))}
 		probe := ""
 
 		if mounted {
@@ -491,8 +663,14 @@ func (a *analytics) measureVolume(ctx context.Context, key string, mounted bool,
 			existing, err := existingAncestor(d.Path)
 			if err != nil {
 				res.bad[i] = err
+				res.presence[i] = presenceOfReason(reasonOf(err))
 
 				continue
+			}
+
+			res.presence[i] = PresenceToCreate
+			if existing == d.Path {
+				res.presence[i] = PresencePresent
 			}
 
 			if probe == "" {
@@ -562,6 +740,27 @@ func reasonOf(err error) DiskReason {
 		return ReasonDenied
 	default:
 		return ReasonError
+	}
+}
+
+// presenceOfReason is what a refused measure says of the presence of a
+// directory: missing when nothing above it exists, denied when it may not be
+// looked up, unresponsive when its volume did not answer, cloud for a cloud
+// storage; unknown for another refusal of the system.
+func presenceOfReason(reason DiskReason) Presence {
+	switch reason {
+	case ReasonAbsent:
+		return PresenceMissing
+	case ReasonDenied:
+		return PresenceDenied
+	case ReasonTimeout:
+		return PresenceUnresponsive
+	case ReasonCloud:
+		return PresenceCloud
+	case ReasonError:
+		return PresenceUnknown
+	default:
+		return PresenceUnknown
 	}
 }
 

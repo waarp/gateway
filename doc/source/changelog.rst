@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`876` La mesure de l'espace disque donne une ligne par dossier, quelles
+  que soient ses origines et ses graphies, dit s'il existe et relève toutes les
+  cinq minutes le nombre et la taille des fichiers de son premier niveau, dans un
+  budget de temps qui ne retarde jamais la mesure des volumes. Nouvelle section
+  ``[analytics]`` de la configuration : ``DiskMeasurePeriod``, ``DiskSurveyPeriod``
+  et ``DiskSurveyMaxEntries``.
 * :feature:`847` La passerelle mesure l'espace disque de tous les dossiers
   locaux que les transferts utilisent, regroupés par volume et en arrière-plan :
   ses dossiers par défaut, ceux des serveurs et des règles, le dossier de sa

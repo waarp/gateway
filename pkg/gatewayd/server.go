@@ -142,6 +142,11 @@ func (wg *WG) initServices() {
 		wg.DBService = database.NewDB(wg.Config)
 	}
 	wg.Analytics = &analytics.Service{DB: wg.DBService}
+	wg.Analytics.SetDiskSettings(analytics.DiskSettings{
+		MeasurePeriod:    wg.Config.Analytics.DiskMeasurePeriod,
+		SurveyPeriod:     wg.Config.Analytics.DiskSurveyPeriod,
+		SurveyMaxEntries: wg.Config.Analytics.DiskSurveyMaxEntries,
+	})
 	wg.SnmpService = &snmp.Service{DB: wg.DBService}
 	wg.AdminService = &admin.Server{DB: wg.DBService}
 	wg.Controller = &controller.Controller{DB: wg.DBService}

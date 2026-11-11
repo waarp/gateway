@@ -64,22 +64,31 @@ func (s *Service) start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.stopSampling = cancel
 
-	go s.sampleEvery(ctx, SamplePeriod, DiskPeriod)
+	settings := s.DiskSettings()
+
+	go s.sampleEvery(ctx, SamplePeriod, settings.MeasurePeriod, settings.SurveyPeriod)
 
 	return nil
 }
 
-// sampleEvery samples the counters now, then every period, and measures the
-// volumes now, then every diskPeriod, until ctx ends.
-func (s *Service) sampleEvery(ctx context.Context, period, diskPeriod time.Duration) {
+// sampleEvery samples the counters now, then every period; measures the
+// volumes now, then every diskPeriod; and surveys the directories now, then
+// every surveyPeriod, each cycle in its own routine so that a listing never
+// delays a measure; until ctx ends.
+func (s *Service) sampleEvery(ctx context.Context, period, diskPeriod, surveyPeriod time.Duration) {
 	s.Sample(time.Now())
 	s.measureDisks(ctx, time.Now())
+
+	go s.Survey(ctx, time.Now())
 
 	ticker := time.NewTicker(period)
 	defer ticker.Stop()
 
 	disks := time.NewTicker(diskPeriod)
 	defer disks.Stop()
+
+	survey := time.NewTicker(surveyPeriod)
+	defer survey.Stop()
 
 	for {
 		select {
@@ -89,6 +98,8 @@ func (s *Service) sampleEvery(ctx context.Context, period, diskPeriod time.Durat
 			s.Sample(now)
 		case now := <-disks.C:
 			s.measureDisks(ctx, now)
+		case now := <-survey.C:
+			go s.Survey(ctx, now)
 		}
 	}
 }
@@ -99,10 +110,10 @@ func (s *Service) measureDisks(ctx context.Context, now time.Time) {
 	s.Measure(ctx, s.localDirs(now), now)
 }
 
-// localDirs lists the directories to measure, each path once: the gateway's
-// own (given by the daemon), those of the servers and the rules and the
-// destinations of the tasks (read in the database), then the directories the
-// transfers used within the window.
+// localDirs lists the directories to measure: the gateway's own (given by
+// the daemon), those of the servers and the rules and the destinations of the
+// tasks (read in the database), then the directories the transfers used
+// within the window; the measure keeps each path once.
 func (s *Service) localDirs(now time.Time) []LocalDir {
 	var list []LocalDir
 
@@ -114,27 +125,14 @@ func (s *Service) localDirs(now time.Time) []LocalDir {
 		list = append(list, s.configuredDirs()...)
 	}
 
-	list = append(list, s.seenDirs(now)...)
-
-	seen := map[string]bool{}
-	out := make([]LocalDir, 0, len(list))
-
-	for _, d := range list {
-		if d.Path == "" || seen[d.Path] {
-			continue
-		}
-
-		seen[d.Path] = true
-		out = append(out, d)
-	}
-
-	return out
+	return append(list, s.seenDirs(now)...)
 }
 
 // configuredDirs reads in the database the directories of the servers (root,
 // receive, send, temporary), of the rules (local, temporary receive) and the
 // fixed part of the destinations of the tasks, resolved as the transfers
-// resolve them; a reading that fails is logged and leaves its part out.
+// resolve them, each with the name and the identifier of its server or of
+// its rule; a reading that fails is logged and leaves its part out.
 func (s *Service) configuredDirs() []LocalDir {
 	var (
 		servers model.LocalAgents
@@ -156,7 +154,7 @@ func (s *Service) configuredDirs() []LocalDir {
 			{s.Resolve(srv.TmpReceiveDir, root), RoleServerTmp},
 		} {
 			if d.dir != "" {
-				out = append(out, LocalDir{Path: d.dir, Role: d.role, Owner: srv.Name, Origin: OriginConfigured})
+				out = append(out, LocalDir{Path: d.dir, Role: d.role, Owner: srv.Name, OwnerID: srv.ID, Origin: OriginConfigured})
 			}
 		}
 	}
@@ -172,7 +170,9 @@ func (s *Service) configuredDirs() []LocalDir {
 
 		for _, d := range []struct{ dir, role string }{{rule.LocalDir, RoleRuleLocal}, {rule.TmpLocalRcvDir, RoleRuleTmp}} {
 			if resolved := s.Resolve(d.dir); resolved != "" {
-				out = append(out, LocalDir{Path: resolved, Role: d.role, Owner: rule.Name, Origin: OriginConfigured})
+				out = append(out, LocalDir{
+					Path: resolved, Role: d.role, Owner: rule.Name, OwnerID: rule.ID, Origin: OriginConfigured,
+				})
 			}
 		}
 	}
@@ -196,7 +196,9 @@ func (s *Service) configuredDirs() []LocalDir {
 			dir = s.Resolve(dir)
 		}
 
-		out = append(out, LocalDir{Path: dir, Role: RoleTask, Owner: names[task.RuleID], Origin: OriginTask})
+		out = append(out, LocalDir{
+			Path: dir, Role: RoleTask, Owner: names[task.RuleID], OwnerID: task.RuleID, Origin: OriginTask,
+		})
 	}
 
 	return out
