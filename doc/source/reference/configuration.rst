@@ -329,9 +329,11 @@ sont ni connus ni au-dessus d'un dossier connu (la racine d'un serveur
 supprimé, le dossier local d'une règle supprimée, un dossier créé à la main).
 Ces dossiers apparaissent dans la mesure avec le rôle « hors configuration »,
 leurs fichiers comptés à toute profondeur ; ils en sortent quand ils
-disparaissent du disque ou qu'un objet les référence de nouveau. Rien n'est lu
-au-dessus de la racine de la passerelle ni d'une racine déclarée hors d'elle,
-et rien n'est jamais supprimé ni déplacé.
+disparaissent du disque ou qu'un objet les référence de nouveau. Un dossier
+trouvé qui est le dossier local ou temporaire d'une règle sous la racine d'un
+serveur, là où les transferts de ce serveur déposent leurs fichiers, est
+rattaché à cette règle. Rien n'est lu au-dessus de la racine de la passerelle
+ni d'une racine déclarée hors d'elle, et rien n'est jamais supprimé ni déplacé.
 
 .. confval:: DiskMeasurePeriod
 

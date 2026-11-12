@@ -202,8 +202,9 @@ func (a *analytics) SurveyNew(ctx context.Context, now time.Time) {
 
 // surveyRound lists the directories from the one at start, round after round,
 // until the deadline, each in its own routine abandoned when the time left
-// runs out, at any depth for a directory no object refers to; the index of
-// the last directory it came to, -1 when it came to none.
+// runs out, at any depth for a directory no object refers to (a found one
+// given to its rule is listed at its first level, as the others); the index
+// of the last directory it came to, -1 when it came to none.
 func (a *analytics) surveyRound(ctx context.Context, dirs []LocalDir, start int, now, deadline time.Time) int {
 	maxEntries := a.DiskSettings().SurveyMaxEntries
 	last := -1
@@ -217,7 +218,7 @@ func (a *analytics) surveyRound(ctx context.Context, dirs []LocalDir, start int,
 		last = (start + n) % len(dirs)
 		dir := &dirs[last]
 
-		if !a.surveyDir(pathKey(dir.Path), dir.Path, maxEntries, dir.Origin == OriginFound, now, left) {
+		if !a.surveyDir(pathKey(dir.Path), dir.Path, maxEntries, dir.Role == RoleUnreferenced, now, left) {
 			break
 		}
 	}

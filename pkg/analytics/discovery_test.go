@@ -11,6 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // A tree for the discovery, on one volume: the home of the gateway with its
@@ -382,4 +384,102 @@ func TestDiscoveryNew(t *testing.T) {
 	mu.Lock()
 	assert.Len(t, listed, 6, "every structuring directory read already")
 	mu.Unlock()
+}
+
+// A directory found on the disk, or seen by a transfer, that is the local or
+// the temporary directory of a rule under the root of a server, as the
+// transfers of that server resolve it, is reported as the directory of that
+// rule, surveyed at its first level; a directory next to it that no rule names
+// stays unreferenced, surveyed at any depth. A declared directory is left as
+// it is, and nothing under the home but the roots of the servers is matched.
+func TestClassify(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	now := time.Date(2026, 11, 12, 10, 40, 0, 0, time.UTC)
+	tr := makeTree(t)
+	srv1 := tr.under("data", "srv1")
+	out, in, tmp := filepath.Join(srv1, "out"), filepath.Join(srv1, "in"), filepath.Join(srv1, "tmp")
+	fno, orphan := filepath.Join(out, "FNO"), filepath.Join(out, "ORPHAN")
+	rcv, rcvTmp := filepath.Join(in, "RCV"), filepath.Join(tmp, "RCV")
+
+	writeFiles(t, fno, 5)                          // a file to send, and "sub"
+	writeFiles(t, orphan, 1)                       // nobody's: a file, and "sub"
+	writeFiles(t, filepath.Join(orphan, "sub"), 2) // a file at depth 1
+	require.NoError(t, os.MkdirAll(rcv, 0o750))
+	require.NoError(t, os.MkdirAll(rcvTmp, 0o750))
+	require.NoError(t, os.MkdirAll(filepath.Join(tmp, "SEEN"), 0o750))
+	require.NoError(t, os.MkdirAll(filepath.Join(out, "SEEN"), 0o750))
+
+	known := append(slices.Clone(tr.known),
+		LocalDir{Path: out, Role: RoleServerSend, Owner: "srv1", OwnerID: 1, Origin: OriginConfigured},
+		LocalDir{Path: tmp, Role: RoleServerTmp, Owner: "srv1", OwnerID: 1, Origin: OriginConfigured},
+		// The directory of the rule as the configuration declares it, under the home: it does not exist here.
+		LocalDir{Path: tr.under("out", "FNO"), Role: RoleRuleLocal, Owner: "FNO", OwnerID: 21, Origin: OriginConfigured},
+		// Transfers: one in the directory of the receive rule, two next to the rules.
+		LocalDir{Path: rcv, Role: RoleTransfer, Origin: OriginSeen, SeenAt: now},
+		LocalDir{Path: filepath.Join(out, "SEEN"), Role: RoleTransfer, Origin: OriginSeen, SeenAt: now},
+		LocalDir{Path: filepath.Join(tmp, "SEEN"), Role: RoleTransfer, Origin: OriginSeen, SeenAt: now},
+	)
+
+	var a analytics
+
+	a.SetHome(tr.home)
+	a.SetRuleDirs([]string{srv1, tr.outside("srv2"), ""}, []LocalDir{
+		{Path: "out/FNO", Role: RoleRuleLocal, Owner: "FNO", OwnerID: 21},
+		{Path: "in/RCV", Role: RoleRuleLocal, Owner: "RCV", OwnerID: 22},
+		{Path: "tmp/RCV", Role: RoleRuleTmp, Owner: "RCV", OwnerID: 22},
+		{Path: tr.outside("rule", "in"), Role: RoleRuleLocal, Owner: "r", OwnerID: 9}, // absolute: declared as it is
+	})
+
+	measureRoot(&a, tr.base, known, now)
+	a.Survey(ctx, now)
+
+	later := now.Add(DiskPeriod)
+	measureRoot(&a, tr.base, known, later)
+	a.SurveyNew(ctx, later)
+
+	dirs := byPath(a.Disks())
+	assert.Equal(t, LocalDir{
+		Path: fno, Role: RoleRuleLocal, Owner: "FNO", OwnerID: 21, Origin: OriginFound, Presence: PresencePresent,
+		Survey: &DirSurvey{Files: 1, Size: 5, At: later},
+	}, dirs[fno], "found: the directory of its rule, its first level")
+	assert.Equal(t, LocalDir{
+		Path: orphan, Role: RoleUnreferenced, Origin: OriginFound, Presence: PresencePresent,
+		Survey: &DirSurvey{Files: 2, Size: 3, Deep: true, At: later},
+	}, dirs[orphan], "found, nobody's: unreferenced, at any depth")
+	assert.Equal(t, LocalDir{
+		Path: rcv, Role: RoleRuleLocal, Owner: "RCV", OwnerID: 22, Origin: OriginSeen, SeenAt: now, Presence: PresencePresent,
+		Survey: &DirSurvey{At: now},
+	}, dirs[rcv], "seen: the directory of its rule, the last transfer kept, surveyed since the first cycle")
+	assert.Equal(t, LocalDir{
+		Path: rcvTmp, Role: RoleRuleTmp, Owner: "RCV", OwnerID: 22, Origin: OriginFound, Presence: PresencePresent,
+		Survey: &DirSurvey{At: later},
+	}, dirs[rcvTmp], "found: the temporary directory of its rule")
+	assert.Equal(t, RoleTransfer, dirs[filepath.Join(out, "SEEN")].Role, "seen, no rule names it: a transfer")
+	assert.Equal(t, PresenceToCreate, dirs[tr.under("out", "FNO")].Presence, "declared under the home, left as it is")
+	assert.Equal(t, RoleUnreferenced, dirs[tr.outside("srv2", "junk")].Role, "under a root, no rule names it")
+	assert.Equal(t, RoleRuleLocal, dirs[tr.outside("rule", "in")].Role, "absolute, declared")
+	assert.Equal(t, OriginConfigured, dirs[tr.outside("rule", "in")].Origin)
+}
+
+// The directories of the rules relative to the root of a server: the local
+// directory of every rule, the temporary directory of a receive rule; an
+// absolute directory is declared as it is, an empty one gives nothing.
+func TestRuleDirs(t *testing.T) {
+	t.Parallel()
+
+	abs := filepath.Join(t.TempDir(), "abs")
+	rules := model.Rules{
+		{ID: 1, Name: "send", IsSend: true, LocalDir: "out/send", TmpLocalRcvDir: "tmp/ignored"},
+		{ID: 2, Name: "recv", IsSend: false, LocalDir: "in/recv", TmpLocalRcvDir: "tmp/recv"},
+		{ID: 3, Name: "abs", IsSend: true, LocalDir: abs},
+		{ID: 4, Name: "none", IsSend: false},
+	}
+
+	assert.Equal(t, []LocalDir{
+		{Path: "out/send", Role: RoleRuleLocal, Owner: "send", OwnerID: 1},
+		{Path: "in/recv", Role: RoleRuleLocal, Owner: "recv", OwnerID: 2},
+		{Path: "tmp/recv", Role: RoleRuleTmp, Owner: "recv", OwnerID: 2},
+	}, ruleDirs(rules))
 }

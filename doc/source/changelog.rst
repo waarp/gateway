@@ -6,7 +6,8 @@ Historique des versions
 * :feature:`877` La mesure de l'espace disque signale les dossiers qu'aucun objet
   ne référence sous la racine de la passerelle et sous celle de chaque serveur
   (racine d'un serveur supprimé, dossier créé à la main), leurs fichiers comptés
-  à toute profondeur ; rien n'est jamais supprimé ni déplacé.
+  à toute profondeur, et rattache à sa règle le dossier d'une règle trouvé sous
+  la racine d'un serveur ; rien n'est jamais supprimé ni déplacé.
 * :feature:`876` La mesure de l'espace disque donne une ligne par dossier, quelles
   que soient ses origines et ses graphies, dit s'il existe et relève toutes les
   cinq minutes le nombre et la taille des fichiers de son premier niveau, dans un

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -117,7 +118,9 @@ func (s *Service) measureDisks(ctx context.Context, now time.Time) {
 // localDirs lists the directories to measure: the gateway's own (given by
 // the daemon), those of the servers and the rules and the destinations of the
 // tasks (read in the database), then the directories the transfers used
-// within the window; the measure keeps each path once.
+// within the window; the measure keeps each path once. It gives the measure,
+// on the way, the roots of the servers and the directories of the rules
+// relative to them, for the directories the transfers of a server use.
 func (s *Service) localDirs(now time.Time) []LocalDir {
 	var list []LocalDir
 
@@ -126,7 +129,9 @@ func (s *Service) localDirs(now time.Time) []LocalDir {
 	}
 
 	if s.DB != nil {
-		list = append(list, s.configuredDirs()...)
+		declared, roots, rules := s.configuredDirs()
+		s.SetRuleDirs(roots, rules)
+		list = append(list, declared...)
 	}
 
 	return append(list, s.seenDirs(now)...)
@@ -136,8 +141,10 @@ func (s *Service) localDirs(now time.Time) []LocalDir {
 // receive, send, temporary), of the rules (local, temporary receive) and the
 // fixed part of the destinations of the tasks, resolved as the transfers
 // resolve them, each with the name and the identifier of its server or of
-// its rule; a reading that fails is logged and leaves its part out.
-func (s *Service) configuredDirs() []LocalDir {
+// its rule; with the roots of the servers and the directories of the rules
+// relative to them (ruleDirs). A reading that fails is logged and leaves its
+// part out.
+func (s *Service) configuredDirs() (declared []LocalDir, roots []string, relative []LocalDir) {
 	var (
 		servers model.LocalAgents
 		rules   model.Rules
@@ -151,6 +158,10 @@ func (s *Service) configuredDirs() []LocalDir {
 
 	for _, srv := range servers {
 		root := s.Resolve(srv.RootDir)
+		if root != "" {
+			roots = append(roots, root)
+		}
+
 		for _, d := range []struct{ dir, role string }{
 			{root, RoleServerRoot},
 			{s.Resolve(srv.ReceiveDir, root), RoleServerReceive},
@@ -203,6 +214,27 @@ func (s *Service) configuredDirs() []LocalDir {
 		out = append(out, LocalDir{
 			Path: dir, Role: RoleTask, Owner: names[task.RuleID], OwnerID: task.RuleID, Origin: OriginTask,
 		})
+	}
+
+	return out, roots, ruleDirs(rules)
+}
+
+// ruleDirs lists the directories of the rules relative to the root of a
+// server, as the transfers of a server resolve them (pkg/pipeline,
+// makeLocalPath): the local directory of every rule, the temporary directory
+// of a receive rule; an absolute one is declared as it is, an empty one leaves
+// the transfers to the directories of the server.
+func ruleDirs(rules model.Rules) []LocalDir {
+	var out []LocalDir
+
+	for _, rule := range rules {
+		if rule.LocalDir != "" && !fs.IsAbsPath(rule.LocalDir) {
+			out = append(out, LocalDir{Path: rule.LocalDir, Role: RoleRuleLocal, Owner: rule.Name, OwnerID: rule.ID})
+		}
+
+		if !rule.IsSend && rule.TmpLocalRcvDir != "" && !fs.IsAbsPath(rule.TmpLocalRcvDir) {
+			out = append(out, LocalDir{Path: rule.TmpLocalRcvDir, Role: RoleRuleTmp, Owner: rule.Name, OwnerID: rule.ID})
+		}
 	}
 
 	return out

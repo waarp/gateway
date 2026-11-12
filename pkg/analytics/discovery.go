@@ -24,10 +24,12 @@ import (
 // with the role RoleUnreferenced and no owner, measured with its volume like
 // the others and surveyed at any depth since nothing else looks under it; it
 // leaves the report when it is gone from the disk, and takes the role of an
-// object that refers to it again. Nothing is read above the home nor above a
-// root declared outside it, so the discovery never wanders over the disk.
-// Nothing is ever deleted nor moved: the measure reports, the operator
-// decides.
+// object that refers to it again. A directory found (or seen by a transfer)
+// that is the directory of a rule under the root of a server, where the
+// transfers of that server put their files, is reported as the directory of
+// that rule (candidates). Nothing is read above the home nor above a root
+// declared outside it, so the discovery never wanders over the disk. Nothing
+// is ever deleted nor moved: the measure reports, the operator decides.
 
 // errListingTimeout: the listing of a structuring directory did not end
 // within the time left; the next cycle comes back to it.
@@ -43,6 +45,83 @@ type foundDir struct {
 	path   string
 	parent string
 	at     time.Time
+}
+
+// candidates are the directories of the rules under the roots of the servers,
+// where the transfers of a server put their files (pkg/pipeline, makeLocalPath:
+// the directory of the rule, then the root of the server, then the home of the
+// gateway): the local roots of the servers, and the directories of the rules
+// relative to any root, by the key of their cleaned path. They exist only once
+// a transfer or an operator created them, so they are not declared, which
+// would list every server with every rule: a directory found on the disk or
+// seen by a transfer that matches one is reported as the directory of its
+// rule.
+type candidates struct {
+	roots []string
+	byRel map[string]LocalDir
+}
+
+// SetRuleDirs gives the service the local roots of the servers and the
+// directories of the rules relative to them (the role, the name and the
+// identifier of the rule), so that a directory found or seen under a root is
+// reported as the directory of its rule. Of two rules that share a directory,
+// the first is kept.
+func (a *analytics) SetRuleDirs(roots []string, rules []LocalDir) {
+	cand := candidates{byRel: make(map[string]LocalDir, len(rules))}
+
+	for _, root := range roots {
+		if root != "" && fs.IsLocalPath(root) {
+			cand.roots = append(cand.roots, filepath.Clean(root))
+		}
+	}
+
+	for i := range rules {
+		rule := &rules[i]
+		if rule.Path == "" || fs.IsAbsPath(rule.Path) || !fs.IsLocalPath(rule.Path) {
+			continue
+		}
+
+		key := pathKey(filepath.Clean(rule.Path))
+		if _, taken := cand.byRel[key]; !taken {
+			cand.byRel[key] = *rule
+		}
+	}
+
+	a.disks.mu.Lock()
+	defer a.disks.mu.Unlock()
+
+	a.disks.rules = cand
+}
+
+// ruleDirs is the candidates in force.
+func (a *analytics) ruleDirs() candidates {
+	a.disks.mu.Lock()
+	defer a.disks.mu.Unlock()
+
+	return a.disks.rules
+}
+
+// classify gives a directory found on the disk or seen by a transfer the role
+// and the owner of the rule whose directory it is under the root of a server,
+// when one is; a declared directory is left as it is.
+func (c *candidates) classify(dir *LocalDir) {
+	if dir.Origin != OriginSeen && dir.Origin != OriginFound {
+		return
+	}
+
+	for _, root := range c.roots {
+		if len(dir.Path) <= len(root) || !under(dir.Path, root) {
+			continue
+		}
+
+		rel := strings.TrimLeft(dir.Path[len(root):], `/\`)
+
+		if rule, ok := c.byRel[pathKey(filepath.Clean(rel))]; ok {
+			dir.Role, dir.Owner, dir.OwnerID = rule.Role, rule.Owner, rule.OwnerID
+
+			return
+		}
+	}
 }
 
 // foundDirs lists the directories found, as entries of the measure.

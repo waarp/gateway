@@ -389,6 +389,7 @@ type disks struct {
 	settings  DiskSettings
 	survey    surveyState
 	surveying sync.Mutex // held by the survey that runs, cycle or new directories
+	rules     candidates
 	usage     func(path string) (*disk.UsageStat, error)
 	mounts    func() ([]string, error)
 	readDir   func(path string, maxEntries int) (files int, size int64, more bool, err error)
@@ -622,11 +623,12 @@ func mergeDirs(list []LocalDir) []LocalDir {
 }
 
 // Measure measures the volumes of the directories, now, with those the survey
-// found next to them that no object refers to: one entry per directory, the
-// directories grouped by the volume that holds them, each volume read within
-// the time limit in its own routine, each directory with its presence and its
-// last survey, the found ones gone from the disk left out; and keeps the
-// report.
+// found next to them that no object refers to: one entry per directory, a
+// directory found or seen under the root of a server given to its rule when
+// one names it, the directories grouped by the volume that holds them, each
+// volume read within the time limit in its own routine, each directory with
+// its presence and its last survey, the found ones gone from the disk left
+// out; and keeps the report.
 func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time) *DiskReport {
 	report := &DiskReport{MeasuredAt: now}
 	groups := map[string][]LocalDir{}
@@ -635,8 +637,11 @@ func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time)
 	var keys []string
 
 	mounts := a.mountPoints()
+	cand := a.ruleDirs()
 
 	for _, d := range mergeDirs(slices.Concat(dirs, a.foundDirs())) {
+		cand.classify(&d)
+
 		if !fs.IsLocalPath(d.Path) {
 			d.Presence = PresenceCloud
 			report.Unmeasured = append(report.Unmeasured, UnmeasuredDir{LocalDir: d, Reason: ReasonCloud})
