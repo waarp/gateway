@@ -440,9 +440,7 @@ func TestSurveyPending(t *testing.T) {
 		a.disks.mu.Lock()
 		defer a.disks.mu.Unlock()
 
-		_, pending := a.disks.survey.pending[pathKey(slow)]
-
-		return !pending
+		return !a.disks.survey.pending.busy(pathKey(slow))
 	}, 2*time.Second, 10*time.Millisecond, "the listing ends")
 
 	third := now.Add(2 * DiskSurveyPeriod)

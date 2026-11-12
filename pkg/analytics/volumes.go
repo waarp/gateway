@@ -24,8 +24,9 @@ import (
 // and measured in the background with a time limit, so that a mount that no
 // longer answers blocks neither the web interface nor SNMP. The measure gives
 // one entry per directory, whatever its origins and spellings, says whether
-// the directory exists, and carries the last survey of its first level
-// (survey.go).
+// the directory exists, and carries the last survey of its files (survey.go);
+// it adds the directories the survey found next to the known ones that no
+// object refers to (discovery.go).
 
 const (
 	// DiskPeriod is how often the service measures the volumes, by default.
@@ -59,7 +60,7 @@ const (
 
 // The roles of the directories read from the configuration of the objects
 // and from the transfers (the gateway's own keep their name: in, out, tmp,
-// database, log).
+// database, log), and of those found on the disk that no object refers to.
 const (
 	RoleServerRoot    = "server_root"
 	RoleServerReceive = "server_receive"
@@ -69,6 +70,10 @@ const (
 	RoleRuleTmp       = "rule_tmp"
 	RoleTask          = "task"
 	RoleTransfer      = "transfer"
+	// RoleUnreferenced: a directory the survey found under the home of the
+	// gateway or under the root of a server, that no object refers to and no
+	// recent transfer used.
+	RoleUnreferenced = "unreferenced"
 )
 
 // DirOrigin is where the service learnt a directory from.
@@ -81,7 +86,37 @@ const (
 	OriginTask
 	// OriginSeen: the local path of a transfer, when it started.
 	OriginSeen
+	// OriginFound: the disk, next to the known directories, read by the
+	// survey (discovery.go).
+	OriginFound
 )
+
+// The precedence of the origins for one directory: what the configuration
+// and the tasks declare, then the use by a transfer, then a directory found
+// on the disk, which an object that refers to it again takes over.
+const (
+	rankFound = iota
+	rankSeen
+	rankDeclared
+)
+
+// rank is the precedence of the origin.
+func (o DirOrigin) rank() int {
+	switch o {
+	case OriginConfigured, OriginTask:
+		return rankDeclared
+	case OriginSeen:
+		return rankSeen
+	case OriginFound:
+		return rankFound
+	default:
+		return rankFound
+	}
+}
+
+// outranks says whether an entry of this origin replaces one of the other
+// origin for the same directory; the first entry stays among equals.
+func (o DirOrigin) outranks(other DirOrigin) bool { return o.rank() > other.rank() }
 
 // Presence is whether a directory exists, as the measure found it when it
 // looked the directory up to find its volume.
@@ -357,6 +392,8 @@ type disks struct {
 	usage     func(path string) (*disk.UsageStat, error)
 	mounts    func() ([]string, error)
 	readDir   func(path string, maxEntries int) (files int, size int64, more bool, err error)
+	walkDir   func(path string, maxEntries int) (files int, size int64, more bool, err error)
+	subdirs   func(path string, maxEntries int) ([]string, error)
 	timeout   time.Duration
 }
 
@@ -540,9 +577,10 @@ func pathKey(path string) string {
 // mergeDirs gives one directory per path: the local paths cleaned as the
 // system writes them (the separators made one, the duplicates and the trailing
 // ones dropped) and compared by their key, the empty ones left out. Of two
-// entries of one directory, the configured one is kept (the first of them when
-// both are) and the use by a transfer is attached to it as the last time one
-// used it.
+// entries of one directory, the one of the stronger origin is kept (the first
+// of them when both are as strong: configured before the tasks, before the
+// transfers, before the disk) and the use by a transfer is attached to it as
+// the last time one used it.
 func mergeDirs(list []LocalDir) []LocalDir {
 	index := map[string]int{}
 	out := make([]LocalDir, 0, len(list))
@@ -567,23 +605,28 @@ func mergeDirs(list []LocalDir) []LocalDir {
 		}
 
 		kept := &out[i]
-		if kept.Origin == OriginSeen && dir.Origin != OriginSeen {
-			dir.SeenAt = kept.SeenAt
+
+		seenAt := kept.SeenAt
+		if dir.SeenAt.After(seenAt) {
+			seenAt = dir.SeenAt
+		}
+
+		if dir.Origin.outranks(kept.Origin) {
 			*kept = dir
 		}
 
-		if dir.SeenAt.After(kept.SeenAt) {
-			kept.SeenAt = dir.SeenAt
-		}
+		kept.SeenAt = seenAt
 	}
 
 	return out
 }
 
-// Measure measures the volumes of the directories, now: one entry per
-// directory, the directories grouped by the volume that holds them, each
-// volume read within the time limit in its own routine, each directory with
-// its presence and the last survey of its first level, and keeps the report.
+// Measure measures the volumes of the directories, now, with those the survey
+// found next to them that no object refers to: one entry per directory, the
+// directories grouped by the volume that holds them, each volume read within
+// the time limit in its own routine, each directory with its presence and its
+// last survey, the found ones gone from the disk left out; and keeps the
+// report.
 func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time) *DiskReport {
 	report := &DiskReport{MeasuredAt: now}
 	groups := map[string][]LocalDir{}
@@ -593,7 +636,7 @@ func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time)
 
 	mounts := a.mountPoints()
 
-	for _, d := range mergeDirs(dirs) {
+	for _, d := range mergeDirs(slices.Concat(dirs, a.foundDirs())) {
 		if !fs.IsLocalPath(d.Path) {
 			d.Presence = PresenceCloud
 			report.Unmeasured = append(report.Unmeasured, UnmeasuredDir{LocalDir: d, Reason: ReasonCloud})
@@ -627,6 +670,7 @@ func (a *analytics) Measure(ctx context.Context, dirs []LocalDir, now time.Time)
 	}
 
 	report.sort()
+	a.dropGone(report)
 	a.attachSurveys(report)
 	a.disks.report.Store(report)
 
