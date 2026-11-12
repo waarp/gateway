@@ -26,6 +26,7 @@ var (
 	noPerm        = color.Gray.Render("---")
 	empty         = color.Gray.Render("<empty>")
 	none          = color.Gray.Render("<none>")
+	secretSet     = color.Gray.Render("<set>")
 	notApplicable = color.Gray.Render("N/A")
 	unrestricted  = color.Gray.Render("<unrestricted>")
 	unspecified   = color.Gray.Render("<unspecified>")
@@ -68,6 +69,19 @@ func (s *style) sprintL(name string, value any) string {
 func (s *style) Option(w io.Writer, name string, value any) {
 	if value != nil && !reflect.ValueOf(value).IsZero() {
 		s.PrintL(w, name, value)
+	}
+}
+
+// Secret says whether a secret is set, never its value, which the API does
+// not return. The line is printed when the secret is set, or when shown is
+// true: when what the secret goes with is configured, so that a missing
+// secret reads as such.
+func (s *style) Secret(w io.Writer, name string, set, shown bool) {
+	switch {
+	case set:
+		s.PrintL(w, name, secretSet)
+	case shown:
+		s.PrintL(w, name, none)
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
 )
 
@@ -214,12 +215,10 @@ func TestSnmpMonitorGet(t *testing.T) {
 		monitorContextName     = "snmp-context"
 		monitorContextEngineID = "123456"
 
-		monitorAuthEngineID   = "654321"
-		monitorAuthUsername   = "toto"
-		monitorAuthProtocol   = snmp.AuthSHA
-		monitorAuthPassphrase = "sesame"
-		monitorPrivProtocol   = snmp.PrivDES
-		monitorPrivPassphrase = "foobar"
+		monitorAuthEngineID = "654321"
+		monitorAuthUsername = "toto"
+		monitorAuthProtocol = snmp.AuthSHA
+		monitorPrivProtocol = snmp.PrivDES
 
 		path = "/api/snmp/monitors/" + monitorName
 	)
@@ -236,20 +235,20 @@ func TestSnmpMonitorGet(t *testing.T) {
 		result := &expectedResponse{
 			status: http.StatusOK,
 			body: map[string]any{
-				"name":            monitorName,
-				"version":         monitorVersion,
-				"udpAddress":      monitorAddress,
-				"community":       monitorCommunity,
-				"useInforms":      monitorUseInforms,
-				"snmpv3Security":  monitorV3Security,
-				"contextName":     monitorContextName,
-				"contextEngineID": monitorContextEngineID,
-				"authEngineID":    monitorAuthEngineID,
-				"authUsername":    monitorAuthUsername,
-				"authProtocol":    monitorAuthProtocol,
-				"authPassphrase":  monitorAuthPassphrase,
-				"privProtocol":    monitorPrivProtocol,
-				"privPassphrase":  monitorPrivPassphrase,
+				"name":              monitorName,
+				"version":           monitorVersion,
+				"udpAddress":        monitorAddress,
+				"community":         monitorCommunity,
+				"useInforms":        monitorUseInforms,
+				"snmpv3Security":    monitorV3Security,
+				"contextName":       monitorContextName,
+				"contextEngineID":   monitorContextEngineID,
+				"authEngineID":      monitorAuthEngineID,
+				"authUsername":      monitorAuthUsername,
+				"authProtocol":      monitorAuthProtocol,
+				"authPassphraseSet": true,
+				"privProtocol":      monitorPrivProtocol,
+				"privPassphraseSet": true,
 			},
 		}
 
@@ -276,9 +275,9 @@ func TestSnmpMonitorGet(t *testing.T) {
 						`  -SNMPv3 auth engine ID: {{.authEngineID}}`,
 						`  -SNMPv3 username: {{.authUsername}}`,
 						`  -SNMPv3 authentication protocol: {{.authProtocol}}`,
-						`  -SNMPv3 authentication passphrase: {{.authPassphrase}}`,
+						`  -SNMPv3 authentication passphrase: <set>`,
 						`  -SNMPv3 privacy protocol: {{.privProtocol}}`,
-						`  -SNMPv3 privacy passphrase: {{.privPassphrase}}`,
+						`  -SNMPv3 privacy passphrase: <set>`,
 					),
 					w.String(),
 					"Then it should display the monitor's details",
@@ -450,11 +449,9 @@ func TestSnmpServerGet(t *testing.T) {
 		serverCommunity = "public"
 		serverV3Only    = true
 
-		serverAuthUsername   = "toto"
-		serverAuthProtocol   = snmp.AuthSHA
-		serverAuthPassphrase = "sesame"
-		serverPrivProtocol   = snmp.PrivDES
-		serverPrivPassphrase = "foobar"
+		serverAuthUsername = "toto"
+		serverAuthProtocol = snmp.AuthSHA
+		serverPrivProtocol = snmp.PrivDES
 
 		path = "/api/snmp/server"
 	)
@@ -471,14 +468,14 @@ func TestSnmpServerGet(t *testing.T) {
 		result := &expectedResponse{
 			status: http.StatusOK,
 			body: map[string]any{
-				"localUDPAddress":  serverAddress,
-				"community":        serverCommunity,
-				"v3Only":           serverV3Only,
-				"v3Username":       serverAuthUsername,
-				"v3AuthProtocol":   serverAuthProtocol,
-				"v3AuthPassphrase": serverAuthPassphrase,
-				"v3PrivProtocol":   serverPrivProtocol,
-				"v3PrivPassphrase": serverPrivPassphrase,
+				"localUDPAddress":     serverAddress,
+				"community":           serverCommunity,
+				"v3Only":              serverV3Only,
+				"v3Username":          serverAuthUsername,
+				"v3AuthProtocol":      serverAuthProtocol,
+				"v3AuthPassphraseSet": true,
+				"v3PrivProtocol":      serverPrivProtocol,
+				"v3PrivPassphraseSet": true,
 			},
 		}
 
@@ -500,9 +497,9 @@ func TestSnmpServerGet(t *testing.T) {
 						`  -Accepted SNMP versions: {{.versions}}`,
 						`  -SNMPv3 username: {{.v3Username}}`,
 						`  -SNMPv3 authentication protocol: {{.v3AuthProtocol}}`,
-						`  -SNMPv3 authentication passphrase: {{.v3AuthPassphrase}}`,
+						`  -SNMPv3 authentication passphrase: <set>`,
 						`  -SNMPv3 privacy protocol: {{.v3PrivProtocol}}`,
-						`  -SNMPv3 privacy passphrase: {{.v3PrivPassphrase}}`,
+						`  -SNMPv3 privacy passphrase: <set>`,
 					),
 					w.String(),
 					"Then it should display the server's details",
@@ -570,5 +567,40 @@ func TestSnmpMonitorTest(t *testing.T) {
 					"Then it should display a message saying the test notification was sent")
 			})
 		})
+	})
+}
+
+// The API never returns the SNMPv3 passphrases: the display says whether each
+// one is set, next to the protocol it goes with, and says nothing of a
+// passphrase when neither it nor its protocol is configured.
+func TestSnmpSecretsDisplay(t *testing.T) {
+	t.Run("Given an SNMPv2 monitor", func(t *testing.T) {
+		w := newTestOutput()
+		require.NoError(t, displaySnmpMonitor(w, &api.GetSnmpMonitorRespObject{
+			Name: "snmpv2-monitor", Version: "SNMPv2", UDPAddress: "1.2.3.4:5", Community: "public",
+		}))
+		assert.NotContains(t, w.String(), "passphrase", "Then it should not mention any passphrase")
+	})
+
+	t.Run("Given a monitor with a protocol and no passphrase", func(t *testing.T) {
+		w := newTestOutput()
+		require.NoError(t, displaySnmpMonitor(w, &api.GetSnmpMonitorRespObject{
+			Name: "snmpv3-monitor", Version: "SNMPv3", UDPAddress: "1.2.3.4:5", AuthProtocol: snmp.AuthSHA,
+		}))
+		assert.Contains(t, w.String(), "  -SNMPv3 authentication passphrase: <none>\n",
+			"Then it should say that the authentication passphrase is not set")
+		assert.NotContains(t, w.String(), "privacy passphrase", "Then it should not mention the privacy passphrase")
+	})
+
+	t.Run("Given a server with one passphrase set", func(t *testing.T) {
+		w := newTestOutput()
+		require.NoError(t, displaySnmpServerConfig(w, &api.GetSnmpServiceRespObject{
+			LocalUDPAddress: "1.2.3.4:5", V3Username: "toto",
+			V3AuthProtocol: snmp.AuthSHA, V3AuthPassphraseSet: true, V3PrivProtocol: snmp.PrivDES,
+		}))
+		assert.Contains(t, w.String(), "  -SNMPv3 authentication passphrase: <set>\n",
+			"Then it should say that the authentication passphrase is set")
+		assert.Contains(t, w.String(), "  -SNMPv3 privacy passphrase: <none>\n",
+			"Then it should say that the privacy passphrase is not set")
 	})
 }

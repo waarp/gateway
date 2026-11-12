@@ -31,9 +31,9 @@ func displaySnmpMonitor(w io.Writer, monitor *api.GetSnmpMonitorRespObject) erro
 	Style22.Option(w, "SNMPv3 auth engine ID", monitor.AuthEngineID)
 	Style22.Option(w, "SNMPv3 username", monitor.AuthUsername)
 	Style22.Option(w, "SNMPv3 authentication protocol", monitor.AuthProtocol)
-	Style22.Option(w, "SNMPv3 authentication passphrase", monitor.AuthPassphrase)
+	Style22.Secret(w, "SNMPv3 authentication passphrase", monitor.AuthPassphraseSet, monitor.AuthProtocol != "")
 	Style22.Option(w, "SNMPv3 privacy protocol", monitor.PrivProtocol)
-	Style22.Option(w, "SNMPv3 privacy passphrase", monitor.PrivPassphrase)
+	Style22.Secret(w, "SNMPv3 privacy passphrase", monitor.PrivPassphraseSet, monitor.PrivProtocol != "")
 
 	return nil
 }
@@ -202,9 +202,9 @@ func displaySnmpServerConfig(w io.Writer, monitor *api.GetSnmpServiceRespObject)
 		"SNMPv2c & SNMPv3"))
 	Style22.Option(w, "SNMPv3 username", monitor.V3Username)
 	Style22.Option(w, "SNMPv3 authentication protocol", monitor.V3AuthProtocol)
-	Style22.Option(w, "SNMPv3 authentication passphrase", monitor.V3AuthPassphrase)
+	Style22.Secret(w, "SNMPv3 authentication passphrase", monitor.V3AuthPassphraseSet, monitor.V3AuthProtocol != "")
 	Style22.Option(w, "SNMPv3 privacy protocol", monitor.V3PrivProtocol)
-	Style22.Option(w, "SNMPv3 privacy passphrase", monitor.V3PrivPassphrase)
+	Style22.Secret(w, "SNMPv3 privacy passphrase", monitor.V3PrivPassphraseSet, monitor.V3PrivProtocol != "")
 
 	return nil
 }

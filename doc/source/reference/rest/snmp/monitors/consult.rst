@@ -3,7 +3,8 @@ Consulter un moniteur
 
 .. http:get:: /api/snmp/monitors/{string:monitor}
 
-   Renvoie le moniteur SNMP demandé.
+   Renvoie le moniteur SNMP demandé. Les passphrases SNMPv3 ne sont jamais
+   renvoyées : la réponse indique seulement si chacune est définie.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -41,11 +42,13 @@ Consulter un moniteur
    :resjson string authProtocol: [SNMPv3 uniquement] L'algorithme d'authentification
       utilisé. Les valeurs acceptées sont : ``MD5``, ``SHA``, ``SHA-224``, ``SHA-256``,
       ``SHA-384`` et ``SHA-512``.
-   :resjson string authPassphrase: [SNMPv3 uniquement] La passphrase d'authentification.
+   :resjson bool authPassphraseSet: Indique si une passphrase d'authentification
+      est définie.
    :resjson string privProtocol: [SNMPv3 uniquement] L'algorithme de confidentialité
       utilisé. Les valeurs acceptées sont : ``DES``, ``AES``, ``AES-192``, ``AES-192C``,
       ``AES-256`` et ``AES-256C``.
-   :resjson string privPassphrase: [SNMPv3 uniquement] La passphrase de confidentialité.
+   :resjson bool privPassphraseSet: Indique si une passphrase de confidentialité
+      est définie.
 
 
 
@@ -72,5 +75,6 @@ Consulter un moniteur
           "snmpv3Security": "authNoPriv",
           "authUsername": "waarp-gw",
           "authProtocol": "SHA",
-          "authPassphrase": "sesame"
+          "authPassphraseSet": true,
+          "privPassphraseSet": false
       }

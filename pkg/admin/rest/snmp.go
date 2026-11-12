@@ -66,22 +66,24 @@ func addSnmpMonitor(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// dbSNMPMonitorToREST gives a monitor as the API returns it: its passphrases
+// stay in the database, the response only says whether each one is set.
 func dbSNMPMonitorToREST(dbMonitor *snmp.MonitorConfig) *api.GetSnmpMonitorRespObject {
 	return &api.GetSnmpMonitorRespObject{
-		Name:            dbMonitor.Name,
-		Version:         dbMonitor.Version,
-		UDPAddress:      dbMonitor.UDPAddress,
-		Community:       dbMonitor.Community,
-		UseInforms:      dbMonitor.UseInforms,
-		SNMPv3Security:  dbMonitor.SNMPv3Security,
-		ContextName:     dbMonitor.ContextName,
-		ContextEngineID: dbMonitor.ContextEngineID,
-		AuthEngineID:    dbMonitor.AuthEngineID,
-		AuthUsername:    dbMonitor.AuthUsername,
-		AuthProtocol:    dbMonitor.AuthProtocol,
-		AuthPassphrase:  dbMonitor.AuthPassphrase,
-		PrivProtocol:    dbMonitor.PrivProtocol,
-		PrivPassphrase:  dbMonitor.PrivPassphrase,
+		Name:              dbMonitor.Name,
+		Version:           dbMonitor.Version,
+		UDPAddress:        dbMonitor.UDPAddress,
+		Community:         dbMonitor.Community,
+		UseInforms:        dbMonitor.UseInforms,
+		SNMPv3Security:    dbMonitor.SNMPv3Security,
+		ContextName:       dbMonitor.ContextName,
+		ContextEngineID:   dbMonitor.ContextEngineID,
+		AuthEngineID:      dbMonitor.AuthEngineID,
+		AuthUsername:      dbMonitor.AuthUsername,
+		AuthProtocol:      dbMonitor.AuthProtocol,
+		AuthPassphraseSet: dbMonitor.AuthPassphrase != "",
+		PrivProtocol:      dbMonitor.PrivProtocol,
+		PrivPassphraseSet: dbMonitor.PrivPassphrase != "",
 	}
 }
 
@@ -249,14 +251,14 @@ func getSnmpService(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		restSnmpConfig := &api.GetSnmpServiceRespObject{
-			LocalUDPAddress:  dbSnmpConfig.LocalUDPAddress,
-			Community:        dbSnmpConfig.Community,
-			V3Only:           dbSnmpConfig.SNMPv3Only,
-			V3Username:       dbSnmpConfig.SNMPv3Username,
-			V3AuthProtocol:   dbSnmpConfig.SNMPv3AuthProtocol,
-			V3AuthPassphrase: dbSnmpConfig.SNMPv3AuthPassphrase,
-			V3PrivProtocol:   dbSnmpConfig.SNMPv3PrivProtocol,
-			V3PrivPassphrase: dbSnmpConfig.SNMPv3PrivPassphrase,
+			LocalUDPAddress:     dbSnmpConfig.LocalUDPAddress,
+			Community:           dbSnmpConfig.Community,
+			V3Only:              dbSnmpConfig.SNMPv3Only,
+			V3Username:          dbSnmpConfig.SNMPv3Username,
+			V3AuthProtocol:      dbSnmpConfig.SNMPv3AuthProtocol,
+			V3AuthPassphraseSet: dbSnmpConfig.SNMPv3AuthPassphrase != "",
+			V3PrivProtocol:      dbSnmpConfig.SNMPv3PrivProtocol,
+			V3PrivPassphraseSet: dbSnmpConfig.SNMPv3PrivPassphrase != "",
 		}
 
 		handleError(w, logger, writeJSON(w, restSnmpConfig))

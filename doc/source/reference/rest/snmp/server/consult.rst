@@ -3,7 +3,8 @@ Consulter le serveur SNMP
 
 .. http:get:: /api/snmp/server
 
-   Renvoie la configuration du serveur SNMP.
+   Renvoie la configuration du serveur SNMP. Les passphrases SNMPv3 ne sont
+   jamais renvoyées : la réponse indique seulement si chacune est définie.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -20,11 +21,13 @@ Consulter le serveur SNMP
    :resjson string v3AuthProtocol: [SNMPv3 uniquement] L'algorithme d'authentification
       utilisé. Les valeurs acceptées sont : ``MD5``, ``SHA``, ``SHA-224``, ``SHA-256``,
       ``SHA-384`` et ``SHA-512``.
-   :resjson string v3AuthPassphrase: [SNMPv3 uniquement] La passphrase d'authentification.
+   :resjson bool v3AuthPassphraseSet: Indique si une passphrase d'authentification
+      est définie.
    :resjson string v3PrivProtocol: [SNMPv3 uniquement] L'algorithme de confidentialité
       utilisé. Les valeurs acceptées sont : ``DES``, ``AES``, ``AES-192``, ``AES-192C``,
       ``AES-256`` et ``AES-256C``.
-   :resjson string v3PrivPassphrase: [SNMPv3 uniquement] La passphrase de confidentialité.
+   :resjson bool v3PrivPassphraseSet: Indique si une passphrase de confidentialité
+      est définie.
 
    **Exemple de requête**
 
@@ -42,12 +45,12 @@ Consulter le serveur SNMP
       Content-Length: 242
 
       {
-          "localUDPAddress": "0.0.0.0:161"
-          "community": "public"
-          "v3Only": false
-          "v3Username": "waarp"
-          "v3AuthProtocol": "SHA-256"
-          "v3AuthPassphrase": "sesame"
-          "v3PrivProtocol": "AES-256"
-          "v3PrivPassphrase": "foobar"
+          "localUDPAddress": "0.0.0.0:161",
+          "community": "public",
+          "v3Only": false,
+          "v3Username": "waarp",
+          "v3AuthProtocol": "SHA-256",
+          "v3AuthPassphraseSet": true,
+          "v3PrivProtocol": "AES-256",
+          "v3PrivPassphraseSet": true
       }

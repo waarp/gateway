@@ -123,12 +123,18 @@ func TestListSNMPMonitors(t *testing.T) {
 		require.NoError(t, db.Insert(&dbMonitor1).Run())
 
 		dbMonitor2 := snmp.MonitorConfig{
-			Name:         "snmp-monitor-2",
-			Version:      "SNMPv3",
-			UDPAddress:   "9.8.7.6:5",
-			Community:    "waarp",
-			UseInforms:   true,
-			AuthUsername: "gw",
+			Name:           "snmp-monitor-2",
+			Version:        "SNMPv3",
+			UDPAddress:     "9.8.7.6:5",
+			Community:      "waarp",
+			UseInforms:     true,
+			SNMPv3Security: snmp.V3SecurityAuthPriv,
+			AuthEngineID:   "567",
+			AuthUsername:   "gw",
+			AuthProtocol:   snmp.AuthMD5,
+			AuthPassphrase: "sesame",
+			PrivProtocol:   snmp.PrivDES,
+			PrivPassphrase: "foobar",
 		}
 		require.NoError(t, db.Insert(&dbMonitor2).Run())
 
@@ -140,6 +146,9 @@ func TestListSNMPMonitors(t *testing.T) {
 					"udpAddress": dbMonitor1.UDPAddress,
 					"community":  dbMonitor1.Community,
 					"useInforms": dbMonitor1.UseInforms,
+					// No passphrase is set on an SNMPv2 monitor.
+					"authPassphraseSet": false,
+					"privPassphraseSet": false,
 				},
 				map[string]any{
 					"name":           dbMonitor2.Name,
@@ -149,6 +158,12 @@ func TestListSNMPMonitors(t *testing.T) {
 					"useInforms":     dbMonitor2.UseInforms,
 					"authUsername":   dbMonitor2.AuthUsername,
 					"snmpv3Security": dbMonitor2.SNMPv3Security,
+					"authEngineID":   dbMonitor2.AuthEngineID,
+					"authProtocol":   dbMonitor2.AuthProtocol,
+					"privProtocol":   dbMonitor2.PrivProtocol,
+					// The passphrases are never returned: only whether they are set.
+					"authPassphraseSet": true,
+					"privPassphraseSet": true,
 				},
 			},
 		})
@@ -160,6 +175,10 @@ func TestListSNMPMonitors(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code, `Then the response code should be "200 OK"`)
 		assert.JSONEq(t, expectedResponse, w.Body.String(),
 			`Then the list of SNMP monitors should have been returned`)
+		assert.NotContains(t, w.Body.String(), dbMonitor2.AuthPassphrase,
+			`Then the authentication passphrase should not have been returned`)
+		assert.NotContains(t, w.Body.String(), dbMonitor2.PrivPassphrase,
+			`Then the privacy passphrase should not have been returned`)
 	})
 }
 
@@ -200,9 +219,10 @@ func TestGetSNMPMonitor(t *testing.T) {
 			"authEngineID":    dbMonitor.AuthEngineID,
 			"authUsername":    dbMonitor.AuthUsername,
 			"authProtocol":    dbMonitor.AuthProtocol,
-			"authPassphrase":  dbMonitor.AuthPassphrase,
 			"privProtocol":    dbMonitor.PrivProtocol,
-			"privPassphrase":  dbMonitor.PrivPassphrase,
+			// The passphrases are never returned: only whether they are set.
+			"authPassphraseSet": true,
+			"privPassphraseSet": true,
 		})
 
 		req := makeRequest(http.MethodGet, nil, "/snmp/monitors/{snmp_monitor}", dbMonitor.Name)
@@ -212,6 +232,10 @@ func TestGetSNMPMonitor(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code, `Then the response code should be "200 OK"`)
 		assert.JSONEq(t, expectedResponse, w.Body.String(),
 			`Then the SNMP monitor should have been returned`)
+		assert.NotContains(t, w.Body.String(), dbMonitor.AuthPassphrase,
+			`Then the authentication passphrase should not have been returned`)
+		assert.NotContains(t, w.Body.String(), dbMonitor.PrivPassphrase,
+			`Then the privacy passphrase should not have been returned`)
 	})
 }
 
@@ -279,6 +303,48 @@ func TestUpdateSNMPMonitor(t *testing.T) {
 		require.NoError(t, db.Get(&dbMonitor, "name=?", newMonitorName).Run())
 		assert.Equal(t, expectedDBMonitor, dbMonitor,
 			`Then the SNMP monitor should have been updated in the database`)
+	})
+
+	// The passphrases are written through the API and never read back: a client
+	// cannot send them again, so an update that omits them must keep them.
+	t.Run("When updating an SNMP monitor without its passphrases", func(t *testing.T) {
+		const newUDPAddress = "9.8.7.6:5"
+
+		logger := testhelpers.GetTestLogger(t)
+		db := dbtest.TestDatabase(t)
+		handle := updateSnmpMonitor(logger, db)
+
+		oldDBMonitor := snmp.MonitorConfig{
+			Name:           "snmpv3-monitor",
+			Version:        "SNMPv3",
+			UDPAddress:     "1.2.3.4:5",
+			SNMPv3Security: snmp.V3SecurityAuthPriv,
+			AuthEngineID:   "567",
+			AuthUsername:   "toto",
+			AuthProtocol:   snmp.AuthMD5,
+			AuthPassphrase: "sesame",
+			PrivProtocol:   snmp.PrivDES,
+			PrivPassphrase: "foobar",
+		}
+		require.NoError(t, db.Insert(&oldDBMonitor).Run())
+
+		reqBody := bytes.Buffer{}
+		require.NoError(t, json.NewEncoder(&reqBody).Encode(map[string]any{"udpAddress": newUDPAddress}))
+
+		expectedDBMonitor := oldDBMonitor
+		expectedDBMonitor.UDPAddress = newUDPAddress
+
+		req := makeRequest(http.MethodPatch, &reqBody, "/snmp/monitors/{snmp_monitor}", oldDBMonitor.Name)
+		w := httptest.NewRecorder()
+		handle.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusCreated, w.Code, `Then the response code should be "201 Created"`)
+
+		var dbMonitor snmp.MonitorConfig
+
+		require.NoError(t, db.Get(&dbMonitor, "name=?", oldDBMonitor.Name).Run())
+		assert.Equal(t, expectedDBMonitor, dbMonitor,
+			`Then the SNMP monitor should have kept its passphrases`)
 	})
 }
 
@@ -353,14 +419,15 @@ func TestGetSNMPServer(t *testing.T) {
 		require.NoError(t, db.Insert(&dbSnmpConf).Run())
 
 		expectedResponse := marshal(t, map[string]any{
-			"localUDPAddress":  dbSnmpConf.LocalUDPAddress,
-			"community":        dbSnmpConf.Community,
-			"v3Only":           dbSnmpConf.SNMPv3Only,
-			"v3Username":       dbSnmpConf.SNMPv3Username,
-			"v3AuthProtocol":   dbSnmpConf.SNMPv3AuthProtocol,
-			"v3AuthPassphrase": dbSnmpConf.SNMPv3AuthPassphrase,
-			"v3PrivProtocol":   dbSnmpConf.SNMPv3PrivProtocol,
-			"v3PrivPassphrase": dbSnmpConf.SNMPv3PrivPassphrase,
+			"localUDPAddress": dbSnmpConf.LocalUDPAddress,
+			"community":       dbSnmpConf.Community,
+			"v3Only":          dbSnmpConf.SNMPv3Only,
+			"v3Username":      dbSnmpConf.SNMPv3Username,
+			"v3AuthProtocol":  dbSnmpConf.SNMPv3AuthProtocol,
+			"v3PrivProtocol":  dbSnmpConf.SNMPv3PrivProtocol,
+			// The passphrases are never returned: only whether they are set.
+			"v3AuthPassphraseSet": true,
+			"v3PrivPassphraseSet": true,
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/snmp/server", nil)
@@ -370,6 +437,35 @@ func TestGetSNMPServer(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code, `Then the response code should be "200 OK"`)
 		assert.JSONEq(t, expectedResponse, w.Body.String(),
 			`Then the SNMP server config should have been returned`)
+		assert.NotContains(t, w.Body.String(), dbSnmpConf.SNMPv3AuthPassphrase,
+			`Then the authentication passphrase should not have been returned`)
+		assert.NotContains(t, w.Body.String(), dbSnmpConf.SNMPv3PrivPassphrase,
+			`Then the privacy passphrase should not have been returned`)
+	})
+
+	t.Run("When retrieving an SNMP server config without passphrases", func(t *testing.T) {
+		logger := testhelpers.GetTestLogger(t)
+		db := dbtest.TestDatabase(t)
+		handle := getSnmpService(logger, db)
+
+		dbSnmpConf := snmp.ServerConfig{LocalUDPAddress: "127.0.0.1:1610", Community: "waarp-gw"}
+		require.NoError(t, db.Insert(&dbSnmpConf).Run())
+
+		expectedResponse := marshal(t, map[string]any{
+			"localUDPAddress":     dbSnmpConf.LocalUDPAddress,
+			"community":           dbSnmpConf.Community,
+			"v3Only":              false,
+			"v3AuthPassphraseSet": false,
+			"v3PrivPassphraseSet": false,
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/snmp/server", nil)
+		w := httptest.NewRecorder()
+		handle.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code, `Then the response code should be "200 OK"`)
+		assert.JSONEq(t, expectedResponse, w.Body.String(),
+			`Then the SNMP server config should say that no passphrase is set`)
 	})
 }
 

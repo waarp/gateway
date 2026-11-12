@@ -19,7 +19,9 @@ Lister les moniteurs
    :statuscode 400: Un ou plusieurs des paramètres de la requête sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
-   :resjson array monitors: La liste des moniteurs demandés
+   :resjson array monitors: La liste des moniteurs demandés. Les passphrases
+      SNMPv3 ne sont jamais renvoyées : la réponse indique seulement si chacune
+      est définie.
    :resjsonarr string name: Le nom du moniteur SNMP.
    :resjsonarr string version: La version de SNMP utilisée par le moniteur. Les
       versions acceptées sont "SNMPv2" et "SNMPv3" (SNMPv1 n'est pas supporté).
@@ -50,11 +52,13 @@ Lister les moniteurs
    :resjsonarr string authProtocol: [SNMPv3 uniquement] L'algorithme d'authentification
       utilisé. Les valeurs acceptées sont : ``MD5``, ``SHA``, ``SHA-224``, ``SHA-256``,
       ``SHA-384`` et ``SHA-512``.
-   :resjsonarr string authPassphrase: [SNMPv3 uniquement] La passphrase d'authentification.
+   :resjsonarr bool authPassphraseSet: Indique si une passphrase d'authentification
+      est définie.
    :resjsonarr string privProtocol: [SNMPv3 uniquement] L'algorithme de confidentialité
       utilisé. Les valeurs acceptées sont : ``DES``, ``AES``, ``AES-192``, ``AES-192C``,
       ``AES-256`` et ``AES-256C``.
-   :resjsonarr string privPassphrase: [SNMPv3 uniquement] La passphrase de confidentialité.
+   :resjsonarr bool privPassphraseSet: Indique si une passphrase de confidentialité
+      est définie.
 
 
    **Exemple de requête**
@@ -81,12 +85,15 @@ Lister les moniteurs
               "snmpv3Security": "authNoPriv",
               "authUsername": "waarp-gw",
               "authProtocol": "SHA",
-              "authPassphrase": "sesame"
+              "authPassphraseSet": true,
+              "privPassphraseSet": false
           }, {
               "name": "snmpv2-monitor",
               "version": "SNMPv2",
               "udpAddress": "192.168.1.1:162",
               "useInforms": false,
-              "community": "private"
+              "community": "private",
+              "authPassphraseSet": false,
+              "privPassphraseSet": false
           }]
       }

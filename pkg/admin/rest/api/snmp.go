@@ -1,20 +1,23 @@
 package api
 
+// GetSnmpMonitorRespObject is an SNMP monitor as the API returns it. The
+// SNMPv3 passphrases are written through the API and never returned:
+// AuthPassphraseSet and PrivPassphraseSet say whether each one is set.
 type GetSnmpMonitorRespObject struct {
-	Name            string `json:"name" yaml:"name"`
-	Version         string `json:"version" yaml:"version"`
-	UDPAddress      string `json:"udpAddress" yaml:"udpAddress"`
-	Community       string `json:"community,omitempty" yaml:"community,omitempty"`
-	UseInforms      bool   `json:"useInforms" yaml:"useInforms"`
-	ContextName     string `json:"contextName,omitempty" yaml:"contextName,omitempty"`
-	ContextEngineID string `json:"contextEngineID,omitempty" yaml:"contextEngineID,omitempty"`
-	SNMPv3Security  string `json:"snmpv3Security,omitempty" yaml:"snmpv3Security,omitempty"` //nolint:tagliatelle //SNMP
-	AuthEngineID    string `json:"authEngineID,omitempty" yaml:"authEngineID,omitempty"`
-	AuthUsername    string `json:"authUsername,omitempty" yaml:"authUsername,omitempty"`
-	AuthProtocol    string `json:"authProtocol,omitempty" yaml:"authProtocol,omitempty"`
-	AuthPassphrase  string `json:"authPassphrase,omitempty" yaml:"authPassphrase,omitempty"`
-	PrivProtocol    string `json:"privProtocol,omitempty" yaml:"privProtocol,omitempty"`
-	PrivPassphrase  string `json:"privPassphrase,omitempty" yaml:"privPassphrase,omitempty"`
+	Name              string `json:"name" yaml:"name"`
+	Version           string `json:"version" yaml:"version"`
+	UDPAddress        string `json:"udpAddress" yaml:"udpAddress"`
+	Community         string `json:"community,omitempty" yaml:"community,omitempty"`
+	UseInforms        bool   `json:"useInforms" yaml:"useInforms"`
+	ContextName       string `json:"contextName,omitempty" yaml:"contextName,omitempty"`
+	ContextEngineID   string `json:"contextEngineID,omitempty" yaml:"contextEngineID,omitempty"`
+	SNMPv3Security    string `json:"snmpv3Security,omitempty" yaml:"snmpv3Security,omitempty"` //nolint:tagliatelle //SNMP
+	AuthEngineID      string `json:"authEngineID,omitempty" yaml:"authEngineID,omitempty"`
+	AuthUsername      string `json:"authUsername,omitempty" yaml:"authUsername,omitempty"`
+	AuthProtocol      string `json:"authProtocol,omitempty" yaml:"authProtocol,omitempty"`
+	AuthPassphraseSet bool   `json:"authPassphraseSet" yaml:"authPassphraseSet"`
+	PrivProtocol      string `json:"privProtocol,omitempty" yaml:"privProtocol,omitempty"`
+	PrivPassphraseSet bool   `json:"privPassphraseSet" yaml:"privPassphraseSet"`
 }
 
 type PostSnmpMonitorReqObject struct {
@@ -51,15 +54,19 @@ type PatchSnmpMonitorReqObject struct {
 	PrivPassphrase  Nullable[string] `json:"privPassphrase,omitzero" yaml:"privPassphrase,omitempty"`
 }
 
+// GetSnmpServiceRespObject is the configuration of the SNMP server as the API
+// returns it. The SNMPv3 passphrases are written through the API and never
+// returned: V3AuthPassphraseSet and V3PrivPassphraseSet say whether each one
+// is set.
 type GetSnmpServiceRespObject struct {
-	LocalUDPAddress  string `json:"localUDPAddress" yaml:"localUDPAddress"`
-	Community        string `json:"community,omitempty" yaml:"community,omitempty"`
-	V3Only           bool   `json:"v3Only" yaml:"v3Only"`
-	V3Username       string `json:"v3Username,omitempty" yaml:"v3Username,omitempty"`
-	V3AuthProtocol   string `json:"v3AuthProtocol,omitempty" yaml:"v3AuthProtocol,omitempty"`
-	V3AuthPassphrase string `json:"v3AuthPassphrase,omitempty" yaml:"v3AuthPassphrase,omitempty"`
-	V3PrivProtocol   string `json:"v3PrivProtocol,omitempty" yaml:"v3PrivProtocol,omitempty"`
-	V3PrivPassphrase string `json:"v3PrivPassphrase,omitempty" yaml:"v3PrivPassphrase,omitempty"`
+	LocalUDPAddress     string `json:"localUDPAddress" yaml:"localUDPAddress"`
+	Community           string `json:"community,omitempty" yaml:"community,omitempty"`
+	V3Only              bool   `json:"v3Only" yaml:"v3Only"`
+	V3Username          string `json:"v3Username,omitempty" yaml:"v3Username,omitempty"`
+	V3AuthProtocol      string `json:"v3AuthProtocol,omitempty" yaml:"v3AuthProtocol,omitempty"`
+	V3AuthPassphraseSet bool   `json:"v3AuthPassphraseSet" yaml:"v3AuthPassphraseSet"`
+	V3PrivProtocol      string `json:"v3PrivProtocol,omitempty" yaml:"v3PrivProtocol,omitempty"`
+	V3PrivPassphraseSet bool   `json:"v3PrivPassphraseSet" yaml:"v3PrivPassphraseSet"`
 }
 
 type PostSnmpServiceReqObject struct {

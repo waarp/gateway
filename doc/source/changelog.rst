@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`726` L'API REST ne renvoie plus les passphrases SNMPv3 des moniteurs
+  et du serveur SNMP : les réponses indiquent seulement si chacune est définie
+  (``authPassphraseSet``, ``privPassphraseSet``, ``v3AuthPassphraseSet``,
+  ``v3PrivPassphraseSet``), et le client en ligne de commande l'affiche de même.
+  À la modification, une passphrase omise reste inchangée.
 * :bug:`839` Les objets SNMP restent servis après un rechargement de la
   configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
   redémarrage de la passerelle.
