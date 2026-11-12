@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`746` La liste des transferts et ses comptages se lisent plus vite sur
+  une base volumineuse : la vue ``normalized_transfers`` réunit les transferts
+  en cours et l'historique par ``UNION ALL``, sans le dédoublonnage de ``UNION``
+  qui n'écartait aucune ligne. La migration recrée la vue, sans toucher aux
+  données.
 * :bug:`839` Les objets SNMP restent servis après un rechargement de la
   configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
   redémarrage de la passerelle.

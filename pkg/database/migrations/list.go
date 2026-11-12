@@ -356,4 +356,9 @@ var Migrations = []Change{
 		Up:          ver0_17_0RemoveCloudCredsInOptsUp,
 		Down:        noop,
 	},
+	{ // #68
+		Description: `Combine the two halves of the "normalized_transfers" view with UNION ALL`,
+		Up:          ver0_18_0TransfersViewUnionAllUp,
+		Down:        ver0_18_0TransfersViewUnionAllDown,
+	},
 }

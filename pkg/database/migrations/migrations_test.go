@@ -178,4 +178,7 @@ func testMigrations(t *testing.T, eng *testEngine) {
 	// 0.17.0
 	apply(testVer0_17_0TransferInfoValueType(t, eng))
 	apply(testVer0_17_0RemoveCloudCredsInOpts(t, eng))
+
+	// 0.18.0
+	apply(testVer0_18_0TransfersViewUnionAll(t, eng))
 }
