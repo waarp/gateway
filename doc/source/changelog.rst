@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`827` Les connexions du serveur AS2 et du message PeSIT en TLS sont
+  comptées comme celles des autres modules : les compteurs de connexions
+  ouvertes, exposés par SNMP, les incluent.
 * :bug:`862` Le champ ``password`` des comptes locaux et distants du fichier
   d'import/export est désormais correctement importé et exporté en YAML. Un bug
   introduit en version 0.17.1 faisait que ce champ n'était pas correctement

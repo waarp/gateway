@@ -126,7 +126,9 @@ func sendMessage(db database.ReadAccess, logger *log.Logger,
 			return fmt.Errorf("failed to create TLS config: %w", tlsErr)
 		}
 
-		conn, connErr = tls.Dial("tcp", addr, tlsConfig)
+		if conn, connErr = dialer.Dial("tcp", addr); connErr == nil {
+			conn = tls.Client(conn, tlsConfig)
+		}
 	}
 
 	if connErr != nil {

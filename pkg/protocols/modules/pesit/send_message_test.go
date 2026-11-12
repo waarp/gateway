@@ -2,6 +2,7 @@ package pesit
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/logtest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -116,11 +118,46 @@ func TestSendMessageNonStandard(t *testing.T) {
 	assert.Equal(t, message, handler.msgContent)
 }
 
+func TestSendMessageTLS(t *testing.T) {
+	const (
+		transferID = uint32(12345)
+		filename   = "test.pesit"
+		message    = "Hello World!"
+		password   = "sesame"
+	)
+
+	handler := makeTestMessageServerTLS(t)
+	ctx := gwtesting.NewTestClientCtx(t, PesitTLS, handler.addr, nil, nil)
+	ctx.AddPassword(t, password)
+	ctx.AddCert(t, gwtesting.ServerCertPEM)
+	logger := logtest.GetTestLogger(t,
+		logtest.WithName("test_message_client_tls"),
+		logtest.WithLevel("TRACE"),
+	)
+
+	analytics.GlobalService = &analytics.Service{DB: ctx.DB}
+	t.Cleanup(func() { analytics.GlobalService = nil })
+
+	clientService := newClient(ctx.DB, ctx.Client)
+	require.NoError(t, clientService.Start())
+
+	msgErr := sendInitialMessage(ctx.DB, logger, ctx.Partner, ctx.Account, ctx.RulePush,
+		map[string]any{}, transferID, filename, strings.NewReader(message))
+	require.NoError(t, msgErr)
+
+	assert.Equal(t, message, handler.msgContent)
+	assert.EqualValues(t, 1, handler.outgoingConns, "the connection should be counted while the message is handled")
+	assert.Zero(t, analytics.GlobalService.OpenOutgoingConnections.Load(),
+		"the connection should be counted off once the message is sent")
+}
+
 var _ pesit.MessageHandler = &testMessageServer{}
 
 type testMessageServer struct {
 	addr        string
 	login, pswd string
+
+	outgoingConns int64 // open outgoing connections of the client when the message is handled
 
 	receivedPreConn           bool
 	preConnLogin, preConnPswd string
@@ -161,6 +198,10 @@ func (t *testMessageServer) HandleMessage(req *pesit.MessageRequest, cont io.Rea
 	t.msgCustomer = req.CustomerID
 	t.msgBank = req.BankID
 
+	if analytics.GlobalService != nil {
+		t.outgoingConns = analytics.GlobalService.OpenOutgoingConnections.Load()
+	}
+
 	var err error
 	if t.msgContent, err = utils.ReadString(cont); err != nil {
 		err = pesit.NewDiagnostic(pesit.CodeUnresolvableIO, "failed to read message content")
@@ -172,6 +213,27 @@ func (t *testMessageServer) HandleMessage(req *pesit.MessageRequest, cont io.Rea
 func makeTestMessageServer(tb testing.TB) *testMessageServer {
 	tb.Helper()
 
+	list, err := net.Listen("tcp", "localhost:0")
+	require.NoError(tb, err)
+
+	return serveTestMessages(tb, list)
+}
+
+func makeTestMessageServerTLS(tb testing.TB) *testMessageServer {
+	tb.Helper()
+
+	list, err := tls.Listen("tcp", "localhost:0", &tls.Config{
+		Certificates: []tls.Certificate{gwtesting.ServerCert},
+		MinVersion:   tls.VersionTLS12,
+	})
+	require.NoError(tb, err)
+
+	return serveTestMessages(tb, list)
+}
+
+func serveTestMessages(tb testing.TB, list net.Listener) *testMessageServer {
+	tb.Helper()
+
 	logger := logtest.GetTestLogger(tb,
 		logtest.WithName("test_message_server"),
 		logtest.WithLevel("INFO"),
@@ -181,9 +243,6 @@ func makeTestMessageServer(tb testing.TB) *testMessageServer {
 	serv.ValidatePreConnection = handler.ValidatePreConnection
 	serv.Logger = logger.AsStdLogger(log.LevelDebug)
 	serv.NetworkTrace = logger.AsStdLogger(log.LevelTrace)
-
-	list, err := net.Listen("tcp", "localhost:0")
-	require.NoError(tb, err)
 
 	serv.Logger.Print("Starting test message server")
 
