@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"slices"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
@@ -17,13 +16,11 @@ import (
 
 const noTransferMsg = "ERROR: no transfer in database"
 
-func getServerPDUs() []*snmplib.PDUValueControlItem {
-	pdus := slices.Clone(ServerPDUs)
-	for i := range pdus {
-		pdus[i].OID += ".0"
+//nolint:gochecknoinits //init func is better for simplicity to set the server OIDs
+func init() {
+	for i := range ServerPDUs {
+		ServerPDUs[i].OID += ".0"
 	}
-
-	return pdus
 }
 
 //nolint:gochecknoglobals //global var is better here
