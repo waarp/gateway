@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,4 +141,27 @@ func TestSecurityHeaders(t *testing.T) {
 			})
 		}
 	})
+}
+
+// The policy, directive by directive: any change of it is a decision. It allows
+// what the service serves itself, the images embedded in a stylesheet and the
+// styles carried by the tags, which the preview of a mail needs. It allows no
+// inline script, no inline stylesheet and no text evaluated as code.
+func TestContentSecurityPolicy(t *testing.T) {
+	directives := map[string]string{}
+
+	for directive := range strings.SplitSeq(contentSecurityPolicy, ";") {
+		name, sources, _ := strings.Cut(strings.TrimSpace(directive), " ")
+		directives[name] = sources
+	}
+
+	assert.Equal(t, map[string]string{
+		"default-src":     "'self'",
+		"img-src":         "'self' data:",
+		"style-src-attr":  "'unsafe-inline'",
+		"object-src":      "'none'",
+		"base-uri":        "'self'",
+		"form-action":     "'self'",
+		"frame-ancestors": "'none'",
+	}, directives)
 }

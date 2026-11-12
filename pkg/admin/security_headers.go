@@ -14,8 +14,13 @@ import (
 // no inline script. The images of a stylesheet may be embedded in it ("data:").
 // Nothing may frame the interface, nor change the base of its links, nor send
 // its forms elsewhere.
-const contentSecurityPolicy = "default-src 'self'; img-src 'self' data:; object-src 'none'; " +
-	"base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+//
+// A tag may carry its own style ("style-src-attr"): the body of a mail does,
+// which the preview of the email templates shows, and so does the icon sprite
+// of the pages. A style cannot run code; the inline scripts and the inline
+// stylesheets stay refused.
+const contentSecurityPolicy = "default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'; " +
+	"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 // securityHeaders tells the browser how to handle the answers of the
 // administration service: no content sniffing, no framing by another site, a

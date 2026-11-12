@@ -186,6 +186,12 @@ d'administration et l'API REST.
    - ``enforce`` : le navigateur applique la politique ;
    - ``off`` : aucune politique n'est envoyée.
 
+   La politique n'autorise que ce que le service sert lui-même (scripts, feuilles
+   de style, polices, images), les images embarquées dans une feuille de style et
+   les styles portés par les balises. Elle refuse les scripts et les feuilles de
+   style écrits dans la page, ainsi que l'affichage de l'interface dans le cadre
+   d'un autre site.
+
    Les autres en-têtes de sécurité (``X-Content-Type-Options``,
    ``X-Frame-Options`` et ``Referrer-Policy``) sont envoyés dans tous les cas, sur
    toutes les réponses de l'interface Web et de l'API REST.
