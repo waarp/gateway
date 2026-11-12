@@ -10,18 +10,25 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/mattn/go-colorable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+)
+
+// What the API says of the test PGP key pair.
+const (
+	testPGPFingerprint = "57e09fbb394eec758040cdc4b9f43dcb4c634a87"
+	testPGPIdentity    = "Waarp (Waarp PGP test key) <info@waarp.org>"
 )
 
 func TestCryptoKeysGet(t *testing.T) {
 	const (
 		keyName = "foobar"
 		keyType = model.CryptoKeyTypePGPPrivate
-		key     = testhelpers.TestPGPPrivateKey
 
 		path = "/api/keys/" + keyName
 	)
@@ -38,9 +45,10 @@ func TestCryptoKeysGet(t *testing.T) {
 		result := &expectedResponse{
 			status: http.StatusOK,
 			body: map[string]any{
-				"name": keyName,
-				"type": keyType,
-				"key":  key,
+				"name":        keyName,
+				"type":        keyType,
+				"fingerprint": testPGPFingerprint,
+				"identities":  []string{testPGPIdentity},
 			},
 		}
 
@@ -59,6 +67,7 @@ func TestCryptoKeysGet(t *testing.T) {
 						`  -Entity:`,
 						`    -Waarp (Waarp PGP test key) <info@waarp.org>`,
 						`  -Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
+						`  -Value: <set>`,
 					),
 					w.String(),
 					"Then it should display the key's details",
@@ -66,6 +75,51 @@ func TestCryptoKeysGet(t *testing.T) {
 			})
 		})
 	})
+}
+
+// The API never returns the value of a secret key: the command says that it is
+// set, and describes a PGP key by what the API says of it.
+func TestCryptoKeysDisplay(t *testing.T) {
+	const pgpDetails = "  -Entity:\n    -" + testPGPIdentity + "\n  -Fingerprint: " + testPGPFingerprint + "\n"
+
+	for _, test := range []struct {
+		key      api.GetCryptoKeyRespObject
+		expected string
+	}{
+		{
+			key:      api.GetCryptoKeyRespObject{Name: "aes-key", Type: model.CryptoKeyTypeAES},
+			expected: `-"AES" key "aes-key"` + "\n  -Value: <set>\n",
+		},
+		{
+			key:      api.GetCryptoKeyRespObject{Name: "hmac-key", Type: model.CryptoKeyTypeHMAC},
+			expected: `-"HMAC" key "hmac-key"` + "\n  -Value: <set>\n",
+		},
+		{
+			key: api.GetCryptoKeyRespObject{
+				Name: "pgp-private", Type: model.CryptoKeyTypePGPPrivate,
+				Fingerprint: testPGPFingerprint, Identities: []string{testPGPIdentity},
+			},
+			expected: `-PGP private key "pgp-private"` + "\n" + pgpDetails + "  -Value: <set>\n",
+		},
+		{
+			key: api.GetCryptoKeyRespObject{
+				Name: "pgp-public", Type: model.CryptoKeyTypePGPPublic, Key: testhelpers.TestPGPPublicKey,
+				Fingerprint: testPGPFingerprint, Identities: []string{testPGPIdentity},
+			},
+			expected: `-PGP public key "pgp-public"` + "\n" + pgpDetails,
+		},
+		{
+			key:      api.GetCryptoKeyRespObject{Name: "other-key", Type: "OTHER"},
+			expected: `-Cryptographic key "other-key" of unknown type "OTHER"` + "\n  -Value: <set>\n",
+		},
+	} {
+		t.Run(test.key.Type, func(t *testing.T) {
+			w := newTestOutput()
+
+			require.NoError(t, displayCryptoKey(colorable.NewNonColorable(w), &test.key))
+			assert.Equal(t, test.expected, w.String())
+		})
+	}
 }
 
 func TestCryptoKeysAdd(t *testing.T) {
@@ -134,7 +188,9 @@ func TestCryptoKeysList(t *testing.T) {
 
 		key2Name = "bar"
 		key2Type = model.CryptoKeyTypePGPPrivate
-		key2Key  = testhelpers.TestPGPPrivateKey
+
+		key3Name = "baz"
+		key3Type = model.CryptoKeyTypeAES
 	)
 
 	t.Run(`Testing the cryptographic keys "list" command`, func(t *testing.T) {
@@ -152,13 +208,19 @@ func TestCryptoKeysList(t *testing.T) {
 		}
 
 		keys := []map[string]any{{
-			"name": key1Name,
-			"type": key1Type,
-			"key":  key1Key,
+			"name":        key1Name,
+			"type":        key1Type,
+			"key":         key1Key,
+			"fingerprint": testPGPFingerprint,
+			"identities":  []string{testPGPIdentity},
 		}, {
-			"name": key2Name,
-			"type": key2Type,
-			"key":  key2Key,
+			"name":        key2Name,
+			"type":        key2Type,
+			"fingerprint": testPGPFingerprint,
+			"identities":  []string{testPGPIdentity},
+		}, {
+			"name": key3Name,
+			"type": key3Type,
 		}}
 
 		result := &expectedResponse{
@@ -190,6 +252,11 @@ func TestCryptoKeysList(t *testing.T) {
 						`  -Entity:`,
 						`    -Waarp (Waarp PGP test key) <info@waarp.org>`,
 						`  -Fingerprint: 57e09fbb394eec758040cdc4b9f43dcb4c634a87`,
+						`  -Value: <set>`,
+						`{{- end }}`,
+						`{{- with index . 2 }}`,
+						`-"AES" key "{{.name}}"`,
+						`  -Value: <set>`,
 						`{{- end }}`,
 					),
 					w.String(),

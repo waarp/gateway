@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -24,45 +22,33 @@ func displayCryptoKeys(w io.Writer, keys []*api.GetCryptoKeyRespObject) error {
 func displayCryptoKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
 	switch key.Type {
 	case model.CryptoKeyTypeAES, model.CryptoKeyTypeHMAC:
-		return displayRawKey(w, key)
-	case model.CryptoKeyTypePGPPrivate, model.CryptoKeyTypePGPPublic:
-		return displayPGPKey(w, key)
+		Style1.Printf(w, "%q key %q", key.Type, key.Name)
+	case model.CryptoKeyTypePGPPrivate:
+		displayPGPKey(w, "private", key)
+	case model.CryptoKeyTypePGPPublic:
+		displayPGPKey(w, "public", key)
 	default:
 		Style1.Printf(w, "Cryptographic key %q of unknown type %q", key.Name, key.Type)
-		Style22.PrintL(w, "Base64 key", key.Key)
-
-		return nil
 	}
+
+	// The API returns the value of a public key only: a key that comes without
+	// its value has one, which is a secret.
+	Style22.Secret(w, "Value", key.Key == "", false)
+
+	return nil
 }
 
-func displayPGPKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
-	pgpKey, err := pgp.NewKeyFromArmored(key.Key)
-	if err != nil {
-		return fmt.Errorf("could not parse PGP key: %w", err)
-	}
-
-	kind := "public"
-	if pgpKey.IsPrivate() {
-		kind = "private"
-	}
-
+// displayPGPKey describes a PGP key by what the API says of it: the value of a
+// private key never reaches the client.
+func displayPGPKey(w io.Writer, kind string, key *api.GetCryptoKeyRespObject) {
 	Style1.Printf(w, "PGP %s key %q", kind, key.Name)
 	Style22.Printf(w, "Entity:")
 
-	for _, identity := range pgpKey.GetEntity().Identities {
-		Style333.PrintV(w, identity.Name)
+	for _, identity := range key.Identities {
+		Style333.PrintV(w, identity)
 	}
 
-	Style22.PrintL(w, "Fingerprint", pgpKey.GetFingerprint())
-
-	return nil
-}
-
-func displayRawKey(w io.Writer, key *api.GetCryptoKeyRespObject) error {
-	Style1.Printf(w, "%q key %q", key.Type, key.Name)
-	Style22.PrintL(w, "Base64 value", key.Key)
-
-	return nil
+	Style22.PrintL(w, "Fingerprint", key.Fingerprint)
 }
 
 //nolint:lll // command tags are long

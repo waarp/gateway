@@ -39,7 +39,7 @@ Ajouter une clé cryptographique
       {
         "name": "aes-key",
         "type": "AES",
-        "privateKey": "0123456789abcdefhijklABCDEFHIJKL"
+        "key": "MDEyMzQ1Njc4OWFiY2RlZg=="
       }
 
    **Exemple de réponse**

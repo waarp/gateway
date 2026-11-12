@@ -4,7 +4,8 @@ Lister les clés cryptographiques
 .. http:get:: /api/keys
 
    Renvoie une liste des clés cryptographiques remplissant les critères donnés en
-   paramètres de requête.
+   paramètres de requête. La valeur d'une clé secrète (AES, HMAC, PGP privée)
+   n'est jamais renvoyée : seule celle d'une clé PGP publique l'est.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -20,7 +21,7 @@ Lister les clés cryptographiques
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
-   :resjson array cryptoKeys: La liste des clés demandés
+   :resjson array cryptoKeys: La liste des clés demandées
    :resjsonarr string name: Le nom de la clé cryptographique.
    :resjsonarr string type: Le type de la clé cryptographique. Les valeurs possibles
       sont :
@@ -29,8 +30,13 @@ Lister les clés cryptographiques
       - ``HMAC`` pour les clés de signature HMAC
       - ``PGP-PUBLIC`` pour les clés PGP publiques
       - ``PGP-PRIVATE`` pour les clés PGP privées
-   :resjsonarr string key: La représentation textuelle de la clé. Si la clé n'est
-      pas nativement en format textuel, celle-ci sera convertie en Base64.
+   :resjsonarr string key: [``PGP-PUBLIC`` uniquement] La clé publique, en format
+      textuel. Absent pour les clés secrètes (``AES``, ``HMAC``,
+      ``PGP-PRIVATE``), dont la valeur n'est jamais renvoyée.
+   :resjsonarr string fingerprint: [Clés PGP uniquement] L'empreinte de la clé,
+      en hexadécimal.
+   :resjsonarr array identities: [Clés PGP uniquement] Les identités portées par
+      la clé.
 
 
    **Exemple de requête**
@@ -46,17 +52,20 @@ Lister les clés cryptographiques
 
       HTTP/1.1 200 OK
       Content-Type: application/json
-      Content-Length: 76
+      Content-Length: 318
 
       {
         "cryptoKeys": [{
-          "name": "aes-key",
-          "type": "AES",
-          "privateKey": "0123456789abcdefhijklABCDEFHIJKL"
+          "name": "pgp-public-key",
+          "type": "PGP-PUBLIC",
+          "key": "-----BEGIN PGP PUBLIC KEY BLOCK----- [...]",
+          "fingerprint": "57e09fbb394eec758040cdc4b9f43dcb4c634a87",
+          "identities": ["Waarp (Waarp PGP test key) <info@waarp.org>"]
         },{
           "name": "hmac-key",
-          "type": "HMAC",
-          "privateKey": "ABCDEFHIJKLabcdefhijkl0123456789"
-          }
+          "type": "HMAC"
+        },{
+          "name": "aes-key",
+          "type": "AES"
         }]
       }

@@ -1,10 +1,12 @@
-==============================
-Lister les clé cryptographique
-==============================
+================================
+Lister les clés cryptographiques
+================================
 
 .. program:: waarp-gateway key list
 
-Affiche une liste de tous les clé cryptographiques remplissant les critères ci-dessous.
+Affiche une liste de toutes les clés cryptographiques remplissant les critères
+ci-dessous. La valeur d'une clé secrète (AES, HMAC, PGP privée) n'est jamais
+affichée : la commande indique seulement qu'elle est définie (``<set>``).
 
 **Commande**
 
@@ -16,11 +18,11 @@ Affiche une liste de tous les clé cryptographiques remplissant les critères ci
 
 .. option:: -l <LIMIT>, --limit=<LIMIT>
 
-   Le nombre maximum d'utilisateurs autorisés dans la réponse. Fixé à 20 par défaut.
+   Le nombre maximum de clés autorisées dans la réponse. Fixé à 20 par défaut.
 
 .. option:: -o <OFFSET>, --offset=<OFFSET>
 
-   Le numéro du premier utilisateur renvoyé.
+   Le numéro de la première clé renvoyée.
 
 .. option:: -s <SORT>, --sort=<SORT>
 

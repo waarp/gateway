@@ -41,7 +41,7 @@ Modifier une clé cryptographique
       {
         "name": "new-aes-key",
         "type": "AES",
-        "privateKey": "ABCDEFHIJKLabcdefhijkl0123456789"
+        "key": "ZmVkY2JhOTg3NjU0MzIxMA=="
       }
 
    **Exemple de réponse**

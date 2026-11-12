@@ -3,7 +3,9 @@ Consulter une clé cryptographique
 
 .. http:get:: /api/keys/(string:key_name)
 
-   Renvoie la clé cryptographique demandée.
+   Renvoie la clé cryptographique demandée. La valeur d'une clé secrète (AES,
+   HMAC, PGP privée) n'est jamais renvoyée : seule celle d'une clé PGP publique
+   l'est.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -19,15 +21,20 @@ Consulter une clé cryptographique
       - ``HMAC`` pour les clés de signature HMAC
       - ``PGP-PUBLIC`` pour les clés PGP publiques
       - ``PGP-PRIVATE`` pour les clés PGP privées
-   :resjson string key: La représentation textuelle de la clé. Si la clé n'est
-      pas nativement en format textuel, celle-ci sera convertie en Base64.
+   :resjson string key: [``PGP-PUBLIC`` uniquement] La clé publique, en format
+      textuel. Absent pour les clés secrètes (``AES``, ``HMAC``,
+      ``PGP-PRIVATE``), dont la valeur n'est jamais renvoyée.
+   :resjson string fingerprint: [Clés PGP uniquement] L'empreinte de la clé, en
+      hexadécimal.
+   :resjson array identities: [Clés PGP uniquement] Les identités portées par la
+      clé.
 
 
    **Exemple de requête**
 
    .. code-block:: http
 
-      GET https://my_waarp_gateway.net/keys/aes-key HTTP/1.1
+      GET https://my_waarp_gateway.net/api/keys/pgp-key HTTP/1.1
       Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
@@ -36,10 +43,11 @@ Consulter une clé cryptographique
 
       HTTP/1.1 200 OK
       Content-Type: application/json
-      Content-Length: 98
+      Content-Length: 163
 
       {
-        "name": "aes-key",
-        "type": "AES",
-        "privateKey": "0123456789abcdefhijklABCDEFHIJKL"
+        "name": "pgp-key",
+        "type": "PGP-PRIVATE",
+        "fingerprint": "57e09fbb394eec758040cdc4b9f43dcb4c634a87",
+        "identities": ["Waarp (Waarp PGP test key) <info@waarp.org>"]
       }

@@ -2,7 +2,11 @@ package rest
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
+
+	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -26,12 +30,42 @@ func retrieveDBCryptoKey(r *http.Request, db database.ReadAccess) (*model.Crypto
 	return &dbKey, nil
 }
 
+// dbCryptoKeyToREST gives what the API says of a key. A value is returned in a
+// single case, that of a PGP public key: the value of any other key is a
+// secret, that of a key of an unknown type included.
 func dbCryptoKeyToREST(dbKey *model.CryptoKey) *api.GetCryptoKeyRespObject {
-	return &api.GetCryptoKeyRespObject{
+	restKey := &api.GetCryptoKeyRespObject{
 		Name: dbKey.Name,
 		Type: dbKey.Type,
-		Key:  dbKey.Key,
 	}
+
+	switch dbKey.Type {
+	case model.CryptoKeyTypePGPPublic:
+		restKey.Key = dbKey.Key
+		restKey.Fingerprint, restKey.Identities = describePGPKey(dbKey.Key)
+	case model.CryptoKeyTypePGPPrivate:
+		restKey.Fingerprint, restKey.Identities = describePGPKey(dbKey.Key)
+	}
+
+	return restKey
+}
+
+// describePGPKey reads the fingerprint and the identities an armored PGP key
+// states of itself, which tell a private key from another without its value.
+// A key that cannot be read is described by nothing: it does not fail the
+// request.
+func describePGPKey(armored string) (string, []string) {
+	key, err := pgp.NewKeyFromArmored(armored)
+	if err != nil {
+		return "", nil
+	}
+
+	var identities []string
+	if entity := key.GetEntity(); entity != nil {
+		identities = slices.Sorted(maps.Keys(entity.Identities))
+	}
+
+	return key.GetFingerprint(), identities
 }
 
 func dbCryptoKeysToREST(dbKeys []*model.CryptoKey) []*api.GetCryptoKeyRespObject {

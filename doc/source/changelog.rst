@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`739` L'API REST ne renvoie plus la valeur des clés secrètes (AES,
+  HMAC, PGP privées) : seule une clé PGP publique est renvoyée. Une clé PGP est
+  décrite par son empreinte et ses identités (``fingerprint``, ``identities``),
+  et le client en ligne de commande l'affiche de même. À la modification, une
+  valeur omise reste inchangée.
 * :feature:`726` L'API REST ne renvoie plus les passphrases SNMPv3 des moniteurs
   et du serveur SNMP : les réponses indiquent seulement si chacune est définie
   (``authPassphraseSet``, ``privPassphraseSet``, ``v3AuthPassphraseSet``,
