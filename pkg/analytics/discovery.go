@@ -61,13 +61,41 @@ func (a *analytics) foundDirs() []LocalDir {
 }
 
 // discover lists, until the deadline, the sub-directories of the structuring
-// directories of the report and keeps those no object refers to. A structuring
-// directory the time does not reach, or that cannot be read, keeps what was
-// found under it before; what was found under a directory that no longer
-// structures the tree is forgotten.
+// directories of the report and keeps those no object refers to; what was
+// found under a directory that no longer structures the tree is forgotten.
 func (a *analytics) discover(ctx context.Context, report *DiskReport, now, deadline time.Time) {
 	known := knownDirs(report)
 	roots := structuringDirs(a.Home(), known)
+
+	a.discoverRoots(ctx, roots, known, now, deadline)
+	a.pruneFound(roots)
+}
+
+// discoverNew lists, until the deadline, the structuring directories of the
+// report that were never read: the home of the gateway, given once the service
+// runs, or the root of a server added; so that what they hold does not wait
+// for the next cycle.
+func (a *analytics) discoverNew(ctx context.Context, report *DiskReport, now, deadline time.Time) {
+	known := knownDirs(report)
+	roots := structuringDirs(a.Home(), known)
+
+	a.disks.mu.Lock()
+
+	fresh := slices.DeleteFunc(roots, func(root string) bool {
+		_, explored := a.disks.survey.explored[pathKey(root)]
+
+		return explored
+	})
+
+	a.disks.mu.Unlock()
+
+	a.discoverRoots(ctx, fresh, known, now, deadline)
+}
+
+// discoverRoots lists, until the deadline, the sub-directories of structuring
+// directories and keeps those no object refers to. A directory the time does
+// not reach, or that cannot be read, keeps what was found under it before.
+func (a *analytics) discoverRoots(ctx context.Context, roots []string, known []LocalDir, now, deadline time.Time) {
 	maxEntries := a.DiskSettings().SurveyMaxEntries
 
 	for _, root := range roots {
@@ -87,8 +115,6 @@ func (a *analytics) discover(ctx context.Context, report *DiskReport, now, deadl
 
 		a.keepFound(pathKey(root), unreferenced(root, names, known), now)
 	}
-
-	a.pruneFound(roots)
 }
 
 // knownDirs lists the local directories of a report that an object refers to
@@ -262,14 +288,17 @@ func listSubdirNames(path string, maxEntries int) ([]string, error) {
 	return names, nil
 }
 
-// keepFound replaces what was found under a structuring directory.
+// keepFound replaces what was found under a structuring directory, read now.
 func (a *analytics) keepFound(parent string, paths []string, now time.Time) {
 	a.disks.mu.Lock()
 	defer a.disks.mu.Unlock()
 
 	if a.disks.survey.found == nil {
 		a.disks.survey.found = map[string]foundDir{}
+		a.disks.survey.explored = map[string]time.Time{}
 	}
+
+	a.disks.survey.explored[parent] = now
 
 	maps.DeleteFunc(a.disks.survey.found, func(_ string, f foundDir) bool { return f.parent == parent })
 
@@ -278,9 +307,9 @@ func (a *analytics) keepFound(parent string, paths []string, now time.Time) {
 	}
 }
 
-// pruneFound forgets what was found under a directory that no longer
-// structures the tree (the root of a server that was deleted, which the
-// discovery now finds itself).
+// pruneFound forgets the directories that no longer structure the tree (the
+// root of a server that was deleted, which the discovery now finds itself)
+// and what was found under them.
 func (a *analytics) pruneFound(roots []string) {
 	keys := make(map[string]struct{}, len(roots))
 	for _, root := range roots {
@@ -290,6 +319,11 @@ func (a *analytics) pruneFound(roots []string) {
 	a.disks.mu.Lock()
 	defer a.disks.mu.Unlock()
 
+	maps.DeleteFunc(a.disks.survey.explored, func(key string, _ time.Time) bool {
+		_, kept := keys[key]
+
+		return !kept
+	})
 	maps.DeleteFunc(a.disks.survey.found, func(_ string, f foundDir) bool {
 		_, kept := keys[f.parent]
 

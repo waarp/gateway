@@ -327,3 +327,59 @@ func TestMergeDirsFound(t *testing.T) {
 	assert.Equal(t, []LocalDir{ruleSeen}, mergeDirs([]LocalDir{found, seen, rule}))
 	assert.Equal(t, []LocalDir{ruleSeen}, mergeDirs([]LocalDir{rule, found, seen}))
 }
+
+// The structuring directories that appear between two cycles (the home of the
+// gateway, given once the service runs; the root of a server added) are read
+// right after the measure that knows them, without waiting for the next cycle.
+func TestDiscoveryNew(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	now := time.Date(2026, 11, 12, 10, 0, 0, 0, time.UTC)
+	tr := makeTree(t)
+	old, leftover := tr.under("data", "old"), tr.under("data", "srv1", "leftover")
+	stray, junk := tr.under("flux", "stray"), tr.outside("srv2", "junk")
+
+	var (
+		a      analytics
+		mu     sync.Mutex
+		listed []string
+	)
+
+	a.disks.subdirs = func(path string, maxEntries int) ([]string, error) {
+		mu.Lock()
+		listed = append(listed, path)
+		mu.Unlock()
+
+		return listSubdirNames(path, maxEntries)
+	}
+
+	// The service starts without the home: the roots of the servers only.
+	measureRoot(&a, tr.base, tr.known, now)
+	a.Survey(ctx, now)
+	assert.Equal(t, []string{leftover, junk}, paths(a.foundDirs()))
+
+	// The home is given: the measure knows it, the directories under it are
+	// read right away.
+	a.SetHome(tr.home)
+
+	later := now.Add(DiskPeriod)
+	measureRoot(&a, tr.base, tr.known, later)
+	a.SurveyNew(ctx, later)
+	assert.Equal(t, []string{old, leftover, stray, junk}, paths(a.foundDirs()), "without waiting for the next cycle")
+
+	mu.Lock()
+	assert.ElementsMatch(t, []string{
+		tr.under("data", "srv1"), tr.outside("srv2"), // the first cycle
+		tr.home, tr.under("data"), tr.under("flux"), tr.under("flux", "a"), // the new structuring directories only
+	}, listed)
+	mu.Unlock()
+
+	// Nothing new: nothing is read.
+	measureRoot(&a, tr.base, tr.known, later.Add(DiskPeriod))
+	a.SurveyNew(ctx, later.Add(DiskPeriod))
+
+	mu.Lock()
+	assert.Len(t, listed, 6, "every structuring directory read already")
+	mu.Unlock()
+}

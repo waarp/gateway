@@ -63,15 +63,17 @@ type DirSurvey struct {
 // surveyState is what the service keeps of the survey between the cycles,
 // under the lock of disks: the result of each directory by its path key, the
 // directories being listed, the structuring directories the discovery is
-// reading, the directories it found, the key of the directory the last cycle
-// stopped at, and when the last cycle ran.
+// reading and those it has read (by their key, with when), the directories it
+// found, the key of the directory the last cycle stopped at, and when the last
+// cycle ran.
 type surveyState struct {
-	results map[string]surveyResult
-	pending readings
-	listing readings
-	found   map[string]foundDir
-	last    string
-	at      time.Time
+	results  map[string]surveyResult
+	pending  readings
+	listing  readings
+	explored map[string]time.Time
+	found    map[string]foundDir
+	last     string
+	at       time.Time
 }
 
 // surveyResult is the survey of a directory with the error of the system,
@@ -158,7 +160,10 @@ func (a *analytics) Survey(ctx context.Context, now time.Time) {
 // that were never surveyed, within the budget of the settings, so that a
 // directory does not wait for the next cycle when it joins the report: the
 // directories of the gateway, given once the service runs, a server or a rule
-// added, a directory the discovery found. The directories surveyed already are
+// added, a directory the discovery found. It reads as well the structuring
+// directories that were never read (the home given once the service runs, the
+// root of a server added), so that what they hold that no object refers to
+// joins the report at the next measure. The directories surveyed already are
 // left to the cycles; nothing is done while a survey runs.
 func (a *analytics) SurveyNew(ctx context.Context, now time.Time) {
 	report := a.Disks()
@@ -170,6 +175,10 @@ func (a *analytics) SurveyNew(ctx context.Context, now time.Time) {
 		return
 	}
 	defer a.disks.surveying.Unlock()
+
+	deadline := time.Now().Add(a.DiskSettings().Budget())
+
+	a.discoverNew(ctx, report, now, deadline)
 
 	_, dirs := presentDirs(report)
 
@@ -187,7 +196,7 @@ func (a *analytics) SurveyNew(ctx context.Context, now time.Time) {
 		return
 	}
 
-	a.surveyRound(ctx, fresh, 0, now, time.Now().Add(a.DiskSettings().Budget()))
+	a.surveyRound(ctx, fresh, 0, now, deadline)
 	a.publishSurveys()
 }
 
