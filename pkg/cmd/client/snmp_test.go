@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/mattn/go-colorable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -576,7 +577,7 @@ func TestSnmpMonitorTest(t *testing.T) {
 func TestSnmpSecretsDisplay(t *testing.T) {
 	t.Run("Given an SNMPv2 monitor", func(t *testing.T) {
 		w := newTestOutput()
-		require.NoError(t, displaySnmpMonitor(w, &api.GetSnmpMonitorRespObject{
+		require.NoError(t, displaySnmpMonitor(colorable.NewNonColorable(w), &api.GetSnmpMonitorRespObject{
 			Name: "snmpv2-monitor", Version: "SNMPv2", UDPAddress: "1.2.3.4:5", Community: "public",
 		}))
 		assert.NotContains(t, w.String(), "passphrase", "Then it should not mention any passphrase")
@@ -584,7 +585,7 @@ func TestSnmpSecretsDisplay(t *testing.T) {
 
 	t.Run("Given a monitor with a protocol and no passphrase", func(t *testing.T) {
 		w := newTestOutput()
-		require.NoError(t, displaySnmpMonitor(w, &api.GetSnmpMonitorRespObject{
+		require.NoError(t, displaySnmpMonitor(colorable.NewNonColorable(w), &api.GetSnmpMonitorRespObject{
 			Name: "snmpv3-monitor", Version: "SNMPv3", UDPAddress: "1.2.3.4:5", AuthProtocol: snmp.AuthSHA,
 		}))
 		assert.Contains(t, w.String(), "  -SNMPv3 authentication passphrase: <none>\n",
@@ -594,7 +595,7 @@ func TestSnmpSecretsDisplay(t *testing.T) {
 
 	t.Run("Given a server with one passphrase set", func(t *testing.T) {
 		w := newTestOutput()
-		require.NoError(t, displaySnmpServerConfig(w, &api.GetSnmpServiceRespObject{
+		require.NoError(t, displaySnmpServerConfig(colorable.NewNonColorable(w), &api.GetSnmpServiceRespObject{
 			LocalUDPAddress: "1.2.3.4:5", V3Username: "toto",
 			V3AuthProtocol: snmp.AuthSHA, V3AuthPassphraseSet: true, V3PrivProtocol: snmp.PrivDES,
 		}))
