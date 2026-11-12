@@ -161,8 +161,9 @@ d'administration et l'API REST.
 .. confval:: EnvironmentLabel
 
    Un libellé court, de 32 caractères au plus, qui distingue cette instance des
-   autres : « Production », « Recette », « Test »… L'API REST le fournit dans
-   l'en-tête ``Waarp-Gateway-Environment`` de ses réponses, et la commande
+   autres : « Production », « Recette », « Test »… L'interface Web l'affiche à
+   côté du nom de l'instance, dans l'en-tête de ses pages. L'API REST le fournit
+   dans l'en-tête ``Waarp-Gateway-Environment`` de ses réponses, et la commande
    ``waarp-gateway status`` l'affiche. Sans libellé, rien ne change.
 
    Un libellé trop long, ou qui contient un caractère non imprimable, empêche le

@@ -59,7 +59,10 @@ Navigation
      - Contenu
    * - En-tête
      - Produit, nom de l'instance, langue, lien vers la documentation (ouverte
-       dans un nouvel onglet), menu du compte.
+       dans un nouvel onglet), menu du compte. Quand la configuration donne à
+       l'instance un libellé d'environnement (option ``EnvironmentLabel`` de la
+       section ``[admin]`` : « Production », « Recette »…), il s'affiche à côté
+       de son nom.
    * - Barre latérale
      - Les écrans, groupés par section : Connexions, Traitements,
        Supervision, Administration. Un groupe se replie d'un clic sur son

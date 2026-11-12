@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`705` Une nouvelle option ``EnvironmentLabel`` de la section
+  ``[admin]`` donne à l'instance un libellé d'environnement (« Production »,
+  « Recette »…). L'interface Web l'affiche dans son en-tête, à côté du nom de
+  l'instance ; l'API REST le fournit dans l'en-tête
+  ``Waarp-Gateway-Environment`` et la commande ``status`` l'affiche.
 * :feature:`874` Le suivi des transferts dit l'acquittement de chaque transfert
   dans une colonne « ACK » (attendu, reçu, non reçu, envoyé ; le détail au
   survol) et se filtre par acquittement (voir :ref:`le guide
@@ -584,10 +589,6 @@ Historique des versions
   recopié octet pour octet.
 * :bug:`845` Avec les pages IBM 500 et 1148, la tâche TRANSCODE convertit
   désormais correctement les caractères ``[ ] ! ^ ¢ ¬ |``, dans les deux sens.
-* :feature:`705` Une nouvelle option ``EnvironmentLabel`` de la section
-  ``[admin]`` donne à l'instance un libellé d'environnement (« Production »,
-  « Recette »…). L'API REST le fournit dans l'en-tête
-  ``Waarp-Gateway-Environment`` et la commande ``status`` l'affiche.
 * :feature:`788` Le service d'administration envoie les en-têtes HTTP de sécurité
   sur toutes ses réponses, interface Web et API REST : ``X-Content-Type-Options``,
   ``X-Frame-Options``, ``Referrer-Policy`` et une politique de sécurité du

@@ -11,3 +11,11 @@ func GetUser(r *http.Request) *model.User {
 	//nolint:forcetypeassert //assertion always succeeds
 	return r.Context().Value(constants.ContextUserKey).(*model.User)
 }
+
+// GetEnvironment returns the environment label of the instance, empty when the
+// instance has none.
+func GetEnvironment(r *http.Request) string {
+	label, _ := r.Context().Value(constants.ContextEnvironmentKey).(string)
+
+	return label
+}

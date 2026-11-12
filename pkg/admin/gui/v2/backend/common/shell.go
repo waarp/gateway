@@ -145,6 +145,7 @@ func (s *Shell) makePage(r *http.Request, screen Screen) gui.Page {
 		Product:     constants.AppName,
 		ProductSlug: productSlug,
 		Instance:    user.Owner,
+		Environment: GetEnvironment(r),
 		Username:    user.Username,
 		// The version alone: the revision stays on the About page.
 		Footer: translate("nav.footer", "product", constants.AppName, "version", version.Num),

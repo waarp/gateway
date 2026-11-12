@@ -125,7 +125,10 @@ func AuthenticationMiddleware(logger *log.Logger, db *database.DB) mux.Middlewar
 				refreshToken(r, w, tokenCookie.Value)
 			}
 
+			// The environment label of the instance goes with the session: the
+			// header of every page shows it next to the name of the instance.
 			ctx := context.WithValue(r.Context(), ContextUserKey, user)
+			ctx = context.WithValue(ctx, constants.ContextEnvironmentKey, string(db.Config.Admin.EnvironmentLabel))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
