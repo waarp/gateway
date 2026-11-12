@@ -39,10 +39,16 @@ const (
 // none of the known ones.
 var errInvalidCSPMode = errors.New("invalid content security policy mode")
 
-// UnmarshalFlag reads a mode from the configuration file. A value that is not
-// a mode is refused, with the allowed ones.
+// UnmarshalFlag reads a mode from the configuration file. An empty value is
+// the default mode, as when the option is absent: a file rewritten from
+// options that were never read leaves it empty. A value that is not a mode is
+// refused, with the allowed ones.
 func (m *CSPMode) UnmarshalFlag(value string) error {
 	switch mode := CSPMode(value); mode {
+	case "":
+		*m = CSPReportOnly
+
+		return nil
 	case CSPReportOnly, CSPEnforce, CSPOff:
 		*m = mode
 

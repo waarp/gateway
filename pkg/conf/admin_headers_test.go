@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	parse "code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
 
 // parseAdminSection parses a configuration file whose [admin] section holds
@@ -43,6 +45,36 @@ func TestAdminSecurityHeadersOptions(t *testing.T) {
 
 			assert.Equal(t, mode, config.Admin.ContentSecurityPolicy)
 		}
+	})
+
+	t.Run("A mode of the content security policy left empty", func(t *testing.T) {
+		t.Parallel()
+
+		config, err := parseAdminSection(t, "ContentSecurityPolicy =\n")
+		require.NoError(t, err)
+
+		assert.Equal(t, CSPReportOnly, config.Admin.ContentSecurityPolicy)
+	})
+
+	t.Run("A configuration file written from options that were never read", func(t *testing.T) {
+		t.Parallel()
+
+		written := &ServerConfig{}
+		parser, err := parse.NewParser(written)
+		require.NoError(t, err)
+
+		// The commands that rewrite the file from the configuration they run
+		// with replace the options as a whole, the unset ones included.
+		*written = ServerConfig{}
+		file := filepath.Join(t.TempDir(), "gatewayd.ini")
+		require.NoError(t, parser.WriteFile(file))
+
+		read := &ServerConfig{}
+		reader, err := parse.NewParser(read)
+		require.NoError(t, err)
+		require.NoError(t, reader.ParseFile(file))
+
+		assert.Equal(t, CSPReportOnly, read.Admin.ContentSecurityPolicy)
 	})
 
 	t.Run("An unknown mode of the content security policy", func(t *testing.T) {
