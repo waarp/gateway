@@ -5,11 +5,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -142,11 +144,18 @@ func LoggingMiddleware(logger *log.Logger) mux.MiddlewareFunc {
 //nolint:gochecknoglobals //global var needed here for Waarp Transfer
 var AppName = "waarp-gatewayd"
 
-func ServerInfoMiddleware() mux.MiddlewareFunc {
+func ServerInfoMiddleware(environment conf.EnvironmentLabel) mux.MiddlewareFunc {
+	// A header holds ASCII characters only: the label is percent-encoded.
+	environmentHeader := url.PathEscape(string(environment))
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Server", fmt.Sprintf("%s/%s", AppName, version.Num))
 			w.Header().Set(api.DateHeader, time.Now().Format(time.RFC1123))
+
+			if environmentHeader != "" {
+				w.Header().Set(api.EnvironmentHeader, environmentHeader)
+			}
 
 			next.ServeHTTP(w, r)
 		})

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`705` Une nouvelle option ``EnvironmentLabel`` de la section
+  ``[admin]`` donne à l'instance un libellé d'environnement (« Production »,
+  « Recette »…). L'API REST le fournit dans l'en-tête
+  ``Waarp-Gateway-Environment`` et la commande ``status`` l'affiche.
 * :bug:`839` Les objets SNMP restent servis après un rechargement de la
   configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
   redémarrage de la passerelle.

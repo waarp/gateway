@@ -8,8 +8,8 @@ Affiche le status des différents services de la gateway. Cela inclus les servic
 nécessaires au fonctionnement de la gateway, ainsi que tous les serveurs locaux
 et des clients rattachés à celle-ci.
 
-La commande affiche également la version du service Gateway ainsi que son heure
-locale.
+La commande affiche également la version du service Gateway, son libellé
+d'environnement s'il en a un, ainsi que son heure locale.
 
 **Options**
 

@@ -158,6 +158,16 @@ d'administration et l'API REST.
 
    Désactive l'interface Web d'administration.
 
+.. confval:: EnvironmentLabel
+
+   Un libellé court, de 32 caractères au plus, qui distingue cette instance des
+   autres : « Production », « Recette », « Test »… L'API REST le fournit dans
+   l'en-tête ``Waarp-Gateway-Environment`` de ses réponses, et la commande
+   ``waarp-gateway status`` l'affiche. Sans libellé, rien ne change.
+
+   Un libellé trop long, ou qui contient un caractère non imprimable, empêche le
+   démarrage de Gateway, avec un message qui en donne la raison.
+
 .. confval:: TLSCert
 
    Le chemin du certificat TLS pour le serveur HTTP. Si ce paramètre n'est pas
