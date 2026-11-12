@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`788` Le service d'administration envoie les en-têtes HTTP de sécurité
+  sur toutes ses réponses, interface Web et API REST : ``X-Content-Type-Options``,
+  ``X-Frame-Options``, ``Referrer-Policy`` et une politique de sécurité du
+  contenu, en mode rapport par défaut. Deux options de la section ``[admin]``
+  règlent cette politique (``ContentSecurityPolicy``) et l'envoi de
+  ``Strict-Transport-Security`` en TLS (``HSTSMaxAge``).
 * :bug:`839` Les objets SNMP restent servis après un rechargement de la
   configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
   redémarrage de la passerelle.

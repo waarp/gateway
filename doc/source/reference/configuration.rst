@@ -175,6 +175,36 @@ d'administration et l'API REST.
    via la méthode décrite dans la :rfc:`1423`. Une clé chiffrée avec cette méthode
    doit avoir un entête PEM ``DEK-Info``.
 
+.. confval:: ContentSecurityPolicy
+
+   La façon dont la politique de sécurité du contenu de l'interface
+   d'administration (en-tête ``Content-Security-Policy``) est envoyée aux
+   navigateurs. Les valeurs possibles sont :
+
+   - ``report-only`` : le navigateur signale dans sa console ce que la politique
+     refuserait, sans rien bloquer ;
+   - ``enforce`` : le navigateur applique la politique ;
+   - ``off`` : aucune politique n'est envoyée.
+
+   Les autres en-têtes de sécurité (``X-Content-Type-Options``,
+   ``X-Frame-Options`` et ``Referrer-Policy``) sont envoyés dans tous les cas, sur
+   toutes les réponses de l'interface Web et de l'API REST.
+
+   Valeur par défaut : ``report-only``
+
+.. confval:: HSTSMaxAge
+
+   La durée pendant laquelle un navigateur qui a joint l'interface
+   d'administration en TLS ne doit plus joindre son hôte qu'en HTTPS (en-tête
+   ``Strict-Transport-Security``). L'en-tête n'est envoyé que sur les connexions
+   TLS servies par Waarp Gateway, sans ``includeSubDomains``.
+
+   Cet en-tête engage tous les services HTTP du même nom d'hôte, quel que soit
+   leur port : ne le définir que si tous sont servis en HTTPS. Exemple : ``8760h``
+   pour un an. La valeur ``0`` désactive l'en-tête.
+
+   Valeur par défaut : ``0``
+
 
 Section ``[database]``
 ======================

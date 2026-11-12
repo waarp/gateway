@@ -21,6 +21,38 @@ const (
 	ConfigDirEnvVar  = "WAARP_CONFIG_DIR"
 )
 
+// CSPMode is the way the administration service sends its content security
+// policy to the browsers (AdminConfig.ContentSecurityPolicy).
+type CSPMode string
+
+const (
+	// CSPReportOnly: the browser reports what the policy would block, and
+	// blocks nothing.
+	CSPReportOnly CSPMode = "report-only"
+	// CSPEnforce: the browser applies the policy.
+	CSPEnforce CSPMode = "enforce"
+	// CSPOff: no policy is sent.
+	CSPOff CSPMode = "off"
+)
+
+// errInvalidCSPMode is returned for a content security policy mode that is
+// none of the known ones.
+var errInvalidCSPMode = errors.New("invalid content security policy mode")
+
+// UnmarshalFlag reads a mode from the configuration file. A value that is not
+// a mode is refused, with the allowed ones.
+func (m *CSPMode) UnmarshalFlag(value string) error {
+	switch mode := CSPMode(value); mode {
+	case CSPReportOnly, CSPEnforce, CSPOff:
+		*m = mode
+
+		return nil
+	default:
+		return fmt.Errorf("%w %q: the allowed values are %q, %q and %q",
+			errInvalidCSPMode, value, CSPReportOnly, CSPEnforce, CSPOff)
+	}
+}
+
 // ServerConfig holds the server configuration options
 //
 //nolint:lll // cannot split struct tags
@@ -74,6 +106,9 @@ type AdminConfig struct {
 	TLSCert       string `ini-name:"TLSCert" description:"Path of the TLS certificate for the admin interface."`
 	TLSKey        string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate."`
 	TLSPassphrase string `ini-name:"TLSPassphrase" description:"RFC 1423 style passphrase for the TLS key (if the key is encrypted)."`
+
+	ContentSecurityPolicy CSPMode       `ini-name:"ContentSecurityPolicy" default:"report-only" description:"How the content security policy of the admin interface is sent to the browsers: 'report-only' (the browser reports what the policy would block and blocks nothing), 'enforce' (the browser applies the policy) or 'off' (no policy is sent)."`
+	HSTSMaxAge            time.Duration `ini-name:"HSTSMaxAge" description:"How long a browser that reached the admin interface over TLS must reach its host over HTTPS only (Strict-Transport-Security header, sent over TLS only). It binds every HTTP service of the host name, whatever its port. 0 = the header is not sent."`
 }
 
 // DatabaseConfig holds the server database options.
