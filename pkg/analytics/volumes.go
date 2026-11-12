@@ -189,6 +189,21 @@ type DiskReport struct {
 	SurveyedAt time.Time
 }
 
+// clone copies the report, its volumes and their directories, so that the
+// copy can be changed while the original is read.
+func (r *DiskReport) clone() *DiskReport {
+	out := *r
+	out.Volumes = slices.Clone(r.Volumes)
+
+	for i := range out.Volumes {
+		out.Volumes[i].Dirs = slices.Clone(out.Volumes[i].Dirs)
+	}
+
+	out.Unmeasured = slices.Clone(r.Unmeasured)
+
+	return &out
+}
+
 // Worst is the most severe volume of the report, the fullest among equals;
 // false without a measured volume.
 func (r *DiskReport) Worst() (Volume, bool) {
@@ -332,16 +347,17 @@ func (s DiskSettings) Budget() time.Duration { return s.SurveyPeriod / surveyBud
 // directories, and the functions that read the system, which the tests
 // replace.
 type disks struct {
-	mu       sync.Mutex
-	home     string
-	seen     map[string]time.Time
-	report   atomic.Pointer[DiskReport]
-	settings DiskSettings
-	survey   surveyState
-	usage    func(path string) (*disk.UsageStat, error)
-	mounts   func() ([]string, error)
-	readDir  func(path string, maxEntries int) (files int, size int64, more bool, err error)
-	timeout  time.Duration
+	mu        sync.Mutex
+	home      string
+	seen      map[string]time.Time
+	report    atomic.Pointer[DiskReport]
+	settings  DiskSettings
+	survey    surveyState
+	surveying sync.Mutex // held by the survey that runs, cycle or new directories
+	usage     func(path string) (*disk.UsageStat, error)
+	mounts    func() ([]string, error)
+	readDir   func(path string, maxEntries int) (files int, size int64, more bool, err error)
+	timeout   time.Duration
 }
 
 // SetHome tells the service the home directory of the gateway, which a

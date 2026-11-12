@@ -20,8 +20,14 @@ import (
 // cap on the entries read per directory, past which the count says "more
 // than", and the budget per cycle: the cycles go round the directories in the
 // order of their paths, each resuming after the directory the previous one
-// stopped at, so that a directory left out is surveyed at the next cycle. The
-// results reach the report at the next measure of the volumes.
+// stopped at, so that a directory left out is surveyed at the next cycle. A
+// present directory never surveyed (the directories of the gateway, given once
+// the service runs; a server or a rule added) is surveyed right after the
+// measure that finds it, within the same budget, without waiting for the next
+// cycle. A directory is listed once at a time: a listing that outlasts its
+// cycle is left to end, not started again. The surveys reach the current
+// report at the end of each cycle; a result that comes later reaches it at
+// the next measure of the volumes.
 
 const (
 	// DiskSurveyPeriod is how often the directories are surveyed, by default.
@@ -51,10 +57,11 @@ type DirSurvey struct {
 
 // surveyState is what the service keeps of the survey between the cycles,
 // under the lock of disks: the result of each directory by its path key, the
-// key of the directory the last cycle stopped at, and when the last cycle
-// ran.
+// directories being listed, the key of the directory the last cycle stopped
+// at, and when the last cycle ran.
 type surveyState struct {
 	results map[string]surveyResult
+	pending map[string]struct{}
 	last    string
 	at      time.Time
 }
@@ -72,17 +79,19 @@ type surveyResult struct {
 // round, each listed in its own routine, abandoned when the time left runs
 // out (its result is kept when it comes, if no newer one has). A directory the
 // budget leaves out is surveyed at the next cycle. The results of the
-// directories the report no longer holds are forgotten.
+// directories the report no longer holds are forgotten, and the surveys reach
+// the current report. One survey runs at a time: a cycle waits for a survey of
+// the new directories to end.
 func (a *analytics) Survey(ctx context.Context, now time.Time) {
 	report := a.Disks()
 	if report == nil {
 		return
 	}
 
+	a.disks.surveying.Lock()
+	defer a.disks.surveying.Unlock()
+
 	keys, dirs := presentDirs(report)
-	settings := a.DiskSettings()
-	budget := settings.Budget()
-	started := time.Now()
 
 	a.disks.mu.Lock()
 	start, found := slices.BinarySearch(keys, a.disks.survey.last)
@@ -92,20 +101,80 @@ func (a *analytics) Survey(ctx context.Context, now time.Time) {
 		start++
 	}
 
+	if last := a.surveyRound(ctx, dirs, start, now); last >= 0 {
+		a.setSurveyLast(keys[last])
+	}
+
+	a.endCycle(keys, now)
+	a.publishSurveys()
+}
+
+// SurveyNew surveys, now, the present local directories of the last report
+// that were never surveyed, within the budget of the settings, so that a
+// directory does not wait for the next cycle when it joins the report: the
+// directories of the gateway, given once the service runs, or a server or a
+// rule added. The directories surveyed already are left to the cycles; nothing
+// is done while a survey runs.
+func (a *analytics) SurveyNew(ctx context.Context, now time.Time) {
+	report := a.Disks()
+	if report == nil {
+		return
+	}
+
+	if !a.disks.surveying.TryLock() {
+		return
+	}
+	defer a.disks.surveying.Unlock()
+
+	_, dirs := presentDirs(report)
+
+	a.disks.mu.Lock()
+
+	fresh := slices.DeleteFunc(dirs, func(d LocalDir) bool {
+		_, kept := a.disks.survey.results[pathKey(d.Path)]
+
+		return kept
+	})
+
+	a.disks.mu.Unlock()
+
+	if len(fresh) == 0 {
+		return
+	}
+
+	a.surveyRound(ctx, fresh, 0, now)
+	a.publishSurveys()
+}
+
+// surveyRound lists the directories from the one at start, round after round,
+// within the budget of the settings, each in its own routine abandoned when
+// the time left runs out; the index of the last directory it came to, -1 when
+// it came to none.
+func (a *analytics) surveyRound(ctx context.Context, dirs []LocalDir, start int, now time.Time) int {
+	settings := a.DiskSettings()
+	budget := settings.Budget()
+	started := time.Now()
+	last := -1
+
 	for n := range dirs {
 		left := budget - time.Since(started)
 		if left <= 0 || ctx.Err() != nil {
 			break
 		}
 
-		i := (start + n) % len(dirs)
-		a.setSurveyLast(keys[i])
+		last = (start + n) % len(dirs)
 
-		if !a.surveyDir(keys[i], dirs[i].Path, settings.SurveyMaxEntries, now, left) {
+		if !a.surveyDir(pathKey(dirs[last].Path), dirs[last].Path, settings.SurveyMaxEntries, now, left) {
 			break
 		}
 	}
 
+	return last
+}
+
+// endCycle forgets the surveys of the directories the report no longer holds
+// and dates the cycle.
+func (a *analytics) endCycle(keys []string, now time.Time) {
 	a.disks.mu.Lock()
 	defer a.disks.mu.Unlock()
 
@@ -116,6 +185,26 @@ func (a *analytics) Survey(ctx context.Context, now time.Time) {
 	}
 
 	a.disks.survey.at = now
+}
+
+// publishSurveys gives the current report the surveys kept so far, in a fresh
+// copy, the report handed out being read by others; retried on the report of
+// a measure that lands meanwhile, which may have attached them before the
+// last one came.
+func (a *analytics) publishSurveys() {
+	for {
+		current := a.disks.report.Load()
+		if current == nil {
+			return
+		}
+
+		fresh := current.clone()
+		a.attachSurveys(fresh)
+
+		if a.disks.report.CompareAndSwap(current, fresh) {
+			return
+		}
+	}
 }
 
 // presentDirs lists the present local directories of a report, by the key of
@@ -150,8 +239,13 @@ func (a *analytics) setSurveyLast(key string) {
 
 // surveyDir lists one directory in its own routine and keeps its survey;
 // false when the listing outlasted the time left, in which case the routine
-// is abandoned and keeps the survey itself when it comes.
+// is abandoned and keeps the survey itself when it comes. A directory being
+// listed already is left to that listing.
 func (a *analytics) surveyDir(key, path string, maxEntries int, now time.Time, left time.Duration) bool {
+	if !a.claim(key) {
+		return true
+	}
+
 	done := make(chan struct{})
 
 	go func() {
@@ -177,10 +271,33 @@ func (a *analytics) surveyDir(key, path string, maxEntries int, now time.Time, l
 	}
 }
 
-// keepSurvey keeps the survey of a directory, unless a newer one is kept.
+// claim marks a directory as being listed; false when a listing of it runs
+// already, so that a listing that outlasts its cycle is left to end, not
+// started again.
+func (a *analytics) claim(key string) bool {
+	a.disks.mu.Lock()
+	defer a.disks.mu.Unlock()
+
+	if _, pending := a.disks.survey.pending[key]; pending {
+		return false
+	}
+
+	if a.disks.survey.pending == nil {
+		a.disks.survey.pending = map[string]struct{}{}
+	}
+
+	a.disks.survey.pending[key] = struct{}{}
+
+	return true
+}
+
+// keepSurvey keeps the survey of a directory, whose listing is over, unless a
+// newer one is kept.
 func (a *analytics) keepSurvey(key string, res surveyResult) {
 	a.disks.mu.Lock()
 	defer a.disks.mu.Unlock()
+
+	delete(a.disks.survey.pending, key)
 
 	if a.disks.survey.results == nil {
 		a.disks.survey.results = map[string]surveyResult{}

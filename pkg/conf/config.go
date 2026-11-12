@@ -126,7 +126,7 @@ type SecurityConfig struct {
 //nolint:lll // cannot split struct tags
 type AnalyticsConfig struct {
 	DiskMeasurePeriod    time.Duration `ini-name:"DiskMeasurePeriod" default:"30s" description:"How often the free space of the volumes that hold the local directories of the transfers is measured."`
-	DiskSurveyPeriod     time.Duration `ini-name:"DiskSurveyPeriod" default:"5m" description:"How often the first level of each local directory is surveyed (number and size of its files). A survey spends at most a fifth of this period; a directory left out is surveyed at the next one."`
+	DiskSurveyPeriod     time.Duration `ini-name:"DiskSurveyPeriod" default:"5m" description:"How often the first level of each local directory is surveyed (number and size of its files). A survey spends at most a fifth of this period; a directory left out is surveyed at the next one, a directory that appears is surveyed at the next measure."`
 	DiskSurveyMaxEntries int           `ini-name:"DiskSurveyMaxEntries" default:"10000" description:"The number of entries read in a directory before the survey stops and reports 'more than' that many files."`
 }
 

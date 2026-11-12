@@ -74,7 +74,8 @@ func (s *Service) start() error {
 // sampleEvery samples the counters now, then every period; measures the
 // volumes now, then every diskPeriod; and surveys the directories now, then
 // every surveyPeriod, each cycle in its own routine so that a listing never
-// delays a measure; until ctx ends.
+// delays a measure; until ctx ends. A directory that joins the report between
+// two cycles is surveyed right after the measure that finds it.
 func (s *Service) sampleEvery(ctx context.Context, period, diskPeriod, surveyPeriod time.Duration) {
 	s.Sample(time.Now())
 	s.measureDisks(ctx, time.Now())
@@ -105,9 +106,12 @@ func (s *Service) sampleEvery(ctx context.Context, period, diskPeriod, surveyPer
 }
 
 // measureDisks measures, in the background, the volumes of every local
-// directory the transfers use.
+// directory the transfers use, then surveys, in its own routine, the
+// present directories never surveyed.
 func (s *Service) measureDisks(ctx context.Context, now time.Time) {
 	s.Measure(ctx, s.localDirs(now), now)
+
+	go s.SurveyNew(ctx, now)
 }
 
 // localDirs lists the directories to measure: the gateway's own (given by

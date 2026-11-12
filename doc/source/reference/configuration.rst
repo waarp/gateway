@@ -334,7 +334,9 @@ niveau de chacun de ces dossiers (nombre et taille de ses fichiers).
    L'intervalle entre deux relevés des dossiers. Un relevé lit le premier niveau
    de chaque dossier présent, jamais ses sous-dossiers, et ne dépasse pas un
    cinquième de cet intervalle : un dossier qu'il n'a pas eu le temps de lire
-   l'est au relevé suivant.
+   l'est au relevé suivant. Un dossier qui apparaît entre deux relevés (au
+   démarrage, ou à l'ajout d'un serveur ou d'une règle) est relevé dès la
+   mesure qui le trouve, sans attendre le relevé suivant.
 
    Valeur par défaut : ``5m``
 

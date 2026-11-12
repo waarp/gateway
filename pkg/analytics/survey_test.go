@@ -174,9 +174,10 @@ func TestSurveyCap(t *testing.T) {
 	assert.Equal(t, int64(survey.Files), survey.Size, "the size of the files read")
 }
 
-// A cycle stops at its budget: a directory it leaves out, or whose listing
-// outlasts the budget, is surveyed at the next cycle, which resumes after it;
-// the result of an abandoned listing is kept when it comes.
+// A cycle stops at its budget: a directory it leaves out is surveyed at the
+// next cycle, which resumes after the one it stopped at; a listing that
+// outlasts the budget is left to end, not started again, and its result is
+// kept when it comes.
 func TestSurveyBudget(t *testing.T) {
 	t.Parallel()
 
@@ -235,17 +236,17 @@ func TestSurveyBudget(t *testing.T) {
 	later := now.Add(DiskSurveyPeriod)
 	a.Survey(ctx, later)
 	assert.Equal(t, map[string]time.Time{"a": later, "c": later}, taken(measureRoot(&a, root, dirs, later)),
-		"the cycle resumed after b: c, then a again, then b hung again")
+		"the cycle resumed after b: c, then a again; b, still being listed, is left to end")
 
 	mu.Lock()
-	assert.Equal(t, []string{"a", "b", "c", "a", "b"}, listed)
+	assert.Equal(t, []string{"a", "b", "c", "a"}, listed)
 	mu.Unlock()
 
 	close(release)
 
 	assert.Eventually(t, func() bool {
-		return taken(measureRoot(&a, root, dirs, later))["b"].Equal(later)
-	}, 2*time.Second, 10*time.Millisecond, "the abandoned listings end and the newest is kept")
+		return taken(measureRoot(&a, root, dirs, later))["b"].Equal(now)
+	}, 2*time.Second, 10*time.Millisecond, "the abandoned listing ends and its result is kept, dated from its cycle")
 }
 
 // A directory the survey may not read is reported as denied, with the error.
@@ -295,4 +296,157 @@ func TestDiskSettings(t *testing.T) {
 	a.SetDiskSettings(DiskSettings{SurveyMaxEntries: -1, SurveyPeriod: time.Minute})
 	assert.Equal(t, DiskSurveyMaxEntries, a.DiskSettings().SurveyMaxEntries, "a value below zero takes the default")
 	assert.Equal(t, time.Minute, a.DiskSettings().SurveyPeriod)
+}
+
+// The surveys of a cycle reach the current report at its end, in a fresh copy
+// of the report, without waiting for the next measure; the report already
+// handed out is left as it was, its readers may still be reading it.
+func TestSurveyPublishes(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	now := time.Date(2026, 11, 12, 9, 39, 0, 0, time.UTC)
+	root := t.TempDir()
+	in := filepath.Join(root, "in")
+	writeFiles(t, in, 10, 20)
+
+	dirs := []LocalDir{{Path: in, Role: DirIn, Origin: OriginConfigured}}
+
+	var a analytics
+
+	measured := measureRoot(&a, root, dirs, now)
+	surveyedAt := now.Add(10 * time.Second)
+	a.Survey(ctx, surveyedAt)
+
+	report := a.Disks()
+	require.NotNil(t, report)
+	assert.NotSame(t, measured, report, "a fresh report, the measured one being read by others")
+	assert.Equal(t, now, report.MeasuredAt, "the same measure")
+	assert.Equal(t, surveyedAt, report.SurveyedAt, "the time of the cycle, already")
+	assert.Equal(t, &DirSurvey{Files: 2, Size: 30, At: surveyedAt}, surveyOf(t, report)["in"].Survey,
+		"the survey, without waiting for the next measure")
+	assert.Nil(t, surveyOf(t, measured)["in"].Survey, "the report handed out before the cycle is left as it was")
+}
+
+// A present directory never surveyed is surveyed right after the measure that
+// finds it, without waiting for the next cycle: the directories of the
+// gateway, given once the service runs, or a server or a rule added; the
+// directories already surveyed are left to the cycles.
+func TestSurveyNew(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	now := time.Date(2026, 11, 12, 9, 39, 0, 0, time.UTC)
+	root := t.TempDir()
+	in, out := filepath.Join(root, "in"), filepath.Join(root, "out")
+	writeFiles(t, in, 10, 20)
+	writeFiles(t, out, 5)
+
+	first := []LocalDir{{Path: in, Role: RoleTask, Owner: "flux", OwnerID: 7, Origin: OriginTask}}
+	both := []LocalDir{first[0], {Path: out, Role: DirOut, Origin: OriginConfigured}}
+
+	var a analytics
+
+	measureRoot(&a, root, first, now)
+	a.Survey(ctx, now)
+
+	// The home of the gateway is given, or an object added: "out" joins the report.
+	later := now.Add(DiskPeriod)
+	measureRoot(&a, root, both, later)
+	assert.Nil(t, surveyOf(t, a.Disks())["out"].Survey, "not surveyed yet")
+
+	a.SurveyNew(ctx, later)
+
+	byName := surveyOf(t, a.Disks())
+	assert.Equal(t, &DirSurvey{Files: 1, Size: 5, At: later}, byName["out"].Survey, "surveyed without waiting for the cycle")
+	assert.Equal(t, &DirSurvey{Files: 2, Size: 30, At: now}, byName["in"].Survey, "left to the cycles")
+	assert.Equal(t, now, a.Disks().SurveyedAt, "the time of the last cycle, unchanged")
+
+	// Nothing new: nothing is listed.
+	var (
+		mu     sync.Mutex
+		listed int
+	)
+
+	a.disks.readDir = func(string, int) (int, int64, bool, error) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		listed++
+
+		return 0, 0, false, nil
+	}
+
+	a.SurveyNew(ctx, later.Add(DiskPeriod))
+
+	mu.Lock()
+	assert.Zero(t, listed, "every directory surveyed already")
+	mu.Unlock()
+}
+
+// A directory is listed once at a time: a listing that outlasts its cycle is
+// left to end, neither the next cycle nor a survey of the new directories
+// starts another, and its result is kept when it comes.
+func TestSurveyPending(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	now := time.Date(2026, 11, 12, 9, 39, 0, 0, time.UTC)
+	root := t.TempDir()
+	slow := filepath.Join(root, "slow")
+	require.NoError(t, os.MkdirAll(slow, 0o750))
+
+	dirs := []LocalDir{{Path: slow, Role: RoleTransfer, Origin: OriginSeen}}
+
+	var (
+		a       analytics
+		mu      sync.Mutex
+		listed  int
+		release = make(chan struct{})
+	)
+
+	a.SetDiskSettings(DiskSettings{SurveyPeriod: time.Second}) // a budget of 200 ms
+	a.disks.readDir = func(string, int) (int, int64, bool, error) {
+		mu.Lock()
+		listed++
+		mu.Unlock()
+
+		<-release // a listing that hangs
+
+		return 3, 30, false, nil
+	}
+
+	count := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+
+		return listed
+	}
+
+	measureRoot(&a, root, dirs, now)
+	a.Survey(ctx, now)
+	assert.Equal(t, 1, count(), "listed, until the budget ran out")
+	assert.Nil(t, surveyOf(t, a.Disks())["slow"].Survey, "no result yet")
+
+	a.SurveyNew(ctx, now.Add(DiskPeriod))
+	assert.Equal(t, 1, count(), "never surveyed, but being listed: not started again")
+
+	a.Survey(ctx, now.Add(DiskSurveyPeriod))
+	assert.Equal(t, 1, count(), "the next cycle leaves it to end")
+
+	close(release)
+
+	assert.Eventually(t, func() bool {
+		a.disks.mu.Lock()
+		defer a.disks.mu.Unlock()
+
+		_, pending := a.disks.survey.pending[pathKey(slow)]
+
+		return !pending
+	}, 2*time.Second, 10*time.Millisecond, "the listing ends")
+
+	third := now.Add(2 * DiskSurveyPeriod)
+	a.Survey(ctx, third)
+	assert.Equal(t, 2, count(), "listed again by the next cycle")
+	assert.Equal(t, &DirSurvey{Files: 3, Size: 30, At: third}, surveyOf(t, a.Disks())["slow"].Survey)
 }
