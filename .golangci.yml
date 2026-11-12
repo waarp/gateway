@@ -2872,6 +2872,7 @@ linters:
         - utils.RWWithCtx(
         - utils.RWatWithCtx(
         - .Transaction(
+        - pesit.NewDiagnostic(
 
       # An array of strings that specify substrings of signatures to ignore.
       # If this set, it will override the default set of ignored signatures.
@@ -2882,6 +2883,7 @@ linters:
       # Default: []
       ignore-sig-regexps:
         - \(\*code.waarp.fr/apps/gateway/gateway/pkg/database\.FkChecker\[.*\]\)\.Check(f)?\(.*
+        - \.(New|To|From)\w*Error\w*\(
       # An array of strings that specify globs of packages to ignore.
       # Default: []
       ignore-package-globs:
