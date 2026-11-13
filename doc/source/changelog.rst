@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+
+* :release:`0.17.2 <2026-11-13>`
 * :bug:`871` Une tâche ``SETINFO`` qui emploie ``key`` ou ``value`` autrement que
   dans son ancienne forme seule est refusée à l'enregistrement, au lieu de ne
   poser que cette clé en silence à l'exécution.
