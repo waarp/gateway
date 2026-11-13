@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`871` Une tâche ``SETINFO`` qui emploie ``key`` ou ``value`` autrement que
+  dans son ancienne forme seule est refusée à l'enregistrement, au lieu de ne
+  poser que cette clé en silence à l'exécution.
 * :bug:`839` Les objets SNMP restent servis après un rechargement de la
   configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
   redémarrage de la passerelle.

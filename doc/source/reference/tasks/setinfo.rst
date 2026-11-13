@@ -25,7 +25,9 @@ Paramètres
    objet JSON ou YAML. Les clés "key" et "value" restent réservées pour maintenir
    la rétro-compatibilité, mais elles ne sont plus obligatoires. Si une clé est
    spécifiée avec une valeur vide (``""``) ou nulle (``"null"``), alors la clé
-   sera supprimée des informations de transfert.
+   sera supprimée des informations de transfert. Une tâche qui emploie ``key``
+   ou ``value`` autrement que dans cette ancienne forme seule est refusée à
+   l'enregistrement.
 
 Exemples
 --------
