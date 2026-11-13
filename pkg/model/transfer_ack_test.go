@@ -46,6 +46,13 @@ func TestAckCaseCondition(t *testing.T) {
 	rule := &Rule{Name: "ack_rule", IsSend: true, Path: "ack"}
 	require.NoError(t, db.Insert(rule).Run())
 
+	type fixture struct {
+		status types.TransferStatus
+		info   map[string]any
+	}
+
+	fixtures := map[int64]fixture{}
+
 	transfer := func(name string, status types.TransferStatus, info map[string]any) int64 {
 		trans := &Transfer{
 			RuleID:          rule.ID,
@@ -57,6 +64,7 @@ func TestAckCaseCondition(t *testing.T) {
 			TransferInfo:    info,
 		}
 		require.NoError(t, db.Insert(trans).Run(), name)
+		fixtures[trans.ID] = fixture{status, info}
 
 		return trans.ID
 	}
@@ -81,6 +89,7 @@ func TestAckCaseCondition(t *testing.T) {
 			TransferInfo:     info,
 		}
 		require.NoError(t, db.Insert(hist).Run())
+		fixtures[hist.ID] = fixture{status, info}
 
 		return hist.ID
 	}
@@ -156,6 +165,26 @@ func TestAckCaseCondition(t *testing.T) {
 	for _, id := range slices.Concat(transferIDs(all), historyIDs(allHist)) {
 		assert.Truef(t, covered[id], "transfer %d is in no case", id)
 		assert.LessOrEqualf(t, exclusive[id], 1, "transfer %d is in several exclusive cases", id)
+	}
+
+	// The rules in Go (AckOf, AckWasSent: the lists read the keys of a page)
+	// agree with the SQL on every fixture.
+	for id, f := range fixtures {
+		want := AckNone
+
+		for _, ackCase := range []AckCase{AckExpected, AckReceived, AckMissed} {
+			if slices.Contains(cases[ackCase].transfers, id) || slices.Contains(cases[ackCase].history, id) {
+				want = ackCase
+			}
+		}
+
+		sent := slices.Contains(cases[AckSent].transfers, id) || slices.Contains(cases[AckSent].history, id)
+		if want == AckNone && sent {
+			want = AckSent
+		}
+
+		assert.Equalf(t, want, AckOf(f.status, f.info), "AckOf on %d", id)
+		assert.Equalf(t, sent, AckWasSent(f.info), "AckWasSent on %d", id)
 	}
 
 	// An unknown case keeps nothing.

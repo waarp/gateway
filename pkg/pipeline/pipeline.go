@@ -582,7 +582,7 @@ const (
 	AckReceived      = model.InfoAckReceived
 	AckReceivedOnKey = model.InfoAckReceivedOn
 
-	ackDefaultTimeout = 10 * time.Minute
+	ackDefaultTimeout = model.AckDefaultWait
 )
 
 func (p *Pipeline) waitACK() *Error {

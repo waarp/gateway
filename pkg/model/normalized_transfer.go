@@ -174,6 +174,13 @@ func (NormalizedTransferInfo) Appellation() string { return NameNormalizedTransf
 
 type NormalizedTransferInfos []NormalizedTransferInfo
 
+// TableName names the view, read as a whole for the acknowledgement keys
+// of a page of transfers.
+func (NormalizedTransferInfos) TableName() string { return ViewNormalizedTransferInfo }
+
+// Elem names an entry of the view.
+func (NormalizedTransferInfos) Elem() string { return NameNormalizedTransferInfo }
+
 func (n NormalizedTransferInfos) AsMap() map[string]any {
 	m := make(map[string]any, len(n))
 	for _, info := range n {
