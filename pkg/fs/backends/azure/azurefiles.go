@@ -15,12 +15,15 @@ import (
 
 var ErrMissingFilesShare = errors.New("no Azure Files share specified")
 
+// FilesStorage is the storage of rclone the Azure Files backend is built on.
+const FilesStorage = "azurefiles"
+
 func parseFilesOpts(account, key string, userOpts map[string]string) (configmap.Mapper, error) {
 	// Credential options
 	credOpts := azureCredOpts(account, key)
 
 	// Make config map
-	config := internal.MakeOptions("azurefiles", userOpts, credOpts)
+	config := internal.MakeOptions(FilesStorage, userOpts, credOpts)
 
 	if share, _ := config.Get("share_name"); share == "" {
 		return nil, ErrMissingFilesShare
