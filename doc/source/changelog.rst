@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`746` La liste des transferts et ses comptages se lisent plus vite sur
+  une base volumineuse : la vue ``normalized_transfers`` réunit les transferts
+  en cours et l'historique par ``UNION ALL``, sans le dédoublonnage de ``UNION``
+  qui n'écartait aucune ligne.
 
 * :release:`0.17.2 <2026-11-13>`
 * :bug:`871` Une tâche ``SETINFO`` qui emploie ``key`` ou ``value`` autrement que
