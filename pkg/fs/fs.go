@@ -21,12 +21,12 @@ type FS interface {
 }
 
 func NewFS(name, kind, key, secret string, opts map[string]string) (FS, error) {
-	mkfs, ok := fsMakers.Load(kind)
+	backend, ok := backends.Load(kind)
 	if !ok {
 		return nil, fmt.Errorf("%w %q", ErrUnknownFSType, kind)
 	}
 
-	return mkfs(name, key, secret, opts)
+	return backend.Make(name, key, secret, opts)
 }
 
 func ValidateConfig(name, kind, key, secret string, opts map[string]string) error {

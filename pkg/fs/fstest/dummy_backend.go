@@ -7,6 +7,7 @@ import (
 	"maps"
 	"testing"
 
+	rfs "github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/object"
 	"github.com/rclone/rclone/vfs"
 	"github.com/rclone/rclone/vfs/vfscommon"
@@ -14,13 +15,21 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 )
 
+const memoryType = "memory"
+
 func MakeDummyBackend(tb testing.TB) string {
 	tb.Helper()
 
 	kind := tb.Name()
-	fs.Register(kind, func(string, string, string, map[string]string) (fs.FS, error) {
-		return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
-	})
+	backend := fs.Backend{
+		Type: memoryType,
+		Make: func(string, string, string, map[string]string) (fs.FS, error) {
+			return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
+		},
+		Options: rfs.Options{},
+	}
+
+	fs.Register(kind, backend)
 	tb.Cleanup(func() { fs.Unregister(kind) })
 
 	return kind
@@ -34,14 +43,20 @@ func MakeStaticBackend(tb testing.TB, expName, expKey, expSecret string,
 	tb.Helper()
 
 	kind := tb.Name()
-	fs.Register(kind, func(name, key, secret string, opts map[string]string) (fs.FS, error) {
-		if name != expName || key != expKey || secret != expSecret ||
-			!maps.Equal(opts, expOpts) {
-			return nil, ErrInvalidConfig
-		}
+	backend := fs.Backend{
+		Type: memoryType,
+		Make: func(name, key, secret string, opts map[string]string) (fs.FS, error) {
+			if name != expName || key != expKey || secret != expSecret ||
+				!maps.Equal(opts, expOpts) {
+				return nil, ErrInvalidConfig
+			}
 
-		return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
-	})
+			return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
+		},
+		Options: rfs.Options{},
+	}
+
+	fs.Register(kind, backend)
 	tb.Cleanup(func() { fs.Unregister(kind) })
 
 	return kind
