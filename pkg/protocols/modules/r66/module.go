@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/features"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66/r66auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protoutils"
@@ -20,7 +21,8 @@ const (
 	R66    = "r66"
 	R66TLS = "r66-tls"
 
-	AuthLegacyCertificate = r66auth.AuthLegacyCertificate
+	AuthLegacyCertificate                     = r66auth.AuthLegacyCertificate
+	InfoFamily            model.InfoKeyFamily = "r66"
 )
 
 //nolint:gochecknoinits //init is used by design
@@ -29,9 +31,11 @@ func init() {
 	authentication.AddInternalCredentialTypeForProtocol(auth.Password, R66TLS, &r66auth.BcryptAuthHandler{})
 
 	authentication.AddInternalCredentialTypeForProtocol(
-		r66auth.AuthLegacyCertificate, R66TLS, &r66auth.LegacyCertificate{})
+		r66auth.AuthLegacyCertificate, R66TLS, &r66auth.LegacyCertificate{},
+	)
 	authentication.AddExternalCredentialTypeForProtocol(
-		r66auth.AuthLegacyCertificate, R66TLS, &r66auth.LegacyCertificate{})
+		r66auth.AuthLegacyCertificate, R66TLS, &r66auth.LegacyCertificate{},
+	)
 }
 
 type Module struct{}
@@ -58,9 +62,15 @@ func (Module) CheckPartnerConfig(conf map[string]any) error {
 	return protoutils.ValidateProtoConfig(conf, &PartnerConfig{})
 }
 
-func (m Module) OptionalFeatures() []features.Feature {
+func (Module) OptionalFeatures() []features.Feature {
 	return []features.Feature{
 		features.Listing,
+	}
+}
+
+func (Module) CustomInfoKeys() (model.InfoKeyFamily, []model.ReservedInfoKey) {
+	return InfoFamily, []model.ReservedInfoKey{
+		{internal.UserContent, model.InfoSetByBoth},
 	}
 }
 

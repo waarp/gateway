@@ -49,6 +49,7 @@ func init() {
 func Reset() {
 	model.Protocols = map[string]model.Protocol{}
 	model.IDGenerators = map[string]model.IDGenerator{}
+	model.ReservedInfoKeys = model.DefaultInfoList()
 
 	clientMakers = map[string]func(*database.DB, *model.Client) protocol.Client{}
 	serverMakers = map[string]func(*database.DB, *model.LocalAgent) protocol.Server{}
@@ -67,6 +68,10 @@ func Register(name string, p Module) {
 
 	if idGen, ok := p.(CustomIDModule); ok {
 		model.IDGenerators[name] = idGen.IDGenerator()
+	}
+
+	if infoer, ok := p.(CustomInfoKeys); ok {
+		model.ReservedInfoKeys.Add(infoer.CustomInfoKeys())
 	}
 }
 

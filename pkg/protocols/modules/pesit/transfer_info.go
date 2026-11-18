@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/lib/pesit"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
@@ -16,11 +15,11 @@ import (
 )
 
 const (
-	fileEncodingKey = model.InfoFileEncoding
-	fileTypeKey     = model.InfoFileType
-	organizationKey = model.InfoOrganization
-	customerIDKey   = model.InfoCustomerID
-	bankIDKey       = model.InfoBankID
+	fileEncodingKey = "__fileEncoding__"
+	fileTypeKey     = "__fileType__"
+	organizationKey = "__organization__"
+	customerIDKey   = "__customerID__"
+	bankIDKey       = "__bankID__"
 
 	ackExpectedKey   = tasks.SendMessageAckExpectedKey
 	ackTimeout       = pipeline.AckWaitTimeout
@@ -30,16 +29,16 @@ const (
 	ackReceivedKey   = pipeline.AckReceived
 	ackReceivedOnKey = pipeline.AckReceivedOnKey
 
-	clientConnFreetextKey  = model.InfoClientConnFreetext
-	clientTransFreetextKey = model.InfoClientTransFreetext
+	clientConnFreetextKey  = "__clientConnFreetext__"
+	clientTransFreetextKey = "__clientTransFreetext__"
 	// Legacy profile: PI 99 as received, when PI 94 took its place as free text.
-	clientTransFreetextRawKey = model.InfoClientTransFreetextRaw
-	serverConnFreetextKey     = model.InfoServerConnFreetext
-	serverTransFreetextKey    = model.InfoServerTransFreetext
+	clientTransFreetextRawKey = "__clientTransFreetextRaw__"
+	serverConnFreetextKey     = "__serverConnFreetext__"
+	serverTransFreetextKey    = "__serverTransFreetext__"
 
-	articlesLengthsKey   = model.InfoArticlesLengths
-	articlesFormatKey    = model.InfoArticlesFormat
-	articlesSeparatorKey = model.InfoArticlesSeparator
+	articlesLengthsKey   = "__articlesLengths__"
+	articlesFormatKey    = "__articlesFormat__"
+	articlesSeparatorKey = "__articlesSeparator__"
 )
 
 func setPesitInfo[T cmp.Ordered, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {

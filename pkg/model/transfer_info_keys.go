@@ -1,6 +1,11 @@
 package model
 
-import "iter"
+import (
+	"iter"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/ordered"
+)
 
 // The reserved keys of the transfer information (#816), of the form
 // __key__ with a lower-case first letter: the gateway reads some from the
@@ -18,9 +23,6 @@ const (
 	// InfoFamilyTransfer: the follow ID, the user content, the synchronised
 	// transfers.
 	InfoFamilyTransfer InfoKeyFamily = "transfer"
-	// InfoFamilyPesit: the free texts, the file attributes and the articles
-	// of PeSIT.
-	InfoFamilyPesit InfoKeyFamily = "pesit"
 	// InfoFamilyAck: the acknowledgements (SENDMESSAGE, PeSIT).
 	InfoFamilyAck InfoKeyFamily = "ack"
 )
@@ -44,35 +46,10 @@ const (
 	// FollowID: the R66 follow ID, which also links a transfer and its
 	// acknowledgement.
 	FollowID = "__followID__"
-	// InfoUserContent: the R66 user content.
-	InfoUserContent = "__userContent__"
 	// SyncTransferID and SyncTransferRank: the parent and the rank of a
 	// synchronised child transfer.
 	SyncTransferID   = "__syncTransferID__"
 	SyncTransferRank = "__syncTransferRank__"
-
-	// The free texts of PeSIT: of the client and of the server, at the
-	// connection and at the selection of the file; the raw PI 99 when the
-	// legacy profile puts the free text in PI 94.
-
-	InfoClientConnFreetext     = "__clientConnFreetext__"
-	InfoClientTransFreetext    = "__clientTransFreetext__"
-	InfoClientTransFreetextRaw = "__clientTransFreetextRaw__"
-	InfoServerConnFreetext     = "__serverConnFreetext__"
-	InfoServerTransFreetext    = "__serverTransFreetext__"
-	// The file attributes of PeSIT: PI 16, PI 11, PI 33, PI 61, PI 62.
-
-	InfoFileEncoding = "__fileEncoding__"
-	InfoFileType     = "__fileType__"
-	InfoOrganization = "__organization__"
-	InfoCustomerID   = "__customerID__"
-	InfoBankID       = "__bankID__"
-	// The articles of PeSIT: their format (PI 31), their lengths, the
-	// separator of the records of a text file sent one per article.
-
-	InfoArticlesFormat    = "__articlesFormat__"
-	InfoArticlesLengths   = "__articlesLengths__"
-	InfoArticlesSeparator = "__articlesSeparator__"
 
 	// The acknowledgements: expected, how long to wait for one and since
 	// when, received and when; sent, when, to which partner, as which
@@ -95,31 +72,23 @@ type ReservedInfoKey struct {
 	SetBy InfoKeySetter
 }
 
-type ReservedInfoFamilies struct {
-	Transfer []ReservedInfoKey
-	Pesit    []ReservedInfoKey
-	Ack      []ReservedInfoKey
+type ReservedInfoList ordered.Map[InfoKeyFamily, []ReservedInfoKey]
+
+func (r *ReservedInfoList) Len() int {
+	return utils.Count2(r.Iter())
 }
 
-func (r *ReservedInfoFamilies) Len() int {
-	return len(r.Transfer) + len(r.Pesit) + len(r.Ack)
+func (r *ReservedInfoList) Add(family InfoKeyFamily, keys []ReservedInfoKey) {
+	(*ordered.Map[InfoKeyFamily, []ReservedInfoKey])(r).Add(family, keys)
 }
 
-func (r *ReservedInfoFamilies) Iter() iter.Seq2[InfoKeyFamily, ReservedInfoKey] {
+func (r *ReservedInfoList) Iter() iter.Seq2[InfoKeyFamily, ReservedInfoKey] {
 	return func(yield func(InfoKeyFamily, ReservedInfoKey) bool) {
-		for _, key := range r.Transfer {
-			if !yield(InfoFamilyTransfer, key) {
-				return
-			}
-		}
-		for _, key := range r.Pesit {
-			if !yield(InfoFamilyPesit, key) {
-				return
-			}
-		}
-		for _, key := range r.Ack {
-			if !yield(InfoFamilyAck, key) {
-				return
+		for _, elem := range *r {
+			for _, key := range elem.Val {
+				if !yield(elem.Key, key) {
+					return
+				}
 			}
 		}
 	}
@@ -133,39 +102,28 @@ func (k ReservedInfoKey) UserSets() bool {
 
 // ReservedInfoKeys lists the reserved keys by family, in the order the
 // screens show them.
-func ReservedInfoKeys() *ReservedInfoFamilies {
-	return &ReservedInfoFamilies{
-		Transfer: []ReservedInfoKey{
-			{FollowID, InfoSetByBoth},
-			{InfoUserContent, InfoSetByBoth},
-			{SyncTransferID, InfoSetByGateway},
-			{SyncTransferRank, InfoSetByGateway},
-		},
-		Pesit: []ReservedInfoKey{
-			{InfoClientConnFreetext, InfoSetByBoth},
-			{InfoClientTransFreetext, InfoSetByBoth},
-			{InfoClientTransFreetextRaw, InfoSetByGateway},
-			{InfoServerConnFreetext, InfoSetByGateway},
-			{InfoServerTransFreetext, InfoSetByBoth},
-			{InfoFileEncoding, InfoSetByBoth},
-			{InfoFileType, InfoSetByBoth},
-			{InfoOrganization, InfoSetByBoth},
-			{InfoCustomerID, InfoSetByBoth},
-			{InfoBankID, InfoSetByBoth},
-			{InfoArticlesFormat, InfoSetByBoth},
-			{InfoArticlesLengths, InfoSetByBoth},
-			{InfoArticlesSeparator, InfoSetByUser},
-		},
-		Ack: []ReservedInfoKey{
-			{InfoAckExpected, InfoSetByBoth},
-			{InfoAckWaitTimeout, InfoSetByBoth},
-			{InfoAckWaitSince, InfoSetByGateway},
-			{InfoAckReceived, InfoSetByGateway},
-			{InfoAckReceivedOn, InfoSetByGateway},
-			{InfoAckSent, InfoSetByGateway},
-			{InfoAckSentOn, InfoSetByGateway},
-			{InfoAckSentTo, InfoSetByGateway},
-			{InfoAckSentAs, InfoSetByGateway},
-		},
-	}
+//
+//nolint:gochecknoglobals //global var is needed here
+var ReservedInfoKeys = DefaultInfoList()
+
+func DefaultInfoList() *ReservedInfoList {
+	l := &ReservedInfoList{}
+	l.Add(InfoFamilyTransfer, []ReservedInfoKey{
+		{FollowID, InfoSetByBoth},
+		{SyncTransferID, InfoSetByGateway},
+		{SyncTransferRank, InfoSetByGateway},
+	})
+	l.Add(InfoFamilyAck, []ReservedInfoKey{
+		{InfoAckExpected, InfoSetByBoth},
+		{InfoAckWaitTimeout, InfoSetByBoth},
+		{InfoAckWaitSince, InfoSetByGateway},
+		{InfoAckReceived, InfoSetByGateway},
+		{InfoAckReceivedOn, InfoSetByGateway},
+		{InfoAckSent, InfoSetByGateway},
+		{InfoAckSentOn, InfoSetByGateway},
+		{InfoAckSentTo, InfoSetByGateway},
+		{InfoAckSentAs, InfoSetByGateway},
+	})
+
+	return l
 }
