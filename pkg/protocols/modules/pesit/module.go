@@ -19,6 +19,8 @@ import (
 const (
 	Pesit    = "pesit"
 	PesitTLS = "pesit-tls"
+
+	InfoFamily model.InfoKeyFamily = "pesit"
 )
 
 type Module struct{}
@@ -50,6 +52,24 @@ func (Module) OptionalFeatures() []features.Feature {
 }
 
 func (Module) IDGenerator() model.IDGenerator { return &IDGenerator{} }
+
+func (Module) CustomInfoKeys() (model.InfoKeyFamily, []model.ReservedInfoKey) {
+	return InfoFamily, []model.ReservedInfoKey{
+		{clientConnFreetextKey, model.InfoSetByBoth},
+		{clientTransFreetextKey, model.InfoSetByBoth},
+		{clientTransFreetextRawKey, model.InfoSetByGateway},
+		{serverConnFreetextKey, model.InfoSetByGateway},
+		{serverTransFreetextKey, model.InfoSetByBoth},
+		{fileEncodingKey, model.InfoSetByBoth},
+		{fileTypeKey, model.InfoSetByBoth},
+		{organizationKey, model.InfoSetByBoth},
+		{customerIDKey, model.InfoSetByBoth},
+		{bankIDKey, model.InfoSetByBoth},
+		{articlesFormatKey, model.InfoSetByBoth},
+		{articlesLengthsKey, model.InfoSetByBoth},
+		{articlesSeparatorKey, model.InfoSetByUser},
+	}
+}
 
 type ModuleTLS struct{ Module }
 

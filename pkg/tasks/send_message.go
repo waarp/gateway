@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	SendMessageAckExpectedKey = "__ackExpected__"
-	SendMessageAckSentKey     = "__ackSent__"
-	SendMessageAckSentToKey   = "__ackSentTo__"
-	SendMessageAckSentAsKey   = "__ackSentAs__"
-	SendMessageAckSentOnKey   = "__ackSentOn__"
+	SendMessageAckExpectedKey = model.InfoAckExpected
+	SendMessageAckSentKey     = model.InfoAckSent
+	SendMessageAckSentToKey   = model.InfoAckSentTo
+	SendMessageAckSentAsKey   = model.InfoAckSentAs
+	SendMessageAckSentOnKey   = model.InfoAckSentOn
 )
 
 type MessageSender interface {

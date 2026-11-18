@@ -3038,6 +3038,11 @@ linters:
           - goconst
         path: pkg/admin/gui/
 
+      # Exclude "model.ReservedInfoKey" from govet's composites linter.
+      - linters:
+          - govet
+        text: "composites: code.waarp.fr/apps/gateway/gateway/pkg/model.ReservedInfoKey struct literal uses unkeyed fields"
+
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.
     # Default: []

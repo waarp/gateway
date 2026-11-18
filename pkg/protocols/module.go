@@ -29,3 +29,7 @@ type Module interface {
 type CustomIDModule interface {
 	IDGenerator() model.IDGenerator
 }
+
+type CustomInfoKeys interface {
+	CustomInfoKeys() (model.InfoKeyFamily, []model.ReservedInfoKey)
+}
