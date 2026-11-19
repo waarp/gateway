@@ -189,8 +189,7 @@ func parseAckFilter(r *http.Request, query *database.SelectQuery) error {
 		return badRequest(err.Error())
 	}
 
-	cond, args := ackCase.Condition()
-	query.Where(cond, args...)
+	ackCase.Conds(query)
 
 	return nil
 }

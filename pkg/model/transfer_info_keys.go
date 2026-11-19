@@ -79,6 +79,14 @@ func (r *ReservedInfoList) Len() int {
 }
 
 func (r *ReservedInfoList) Add(family InfoKeyFamily, keys []ReservedInfoKey) {
+	for _, elem := range *r {
+		if elem.Key == family {
+			elem.Val = utils.Merge(elem.Val, keys)
+
+			return
+		}
+	}
+
 	(*ordered.Map[InfoKeyFamily, []ReservedInfoKey])(r).Add(family, keys)
 }
 

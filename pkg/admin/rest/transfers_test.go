@@ -646,7 +646,7 @@ func TestListTransfer(t *testing.T) {
 
 					Convey("Then it should reply 'Bad Request' and name the accepted values", func() {
 						So(w.Code, ShouldEqual, http.StatusBadRequest)
-						So(w.Body.String(), ShouldContainSubstring, "expected, received, missed, sent, none")
+						So(w.Body.String(), ShouldContainSubstring, "none, expected, received, missed, sent")
 					})
 				})
 			})

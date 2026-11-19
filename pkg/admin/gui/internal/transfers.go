@@ -43,8 +43,7 @@ func (q *TransferListQuery) Requested(name string) *TransferListQuery {
 // Acknowledgement keeps the transfers of an acknowledgement case, with the
 // condition the REST API and the command line share (#873).
 func (q *TransferListQuery) Acknowledgement(ackCase model.AckCase) *TransferListQuery {
-	cond, args := ackCase.Condition()
-	q.query.Where(cond, args...)
+	ackCase.Conds(q.query)
 
 	return q
 }

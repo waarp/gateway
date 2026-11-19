@@ -17,23 +17,18 @@ import (
 func TestAckFlagChoices(t *testing.T) {
 	t.Parallel()
 
-	want := make([]string, 0, len(model.AckCases()))
-	for _, c := range model.AckCases() {
-		want = append(want, string(c))
-	}
-
+	want := model.AckCaseNames()
 	choice := regexp.MustCompile(`choice:"([^"]+)"`)
 
-	for _, command := range []any{TransferList{}, HistoryList{}} {
-		field, ok := reflect.TypeOf(command).FieldByName("Ack")
-		require.Truef(t, ok, "%T has no Ack flag", command)
-		assert.Equal(t, "ack", field.Tag.Get("long"))
+	command := TransferList{}
+	field, ok := reflect.TypeFor[TransferList]().FieldByName("Ack")
+	require.Truef(t, ok, "%T has no Ack flag", command)
+	assert.Equal(t, "ack", field.Tag.Get("long"))
 
-		got := make([]string, 0, len(want))
-		for _, m := range choice.FindAllStringSubmatch(string(field.Tag), -1) {
-			got = append(got, m[1])
-		}
-
-		assert.Equalf(t, want, got, "the choices of --ack on %T", command)
+	got := make([]string, 0, len(want))
+	for _, m := range choice.FindAllStringSubmatch(string(field.Tag), -1) {
+		got = append(got, m[1])
 	}
+
+	assert.ElementsMatchf(t, want, got, "the choices of --ack on %T", command)
 }

@@ -3,7 +3,7 @@
 Historique des versions
 =======================
 
-* :feature:`873` Les listes des transferts et de l'historique se filtrent par
+* :feature:`873` La liste des transferts peut désormais être filtrée par
   acquittement, dans l'API REST (paramètre ``ack``) comme en ligne de commande
   (option ``--ack``) : attendu, reçu, non reçu, envoyé ou sans acquittement,
   d'après les informations de chaque transfert.

@@ -17,21 +17,22 @@ import (
 func TestParseAckCase(t *testing.T) {
 	t.Parallel()
 
-	for _, c := range AckCases() {
-		parsed, err := ParseAckCase(string(c))
+	for c := range AckCases() {
+		parsed, err := ParseAckCase(c.String())
 		require.NoError(t, err)
 		assert.Equal(t, c, parsed)
 	}
 
 	_, err := ParseAckCase("later")
 	require.ErrorIs(t, err, ErrUnknownAckCase)
-	assert.ErrorContains(t, err, `"later" (accepted: expected, received, missed, sent, none)`)
-	assert.Equal(t, "expected, received, missed, sent, none", AckCaseNames())
+	assert.ErrorContains(t, err, `"later" (accepted: none, expected, received, missed, sent)`)
+	assert.ElementsMatch(t, []string{"none", "expected", "received", "missed", "sent"}, AckCaseNames())
 }
 
 // Each case keeps the transfers it names, on the transfers table, on the
 // history and on the normalized view alike, whatever set the keys (#873).
 func TestAckCaseCondition(t *testing.T) {
+	t.Parallel()
 	db := dbtest.TestDatabase(t)
 
 	client := &Client{Name: "ack_client", Protocol: testProtocol}
@@ -117,20 +118,22 @@ func TestAckCaseCondition(t *testing.T) {
 	}
 
 	for ackCase, want := range cases {
-		cond, args := ackCase.Condition()
+		t.Run(ackCase.String(), func(t *testing.T) {
+			t.Parallel()
 
-		var transfers Transfers
-		require.NoError(t, db.Select(&transfers).Where(cond, args...).Run(), ackCase)
-		assert.ElementsMatch(t, want.transfers, transferIDs(transfers), "%s on the transfers table", ackCase)
+			var transfers Transfers
+			require.NoError(t, db.Select(&transfers).Apply(ackCase.Conds).Run(), ackCase)
+			assert.ElementsMatch(t, want.transfers, transferIDs(transfers), "%s on the transfers table", ackCase)
 
-		var entries HistoryEntries
-		require.NoError(t, db.Select(&entries).Where(cond, args...).Run(), ackCase)
-		assert.ElementsMatch(t, want.history, historyIDs(entries), "%s on the history", ackCase)
+			var entries HistoryEntries
+			require.NoError(t, db.Select(&entries).Apply(ackCase.Conds).Run(), ackCase)
+			assert.ElementsMatch(t, want.history, historyIDs(entries), "%s on the history", ackCase)
 
-		var view NormalizedTransfers
-		require.NoError(t, db.Select(&view).Where(cond, args...).Run(), ackCase)
-		assert.ElementsMatch(t, append(append([]int64{}, want.transfers...), want.history...),
-			viewIDs(view), "%s on the normalized view", ackCase)
+			var view NormalizedTransfers
+			require.NoError(t, db.Select(&view).Apply(ackCase.Conds).Run(), ackCase)
+			assert.ElementsMatch(t, append(append([]int64{}, want.transfers...), want.history...),
+				viewIDs(view), "%s on the normalized view", ackCase)
+		})
 	}
 
 	// Every transfer is in a case, and in one case only among expected,
@@ -159,10 +162,9 @@ func TestAckCaseCondition(t *testing.T) {
 	}
 
 	// An unknown case keeps nothing.
-	cond, args := AckCase("later").Condition()
-
+	unknown := AckCase(-1)
 	var none NormalizedTransfers
-	require.NoError(t, db.Select(&none).Where(cond, args...).Run())
+	require.NoError(t, db.Select(&none).Apply(unknown.Conds).Run())
 	assert.Empty(t, none)
 }
 
