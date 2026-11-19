@@ -55,6 +55,12 @@ func (s *SelectQuery) Where(sql string, args ...any) *SelectQuery {
 	return s
 }
 
+func (s *SelectQuery) Apply(f func(*SelectQuery)) *SelectQuery {
+	f(s)
+
+	return s
+}
+
 // Deprecated: condition is automatic now.
 func (s *SelectQuery) Owner() *SelectQuery { return s }
 

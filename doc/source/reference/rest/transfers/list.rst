@@ -35,6 +35,15 @@ Lister les transferts
    :type start: date
    :param followID: Filtre uniquement les transferts ayant l'ID de flux renseigné.
    :type followID: string
+   :param ack: Filtre uniquement les transferts selon leur acquittement, lu dans
+      les informations du transfert (voir :ref:`ref-pesit-messages`), que
+      l'acquittement vienne de l'option du partenaire, d'une tâche SETINFO ou
+      de la demande de transfert. Valeurs possibles : ``expected``
+      (acquittement attendu, pas encore reçu, transfert non terminé),
+      ``received`` (acquittement reçu), ``missed`` (transfert terminé sans
+      l'acquittement attendu), ``sent`` (acquittement envoyé par Gateway) ou
+      ``none`` (aucun acquittement attendu, reçu ni envoyé).
+   :type ack: string
 
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides

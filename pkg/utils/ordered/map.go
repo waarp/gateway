@@ -27,6 +27,10 @@ func (o *Map[K, V]) Get(key K) (V, bool) {
 }
 
 func (o *Map[K, V]) Add(key K, val V) {
+	if _, exists := o.Get(key); !exists {
+		o.Delete(key)
+	}
+
 	*o = append(*o, &mapElem[K, V]{Key: key, Val: val})
 }
 
