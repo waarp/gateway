@@ -91,15 +91,30 @@ func UnknownMarkers(text string) []string {
 	return unknown
 }
 
+// InfoMarkers lists, in the order they appear and once each, the keys of the
+// transfer info a text reads through its markers (#TI_<key>#): "lot" for
+// #TI_lot#, the reserved key with its underscores for #TI___followID__#.
+func InfoMarkers(text string) []string {
+	var keys []string
+
+	for _, match := range markerPattern.FindAllStringSubmatch(text, -1) {
+		if key, found := strings.CutPrefix(match[1], transferInfoPrefix); found && !slices.Contains(keys, key) {
+			keys = append(keys, key)
+		}
+	}
+
+	return keys
+}
+
 // TimestampTokens are the elements of the date format of a timestamp marker
 // ("YYYY", "MM", "DD"...), in the order the tasks read them.
 func TimestampTokens() []string {
-	names := make([]string, 0, len(timestampTokens))
+	tokens := make([]string, 0, len(timestampTokens))
 	for _, t := range timestampTokens {
-		names = append(names, t[0])
+		tokens = append(tokens, t[0])
 	}
 
-	return names
+	return tokens
 }
 
 // FormatTimestamp formats a date as a timestamp marker does with the given
