@@ -11,7 +11,6 @@ Historique des versions
   une base volumineuse : la vue ``normalized_transfers`` réunit les transferts
   en cours et l'historique par ``UNION ALL``, sans le dédoublonnage de ``UNION``
   qui n'écartait aucune ligne.
-
 * :feature:`850` Les tâches TRANSCODE&REFORMAT et REFORMAT découpent un fichier
   aux longueurs d'articles des informations de transfert (``records: articles``),
   posées par une réception PeSIT ou par SETINFO, puis y décrivent le fichier
@@ -29,10 +28,6 @@ Historique des versions
   recopié octet pour octet.
 * :bug:`845` Avec les pages IBM 500 et 1148, la tâche TRANSCODE convertit
   désormais correctement les caractères ``[ ] ! ^ ¢ ¬ |``, dans les deux sens.
-* :release:`0.17.2 <2026-11-13>`
-* :bug:`871` Une tâche ``SETINFO`` qui emploie ``key`` ou ``value`` autrement que
-  dans son ancienne forme seule est refusée à l'enregistrement, au lieu de ne
-  poser que cette clé en silence à l'exécution.
 * :feature:`705` Une nouvelle option ``EnvironmentLabel`` de la section
   ``[admin]`` donne à l'instance un libellé d'environnement (« Production »,
   « Recette »…). L'API REST le fournit dans l'en-tête
@@ -43,6 +38,11 @@ Historique des versions
   contenu, en mode rapport par défaut. Deux options de la section ``[admin]``
   règlent cette politique (``ContentSecurityPolicy``) et l'envoi de
   ``Strict-Transport-Security`` en TLS (``HSTSMaxAge``).
+
+* :release:`0.17.2 <2026-11-13>`
+* :bug:`871` Une tâche ``SETINFO`` qui emploie ``key`` ou ``value`` autrement que
+  dans son ancienne forme seule est refusée à l'enregistrement, au lieu de ne
+  poser que cette clé en silence à l'exécution.
 * :bug:`839` Les objets SNMP restent servis après un rechargement de la
   configuration du serveur SNMP ; ils répondaient « noSuchInstance » jusqu'au
   redémarrage de la passerelle.
