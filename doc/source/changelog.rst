@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`713` Dans l'interface web refondue, chaque champ de recherche a
+  son bouton d'effacement. Quand la session a pris fin, une action sur une
+  liste mène à la page de connexion, au lieu d'un bandeau d'erreur.
 * :feature:`705` Une nouvelle option ``EnvironmentLabel`` de la section
   ``[admin]`` donne à l'instance un libellé d'environnement (« Production »,
   « Recette »…). L'interface Web l'affiche dans son en-tête, à côté du nom de
