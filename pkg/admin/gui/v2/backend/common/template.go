@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/lib/transcode"
 	"github.com/karrick/tparse/v2"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
@@ -40,7 +41,7 @@ func templateFuncs() template.FuncMap {
 		"date":                  date,
 		"time":                  hour,
 		"tz":                    tz,
-		"listCharsets":          tasks.TranscodeFormats.Keys,
+		"listCharsets":          transcodeCharsets,
 		"listArchiveExtensions": tasks.ArchiveExtensions.Keys,
 		"listExtractExtensions": tasks.ExtractExtensions.Keys,
 		"encryptMethods":        tasks.EncryptMethods.Keys,
@@ -50,6 +51,22 @@ func templateFuncs() template.FuncMap {
 		"encryptSignMethods":    tasks.EncryptSignMethods.Keys,
 		"decryptVerifyMethods":  tasks.DecryptVerifyMethods.Keys,
 	}
+}
+
+// transcodeCharsets are the names of the character sets that the TRANSCODE
+// task accepts, in the order of its registry; a deprecated one stays offered,
+// as before, so that a task that names it can still be edited.
+func transcodeCharsets() []string {
+	entries := tasks.TranscodeRegistry().List()
+	names := make([]string, 0, len(entries))
+
+	for _, entry := range entries {
+		if entry.Kind != transcode.KindTable {
+			names = append(names, entry.Name)
+		}
+	}
+
+	return names
 }
 
 func add(a, b int, c ...int) int {
