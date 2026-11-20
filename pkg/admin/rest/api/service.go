@@ -6,6 +6,11 @@ package api
 // other time zones allowed.
 const DateHeader = "Waarp-Gateway-Date"
 
+// EnvironmentHeader is the name of the header used by the REST API to provide
+// the environment label of the gateway, when it has one. A header only holds
+// ASCII characters: the label is percent-encoded (RFC 3986), as in a URL path.
+const EnvironmentHeader = "Waarp-Gateway-Environment"
+
 // Service represents a gateway service (core, server or client) along with its
 // status.
 type Service struct {

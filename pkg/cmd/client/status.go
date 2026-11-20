@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 
 	"github.com/gookit/color"
@@ -16,6 +17,11 @@ import (
 func showStatuses(headers http.Header) func(io.Writer, map[string][]*api.Service) error {
 	return func(w io.Writer, servicesMap map[string][]*api.Service) error {
 		Style1.PrintL(w, "Server version", headers.Get("Server"))
+
+		if environment := environmentLabel(headers); environment != "" {
+			Style1.PrintL(w, "Environment", environment)
+		}
+
 		Style1.PrintL(w, "Local date", headers.Get(api.DateHeader))
 
 		showStatus(w, "Core services", servicesMap["coreServices"])
@@ -24,6 +30,19 @@ func showStatuses(headers http.Header) func(io.Writer, map[string][]*api.Service
 
 		return nil
 	}
+}
+
+// environmentLabel reads the environment label of the gateway in the headers
+// of its answer, where it is percent-encoded. A gateway without a label, or
+// older than the label, gives none.
+func environmentLabel(headers http.Header) string {
+	encoded := headers.Get(api.EnvironmentHeader)
+
+	if label, err := url.PathUnescape(encoded); err == nil {
+		return label
+	}
+
+	return encoded
 }
 
 //nolint:varnamelen //formatter name is kept short for readability
