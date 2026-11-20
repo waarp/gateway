@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"iter"
 	"strings"
+	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 // The acknowledgement of a transfer is read on the transfer itself, in its
@@ -36,6 +38,10 @@ const (
 
 	endAckCases
 )
+
+// AckDefaultWait is how long the pipeline waits for an acknowledgement when
+// the transfer gives no limit (InfoAckWaitTimeout).
+const AckDefaultWait = 10 * time.Minute
 
 // ErrUnknownAckCase says that a name is not one of the acknowledgement cases.
 var ErrUnknownAckCase = errors.New("unknown acknowledgement case")
@@ -73,6 +79,12 @@ func ParseAckCase(name string) (AckCase, error) {
 		strings.Join(AckCaseNames(), ", "))
 }
 
+// ackOverStatuses are the statuses of a transfer that is over: an
+// acknowledgement still expected then is missed.
+func ackOverStatuses() []types.TransferStatus {
+	return []types.TransferStatus{types.StatusDone, types.StatusError, types.StatusCancelled}
+}
+
 // Conds applies the SQL condition to the given query that keeps the
 // transfers of the case, with its arguments, for the transfers table, the history
 // or the normalized view of the transfers.
@@ -92,13 +104,13 @@ func (c AckCase) Conds(query *database.SelectQuery) {
 	case AckExpected:
 		hasInfo(InfoAckExpected, jsTrue)
 		lacksInfo(InfoAckReceived, jsTrue)
-		query.In("status NOT", types.StatusDone, types.StatusError, types.StatusCancelled)
+		query.In("status NOT", utils.AsAny(ackOverStatuses())...)
 	case AckReceived:
 		hasInfo(InfoAckReceived, jsTrue)
 	case AckMissed:
 		hasInfo(InfoAckExpected, jsTrue)
 		lacksInfo(InfoAckReceived, jsTrue)
-		query.In("status", types.StatusDone, types.StatusError, types.StatusCancelled)
+		query.In("status", utils.AsAny(ackOverStatuses())...)
 	case AckSent:
 		hasInfo(InfoAckSent, jsTrue)
 	case AckNone:
@@ -108,4 +120,41 @@ func (c AckCase) Conds(query *database.SelectQuery) {
 	default:
 		query.Where("1 = 0")
 	}
+}
+
+// infoTrue tells whether a key of the transfer information is set to true,
+// as the gateway writes the acknowledgement keys; a key set to false counts
+// as absent, as in Conds.
+func infoTrue(info map[string]any, key string) bool {
+	value, ok := info[key].(bool)
+
+	return ok && value
+}
+
+// AckOf is the case of a transfer already read, from its status and its
+// information: the rules of Conds, in Go, for the lists that read the
+// keys of a page in one query. Expected, received and missed exclude
+// one another; a transfer the gateway acknowledged without one of them is
+// "sent" (AckWasSent tells it whatever the case, a relay carrying both).
+func AckOf(status types.TransferStatus, info map[string]any) AckCase {
+	switch {
+	case infoTrue(info, InfoAckReceived):
+		return AckReceived
+	case !infoTrue(info, InfoAckExpected):
+		if AckWasSent(info) {
+			return AckSent
+		}
+
+		return AckNone
+	case status.IsOneOf(ackOverStatuses()...):
+		return AckMissed
+	default:
+		return AckExpected
+	}
+}
+
+// AckWasSent tells whether the gateway acknowledged the transfer to the
+// partner (SENDMESSAGE), whatever its other case.
+func AckWasSent(info map[string]any) bool {
+	return infoTrue(info, InfoAckSent)
 }
