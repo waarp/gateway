@@ -46,7 +46,7 @@ func newLoginSuite(t *testing.T) *loginSuite {
 	router := mux.NewRouter()
 	sub := router.PathPrefix(Prefix).Subrouter()
 	sub.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
-	sub.HandleFunc("/logout", logout()).Methods("GET", "POST")
+	sub.HandleFunc("/logout", logout()).Methods(http.MethodPost)
 
 	secure := sub.PathPrefix("/").Subrouter()
 	secure.Use(AuthenticationMiddleware(logger, db))

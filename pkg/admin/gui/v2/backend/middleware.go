@@ -9,10 +9,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-const errorsTranslationFile = "errors.yaml"
-
 func withPermissions(perm model.PermsMask, next http.Handler) http.HandlerFunc {
-	errorsLocalization := locale.ParseLocalizationFile(errorsTranslationFile)
+	errorsLocalization := locale.ParseLocalizationFile(locale.ErrorsFile)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := common.GetUser(r)

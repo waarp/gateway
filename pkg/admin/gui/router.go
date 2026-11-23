@@ -40,13 +40,15 @@ func RouterPages(secureRouter *mux.Router, db *database.DB, logger *log.Logger) 
 
 func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	router.StrictSlash(true)
-	router.Use(LanguageMiddleware)
+	// The origin of every request that may change state is checked here,
+	// once, for every route of the web interface, the language being known
+	// for the message of a refusal.
+	router.Use(LanguageMiddleware, originCheck(logger))
 	// Add HTTP handlers to the router here.
 	// Example:
 	router.HandleFunc("/login", loginPage(logger, db)).Methods("GET", "POST")
-	// The kit chrome signs out with a POST form; the GET route, which the
-	// historic pages linked, stays for the addresses saved since.
-	router.HandleFunc("/logout", logout()).Methods("GET", "POST")
+	// Signing out changes state: a POST, which the chrome sends from a form.
+	router.HandleFunc("/logout", logout()).Methods(http.MethodPost)
 
 	backend.MakeKitStaticRouter(router)
 	backend.MakePublicStaticRouter(router)
@@ -55,9 +57,14 @@ func AddGUIRouter(router *mux.Router, logger *log.Logger, db *database.DB) {
 	secureRouter.Use(AuthenticationMiddleware(logger, db))
 	secureRouter.StrictSlash(true)
 
-	secureRouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	toHome := func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, pagePath(homePath), http.StatusFound)
-	})
+	}
+
+	secureRouter.HandleFunc("/", toHome)
+	// An address of the sign-out that was saved, or that another site links,
+	// changes nothing: it leads to the home page, the session left open.
+	secureRouter.HandleFunc("/logout", toHome).Methods(http.MethodGet)
 
 	RouterPages(secureRouter, db, logger)
 }

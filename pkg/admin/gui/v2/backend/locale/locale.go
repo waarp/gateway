@@ -11,6 +11,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/gui/v2/backend/webfs"
 )
 
+// ErrorsFile holds the messages of the refusals of the web interface.
+const ErrorsFile = "errors.yaml"
+
 type Dictionary map[string]string
 
 type LocalizationData map[string]Dictionary

@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`882` L'interface Web vérifie l'origine de chaque requête qui
+  modifie l'état : une requête venue d'un autre site est refusée et consignée
+  au journal. La déconnexion se fait par le menu du compte ; son adresse,
+  ouverte directement, mène à l'accueil. Derrière un mandataire inverse,
+  celui-ci doit transmettre l'en-tête ``Host`` tel qu'il l'a reçu (voir
+  :ref:`le guide <user-webui-login-proxy>`).
 * :feature:`713` La liste des variables de l'interface web propose les dates du
   fichier d'origine (création, modification, dernier accès) et les attributs
   du fichier annoncés par un partenaire PeSIT, avec leurs libellés.

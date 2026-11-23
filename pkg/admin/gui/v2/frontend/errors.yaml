@@ -1,3 +1,6 @@
 unauthorized:
   en: You are not authorized to access this page.
   fr: Vous n'êtes pas autorisé à consulter cette page.
+cross_origin:
+  en: "This request was refused: it does not come from this interface. If you reach the interface through a reverse proxy, the proxy must forward the Host header as it received it."
+  fr: "Cette requête a été refusée : elle ne vient pas de cette interface. Si vous joignez l'interface par un mandataire inverse, il doit transmettre l'en-tête Host tel qu'il l'a reçu."
