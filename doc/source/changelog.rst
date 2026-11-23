@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`788` Le service d'administration envoie les en-têtes HTTP de sécurité
+  sur toutes ses réponses, interface Web et API REST : ``X-Content-Type-Options``,
+  ``X-Frame-Options``, ``Referrer-Policy`` et une politique de sécurité du
+  contenu. Deux options de la section ``[admin]``  règlent cette politique
+  (``ContentSecurityPolicy``) et l'envoi de ``Strict-Transport-Security`` en TLS
+  (``HSTSMaxAge``).
 * :feature:`873` La liste des transferts peut désormais être filtrée par
   acquittement, dans l'API REST (paramètre ``ack``) comme en ligne de commande
   (option ``--ack``) : attendu, reçu, non reçu, envoyé ou sans acquittement,

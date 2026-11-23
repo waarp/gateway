@@ -13,7 +13,7 @@ import (
 )
 
 // MakeHandler returns the router for the REST & Admin http interface.
-func MakeHandler(logger *log.Logger, db *database.DB) *mux.Router {
+func MakeHandler(logger *log.Logger, db *database.DB) http.Handler {
 	adminHandler := mux.NewRouter()
 	adminHandler.StrictSlash(true)
 	adminHandler.Use(
@@ -33,7 +33,7 @@ func MakeHandler(logger *log.Logger, db *database.DB) *mux.Router {
 		adminHandler.HandleFunc("/", guiRedirect)
 	}
 
-	return adminHandler
+	return securityHeaders(&db.Config.Admin, adminHandler)
 }
 
 func guiRedirect(w http.ResponseWriter, r *http.Request) {
