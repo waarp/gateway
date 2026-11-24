@@ -24,7 +24,8 @@ func TestMarkers(t *testing.T) {
 		assert.NotContains(t, fixed, word[1:len(word)-1], "a marker the tasks do not implement is not listed")
 	}
 
-	assert.Equal(t, []string{"STARTTIMESTAMP", "TIMESTAMP"}, FormatMarkers())
+	assert.Equal(t, []string{"ORIGINALFILEATIME", "ORIGINALFILEBTIME", "ORIGINALFILEMTIME",
+		"STARTTIMESTAMP", "TIMESTAMP"}, FormatMarkers())
 	assert.NotContains(t, fixed, "TIMESTAMP", "a marker with a format is listed apart")
 }
 

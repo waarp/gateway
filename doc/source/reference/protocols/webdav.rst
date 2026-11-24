@@ -1,3 +1,5 @@
+.. _ref-proto-webdav:
+
 ======
 Webdav
 ======

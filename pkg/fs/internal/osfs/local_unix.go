@@ -1,14 +1,15 @@
 //go:build !windows
 
-package fs
+package osfs
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"syscall"
 )
 
-func openFile(path string, flags Flags, perms FileMode) (File, error) {
+func OpenFile(path string, flags int, perms fs.FileMode) (*os.File, error) {
 	file, opErr := os.OpenFile(path, flags, perms)
 	if opErr != nil {
 		return nil, opErr //nolint:wrapcheck //no need to wrap here

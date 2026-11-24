@@ -43,8 +43,7 @@ const (
 	articlesFormatKey    = "__articlesFormat__"
 	articlesSeparatorKey = "__articlesSeparator__"
 
-	// What the partner announces about the file beyond the keys above; the
-	// dates are model.FileCreationDate and model.FileLastAccessDate.
+	// What the partner announces about the file beyond the keys above.
 	fileCallerIDKey      = "__fileCallerID__"
 	fileServerIDKey      = "__fileServerID__"
 	priorityKey          = "__priority__"
@@ -52,6 +51,9 @@ const (
 	keyOffsetKey         = "__keyOffset__"
 	reservedSpaceKey     = "__reservedSpace__"
 	reservedSpaceUnitKey = "__reservedSpaceUnit__"
+	fileCreation         = model.InfoFileBTime
+	fileLastAccess       = model.InfoFileATime
+	fileTimeZone         = "__fileTimeZone__"
 )
 
 // announced is what a partner says about the file in a request or in the
@@ -65,6 +67,7 @@ type announced struct {
 	keyLength, keyOffset uint16
 	reservedSpace        uint32
 	reservedUnit         pesit.FileSizeUnit
+	tz                   *time.Location
 	creation, lastAccess time.Time
 }
 
@@ -87,10 +90,35 @@ func (a *announced) infos() map[string]any {
 	put(keyOffsetKey, a.keyOffset, a.keyOffset != 0)
 	put(reservedSpaceKey, a.reservedSpace, a.reservedSpace != 0)
 	put(reservedSpaceUnitKey, a.reservedUnit.String(), a.reservedSpace != 0)
-	put(model.FileCreationDate, a.creation.Format(model.FileDateLayout), !a.creation.IsZero())
-	put(model.FileLastAccessDate, a.lastAccess.Format(model.FileDateLayout), !a.lastAccess.IsZero())
+	put(fileCreation, tsInTz(a.creation, a.tz), !a.creation.IsZero())
+	put(fileLastAccess, tsInTz(a.lastAccess, a.tz), !a.lastAccess.IsZero())
 
 	return infos
+}
+
+func getTZ(pip *pipeline.Pipeline) *time.Location {
+	str, err := utils.GetAs[string](pip.TransCtx.Transfer.TransferInfo, fileTimeZone)
+	if err != nil {
+		return time.Local
+	}
+
+	loc, err := time.LoadLocation(str)
+	if err != nil {
+		pip.Logger.Warningf("invalid file timezone %q, using local timezone instead", str)
+
+		return time.Local
+	}
+
+	return loc
+}
+
+func tsInTz(ts time.Time, tz *time.Location) string {
+	if tz == nil {
+		tz = time.Local
+	}
+
+	return time.Date(ts.Year(), ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
+		ts.Second(), 0, tz).Format(time.RFC3339)
 }
 
 // unlessSame returns val, or "" when it repeats ref.

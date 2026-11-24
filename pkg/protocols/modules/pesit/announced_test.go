@@ -30,20 +30,21 @@ func TestAnnouncedInfos(t *testing.T) {
 			reservedSpace: 196,
 			reservedUnit:  pesit.UnitKB,
 			// The library labels the dates UTC: their wall clock is kept.
+			tz:         time.UTC,
 			creation:   time.Date(2026, 11, 3, 23, 13, 11, 0, time.UTC),
 			lastAccess: time.Date(2026, 11, 4, 1, 2, 3, 0, time.UTC),
 		}
 
 		assert.Equal(t, map[string]any{
-			fileCallerIDKey:          "        USER0001",
-			fileServerIDKey:          "APPLI2  USER2",
-			priorityKey:              "Urgent",
-			keyLengthKey:             uint16(8),
-			keyOffsetKey:             uint16(4),
-			reservedSpaceKey:         uint32(196),
-			reservedSpaceUnitKey:     "KB",
-			model.FileCreationDate:   "2026-11-03T23:13:11",
-			model.FileLastAccessDate: "2026-11-04T01:02:03",
+			fileCallerIDKey:      "        USER0001",
+			fileServerIDKey:      "APPLI2  USER2",
+			priorityKey:          "Urgent",
+			keyLengthKey:         uint16(8),
+			keyOffsetKey:         uint16(4),
+			reservedSpaceKey:     uint32(196),
+			reservedSpaceUnitKey: "KB",
+			fileCreation:         "2026-11-03T23:13:11Z",
+			fileLastAccess:       "2026-11-04T01:02:03Z",
 		}, a.infos())
 	})
 
@@ -108,7 +109,7 @@ func TestAnnouncedAttributesKept(t *testing.T) {
 
 		assert.Equal(t, json.Number("13"), server.TransferInfo[fileTypeKey],
 			"the file type of the CREATE reaches the server")
-		assert.Equal(t, stat.ModTime().Format(model.FileDateLayout), server.TransferInfo[model.FileCreationDate],
+		assert.Equal(t, stat.ModTime().Format(time.RFC3339), server.TransferInfo[fileCreation],
 			"the creation date is the modification time of the sent file, as its wall clock")
 		assert.Equal(t, json.Number("1"), server.TransferInfo[reservedSpaceKey])
 		assert.Equal(t, "KB", server.TransferInfo[reservedSpaceUnitKey])
@@ -138,7 +139,7 @@ func TestAnnouncedAttributesKept(t *testing.T) {
 		stat, err := os.Stat(server.LocalPath)
 		require.NoError(t, err)
 
-		assert.Equal(t, stat.ModTime().Format(model.FileDateLayout), client.TransferInfo[model.FileCreationDate],
+		assert.Equal(t, stat.ModTime().Format(time.RFC3339), client.TransferInfo[fileCreation],
 			"the creation date of the answer reaches the client")
 		assert.Equal(t, "KB", client.TransferInfo[reservedSpaceUnitKey])
 		assert.NotContains(t, client.TransferInfo, fileCallerIDKey,

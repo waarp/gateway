@@ -74,48 +74,54 @@ correspondant au transfert.
 
 Les substitutions disponibles sont les suivantes :
 
-============================ =============
-Marqueur                     Signification
-============================ =============
-``#TRUEFULLPATH#``           Le chemin réel du fichier sur le disque
-``#TRUEFILENAME#``           Le nom réel du fichier sur le disque
-``#BASEFILENAME#``           Le nom du fichier sur disque (sans extension)
-``#FILEEXTENSION#``          L'extension du fichier (avec le point inclus, ex: ``.txt``)
-``#ORIGINALFULLPATH#``       Le chemin d'origine du fichier avant le transfert
-``#ORIGINALFILENAME#``       Le nom d'origine du fichier avant le transfert
-``#FILESIZE#``               La taille du fichier
-``#HOMEPATH#``               Le dossier racine de la Gateway. Ce chemin est toujours
-                             absolu.
-``#INPATH#``                 Le dossier de réception. Ce chemin est toujours absolu.
-``#OUTPATH#``                Le dossier d'envoi. Ce chemin est toujours absolu.
-``#WORKPATH#``               Le dossier temporaire de réception. Ce chemin est toujours absolu.
-``#RULE#``                   La règle utilisée par le transfert
-``#DATE#``                   La date (au format ``AAAAMMJJ``) au moment de l'exécution
-                             de la tâche
-``#HOUR#``                   L'heure (au format ``HHMMSS``) au moment de l'exécution
-                             de la tâche
-``#TIMESTAMP(format)#``      Un timestamp du moment d'exécution des tâches. Le format
-                             est constitué d'une suite de token qui seront remplacés
-                             par leur valeur correspondante. La table de correspondance
-                             peut être consultée :ref:`ci-dessous <ref-timestamp-format>`.
-                             Par défaut, le format ``YYYY-MM-DD_HHmmss`` est utilisé.
-``#STARTTIMESTAMP(format)#`` Un timestamp du début du transfert. Le format est
-                             constitué d'une suite de token qui seront remplacés par
-                             leur valeur correspondante. La table de correspondance
-                             peut être consultée :ref:`ci-dessous <ref-timestamp-format>`.
-                             Par défaut, le format ``YYYY-MM-DD_HHmmss`` est utilisé.
-``#REMOTEHOST#``             L'identifiant du partenaire distant
-``#LOCALHOST#``              L'identifiant du partenaire local
-``#TRANSFERID#``             L'identifiant local du transfert en base de données
-``#REMOTETRANSFERID#``       L'identifiant protocolaire du transfert
-``#REQUESTERHOST#``          L'identifiant du partenaire qui a demandé le transfert
-``#REQUESTEDHOST#``          L'identifiant du partenaire qui a reçu la demande de
-                             transfert
-``#FULLTRANSFERID#``         Un identifiant "étendu" pour le transfert (de la forme
-                             ``identifiantDeTransfert_idClient_idServeur``)
-``#ERRORMSG#``               Message d'erreur (dans les traitements d'erreur)
-``#ERRORCODE#``              Code d'erreur R66 sous forme d'un caractère simple
-============================ =============
+============================= =============
+Marqueur                      Signification
+============================= =============
+``#TRUEFULLPATH#``            Le chemin réel du fichier sur le disque
+``#TRUEFILENAME#``            Le nom réel du fichier sur le disque
+``#BASEFILENAME#``            Le nom du fichier sur disque (sans extension)
+``#FILEEXTENSION#``           L'extension du fichier (avec le point inclus, ex: ``.txt``)
+``#ORIGINALFULLPATH#``        Le chemin d'origine du fichier avant le transfert
+``#ORIGINALFILENAME#``        Le nom d'origine du fichier avant le transfert
+``#FILESIZE#``                La taille du fichier
+``#HOMEPATH#``                Le dossier racine de la Gateway. Ce chemin est toujours
+                              absolu.
+``#INPATH#``                  Le dossier de réception. Ce chemin est toujours absolu.
+``#OUTPATH#``                 Le dossier d'envoi. Ce chemin est toujours absolu.
+``#WORKPATH#``                Le dossier temporaire de réception. Ce chemin est toujours absolu.
+``#RULE#``                    La règle utilisée par le transfert
+``#DATE#``                    La date (au format ``AAAAMMJJ``) au moment de l'exécution
+                              de la tâche
+``#HOUR#``                    L'heure (au format ``HHMMSS``) au moment de l'exécution
+                              de la tâche
+``#TIMESTAMP(format)#``       Un timestamp du moment d'exécution des tâches.
+                              Le format du timestamp est personnalisable (voir section ci-dessous)
+``#STARTTIMESTAMP(format)#``  Un timestamp du début du transfert.
+                              Le format du timestamp est personnalisable (voir section ci-dessous)
+``ORIGINALFILEATIME(format)`` Un timestamp de la date du dernier accès au fichier original.
+                              En réception, cette information doit avoir été communiquée
+                              par le partenaire via la *transfer info* ``__fileATime__``.
+                              Le format du timestamp est personnalisable (voir section ci-dessous)
+``ORIGINALFILEBTIME(format)`` Un timestamp de la date de création du fichier original.
+                              En réception, cette information doit avoir été communiquée
+                              par le partenaire via la *transfer info* ``__fileBTime__``.
+                              Le format du timestamp est personnalisable (voir section ci-dessous)
+``ORIGINALFILEMTIME(format)`` Un timestamp de la date de dernière modification du fichier original.
+                              En réception, cette information doit avoir été communiquée
+                              par le partenaire via la *transfer info* ``__fileMTime__``.
+                              Le format du timestamp est personnalisable (voir section ci-dessous)
+``#REMOTEHOST#``              L'identifiant du partenaire distant
+``#LOCALHOST#``               L'identifiant du partenaire local
+``#TRANSFERID#``              L'identifiant local du transfert en base de données
+``#REMOTETRANSFERID#``        L'identifiant protocolaire du transfert
+``#REQUESTERHOST#``           L'identifiant du partenaire qui a demandé le transfert
+``#REQUESTEDHOST#``           L'identifiant du partenaire qui a reçu la demande de
+                              transfert
+``#FULLTRANSFERID#``          Un identifiant "étendu" pour le transfert (de la forme
+                              ``identifiantDeTransfert_idClient_idServeur``)
+``#ERRORMSG#``                Message d'erreur (dans les traitements d'erreur)
+``#ERRORCODE#``               Code d'erreur R66 sous forme d'un caractère simple
+============================= =============
 
 En plus de ces marqueurs standards, il est également possible de référencer les
 :term:`infos de transfert` dans la définition d'un traitement. Pour ce faire,
@@ -125,18 +131,6 @@ le marqueur à utiliser est le suivant:
 
 À l'exécution, ce marqueur sera alors substitué par la valeur associée à la clé
 renseignée.
-
-Deux marqueurs mettent en forme les dates du fichier annoncées par un partenaire
-PeSIT (voir les :ref:`attributs PeSIT <ref-pesit-attributes>`), avec les mêmes tokens
-que ``#STARTTIMESTAMP(format)#`` :
-
-- ``#CREATIONTIMESTAMP(format)#`` pour la date de création du fichier ;
-- ``#LASTACCESSTIMESTAMP(format)#`` pour sa date de dernière extraction.
-
-Ces dates sont gardées à l'heure transmise par le partenaire, sans conversion de
-fuseau. Par exemple, ``#CREATIONTIMESTAMP(YYYYMMDD)#_#CREATIONTIMESTAMP(HHmmss)#``
-donne ``20261103_231311``. Sans date reçue, le marqueur est remplacé par une chaîne
-vide ; une valeur mal formée met le traitement en erreur.
 
 Ces valeurs de substitutions sont également disponibles pour les programmes externes
 appelés par les tâches EXEC sous forme de variables d'environnement. Ces variables
@@ -152,13 +146,9 @@ le chemin du fichier de configuration de Waarp Gateway, et le dossier parent de 
    Les variables normalement personnalisables ne le sont plus lorsqu'elles sont
    passées en variables d'environnement.
 
-   En conséquence, les variables ``#TIMESTAMP(format)#`` et ``#STARTTIMESTAMP(format)#``
-   décrites ci-dessus sont disponibles sous les noms ``WAARP_TIMESTAMP`` et
-   ``WAARP_STARTTIMESTAMP`` respectivement, et la date sera toujours au format
-   ISO-8601. De même, ``WAARP_CREATIONTIMESTAMP`` et ``WAARP_LASTACCESSTIMESTAMP``
-   donnent les dates du fichier au format ISO-8601, sans décalage horaire puisqu'elles
-   n'ont pas de fuseau (ex: ``2026-11-03T23:13:11``) ; une date mal formée est
-   absente de l'environnement.
+   En conséquence, les variables de timestamp à format variables décrites
+   ci-dessus sont disponibles sous les noms ``WAARP_<nom_de_variable>``
+   (sans format) et la date sera toujours au format ISO-8601.
 
 .. _ref-timestamp-format:
 
@@ -172,6 +162,9 @@ un format de *timestamp*, et leurs valeurs de remplacement une fois résolus.
 laissé inchangé. Par exemple, si un format de timestamp contient le caractère
 *underscore* (``_``), celui-ci ne correspondant à aucun token dans la liste
 ci-dessous, il sera donc laissé tel quel dans le timestamp final.
+
+Noter que aucun format n'est spécifié avec une variable de timestamps, le format
+par défaut ``YYYY-MM-DD_HHmmss`` est utilisé.
 
 .. table::
    :widths: 30 10 20 60

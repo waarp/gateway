@@ -295,6 +295,7 @@ func (c *clientTransfer) sendRequest(fileInfo fs.FileInfo, partConf *PartnerConf
 		// server that echoes the identifiers of the connection in PGI 9 says
 		// nothing new: only different ones are kept.
 		keepAnnounced(c.pip, &announced{
+			tz:            getTZ(c.pip),
 			callerID:      unlessSame(c.pTrans.ClientLogin(), c.client.ClientLogin()),
 			serverID:      unlessSame(c.pTrans.ServerLogin(), c.client.ServerLogin()),
 			reservedSpace: c.pTrans.ReservationSpaceMaxSize(),

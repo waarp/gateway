@@ -10,6 +10,8 @@ import (
 	"github.com/rclone/rclone/backend/local"
 	rfs "github.com/rclone/rclone/fs"
 	"github.com/rclone/rclone/fs/config/configmap"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs/internal/osfs"
 )
 
 var _ FS = &LocalFS{}
@@ -36,11 +38,13 @@ func getLocalFs(parsed *parsedPath) (FS, error) {
 func (l *LocalFS) fs() rfs.Fs { return l.locRFS }
 
 func (l *LocalFS) Open(name string) (fs.File, error) {
-	return openFile(name, FlagReadOnly, 0)
+	//nolint:wrapcheck //wrapping adds nothing here
+	return osfs.OpenFile(name, FlagReadOnly, 0)
 }
 
 func (l *LocalFS) OpenFile(name string, flags Flags, perm FileMode) (File, error) {
-	return openFile(name, flags, perm)
+	//nolint:wrapcheck //wrapping adds nothing here
+	return osfs.OpenFile(name, flags, perm)
 }
 
 func (l *LocalFS) Stat(name string) (FileInfo, error) {
@@ -81,4 +85,17 @@ func (l *LocalFS) WriteFile(path string, data []byte, perm FileMode) error {
 func (l *LocalFS) ReadFile(path string) ([]byte, error) {
 	//nolint:wrapcheck //no need to wrap here
 	return os.ReadFile(path)
+}
+
+func localParse(path string) (string, error) {
+	parsed, err := parsePath(path)
+	if err != nil {
+		return "", err
+	}
+
+	if parsed.Name != "" {
+		return "", &PathError{Op: "parse", Path: path, Err: ErrNotLocalFS}
+	}
+
+	return parsed.Path, nil
 }

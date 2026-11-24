@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`863` Les attributs du fichier annoncés par un partenaire PeSIT
+  (identifiants, priorité, clé, espace réservé, dates) sont conservés dans les infos
+  de transfert ; trois marqueurs mettent les dates en forme (voir :ref:`le guide
+  <ref-pesit-attributes>`).
 * :feature:`788` Le service d'administration envoie les en-têtes HTTP de sécurité
   sur toutes ses réponses, interface Web et API REST : ``X-Content-Type-Options``,
   ``X-Frame-Options``, ``Referrer-Policy`` et une politique de sécurité du
@@ -33,10 +37,6 @@ Historique des versions
   introduit en version 0.17.1 faisait que ce champ n'était pas correctement
   traité en YAML (JSON n'est pas affecté).
 
-* :feature:`863` Les attributs du fichier annoncés par un partenaire PeSIT
-  (identifiants, priorité, clé, espace réservé, dates) sont conservés dans les infos
-  de transfert ; deux marqueurs mettent les dates en forme (voir :ref:`le guide
-  <ref-pesit-attributes>`).
 * :release:`0.17.1 <2026-11-09>`
 * :bug:`696` Le client et serveur PeSIT envoie désormais plusieurs articles par
   message lorsque cela est possible. Cela devrait drastiquement améliorer les

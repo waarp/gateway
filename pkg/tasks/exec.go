@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 var (
@@ -133,22 +134,18 @@ func addEnvVar(cmd *exec.Cmd, transCtx *model.TransferContext, key string, repla
 	)
 
 	switch varName {
-	case `TIMESTAMP`:
-		value, err = replaceFunc(transCtx, fmt.Sprintf("#TIMESTAMP(%s)#", isoTSFormat))
-	case `STARTTIMESTAMP`:
-		value, err = replaceFunc(transCtx, fmt.Sprintf("#STARTTIMESTAMP(%s)#", isoTSFormat))
-	case `CREATIONTIMESTAMP`, `LASTACCESSTIMESTAMP`:
-		// The dates of the file have no zone: ISO 8601 without an offset.
-		value, err = replaceFunc(transCtx, fmt.Sprintf("#%s(%s)#", varName, fileDateISOFormat))
+	case `TIMESTAMP`, `STARTTIMESTAMP`, `ORIGINALFILEATIME`, `ORIGINALFILEMTIME`,
+		`ORIGINALFILEBTIME`:
+		value, err = replaceFunc(transCtx, fmt.Sprintf("#%s(%s)#", varName, isoTSFormat))
 	default:
 		value, err = replaceFunc(transCtx, key)
 	}
 
 	if err != nil {
-		// A malformed date of the file leaves its variable out of the
+		// A malformed transfer info value leaves its variable out of the
 		// environment: the script that does not use it still runs, while a
 		// task argument that uses it fails with the reason.
-		if errors.Is(err, errNotImplemented) || errors.Is(err, errBadFileDate) {
+		if errors.Is(err, errNotImplemented) || errors.Is(err, utils.ErrIncorrectValueType) {
 			return nil
 		}
 

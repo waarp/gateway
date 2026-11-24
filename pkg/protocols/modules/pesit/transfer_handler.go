@@ -258,7 +258,7 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 
 	// Read before the library fills a missing creation date with the current
 	// time for its answer: only what the partner sent is kept.
-	keepAnnounced(t.pip, &announced{
+	announcedVars := &announced{
 		callerID:      req.FileCallerID(),
 		serverID:      req.FileServerID(),
 		priority:      req.Priority(),
@@ -268,7 +268,11 @@ func (t *transferHandler) initPipeline(req *pesit.ServerTransfer,
 		reservedUnit:  req.ReservationSpaceUnit(),
 		creation:      req.CreationDate(),
 		lastAccess:    req.LastAccess(),
-	})
+	}
+	defer func() {
+		announcedVars.tz = getTZ(pip)
+		keepAnnounced(pip, announcedVars)
+	}()
 
 	if pip.TransCtx.Rule.IsSend {
 		if err := setFileType(t.pip, req); err != nil {

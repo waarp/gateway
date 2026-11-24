@@ -1,8 +1,11 @@
 package fs
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -137,4 +140,76 @@ func TestParse(t *testing.T) {
 			assert.Equal(t, tc.expPath, parsed.Path)
 		})
 	}
+}
+
+func TestGetFileTime(t *testing.T) {
+	t.Parallel()
+
+	const timeDelta = 10 * time.Millisecond
+
+	readFile := func(path string) error {
+		_, err := os.ReadFile(path)
+		return err
+	}
+	writeFile := func(path string) error {
+		return os.WriteFile(path, []byte(`hello world`), 0644)
+	}
+
+	doesChangeTime := func(tb testing.TB, path string, op func(string) error,
+		getTime func(string) (time.Time, error)) {
+		tb.Helper()
+
+		before, err := getTime(path)
+		require.NoError(tb, err)
+
+		<-time.After(timeDelta)
+		require.NoError(tb, op(path))
+		after := time.Now()
+
+		ts, err := getTime(path)
+		require.NoError(tb, err)
+		assert.NotEqual(tb, before, ts)
+		assert.WithinRange(tb, ts, before, after)
+	}
+
+	doesNotChangeTime := func(tb testing.TB, path string, op func(string) error,
+		getTime func(string) (time.Time, error)) {
+		tb.Helper()
+
+		before, err := getTime(path)
+		require.NoError(tb, err)
+
+		<-time.After(timeDelta)
+		require.NoError(tb, op(path))
+
+		ts, err := getTime(path)
+		require.NoError(tb, err)
+		assert.Equal(tb, before, ts)
+	}
+
+	t.Run("GetFileATime", func(t *testing.T) {
+		t.Parallel()
+
+		path := filepath.Join(t.TempDir(), "test.txt")
+		require.NoError(t, writeFile(path))
+		doesChangeTime(t, path, readFile, GetFileATime)
+	})
+
+	t.Run("GetFileMTime", func(t *testing.T) {
+		t.Parallel()
+
+		path := filepath.Join(t.TempDir(), "test.txt")
+		require.NoError(t, writeFile(path))
+		doesChangeTime(t, path, writeFile, GetFileMTime)
+		doesNotChangeTime(t, path, readFile, GetFileMTime)
+	})
+
+	t.Run("GetFileBTime", func(t *testing.T) {
+		t.Parallel()
+
+		path := filepath.Join(t.TempDir(), "test.txt")
+		require.NoError(t, writeFile(path))
+		doesNotChangeTime(t, path, writeFile, GetFileBTime)
+		doesNotChangeTime(t, path, readFile, GetFileBTime)
+	})
 }

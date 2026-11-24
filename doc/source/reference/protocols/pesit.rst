@@ -144,18 +144,28 @@ clé n'est posée que si l'attribut a été reçu :
 - ``__keyLength__`` et ``__keyOffset__`` pour la clé d'un fichier indexé (PI 38 et 39) ;
 - ``__reservedSpace__`` et ``__reservedSpaceUnit__`` pour l'espace à réserver (PI 42)
   et son unité (PI 41) : ``KB`` ou ``Article`` ;
-- ``__creationDate__`` et ``__lastAccessDate__`` pour la date de création et la date
-  de dernière extraction du fichier (PI 51 et 52), sous la forme
-  ``2026-11-03T23:13:11``.
+- ``__fileBTime__`` et ``__fileATime__`` pour, respectivement, la date de création
+  et la date de dernière extraction du fichier (PI 51 et 52), toutes deux en
+  format ISO 8601.
 
 Les identifiants du fichier, la priorité et la clé voyagent dans la demande du client
 (création ou sélection) ; l'espace réservé et les dates, avec le fichier : dans la
 création du client qui envoie, ou dans la réponse du serveur à une récupération.
 
-Les dates PeSIT ne portent pas de fuseau horaire : Gateway les garde à l'heure
-transmise, sans conversion. Les marqueurs ``#CREATIONTIMESTAMP(…)#`` et
-``#LASTACCESSTIMESTAMP(…)#`` les mettent en forme dans les traitements (voir les
-:ref:`marqueurs de substitution <reference-tasks-substitutions>`).
+Les dates PeSIT ne portent pas de fuseau horaire. Par conséquent, Gateway permet
+de spécifier ce fuseau horaire via l'attribut ``__fileTimeZone__``. Cela peut être
+particulièrement utile si le partenaire ayant émis le fichier n'est pas sur le
+même fuseau horaire que l'instance Gateway le recevant. Sans fuseau horaire spécifié,
+les timestamps du fichier seront présumés comme utilisant le fuseau horaire local
+de la machine hôte.
+
+Le fuseau horaire doit être spécifié dans le format de la *IANA Time Zone Database*
+(ex: "Europe/Paris"). Une liste complète des identifiants TZ peut être trouvée
+`ici <https://en.wikipedia.org/wiki/List_of_tz_database_time_zones>`_ (lien en anglais).
+
+Pour utiliser ces dates dans des traitements, les marqueurs ``#ORIGINALFILEBTIME(…)#``
+et ``#ORIGINALFILEATIME(…)#`` permettent de spécifier un format personnalisé (voir
+les :ref:`marqueurs de substitution <reference-tasks-substitutions>`).
 
 Comme pour le texte libre, ces informations peuvent être référencées dans les traitements
 en utilisant leurs clés respectives.
