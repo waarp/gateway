@@ -217,6 +217,12 @@ func (p *postClient) Request() *pipeline.Error {
 		}
 	}()
 
+	return p.awaitRequestStart(ready)
+}
+
+// awaitRequestStart waits until the transport is ready to send the body, or
+// for the outcome of the request when it ends before.
+func (p *postClient) awaitRequestStart(ready <-chan struct{}) *pipeline.Error {
 	select {
 	case <-ready:
 		return nil
@@ -225,8 +231,11 @@ func (p *postClient) Request() *pipeline.Error {
 	case resp := <-p.resp:
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 
-		return parseRemoteError(resp.Header, resp.Body, types.TeConnection,
-			"failed to connect to remote host")
+		if err := getResponseStatus(resp, p.pip); err != nil {
+			return err
+		}
+
+		return pipeline.NewError(types.TeConnection, "the remote host answered before the file was sent")
 	}
 }
 

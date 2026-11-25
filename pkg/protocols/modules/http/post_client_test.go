@@ -106,6 +106,54 @@ func TestSendReportsItsOwnFailure(t *testing.T) {
 	assert.Less(t, time.Since(start), time.Second, "reported without waiting for the request")
 }
 
+// A server that answers without waiting for the body: the response may be
+// seen before the transport waits for "100 Continue". Its status is the
+// error of the transfer, as when it is seen after.
+func TestRequestReportsTheStatusOfAnEarlyAnswer(t *testing.T) {
+	t.Parallel()
+
+	client := &postClient{
+		pip:    &pipeline.Pipeline{Logger: testhelpers.GetTestLogger(t)},
+		reqErr: make(chan error, 1),
+		resp:   make(chan *http.Response, 1),
+	}
+
+	client.resp <- &http.Response{
+		StatusCode: http.StatusUnauthorized,
+		Request:    &http.Request{Method: http.MethodPost},
+		Body:       io.NopCloser(strings.NewReader("authentication refused")),
+		Header:     http.Header{},
+	}
+
+	err := client.awaitRequestStart(make(chan struct{}))
+	require.NotNil(t, err)
+	assert.Equal(t, types.TeBadAuthentication, err.Code())
+	assert.Contains(t, err.Redacted(), "authentication refused")
+}
+
+// Even a success is an error when the server answers before the body was
+// sent: the request has ended, the file cannot be sent anymore.
+func TestRequestRefusesAnEarlySuccess(t *testing.T) {
+	t.Parallel()
+
+	client := &postClient{
+		pip:    &pipeline.Pipeline{Logger: testhelpers.GetTestLogger(t)},
+		reqErr: make(chan error, 1),
+		resp:   make(chan *http.Response, 1),
+	}
+
+	client.resp <- &http.Response{
+		StatusCode: http.StatusCreated,
+		Request:    &http.Request{Method: http.MethodPost},
+		Body:       io.NopCloser(strings.NewReader("")),
+		Header:     http.Header{},
+	}
+
+	err := client.awaitRequestStart(make(chan struct{}))
+	require.NotNil(t, err)
+	assert.Equal(t, types.TeConnection, err.Code())
+}
+
 // unreadableFile is a file whose reading fails.
 type unreadableFile struct{}
 
