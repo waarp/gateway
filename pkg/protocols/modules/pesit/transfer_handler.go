@@ -449,7 +449,7 @@ func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 	trans.SetArticleSize(size)
 
 	if format == pesit.FormatVariable && isMArticles {
-		return t.multiSend(trans, lengths)
+		return t.multiSend(trans, t.file, lengths)
 	}
 
 	if _, err := io.Copy(trans, t.file); err != nil {
@@ -459,18 +459,24 @@ func (t *transferHandler) sendTransfer(trans *pesit.ServerTransfer) error {
 	return nil
 }
 
-func (t *transferHandler) multiSend(trans *pesit.ServerTransfer, lengths *articleLengths) error {
+func (t *transferHandler) multiSend(trans articleSender, file io.Reader, lengths *articleLengths) error {
 	trans.SetManualArticleHandling(true)
 
 	for length := range lengths.All() {
 		article, aErr := trans.StartNextSendArticle()
-		if aErr != nil && t.handleError(aErr) {
+		if aErr != nil {
+			// Without an article, the emission is over: a success diagnostic
+			// (a partner cancel with diagnostic 0) is not an error.
+			if !t.handleError(aErr) {
+				return nil
+			}
+
 			return aErr //nolint:wrapcheck //wrapping adds nothing here
 		}
 
-		file := io.LimitReader(t.file, int64(length))
+		content := io.LimitReader(file, int64(length))
 
-		if _, err := io.Copy(article, file); err != nil {
+		if _, err := io.Copy(article, content); err != nil {
 			return toPesitErr(pesit.CodeInternalError, err)
 		}
 	}
