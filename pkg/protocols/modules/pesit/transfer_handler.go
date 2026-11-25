@@ -400,15 +400,24 @@ func (t *transferHandler) StartDataTransfer(dtr *pesit.ServerTransfer) error {
 	return nil
 }
 
-func (t *transferHandler) receiveTransfer(trans *pesit.ServerTransfer) error {
+// articleReceiver is the part of *pesit.ServerTransfer a reception reads from.
+type articleReceiver interface {
+	GetNextRecvArticle() (io.Reader, error)
+}
+
+func (t *transferHandler) receiveTransfer(trans articleReceiver) error {
 	articlesLen := newArticleLengths()
 	t.pip.TransCtx.Transfer.TransferInfo[articlesLengthsKey] = articlesLen
 
 	for {
 		article, aErr := trans.GetNextRecvArticle()
-		if errors.Is(aErr, pesit.ErrNoMoreArticle) {
-			return nil
-		} else if aErr != nil && t.handleError(aErr) {
+		if aErr != nil {
+			// Without an article, the reception is over: a success diagnostic
+			// (connection already released) is not an error.
+			if errors.Is(aErr, pesit.ErrNoMoreArticle) || !t.handleError(aErr) {
+				return nil
+			}
+
 			//nolint:wrapcheck //wrapping adds nothing here
 			return aErr
 		}
