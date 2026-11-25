@@ -45,9 +45,9 @@ func (t *reformatTask) parseParams(params map[string]string) error {
 	// The records of the file and of the result are both required: the task
 	// has nothing else to do.
 	switch t.Records {
-	case recordsLines, recordsFixed, recordsRDW:
+	case recordsLines, recordsFixed, recordsRDW, recordsArticles:
 	default:
-		return recordsError("records", "must be lines, fixed or rdw")
+		return recordsError("records", "must be lines, fixed, rdw or articles")
 	}
 
 	switch t.OutputRecords {
@@ -72,5 +72,5 @@ func (t *reformatTask) Run(_ context.Context, params map[string]string, _ *datab
 		return err
 	}
 
-	return convertFile(logger, transCtx, &t.task.conversion)
+	return t.task.convert(logger, transCtx)
 }
