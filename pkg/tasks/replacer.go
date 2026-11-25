@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
@@ -80,16 +81,19 @@ func getReplacers() replacersMap {
 			format := strings.TrimPrefix(match, "#TIMESTAMP")
 			format = strings.TrimSuffix(format, "#")
 
-			return formatTime(format, time.Now()), nil
+			return formatTime(format, time.Now().Local()), nil
 		},
 		`#STARTTIMESTAMP(\([^\)]*\))?#`: func(ctx *model.TransferContext, match string) (string, error) {
 			format := strings.TrimPrefix(match, "#STARTTIMESTAMP")
 			format = strings.TrimSuffix(format, "#")
 
-			return formatTime(format, ctx.Transfer.Start), nil
+			return formatTime(format, ctx.Transfer.Start.Local()), nil
 		},
-		"#REMOTEHOST#": getRemote,
-		"#LOCALHOST#":  getLocal,
+		`#ORIGINALFILEBTIME(\([^\)]*\))?#`: fileDateReplacer(model.InfoFileBTime, fs.GetFileBTime),
+		`#ORIGINALFILEATIME(\([^\)]*\))?#`: fileDateReplacer(model.InfoFileATime, fs.GetFileATime),
+		`#ORIGINALFILEMTIME(\([^\)]*\))?#`: fileDateReplacer(model.InfoFileMTime, fs.GetFileMTime),
+		"#REMOTEHOST#":                     getRemote,
+		"#LOCALHOST#":                      getLocal,
 		"#TRANSFERID#": func(ctx *model.TransferContext, _ string) (string, error) {
 			return utils.FormatInt(ctx.Transfer.ID), nil
 		},
@@ -128,6 +132,36 @@ func getReplacers() replacersMap {
 	}
 
 	return replacers
+}
+
+func fileDateReplacer(key string, getTs func(string) (time.Time, error)) replacer {
+	return func(ctx *model.TransferContext, match string) (string, error) {
+		// First, read the date from the transfer information.
+		date, jErr := utils.GetAs[time.Time](ctx.Transfer.TransferInfo, key)
+		if jErr != nil && !errors.Is(jErr, utils.ErrKeyNotFound) {
+			return "", jErr
+		}
+
+		if date.IsZero() {
+			// In case of reception, if no date was provided in the transfer
+			// information, return an empty string.
+			if ctx.IsReceive() {
+				return "", nil
+			}
+
+			// For emissions, if no date was provided, retrieve it from the
+			// filesystem with the given function.
+			var err error
+			if date, err = getTs(ctx.Transfer.LocalPath); err != nil {
+				return "", nil
+			}
+		}
+
+		groups := markerPattern.FindAllStringSubmatch(match, -1)[0]
+		format := groups[2]
+
+		return formatTime(format, date), nil
+	}
 }
 
 func replaceInfo(val any) replacer {

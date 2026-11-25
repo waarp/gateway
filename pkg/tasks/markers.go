@@ -18,7 +18,7 @@ var unimplementedMarkers = []string{
 // markerPattern finds what reads as a marker in a text: a name between two
 // "#", with an optional parameter between parentheses. The markers of the
 // transfer info, whose key is free, are recognised by their prefix.
-var markerPattern = regexp.MustCompile(`#([A-Za-z][A-Za-z0-9_]*(?:\([^)#\n]*\))?)#`)
+var markerPattern = regexp.MustCompile(`#([A-Za-z]\w*)(\([^)#\n]*\))?#`)
 
 // transferInfoPrefix starts the name of the marker of a transfer info
 // (#TI_<key>#).
@@ -78,10 +78,11 @@ func UnknownMarkers(text string) []string {
 
 	for _, match := range markerPattern.FindAllStringSubmatch(text, -1) {
 		name := match[1]
-		base, _, _ := strings.Cut(name, "(")
+		form := match[2]
 
-		known := strings.HasPrefix(name, transferInfoPrefix) || slices.Contains(format, base) ||
-			(base == name && slices.Contains(fixed, name))
+		known := strings.HasPrefix(name, transferInfoPrefix) ||
+			slices.Contains(format, name) ||
+			(form == "" && slices.Contains(fixed, name))
 
 		if !known && !slices.Contains(unknown, match[0]) {
 			unknown = append(unknown, match[0])

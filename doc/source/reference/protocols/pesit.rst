@@ -112,6 +112,8 @@ Ces valeurs étant stockées dans les :term:`infos de transfert`, il est donc po
 de référencer ces valeurs dans des traitements via les :ref:`marqueurs de substitution
 <reference-tasks-substitutions>`.
 
+.. _ref-pesit-attributes:
+
 Attributs PeSIT
 ---------------
 
@@ -129,6 +131,41 @@ réservées. Les clés correspondantes pour ces attributs sont :
 À noter que les 3 premiers attributs voyagent toujours dans le même sens que le fichier
 transféré (donc de l'émetteur vers le récepteur), alors que les 2 derniers voyagent
 toujours dans le sens de la connexion (donc du client vers le serveur).
+
+Gateway conserve aussi ce que le partenaire annonce du fichier, quand il l'envoie. Une
+clé n'est posée que si l'attribut a été reçu :
+
+- ``__fileCallerID__`` et ``__fileServerID__`` pour les identifiants du fichier
+  (PI 3 et PI 4 du groupe d'identification du fichier), tels que reçus, espaces de
+  tête compris ; ils peuvent différer de ceux de la connexion. En récupération, ils ne
+  sont gardés que s'ils diffèrent de ceux de la connexion ;
+- ``__priority__`` pour la priorité du transfert (PI 17) : ``Urgent`` ou ``Low`` ;
+  la priorité normale, valeur par défaut du protocole, n'est pas conservée ;
+- ``__keyLength__`` et ``__keyOffset__`` pour la clé d'un fichier indexé (PI 38 et 39) ;
+- ``__reservedSpace__`` et ``__reservedSpaceUnit__`` pour l'espace à réserver (PI 42)
+  et son unité (PI 41) : ``KB`` ou ``Article`` ;
+- ``__fileBTime__`` et ``__fileATime__`` pour, respectivement, la date de création
+  et la date de dernière extraction du fichier (PI 51 et 52), toutes deux en
+  format ISO 8601.
+
+Les identifiants du fichier, la priorité et la clé voyagent dans la demande du client
+(création ou sélection) ; l'espace réservé et les dates, avec le fichier : dans la
+création du client qui envoie, ou dans la réponse du serveur à une récupération.
+
+Les dates PeSIT ne portent pas de fuseau horaire. Par conséquent, Gateway permet
+de spécifier ce fuseau horaire via l'attribut ``__fileTimeZone__``. Cela peut être
+particulièrement utile si le partenaire ayant émis le fichier n'est pas sur le
+même fuseau horaire que l'instance Gateway le recevant. Sans fuseau horaire spécifié,
+les timestamps du fichier seront présumés comme utilisant le fuseau horaire local
+de la machine hôte.
+
+Le fuseau horaire doit être spécifié dans le format de la *IANA Time Zone Database*
+(ex: "Europe/Paris"). Une liste complète des identifiants TZ peut être trouvée
+`ici <https://en.wikipedia.org/wiki/List_of_tz_database_time_zones>`_ (lien en anglais).
+
+Pour utiliser ces dates dans des traitements, les marqueurs ``#ORIGINALFILEBTIME(…)#``
+et ``#ORIGINALFILEATIME(…)#`` permettent de spécifier un format personnalisé (voir
+les :ref:`marqueurs de substitution <reference-tasks-substitutions>`).
 
 Comme pour le texte libre, ces informations peuvent être référencées dans les traitements
 en utilisant leurs clés respectives.

@@ -68,6 +68,14 @@ func (Module) CustomInfoKeys() (model.InfoKeyFamily, []model.ReservedInfoKey) {
 		{articlesFormatKey, model.InfoSetByBoth},
 		{articlesLengthsKey, model.InfoSetByBoth},
 		{articlesSeparatorKey, model.InfoSetByUser},
+		{fileCallerIDKey, model.InfoSetByGateway},
+		{fileServerIDKey, model.InfoSetByGateway},
+		{priorityKey, model.InfoSetByGateway},
+		{keyLengthKey, model.InfoSetByGateway},
+		{keyOffsetKey, model.InfoSetByGateway},
+		{reservedSpaceKey, model.InfoSetByGateway},
+		{reservedSpaceUnitKey, model.InfoSetByGateway},
+		{fileTimeZone, model.InfoSetByUser},
 	}
 }
 

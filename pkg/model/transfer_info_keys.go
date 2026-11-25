@@ -25,6 +25,8 @@ const (
 	InfoFamilyTransfer InfoKeyFamily = "transfer"
 	// InfoFamilyAck: the acknowledgements (SENDMESSAGE, PeSIT).
 	InfoFamilyAck InfoKeyFamily = "ack"
+	// InfoFamilyFile: information about the transfer file itself.
+	InfoFamilyFile InfoKeyFamily = "file"
 )
 
 // InfoKeySetter says who sets a reserved key.
@@ -64,6 +66,10 @@ const (
 	InfoAckSentOn      = "__ackSentOn__"
 	InfoAckSentTo      = "__ackSentTo__"
 	InfoAckSentAs      = "__ackSentAs__"
+
+	InfoFileBTime = "__fileBTime__" // File creation date
+	InfoFileMTime = "__fileMTime__" // File last modification date
+	InfoFileATime = "__fileATime__" // File last access date
 )
 
 // ReservedInfoKey describes a reserved key of the transfer information.
@@ -131,6 +137,11 @@ func DefaultInfoList() *ReservedInfoList {
 		{InfoAckSentOn, InfoSetByGateway},
 		{InfoAckSentTo, InfoSetByGateway},
 		{InfoAckSentAs, InfoSetByGateway},
+	})
+	l.Add(InfoFamilyFile, []ReservedInfoKey{
+		{InfoFileBTime, InfoSetByGateway},
+		{InfoFileMTime, InfoSetByGateway},
+		{InfoFileATime, InfoSetByGateway},
 	})
 
 	return l

@@ -4,10 +4,13 @@ import (
 	"cmp"
 	"errors"
 	"io"
+	"maps"
 	"reflect"
+	"time"
 
 	"code.waarp.fr/lib/pesit"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
@@ -39,7 +42,100 @@ const (
 	articlesLengthsKey   = "__articlesLengths__"
 	articlesFormatKey    = "__articlesFormat__"
 	articlesSeparatorKey = "__articlesSeparator__"
+
+	// What the partner announces about the file beyond the keys above.
+	fileCallerIDKey      = "__fileCallerID__"
+	fileServerIDKey      = "__fileServerID__"
+	priorityKey          = "__priority__"
+	keyLengthKey         = "__keyLength__"
+	keyOffsetKey         = "__keyOffset__"
+	reservedSpaceKey     = "__reservedSpace__"
+	reservedSpaceUnitKey = "__reservedSpaceUnit__"
+	fileCreation         = model.InfoFileBTime
+	fileLastAccess       = model.InfoFileATime
+	fileTimeZone         = "__fileTimeZone__"
 )
+
+// announced is what a partner says about the file in a request or in the
+// answer to a retrieval, beyond the attributes kept elsewhere: the file
+// identifiers (PGI 9: PI 3, 4), the priority (PI 17), the key of an indexed
+// file (PI 38, 39), the space to reserve (PI 41, 42) and the dates (PI 51, 52).
+// A zero field is one the partner did not send.
+type announced struct {
+	callerID, serverID   string
+	priority             pesit.Priority
+	keyLength, keyOffset uint16
+	reservedSpace        uint32
+	reservedUnit         pesit.FileSizeUnit
+	tz                   *time.Location
+	creation, lastAccess time.Time
+}
+
+// infos are the transfer information that keep what the partner announced:
+// one key per attribute it sent, none for the others. The normal priority is
+// the default of the protocol, so it is not kept: it cannot be told apart from
+// an absent PI 17.
+func (a *announced) infos() map[string]any {
+	infos := map[string]any{}
+	put := func(key string, val any, set bool) {
+		if set {
+			infos[key] = val
+		}
+	}
+
+	put(fileCallerIDKey, a.callerID, a.callerID != "")
+	put(fileServerIDKey, a.serverID, a.serverID != "")
+	put(priorityKey, a.priority.String(), a.priority != pesit.PriorityNormal)
+	put(keyLengthKey, a.keyLength, a.keyLength != 0)
+	put(keyOffsetKey, a.keyOffset, a.keyOffset != 0)
+	put(reservedSpaceKey, a.reservedSpace, a.reservedSpace != 0)
+	put(reservedSpaceUnitKey, a.reservedUnit.String(), a.reservedSpace != 0)
+	put(fileCreation, tsInTz(a.creation, a.tz), !a.creation.IsZero())
+	put(fileLastAccess, tsInTz(a.lastAccess, a.tz), !a.lastAccess.IsZero())
+
+	return infos
+}
+
+func getTZ(pip *pipeline.Pipeline) *time.Location {
+	str, err := utils.GetAs[string](pip.TransCtx.Transfer.TransferInfo, fileTimeZone)
+	if err != nil {
+		return time.Local
+	}
+
+	loc, err := time.LoadLocation(str)
+	if err != nil {
+		pip.Logger.Warningf("invalid file timezone %q, using local timezone instead", str)
+
+		return time.Local
+	}
+
+	return loc
+}
+
+func tsInTz(ts time.Time, tz *time.Location) string {
+	if tz == nil {
+		tz = time.Local
+	}
+
+	return time.Date(ts.Year(), ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
+		ts.Second(), 0, tz).Format(time.RFC3339)
+}
+
+// unlessSame returns val, or "" when it repeats ref.
+func unlessSame(val, ref string) string {
+	if val == ref {
+		return ""
+	}
+
+	return val
+}
+
+// keepAnnounced writes what the partner announced in the transfer information.
+// The dates are written as transmitted: the library labels them UTC, and
+// Format keeps their wall clock.
+func keepAnnounced(pip *pipeline.Pipeline, a *announced) {
+	maps.Copy(pip.TransCtx.Transfer.TransferInfo, a.infos())
+}
 
 func setPesitInfo[T cmp.Ordered, F ~func(T) bool](pip *pipeline.Pipeline, key string, set F) *pipeline.Error {
 	val, err := utils.GetAs[T](pip.TransCtx.Transfer.TransferInfo, key)

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	_ "time/tzdata" // import time zone data
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/analytics"

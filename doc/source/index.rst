@@ -13,7 +13,8 @@ Ses principales fonctionnalités sont :
 - Interconnexion protocolaire
 - Protocoles supportés : :ref:`R66 <ref-proto-r66>`, :ref:`SFTP
   <ref-proto-r66>`, :ref:`HTTP(S) <ref-proto-http>`, :ref:`FTP(S) 
-  <ref-proto-ftp>`
+  <ref-proto-ftp>`, :ref:`PeSIT <ref-proto-pesit>`, :ref:`AS2 <ref-proto-as2>`
+  et :ref:`WebDAV <ref-proto-webdav>`
 - Reprise de transferts
 - Possibilité de :ref:`programmer des transferts <user-add-transfer>`
 - Définition de :ref:`chaînes de traitements <user-add-rule>` pré-transfert,

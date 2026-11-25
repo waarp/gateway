@@ -42,7 +42,7 @@ var (
 // the value associated with it is of the same type as the function's type parameter.
 // If the key does exist, and the value is of the correct type, then the value
 // is returned with that type. Otherwise, an error is returned.
-func GetAs[T any](m map[string]any, key string) (t T, _ error) {
+func GetAs[T any, K comparable](m map[K]any, key K) (t T, _ error) {
 	if asAny, hasProperty := m[key]; hasProperty {
 		if asT, isT := asAny.(T); isT {
 			return asT, nil
@@ -50,7 +50,7 @@ func GetAs[T any](m map[string]any, key string) (t T, _ error) {
 
 		if err := JSONConvert(asAny, &t); err != nil {
 			return t, fmt.Errorf(
-				`key %q: %w: value "%v" is not convertible to type %T`,
+				`key "%v": %w: value "%v" is not convertible to type %T`,
 				key, ErrIncorrectValueType, asAny, t,
 			)
 		}
@@ -58,7 +58,7 @@ func GetAs[T any](m map[string]any, key string) (t T, _ error) {
 		return t, nil
 	}
 
-	return t, fmt.Errorf("key %q: %w", key, ErrKeyNotFound)
+	return t, fmt.Errorf(`key "%v": %w`, key, ErrKeyNotFound)
 }
 
 func AsAny[T any](slice []T) []any {

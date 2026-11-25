@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`863` Les attributs du fichier annoncés par un partenaire PeSIT
+  (identifiants, priorité, clé, espace réservé, dates) sont conservés dans les infos
+  de transfert ; trois marqueurs mettent les dates en forme (voir :ref:`le guide
+  <ref-pesit-attributes>`).
 * :feature:`788` Le service d'administration envoie les en-têtes HTTP de sécurité
   sur toutes ses réponses, interface Web et API REST : ``X-Content-Type-Options``,
   ``X-Frame-Options``, ``Referrer-Policy`` et une politique de sécurité du
