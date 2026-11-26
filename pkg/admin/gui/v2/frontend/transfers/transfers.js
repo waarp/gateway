@@ -1,0 +1,159 @@
+// Transfer monitoring screen, the pages that add a transfer: the rows of the transfer information, the accounts the
+// rule authorizes, the selection bar of the grouped actions. The list is a live list of the kit (live.js), which
+// refreshes it in place.
+(() => {
+  "use strict";
+
+  // Transfer information: "Add" adds a row in place (without JavaScript, the form comes back with one more); the
+  // actions of a row, shown here, run by their command: "vars" opens the variables list on the value (the kit
+  // attaches it to the rows put in place, wEnhance), "remove" removes the row; the rows are numbered again so that
+  // every field and menu keeps its label.
+  const infos = document.querySelector("[data-infos]");
+  const rowTemplate = document.getElementById("tf-info-row");
+  const addInfo = document.querySelector("[data-info-add]");
+  if (infos && rowTemplate && addInfo) {
+    const label = (pattern, n) => pattern.replace("{n}", n);
+    const number = () => {
+      infos.querySelectorAll(".tf-info-row").forEach((row, i) => {
+        const n = String(i + 1);
+        const [name, value] = row.querySelectorAll("input");
+        const [nameLabel, valueLabel] = row.querySelectorAll("label");
+        const remove = row.querySelector('[data-command="remove"]');
+        name.id = "info-name-" + n; value.id = "info-value-" + n;
+        nameLabel.htmlFor = name.id; valueLabel.htmlFor = value.id;
+        nameLabel.textContent = label(infos.dataset.labelName, n);
+        valueLabel.textContent = label(infos.dataset.labelValue, n);
+        row.querySelector("[data-info-actions]").hidden = false;
+        const menu = row.querySelector(".w-actions");
+        const opener = row.querySelector("[popovertarget]");
+        if (menu && opener) {
+          menu.id = "info-menu-" + n;
+          opener.setAttribute("popovertarget", menu.id);
+          opener.setAttribute("aria-label", label(infos.dataset.labelActions, n));
+        } else {
+          remove.setAttribute("aria-label", label(infos.dataset.labelRemove, n));
+          remove.title = label(infos.dataset.labelRemove, n);
+        }
+      });
+    };
+    addInfo.addEventListener("click", (event) => {
+      event.preventDefault();
+      const row = rowTemplate.content.firstElementChild.cloneNode(true);
+      infos.append(row);
+      number();
+      if (window.wEnhance) window.wEnhance(row);
+      row.querySelector("input").focus();
+    });
+    infos.addEventListener("click", (event) => {
+      const command = event.target.closest("[data-command]");
+      if (!command) return;
+      const row = command.closest(".tf-info-row");
+      if (command.dataset.command === "vars") {
+        const value = row.querySelectorAll("input")[1];
+        if (value.insertHash) value.insertHash();
+        return;
+      }
+      if (command.dataset.command !== "remove") return;
+      const rows = [...infos.querySelectorAll(".tf-info-row")];
+      if (rows.length === 1) {
+        row.querySelectorAll("input").forEach((input) => { input.value = ""; });
+        row.querySelector("input").focus();
+        return;
+      }
+      const next = rows[rows.indexOf(row) + 1] || rows[rows.indexOf(row) - 1];
+      row.remove();
+      number();
+      next.querySelector("input").focus();
+    });
+    number();
+  }
+
+  // The accounts the rule authorizes: a rule that lists who may use it (data-restricted) keeps the accounts whose
+  // data-rules name it, hides the others and says how many are offered, with a link to the access of the rule; an
+  // account the rule does not authorize is cleared and said. An open rule offers every account. Without JavaScript,
+  // the full list, and the refusal of the server.
+  const accounts = document.querySelector("select[data-rule-filter]");
+  const rules = accounts && document.getElementById(accounts.dataset.ruleFilter);
+  if (accounts && rules) {
+    const hint = document.getElementById(accounts.id + "-h");
+    const says = hint && hint.classList.contains("w-field__hint") ? hint : null;
+    const base = says ? says.textContent : "";
+    if (says) says.setAttribute("aria-live", "polite");
+    const apply = () => {
+      const rule = rules.selectedOptions[0];
+      const id = rule && rule.hasAttribute("data-restricted") ? rule.value : "";
+      let offered = 0;
+      let cleared = "";
+      accounts.querySelectorAll("option").forEach((o) => {
+        if (!o.value) return;
+        const ok = !id || (o.dataset.rules || "").split(" ").includes(id);
+        o.hidden = !ok;
+        o.disabled = !ok;
+        if (ok) offered++;
+        else if (o.selected) { cleared = o.textContent; accounts.value = ""; }
+      });
+      accounts.querySelectorAll("optgroup").forEach((g) => { g.hidden = ![...g.children].some((o) => !o.hidden); });
+      if (!says) return;
+      if (!id) { says.textContent = base; return; }
+      const d = accounts.dataset;
+      let text = offered === 0 ? d.allowedNone : offered === 1 ? d.allowedOne : d.allowed.replace("{n}", offered);
+      if (cleared) text = d.cleared.replace("{login}", cleared) + " " + text;
+      const link = document.createElement("a");
+      link.className = "w-link";
+      link.href = d.accessUrl.replace("{id}", id);
+      link.textContent = d.accessLabel;
+      says.replaceChildren(text + " · ", link);
+    };
+    rules.addEventListener("change", apply);
+    apply();
+  }
+
+  // The clients of the protocol of the partner: an account carries the protocol of its partner
+  // (data-protocol), a client its own; for the account chosen, the clients of another protocol are hidden and a
+  // chosen one that no longer fits is cleared; without an account, every client. Without JavaScript, the full list
+  // and the refusal of the server. The page that adds a transfer and the TRANSFER task of a rule share it.
+  const clients = document.querySelector("select[data-account-filter]");
+  const partnerAccounts = clients && document.getElementById(clients.dataset.accountFilter);
+  if (clients && partnerAccounts) {
+    const follow = () => {
+      const account = partnerAccounts.selectedOptions[0];
+      const protocol = account ? account.dataset.protocol || "" : "";
+      clients.querySelectorAll("option").forEach((o) => {
+        if (!o.value) return;
+        const ok = !protocol || o.dataset.protocol === protocol;
+        o.hidden = !ok;
+        o.disabled = !ok;
+        if (!ok && o.selected) clients.value = "";
+      });
+    };
+    partnerAccounts.addEventListener("change", follow);
+    follow();
+  }
+
+  // The selection bar of the list (kit 0.21.0). The live list changes the filters, the sort and the page in
+  // place and the address follows: at the submission, the bar takes the state of the list from the address, so that
+  // the set it names is the one shown, and says how many transfers the selection counts (expected), so that the server
+  // acts at once when the set has not changed and asks otherwise. Without JavaScript, the fields rendered with the
+  // page name the set and the server always asks.
+  const bar = document.getElementById("sel-transfers");
+  if (bar) {
+    const own = ["ids", "all", "except", "expected"];
+    const skip = ["page", "fragment", "full", "ret", "reset", "done", "name", "failed", "reason"];
+    bar.addEventListener("submit", () => {
+      bar.querySelectorAll("input[type=hidden]").forEach((i) => { if (!own.includes(i.name)) i.remove(); });
+      for (const [name, value] of new URLSearchParams(location.search)) {
+        if (own.includes(name) || skip.includes(name)) continue;
+        bar.append(Object.assign(document.createElement("input"), { type: "hidden", name, value }));
+      }
+      const all = bar.querySelector("input[name=all]");
+      const checked = [...document.querySelectorAll('input[data-select-row][form="sel-transfers"]')].filter((r) => r.checked).length;
+      const n = all && all.checked ? (+bar.dataset.total || 0) - bar.querySelectorAll("input[name=except]").length : checked;
+      let expected = bar.querySelector("input[name=expected]");
+      if (!expected) {
+        expected = Object.assign(document.createElement("input"), { type: "hidden", name: "expected" });
+        bar.append(expected);
+      }
+      expected.value = String(Math.max(n, 0));
+    });
+  }
+})();

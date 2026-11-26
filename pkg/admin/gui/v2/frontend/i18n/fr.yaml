@@ -1,0 +1,3919 @@
+# Catalogue de l'interface web, français. Un fichier par langue : fr.yaml et
+# en.yaml portent la même arborescence de clés, dans le même ordre ; le test du catalogue vérifie la parité.
+# Les chaînes communes du kit GUI (nav.home, nav.skip, action.*, state.*, header.*…) sont fusionnées au
+# chargement : elles ne sont pas répétées ici. Paramètres : {nom}.
+
+# Barre latérale : les sections et les écrans, dans l'ordre de la carte des écrans.
+nav:
+  connections: Connexions
+  servers: Serveurs locaux
+  clients: Clients locaux
+  partners: Partenaires distants
+  treatments: Traitements
+  rules: Règles de transfert
+  watchers: Surveillances de partenaires
+  keys: Clés cryptographiques
+  smtp: Identifiants SMTP
+  email_templates: Modèles d'e-mail
+  supervision: Supervision
+  dashboard: Tableau de bord
+  services: État des services
+  transfers: Suivi des transferts
+  administration: Administration
+  users: Utilisateurs
+  authorities: Autorités d'authentification
+  clouds: Instances cloud
+  snmp: SNMP
+  overrides: Surcharges de configuration
+  config: Import et export
+  footer: "{product} {version}"
+
+# Écran « État des services » (Supervision).
+services:
+  title: État des services
+  live: "Actualisé à {time}"
+  refreshing: Actualisation…
+  groups: Groupes de services
+  group:
+    core: Services système
+    servers: Serveurs locaux
+    clients: Clients locaux
+  caption:
+    core: État de chaque service système de la passerelle
+    servers: État de chaque serveur local
+    clients: État de chaque client local
+    page: "{caption}, page {page} sur {pages}"
+  col:
+    core: Service système
+    server: Serveur local
+    client: Client local
+    state: État
+    reason: Raison
+  reason:
+    none: Aucune raison
+  summary:
+    running: "{running} / {total} en ligne"
+    errors: "{n} en erreur"
+    offline: "{n} hors ligne"
+    unknown: "{n} inconnu"
+  pager:
+    info: "{group} {from} à {to} sur {total}"
+  # Noms fonctionnels des services système, par nom technique ; un service sans entrée garde son nom technique.
+  core:
+    Admin: Administration (API REST et interface web)
+    Analytics: Statistiques internes
+    Controller: Contrôleur des transferts
+    Database: Base de données
+    SNMP: Agent SNMP
+  empty:
+    servers:
+      title: Aucun serveur local pour l'instant
+      text: "Un serveur local est un point d'écoute de la passerelle pour un protocole. Il apparaît ici dès sa création."
+      link: Voir les serveurs locaux
+    clients:
+      title: Aucun client local pour l'instant
+      text: "Un client local est l'identité sortante de la passerelle pour un protocole. Il apparaît ici dès sa création."
+      link: Voir les clients locaux
+  error:
+    title: Les états n'ont pas pu être actualisés.
+    text: "Dernière lecture réussie à {time}. Les états affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."
+
+# Protocoles, partagés par les serveurs locaux, les clients locaux et les partenaires distants : la famille
+# (R66, HTTP, SFTP, FTP, PeSIT, WebDAV, AS2), TLS comme attribut à l'écran (le produit
+# garde une clé par variante), les options de chaque famille.
+# Écran « Tableau de bord » (Supervision) : les services du nœud, les transferts
+# en cours et en erreur, l'activité des 24 dernières heures, les dernières
+# erreurs. Les états, les causes et les actions des transferts reprennent les
+# clés de l'écran du suivi.
+dashboard:
+  title: Tableau de bord
+  live: "Actualisé à {time}"
+  refreshing: Actualisation…
+  health_title: "Santé du nœud {node}"
+  health:
+    unmeasured: Non mesuré
+    uptime: Disponibilité
+    uptime_text: "v{version}, depuis le {date}"
+    uptime_title: "Démarrée le {date} à {time} ; version {version}"
+    uptime_unknown: "v{version}"
+    days_hours: "{days} j {hours} h"
+    hours_minutes: "{hours} h {minutes} min"
+    services: Services
+    group_running: "{group} {running} / {total}"
+    database: Base de données
+    ms: ms
+    db_ok: Répond
+    db_down: Injoignable
+    db_ko: "Depuis {time}"
+    db_unread: Pas encore lue
+    db_title: "Base {type} ; dernière lecture des chiffres en {ms} ms"
+    db_title_down: "Base {type}"
+    memory: Mémoire
+    memory_text: "Sur {memory} · {cores} cœurs"
+    cores: "Sur {cores} cœurs"
+    memory_title: Mémoire prise par la passerelle
+    network: Connexions
+    network_text: "Entrantes : {in} · sortantes : {out}"
+    network_title: Connexions ouvertes sur la passerelle
+    certs: Certificats
+    certs_unread: Non lus
+    certs_none: Aucun
+    certs_ok: Tous valides
+    certs_expiring: "Expirent sous 30 jours"
+    certs_expiring_one: Expire sous 30 jours
+    certs_expired: "{n} expirés"
+    certs_expired_one: 1 expiré
+    cert_item: "{owner} : {date}"
+    cert_server: "serveur {name}"
+    cert_partner: "partenaire {name}"
+    cert_account: "compte {name}"
+    cert_authority: "autorité {name}"
+    monitors: Surveillances
+    monitors_ok: Toutes actives
+    monitors_ko: "{n} en défaut"
+    monitors_ko_one: 1 en défaut
+    monitors_none: Aucune
+    monitors_error: État inconnu
+  transfers: Transferts
+  resume: "Reprendre les {n} transferts en erreur"
+  resume_one: Reprendre le transfert en erreur
+  tile:
+    running: Transferts en cours
+    error: Transferts en erreur
+    done: Terminés sur 24 h
+  foot:
+    planned: "{n} planifiés"
+    planned_one: 1 planifié
+    paused: "{n} en pause"
+    paused_one: 1 en pause
+    interrupted: "{n} interrompus"
+    interrupted_one: 1 interrompu
+    available: "{n} attendus"
+    available_one: 1 attendu
+    recent_errors: "{n} depuis une heure"
+    recent_errors_one: 1 depuis une heure
+    volume: "{volume} transférés"
+    cancelled: "{n} annulés"
+    cancelled_one: 1 annulé
+    stuck: "{n} en cours depuis plus d'une heure"
+    stuck_one: 1 en cours depuis plus d'une heure
+    late: "{n} planifiés en retard"
+    late_one: 1 planifié en retard
+    last_done: "Dernier terminé à {time}"
+    client: "{n} côté client"
+    client_one: 1 côté client
+    server: "{n} côté serveur"
+    server_one: 1 côté serveur
+  sr:
+    running: "{n} transferts en cours"
+    running_one: 1 transfert en cours
+    error: "{n} transferts en erreur"
+    error_one: 1 transfert en erreur
+    done: "{n} transferts terminés sur les 24 dernières heures"
+    done_one: 1 transfert terminé sur les 24 dernières heures
+  activity:
+    title: Activité des 24 dernières heures
+    chart: "Transferts par heure sur les 24 dernières heures : terminés et encore en erreur"
+    desc: "Les valeurs exactes figurent dans le tableau « Valeurs par heure » qui suit le graphique ; un trait sépare hier d'aujourd'hui."
+    hour: "{hour}h"
+    today: "Aujourd'hui · {date}"
+    yesterday: "Hier · {date}"
+    date: 02/01
+  legend:
+    done: Terminés
+    error: Encore en erreur (hachuré, chiffre au-dessus)
+  unit:
+    done: terminés
+    error: en erreur
+  values:
+    title: Valeurs par heure
+    total_done: "{n} terminés"
+    total_done_one: 1 terminé
+    total_error: "{n} en erreur"
+    total_error_one: 1 en erreur
+    caption: Transferts terminés et encore en erreur, par heure de début, du plus récent au plus ancien, sur les 24 dernières heures
+    hour: Heure de début
+    done: Terminés
+    error: Encore en erreur
+  errors:
+    title: Dernières erreurs
+    caption: Derniers transferts en erreur
+    col:
+      time: Heure
+      transfer: Transfert
+      error: Erreur
+      actions: Actions
+    all: "Voir les {n} transferts en erreur"
+    all_one: Voir le transfert en erreur
+    none: Aucun transfert en erreur
+  empty:
+    title: Aucun transfert sur les 24 dernières heures
+    text: Le graphique apparaît dès le premier transfert terminé ou en erreur.
+  degraded:
+    title: "La base de données ne répond plus depuis {time}."
+    text: "Les chiffres affichés datent de {time}. Les services continuent de fonctionner ; l'activité sera rattrapée au retour de la base."
+    none: "Aucun chiffre n'a encore pu être lu. Les services continuent de fonctionner ; l'activité apparaîtra au retour de la base."
+  error:
+    title: Le tableau de bord n'a pas pu être actualisé.
+    text: "Dernière lecture réussie à {time}. Les chiffres affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."
+
+proto:
+  label: Protocole
+  choose: Choisissez un protocole
+  choose_hint: Les options du protocole apparaissent après le choix.
+  choose_error: Choisissez un protocole.
+  tls: Chiffrer la connexion par TLS
+  tls_hint: "Proposé pour les protocoles qui existent avec et sans TLS ; SFTP est chiffré par SSH"
+  tls_title: Chiffrement TLS
+  tls_lock: Chiffré par TLS
+  described_tls: "{family}, chiffré par TLS ({name})"
+  filter_tls: Chiffrement TLS
+  filter_tls_all: Tous
+  filter_tls_yes: Avec TLS
+  filter_tls_no: Sans TLS
+  options: "Options du protocole {protocol}"
+  options_label: Options
+  options_meta_none: Aucune option
+  options_meta_one: 1 option
+  options_meta: "{n} options"
+  error_number: Indiquez un nombre entier.
+  error_number_min: "Indiquez un nombre entier, {min} ou plus."
+  error_number_range: "Indiquez un nombre entier entre {min} et {max}."
+  error_decimal_min: "Indiquez un nombre, {min} ou plus (1,5 par exemple)."
+  error_decimal_range: "Indiquez un nombre entre {min} et {max}."
+  error_duration: "Indiquez des nombres entiers d'heures, de minutes et de secondes."
+  options_default: Options par défaut de la passerelle
+  options_set_one: 1 option renseignée
+  options_set: "{n} options renseignées"
+  tls_summary: "{version} · {suites}"
+  tls_suite_one: 1 suite retenue
+  tls_suites: "{n} suites retenues"
+  # Options par famille : l'effet pour l'exploitant d'abord, le terme technique en aide monospace.
+  duration:
+    hours: Heures
+    minutes: Minutes
+    seconds: Secondes
+    h: h
+    min: min
+    s: s
+  # Thèmes des cartes d'options, quand la famille en nomme au moins deux.
+  section:
+    identity: Identification
+    sync: Reprise et synchronisation
+    messages: Messages
+    ack: Acquittement
+    transfer: Transfert
+    integrity: Contrôle d'intégrité
+    modes: Modes de connexion
+    algorithms: Algorithmes
+    compat: Compatibilité
+    security: Signature et chiffrement
+    mdn: MDN asynchrone
+    other: Autres options
+  opt:
+    r66_login: Identifiant attendu du partenaire
+    r66_login_hint: "Par défaut, le nom du serveur"
+    r66_block: Taille d'un bloc de données
+    r66_block_hint: "En octets ; 65 536 par défaut"
+    r66_no_final_hash: Ne pas vérifier le hachage en fin de transfert
+    r66_check_block_hash: Vérifier le hachage de chaque bloc
+    r66_final_hash: Hachage en fin de transfert
+    r66_block_hash: Hachage de chaque bloc
+    min_tls: Version TLS minimale
+    min_tls_hint: "Les suites de chiffrement se choisissent jusqu'à TLS 1.2 ; en TLS 1.3, la bibliothèque les fixe."
+    tls_ciphers: "Suites de chiffrement TLS, jusqu'à TLS 1.2"
+    tls_ciphers_short: Suites de chiffrement TLS
+    tls_ciphers_hint: "Vide : toutes les suites sûres de la passerelle sont acceptées lors de la négociation avec le partenaire. Une suite marquée « non sécurisée » ne s'ajoute qu'en connaissance de cause."
+    tls_insecure: (non sécurisée)
+    algo_historic: (historique)
+    algo_disabled: (désactivé par défaut)
+    ftp_disable_passive: Désactiver le mode passif
+    ftp_disable_active: Désactiver le mode actif
+    ftp_passive: Mode passif
+    ftp_active: Mode actif
+    ftp_passive_min: Premier port du mode passif
+    any_port_hint: "Vide : n'importe quel port libre"
+    ftp_passive_max: Dernier port du mode passif
+    tls_requirement: Exigence TLS
+    tls_requirements:
+      optional: TLS explicite facultatif
+      mandatory: TLS explicite obligatoire
+      implicit: TLS implicite
+    pesit_disable_restart: Désactiver la reprise des transferts interrompus
+    pesit_disable_checkpoints: Désactiver les points de synchronisation
+    pesit_restart: Reprise des transferts interrompus
+    pesit_checkpoints: Points de synchronisation
+    pesit_checkpoint_size: Intervalle entre deux points de synchronisation
+    pesit_checkpoint_window: Points de synchronisation sans acquittement
+    pesit_checkpoint_window_hint: "Fenêtre, en nombre de points"
+    pesit_max_message: Taille maximale d'un message
+    pesit_mode: Mode PeSIT
+    pesit_mode_hint: "« Standard » suit la spécification publiée ; « Non standard » suit la convention du marché attendue par certains partenaires."
+    pesit_modes:
+      standard: Standard
+      non_standard: Non standard
+    pesit_disable_preconnection: Désactiver la pré-connexion
+    pesit_preconnection: Pré-connexion
+    sftp_note: "Une liste vide accepte tous les algorithmes de la passerelle ; l'ordre des retenus est l'ordre de préférence."
+    sftp_kex: Algorithmes d'échange de clés
+    sftp_kex_hint: "Vide : tous les algorithmes d'échange de clés sont acceptés"
+    sftp_ciphers: Algorithmes de chiffrement
+    sftp_ciphers_hint: "Vide : tous les algorithmes de chiffrement sont acceptés"
+    sftp_macs: Algorithmes d'intégrité
+    sftp_macs_hint: "Vide : tous les algorithmes d'intégrité sont acceptés"
+    as2_max_file_size: Taille maximale d'un fichier
+    as2_max_file_size_hint: "En octets ; ne peut pas dépasser la mémoire du système"
+    as2_mdn_algo: Signature des accusés MDN
+    mdn:
+      none: Aucune signature
+    bytes: En octets
+    enabled: Activé
+    disabled: Désactivé
+    checked: Vérifié
+    unchecked: Non vérifié
+    default_login: Le nom du serveur
+    default_block: "65 536 octets"
+    default_value: Valeur par défaut de la passerelle
+    default_ciphers: Toutes les suites sûres de la passerelle
+    default_algos: Tous les algorithmes de la passerelle
+    any_port: N'importe quel port libre
+    none: Aucune option pour ce protocole
+    r66_final_hash_algo: Algorithme du hachage en fin de transfert
+    r66_final_hash_algo_hint: "SHA-256 par défaut"
+    ftp_enable_active: Activer le mode actif
+    ftp_active_address: Adresse du mode actif
+    ftp_active_address_hint: "Adresse IP locale annoncée au serveur ; vide : 0.0.0.0"
+    ftp_active_min: Premier port du mode actif
+    ftp_active_max: Dernier port du mode actif
+    default_active_address: "0.0.0.0"
+    # Options d'un partenaire distant : ce que le client de son protocole lit du partenaire.
+    r66_server_login: Identifiant présenté par le serveur
+    r66_server_login_hint: "Par défaut, le nom du partenaire"
+    default_partner_login: Le nom du partenaire
+    ftp_disable_epsv: Désactiver EPSV
+    ftp_epsv: EPSV
+    ftp_implicit_tls: TLS implicite
+    ftp_implicit_tls_hint: "Par défaut, TLS explicite (« AUTH TLS » après la connexion)"
+    ftp_no_session_reuse: Désactiver la réutilisation des sessions TLS
+    ftp_session_reuse: Réutilisation des sessions TLS
+    pesit_login: Identifiant du partenaire
+    pesit_login_hint: "Vide : le partenaire n'est pas authentifié ; son mot de passe est un moyen « Mot de passe » du partenaire"
+    pesit_login_none: Non authentifié
+    tristate:
+      client: Comme le client (par défaut)
+      on: Activé
+      off: Désactivé
+    pesit_nsdu: Utiliser les paquets NSDU
+    pesit_nsdu_hint: Activé par défaut
+    pesit_expects_ack: Attendre l'acquittement du partenaire après chaque transfert
+    pesit_ack_timeout: Délai d'attente de l'acquittement
+    pesit_ack_timeout_hint: "Après chaque transfert, la passerelle attend le message d'acquittement du partenaire pendant ce délai ; sans acquittement, le transfert passe en erreur. Vide : 10 minutes."
+    pesit_ack_default: 10 min (par défaut)
+    pesit_no_pi37: Ne pas envoyer le PI 37
+    pesit_pi37: Envoi du PI 37
+    sftp_use_stat: Lire la taille du fichier avant de le recevoir
+    sftp_no_concurrent_reads: Désactiver la lecture parallèle
+    sftp_no_concurrent_reads_hint: "Par défaut, un fichier reçu est lu par plusieurs lecteurs à la fois"
+    sftp_concurrent_reads: Lecture parallèle
+    as2_sign_algo: Algorithme de signature
+    as2_encrypt_algo: Algorithme de chiffrement
+    as2_async_mdn: Adresse des accusés MDN asynchrones
+    as2_async_mdn_hint: "Vide : aucun accusé asynchrone"
+    as2_async_mdn_none: Aucun accusé asynchrone
+    as2_handle_async_mdn: Traiter les accusés asynchrones
+    as2_handle_async_mdn_hint: "La passerelle les reçoit elle-même ; sinon, un service tiers les traite"
+
+# Écran « Serveurs locaux » (Connexions) : liste, détail, formulaire, suppression, démarrage et arrêt.
+# Listes mises à jour en place par la liste vive du kit : l'erreur d'une lecture, pour les listes sans
+# bandeau d'erreur propre (comptes d'un serveur ou d'un partenaire, moyens d'authentification).
+lists:
+  refresh_error:
+    title: La liste n'a pas pu être actualisée.
+    text: "Réessayez ; si l'erreur persiste, le détail est dans le journal de la passerelle."
+  search_hint: "Cherché n'importe où, majuscules, minuscules et accents confondus ; * remplace un texte, ? un caractère, ^ et $ calent la recherche au début ou à la fin"
+
+servers:
+  title: Serveurs locaux
+  add: Ajouter un serveur
+  search: Rechercher un serveur par son nom
+  search_placeholder: Rechercher par nom
+  filters: Protocoles
+  count: "{total} serveurs"
+  count_one: 1 serveur
+  count_shown: "{total} serveurs · {shown} affichés"
+  count_shown_one: "{total} serveurs · 1 affiché"
+  caption: "Serveurs locaux, page {page} sur {pages}, triés par {sort}"
+  pager: "Serveurs {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_server: Retour au serveur
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    state: état
+    protocol: protocole
+    address: adresse
+  col:
+    name: Serveur local
+    state: État
+    protocol: Protocole
+    address: Adresse
+    actions: Actions
+  action:
+    detail: Voir le détail
+    start: Démarrer le serveur
+    stop: Arrêter le serveur
+    auth: Authentification
+    accounts: Comptes locaux
+    edit: Modifier le serveur
+    delete: Supprimer le serveur
+    transfers: Voir les transferts
+  detail:
+    title: "Serveur « {name} »"
+    card: Serveur
+    state: État
+    protocol: Protocole
+    address: Adresse d'écoute
+    autostart: Démarrage automatique
+    autostart_yes: Oui
+    autostart_no: Non
+    accounts: Comptes locaux
+    dirs: Dossiers
+    undefined: Non défini
+    dirs_meta_default: Dossiers par défaut
+  dirs:
+    root: Dossier racine
+    receive: Dossier de réception
+    tmp: Dossier de réception temporaire
+    send: Dossier d'envoi
+  new:
+    title: Nouveau serveur
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
+    no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
+    address: Adresse d'écoute
+    address_required: À renseigner
+    host: Hôte
+    host_hint: "Nom d'hôte ou adresse IP sur lequel le serveur écoute ; vide, il écoute sur toutes les interfaces (affiché « * »)"
+    port: Port
+    port_hint: "Port TCP, de 1 à 65535"
+    dirs: Dossiers
+    dirs_hint: "Facultatifs ; un chemin relatif s'entend depuis le dossier racine de la passerelle."
+    tmp_hint: "Les fichiers y sont écrits pendant la réception, puis déplacés dans le dossier de réception"
+    dirs_root_summary: "Racine « {root} »"
+    dirs_count_summary: "{n} dossiers définis"
+    dirs_default_summary: Dossiers par défaut de la passerelle
+    refused: Le serveur n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Un autre serveur porte déjà ce nom. Choisissez-en un autre.
+      address_taken: Un autre serveur écoute déjà sur cette adresse et ce port.
+      address: "Indiquez un nom d'hôte ou une adresse IP valide."
+      port: Indiquez un port entre 1 et 65535.
+  delete:
+    title: "Supprimer le serveur « {name} » ?"
+    text: "Ses comptes locaux et leurs moyens d'authentification seront supprimés avec lui. Les règles qui le désignent dans leurs accès ne s'appliqueront plus à lui."
+    running: "Il est en ligne : il sera arrêté."
+    blocked_title: Ce serveur ne peut pas être supprimé.
+    blocked_text: "Des transferts en cours l'utilisent. Annulez-les ou attendez leur fin, puis revenez ici."
+    blocked_link: Voir les transferts en cours
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Serveur « {name} » créé"
+    updated: "Serveur « {name} » enregistré"
+    deleted: "Serveur « {name} » supprimé"
+    started: "Serveur « {name} » démarré"
+    stopped: "Serveur « {name} » arrêté"
+    start_failed: "Le serveur « {name} » n'a pas démarré"
+    stop_failed: "Le serveur « {name} » n'a pas pu être arrêté"
+  empty:
+    title: Aucun serveur local pour l'instant
+    text: "Un serveur local est un point d'écoute de la passerelle pour un protocole : les partenaires s'y connectent pour déposer ou retirer des fichiers."
+  none:
+    title: "Aucun serveur ne correspond à « {query} »"
+    filters: Aucun serveur ne correspond aux filtres
+  not_found:
+    title: Serveur introuvable
+    text: Ce serveur n'existe pas ou a été supprimé.
+  error:
+    title: La liste des serveurs n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+  # Fiche d'un serveur : onglets de la fiche.
+  tabs: Onglets de la fiche
+  tab:
+    details: Détails
+    auth: Authentification
+    accounts: Comptes locaux
+# Fiche d'un compte local.
+account:
+  title: "Compte « {login} »"
+  card: Compte
+  tab:
+    details: Détails
+    auth: Authentification
+  detail:
+    server: Serveur
+    login: Identifiant
+    ips: Adresses IP autorisées
+    ips_all: Toutes
+    ips_note: "Les adresses IP autorisées limitent d'où ce compte peut se connecter ; « Toutes » n'applique aucune limite."
+    auth: Moyens d'authentification
+    auth_none: Aucun
+# Moyens d'authentification, partagés par le serveur et ses comptes.
+auth:
+  title:
+    server: Identité présentée par le serveur aux partenaires
+    account: Moyens que le partenaire présente pour ce compte
+    partner: Ce que la passerelle vérifie du partenaire
+    remote_account: Ce que la passerelle présente au partenaire
+  owner:
+    server: "le serveur « {name} »"
+    account: "le compte « {login} » du serveur « {name} »"
+    partner: "le partenaire « {name} »"
+    remote_account: "le compte « {login} » du partenaire « {name} »"
+  add: Ajouter un moyen d'authentification
+  tab_after_creation: Disponible après la création
+  search: Rechercher un moyen d'authentification par son nom
+  search_placeholder: Rechercher par nom
+  count: "{total} moyens"
+  count_one: 1 moyen
+  count_shown: "{total} moyens · {shown} affichés"
+  count_shown_one: "{total} moyens · 1 affiché"
+  caption: "Moyens d'authentification, page {page} sur {pages}, triés par {sort}"
+  pager: "Moyens {from} à {to} sur {total}"
+  sort:
+    name: nom
+    type: type
+  col:
+    name: Moyen d'authentification
+    type: Type
+    content: Contenu
+  action:
+    detail: Voir le moyen
+    edit: Modifier le moyen
+    delete: Supprimer le moyen
+  type:
+    password: Mot de passe
+    tls_certificate: Certificat TLS et sa clé
+    trusted_tls_certificate: Certificat TLS de confiance
+    ssh_private_key: Clé privée SSH
+    ssh_public_key: Clé publique SSH
+    r66_legacy_certificate: Certificat R66 historique
+    pesit_pre-connection_auth: Pré-connexion PeSIT
+  # Format des dates de validité (disposition Go).
+  date: 02/01/2006
+  # Contenu non secret d'un moyen, dans la liste et sur sa page.
+  content:
+    set: Défini
+    secret: Défini, non affiché
+    cert_key: "{subject} · clé privée définie, non affichée"
+    key_set: Clé privée définie, non affichée
+    private_key: "Clé privée {type}, non affichée"
+    key: "{type} · {fingerprint}"
+    valid: "Valide jusqu'au {date}"
+    expires: "Expire le {date}"
+    expired: "Expiré le {date}"
+    pre_login: "Identifiant « {login} »"
+    pre_no_login: Sans identifiant
+    pre_password: mot de passe défini, non affiché
+    pre_no_password: sans mot de passe
+    chain: "chaîne de {n} certificats"
+  new:
+    title: Nouveau moyen d'authentification
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    card: "Moyen d'authentification pour {owner}"
+    content: Contenu
+    name: Nom
+    name_hint: "Pour vous y retrouver : « cert-2026 », « cle-hote-rsa »… ; vide, le nom du type est repris"
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Seuls les types admis par le protocole sont proposés ; un type unique déjà présent n'y figure plus."
+    type_fixed: "Le type d'un moyen ne change pas : pour en changer, supprimez-le et ajoutez-en un autre."
+    password: Mot de passe
+    password_hint: "Le partenaire le présente à la connexion ; il est conservé haché, personne ne pourra le relire"
+    password_keep: Laissez vide pour conserver le mot de passe actuel
+    file: Fichier
+    file_hint: "Certificat, clé publique ou clé privée au format PEM. Un certificat de confiance se garde seul : ses intermédiaires, déposés avec lui, ne sont pas conservés."
+    keep_file: "Déposer un nouveau fichier le remplace ; sinon le contenu en place est conservé"
+    paste: ou coller le contenu PEM
+    cert: Certificat et ses intermédiaires
+    cert_hint: "Le certificat et ses intermédiaires, déposés ensemble : plusieurs fichiers PEM choisis en une fois, dans n'importe quel ordre, ou collés à la suite. Signé par une autorité privée ? Enregistrez d'abord sa racine dans Autorités d'authentification."
+    paste_cert: ou coller le certificat
+    key: Clé privée
+    key_hint: "La clé privée du certificat ; elle n'est jamais réaffichée"
+    paste_key: ou coller la clé
+    legacy_hint: "Aucune valeur à saisir : ce moyen indique que l'authentification suit la convention historique du marché pour les certificats R66."
+    pre_hint: "Ce que la passerelle envoie au partenaire avant la connexion PeSIT, quand il l'attend : identifiant et mot de passe facultatifs, huit caractères ASCII au plus chacun."
+    pre_login: Identifiant de pré-connexion
+    pre_login_hint: "Vide : aucun identifiant n'est envoyé"
+    pre_password: Mot de passe de pré-connexion
+    pre_password_hint: "Vide : aucun mot de passe n'est envoyé ; conservé chiffré, jamais réaffiché"
+    pre_password_keep: laissez vide pour ne pas en changer
+    refused: Le moyen d'authentification n'a pas été enregistré.
+    refused_text: "Corrigez les champs signalés ci-dessous ; un fichier déposé est à choisir de nouveau, son contenu public est repris dans la zone de collage."
+    needs: Le contenu demandé est à déposer ou à coller avant de valider.
+    error:
+      required: Indiquez le contenu du moyen d'authentification.
+      type: Choisissez un type admis par le protocole.
+      unique: "Un moyen de ce type existe déjà ; modifiez-le ou supprimez-le d'abord."
+      name_taken: Un autre moyen porte déjà ce nom. Choisissez-en un autre.
+      invalid: "Le contenu n'a pas été accepté : {reason}"
+      unrelated: "Le certificat « {name} » n'appartient pas à cette chaîne : retirez-le."
+      no_leaf: "Chaque certificat déposé en signe un autre : le certificat lui-même manque."
+      issuer_unknown: "« {subject} » est signé par « {issuer} », que la passerelle ne connaît pas. Déposez le certificat intermédiaire de « {issuer} » avec lui, ou enregistrez « {issuer} » dans Autorités d'authentification si c'est la racine."
+      root_unknown: "La racine « {root} » déposée avec la chaîne n'est pas enregistrée dans Autorités d'authentification : enregistrez-la d'abord, puis déposez de nouveau le certificat et ses intermédiaires."
+      key_is_cert: "Le contenu déposé comme clé privée est un certificat : donnez la clé privée du certificat, un bloc « PRIVATE KEY »."
+      key_mismatch: "La clé privée n'est pas celle du certificat déposé : donnez la clé de ce certificat."
+      key_unreadable: "Le contenu déposé comme clé privée n'est pas une clé PEM lisible."
+  # Ce que le formulaire a fait des certificats déposés au-delà de la chaîne, dit après l'enregistrement.
+  note:
+    root_dropped: "La racine « {root} » déposée avec la chaîne n'est pas conservée : une racine se déclare dans Autorités d'authentification."
+    trusted_leaf_only: "La confiance porte sur le certificat seul ; les autres certificats déposés ne sont pas conservés. Pour faire confiance à son autorité, enregistrez-la dans Autorités d'authentification."
+  detail:
+    title: "Moyen « {name} »"
+    card: "{type} pour {owner}"
+    state: État
+    subject: Sujet
+    issuer: Émetteur
+    self_signed: Auto-signé
+    validity: Validité
+    validity_text: "du {from} au {to}"
+    fingerprint: Empreinte SHA-256
+    key_type: Type de clé
+    private_key: Clé privée
+    content: Contenu
+    never_shown: Définie, jamais affichée
+    legacy: "Aucune valeur : le type suffit"
+    pre_login: Identifiant de pré-connexion
+    pre_no_login: Aucun
+    pre_password: Mot de passe de pré-connexion
+    pre_no_password: Aucun
+    pem: Certificat (PEM)
+    chain: Chaîne de certification
+    chain_pem: Chaîne de certification (PEM)
+    chain_note: "La chaîne enregistrée, dans l'ordre où la passerelle la présente : le certificat, puis ses intermédiaires. La racine ne se présente pas ; elle se déclare dans Autorités d'authentification."
+    chain_role:
+      leaf: Certificat
+      intermediate: Intermédiaire
+    chain_col:
+      role: Rôle
+      subject: Sujet
+      issuer: Émetteur
+      validity: Validité
+      state: État
+    public_key: Clé publique
+    public_note: "Partie publique seulement : elle peut se transmettre au partenaire."
+  delete:
+    title: "Supprimer le moyen « {name} » ?"
+    server: Les partenaires qui vérifient cette identité du serveur ne pourront plus se connecter.
+    account: Ce partenaire ne pourra plus s'authentifier par ce moyen.
+    partner: "La passerelle ne vérifiera plus cette identité du partenaire ; selon le protocole, la connexion sera refusée."
+    remote_account: La passerelle ne pourra plus s'authentifier par ce moyen auprès du partenaire.
+    means: Moyen
+    type: Type
+    owner: Pour
+    content: Contenu
+  empty:
+    title: Aucun moyen d'authentification pour l'instant
+    server: "Ajoutez l'identité que ce serveur présente aux partenaires : certificat, clé d'hôte ou mot de passe selon le protocole."
+    account: "Ce compte ne peut pas se connecter tant qu'il n'a aucun moyen : ajoutez un mot de passe, un certificat ou une clé publique."
+    partner: "Ajoutez ce que la passerelle doit vérifier du partenaire : certificat de confiance, clé d'hôte ou mot de passe selon le protocole."
+    remote_account: "Ce compte ne peut pas se connecter tant qu'il n'a aucun moyen : ajoutez un mot de passe, un certificat ou une clé privée."
+  none_for_protocol:
+    title: Ce protocole ne demande aucun moyen d'authentification au serveur
+    text: "Les connexions à ce serveur ne sont pas authentifiées par lui : rien à déposer ici."
+    partner:
+      title: Ce protocole ne demande aucune vérification du partenaire
+      text: "Les connexions à ce partenaire ne vérifient pas son identité : rien à déposer ici."
+  none:
+    title: "Aucun moyen ne correspond à « {query} »"
+  not_found:
+    title: Moyen d'authentification introuvable
+    text: Ce moyen d'authentification n'existe pas ou a été supprimé.
+  toast:
+    created: "Moyen « {name} » ajouté"
+    updated: "Moyen « {name} » enregistré"
+    deleted: "Moyen « {name} » supprimé"
+# Comptes locaux d'un serveur.
+accounts:
+  add: Ajouter un compte
+  search: Rechercher un compte par son identifiant
+  search_placeholder: Rechercher par identifiant
+  count: "{total} comptes"
+  count_one: 1 compte
+  count_shown: "{total} comptes · {shown} affichés"
+  count_shown_one: "{total} comptes · 1 affiché"
+  caption: "Comptes locaux, page {page} sur {pages}, triés par {sort}"
+  pager: "Comptes {from} à {to} sur {total}"
+  sort:
+    name: identifiant
+    auth: authentification
+  col:
+    login: Compte local
+    auth: Authentification
+  auth_none: "Aucun moyen : ne peut pas se connecter"
+  action:
+    detail: Voir le compte
+    edit: Modifier le compte
+    delete: Supprimer le compte
+    transfers: Voir les transferts
+  new:
+    title: Nouveau compte
+  edit:
+    title: "Modifier « {login} »"
+  form:
+    card: "Compte sur le serveur « {name} »"
+    login: Identifiant
+    login_hint: "Unique sur ce serveur ; c'est l'identifiant que le partenaire présente"
+    ips: Adresses IP autorisées
+    ips_hint: "Une adresse par ligne, IPv4 ou IPv6, sans plage ; vide : toutes les adresses sont acceptées"
+    first_means: Premier moyen d'authentification
+    first_means_hint: "Le partenaire s'authentifiera par ce moyen ; vous pourrez en ajouter d'autres dans la fiche du compte."
+    first_means_none: Aucun pour l'instant
+    means_name: Nom du moyen
+    means_name_hint: "Vide : le nom du type est repris"
+    means_type: Type
+    means_type_hint: Types admis pour un compte de ce protocole
+    refused: Le compte n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      login: Indiquez l'identifiant du compte.
+      taken: Un autre compte de ce serveur porte déjà cet identifiant.
+      ip: "« {value} » n'est pas une adresse IP."
+  delete:
+    title: "Supprimer le compte « {login} » ?"
+    text: "Ses moyens d'authentification seront supprimés avec lui ; ce partenaire ne pourra plus se connecter au serveur « {name} »."
+    blocked_title: Ce compte ne peut pas être supprimé.
+    blocked_text: "Des transferts en cours l'utilisent. Annulez-les ou attendez leur fin, puis revenez ici."
+    blocked_link: Voir les transferts en cours
+  empty:
+    title: Aucun compte local pour l'instant
+    text: "Un compte local est l'identifiant avec lequel un partenaire se connecte à ce serveur ; il porte ses propres moyens d'authentification."
+  none:
+    title: "Aucun compte ne correspond à « {query} »"
+  not_found:
+    title: Compte introuvable
+    text: Ce compte n'existe pas ou a été supprimé.
+  toast:
+    created: "Compte « {login} » créé"
+    updated: "Compte « {login} » enregistré"
+    deleted: "Compte « {login} » supprimé"
+# Page d'accueil : une carte par section, une tuile par écran que l'utilisateur peut lire, une phrase par écran
+# (définitions du glossaire des objets, à l'essai).
+home:
+  title: Accueil
+  desc:
+    servers: Points d'écoute, un par protocole
+    clients: Identités sortantes vers les partenaires
+    partners: Serveurs distants et leurs comptes
+    rules: Sens, chemins et traitements
+    watchers: Dossiers de partenaires interrogés à intervalle régulier
+    keys: Chiffrement et signature des tâches
+    smtp: Comptes d'envoi de la tâche EMAIL
+    email_templates: Modèles de message de la tâche EMAIL
+    dashboard: Services du nœud, transferts du jour et erreurs à traiter
+    services: État des services, serveurs et clients
+    transfers: Transferts en cours et historique
+    users: Comptes d'accès et leurs droits
+    authorities: Autorités de certification de confiance
+    clouds: Stockages distants, origine ou destination
+    snmp: Agent et alertes SNMP
+    overrides: Valeurs propres à un nœud de grappe
+    config: Sauvegarde et reprise de la configuration
+# « À propos » (dialogue du menu du compte et page de repli) : les phrases du produit ; le cadre et ses libellés
+# viennent du kit (about.title, about.version…).
+about:
+  support_text: "fournit un support et des services professionnels pour {product}."
+  license_text: "{product} est sous licence GPLv3."
+  link_download: "Télécharger {product}"
+  link_doc: Documentation
+  link_forums: Forums
+  link_contact: "Contact : {email}"
+# Droits d'un utilisateur par domaine : le tableau partagé par « Mon compte » et l'écran « Utilisateurs ».
+rights:
+  meta_all: Tous les droits
+  meta_one: 1 droit
+  meta: "{n} droits"
+  meta_none: Aucun droit
+  col:
+    read: Lecture
+    write: Écriture
+    delete: Suppression
+  # Ce qu'un utilisateur peut faire dans un domaine, en toutes lettres, d'après la notation (r, w, d).
+  granted:
+    r: Lecture
+    w: Écriture
+    d: Suppression
+    rw: Lecture et écriture
+    rd: Lecture et suppression
+    wd: Écriture et suppression
+    rwd: Lecture, écriture et suppression
+    none: Aucun droit
+  domain:
+    transfers: Transferts
+    servers: Serveurs et clients locaux
+    partners: Partenaires distants
+    rules: Règles de transfert
+    users: Utilisateurs
+    admin: Administration
+# Page « Mon compte » (menu du compte) : l'utilisateur connecté, ses droits en lecture, le changement de son mot de
+# passe.
+me:
+  title: Mon compte
+  identity: Identité
+  username: Identifiant
+  instance: Instance
+  rights: Droits
+  rights_caption: "Vos droits, par domaine : lecture, écriture, suppression"
+  rights_hint: "Vos droits sont fixés par un administrateur, dans « Utilisateurs »."
+  password:
+    title: Changer mon mot de passe
+    current: Mot de passe actuel
+    new: Nouveau mot de passe
+    new_hint: "Conservé haché ; personne ne pourra le relire."
+    confirm: Nouveau mot de passe, une seconde fois
+    refused: Le mot de passe n'a pas été modifié.
+    refused_text: Corrigez les champs signalés ci-dessous.
+  error:
+    current: Le mot de passe actuel n'est pas le bon.
+    required: Indiquez le nouveau mot de passe.
+    mismatch: Les deux saisies du nouveau mot de passe diffèrent.
+  toast:
+    password: Mot de passe modifié
+    account: Compte enregistré
+# Page de connexion : le titre sert aussi de libellé au bouton ; un seul message de refus, que le compte existe
+# ou non et qu'il soit verrouillé ou non ; la fin de session dite par l'adresse (?reason=).
+login:
+  title: Se connecter
+  username: Identifiant
+  password: Mot de passe
+  refused: Identifiant ou mot de passe incorrect. Vérifiez votre saisie, puis réessayez.
+  unavailable: La connexion n'a pas pu être vérifiée. Réessayez dans un instant.
+  expired: Votre session a pris fin. Reconnectez-vous pour continuer.
+  signed_out: Vous êtes déconnecté.
+# Écran « Partenaires distants » (Connexions) : liste, fiche à onglets, formulaire, suppression.
+partners:
+  title: Partenaires distants
+  add: Ajouter un partenaire
+  search: Rechercher un partenaire par son nom
+  search_placeholder: Rechercher par nom
+  filters: Protocoles
+  count: "{total} partenaires"
+  count_one: 1 partenaire
+  count_shown: "{total} partenaires · {shown} affichés"
+  count_shown_one: "{total} partenaires · 1 affiché"
+  caption: "Partenaires distants, page {page} sur {pages}, triés par {sort}"
+  pager: "Partenaires {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_partner: Retour au partenaire
+  accounts_none: Aucun
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    protocol: protocole
+    address: adresse
+    accounts: comptes
+  col:
+    name: Partenaire distant
+    protocol: Protocole
+    address: Adresse
+    accounts: Comptes
+    actions: Actions
+  action:
+    detail: Voir la fiche
+    edit: Modifier le partenaire
+    delete: Supprimer le partenaire
+    transfers: Voir les transferts
+  tabs: Onglets de la fiche
+  tab:
+    details: Détails
+    auth: Authentification
+    accounts: Comptes distants
+  detail:
+    title: "Partenaire « {name} »"
+    card: Partenaire
+    protocol: Protocole
+    address: Adresse
+    accounts: Comptes distants
+    rules_title: Règles de transfert autorisées
+    rules_reserved_none: Aucune règle ne lui est réservée.
+    rules_open: "Il peut aussi utiliser les {n} règles sans restriction, comme tout partenaire."
+    rules_open_one: "Il peut aussi utiliser la règle sans restriction, comme tout partenaire."
+    rules_open_all: "Toutes les règles de la passerelle ({n}) sont sans restriction : il peut les utiliser, comme tout partenaire."
+    rules_open_none: Aucune règle sans restriction.
+    rules_meta: "{reserved} réservées · {open} sans restriction"
+    rules_hint: "Les accès aux règles se gèrent depuis l'écran des règles de transfert."
+    rules_link: Voir les règles de transfert
+    rule_via_partner: accordée au partenaire
+    rule_via_account: "accordée au compte « {login} »"
+    rule_send: envoi
+    rule_receive: réception
+  client:
+    title: Client utilisé
+    meta_none: Aucun
+    meta_many: "{n} clients"
+    one: "Les transferts vers ce partenaire passent par le client « {name} »."
+    many: "{n} clients {protocol} existent : chaque transfert vers ce partenaire doit nommer le sien."
+    none: "Aucun client {protocol} : la passerelle en créera un, nommé « {name} », au premier transfert."
+    add: Ajouter un client
+  new:
+    title: Nouveau partenaire
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique sur la passerelle ; c'est le nom que les règles et les transferts désignent"
+    protocol_hint: "Changer de protocole rend caducs les moyens d'authentification et les comptes qui ne lui correspondent plus."
+    address: Adresse
+    address_required: À renseigner
+    address_hint: "L'adresse à laquelle la passerelle se connecte."
+    host: Hôte
+    host_hint: "Nom d'hôte ou adresse IP du serveur partenaire"
+    port: Port
+    port_hint: "Port TCP, de 1 à 65535"
+    refused: Le partenaire n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Un autre partenaire porte déjà ce nom. Choisissez-en un autre.
+      host: Indiquez l'hôte.
+      port: Indiquez un port de 1 à 65535.
+      address: "Indiquez un nom d'hôte ou une adresse IP valide."
+      async_mdn: "Indiquez l'adresse des accusés MDN asynchrones pour les traiter."
+  delete:
+    title: "Supprimer le partenaire « {name} » ?"
+    text: "Ses {n} comptes distants et leurs moyens d'authentification seront supprimés avec lui, ainsi que ses accès aux règles de transfert ; les transferts vers ce partenaire ne pourront plus être créés."
+    blocked_title: Ce partenaire ne peut pas être supprimé.
+    blocked_transfers: Des transferts en cours utilisent un de ses comptes. Annulez-les ou attendez leur fin.
+    blocked_watchers: Une surveillance de dossiers utilise un de ses comptes. Retirez-la d'abord.
+    blocked_link: Voir les transferts en cours
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Partenaire « {name} » créé"
+    updated: "Partenaire « {name} » enregistré"
+    deleted: "Partenaire « {name} » supprimé"
+  empty:
+    title: Aucun partenaire distant pour l'instant
+    text: "Un partenaire distant est un serveur tiers auquel la passerelle se connecte pour déposer ou retirer des fichiers ; il porte ses comptes et ses moyens d'authentification."
+  none:
+    title: "Aucun partenaire ne correspond à « {query} »"
+    filters: Aucun partenaire ne correspond aux filtres
+  not_found:
+    title: Partenaire introuvable
+    text: Ce partenaire n'existe pas ou a été supprimé.
+  error:
+    title: La liste des partenaires n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+# Comptes distants d'un partenaire : l'identité que la passerelle lui présente.
+remote_accounts:
+  add: Ajouter un compte
+  search: Rechercher un compte par son identifiant
+  search_placeholder: Rechercher par identifiant
+  count: "{total} comptes"
+  count_one: 1 compte
+  count_shown: "{total} comptes · {shown} affichés"
+  count_shown_one: "{total} comptes · 1 affiché"
+  caption: "Comptes distants, page {page} sur {pages}, triés par {sort}"
+  pager: "Comptes {from} à {to} sur {total}"
+  sort:
+    name: identifiant
+    auth: authentification
+  col:
+    login: Compte distant
+    auth: Authentification
+  auth_none: "Aucun moyen : ne peut pas se connecter"
+  action:
+    detail: Voir le compte
+    edit: Modifier le compte
+    delete: Supprimer le compte
+    transfers: Voir les transferts
+  new:
+    title: Nouveau compte distant
+  edit:
+    title: "Modifier « {login} »"
+  form:
+    card: "Compte sur le partenaire « {name} »"
+    login: Identifiant
+    login_hint: "Unique sur ce partenaire ; c'est l'identifiant que la passerelle présente"
+    first_means: Premier moyen d'authentification
+    first_means_hint: "La passerelle s'authentifiera par ce moyen ; vous pourrez en ajouter d'autres dans la fiche du compte."
+    refused: Le compte n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      login: Indiquez l'identifiant du compte.
+      taken: Un autre compte de ce partenaire porte déjà cet identifiant.
+  delete:
+    title: "Supprimer le compte « {login} » ?"
+    text: "Ses moyens d'authentification seront supprimés avec lui ; les transferts vers « {name} » qui le nomment ne pourront plus être créés."
+    blocked_title: Ce compte ne peut pas être supprimé.
+    blocked_transfers: Des transferts en cours l'utilisent. Annulez-les ou attendez leur fin.
+    blocked_watchers: Une surveillance de dossiers l'utilise. Retirez-la d'abord.
+    blocked_link: Voir les transferts en cours
+  empty:
+    title: Aucun compte distant pour l'instant
+    text: "Un compte distant est l'identité que la passerelle présente à ce partenaire ; un transfert le nomme toujours."
+  none:
+    title: "Aucun compte ne correspond à « {query} »"
+  not_found:
+    title: Compte distant introuvable
+    text: Ce compte n'existe pas ou a été supprimé.
+  toast:
+    created: "Compte « {login} » créé"
+    updated: "Compte « {login} » enregistré"
+    deleted: "Compte « {login} » supprimé"
+# Fiche d'un compte distant.
+remote_account:
+  title: "Compte « {login} »"
+  card: Compte distant
+  tab:
+    details: Détails
+    auth: Authentification
+  detail:
+    partner: Partenaire
+    login: Identifiant
+    auth: Moyens d'authentification
+    auth_none: Aucun
+    note: "Un transfert vers ce partenaire nomme toujours un de ses comptes ; la passerelle s'y présente avec les moyens de l'onglet Authentification."
+# Clients locaux : la liste, le détail (avec les partenaires joignables), les pages d'action.
+clients:
+  title: Clients locaux
+  add: Ajouter un client
+  search: Rechercher un client par son nom
+  search_placeholder: Rechercher par nom
+  filters: Protocoles
+  count: "{total} clients"
+  count_one: 1 client
+  count_shown: "{total} clients · {shown} affichés"
+  count_shown_one: "{total} clients · 1 affiché"
+  caption: "Clients locaux, page {page} sur {pages}, triés par {sort}"
+  pager: "Clients {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_client: Retour au client
+  address_auto: Automatique
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    state: état
+    protocol: protocole
+    address: adresse
+  col:
+    name: Client local
+    state: État
+    protocol: Protocole
+    address: Adresse locale
+    actions: Actions
+  action:
+    detail: Voir le détail
+    start: Démarrer le client
+    stop: Arrêter le client
+    edit: Modifier le client
+    delete: Supprimer le client
+    transfers: Voir les transferts
+  detail:
+    title: "Client « {name} »"
+    card: Client
+    state: État
+    protocol: Protocole
+    address: Adresse locale
+    autostart: Démarrage automatique
+    autostart_yes: Oui
+    autostart_no: Non
+    retries: Reprise des transferts
+    retries_none: Aucune reprise automatique
+    partners: Partenaires joignables par ce client
+    partners_hint: "Les partenaires distants de son protocole ; un transfert vers l'un d'eux passe par ce client, sauf à en nommer un autre."
+    partners_none: Aucun partenaire de ce protocole pour l'instant.
+    retries_meta_one: 1 tentative
+    retries_meta: "{n} tentatives"
+    partners_meta_none: Aucun
+    partners_meta_one: 1 partenaire
+    partners_meta: "{n} partenaires"
+  retries:
+    attempts: Tentatives automatiques après un échec
+    attempts_hint: "0 : aucune reprise ; 127 au plus"
+    delay: Délai avant la première reprise
+    delay_hint: "Vide : la passerelle attend 1 s"
+    delay_none: Aucun délai
+    delay_hours: "{n} h"
+    delay_minutes: "{n} min"
+    delay_seconds: "{n} s"
+    hours: heures
+    minutes: minutes
+    seconds: secondes
+    factor: Facteur de progression du délai
+    factor_hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
+    sentence_none: Aucune reprise automatique.
+    sentence_one: "1 tentative, {delay} après l'échec."
+    sentence_constant: "{n} tentatives, toutes les {delay} : la dernière {total} après le premier échec."
+    sentence_growing: "{n} tentatives : la dernière {total} après le premier échec, avec des attentes de {first} à {last}."
+    sentence_empty_delay: "Délai vide : la passerelle attend 1 s."
+    delay_days: "{n} j"
+    more_than_years: "plus de {n} ans"
+    failure: Échec
+    details: Détail des tentatives
+    row: "Après {wait} d'attente, à {at} du premier échec."
+    note: "La frise compte l'attente entre deux tentatives à partir du premier échec ; la durée des tentatives elles-mêmes s'y ajoute."
+  new:
+    title: Nouveau client
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique sur cette passerelle ; lettres, chiffres, tirets et points"
+    no_autostart: Ne pas démarrer automatiquement au lancement de la passerelle
+    address: Adresse locale
+    address_hint: "Facultative : vide, l'interface et le port de sortie sont choisis par le système."
+    host: Hôte
+    host_hint: "Nom d'hôte ou adresse IP de l'interface de sortie"
+    port: Port
+    port_hint: "Port TCP de sortie, de 1 à 65535"
+    retries: Reprise des transferts
+    retries_hint: "Quand un transfert passé par ce client échoue, la passerelle le retente d'elle-même, selon ces réglages."
+    retries_summary: "{attempts} tentatives · {delay} · ×{factor}"
+    retries_summary_one: "1 tentative · {delay} · ×{factor}"
+    refused: Le client n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Un autre client porte déjà ce nom. Choisissez-en un autre.
+      address: "Indiquez un nom d'hôte ou une adresse IP valide."
+      port: Indiquez un port entre 1 et 65535.
+      number: Indiquez un nombre entier positif.
+      attempts: Indiquez un nombre de tentatives entre 0 et 127.
+      factor: Indiquez un facteur supérieur à 0.
+  delete:
+    title: "Supprimer le client « {name} » ?"
+    text: L'historique des transferts garde son nom.
+    running: "Il est en ligne : il sera arrêté."
+    blocked_title: Ce client ne peut pas être supprimé.
+    blocked_transfers: "Des transferts non terminés l'utilisent : planifiés, en cours, en pause, interrompus ou en erreur. Annulez-les ou attendez qu'ils se terminent."
+    blocked_text: "Des surveillances de dossiers l'utilisent. Supprimez-les d'abord, par l'API ou la ligne de commande."
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Client « {name} » créé"
+    updated: "Client « {name} » enregistré"
+    deleted: "Client « {name} » supprimé"
+    started: "Client « {name} » démarré"
+    stopped: "Client « {name} » arrêté"
+    start_failed: "Le client « {name} » n'a pas démarré"
+    stop_failed: "Le client « {name} » n'a pas pu être arrêté"
+  empty:
+    title: Aucun client local pour l'instant
+    text: "Un client local est l'identité sortante de la passerelle pour un protocole : il se connecte aux partenaires pour déposer ou retirer des fichiers."
+  none:
+    title: "Aucun client ne correspond à « {query} »"
+    filters: Aucun client ne correspond aux filtres
+  not_found:
+    title: Client introuvable
+    text: Ce client n'existe pas ou a été supprimé.
+  error:
+    title: La liste des clients n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+# Écran « Utilisateurs » (Administration) : liste, fiche en lecture, formulaire, suppression.
+users:
+  title: Utilisateurs
+  add: Ajouter un utilisateur
+  search: Rechercher un utilisateur par son identifiant
+  search_placeholder: Rechercher par identifiant
+  count: "{total} utilisateurs"
+  count_one: 1 utilisateur
+  count_shown: "{total} utilisateurs · {shown} affichés"
+  count_shown_one: "{total} utilisateurs · 1 affiché"
+  caption: "Utilisateurs, page {page} sur {pages}, triés par {sort}"
+  pager: "Utilisateurs {from} à {to} sur {total}"
+  legend: "r : lecture · w : écriture · d : suppression"
+  you: Vous
+  last_admin: "Dernier administrateur : le seul à détenir l'écriture sur les utilisateurs."
+  back: Retour à la liste
+  back_user: Retour à l'utilisateur
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: identifiant
+    transfers: droits sur les transferts
+    servers: droits sur les serveurs
+    partners: droits sur les partenaires
+    rules: droits sur les règles
+    users: droits sur les utilisateurs
+    admin: droits sur l'administration
+  col:
+    name: Utilisateur
+    transfers: Transferts
+    servers: Serveurs
+    partners: Partenaires
+    rules: Règles
+    users: Utilisateurs
+    admin: Administration
+    actions: Actions
+  filter:
+    domain: Domaine
+    right: Droit
+    any_domain: Tous les domaines
+    any_right: Tous les droits
+    level:
+      read: Lecture
+      write: Écriture
+      delete: Suppression
+      none: Aucun droit
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'utilisateur
+    delete: Supprimer l'utilisateur
+  detail:
+    title: "Utilisateur « {name} »"
+    card: Utilisateur
+    login: Identifiant
+    rights: Droits
+    rights_caption: "Droits de « {name} », par domaine : lecture, écriture, suppression"
+  new:
+    title: Nouvel utilisateur
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    rights: Droits
+    login: Identifiant
+    login_hint: "Unique sur cette passerelle ; sert à l'interface, à l'API et à la ligne de commande"
+    password: Mot de passe
+    password_hint: "Conservé haché ; personne ne pourra le relire. 72 caractères au plus."
+    password_keep: "Vide : inchangé. 72 caractères au plus."
+    confirm: Mot de passe, une seconde fois
+    rights_caption: "Droits à accorder, par domaine : lecture, écriture, suppression"
+    transfers_delete: Les transferts ne se suppriment pas.
+    self: "C'est votre compte : vos droits s'appliquent dès l'enregistrement."
+    self_last_admin: "Vous êtes le dernier administrateur : si vous retirez votre droit d'écriture sur les utilisateurs, plus personne ne pourra gérer les utilisateurs."
+    refused: L'utilisateur n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      login_taken: Un autre utilisateur porte déjà cet identifiant. Choisissez-en un autre.
+      password_required: Indiquez le mot de passe.
+      mismatch: Les deux saisies du mot de passe diffèrent.
+      too_long: 72 caractères au plus.
+  delete:
+    title: "Supprimer l'utilisateur « {name} » ?"
+    text: "Il ne pourra plus se connecter à l'interface, à l'API ni à la ligne de commande ; sa session en cours sera fermée à sa prochaine action."
+    blocked_title: Cet utilisateur ne peut pas être supprimé.
+    blocked:
+      last_admin: "C'est le dernier à pouvoir gérer les utilisateurs (droit d'écriture sur les utilisateurs). Donnez d'abord ce droit à un autre utilisateur."
+      self: "Vous ne pouvez pas supprimer votre propre compte. Demandez-le à un autre administrateur."
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Utilisateur « {name} » créé"
+    updated: "Utilisateur « {name} » enregistré"
+    deleted: "Utilisateur « {name} » supprimé"
+  empty:
+    title: Aucun utilisateur pour l'instant
+    text: "Un utilisateur est un compte d'accès à l'administration de la passerelle, avec ses droits par domaine."
+  none:
+    title: "Aucun utilisateur ne correspond à « {query} »"
+    filters: Aucun utilisateur ne correspond aux filtres
+  not_found:
+    title: Utilisateur introuvable
+    text: Cet utilisateur n'existe pas ou a été supprimé.
+  error:
+    title: La liste des utilisateurs n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+# Écran « Instances cloud » (Administration) : liste, fiche en lecture, formulaire par type, suppression.
+clouds:
+  title: Instances cloud
+  add: Ajouter une instance cloud
+  search: Rechercher une instance par son nom
+  search_placeholder: Rechercher par nom
+  filters: Types
+  count: "{total} instances"
+  count_one: 1 instance
+  count_shown: "{total} instances · {shown} affichées"
+  count_shown_one: "{total} instances · 1 affichée"
+  caption: "Instances cloud, page {page} sur {pages}, triées par {sort}"
+  pager: "Instances {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_cloud: Retour à l'instance
+  location_none: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    type: type
+    location: emplacement
+    auth: authentification
+  col:
+    name: Instance cloud
+    type: Type
+    location: Emplacement
+    auth: Authentification
+    actions: Actions
+  # Comment l'instance s'authentifie.
+  auth:
+    key: Clé renseignée
+    env: Variables d'environnement
+    none: Aucune
+  # Les cinq types de stockage, nommés comme la documentation de référence.
+  type:
+    s3: Amazon S3
+    azblob: Azure Blob
+    azfiles: Azure Files
+    gcs: Google Cloud Storage
+    onedrive: OneDrive
+  type_hint:
+    s3: Bucket S3 d'Amazon ou d'un service compatible.
+    azblob: "Conteneur d'objets Azure ; le conteneur se nomme dans le chemin."
+    azfiles: Partage de fichiers Azure.
+    gcs: Bucket Google Cloud Storage.
+    onedrive: Lecteur OneDrive ou bibliothèque SharePoint.
+  type_stored: "{label} ({key})"
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'instance
+    delete: Supprimer l'instance
+  detail:
+    title: "Instance cloud « {name} »"
+    card: Instance
+    type: Type
+    path: Chemin à employer
+    path_example: dossier/fichier
+    path_hint: "Une règle, un serveur ou un transfert désigne l'instance ainsi, à la place d'un dossier local."
+    access: Accès
+    secret: Secret
+    secret_set: Défini
+    secret_unset: Non défini
+    env_auth: Identifiants par les variables d'environnement
+    "yes": Oui
+    "no": Non
+    options: Options
+    options_none: Aucune option.
+    options_meta_none: Aucune
+    options_meta_one: 1 option
+    options_meta: "{n} options"
+    access_meta_env: Par l'environnement
+    access_meta_secret: Secret fourni
+    access_meta_none: Sans secret
+    usage_meta_none: Aucun usage
+    usage_meta_rules_one: 1 règle
+    usage_meta_rules: "{n} règles"
+    usage_meta_servers_one: 1 serveur
+    usage_meta_servers: "{n} serveurs"
+    usage_meta_transfers_one: 1 transfert
+    usage_meta_transfers: "{n} transferts"
+    default: Valeur par défaut de la passerelle
+    unset: Non défini
+    masked: Masquée
+    other: Autres options
+    used_by: Utilisée par
+    used_none: Aucun objet ne nomme cette instance pour l'instant.
+    used_rules: Règles de transfert
+    used_servers: Serveurs locaux
+    used_transfers: Transferts
+    used_transfers_count: "{n} transferts nomment cette instance dans leur chemin local"
+  new:
+    title: Nouvelle instance cloud
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity: Identité
+    name: Nom
+    name_hint: "Unique ; il préfixe les chemins : nom:dossier/fichier. « file » est réservé au disque local."
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Changer de type vide les options du type précédent."
+    access: Accès
+    key:
+      any: Clé
+      s3: Clé d'accès
+      azure: Nom du compte
+      gcs: Fichier d'identifiants
+      onedrive: Identifiant d'application
+    key_hint: "Facultative quand les identifiants viennent des variables d'environnement."
+    secret:
+      any: Secret
+    secret_hint: "Conservé chiffré ; jamais réaffiché."
+    secret_keep: "Vide : inchangé. Conservé chiffré ; jamais réaffiché."
+    access_note:
+      s3: "Amazon S3 : la clé est la clé d'accès, le secret la clé secrète."
+      azblob: "Azure Blob : la clé est le nom du compte de stockage, le secret la clé du compte."
+      azfiles: "Azure Files : la clé est le nom du compte de stockage, le secret la clé du compte."
+      gcs: "Google Cloud Storage : la clé est le chemin, sur la passerelle, du fichier d'identifiants du compte de service ; le secret, le contenu JSON de ces identifiants quand le fichier n'est pas sur la passerelle."
+      onedrive: "OneDrive : la clé est l'identifiant de l'application enregistrée sur le portail Azure (autorisation d'application Files.ReadWrite.All), le secret son secret d'application ; la passerelle demande elle-même le jeton."
+    env_auth: Identifiants fournis par les variables d'environnement de la passerelle
+    env_hint: "Variables lues :"
+    env:
+      s3: "AWS_ACCESS_KEY_ID et AWS_SECRET_ACCESS_KEY ; la région et le point d'accès peuvent venir de AWS_REGION et AWS_ENDPOINT_URL."
+      azblob: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID et AZURE_CLIENT_ID."
+      azfiles: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID et AZURE_CLIENT_ID."
+      gcs: "GOOGLE_APPLICATION_CREDENTIALS."
+    options: "Options {type}"
+    options_required: À renseigner
+    other: Autres options
+    other_label: Réglages de la bibliothèque de stockage
+    other_hint: "Une option par ligne, sous la forme clé=valeur, parmi les options acceptées proposées ci-dessous ; ni identifiant ni secret."
+    other_none: Aucune
+    other_some: Renseignées
+    accepted: "Options acceptées par {type} ({n})"
+    accepted_add: Ajouter une option
+    accepted_default: "par défaut : {value}"
+    accepted_values: "valeurs : {values}"
+    refused: L'instance n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    refused_by_backend: "Le stockage a refusé cette configuration : {cause} Le détail est dans le journal de la passerelle."
+    error:
+      required: Ce champ est obligatoire.
+      name_file: "« file » est réservé au disque local."
+      name_taken: Une autre instance porte déjà ce nom. Choisissez-en un autre.
+      type: Choisissez un type.
+      option: "Indiquez une option par ligne, sous la forme clé=valeur."
+      other_field: "« {key} » se règle dans son champ, plus haut."
+      other_secret: "« {key} » est une option sensible : elle serait conservée et affichée en clair ; les identifiants passent par la clé et le secret, ou par les variables d'environnement."
+      other_unknown: "{type} ne connaît pas l'option « {key} » : elle serait sans effet."
+  # Les options des stockages : libellé, puis aides (le défaut du produit est injecté dans {default}).
+  opt:
+    bucket:
+      label: Bucket
+      hint: Le bucket dans lequel la passerelle lit et écrit.
+    region:
+      label: Région
+      hint_s3: "Vide : celle du point d'accès ou de AWS_REGION."
+      hint_onedrive: "Vide : {default}."
+    endpoint:
+      label: Point d'accès
+      hint_s3: "Vide : amazonaws.com ; à renseigner pour un service compatible S3."
+      hint_azblob: "Vide : https://<compte>.blob.core.windows.net, le compte étant la clé."
+      hint_azfiles: "Vide : https://<compte>.file.core.windows.net, le compte étant la clé."
+    chunk_size:
+      label: Taille des morceaux envoyés
+      hint: "Vide : {default} ; une taille avec son unité, par exemple 8MiB."
+    copy_cutoff:
+      label: Seuil de copie par morceaux
+      hint: "Vide : {default}."
+    list_chunk:
+      label: Objets lus par requête de listage
+      hint: "Vide : {default}."
+    share_name:
+      label: Partage
+      hint: Le partage Azure Files dans lequel la passerelle lit et écrit.
+    project_number:
+      label: Numéro du projet
+      hint: Le numéro du projet Google Cloud.
+    bucket_policy_only:
+      label: Le bucket applique une politique d'accès uniforme
+    tenant:
+      label: Annuaire (tenant)
+      hint: L'identifiant de l'annuaire Azure de l'application.
+    drive_id:
+      label: Identifiant du lecteur
+      hint: "Le lecteur OneDrive ou la bibliothèque SharePoint, tel que l'API Graph le nomme."
+    drive_type:
+      label: Type de lecteur
+      business: Professionnel (business)
+      personal: Personnel (personal)
+      documentLibrary: Bibliothèque de documents (documentLibrary)
+  delete:
+    title: "Supprimer l'instance cloud « {name} » ?"
+    text: "Les chemins qui la nomment ne fonctionneront plus : les règles, serveurs et transferts ci-dessous cesseront de lire ou d'écrire dans ce stockage."
+    text_none: "Aucun objet ne nomme cette instance ; les chemins qui la nommeraient ensuite ne fonctionneraient plus."
+  # Résultat de l'action précédente, en notification.
+  toast:
+    created: "Instance cloud « {name} » créée"
+    updated: "Instance cloud « {name} » enregistrée"
+    deleted: "Instance cloud « {name} » supprimée"
+  empty:
+    title: Aucune instance cloud pour l'instant
+    text: "Une instance cloud est un stockage distant que la passerelle emploie à la place du disque local, désigné dans les chemins par nom:dossier/fichier."
+  none:
+    title: "Aucune instance ne correspond à « {query} »"
+    filters: Aucune instance ne correspond aux filtres
+  not_found:
+    title: Instance cloud introuvable
+    text: Cette instance n'existe pas ou a été supprimée.
+  error:
+    title: La liste des instances cloud n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Autorités d'authentification ».
+authorities:
+  title: Autorités d'authentification
+  add: Ajouter une autorité
+  search: Rechercher une autorité par son nom
+  search_placeholder: Rechercher par nom
+  filters_type: Types
+  filters_validity: Validité du certificat
+  count: "{total} autorités"
+  count_one: 1 autorité
+  count_shown: "{total} autorités · {shown} affichées"
+  count_shown_one: "{total} autorités · 1 affichée"
+  caption: "Autorités d'authentification, page {page} sur {pages}, triées par {sort}"
+  pager: "Autorités {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_authority: Retour à l'autorité
+  none_value: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    type: type
+    validity: validité
+    hosts: hôtes autorisés
+  col:
+    name: Autorité
+    type: Type
+    identity: Certificat ou clé
+    validity: Validité
+    hosts: Hôtes autorisés
+    actions: Actions
+  # Les deux types, nommés comme la documentation de référence ; la forme courte pour la liste.
+  type:
+    tls_authority: Autorité de certification TLS
+    ssh_cert_authority: Autorité de certification SSH
+  type_short:
+    tls: TLS
+    ssh: SSH
+  type_hint:
+    tls_authority: "Les certificats qu'elle signe sont acceptés pour les connexions TLS, sans être enregistrés au préalable."
+    ssh_cert_authority: "Les certificats SSH qu'elle signe sont acceptés pour les connexions SFTP : ceux des utilisateurs qui se connectent à la passerelle, ceux des serveurs des partenaires."
+  # Filtre de validité du certificat.
+  validity:
+    ok: Valide
+    warn: Expire dans les 30 jours
+    ko: Expirée
+  identity:
+    unreadable: Illisible
+    meta_expires: "expire le {date}"
+  signed:
+    meta_none: Aucun
+    meta_one: 1 certificat
+    meta: "{n} certificats"
+  hosts:
+    all: Tous les hôtes
+    meta_one: 1 hôte
+    meta: "{n} hôtes"
+    more: "{hosts} et {n} autres"
+    more_one: "{hosts} et 1 autre"
+  # Qui porte un certificat enregistré que l'autorité signe.
+  owner:
+    server: "Serveur local « {name} »"
+    server_account: "Compte « {login} » du serveur « {name} »"
+    partner: "Partenaire « {name} »"
+    partner_account: "Compte « {login} » du partenaire « {name} »"
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'autorité
+    delete: Supprimer l'autorité
+  detail:
+    title: "Autorité « {name} »"
+    card: Autorité
+    type: Type
+    role: Rôle
+    identity: Identité publique
+    unreadable: "L'identité publique enregistrée est illisible ; donnez-en une nouvelle en modifiant l'autorité."
+    show_certificate: Afficher le certificat
+    show_key: Afficher la clé publique
+    hosts: Hôtes autorisés
+    hosts_hint:
+      tls_authority: "Comparés au nom d'hôte du serveur, sans port : celui de l'adresse du partenaire, ou celui du serveur local dont on enregistre le certificat. Une autorité restreinte ne vaut pas pour les certificats des comptes."
+      ssh_cert_authority: "Comparés à l'adresse du serveur SFTP du partenaire, avec son port (sftp.exemple.fr:22). Les certificats des utilisateurs qui se connectent à la passerelle sont acceptés quels que soient les hôtes."
+    signed: Certificats signés
+    signed_none: Aucun certificat enregistré dans la passerelle n'est signé par cette autorité.
+  new:
+    title: Nouvelle autorité d'authentification
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity_card: Identité
+    name: Nom
+    name_hint: Unique.
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Changer de type demande l'identité publique du nouveau type."
+    identity:
+      tls_authority: Certificat de l'autorité
+      ssh_cert_authority: Clé publique de l'autorité
+    identity_hint:
+      tls_authority: "Le certificat de l'autorité de certification, au format PEM (fichier .pem, .crt ou .cer) : la racine seule, ou la racine et ses intermédiaires collés, pour les partenaires qui ne présentent que leur certificat."
+      ssh_cert_authority: "La clé publique de l'autorité, au format authorized_keys (fichier .pub)."
+    identity_example:
+      tls_authority: "-----BEGIN CERTIFICATE-----"
+      ssh_cert_authority: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA…"
+    paste:
+      tls_authority: ou coller le certificat
+      ssh_cert_authority: ou coller la clé publique
+    to_give: À renseigner
+    hosts: Un hôte par ligne
+    hosts_hint:
+      tls_authority: "Le nom d'hôte ou l'adresse du serveur, sans port, tel qu'il figure dans l'adresse du partenaire ; vide : tous les hôtes."
+      ssh_cert_authority: "L'adresse du serveur SFTP du partenaire, avec son port (sftp.exemple.fr:22) ; vide : tous les hôtes."
+    hosts_one: 1 hôte
+    hosts_count: "{n} hôtes"
+    refused: L'autorité n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Une autre autorité porte déjà ce nom. Choisissez-en un autre.
+      type: Choisissez un type.
+      unreadable:
+        tls_authority: "Ce contenu n'est pas un certificat lisible au format PEM."
+        ssh_cert_authority: "Ce contenu n'est pas une clé publique lisible au format authorized_keys."
+      not_ca: Ce certificat n'est pas celui d'une autorité de certification.
+      not_verified: "Ce certificat ne se vérifie pas : {cause}"
+  delete:
+    title: "Supprimer l'autorité « {name} » ?"
+    text: "Les certificats qu'elle signe ne seront plus acceptés, sauf s'ils sont enregistrés dans la passerelle ou signés par une autorité du système."
+  toast:
+    created: "Autorité « {name} » créée"
+    updated: "Autorité « {name} » enregistrée"
+    deleted: "Autorité « {name} » supprimée"
+  empty:
+    title: Aucune autorité d'authentification pour l'instant
+    text: "La passerelle ne se fie qu'aux autorités du système et aux certificats enregistrés."
+  none:
+    title: "Aucune autorité ne commence par « {query} »"
+    filters: Aucune autorité ne correspond aux filtres.
+  not_found:
+    title: Autorité introuvable
+    text: Cette autorité n'existe pas ou a été supprimée.
+  error:
+    title: La liste des autorités d'authentification n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « SNMP » : les moniteurs (outils de supervision que la passerelle notifie) et l'agent SNMP.
+snmp:
+  title: SNMP
+  add: Ajouter un moniteur
+  send_test: Tester l'envoi à tous les moniteurs
+  test_not_running: "Le service SNMP de la passerelle ne fonctionne pas."
+  # Les deux sens de SNMP : les alertes que la passerelle envoie, les questions que la supervision lui pose.
+  monitors:
+    title: Alertes envoyées par la passerelle
+    text: "Quand un transfert échoue ou qu'un service tombe en panne, la passerelle envoie une alerte à chacun de ces outils de supervision, appelés moniteurs."
+  caption: "Moniteurs SNMP, page {page} sur {pages}, triés par {sort}"
+  pager: "Moniteurs {from} à {to} sur {total}"
+  back: Retour à SNMP
+  back_monitor: Retour au moniteur
+  none_value: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    address: adresse
+  col:
+    name: Moniteur
+    version: Version
+    address: Adresse
+    security: Sécurité
+    actions: Actions
+  # Comment un moniteur est protégé : sa communauté en SNMPv2c, son niveau en SNMPv3.
+  security:
+    community: Communauté
+    noAuthNoPriv: Sans authentification
+    authNoPriv: Authentification
+    authPriv: Authentification et chiffrement
+  action:
+    detail: Voir la fiche
+    edit: Modifier le moniteur
+    delete: Supprimer le moniteur
+    disable: Désactiver l'agent
+  agent:
+    title: Agent SNMP
+    section: Interrogation par la supervision
+    text: "Une fois configuré, l'agent SNMP de la passerelle répond aux outils de supervision qui l'interrogent : transferts par état et par erreur, mémoire, connexions."
+    disable_note: "Désactiver l'agent arrête cette écoute ; les alertes continuent de partir."
+    state: État du service SNMP
+    address: Adresse d'écoute
+    none: "La passerelle ne répond pas aux requêtes SNMP."
+    action:
+      configure: Configurer l'agent
+      edit: Modifier l'agent
+    versions:
+      label: Versions acceptées
+      all: SNMPv2c et SNMPv3
+      v3: SNMPv3 seulement
+    form:
+      new_title: Configurer l'agent SNMP
+      edit_title: Modifier l'agent SNMP
+    listen_card: Écoute
+    address_hint: "L'adresse et le port UDP où la passerelle reçoit les requêtes, sous la forme hôte:port."
+    v3_only: Accepter seulement SNMPv3
+    v3_only_hint: "Les requêtes SNMPv2c sont alors refusées."
+    user_hint: "L'utilisateur avec lequel un outil de supervision interroge la passerelle en SNMPv3."
+    priv_hint: "Le chiffrement demande l'authentification."
+    restart_hint: "L'enregistrement redémarre le service SNMP de la passerelle."
+    delete:
+      title: "Désactiver l'agent SNMP ?"
+      text: "La passerelle ne répondra plus aux requêtes SNMP ; les notifications continuent."
+      action: Désactiver
+  detail:
+    title: "Moniteur « {name} »"
+    card: Moniteur
+    community: Communauté
+    community_default: "public, la valeur par défaut"
+    set: Définie
+    unset: Non définie
+    none: Aucun
+    protocol_set: "{name}, phrase secrète définie"
+    protocol_unset: "{name}, sans phrase secrète"
+    level: Niveau de sécurité
+    user: Utilisateur SNMPv3
+    engine: Identifiant du moteur d'authentification
+    auth: Authentification
+    priv: Chiffrement
+  new:
+    title: Nouveau moniteur SNMP
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    identity_card: Identité
+    name: Nom
+    name_hint: Unique.
+    version_choose: Choisissez une version
+    address_hint: "L'adresse et le port UDP de l'outil de supervision, sous la forme hôte:port."
+    community_hint: "Vide : public, la valeur par défaut."
+    secret_keep: "Laisser vide conserve la valeur en place."
+    user_hint: "Obligatoire en SNMPv3, même sans authentification."
+    engine_hint: "En hexadécimal, préfixé de 0x."
+    auth_protocol: Protocole d'authentification
+    auth_pass: Phrase secrète d'authentification
+    priv_protocol: Protocole de chiffrement
+    priv_pass: Phrase secrète de chiffrement
+    protocol_choose: Choisissez un protocole
+    historic: "{name} (historique)"
+    context_card: Contexte SNMPv3
+    context_name: Nom du contexte
+    context_engine: Identifiant du moteur de contexte
+    context_set: Renseigné
+    context_none: Aucun contexte
+    refused: La configuration n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      address_form: "Indiquez une adresse sous la forme hôte:port, avec un port de 1 à 65535."
+      address: "Cette adresse ne se résout pas : {cause}"
+      version: Choisissez une version.
+      security: Choisissez un niveau de sécurité.
+      user: "Indiquez l'utilisateur SNMPv3."
+      engine: "Indiquez un identifiant en hexadécimal préfixé de 0x, ou un nombre décimal."
+      protocol: Choisissez un protocole de la liste.
+      name_taken: Un autre moniteur porte déjà ce nom. Choisissez-en un autre.
+      priv_without_auth: "Choisissez d'abord un protocole d'authentification : le chiffrement le demande."
+  delete:
+    title: "Supprimer le moniteur « {name} » ?"
+    text: "Ce moniteur ne recevra plus les notifications de la passerelle."
+  toast:
+    created: "Moniteur « {name} » créé"
+    updated: "Moniteur « {name} » enregistré"
+    deleted: "Moniteur « {name} » supprimé"
+    agent_saved: Agent SNMP enregistré ; le service SNMP a redémarré
+    agent_disabled: Agent SNMP désactivé
+    tested: Notification de test envoyée aux moniteurs
+    test_failed: "La notification de test n'a pas pu être envoyée."
+    reload_failed: "La configuration est enregistrée, mais le service SNMP ne l'a pas prise en compte."
+  empty:
+    title: Aucun moniteur SNMP pour l'instant
+    text: "La passerelle n'envoie de notification à aucun outil de supervision."
+  not_found:
+    title: Moniteur introuvable
+    text: Ce moniteur n'existe pas ou a été supprimé.
+  error:
+    title: La configuration SNMP n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Surcharges de configuration » : les adresses remplacées sur un nœud de grappe.
+overrides:
+  title: Surcharges de configuration
+  node: Nœud
+  add: Ajouter une adresse
+  intro: "Sur ce nœud de la grappe, ces adresses remplacent celles de la configuration commune : pour l'écoute de l'administration et des serveurs locaux, et pour les connexions vers les partenaires."
+  caption: "Adresses remplacées, page {page} sur {pages}, triées par {sort}"
+  pager: "Adresses {from} à {to} sur {total}"
+  back: Retour aux surcharges
+  timing: "Prise en compte : au prochain démarrage des serveurs locaux concernés ; aussitôt pour les connexions vers les partenaires ; au prochain démarrage de la passerelle pour l'administration."
+  admin_warning: "Au prochain démarrage de la passerelle, l'API et l'interface web écouteront sur l'adresse de ce nœud."
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    target: adresse configurée
+  col:
+    target: Adresse configurée
+    real: Adresse sur ce nœud
+    scope: Portée
+    uses: Concerne
+    actions: Actions
+  scope:
+    port: Hôte et port
+    host: Hôte seul, port conservé
+  # Ce qu'une règle remplace dans la configuration commune.
+  uses:
+    none: Rien pour l'instant
+    server: "Serveur « {name} »"
+    servers: "{n} serveurs locaux"
+    partner: "Partenaire « {name} »"
+    partners: "{n} partenaires"
+    admin: Administration
+  action:
+    edit: Modifier la règle
+    delete: Supprimer la règle
+  new:
+    title: Nouvelle adresse remplacée
+  edit:
+    title: "Modifier l'adresse remplacée « {name} »"
+  form:
+    card: Règle
+    configured_hint: "Telle qu'elle figure dans la configuration commune : un hôte, ou un hôte et son port."
+    replacement_hint: "Même forme : avec un port si l'adresse configurée en a un, sans port sinon."
+    refused: La règle n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      address: "Indiquez un nom d'hôte ou une adresse IP, suivi au besoin de :port (une adresse IPv6 entre crochets)."
+      port: Indiquez un port de 1 à 65535.
+      form: "Les deux adresses doivent avoir la même forme : avec un port toutes les deux, ou sans port."
+      exists: "Cette adresse est déjà remplacée : modifiez sa règle."
+  delete:
+    title: "Supprimer la règle « {name} » ?"
+    text: "Sur ce nœud, l'adresse configurée sera de nouveau employée telle quelle : au prochain démarrage des serveurs locaux concernés, aussitôt pour les connexions vers les partenaires, au prochain démarrage de la passerelle pour l'administration."
+  toast:
+    created: "Adresse « {name} » remplacée"
+    updated: "Règle « {name} » enregistrée"
+    deleted: "Règle « {name} » supprimée"
+  empty:
+    title: Aucune adresse remplacée sur ce nœud
+    text: "Ce nœud emploie les adresses de la configuration commune telles quelles."
+  disabled:
+    title: Cette instance ne fonctionne pas en grappe
+    text: "Les surcharges sont propres à un nœud de grappe : elles demandent de démarrer la passerelle avec un nom d'instance et un fichier portant ce nom à côté du fichier de configuration."
+  not_found:
+    title: Règle introuvable
+    text: "Cette règle n'existe pas ou a été supprimée, ou cette instance ne fonctionne pas en grappe."
+  error:
+    title: Les surcharges n'ont pas pu être chargées.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Clés cryptographiques » : les clés des tâches de chiffrement et de signature.
+# Écran « Surveillances de partenaires » (Traitements).
+watchers:
+  title: Surveillances de partenaires
+  add: Ajouter une surveillance
+  search: Rechercher une surveillance par son nom
+  search_placeholder: Rechercher par nom
+  filters_partner: Partenaires
+  filters_state: États
+  count: "{total} surveillances"
+  count_one: 1 surveillance
+  count_shown: "{total} surveillances · {shown} affichées"
+  count_shown_one: "{total} surveillances · 1 affichée"
+  caption: "Surveillances de partenaires, page {page} sur {pages}, triées par {sort}"
+  pager: "Surveillances {from} à {to} sur {total}"
+  back: Retour à la liste
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    partner: partenaire
+    rule: règle
+  col:
+    name: Surveillance
+    partner: Partenaire · compte
+    client: Client
+    rule: Règle
+    pattern: Motif
+    interval: Intervalle
+    state: État
+    actions: Actions
+  # L'état du service de la surveillance, dans la liste et dans le filtre.
+  state:
+    running: En ligne
+    stopped: Arrêtée
+    error: Erreur
+  # L'intervalle en jours, heures et minutes (« 1 h 30 min »).
+  interval:
+    never: Jamais
+    days: "{n} j"
+    hours: "{n} h"
+    minutes: "{n} min"
+  action:
+    detail: Voir la fiche
+    start: Démarrer
+    stop: Arrêter
+    fire: Lancer un passage
+    edit: Modifier
+    delete: Supprimer
+  detail:
+    title: "Surveillance « {name} »"
+    card: Surveillance
+    state: État du service
+    partner: Partenaire · compte
+    client: Client
+    rule: Règle de réception
+    pattern: Motif
+    interval: Intervalle
+    skip: Fichiers déjà transférés ignorés
+    enabled: Démarrée avec la passerelle
+    yes: Oui
+    "no": Non
+    files: Fichiers reçus
+    files_count: "{n} fichiers"
+    files_count_one: 1 fichier
+    files_none_short: Aucun
+    files_text: "Les {n} derniers transferts de réception de cette règle pour ce partenaire et ce compte, les plus récents d'abord."
+    files_none: Aucun fichier reçu pour l'instant.
+    files_link: Voir tous les transferts
+    col:
+      file: Fichier
+      date: Date
+      time: Heure
+      state: État
+  none:
+    title: "Aucune surveillance ne correspond à « {query} »"
+    filters: Aucune surveillance ne correspond aux filtres
+  empty:
+    title: Aucune surveillance pour l'instant
+    text: Une surveillance interroge un dossier d'un partenaire à intervalle régulier et crée un transfert de réception par fichier trouvé.
+  error:
+    title: La liste des surveillances n'a pas pu être chargée.
+    text: "Réessayez dans un instant ; si l'erreur persiste, consultez le journal de la passerelle."
+  not_found:
+    title: Surveillance introuvable
+    text: Cette surveillance n'existe pas ou a été supprimée.
+  new:
+    title: Nouvelle surveillance de partenaire
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    card_identity: Surveillance
+    card_partner: Partenaire
+    card_rule: Règle
+    name: Nom
+    name_hint: "Unique ; le nom désigne la surveillance dans la liste, le journal et l'API."
+    pattern: Motif
+    pattern_hint: "Les fichiers du dossier dont le nom correspond au motif, avec * et ? comme jokers ; vide, tous les fichiers."
+    interval: Intervalle
+    interval_hint: Le temps entre deux interrogations du dossier, une minute au moins.
+    unit: Unité de l'intervalle
+    unit_minutes: minutes
+    unit_hours: heures
+    skip: Ignorer les fichiers déjà transférés
+    enabled: Démarrer avec la passerelle
+    enabled_hint: "Décochée, la surveillance est enregistrée arrêtée ; elle se démarre depuis la liste."
+    protocol: Protocole
+    protocol_hint: "Les protocoles qui savent lister un dossier chez le partenaire. PeSIT, HTTP et AS2 ne le savent pas : leurs partenaires ne peuvent pas être surveillés."
+    no_accounts_proto: "Aucun partenaire {protocol} n'a de compte distant. Ajoutez d'abord le partenaire et son compte."
+    no_clients_proto: "Aucun client {protocol}. Ajoutez d'abord un client de ce protocole."
+    account: Compte distant
+    account_hint: "Le compte avec lequel la passerelle se connecte chez le partenaire, par partenaire."
+    client: Client local
+    client_hint: Le client de la passerelle, du même protocole que le partenaire.
+    rule: Règle de réception
+    rule_hint: La règle sous laquelle chaque fichier trouvé est reçu.
+    choose: Choisissez
+    no_accounts_title: Aucun partenaire ne peut être surveillé
+    no_accounts_text: "Une surveillance demande un compte distant chez un partenaire dont le protocole liste les dossiers (SFTP, FTP, R66, WebDAV). Ajoutez d'abord ce partenaire et son compte."
+    edit_note: Une surveillance en ligne redémarre sur sa nouvelle configuration dès l'enregistrement.
+    refused: La surveillance n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Une autre surveillance porte déjà ce nom. Choisissez-en un autre.
+      interval: Indiquez un intervalle d'une minute au moins, en nombre entier.
+      pattern: "Ce motif n'est pas valide : employez * et ? comme jokers, [ ] pour un jeu de caractères."
+      protocol: Choisissez un protocole qui sait lister un dossier.
+      account: Choisissez un compte distant.
+      account_protocol: Le compte doit être celui d'un partenaire du protocole choisi.
+      client: Choisissez un client dont le protocole liste les dossiers.
+      client_protocol: Le client doit être du même protocole que le partenaire.
+      rule: Choisissez une règle de réception.
+  delete:
+    title: "Supprimer la surveillance « {name} » ?"
+    text: La surveillance s'arrête et disparaît de la liste.
+    consequence: "Les transferts déjà créés restent ; plus aucun ne sera créé pour ce dossier."
+  toast:
+    created: "Surveillance « {name} » créée"
+    updated: "Surveillance « {name} » enregistrée"
+    deleted: "Surveillance « {name} » supprimée"
+    started: "Surveillance « {name} » démarrée"
+    stopped: "Surveillance « {name} » arrêtée"
+    fired: "Passage de « {name} » lancé : {count} transferts créés"
+    fired_one: "Passage de « {name} » lancé : 1 transfert créé"
+    fired_none: "Passage de « {name} » lancé : aucun fichier nouveau"
+    fire_failed: "Le passage de « {name} » a échoué."
+
+keys:
+  title: Clés cryptographiques
+  add: Ajouter une clé
+  search: Rechercher une clé par son nom
+  search_placeholder: Rechercher par nom
+  filters_type: Types
+  count: "{total} clés"
+  count_one: 1 clé
+  count_shown: "{total} clés · {shown} affichées"
+  count_shown_one: "{total} clés · 1 affichée"
+  caption: "Clés cryptographiques, page {page} sur {pages}, triées par {sort}"
+  pager: "Clés {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_key: Retour à la clé
+  secret_set: Définie, jamais affichée
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    type: type
+  col:
+    name: Clé
+    type: Type
+    detail: Détail
+    state: État
+    uses: Utilisée par
+    actions: Actions
+  # Les quatre types, sous les clés du produit.
+  type:
+    AES: AES
+    HMAC: HMAC
+    PGP-PUBLIC: PGP publique
+    PGP-PRIVATE: PGP privée
+  # Ce que fait la clé, en une phrase, sur sa fiche.
+  role:
+    AES: "Chiffre et déchiffre les fichiers ; la même clé sert aux deux partenaires."
+    HMAC: "Signe les fichiers et vérifie leur signature ; le même secret sert aux deux partenaires."
+    PGP-PUBLIC: "Chiffre les fichiers destinés à son détenteur et vérifie les signatures qu'il produit."
+    PGP-PRIVATE: "Déchiffre les fichiers reçus et signe les fichiers envoyés ; elle chiffre et vérifie aussi, comme sa clé publique."
+  state:
+    ok: Utilisable
+    warn: "Expire le {date}"
+    expired: "Expirée le {date}"
+    revoked: Révoquée
+    unusable: "Inutilisable : {cause}"
+  # Pourquoi les tâches ne peuvent pas se servir d'une clé enregistrée.
+  cause:
+    aes: "la valeur n'est pas une clé AES en base64"
+    hmac: "la valeur n'est pas un secret HMAC en base64"
+    pgp: "la valeur n'est pas une clé PGP lisible"
+    not_private: "la valeur n'est pas une clé privée"
+    not_public: "la valeur n'est pas une clé publique"
+    locked: "clé privée protégée par une phrase secrète"
+    empty: "aucune valeur"
+    type: "type inconnu"
+  action:
+    detail: Voir la fiche
+    edit: Modifier la clé
+    delete: Supprimer la clé
+  detail:
+    title: "Clé « {name} »"
+    card: Clé
+    type: Type
+    role: Rôle
+    value: Valeur
+    state: État
+    size: Taille
+    bits: "{n} bits"
+    secret: Secret défini
+    unreadable: Illisible
+    identities: Identités
+    identities_none: Aucune
+    fingerprint: Empreinte
+    key_id: Identifiant
+    algorithm: Algorithme
+    created: Créée le
+    expires: Échéance
+    never: Aucune
+    show_public: Afficher la clé publique
+    uses: Utilisée par
+    uses_caption: Règles dont les tâches emploient la clé
+    uses_none: Aucune règle ne l'emploie.
+  new:
+    title: Nouvelle clé cryptographique
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    name: Nom
+    name_hint: "Unique ; les tâches désignent la clé par ce nom."
+    type: Type
+    type_choose: Choisissez un type
+    type_hint: "Le type dit à quelles tâches la clé sert."
+    type_hint_edit: "Changer de type demande la valeur du nouveau type."
+    to_give: À renseigner
+    locked: "Employée par {rules} : le nom et le type se conservent, les tâches les désignent."
+    value:
+      aes: Clé AES
+      hmac: Secret HMAC
+      pgp_public: Clé publique PGP
+      pgp_private: Clé privée PGP
+    paste:
+      pgp_public: ou coller la clé publique
+      pgp_private: ou coller la clé privée
+    example:
+      pgp_public: "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+      pgp_private: "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+    hint:
+      aes: "La clé en base64 : 24 caractères pour AES-128, 32 pour AES-192, 44 pour AES-256."
+      hmac: "Le secret partagé avec le partenaire, en base64."
+      pgp_public: "La clé exportée en armure ASCII (fichier .asc)."
+      pgp_private: "La clé exportée en armure ASCII (fichier .asc), sans phrase secrète."
+    keep:
+      aes: Laissez vide pour conserver la clé en place.
+      hmac: Laissez vide pour conserver le secret en place.
+      pgp_public: "Déposer ou coller une nouvelle clé la remplace ; sinon la clé en place est conservée."
+      pgp_private: "Déposer ou coller une nouvelle clé la remplace ; sinon la clé en place est conservée."
+    refused: La clé n'a pas été enregistrée.
+    refused_text: "Corrigez les champs signalés ci-dessous ; les secrets sont à saisir de nouveau."
+    error:
+      required: Ce champ est obligatoire.
+      name_taken: Une autre clé porte déjà ce nom. Choisissez-en un autre.
+      type: Choisissez un type.
+      aes: "Indiquez la clé en base64 : 24 caractères pour AES-128, 32 pour AES-192, 44 pour AES-256."
+      hmac: Indiquez le secret en base64.
+      pgp: "Ce contenu n'est pas une clé PGP lisible en armure ASCII."
+      not_private: Cette clé est une clé publique ; choisissez le type « PGP publique » ou donnez la clé privée.
+      not_public: Cette clé est une clé privée ; choisissez le type « PGP privée » ou donnez la clé publique.
+      locked: "Cette clé privée est protégée par une phrase secrète : la passerelle ne peut pas s'en servir. Exportez-la sans phrase secrète."
+  delete:
+    title: "Supprimer la clé « {name} » ?"
+    text: Aucune règle ne l'emploie. Elle sera supprimée définitivement.
+    used_title: Cette clé ne peut pas être supprimée.
+    used: "Elle est employée par {rules} : changez d'abord la clé de leurs tâches, sinon elles échoueraient au prochain transfert."
+  toast:
+    created: "Clé « {name} » créée"
+    updated: "Clé « {name} » enregistrée"
+    deleted: "Clé « {name} » supprimée"
+  empty:
+    title: Aucune clé cryptographique pour l'instant
+    text: "Les tâches de chiffrement, de déchiffrement, de signature et de vérification des règles emploient ces clés."
+  none:
+    title: "Aucune clé ne commence par « {query} »"
+    filters: Aucune clé ne correspond aux filtres.
+  not_found:
+    title: Clé introuvable
+    text: Cette clé n'existe pas ou a été supprimée.
+  error:
+    title: La liste des clés cryptographiques n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Règles de transfert » : la liste, la fiche (onglet Détails) et les pages d'action ; les onglets
+# Tâches et Accès mènent aux pages actuelles jusqu'à leurs propres écrans.
+rules:
+  title: Règles de transfert
+  add: Ajouter une règle
+  search: Rechercher une règle par son nom ou son chemin
+  search_placeholder: Rechercher par nom ou chemin
+  filters_direction: Sens
+  count: "{total} règles"
+  count_one: 1 règle
+  count_shown: "{total} règles · {shown} affichées"
+  count_shown_one: "{total} règles · 1 affichée"
+  caption: "Règles de transfert, page {page} sur {pages}, triées par {sort}"
+  pager: "Règles {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_rule: Retour à la règle
+  tasks_tip: "Avant le transfert : {pre} · après le transfert : {post} · en cas d'erreur : {error}"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    direction: sens
+    path: chemin
+  col:
+    name: Règle
+    direction: Sens
+    path: Chemin
+    tasks: Tâches
+    tasks_tip: "Nombre de tâches avant le transfert · après le transfert · en cas d'erreur"
+    access: Accès
+    comment: Commentaire
+    actions: Actions
+  # Les deux sens ; la forme en minuscules complète « Une autre règle … ».
+  direction:
+    send: Envoi
+    receive: Réception
+    send_lower: d'envoi
+    receive_lower: de réception
+  access:
+    open: Ouverte à tous
+    restricted: "Réservée : {n}"
+    add_in: Ajouter un serveur ou un compte local
+    add_out: Ajouter un partenaire ou un compte distant
+    back: Retour aux accès
+    state: État
+    open_text: "tout serveur, partenaire ou compte peut employer la règle."
+    restricted_title: Réservée
+    restricted_text: "seuls les serveurs, partenaires et comptes ci-dessous peuvent l'employer ; tous les autres sont refusés, des deux côtés."
+    one_sided_title: La règle n'est réservée que d'un côté.
+    one_sided_in: "Seuls des serveurs ou des comptes locaux y ont accès : la passerelle ne peut plus employer cette règle quand elle se connecte à un partenaire."
+    one_sided_out: "Seuls des partenaires ou des comptes distants y ont accès : aucun partenaire ne peut plus employer cette règle quand il se connecte à la passerelle."
+    open_action: Rouvrir à tous
+    in: Quand un partenaire se connecte
+    in_text: Les serveurs et les comptes locaux par lesquels un partenaire peut employer la règle.
+    in_none: Aucun serveur ni compte local.
+    out: Quand la passerelle se connecte
+    out_text: Les partenaires et les comptes distants vers lesquels la passerelle peut employer la règle.
+    out_none: Aucun partenaire ni compte distant.
+    side_open: "Aucun accès de ce côté : la règle est ouverte à tous."
+    count: "{n} accès"
+    count_none: aucun accès
+    col:
+      kind: Type
+      target: Cible
+    # Les quatre types d'accès, sous les noms de l'adresse.
+    kind:
+      server: Serveur
+      local_account: Compte local
+      partner: Partenaire
+      remote_account: Compte distant
+    of_server: "{login} (serveur {server})"
+    of_partner: "{login} (partenaire {partner})"
+    unknown: "Objet n° {id} d'une autre passerelle"
+    remove: Retirer l'accès
+    new_title: "Nouvel accès à « {name} »"
+    first_title: La règle est ouverte à tous.
+    first_note: "Dès ce premier accès, elle sera fermée à tous les autres serveurs, partenaires et comptes, des deux côtés."
+    target_choose: Tapez ou choisissez une cible
+    target_hint: "Le nom d'un serveur ou d'un partenaire trouve aussi ses comptes."
+    # Les groupes de la liste des cibles, un par type d'accès.
+    group:
+      server: Serveurs
+      local_account: Comptes locaux
+      partner: Partenaires
+      remote_account: Comptes distants
+    none_left: Tous ont déjà accès à la règle.
+    refused: L'accès n'a pas été ajouté.
+    error:
+      target: Choisissez la cible.
+      granted: Cette cible a déjà accès à la règle.
+    remove_title: "Retirer l'accès de « {name} » ?"
+    remove_text: Elle ne pourra plus employer la règle.
+    last_title: C'est le dernier accès de la règle.
+    last_text: "Une fois retiré, la règle sera de nouveau ouverte à tous les serveurs, partenaires et comptes."
+    open_title: "Rouvrir la règle « {name} » à tous ?"
+    open_confirm: "Ses accès ({n}) seront retirés : tout serveur, partenaire ou compte pourra de nouveau l'employer."
+    not_found:
+      title: Accès introuvable
+      text: Cette règle ne donne pas cet accès.
+  action:
+    detail: Voir la fiche
+    edit: Modifier la règle
+    tasks: Voir les tâches
+    access: Voir les accès
+    transfers: Voir les transferts
+    delete: Supprimer la règle
+  tab:
+    label: Onglets de la règle
+    details: Détails
+    tasks: Tâches
+    access: Accès
+  dir:
+    local: Dossier local
+    remote: Dossier distant
+    tmp: Dossier de réception temporaire
+    local_empty: "Non défini : celui du serveur, sinon celui de la passerelle."
+    remote_empty: "Non défini : le partenaire reçoit le fichier sous son seul nom."
+    tmp_empty: "Non défini : un dossier choisi par la passerelle (celui de la règle ou du serveur)."
+  detail:
+    title_send: "Règle d'envoi « {name} »"
+    title_receive: "Règle de réception « {name} »"
+    card: Règle
+    folders: Dossiers
+    folders_meta_none: Dossiers par défaut
+    folders_meta_one: 1 dossier défini
+    folders_meta: "{n} dossiers définis"
+    no_comment: Aucun commentaire
+    path_hint: "Les serveurs SFTP, FTP, WebDAV, AS2 et PeSIT standard reconnaissent la règle à ce chemin ; en R66, HTTP et PeSIT non standard, le partenaire la nomme."
+    open_hint: "Tout serveur, partenaire ou compte peut l'employer."
+  new:
+    title: Nouvelle règle de transfert
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    name: Nom
+    name_hint: "Unique dans un sens, sans « / » ; l'historique désigne la règle par ce nom."
+    path: Chemin
+    path_hint: "Ce par quoi les serveurs SFTP, FTP, WebDAV, AS2 et PeSIT standard reconnaissent la règle. Vide : le nom de la règle."
+    direction_hint: Le sens ne change plus une fois la règle créée.
+    direction_kept: "Le sens ne change pas : les tâches et les accès de la règle en dépendent. Pour l'autre sens, créez une règle."
+    direction_text:
+      send: "La passerelle envoie le fichier : un client l'envoie à un partenaire, ou un partenaire vient le chercher sur un serveur."
+      receive: "La passerelle reçoit le fichier : un partenaire le dépose sur un serveur, ou un client va le chercher."
+    local_hint: "Où le fichier est lu (envoi) ou déposé (réception) : chemin absolu, relatif au dossier du serveur ou de la passerelle, ou instance cloud."
+    remote_hint: "Où le fichier va chez le partenaire, pour un transfert lancé par la passerelle. Vers une Gateway en SFTP ou FTP : le chemin de sa règle de réception."
+    tmp_hint: Où le fichier attend la fin de sa réception ; un dossier local.
+    refused: La règle n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    history_title: L'historique désigne cette règle par son nom.
+    history_text: "Après un renommage, les transferts passés sous le nom « {name} » ne pourront plus être relancés."
+    history_confirm: Validez de nouveau pour renommer la règle.
+    error:
+      required: Ce champ est obligatoire.
+      slash: "Le nom ne peut pas contenir « / » : l'API ne pourrait plus désigner la règle."
+      too_long: "{n} caractères au plus."
+      direction: Choisissez un sens.
+      name_taken: "Une autre règle {direction} porte déjà ce nom."
+      path_taken: "Une autre règle {direction} a déjà ce chemin."
+      path_under: "Ce chemin se trouve sous celui d'une autre règle {direction} : choisissez un chemin à part."
+      path_above: "Une autre règle {direction} a un chemin sous celui-ci : choisissez un chemin à part."
+      tmp_local: "Le dossier de réception temporaire doit être local, pas une instance cloud."
+  delete:
+    title: "Supprimer la règle « {name} » ?"
+    gone: "Ses tâches ({tasks}) et ses accès ({access}) seront supprimés avec elle. L'historique de ses transferts reste, sous son nom."
+    held_title: Cette règle ne peut pas être supprimée.
+    held_text: "Des transferts ou des dossiers surveillés la désignent encore : annulez ou terminez ces transferts, changez ou supprimez ces dossiers surveillés, puis revenez."
+    transfers: "Transferts qui la désignent encore : {n} (en cours, programmés, en pause ou en erreur)."
+    transfers_link: Voir ces transferts
+    watcher: "Dossier surveillé « {name} » (ligne de commande ou API)."
+    refused: La règle n'a pas été supprimée.
+  tasks:
+    add: Ajouter une tâche
+    back: Retour aux tâches
+    none: Aucune tâche.
+    count_none: aucune tâche
+    count_one: 1 tâche
+    count: "{n} tâches"
+    chain:
+      pre: Avant le transfert
+      post: Après le transfert
+      error: En cas d'erreur
+    # « Nouvelle tâche après le transfert » : la chaîne en minuscules.
+    chain_lower:
+      pre: avant le transfert
+      post: après le transfert
+      error: en cas d'erreur
+    order_hint: "Les tâches d'une chaîne s'exécutent dans l'ordre ; la première en échec arrête la chaîne. Avant et après le transfert, elle met aussi le transfert en erreur."
+    col:
+      type: Tâche
+      args: Paramètres
+    action:
+      edit: Modifier la tâche
+      up: Monter
+      down: Descendre
+      delete: Supprimer la tâche
+    ticked: Oui
+    no_limit: Sans limite
+    unknown_type: "Type inconnu de cet écran"
+    # L'info-bulle d'une tâche de l'onglet : son intitulé, puis ce qu'elle fait.
+    tip: "{label} : {text}"
+    explain: "Explication : {name}"
+    missing: "{name} (introuvable)"
+    missing_status: Introuvable
+    new_title: "Nouvelle tâche ({chain})"
+    edit_title: "Modifier la tâche n° {n} ({chain})"
+    delete_title: "Supprimer la tâche n° {n} ({chain}) ?"
+    delete_text: "Elle sera retirée de la chaîne ; les tâches suivantes remontent d'un rang."
+    type: Type de tâche
+    type_choose: Choisissez un type
+    type_hint: "Ses paramètres s'affichent dès que le type est choisi."
+    type_kept: "Le type ne change pas ; pour un autre type, supprimez la tâche et ajoutez-en une."
+    continue: Continuer
+    no_args: Cette tâche n'a aucun paramètre.
+    fixed: seule valeur possible
+    info_copy: Copier les informations du transfert en cours
+    info_copy_hint: Celles de la liste les complètent ou les remplacent.
+    setinfo_hint: "Chaque ligne pose une information sur le transfert en cours ; une valeur vide la retire."
+    option_none: Aucun
+    keep_unknown: "Paramètres conservés tels quels, que cet écran ne connaît pas : {names}."
+    refused: La tâche n'a pas été enregistrée.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    refused_product: "La passerelle refuse la tâche : {cause}"
+    error:
+      required: Ce champ est obligatoire.
+      json: "Indiquez un objet JSON, par exemple {\"lot\": \"A\"}."
+      markers: "Variables que les tâches ne connaissent pas : {markers}. Tapez # pour choisir dans la liste."
+      info_self: "La valeur de « {name} » fait référence à l'information « {ref} », que cette tâche pose : les variables sont remplacées avant la tâche, avec les valeurs d'avant."
+      info_reserved: "Le nom « {name} » est réservé par la tâche SETINFO (ancienne écriture clé/valeur) : indiquez la clé de l'information elle-même."
+      type: Choisissez un type.
+      sens: Choisissez un sens.
+      icap: "Indiquez l'adresse du serveur ICAP, par exemple icap://antivirus.exemple.fr:1344/avscan."
+      seconds: Indiquez un nombre de secondes.
+    not_found:
+      title: Tâche introuvable
+      text: Cette chaîne n'a pas de tâche à ce rang.
+  toast:
+    created: "Règle « {name} » créée"
+    updated: "Règle « {name} » enregistrée"
+    deleted: "Règle « {name} » supprimée"
+    access_added: "Accès ajouté : {name}"
+    access_removed: "Accès retiré : {name}"
+    access_opened: "Règle « {name} » ouverte à tous"
+    task_added: "Tâche ajoutée : {name}"
+    task_updated: "Tâche enregistrée : {name}"
+    task_deleted: "Tâche supprimée : {name}"
+    task_moved: "Tâche déplacée : {name}"
+    tasks_ordered: "Ordre des tâches enregistré ({name})"
+    task_stale: "Rien n'a été enregistré"
+    task_stale_text: "La chaîne a changé depuis l'affichage de la page : voici son état actuel."
+  empty:
+    title: Aucune règle de transfert pour l'instant
+    text: "Une règle dit dans quel sens un fichier s'échange, entre quels dossiers, avec quels traitements et pour qui."
+  none:
+    title: "Aucune règle ne correspond à « {query} »"
+    filters: Aucune règle ne correspond aux filtres.
+  not_found:
+    title: Règle introuvable
+    text: Cette règle n'existe pas ou a été supprimée.
+  error:
+    title: La liste des règles de transfert n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Onglet Tâches des règles : les types de tâches, leurs familles et leurs arguments, d'après le module de
+# tâches v2 (libellés et aides corrigés) ; un intitulé court par type, son code en aide.
+task_types:
+  family:
+    fileOperations: "Opérations de fichiers"
+    executables: "Exécutables"
+    transfer: "Transfert"
+    fileAlterations: "Altérations de fichiers"
+    archiving: "Archivage et compression"
+    network: "Réseau"
+    crypto: "Cryptographie"
+  hint:
+    duration: "Une durée : 30s, 5m, 1h30m."
+    json: "Par exemple {\"lot\": \"A\"}."
+    octal: "En octal, par exemple 640."
+  choice:
+    send: "Envoi"
+    receive: "Réception"
+    icap_nothing: "Ne rien faire"
+    icap_delete: "Supprimer le fichier"
+    icap_move: "Déplacer le fichier"
+    choose: "Choisissez"
+    async: "Asynchrone"
+    sync: "Synchrone"
+  # Les cartes du formulaire d'une tâche, une par groupe de paramètres.
+  group:
+    file: "Fichier"
+    exchange: "Échange"
+    retries: "Tentatives en cas d'erreur"
+    execution: "Exécution"
+    program: "Programme"
+    target: "Cible"
+    rule_account: "Règle et compte"
+    validity: "Validité"
+    files: "Fichiers"
+    archive: "Archive produite"
+    icap_server: "Serveur ICAP"
+    refused: "Fichier refusé"
+    sending: "Envoi"
+    recipients: "Destinataires"
+    recipient: "Destinataire"
+    message: "Message"
+    encryption: "Chiffrement"
+    decryption: "Déchiffrement"
+    signature: "Signature"
+    verification: "Vérification"
+    method_keys: "Méthode et clés"
+    produced: "Fichier produit"
+    encoding: "Encodage"
+    source_file: "Fichier source"
+    converted_file: "Fichier converti"
+  copy:
+    label: "Copier le fichier"
+    text: "Crée une copie du fichier de transfert dans un autre dossier. Le nom du nouveau fichier restera identique au fichier d'origine."
+    arg:
+      path:
+        label: "Dossier de destination"
+        hint: "Le dossier de destination du fichier copié."
+  copyrename:
+    label: "Copier le fichier sous un autre nom"
+    text: "Crée une copie du fichier de transfert."
+    arg:
+      path:
+        label: "Chemin de destination"
+        hint: "Le chemin de destination du fichier copié."
+  move:
+    label: "Déplacer le fichier"
+    text: "Déplace le fichier de transfert dans un autre dossier. Le nom du fichier restera inchangé."
+    arg:
+      path:
+        label: "Dossier de destination"
+        hint: "Le dossier de destination du fichier."
+  moverename:
+    label: "Déplacer et renommer le fichier"
+    text: "Déplace le fichier de transfert dans un autre dossier."
+    arg:
+      path:
+        label: "Chemin de destination"
+        hint: "Le chemin de destination du fichier."
+  delete:
+    label: "Supprimer le fichier"
+    text: "Supprime le fichier de transfert."
+  remotedelete:
+    label: "Supprimer chez le partenaire"
+    text: "Supprime un fichier ou dossier sur un serveur distant."
+    arg:
+      path:
+        label: "Chemin"
+        hint: "Le chemin du fichier ou dossier à supprimer."
+      recursive:
+        label: "Récursif"
+        hint: "Indique si le contenu du dossier doit être supprimé récursivement. Note : si cette option est fausse, le serveur peut refuser de supprimer le dossier s'il n'est pas vide."
+      timeout:
+        label: "Durée limite"
+        hint: "La durée maximale pour la tâche. Si la tâche dure plus longtemps que cette durée, elle sera considérée comme un échec. Par défaut, il n'y a pas de limite de temps."
+  chmod:
+    label: "Changer les permissions"
+    text: "Change les permissions sur le fichier de transfert."
+    arg:
+      perms:
+        label: "Permissions"
+        hint: "Les permissions (en format octal) à appliquer au fichier de transfert."
+  exec:
+    label: "Exécuter un programme"
+    text: "Exécute un programme externe."
+    arg:
+      path:
+        label: "Chemin de l'exécutable"
+        hint: "Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH, vous pouvez simplement taper son nom."
+      args:
+        label: "Arguments du programme"
+        hint: "Les arguments bruts du programme, donnés comme ils seraient tapés dans un terminal."
+      delay:
+        label: "Durée maximale d'exécution"
+        hint: "Au-delà, le programme est interrompu et le transfert passe en erreur. Vide : sans limite."
+  execmove:
+    label: "Exécuter un programme qui déplace le fichier"
+    text: "Exécute un programme externe. Le programme doit déplacer le fichier de transfert au cours de son exécution, et doit également afficher le nouveau chemin du fichier sur la sortie standard."
+    arg:
+      path:
+        label: "Chemin de l'exécutable"
+        hint: "Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH, vous pouvez simplement taper son nom."
+      args:
+        label: "Arguments du programme"
+        hint: "Les arguments bruts du programme, donnés comme ils seraient tapés dans un terminal."
+      delay:
+        label: "Durée maximale d'exécution"
+        hint: "Au-delà, le programme est interrompu et le transfert passe en erreur. Vide : sans limite."
+  execoutput:
+    label: "Exécuter un programme et lire sa sortie"
+    text: "Exécute un programme externe. Si une erreur survient durant l'exécution, les lignes écrites dans la sortie standard seront interprétées comme message d’erreur. Il est également possible pour le programme de déplacer le fichier de transfert durant l’exécution. Dans ce cas, la dernière ligne écrite sur la sortie standard par le programme doit commencer par NEWFILENAME:, suivi du nouveau chemin du fichier."
+    arg:
+      path:
+        label: "Chemin de l'exécutable"
+        hint: "Le chemin de l'exécutable à lancer. Si l'exécutable est dans votre $PATH, vous pouvez simplement taper son nom."
+      args:
+        label: "Arguments du programme"
+        hint: "Les arguments bruts du programme, donnés comme ils seraient tapés dans un terminal."
+      delay:
+        label: "Durée maximale d'exécution"
+        hint: "Au-delà, le programme est interrompu et le transfert passe en erreur. Vide : sans limite."
+  updateconf:
+    label: "Importer une configuration"
+    text: "Importe les fichiers de configuration d'une archive ZIP générée par Waarp Manager."
+    arg:
+      zipFile:
+        label: "Archive ZIP"
+        hint: "Le chemin de l'archive à extraire et importer. Par défaut, ce sera le fichier de transfert."
+  rename:
+    label: "Changer le fichier du transfert"
+    text: "Change le fichier cible du transfert."
+    arg:
+      path:
+        label: "Nouveau fichier de transfert"
+        hint: "Le chemin du nouveau fichier de transfert."
+  transfer:
+    label: "Lancer un transfert"
+    text: "Programme un nouveau transfert client avec les paramètres fournis."
+    # Le sens et les règles de chaque sens : l'échange de la tâche, comme sur la page qui ajoute un transfert.
+    sens_label: "Sens"
+    sens_hint: "Envoi : la passerelle dépose le fichier chez le partenaire. Réception : elle va l'y chercher."
+    rule_none: "Choisir d'abord le sens"
+    rule_send: "Choisir une règle d'envoi"
+    rule_receive: "Choisir une règle de réception"
+    arg:
+      synchronous:
+        label: "Mode"
+        hint: "Asynchrone : la tâche programme le transfert et passe à la suite. Synchrone : elle attend sa fin et échoue avec lui."
+      file:
+        label: "Fichier"
+        hint: "À l'envoi, le chemin du fichier, relatif au dossier d'envoi de la règle ; à la réception, le nom du fichier à demander. Les variables du transfert en cours sont admises (#TRUEFULLPATH#…)."
+      output:
+        label: "Nom à la destination"
+        hint: "Vide : le même nom."
+      to:
+        label: "Vers le partenaire (envoi)"
+        hint: "Le partenaire auquel envoyer le fichier ; vide pour une réception."
+      from:
+        label: "Depuis le partenaire (réception)"
+        hint: "Le partenaire chez qui chercher le fichier ; vide pour un envoi."
+      as:
+        label: "Compte"
+        hint: "Le compte à utiliser pour le transfert."
+      using:
+        label: "Client"
+        hint: "Un client du protocole du partenaire ; la liste suit le compte choisi."
+      rule:
+        label: "Règle"
+        hint: "Le nouveau transfert suit ses dossiers et exécute ses tâches."
+      info:
+        label: "Informations de transfert"
+        hint: "Informations sur le transfert sous forme d'un objet JSON."
+      copyInfo:
+        label: "Copier les informations du transfert en cours"
+        hint: "Celles de la liste les complètent ou les remplacent."
+      nbOfAttempts:
+        label: "Tentatives"
+        hint: "Le nombre de fois que le transfert sera tenté automatiquement."
+      firstRetryDelay:
+        label: "Premier délai (s)"
+        hint: "Le délai avant la première nouvelle tentative, en secondes."
+      retryIncrementFactor:
+        label: "Facteur de progression du délai"
+        hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
+      timeout:
+        label: "Durée limite (s)"
+        hint: "Au-delà, le transfert est interrompu et la tâche échoue. Vide : sans limite."
+  preregister:
+    label: "Pré-enregistrer un transfert"
+    text: "Pré-enregistre un nouveau transfert serveur avec les paramètres fournis."
+    arg:
+      file:
+        label: "Fichier"
+        hint: "Le chemin du fichier à transférer."
+      isSend:
+        label: "Sens"
+        hint: "Le sens du transfert."
+      rule:
+        label: "Règle"
+        hint: "La règle à utiliser pour le transfert."
+      server:
+        label: "Serveur"
+        hint: "Le serveur qui recevra la requête de transfert."
+      account:
+        label: "Compte"
+        hint: "Le compte local qui fera la requête de transfert."
+      validFor:
+        label: "Valide pour"
+        hint: "La période de validité du transfert. Passé cette durée, le transfert tombera en erreur. Par défaut, le transfert est valide pour une durée illimitée."
+      info:
+        label: "Informations de transfert"
+        hint: "Informations sur le transfert sous forme d'un objet JSON."
+      copyInfo:
+        label: "Copier les informations du transfert en cours"
+        hint: "Celles de la liste les complètent ou les remplacent."
+  setinfo:
+    label: "Positionner des informations de transfert"
+    text: "Positionne ou modifie des clés TransferInfo. Permet d'injecter des métadonnées avant un transfert (encodage, identifiant métier, adresse de retour, etc.). Si la valeur est vide, la clé sera supprimée si elle est présente. Supporte la substitution de variables (#TRUEFILENAME#, #TI_...#, etc.)."
+    arg:
+      pairs:
+        label: "Informations de transfert"
+        hint: "Une ligne par information (nom, valeur) ; une valeur vide supprime la clé. Les variables sont substituées."
+  transcode:
+    label: "Changer l'encodage"
+    text: "Change l'encodage du fichier de transfert."
+    arg:
+      fromCharset:
+        label: "Depuis"
+        hint: "L’encodage actuel (source) du fichier."
+      toCharset:
+        label: "Vers"
+        hint: "L’encodage souhaité (destination) du fichier."
+      substitute:
+        label: "Remplacer les caractères absents"
+        hint: "Écrit le caractère de substitution de l'encodage cible à la place d'un caractère qu'il ne sait pas représenter. Sinon, la tâche échoue et le fichier reste tel quel."
+    # Les valeurs des arguments d'enregistrements.
+    records_none: "Fichier entier"
+    records:
+      lines: "Lignes"
+      fixed: "Longueur fixe"
+      rdw: "Longueur variable"
+      articles: "Articles"
+    output_same: "Comme le fichier source"
+    output:
+      none: "Sans séparateur"
+      lines: "Lignes"
+      fixed: "Longueur fixe"
+      rdw: "Longueur variable"
+    separator_lf: "LF"
+    separator:
+      crlf: "CRLF"
+      nel: "NL EBCDIC"
+    # Le sens de la conversion, demandé d'abord ; il n'est pas enregistré.
+    direction_label: "Sens"
+    direction_hint: "ASCII : les encodages des systèmes ouverts, UTF-8 compris. EBCDIC : les pages de codes des systèmes IBM (z/OS, IBM i)."
+    direction_first: "Choisir d'abord le sens"
+    direction:
+      ascii_ebcdic: "ASCII vers EBCDIC"
+      ebcdic_ascii: "EBCDIC vers ASCII"
+      ascii_ascii: "ASCII vers ASCII"
+      ebcdic_ebcdic: "EBCDIC vers EBCDIC"
+    # Le groupe d'une page EBCDIC dans la liste unique de REFORMAT.
+    ebcdic_group: "EBCDIC — {group}"
+    charset_group:
+      unicode: "Unicode"
+      iso8859: "ISO 8859"
+      windows: "Windows"
+      pc: "PC (DOS), Mac et autres"
+      asian: "Langues asiatiques (multi-octets)"
+      ebcdic_latin: "Alphabet latin"
+      ebcdic_other: "Autres alphabets"
+    # Ce à quoi sert chaque jeu de caractères, après son nom.
+    charset:
+      utf_8: "Unicode 8 bits"
+      utf_8_bom: "Unicode 8 bits, avec BOM"
+      utf_16be: "Unicode 16 bits, poids fort en tête"
+      utf_16le: "Unicode 16 bits, poids faible en tête"
+      utf_16be_bom: "Unicode 16 bits, poids fort en tête, avec BOM"
+      utf_16le_bom: "Unicode 16 bits, poids faible en tête, avec BOM"
+      utf_32be: "Unicode 32 bits, poids fort en tête"
+      utf_32le: "Unicode 32 bits, poids faible en tête"
+      utf_32be_bom: "Unicode 32 bits, poids fort en tête, avec BOM"
+      utf_32le_bom: "Unicode 32 bits, poids faible en tête, avec BOM"
+      ibm_code_page_437: "PC (DOS), États-Unis"
+      ibm_code_page_850: "PC (DOS), Europe de l'Ouest (Latin-1)"
+      ibm_code_page_852: "PC (DOS), Europe centrale (Latin-2)"
+      ibm_code_page_855: "PC (DOS), cyrillique"
+      windows_code_page_858: "PC (DOS), Latin-1, avec euro"
+      ibm_code_page_860: "PC (DOS), Portugal"
+      ibm_code_page_862: "PC (DOS), hébreu"
+      ibm_code_page_863: "PC (DOS), Canada"
+      ibm_code_page_865: "PC (DOS), Danemark, Norvège"
+      ibm_code_page_866: "PC (DOS), cyrillique"
+      iso_8859_1: "Europe de l'Ouest (Latin-1)"
+      iso_8859_2: "Europe centrale (Latin-2)"
+      iso_8859_3: "Europe du Sud (Latin-3)"
+      iso_8859_4: "Europe du Nord (Latin-4)"
+      iso_8859_5: "Cyrillique"
+      iso_8859_6: "Arabe"
+      iso_8859_6e: "Arabe, direction du texte explicite"
+      iso_8859_6i: "Arabe, direction du texte implicite"
+      iso_8859_7: "Grec"
+      iso_8859_8: "Hébreu"
+      iso_8859_8e: "Hébreu, direction du texte explicite"
+      iso_8859_8i: "Hébreu, direction du texte implicite"
+      iso_8859_9: "Turc (Latin-5)"
+      iso_8859_10: "Langues nordiques (Latin-6)"
+      iso_8859_13: "Pays baltes (Latin-7)"
+      iso_8859_14: "Langues celtiques (Latin-8)"
+      iso_8859_15: "Europe de l'Ouest, avec euro (Latin-9)"
+      iso_8859_16: "Europe du Sud-Est (Latin-10)"
+      koi8_r: "Cyrillique, russe"
+      koi8_u: "Cyrillique, ukrainien"
+      macintosh: "Mac OS, Europe de l'Ouest"
+      macintosh_cyrillic: "Mac OS, cyrillique"
+      windows_874: "Windows, thaï"
+      windows_1250: "Windows, Europe centrale"
+      windows_1251: "Windows, cyrillique"
+      windows_1252: "Windows, Europe de l'Ouest"
+      windows_1253: "Windows, grec"
+      windows_1254: "Windows, turc"
+      windows_1255: "Windows, hébreu"
+      windows_1256: "Windows, arabe"
+      windows_1257: "Windows, pays baltes"
+      windows_1258: "Windows, vietnamien"
+      x_user_defined: "Obsolète, conservé pour les tâches existantes"
+      ibm_code_page_037: "États-Unis, Canada"
+      ibm_code_page_038: "International, sans lettres accentuées"
+      ibm_code_page_256: "Pays-Bas"
+      ibm_code_page_273: "Allemagne, Autriche"
+      ibm_code_page_274: "Belgique"
+      ibm_code_page_275: "Brésil"
+      ibm_code_page_277: "Danemark, Norvège"
+      ibm_code_page_278: "Finlande, Suède"
+      ibm_code_page_280: "Italie"
+      ibm_code_page_281: "Japon, alphabet latin"
+      ibm_code_page_284: "Espagne, Amérique latine"
+      ibm_code_page_285: "Royaume-Uni"
+      ibm_code_page_290: "Japonais, katakana"
+      ibm_code_page_297: "France"
+      ibm_code_page_420: "Arabe"
+      ibm_code_page_423: "Grèce, avec lettres latines accentuées"
+      ibm_code_page_424: "Hébreu"
+      ibm_code_page_500: "International (Belgique, Suisse)"
+      ibm_code_page_803: "Hébreu, jeu réduit"
+      ibm_code_page_870: "Europe centrale (Latin-2)"
+      ibm_code_page_871: "Islande"
+      ibm_code_page_875: "Grèce"
+      ibm_code_page_880: "Cyrillique multilingue, jeu réduit"
+      ibm_code_page_905: "Turc (Latin-3)"
+      ibm_code_page_918: "Ourdou"
+      ibm_code_page_1025: "Cyrillique multilingue"
+      ibm_code_page_1026: "Turc (Latin-5)"
+      ibm_code_page_1047: "Latin-1, systèmes ouverts (z/OS UNIX)"
+      ibm_code_page_1097: "Persan (farsi)"
+      ibm_code_page_1112: "Pays baltes"
+      ibm_code_page_1122: "Estonie"
+      ibm_code_page_1123: "Cyrillique, Ukraine"
+      ibm_code_page_1130: "Vietnamien"
+      ibm_code_page_1132: "Lao"
+      ibm_code_page_1137: "Dévanagari (hindi)"
+      ibm_code_page_1140: "États-Unis, Canada, avec euro"
+      ibm_code_page_1141: "Allemagne, Autriche, avec euro"
+      ibm_code_page_1142: "Danemark, Norvège, avec euro"
+      ibm_code_page_1143: "Finlande, Suède, avec euro"
+      ibm_code_page_1144: "Italie, avec euro"
+      ibm_code_page_1145: "Espagne, Amérique latine, avec euro"
+      ibm_code_page_1146: "Royaume-Uni, avec euro"
+      ibm_code_page_1147: "France, avec euro"
+      ibm_code_page_1148: "International, avec euro"
+      ibm_code_page_1149: "Islande, avec euro"
+      ibm_code_page_1153: "Europe centrale (Latin-2), avec euro"
+      ibm_code_page_1154: "Cyrillique multilingue, avec euro"
+      ibm_code_page_1155: "Turc (Latin-5), avec euro"
+      ibm_code_page_1156: "Pays baltes, avec euro"
+      ibm_code_page_1157: "Estonie, avec euro"
+      ibm_code_page_1158: "Cyrillique, Ukraine, avec euro"
+      ibm_code_page_1160: "Thaï, avec euro"
+      ibm_code_page_1164: "Vietnamien, avec euro"
+      ibm_code_page_1166: "Cyrillique, Kazakhstan, avec euro"
+      ibm_code_page_4517: "Arabe, avec lettres latines accentuées"
+      ibm_code_page_4899: "Hébreu, jeu réduit, avec euro"
+      ibm_code_page_4971: "Grèce, avec euro"
+      ibm_code_page_9030: "Thaï étendu"
+      ibm_code_page_12712: "Hébreu, avec euro"
+      ibm_code_page_16804: "Arabe, avec euro"
+      euc_jp: "Japonais (Unix)"
+      iso_2022_jp: "Japonais (messagerie)"
+      shift_jis: "Japonais (Windows)"
+      euc_kr: "Coréen"
+      gb18030: "Chinois (norme nationale complète)"
+      gbk: "Chinois simplifié"
+      hz_gb2312: "Chinois simplifié (messagerie)"
+      big5: "Chinois traditionnel"
+  transcode_reformat:
+    label: "Changer l'encodage et la mise en forme"
+    text: "Change l'encodage du fichier de transfert et sa mise en forme en lignes ou en enregistrements, en une seule lecture du fichier."
+    arg:
+      fromCharset:
+        label: "Depuis"
+        hint: "L’encodage actuel (source) du fichier."
+      toCharset:
+        label: "Vers"
+        hint: "L’encodage souhaité (destination) du fichier."
+      substitute:
+        label: "Remplacer les caractères absents"
+        hint: "Écrit le caractère de substitution de l'encodage cible à la place d'un caractère qu'il ne sait pas représenter. Sinon, la tâche échoue et le fichier reste tel quel."
+      records:
+        label: "Découpage"
+        hint: "Fichier entier : le fichier est converti d'un seul tenant, comme la tâche TRANSCODE. Lignes : seul le contenu de chaque ligne est converti. Longueur variable : chaque enregistrement est précédé de sa longueur (RDW), comme z/OS l'écrit. Articles : le fichier est découpé aux longueurs d'articles que donnent les informations de transfert (posées par une réception PeSIT ou par SETINFO)."
+      recordLength:
+        label: "Longueur des enregistrements"
+        hint: "En octets, de 1 à 32 760."
+      trimPadding:
+        label: "Retirer les espaces de fin"
+        hint: "Retire les espaces qui complètent chaque enregistrement avant de le convertir."
+      outputRecords:
+        label: "Mise en forme"
+        hint: "Comme le fichier source : chaque ligne garde sa fin de ligne, octet pour octet, un enregistrement de longueur fixe garde sa longueur et des articles restent bout à bout. Sans séparateur : les enregistrements se suivent sans rien entre eux."
+      outputSeparator:
+        label: "Fin de ligne"
+        hint: "LF et CRLF s'écrivent 0x0A et 0x0D 0x0A, en EBCDIC aussi : c'est là que le PeSIT de la Gateway découpe les articles. NL EBCDIC : 0x15, pour un fichier EBCDIC seulement."
+      outputLength:
+        label: "Longueur des enregistrements"
+        hint: "En octets, de 1 à 32 760 ; un enregistrement plus court est complété par des espaces."
+      truncate:
+        label: "Couper les enregistrements trop longs"
+        hint: "Sinon, la tâche échoue sur le premier enregistrement trop long et le fichier reste tel quel."
+  reformat:
+    label: "Changer la mise en forme"
+    text: "Change la mise en forme du fichier de transfert en lignes ou en enregistrements, sans toucher à son contenu."
+    arg:
+      charset:
+        label: "Encodage du fichier"
+        hint: "Il donne les octets des fins de ligne et des espaces (0x25 et 0x40 en EBCDIC). Le contenu des enregistrements est recopié octet pour octet, sans être vérifié ni converti."
+      records:
+        label: "Découpage"
+        hint: "Longueur variable : chaque enregistrement est précédé de sa longueur (RDW), comme z/OS l'écrit. Articles : le fichier est découpé aux longueurs d'articles que donnent les informations de transfert (posées par une réception PeSIT ou par SETINFO)."
+      recordLength:
+        label: "Longueur des enregistrements"
+        hint: "En octets, de 1 à 32 760."
+      trimPadding:
+        label: "Retirer les espaces de fin"
+        hint: "Retire les espaces qui complètent chaque enregistrement."
+      outputRecords:
+        label: "Mise en forme"
+        hint: "Sans séparateur : les enregistrements se suivent sans rien entre eux."
+      outputSeparator:
+        label: "Fin de ligne"
+        hint: "LF et CRLF s'écrivent 0x0A et 0x0D 0x0A, en EBCDIC aussi : c'est là que le PeSIT de la Gateway découpe les articles. NL EBCDIC : 0x15, pour un fichier EBCDIC seulement."
+      outputLength:
+        label: "Longueur des enregistrements"
+        hint: "En octets, de 1 à 32 760 ; un enregistrement plus court est complété par des espaces."
+      truncate:
+        label: "Couper les enregistrements trop longs"
+        hint: "La coupe tombe entre deux caractères ; elle est refusée pour les encodages asiatiques multi-octets. Sinon, la tâche échoue sur le premier enregistrement trop long et le fichier reste tel quel."
+  chnewline:
+    label: "Changer les fins de ligne"
+    text: "Change le caractère de fin de ligne dans le fichier de transfert."
+    arg:
+      from:
+        label: "Depuis"
+        hint: "Le caractère de fin de ligne actuel du fichier."
+      to:
+        label: "Vers"
+        hint: "Le caractère de fin de ligne souhaité pour le fichier."
+  archive:
+    label: "Créer une archive"
+    text: "Crée une archive avec les fichiers fournis."
+    arg:
+      files:
+        label: "Fichiers"
+        hint: "La liste, séparée par des virgules, des fichiers à ajouter à l'archive."
+      compressionLevel:
+        label: "Niveau de compression"
+        hint: "Le niveau de compression sur une échelle de 0 (aucune compression) à 9 (compression maximale)."
+      outputPath:
+        label: "Chemin de destination"
+        hint: "Le chemin de l'archive ; son extension en fixe le format ({extensions})."
+  extract:
+    label: "Extraire une archive"
+    text: "Extrait les fichiers d'une archive."
+    arg:
+      archive:
+        label: "Archive"
+        hint: "Le chemin de l'archive à extraire. Par défaut, le fichier de transfert sera utilisé."
+      outputDir:
+        label: "Dossier de destination"
+        hint: "Le chemin du dossier dans lequel les fichiers doivent être extraits."
+  icap:
+    label: "Soumettre à un serveur ICAP"
+    text: "Envoie le fichier de transfert à un serveur ICAP, une analyse antivirus par exemple ; le serveur l'accepte, le refuse ou le modifie."
+    arg:
+      uploadURL:
+        label: "Adresse d'envoi (URL)"
+        hint: "L'URL ICAP à laquelle le fichier de transfert est envoyé."
+      useTLS:
+        label: "Utiliser TLS"
+        hint: "Se connecter au serveur ICAP en TLS."
+      timeout:
+        label: "Délai maximal"
+        hint: "La durée maximale autorisée pour la tâche."
+      allowFileModifications:
+        label: "Permettre les modifications de fichier"
+        hint: "Spécifie si le serveur ICAP est autorisé à modifier le fichier qui lui est envoyé."
+      onError:
+        label: "En cas d'erreur"
+        hint: "Que faire avec le fichier si le serveur ICAP le refuse."
+      onErrorMovePath:
+        label: "Chemin de quarantaine"
+        hint: "Le chemin où le fichier doit être déplacé si refusé par le serveur."
+  email:
+    label: "Envoyer un e-mail"
+    text: "Envoie un e-mail aux destinataires donnés, depuis l'expéditeur donné, avec le modèle d'e-mail donné."
+    arg:
+      sender:
+        label: "Expéditeur"
+        hint: "L'adresse de l'expéditeur ; ses identifiants SMTP doivent avoir été enregistrés au préalable."
+      recipients:
+        label: "Destinataires"
+        hint: "Les adresses des destinataires, séparées par des virgules."
+      template:
+        label: "Modèle"
+        hint: "Le modèle d'e-mail ; il doit avoir été enregistré au préalable."
+  sendmessage:
+    label: "Envoyer un message PeSIT"
+    text: "Envoie un F.MESSAGE PeSIT à un partenaire distant, principalement pour les acquittements en mode différé (Store-and-Forward)."
+    arg:
+      partner:
+        label: "Partenaire"
+        hint: "Le partenaire PeSIT distant auquel envoyer le message."
+      account:
+        label: "Compte"
+        hint: "Le compte distant avec lequel la passerelle s'authentifie chez ce partenaire."
+      client:
+        label: "Client"
+        hint: "Le client PeSIT par lequel la passerelle envoie le message."
+      message:
+        label: "Message"
+        hint: "Le contenu du F.MESSAGE à envoyer. Supporte la substitution de variables (ex: #TRUEFILENAME#, #TRANSFERID#). 4096 caractères max."
+  encrypt:
+    label: "Chiffrer"
+    text: "Chiffre le fichier de transfert à l'aide de la clé donnée."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données chiffrées. Par défaut, ce sera le même chemin que le fichier original, avec l'extension \".crypt\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original clair doit être conservé ou non. Par défaut, le fichier clair est supprimé après chiffrement."
+      method:
+        label: "Méthode de chiffrement"
+        hint: "La méthode de chiffrement à utiliser."
+      keyName:
+        label: "Clé de chiffrement"
+        hint: "La clé de chiffrement à utiliser. Doit avoir été préalablement enregistrée."
+  decrypt:
+    label: "Déchiffrer"
+    text: "Déchiffre le fichier de transfert à l'aide de la clé donnée."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données déchiffrées. Par défaut, ce sera le même chemin que le fichier chiffré, avec l'extension \".plain\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original chiffré doit être conservé ou non. Par défaut, le fichier chiffré est supprimé après déchiffrement."
+      method:
+        label: "Méthode de déchiffrement"
+        hint: "La méthode de déchiffrement à utiliser."
+      keyName:
+        label: "Clé de déchiffrement"
+        hint: "La clé de déchiffrement à utiliser. Doit avoir été préalablement enregistrée."
+  sign:
+    label: "Signer"
+    text: "Crée une signature cryptographique du fichier de transfert avec la clé donnée."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier dans lequel la signature sera écrite."
+      method:
+        label: "Méthode de signature"
+        hint: "La méthode de signature à utiliser."
+      keyName:
+        label: "Clé de signature"
+        hint: "La clé à utiliser pour signer. Doit avoir été préalablement enregistrée."
+  verify:
+    label: "Vérifier une signature"
+    text: "Vérifie la signature cryptographique du fichier de transfert avec la clé donnée."
+    arg:
+      signatureFile:
+        label: "Fichier de signature"
+        hint: "Le fichier contenant la signature à vérifier."
+      method:
+        label: "Méthode de signature"
+        hint: "La méthode de signature utilisée."
+      keyName:
+        label: "Clé de vérification"
+        hint: "La clé à utiliser pour vérifier la signature. Doit avoir été préalablement enregistrée."
+  encrypt_sign:
+    label: "Chiffrer et signer"
+    text: "Chiffre et signe le fichier de transfert à l'aide des clés données."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données chiffrées et la signature. Par défaut, ce sera le même chemin que le fichier original, avec l'extension \".crypt\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original clair doit être conservé ou non. Par défaut, le fichier clair est supprimé après chiffrement."
+      method:
+        label: "Méthode de chiffrement/signature"
+        hint: "La méthode de chiffrement/signature à utiliser."
+      encryptKeyName:
+        label: "Clé de chiffrement"
+        hint: "La clé de chiffrement à utiliser. Doit avoir été préalablement enregistrée."
+      signKeyName:
+        label: "Clé de signature"
+        hint: "La clé à utiliser pour signer. Doit avoir été préalablement enregistrée."
+  decrypt_verify:
+    label: "Déchiffrer et vérifier"
+    text: "Déchiffre et valide la signature du fichier de transfert à l'aide des clés données."
+    arg:
+      outputFile:
+        label: "Fichier de sortie"
+        hint: "Le fichier de destination pour les données déchiffrées. Par défaut, ce sera le même chemin que le fichier chiffré, avec l'extension \".plain\" ajoutée."
+      keepOriginal:
+        label: "Conserver le fichier original"
+        hint: "Spécifie si le fichier original chiffré doit être conservé ou non. Par défaut, le fichier chiffré est supprimé après déchiffrement."
+      method:
+        label: "Méthode de déchiffrement/vérification"
+        hint: "La méthode de déchiffrement/vérification à utiliser."
+      decryptKeyName:
+        label: "Clé de déchiffrement"
+        hint: "La clé de déchiffrement à utiliser. Doit avoir été préalablement enregistrée."
+      verifyKeyName:
+        label: "Clé de vérification"
+        hint: "La clé à utiliser pour vérifier la signature. Doit avoir été préalablement enregistrée."
+
+
+# Règles dont les tâches désignent un objet par son nom (clés cryptographiques, identifiants SMTP).
+rule_uses:
+  count:
+    none: Aucune règle
+    one: 1 règle
+    many: "{n} règles"
+  direction:
+    send: Envoi
+    receive: Réception
+
+# Écran « Identifiants SMTP » : les comptes d'envoi de la tâche EMAIL.
+smtp:
+  title: Identifiants SMTP
+  add: Ajouter un identifiant
+  search: Rechercher un identifiant par son expéditeur
+  search_placeholder: Rechercher par expéditeur
+  count: "{total} identifiants"
+  count_one: 1 identifiant
+  count_shown: "{total} identifiants · {shown} affichés"
+  count_shown_one: "{total} identifiants · 1 affiché"
+  caption: "Identifiants SMTP, page {page} sur {pages}, triés par {sort}"
+  pager: "Identifiants {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_credential: Retour à l'identifiant
+  none_value: "—"
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    sender: expéditeur
+    server: serveur
+  col:
+    sender: Expéditeur
+    server: Serveur SMTP
+    auth: Authentification
+    uses: Utilisé par
+    actions: Actions
+  auth:
+    none: Aucune
+  # Le chiffrement que le port implique.
+  tls:
+    implicit: TLS dès la connexion
+    starttls: STARTTLS si le serveur le propose
+  password:
+    set: Défini, jamais affiché
+    none: Aucun
+  action:
+    detail: Voir la fiche
+    edit: Modifier l'identifiant
+    delete: Supprimer l'identifiant
+  detail:
+    title: "Identifiant SMTP « {name} »"
+    sender: Expéditeur
+    address: Adresse
+    role: Rôle
+    role_text: "L'adresse d'expédition des e-mails ; les tâches EMAIL désignent l'identifiant par elle."
+    server: Serveur SMTP
+    incomplete: L'adresse du serveur est incomplète.
+    incomplete_text: "Il lui manque l'hôte ou le port : les tâches EMAIL ne pourraient pas se connecter. Modifiez l'identifiant pour la compléter."
+    connection: Connexion
+    auth_none: Aucune authentification
+    login: Identifiant
+    uses: Utilisé par
+    uses_caption: Règles dont les tâches EMAIL emploient l'identifiant
+    uses_none: Aucune règle ne l'emploie.
+  new:
+    title: Nouvel identifiant SMTP
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    sender: Adresse de l'expéditeur
+    sender_hint: "Unique ; les tâches EMAIL désignent l'identifiant par cette adresse."
+    host: Hôte
+    host_hint: Nom d'hôte ou adresse IP du serveur SMTP.
+    port: Port
+    port_hint: "465 : TLS dès la connexion ; 587 ou 25 : STARTTLS si le serveur le propose."
+    login: Identifiant
+    login_hint: "Le compte sur le serveur SMTP ; vide : aucune authentification."
+    password: Mot de passe
+    password_hint: Le mot de passe du compte sur le serveur SMTP.
+    password_keep: Laissez vide pour conserver le mot de passe en place.
+    locked: "Employé par {rules} : l'adresse se conserve, les tâches EMAIL la désignent."
+    refused: L'identifiant n'a pas été enregistré.
+    refused_text: "Corrigez les champs signalés ci-dessous ; le mot de passe est à saisir de nouveau."
+    error:
+      required: Ce champ est obligatoire.
+      sender: "Indiquez une adresse e-mail seule, sans nom affiché : alertes@exemple.fr."
+      sender_taken: Un autre identifiant utilise déjà cette adresse. Choisissez-en une autre.
+      host: Indiquez l'hôte.
+      port: Indiquez un port entre 1 et 65535.
+      password_without_login: Indiquez l'identifiant, ou laissez le mot de passe vide.
+  delete:
+    title: "Supprimer l'identifiant « {name} » ?"
+    text: Aucune règle ne l'emploie. Il sera supprimé définitivement.
+    used_title: Cet identifiant ne peut pas être supprimé.
+    used: "Il est employé par {rules} : changez d'abord l'expéditeur de leurs tâches EMAIL, sinon elles échoueraient au prochain transfert."
+  toast:
+    created: "Identifiant « {name} » créé"
+    updated: "Identifiant « {name} » enregistré"
+    deleted: "Identifiant « {name} » supprimé"
+  empty:
+    title: Aucun identifiant SMTP pour l'instant
+    text: "Les tâches EMAIL des règles envoient leurs e-mails avec ces comptes."
+  none:
+    title: "Aucun identifiant ne commence par « {query} »"
+  not_found:
+    title: Identifiant introuvable
+    text: Cet identifiant n'existe pas ou a été supprimé.
+  error:
+    title: La liste des identifiants SMTP n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Écran « Modèles d'e-mail » : les messages de la tâche EMAIL.
+email_templates:
+  title: Modèles d'e-mail
+  add: Ajouter un modèle
+  search: Rechercher un modèle par son nom
+  search_placeholder: Rechercher par nom
+  count: "{total} modèles"
+  count_one: 1 modèle
+  count_shown: "{total} modèles · {shown} affichés"
+  count_shown_one: "{total} modèles · 1 affiché"
+  caption: "Modèles d'e-mail, page {page} sur {pages}, triés par {sort}"
+  pager: "Modèles {from} à {to} sur {total}"
+  back: Retour à la liste
+  back_template: Retour au modèle
+  # Nom de la colonne triée, dans la légende du tableau.
+  sort:
+    name: nom
+    subject: objet
+  col:
+    name: Modèle
+    subject: Objet
+    format: Format
+    attachments: Pièces jointes
+    uses: Utilisé par
+    actions: Actions
+  format:
+    text: Texte
+    html: HTML
+  attachments:
+    none: Aucune
+    one: 1 pièce jointe
+    many: "{n} pièces jointes"
+  action:
+    detail: Voir la fiche
+    edit: Modifier le modèle
+    delete: Supprimer le modèle
+  detail:
+    title: "Modèle d'e-mail « {name} »"
+    message: Message
+    attachments: Pièces jointes
+    uses: Utilisé par
+    uses_caption: Règles dont les tâches EMAIL emploient le modèle
+    uses_none: Aucune règle ne l'emploie.
+  # L'aperçu : le message tel que la tâche EMAIL l'envoie.
+  preview:
+    title: Aperçu
+    values: Valeurs des variables
+    mark: Repérer les variables
+    show: Afficher
+    example: Valeurs d'exemple
+    transfer: "Transfert {id} · {rule} · {date}"
+    transfer_error: "Transfert {id} · {rule} · {date} (en erreur)"
+    # Mise en forme Go de la date d'un transfert dans la liste des valeurs.
+    date_layout: "02/01/2006 15:04"
+    note_transfer: "Valeurs du transfert choisi, telles que la tâche EMAIL les lit."
+    note_none: "Valeurs d'exemple : aucun transfert n'a encore employé ce modèle. Sur un modèle employé, choisissez l'un de ses derniers transferts pour voir le message qu'il a produit."
+    note_example: "Valeurs d'exemple ; choisissez l'un des derniers transferts des règles qui emploient le modèle pour voir le message qu'il a produit."
+    failed: La tâche EMAIL échouerait avec ce modèle.
+    from: De
+    from_text: L'identifiant SMTP de la tâche EMAIL
+    to: À
+    to_text: Les destinataires de la tâche EMAIL
+    body: Aperçu du corps du message
+  # Les valeurs d'exemple, quand aucun transfert n'a employé le modèle.
+  example:
+    file: factures-2026-10.csv
+    partner: partenaire-exemple
+    rule: regle-exemple
+    client: client-exemple
+    account: compte-exemple
+    error: "Le partenaire a refusé le fichier : espace disque insuffisant"
+  new:
+    title: Nouveau modèle d'e-mail
+  edit:
+    title: "Modifier « {name} »"
+  form:
+    template: Modèle
+    name: Nom
+    name_hint: "Unique ; les tâches EMAIL désignent le modèle par ce nom."
+    format_hint: "HTML : mise en forme et liens ; Texte : message brut."
+    subject: Objet
+    subject_hint: "Tapez # pour insérer une variable, par exemple le nom du fichier."
+    body: Corps
+    body_html_hint: "Tapez # à l'endroit voulu : la liste des variables s'ouvre, la frappe suivante la filtre, Entrée insère."
+    body_text_hint: "Tapez # pour insérer une variable."
+    body_file: Charger le corps depuis un fichier
+    body_file_hint: "Fichier HTML (.html, .htm) ou texte (.txt), en UTF-8, de 1 Mo au plus : son contenu remplace le corps, et le format suit son extension."
+    body_file_loaded: "« {name} » est chargé dans le corps : relisez-le avant de valider."
+    body_file_refused: "« {name} » n'est pas chargé : choisissez un fichier .html, .htm ou .txt, en UTF-8, de 1 Mo au plus."
+    attachments: Un chemin par ligne
+    attachments_hint: "Le fichier doit exister au moment de l'envoi ; tapez # pour insérer une variable, par exemple le chemin du fichier transféré."
+    locked: "Employé par {rules} : le nom se conserve, les tâches EMAIL le désignent."
+    refused: Le modèle n'a pas été enregistré.
+    refused_text: Corrigez les champs signalés ci-dessous.
+    error:
+      required: Ce champ est obligatoire.
+      format: Choisissez le format Texte ou HTML.
+      markers: "Variables que les tâches ne connaissent pas : {markers}. Tapez # pour choisir dans la liste."
+      name_taken: Un autre modèle porte déjà ce nom. Choisissez-en un autre.
+      body_file_type: Choisissez un fichier .html, .htm ou .txt.
+      body_file_size: Le fichier dépasse 1 Mo. Choisissez-en un plus petit.
+      body_file_encoding: "Le fichier n'est pas en UTF-8 : enregistrez-le en UTF-8, puis chargez-le à nouveau."
+      body_file_read: Le fichier n'a pas pu être lu. Chargez-le à nouveau.
+  delete:
+    title: "Supprimer le modèle « {name} » ?"
+    text: Aucune règle ne l'emploie. Il sera supprimé définitivement.
+    used_title: Ce modèle ne peut pas être supprimé.
+    used: "Il est employé par {rules} : changez d'abord le modèle de leurs tâches EMAIL, sinon elles échoueraient au prochain transfert."
+  toast:
+    created: "Modèle « {name} » créé"
+    updated: "Modèle « {name} » enregistré"
+    deleted: "Modèle « {name} » supprimé"
+  empty:
+    title: Aucun modèle d'e-mail pour l'instant
+    text: "Les tâches EMAIL des règles envoient ces messages, leurs variables remplacées par les valeurs du transfert."
+  none:
+    title: "Aucun modèle ne commence par « {query} »"
+  not_found:
+    title: Modèle introuvable
+    text: Ce modèle n'existe pas ou a été supprimé.
+  error:
+    title: La liste des modèles d'e-mail n'a pas pu être chargée.
+    text: "Une erreur interne s'est produite ; le détail est dans le journal de la passerelle."
+
+# Les variables que les tâches substituent, proposées par la liste des variables (modèles d'e-mail, tâches des règles).
+vars:
+  # Les groupes de la liste des variables.
+  group:
+    file: Fichier
+    transfer: Transfert
+    partners: Partenaires
+    dates: Dates
+    error: Erreur (tâches d'erreur)
+    paths: Chemins
+    info: Informations de transfert
+    info_pesit: Informations PeSIT
+    info_ack: Acquittements
+    info_r66: Informations R66
+    info_file: Fichier d'origine
+  # Les variables, par le nom de leur marqueur en minuscules.
+  var:
+    truefilename: Nom du fichier
+    basefilename: Nom du fichier sans extension
+    fileextension: Extension du fichier, point compris
+    filesize: Taille du fichier
+    originalfilename: Nom d'origine du fichier
+    truefullpath: Chemin du fichier sur le disque
+    originalfullpath: Chemin d'origine du fichier
+    rule: Règle du transfert
+    transferid: Identifiant du transfert
+    remotetransferid: Identifiant du transfert dans le protocole
+    remotehost: Partenaire distant
+    localhost: Partenaire local
+    requesterhost: Partenaire qui a demandé le transfert
+    requestedhost: Partenaire qui a reçu la demande
+    date: Date de la tâche (AAAAMMJJ)
+    hour: Heure de la tâche (HHMMSS)
+    timestamp: Horodatage de la tâche, au format choisi
+    starttimestamp: Horodatage du début du transfert, au format choisi
+    originalfilebtime: Date de création du fichier d'origine, au format choisi
+    originalfilemtime: Date de dernière modification du fichier d'origine, au format choisi
+    originalfileatime: Date de dernier accès au fichier d'origine, au format choisi
+    errormsg: Message d'erreur
+    errorcode: Code d'erreur
+    homepath: Dossier racine de la passerelle
+    inpath: Dossier de réception
+    outpath: Dossier d'envoi
+    workpath: Dossier temporaire de réception
+    ti: "Information attachée au transfert : remplacez « clé » par son nom"
+    ti_param: clé
+  # Les clés réservées des informations de transfert (pkg/model), par leur nom en minuscules.
+  info:
+    follow_id: Identifiant de flux (R66), qui relie aussi un transfert à son acquittement
+    user_content: Contenu utilisateur (R66)
+    sync_transfer_id: Transfert parent d'un transfert synchronisé
+    sync_transfer_rank: Rang d'un transfert synchronisé
+    client_conn_freetext: Texte libre du client à la connexion
+    client_trans_freetext: Texte libre du client à la sélection du fichier
+    client_trans_freetext_raw: Texte libre du client reçu tel quel (PI 99, profil historique)
+    server_conn_freetext: Texte libre du serveur à la connexion
+    server_trans_freetext: Texte libre du serveur à la sélection du fichier
+    file_encoding: Encodage du fichier (PI 16)
+    file_type: Type de fichier (PI 11)
+    organization: Organisation du fichier (PI 33)
+    customer_id: Identifiant de client (PI 61)
+    bank_id: Identifiant de banque (PI 62)
+    articles_format: Format des articles, fixe ou variable (PI 31)
+    articles_lengths: Longueurs des articles
+    articles_separator: Séparateur des enregistrements envoyés un par article (LF ou CRLF)
+    ack_expected: Acquittement attendu
+    ack_wait_timeout: Délai d'attente de l'acquittement
+    ack_wait_since: Attente de l'acquittement depuis
+    ack_received: Acquittement reçu
+    ack_received_on: Date de réception de l'acquittement
+    ack_sent: Acquittement envoyé
+    ack_sent_on: Date d'envoi de l'acquittement
+    ack_sent_to: Partenaire destinataire de l'acquittement
+    ack_sent_as: Compte utilisé pour envoyer l'acquittement
+    file_b_time: Date de création du fichier d'origine
+    file_m_time: Date de dernière modification du fichier d'origine
+    file_a_time: Date de dernier accès au fichier d'origine
+    file_caller_id: Identifiant du demandeur annoncé pour le fichier (PI 3)
+    file_server_id: Identifiant du serveur annoncé pour le fichier (PI 4)
+    priority: Priorité du transfert (PI 17)
+    key_length: Longueur de la clé d'un fichier indexé (PI 38)
+    key_offset: Position de la clé d'un fichier indexé (PI 39)
+    reserved_space: Espace à réserver pour le fichier (PI 42)
+    reserved_space_unit: Unité de l'espace à réserver, Ko ou article (PI 41)
+    file_time_zone: Fuseau horaire des dates du fichier reçues sans fuseau
+  # Les éléments du format d'un horodatage.
+  token:
+    year: année
+    year_short: année sur deux chiffres
+    month_name: mois en toutes lettres
+    month_abbr: mois abrégé
+    month: mois sur deux chiffres
+    month_short: mois
+    day: jour sur deux chiffres
+    day_short: jour
+    weekday: jour de la semaine
+    weekday_abbr: jour de la semaine abrégé
+    hour: heure, de 00 à 23
+    hour12: heure, de 01 à 12
+    hour12_short: heure, de 1 à 12
+    ampm: AM ou PM
+    ampm_lower: am ou pm
+    minute: minutes sur deux chiffres
+    minute_short: minutes
+    second: secondes sur deux chiffres
+    second_short: secondes
+    zone: fuseau horaire
+    offset: "décalage horaire (+02:00)"
+    offset_short: "décalage horaire (+0200)"
+
+# Écran « Suivi des transferts » (Supervision) : les transferts et l'historique ensemble, la fiche d'un transfert, ses
+# actions et les pages d'ajout et de pré-enregistrement.
+transfers:
+  title: Suivi des transferts
+  live: "Actualisé à {time}"
+  refreshing: Actualisation…
+  add: Ajouter un transfert
+  search: Rechercher un transfert par son fichier, son numéro ou un de ses identifiants
+  search_placeholder: Fichier, N° ou identifiant
+  search_hint: "Nom ou chemin du fichier, cherché n'importe où, majuscules et minuscules confondues, ou bien numéro du transfert, identifiant de suivi ou identifiant distant, exacts ; * remplace un texte, ? un caractère, ^ et $ calent la recherche au début ou à la fin"
+  refresh_error:
+    title: Le suivi n'a pas pu être actualisé
+    text: "Dernière lecture réussie à {time}. Les transferts affichés datent de cette lecture ; une nouvelle tentative a lieu toutes les {seconds} s."
+  load_error:
+    title: La liste des transferts n'a pas pu être chargée
+    text: La base de données n'a pas répondu. Réessayez dans un instant.
+  empty:
+    title: Aucun transfert pour l'instant
+    text: Un transfert est l'échange d'un fichier selon une règle, avec un partenaire ou pour un partenaire.
+  none:
+    query: "Aucun transfert ne correspond à « {query} »"
+    state: "Aucun transfert « {state} »"
+    all_states: Voir tous les transferts
+    filters: Aucun transfert ne correspond aux filtres
+  count_one: 1 transfert
+  count: "{total} transferts"
+  caption: "Transferts, page {page} sur {pages}, triés par {sort}"
+  sort:
+    id: numéro
+    start: début
+    file: fichier
+    state: statut
+    rule: règle
+    stop: fin
+  pager: "Transferts {from} à {to} sur {total}"
+  # Un statut par transfert, puis la rangée des statuts (au pluriel).
+  state:
+    running: En cours
+    error: En erreur
+    planned: Planifié
+    paused: En pause
+    interrupted: Interrompu
+    available: Attendu
+    done: Terminé
+    cancelled: Annulé
+  states:
+    label: Statuts des transferts
+    all: Tous
+    running: En cours
+    error: En erreur
+    planned: Planifiés
+    paused: En pause
+    interrupted: Interrompus
+    available: Attendus
+    done: Terminés
+    cancelled: Annulés
+  # Ce que dit chaque statut, en infobulle de la rangée des statuts.
+  hint:
+    all: Tous les transferts, à venir, en cours et passés
+    running: Le transfert s'exécute
+    error: Le transfert a échoué ; il peut être retenté, repris ou relancé
+    planned: La passerelle lancera elle-même le transfert à l'heure prévue
+    paused: Le transfert a été mis en pause par un utilisateur
+    interrupted: Le transfert a été interrompu de façon inattendue, par un arrêt de la passerelle par exemple
+    available: "Transfert pré-enregistré : la passerelle attend que le partenaire se connecte pour l'échanger, jusqu'à la date limite"
+    done: Le transfert s'est terminé sans erreur, traitements compris
+    cancelled: Le transfert a été annulé par un utilisateur
+  filter:
+    rule: Règle
+    rule_all: Toutes les règles
+    direction: Sens
+    direction_all: Envoi et réception
+    role: Rôle de la passerelle
+    role_all: Client et serveur
+    role_client: Client
+    role_server: Serveur
+    partner: Partenaire ou serveur
+    partner_all: Tous les partenaires et serveurs
+    partners: Partenaires distants
+    servers: Serveurs locaux
+    account: Compte
+    account_all: Tous les comptes
+    client: Client
+    client_all: Tous les clients
+    protocol: Protocole
+    protocol_all: Tous les protocoles
+    from: Début à partir du
+    to: Début jusqu'au
+    ack: Acquittement
+    ack_all: Tous les transferts
+  dir:
+    send: Envoi
+    receive: Réception
+  role:
+    client: client
+    server: serveur
+  col:
+    id: N°
+    file: Fichier
+    state: Statut
+    direction: Sens
+    rule: Règle
+    partner: Partenaire
+    progress: Progression
+    size: Taille
+    start: Début
+    stop: Fin
+    ack: ACK
+    actions: Actions
+  error_tip: "{cause} : {message}"
+  # Le sens et le rôle de la passerelle, dans les mots de l'écran historique.
+  dir_tip:
+    client_send: Envoi depuis le client vers le serveur
+    client_receive: Réception sur le client depuis le serveur
+    server_send: Envoi depuis le serveur vers le client
+    server_receive: Réception sur le serveur depuis le client
+  partner_tip: "{partner} · compte {account}"
+  due_title: "Attendu jusqu'au {date}"
+  next_title: "Prochaine tentative le {date}"
+  no_stop: Pas encore terminé
+  no_progress: Aucune progression
+  no_size: Taille inconnue
+  # L'acquittement de chaque transfert : un mot dans la colonne ACK, le détail en infobulle.
+  ack:
+    expected: Attendu
+    received: Reçu
+    missed: Non reçu
+    sent: Envoyé
+    none: Sans acquittement
+  ack_tip:
+    expected: "La passerelle attendra l'acquittement du partenaire jusqu'à {limit} après le transfert"
+    waiting: "Acquittement du partenaire attendu jusqu'au {until} : délai de {limit}, en attente depuis le {since}"
+    received: "Acquittement du partenaire reçu le {at}"
+    missed: "Aucun acquittement du partenaire reçu, délai de {limit}"
+    missed_since: "Aucun acquittement du partenaire dans le délai de {limit}, attendu depuis le {since}"
+    sent: "Acquittement envoyé le {at} au partenaire {partner}, en tant que {account}"
+    sent_on: "Acquittement envoyé le {at}"
+  percent: "{pct} %"
+  progress_label: "Progression {pct} %"
+  # Dates et nombres (disposition Go pour la date).
+  date: 02/01/2006
+  date_time: "{date} à {time}"
+  # Un moment de la liste : la date et l'heure à la seconde, sur chaque ligne.
+  date_cell: "{date} {time}"
+  # Libellé de chaque code d'erreur du produit ; le code technique reste affiché en aide.
+  code:
+    TeUnknown: Erreur inconnue
+    TeInternal: Erreur interne de la passerelle
+    TeUnimplemented: Fonction non prise en charge par le partenaire
+    TeConnection: Connexion impossible
+    TeConnectionReset: Connexion interrompue
+    TeUnknownRemote: Partenaire inconnu ou en erreur
+    TeExceededLimit: Limite atteinte
+    TeBadAuthentication: Authentification refusée
+    TeDataTransfer: Erreur pendant le transfert des données
+    TeIntegrity: Contrôle d'intégrité en échec
+    TeFinalization: Erreur à la finalisation
+    TeExternalOperation: Erreur d'un traitement
+    TeWarning: Avertissement d'un traitement
+    TeStopped: Transfert arrêté
+    TeCanceled: Transfert annulé
+    TeFileNotFound: Fichier introuvable
+    TeForbidden: Accès refusé
+    TeBadSize: Taille du fichier refusée
+    TeShuttingDown: Arrêt de la passerelle ou du partenaire
+    TeExpired: Date limite dépassée
+  step:
+    StepSetup: Préparation du transfert
+    StepPreTasks: Traitements avant transfert
+    StepData: Transfert des données
+    StepPostTasks: Traitements après transfert
+    StepErrorTasks: Traitements d'erreur
+    StepFinalization: Finalisation
+  action:
+    detail: Voir le transfert
+    pause: Mettre en pause
+    resume: Reprendre
+    retry: Relancer
+    cancel: Annuler le transfert
+  back: Retour à la liste
+  toast:
+    paused: "Transfert « {name} » mis en pause"
+    resumed: "Transfert « {name} » repris"
+    cancelled: "Transfert « {name} » annulé"
+    retried: "Nouveau transfert n° {name} planifié"
+    added: "Transfert n° {name} planifié"
+    preregistered: "Transfert n° {name} pré-enregistré"
+  not_found:
+    title: Transfert introuvable
+    text: Ce transfert n'existe pas, ou plus. Revenez à la liste pour le retrouver par son fichier.
+  detail:
+    number: "Transfert n° {id}"
+    error: Erreur
+    cause: Cause
+    message: Message
+    error_step: Étape
+    transfer: Transfert
+    file: Fichier
+    run: Déroulement
+    retries: Tentatives
+    infos: Informations de transfert
+    infos_none: Aucune information de transfert.
+    infos_meta_none: Aucune
+    infos_meta_one: 1 information
+    infos_meta: "{n} informations"
+    retries_meta_none: Plus de tentative
+    retries_meta_one: 1 tentative restante
+    retries_meta: "{n} tentatives restantes"
+    progress: Progression
+    rule: Règle
+    direction: Sens
+    partner: Partenaire
+    server: Serveur
+    account: Compte
+    client: Client
+    protocol: Protocole
+    remote_id: Identifiant distant
+    follow_id: Identifiant de suivi
+    src: Nom à la source
+    dest: Nom à la destination
+    local_path: Chemin sur la passerelle
+    remote_path: Chemin chez le partenaire
+    expected_local: Chemin prévu sur la passerelle
+    expected_remote: Chemin prévu chez le partenaire
+    size: Taille
+    size_unknown: Inconnue
+    size_bytes: "{bytes} octets ({size})"
+    start: Début
+    start_planned: Départ prévu
+    due: Date limite
+    stop: Fin
+    step: Étape
+    task: Tâche en cours
+  retries:
+    attempts: Tentatives
+    remaining: Tentatives restantes
+    none: Aucune
+    next: Prochaine tentative
+    delay: Délai avant la prochaine
+    seconds: "{n} s"
+    factor: Facteur de progression du délai
+    factor_hint: "1 : délai constant ; 2 : délai doublé à chaque reprise"
+  refused:
+    title: Action impossible
+    elsewhere: Ce transfert s'exécute sur un autre nœud de la grappe. Agissez depuis l'interface de ce nœud.
+    pause_title: "« {name} » ne peut pas être mis en pause"
+    pause: "Seul un transfert en cours, ou planifié par la passerelle, se met en pause. Statut du transfert : {state}."
+    resume_title: "« {name} » ne peut pas reprendre"
+    resume: "Seul un transfert en pause, interrompu ou en erreur reprend. Statut du transfert : {state}."
+    resume_server: Un transfert serveur reprend à l'initiative du partenaire, quand il se reconnecte.
+    resume_sync: "Ce transfert fait partie du transfert n° {parent} : reprenez celui-ci."
+    cancel_title: "« {name} » ne peut pas être annulé"
+    cancel: "Un transfert terminé ou annulé ne s'annule plus. Statut du transfert : {state}."
+    retry_title: "« {name} » ne peut pas être relancé"
+    retry: "Un transfert planifié, disponible ou en cours ne se relance pas. Statut du transfert : {state}."
+    retry_server: Un transfert serveur se relance à l'initiative du partenaire.
+  cancel:
+    title: "Annuler le transfert « {name} » ?"
+    text: Le transfert passe à l'historique, au statut « Annulé » ; il ne sera plus retenté. Pour le refaire, il faudra le relancer.
+    text_running: Le transfert en cours est interrompu, puis passe à l'historique, au statut « Annulé ». Pour le refaire, il faudra le relancer.
+  retry:
+    title: "Relancer « {name} »"
+    text: "Un nouveau transfert est créé, avec la même règle, le même partenaire, le même compte et le même fichier. Le {number} reste tel quel. Pour continuer un transfert là où il s'est arrêté, utilisez plutôt « Reprendre »."
+    date: Départ
+    refused: La relance n'a pas été créée
+    gone: La règle, le partenaire, le compte ou le client de ce transfert n'existe plus.
+  set:
+    objects: transferts
+    row: "le transfert n° {id}"
+    resume: Reprendre les transferts
+    retry: Relancer les transferts
+    cancel: Annuler les transferts
+    empty: Aucun transfert sélectionné
+    search: Recherche
+    period: Période de début
+    period_both: "du {from} au {to}"
+    period_from: "à partir du {from}"
+    period_to: "jusqu'au {to}"
+    except: Sauf
+    count: Nombre
+    changed_title: L'ensemble a changé depuis l'affichage
+    changed: "Le nombre est passé de {expected} à {n}. Vérifiez l'ensemble avant de confirmer."
+    resume_title: "Reprendre {n} transferts ?"
+    resume_title_one: "Reprendre 1 transfert ?"
+    resume_text: "Les transferts reprennent là où ils se sont arrêtés ; leur prochaine tentative a lieu maintenant. Ceux que leur statut ou leur nature empêche de reprendre restent tels quels."
+    retry_title: "Relancer {n} transferts"
+    retry_title_one: Relancer 1 transfert
+    retry_text: "Un nouveau transfert est créé pour chacun, avec la même règle, le même partenaire, le même compte et le même fichier ; les transferts d'origine restent tels quels."
+    cancel_title: "Annuler {n} transferts ?"
+    cancel_title_one: "Annuler 1 transfert ?"
+    cancel_text: "Les transferts passent à l'historique, au statut « Annulé » ; ils ne seront plus retentés. Pour les refaire, il faudra les relancer. Un transfert en cours est d'abord interrompu."
+    will_resume: Seront repris
+    will_retry: Seront relancés
+    will_cancel: Seront annulés
+    running: Dont en cours, interrompus
+    aside:
+      server: Transferts serveur, à l'initiative du partenaire
+      sync: Transferts enfants d'un transfert synchrone, qui reprennent par leur parent
+      state: Transferts dont le statut ne permet pas ce geste
+      missing: Transferts qui n'existent plus
+      gone: Transferts dont la règle, le partenaire, le compte ou le client n'existe plus
+      elsewhere: Transferts en cours sur un autre nœud de la grappe
+      busy: Transferts en cours qui ne se sont pas arrêtés à temps
+    resumed: "{n} transferts repris"
+    resumed_one: 1 transfert repris
+    retried: "{n} transferts relancés"
+    retried_one: 1 transfert relancé
+    cancelled: "{n} transferts annulés"
+    cancelled_one: 1 transfert annulé
+    left_resumed: "{n} non repris"
+    left_resumed_one: 1 non repris
+    left_retried: "{n} non relancés"
+    left_retried_one: 1 non relancé
+    left_cancelled: "{n} non annulés"
+    left_cancelled_one: 1 non annulé
+    left_sep: " : "
+    reason_sep: " : "
+  new:
+    title: Nouveau transfert
+  preregister:
+    title: Pré-enregistrer un transfert
+    text: Le transfert attend que le partenaire se connecte au serveur pour l'échanger, jusqu'à la date limite ; il apparaît au statut « Attendu ».
+  form:
+    refused: Le transfert n'a pas été créé
+    refused_text: Corrigez les champs signalés.
+    exchange: Échange
+    file: Fichier
+    file_hint: "À l'envoi, le chemin du fichier, relatif au dossier d'envoi de la règle ; à la réception, le nom du fichier à demander."
+    file_server_hint: Le nom du fichier que le partenaire enverra ou demandera.
+    output: Nom à la destination
+    output_hint: "Vide : le même nom."
+    rules_send: Envoi
+    rules_receive: Réception
+    choose_rule: Choisir une règle
+    rule_hint: "La règle fixe le sens : envoi ou réception."
+    remote_account: Partenaire et compte
+    remote_account_hint: Le compte avec lequel la passerelle se connecte chez le partenaire.
+    local_account: Serveur et compte
+    local_account_hint: Le compte avec lequel le partenaire se connectera au serveur.
+    choose_account: Choisir un compte
+    account_allowed: "{n} comptes autorisés par cette règle"
+    account_allowed_one: Un compte autorisé par cette règle
+    account_allowed_none: Aucun compte autorisé par cette règle
+    account_cleared: "Le compte « {login} » n'est pas autorisé par cette règle."
+    rule_access: Voir les accès de la règle
+    choose_client: Choisir un client
+    client_hint: "Un client du protocole du partenaire ; la liste suit le compte choisi."
+    start: Départ
+    start_hint: "Heure de la passerelle ; vide : maintenant."
+    due_hint: Heure de la passerelle. Passé ce moment, le partenaire ne peut plus échanger le fichier.
+    info_name: Nom
+    info_value: Valeur
+    info_name_n: "Nom de l'information {n}"
+    info_value_n: "Valeur de l'information {n}"
+    info_remove_n: "Retirer l'information {n}"
+    info_n: "l'information {n}"
+    info_vars: Insérer une variable
+    info_remove: "Retirer l'information"
+    info_add: Ajouter une information
+    info_hint: Facultatives. Les traitements de la règle peuvent les lire.
+    info_family:
+      pesit: PeSIT
+      ack: Acquittement
+      r66: R66
+      file: Fichier d'origine
+    retries: Tentatives en cas d'erreur
+    retries_hint: "Vides : celles du client."
+    delay: Premier délai (s)
+    error:
+      required: Indiquez une valeur.
+      choose: Choisissez une valeur dans la liste.
+      not_allowed: "La règle « {rule} » n'autorise pas ce compte. Choisissez un compte autorisé, ou modifiez les accès de la règle."
+      date: "Indiquez une date et une heure. Format attendu : 21/10/2026 18:00"
+      due_past: Indiquez une date limite à venir.
+      info_name: "Indiquez le nom de l'information {n}."
+      info_twice: "L'information « {name} » est indiquée deux fois."
+      tries: "Indiquez un nombre de 0 à {max}."
+      delay: Indiquez un nombre de secondes, 0 ou plus.
+      client_protocol: "Le partenaire est en {partner} et ce client en {client} : choisissez un client {partner}."
+  # Noms des informations de transfert réservées du produit ; une clé sans entrée garde son nom technique.
+  info_key:
+    __followID__: Identifiant de suivi
+    __syncTransferID__: Transfert synchrone parent
+    __syncTransferRank__: Rang dans le transfert synchrone
+    __ackExpected__: Acquittement attendu
+    __ackSent__: Acquittement envoyé
+    __ackSentTo__: Acquittement envoyé à
+    __ackSentAs__: Acquittement envoyé en tant que
+    __ackSentOn__: Acquittement envoyé le
+    __ackWaitSince__: Attente de l'acquittement depuis
+    __ackWaitTimeout__: Délai d'attente de l'acquittement
+    __ackReceived__: Acquittement reçu
+    __ackReceivedOn__: Acquittement reçu le
+    __fileEncoding__: Codage des données
+    __fileType__: Type de fichier
+    __organization__: Organisation du fichier
+    __customerID__: Identifiant client
+    __bankID__: Identifiant banque
+    __clientConnFreetext__: Message libre de connexion du client
+    __clientTransFreetext__: Message libre de transfert du client
+    __serverConnFreetext__: Message libre de connexion du serveur
+    __serverTransFreetext__: Message libre de transfert du serveur
+    __articlesLengths__: Longueurs des articles
+    __articlesFormat__: Format des articles
+    __articlesSeparator__: Séparateur des articles
+
+# Écran « Import et export de la configuration » (Administration) : deux cartes, l'export et l'import.
+config:
+  title: Import et export de la configuration
+  categories_legend: Catégories
+  categories_hint: "Pour l'export comme pour l'import ; à l'import, les catégories que le fichier ne porte pas sont ignorées"
+  categories_none: Choisissez au moins une catégorie
+  categories:
+    servers: Serveurs locaux, avec leurs comptes et leur authentification
+    partners: Partenaires distants, avec leurs comptes et leur authentification
+    clients: Clients locaux
+    rules: Règles de transfert
+    users: Utilisateurs
+    clouds: Instances cloud
+    snmp: SNMP
+    authorities: Autorités d'authentification
+    keys: Clés cryptographiques
+    email: E-mail, identifiants SMTP et modèles
+    filewatchers: Surveillances de partenaires
+  export:
+    title: Exporter la configuration
+    format: Format
+    json: JSON
+    yaml: YAML
+    secrets_title: Le fichier contient les secrets en clair.
+    secrets: " Mots de passe des comptes, clés privées, secrets des instances cloud et mots de passe SMTP ; les mots de passe des utilisateurs n'y sont qu'en hachage."
+    same_format: Même format que les commandes waarp-gatewayd export et import, et que la ligne de commande waarp-gateway updateconf.
+    redact: Remplacer les secrets et les certificats par des repères
+    redact_hint: "Pour un fichier qui circule : mots de passe et secrets deviennent __PWD__, clés privées __KEY__, certificats et clés publiques __PEM__, avec l'objet et le champ ; les outils de remplissage les complètent avant l'import. Les hachages des mots de passe des utilisateurs restent."
+    action: Exporter la configuration
+    failed: "La configuration n'a pas pu être exportée ; le détail est dans le journal de la passerelle."
+  import:
+    title: Importer une configuration
+    file: Fichier de configuration
+    file_hint: JSON ou YAML, au format de l'export, 64 Mo au plus
+    file_missing: Choisissez le fichier à importer
+    file_type: Choisissez un fichier .json, .yaml ou .yml
+    file_size: Le fichier dépasse 64 Mo
+    file_read: Le fichier n'a pas pu être lu
+    unreadable: Le fichier n'est pas un JSON ou un YAML valide.
+    markers: "Le fichier porte encore des repères de secrets (__PWD__, __KEY__, __PEM__) : remplissez-les avant l'import"
+    all_or_nothing: "L'import est tout ou rien : la première erreur annule l'ensemble."
+    options: Options
+    restart: Redémarrer les services concernés (serveurs locaux, clients, surveillances)
+    reset: Vider ces catégories avant l'import
+    reset_warning_title: Les objets actuels de ces catégories seront supprimés avant l'import.
+    reset_warning: " Et avec eux ce qui en dépend : comptes et authentification d'un serveur ou d'un partenaire, accès d'une règle."
+    reset_confirm: Je confirme la suppression
+    confirm_required: Confirmez la suppression pour vider les catégories
+    simulate: Simuler l'import
+    action: Importer
+    reset_action: Vider et importer
+    simulated: "Le fichier est valide : l'import passerait ({categories})."
+    imported: Configuration importée ({categories}).
+    restarted: Les services concernés ont été redémarrés.
+    refused: L'import a été refusé.
+    no_write: L'import demande le droit d'écriture sur l'administration.
+# Nombres et tailles, écrits comme la langue les lit, pour tous les écrans (paquet handlers/format).
+format:
+  thousands: " "
+  decimal: ","
+  size:
+    byte: "{n} octet"
+    bytes: "{n} octets"
+    kb: "{n} Ko"
+    mb: "{n} Mo"
+    gb: "{n} Go"
+    tb: "{n} To"
+
+# Lien de retour vers la page d'origine : un libellé par écran d'origine, l'article porté par la clé.
+origin:
+  dashboard: "Retour au tableau de bord"
+  home: "Retour à l'accueil"
+  about: "Retour à la page À propos"
+  services: "Retour à l'état des services"
+  transfers: "Retour au suivi des transferts"
+  transfer: "Retour au transfert"
+  servers: "Retour aux serveurs locaux"
+  server: "Retour au serveur"
+  account: "Retour au compte"
+  clients: "Retour aux clients locaux"
+  client: "Retour au client"
+  partners: "Retour aux partenaires distants"
+  partner: "Retour au partenaire"
+  rules: "Retour aux règles de transfert"
+  rule: "Retour à la règle"
+  watchers: "Retour aux surveillances"
+  watcher: "Retour à la surveillance"
+  keys: "Retour aux clés cryptographiques"
+  key: "Retour à la clé"
+  smtp: "Retour aux identifiants SMTP"
+  smtp_credential: "Retour à l'identifiant SMTP"
+  email_templates: "Retour aux modèles d'e-mail"
+  email_template: "Retour au modèle d'e-mail"
+  users: "Retour aux utilisateurs"
+  user: "Retour à l'utilisateur"
+  authorities: "Retour aux autorités d'authentification"
+  authority: "Retour à l'autorité"
+  clouds: "Retour aux instances cloud"
+  cloud: "Retour à l'instance cloud"
+  snmp: "Retour à la page SNMP"
+  monitor: "Retour au moniteur SNMP"
+  overrides: "Retour aux surcharges de configuration"
+  config: "Retour à l'import et export"
+  credential: "Retour au moyen d'authentification"

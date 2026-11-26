@@ -1,0 +1,20 @@
+/* SNMP screen: what the kit does not decide (the two blocks of the page and their headings, column widths of the list,
+   spacing of the list foot, of the banners and of the action pages, the head of the card of the agent, the legends of
+   the SNMPv3 blocks). Tokens only. */
+.snmp-inline { display: inline; margin: 0; }
+.snmp-agent { margin-bottom: var(--sp-6); }
+.snmp-heading { margin: 0 0 var(--sp-2); font: 700 var(--fs-h4) / 1.3 var(--fb); color: var(--tp); }
+.snmp-intro { margin: 0 0 var(--sp-3); color: var(--ts); }
+.snmp-col-name { width: 24%; }
+.snmp-col-version { width: 12%; }
+.snmp-col-actions { width: 72px; }
+.snmp-pager { margin-top: var(--sp-3); }
+.snmp-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.snmp-card-head .w-card__title { margin: 0; }
+.snmp-card-actions { display: flex; align-items: center; gap: var(--sp-2); }
+.snmp-reason { margin-left: var(--sp-2); color: var(--ts); }
+.snmp-note { margin: var(--sp-3) 0 0; }
+.snmp-legend { margin: var(--sp-4) 0 var(--sp-2); padding: 0; font-weight: 700; color: var(--tp); }
+.snmp-banner { margin-bottom: var(--sp-4); }
+.snmp-lead { margin: 0 0 var(--sp-4); }
+.snmp-form-actions { margin-top: var(--sp-5); }

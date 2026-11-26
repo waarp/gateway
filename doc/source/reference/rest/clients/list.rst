@@ -1,7 +1,7 @@
 Lister les clients
 ==================
 
-.. http:get:: /api/clients/(string:client_name)
+.. http:get:: /api/clients
 
    Renvoie une liste des clients remplissant les critères donnés en paramètres
    de requête.

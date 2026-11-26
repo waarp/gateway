@@ -1,0 +1,3916 @@
+# Catalogue of the web interface, English. One file per language: fr.yaml and en.yaml
+# carry the same key tree in the same order; the catalogue test checks the parity. The common strings of the
+# GUI kit (nav.home, nav.skip, action.*, state.*, header.*...) are merged in when the catalogue is loaded: they
+# are not repeated here. Parameters: {name}.
+
+# Sidebar: the sections and the screens, in the order of the screen map.
+nav:
+  connections: Connections
+  servers: Local servers
+  clients: Local clients
+  partners: Remote partners
+  treatments: Processing
+  rules: Transfer rules
+  watchers: Partner watchers
+  keys: Cryptographic keys
+  smtp: SMTP credentials
+  email_templates: Email templates
+  supervision: Monitoring
+  dashboard: Dashboard
+  services: Service status
+  transfers: Transfer monitoring
+  administration: Administration
+  users: Users
+  authorities: Authentication authorities
+  clouds: Cloud instances
+  snmp: SNMP
+  overrides: Configuration overrides
+  config: Import and export
+  footer: "{product} {version}"
+
+# Screen "Service status" (Monitoring).
+services:
+  title: Service status
+  live: "Updated at {time}"
+  refreshing: Refreshing…
+  groups: Service groups
+  group:
+    core: System services
+    servers: Local servers
+    clients: Local clients
+  caption:
+    core: State of each system service of the gateway
+    servers: State of each local server
+    clients: State of each local client
+    page: "{caption}, page {page} of {pages}"
+  col:
+    core: System service
+    server: Local server
+    client: Local client
+    state: Status
+    reason: Reason
+  reason:
+    none: No reason
+  summary:
+    running: "{running} / {total} running"
+    errors: "{n} in error"
+    offline: "{n} offline"
+    unknown: "{n} unknown"
+  pager:
+    info: "{group} {from} to {to} of {total}"
+  # Functional names of the system services, keyed by their technical name; a service without an entry keeps
+  # its technical name.
+  core:
+    Admin: Administration (REST API and web interface)
+    Analytics: Internal metrics
+    Controller: Transfer controller
+    Database: Database
+    SNMP: SNMP agent
+  empty:
+    servers:
+      title: No local server yet
+      text: "A local server is a listening endpoint of the gateway for one protocol. It appears here as soon as it is created."
+      link: See local servers
+    clients:
+      title: No local client yet
+      text: "A local client is the outgoing identity of the gateway for one protocol. It appears here as soon as it is created."
+      link: See local clients
+  error:
+    title: The states could not be refreshed.
+    text: "Last successful read at {time}. The states shown date from that read; a new attempt is made every {seconds} s."
+
+# Protocols, shared by the local servers, the local clients and the remote partners: the family (R66, HTTP,
+# SFTP, FTP, PeSIT, WebDAV, AS2), TLS as an attribute at the screen (the product keeps one
+# key per variant), the options of each family.
+# "Dashboard" screen (Monitoring): the services of the node, the running and
+# failed transfers, the activity of the last 24 hours, the latest errors. The
+# states, the causes and the actions of the transfers reuse the keys of the
+# monitoring screen.
+dashboard:
+  title: Dashboard
+  live: "Refreshed at {time}"
+  refreshing: Refreshing…
+  health_title: "Health of node {node}"
+  health:
+    unmeasured: Not measured
+    uptime: Uptime
+    uptime_text: "v{version}, since {date}"
+    uptime_title: "Started on {date} at {time}; version {version}"
+    uptime_unknown: "v{version}"
+    days_hours: "{days} d {hours} h"
+    hours_minutes: "{hours} h {minutes} min"
+    services: Services
+    group_running: "{group} {running} / {total}"
+    database: Database
+    ms: ms
+    db_ok: Responding
+    db_down: Unreachable
+    db_ko: "Since {time}"
+    db_unread: Not read yet
+    db_title: "{type} database; last reading of the figures in {ms} ms"
+    db_title_down: "{type} database"
+    memory: Memory
+    memory_text: "Of {memory} · {cores} cores"
+    cores: "Of {cores} cores"
+    memory_title: Memory taken by the gateway
+    network: Connections
+    network_text: "Incoming: {in} · outgoing: {out}"
+    network_title: Connections open on the gateway
+    certs: Certificates
+    certs_unread: Not read
+    certs_none: None
+    certs_ok: All valid
+    certs_expiring: "Expiring within 30 days"
+    certs_expiring_one: Expiring within 30 days
+    certs_expired: "{n} expired"
+    certs_expired_one: 1 expired
+    cert_item: "{owner}: {date}"
+    cert_server: "server {name}"
+    cert_partner: "partner {name}"
+    cert_account: "account {name}"
+    cert_authority: "authority {name}"
+    monitors: Monitors
+    monitors_ok: All active
+    monitors_ko: "{n} failing"
+    monitors_ko_one: 1 failing
+    monitors_none: None
+    monitors_error: State unknown
+  transfers: Transfers
+  resume: "Resume the {n} failed transfers"
+  resume_one: Resume the failed transfer
+  tile:
+    running: Running transfers
+    error: Failed transfers
+    done: Done in 24 h
+  foot:
+    planned: "{n} planned"
+    planned_one: 1 planned
+    paused: "{n} paused"
+    paused_one: 1 paused
+    interrupted: "{n} interrupted"
+    interrupted_one: 1 interrupted
+    available: "{n} expected"
+    available_one: 1 expected
+    recent_errors: "{n} in the last hour"
+    recent_errors_one: 1 in the last hour
+    volume: "{volume} transferred"
+    cancelled: "{n} cancelled"
+    cancelled_one: 1 cancelled
+    stuck: "{n} running for over an hour"
+    stuck_one: 1 running for over an hour
+    late: "{n} planned and overdue"
+    late_one: 1 planned and overdue
+    last_done: "Last done at {time}"
+    client: "{n} as client"
+    client_one: 1 as client
+    server: "{n} as server"
+    server_one: 1 as server
+  sr:
+    running: "{n} running transfers"
+    running_one: 1 running transfer
+    error: "{n} failed transfers"
+    error_one: 1 failed transfer
+    done: "{n} transfers done in the last 24 hours"
+    done_one: 1 transfer done in the last 24 hours
+  activity:
+    title: Activity of the last 24 hours
+    chart: "Transfers per hour over the last 24 hours: done and still failed"
+    desc: The exact values are in the “Values per hour” table after the chart; a line parts yesterday from today.
+    hour: "{hour}:00"
+    today: "Today · {date}"
+    yesterday: "Yesterday · {date}"
+    date: Jan 2
+  legend:
+    done: Done
+    error: Still failed (hatched, figure above)
+  unit:
+    done: done
+    error: failed
+  values:
+    title: Values per hour
+    total_done: "{n} done"
+    total_done_one: 1 done
+    total_error: "{n} failed"
+    total_error_one: 1 failed
+    caption: Done and still failed transfers, by start hour, most recent first, over the last 24 hours
+    hour: Start hour
+    done: Done
+    error: Still failed
+  errors:
+    title: Latest errors
+    caption: Latest failed transfers
+    col:
+      time: Time
+      transfer: Transfer
+      error: Error
+      actions: Actions
+    all: "View the {n} failed transfers"
+    all_one: View the failed transfer
+    none: No failed transfer
+  empty:
+    title: No transfer in the last 24 hours
+    text: The chart appears with the first done or failed transfer.
+  degraded:
+    title: "The database has not answered since {time}."
+    text: "The figures shown date from {time}. The services keep running; the activity catches up when the database is back."
+    none: "No figure could be read yet. The services keep running; the activity appears when the database is back."
+  error:
+    title: The dashboard could not be refreshed.
+    text: "Last successful reading at {time}. The figures shown date from that reading; a new attempt is made every {seconds} s."
+
+proto:
+  label: Protocol
+  choose: Choose a protocol
+  choose_hint: The options of the protocol appear after the choice.
+  choose_error: Choose a protocol.
+  tls: Secure the connection with TLS
+  tls_hint: "Offered for the protocols that exist with and without TLS; SFTP is secured by SSH"
+  tls_title: TLS encryption
+  tls_lock: Secured by TLS
+  described_tls: "{family}, secured by TLS ({name})"
+  filter_tls: TLS encryption
+  filter_tls_all: All
+  filter_tls_yes: With TLS
+  filter_tls_no: Without TLS
+  options: "{protocol} options"
+  options_label: Options
+  options_meta_none: No option
+  options_meta_one: 1 option
+  options_meta: "{n} options"
+  error_number: Enter a whole number.
+  error_number_min: "Enter a whole number, {min} or more."
+  error_number_range: "Enter a whole number between {min} and {max}."
+  error_decimal_min: "Enter a number, {min} or more (1.5 for example)."
+  error_decimal_range: "Enter a number between {min} and {max}."
+  error_duration: "Give whole numbers of hours, minutes and seconds."
+  options_default: Default options of the gateway
+  options_set_one: 1 option set
+  options_set: "{n} options set"
+  tls_summary: "{version} · {suites}"
+  tls_suite_one: 1 suite chosen
+  tls_suites: "{n} suites chosen"
+  # Options by family: the effect for the operator first, the technical term as a monospace hint.
+  duration:
+    hours: Hours
+    minutes: Minutes
+    seconds: Seconds
+    h: h
+    min: min
+    s: s
+  # Themes of the cards of options, when the family names two at least.
+  section:
+    identity: Identification
+    sync: Restart and synchronisation
+    messages: Messages
+    ack: Acknowledgement
+    transfer: Transfer
+    integrity: Integrity checks
+    modes: Connection modes
+    algorithms: Algorithms
+    compat: Compatibility
+    security: Signature and encryption
+    mdn: Asynchronous MDN
+    other: Other options
+  opt:
+    r66_login: Login expected from the partner
+    r66_login_hint: "By default, the name of the server"
+    r66_block: Size of a data block
+    r66_block_hint: "In bytes; 65,536 by default"
+    r66_no_final_hash: Do not check the hash at the end of the transfer
+    r66_check_block_hash: Check the hash of every block
+    r66_final_hash: Hash at the end of the transfer
+    r66_block_hash: Hash of every block
+    min_tls: Minimum TLS version
+    min_tls_hint: "Cipher suites are chosen up to TLS 1.2; in TLS 1.3 the library sets them."
+    tls_ciphers: "TLS cipher suites, up to TLS 1.2"
+    tls_ciphers_short: TLS cipher suites
+    tls_ciphers_hint: "Empty: every secure suite of the gateway is accepted when negotiating with the partner. A suite flagged insecure is only added knowingly."
+    tls_insecure: (insecure)
+    algo_historic: (historic)
+    algo_disabled: (disabled by default)
+    ftp_disable_passive: Disable the passive mode
+    ftp_disable_active: Disable the active mode
+    ftp_passive: Passive mode
+    ftp_active: Active mode
+    ftp_passive_min: First port of the passive mode
+    any_port_hint: "Empty: any free port"
+    ftp_passive_max: Last port of the passive mode
+    tls_requirement: TLS requirement
+    tls_requirements:
+      optional: Optional explicit TLS
+      mandatory: Mandatory explicit TLS
+      implicit: Implicit TLS
+    pesit_disable_restart: Disable the restart of interrupted transfers
+    pesit_disable_checkpoints: Disable the checkpoints
+    pesit_restart: Restart of interrupted transfers
+    pesit_checkpoints: Checkpoints
+    pesit_checkpoint_size: Interval between two checkpoints
+    pesit_checkpoint_window: Checkpoints without acknowledgement
+    pesit_checkpoint_window_hint: "Window, in number of checkpoints"
+    pesit_max_message: Maximum size of a message
+    pesit_mode: PeSIT mode
+    pesit_mode_hint: "“Standard” follows the published specification; “Non standard” follows the market convention some partners expect."
+    pesit_modes:
+      standard: Standard
+      non_standard: Non standard
+    pesit_disable_preconnection: Disable the pre-connection
+    pesit_preconnection: Pre-connection
+    sftp_note: "An empty list accepts every algorithm of the gateway; the order of the chosen ones is the preference order."
+    sftp_kex: Key exchange algorithms
+    sftp_kex_hint: "Empty: every key exchange algorithm is accepted"
+    sftp_ciphers: Cipher algorithms
+    sftp_ciphers_hint: "Empty: every cipher algorithm is accepted"
+    sftp_macs: Integrity algorithms
+    sftp_macs_hint: "Empty: every integrity algorithm is accepted"
+    as2_max_file_size: Maximum size of a file
+    as2_max_file_size_hint: "In bytes; cannot exceed the memory of the system"
+    as2_mdn_algo: Signature of the MDN acknowledgements
+    mdn:
+      none: No signature
+    bytes: In bytes
+    enabled: Enabled
+    disabled: Disabled
+    checked: Checked
+    unchecked: Not checked
+    default_login: The name of the server
+    default_block: "65,536 bytes"
+    default_value: Default value of the gateway
+    default_ciphers: Every secure suite of the gateway
+    default_algos: Every algorithm of the gateway
+    any_port: Any free port
+    none: No option for this protocol
+    r66_final_hash_algo: Hash algorithm at the end of the transfer
+    r66_final_hash_algo_hint: "SHA-256 by default"
+    ftp_enable_active: Enable the active mode
+    ftp_active_address: Active mode address
+    ftp_active_address_hint: "Local IP address announced to the server; empty: 0.0.0.0"
+    ftp_active_min: First port of the active mode
+    ftp_active_max: Last port of the active mode
+    default_active_address: "0.0.0.0"
+    # Options of a remote partner: what the client of its protocol reads from the partner.
+    r66_server_login: Login presented by the server
+    r66_server_login_hint: "By default, the name of the partner"
+    default_partner_login: The name of the partner
+    ftp_disable_epsv: Disable EPSV
+    ftp_epsv: EPSV
+    ftp_implicit_tls: Implicit TLS
+    ftp_implicit_tls_hint: "By default, explicit TLS (\"AUTH TLS\" after the connection)"
+    ftp_no_session_reuse: Disable the TLS session reuse
+    ftp_session_reuse: TLS session reuse
+    pesit_login: Login of the partner
+    pesit_login_hint: "Empty: the partner is not authenticated; its password is a \"Password\" means of the partner"
+    pesit_login_none: Not authenticated
+    tristate:
+      client: As the client (default)
+      on: Enabled
+      off: Disabled
+    pesit_nsdu: Use NSDU packets
+    pesit_nsdu_hint: Enabled by default
+    pesit_expects_ack: Wait for the partner's acknowledgement after each transfer
+    pesit_ack_timeout: Acknowledgement timeout
+    pesit_ack_timeout_hint: "After each transfer, the gateway waits for the acknowledgement message of the partner for that long; without one, the transfer fails. Empty: 10 minutes."
+    pesit_ack_default: 10 min (default)
+    pesit_no_pi37: Do not send the PI 37
+    pesit_pi37: Sending of the PI 37
+    sftp_use_stat: Read the size of the file before receiving it
+    sftp_no_concurrent_reads: Disable concurrent reads
+    sftp_no_concurrent_reads_hint: "By default, a received file is read by several readers at once"
+    sftp_concurrent_reads: Concurrent reads
+    as2_sign_algo: Signature algorithm
+    as2_encrypt_algo: Encryption algorithm
+    as2_async_mdn: Address of the asynchronous MDNs
+    as2_async_mdn_hint: "Empty: no asynchronous MDN"
+    as2_async_mdn_none: No asynchronous MDN
+    as2_handle_async_mdn: Handle the asynchronous MDNs
+    as2_handle_async_mdn_hint: "The gateway receives them itself; otherwise a third-party service handles them"
+
+# "Local servers" screen (Connections): list, details, form, deletion, start and stop.
+# Lists refreshed in place by the live list of the kit: the error of a reading, for the lists without an
+# error banner of their own (accounts of a server or a partner, authentication means).
+lists:
+  refresh_error:
+    title: The list could not be refreshed.
+    text: "Try again; if the error persists, the detail is in the log of the gateway."
+  search_hint: "Matched anywhere, case and accents aside; * stands for any text, ? for one character, ^ and $ anchor the search at the beginning or at the end"
+
+servers:
+  title: Local servers
+  add: Add a server
+  search: Search a server by name
+  search_placeholder: Search by name
+  filters: Protocols
+  count: "{total} servers"
+  count_one: 1 server
+  count_shown: "{total} servers · {shown} shown"
+  count_shown_one: "{total} servers · 1 shown"
+  caption: "Local servers, page {page} of {pages}, sorted by {sort}"
+  pager: "Servers {from} to {to} of {total}"
+  back: Back to the list
+  back_server: Back to the server
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    state: status
+    protocol: protocol
+    address: address
+  col:
+    name: Local server
+    state: Status
+    protocol: Protocol
+    address: Address
+    actions: Actions
+  action:
+    detail: View details
+    start: Start the server
+    stop: Stop the server
+    auth: Authentication
+    accounts: Local accounts
+    edit: Edit the server
+    delete: Delete the server
+    transfers: View the transfers
+  detail:
+    title: "Server “{name}”"
+    card: Server
+    state: Status
+    protocol: Protocol
+    address: Listening address
+    autostart: Automatic start
+    autostart_yes: "Yes"
+    autostart_no: "No"
+    accounts: Local accounts
+    dirs: Directories
+    undefined: Not set
+    dirs_meta_default: Default directories
+  dirs:
+    root: Root directory
+    receive: Receive directory
+    tmp: Temporary receive directory
+    send: Send directory
+  new:
+    title: New server
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique on this gateway; letters, digits, dashes and dots"
+    no_autostart: Do not start automatically when the gateway starts
+    address: Listening address
+    address_required: To be given
+    host: Host
+    host_hint: "Host name or IP address the server listens on; empty, it listens on every interface (shown as “*”)"
+    port: Port
+    port_hint: "TCP port, 1 to 65535"
+    dirs: Directories
+    dirs_hint: "Optional; a relative path is resolved from the gateway root directory."
+    tmp_hint: "Files are written there during the reception, then moved to the receive directory"
+    dirs_root_summary: "Root “{root}”"
+    dirs_count_summary: "{n} directories set"
+    dirs_default_summary: Default directories of the gateway
+    refused: The server was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: This field is required.
+      name_taken: Another server already has this name. Choose another one.
+      address_taken: Another server already listens on this address and port.
+      address: Enter a valid host name or IP address.
+      port: Enter a port between 1 and 65535.
+  delete:
+    title: "Delete the server “{name}”?"
+    text: "Its local accounts and their authentication means will be deleted with it. The rules that name it in their access lists will no longer apply to it."
+    running: "It is running: it will be stopped."
+    blocked_title: This server cannot be deleted.
+    blocked_text: "Running transfers use it. Cancel them or wait for them to finish, then come back here."
+    blocked_link: See the running transfers
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Server “{name}” created"
+    updated: "Server “{name}” saved"
+    deleted: "Server “{name}” deleted"
+    started: "Server “{name}” started"
+    stopped: "Server “{name}” stopped"
+    start_failed: "Server “{name}” did not start"
+    stop_failed: "Server “{name}” could not be stopped"
+  empty:
+    title: No local server yet
+    text: "A local server is a listening endpoint of the gateway for one protocol: partners connect to it to drop or fetch files."
+  none:
+    title: "No server matches “{query}”"
+    filters: No server matches the filters
+  not_found:
+    title: Server not found
+    text: This server does not exist or has been deleted.
+  error:
+    title: The server list could not be loaded.
+    text: "An internal error occurred; the details are in the gateway log."
+  # Server sheet: the tabs of the sheet.
+  tabs: Tabs of the sheet
+  tab:
+    details: Details
+    auth: Authentication
+    accounts: Local accounts
+# Sheet of a local account.
+account:
+  title: "Account “{login}”"
+  card: Account
+  tab:
+    details: Details
+    auth: Authentication
+  detail:
+    server: Server
+    login: Login
+    ips: Allowed IP addresses
+    ips_all: All
+    ips_note: "The allowed IP addresses limit where this account may connect from; “All” sets no limit."
+    auth: Authentication means
+    auth_none: None
+# Authentication means, shared by the server and its accounts.
+auth:
+  title:
+    server: Identity the server presents to the partners
+    account: Means the partner presents for this account
+    partner: What the gateway checks of the partner
+    remote_account: What the gateway presents to the partner
+  owner:
+    server: "the server “{name}”"
+    account: "the account “{login}” of the server “{name}”"
+    partner: "the partner “{name}”"
+    remote_account: "the account “{login}” of the partner “{name}”"
+  add: Add an authentication means
+  tab_after_creation: Available after the creation
+  search: Search an authentication means by name
+  search_placeholder: Search by name
+  count: "{total} means"
+  count_one: 1 means
+  count_shown: "{total} means · {shown} shown"
+  count_shown_one: "{total} means · 1 shown"
+  caption: "Authentication means, page {page} of {pages}, sorted by {sort}"
+  pager: "Means {from} to {to} of {total}"
+  sort:
+    name: name
+    type: kind
+  col:
+    name: Authentication means
+    type: Kind
+    content: Content
+  action:
+    detail: View the means
+    edit: Edit the means
+    delete: Delete the means
+  type:
+    password: Password
+    tls_certificate: TLS certificate and its key
+    trusted_tls_certificate: Trusted TLS certificate
+    ssh_private_key: SSH private key
+    ssh_public_key: SSH public key
+    r66_legacy_certificate: Legacy R66 certificate
+    pesit_pre-connection_auth: PeSIT pre-connection
+  # Layout of the validity dates (Go layout).
+  date: 2006-01-02
+  # Non-secret content of a means, in the list and on its page.
+  content:
+    set: Set
+    secret: Set, not shown
+    cert_key: "{subject} · private key set, not shown"
+    key_set: Private key set, not shown
+    private_key: "{type} private key, not shown"
+    key: "{type} · {fingerprint}"
+    valid: "Valid until {date}"
+    expires: "Expires on {date}"
+    expired: "Expired on {date}"
+    pre_login: "Login “{login}”"
+    pre_no_login: No login
+    pre_password: password set, not shown
+    pre_no_password: no password
+    chain: "chain of {n} certificates"
+  new:
+    title: New authentication means
+  edit:
+    title: "Edit “{name}”"
+  form:
+    card: "Authentication means for {owner}"
+    content: Content
+    name: Name
+    name_hint: "To tell them apart: “cert-2026”, “host-key-rsa”…; empty, the name of the kind is used"
+    type: Kind
+    type_choose: Choose a kind
+    type_hint: "Only the kinds the protocol allows are offered; a unique kind already present is left out."
+    type_fixed: "The kind of a means does not change: to change it, delete the means and add another one."
+    password: Password
+    password_hint: "The partner presents it when connecting; it is stored hashed, nobody can read it back"
+    password_keep: Leave empty to keep the current password
+    file: File
+    file_hint: "A certificate, a public key or a private key in PEM format. A trusted certificate is kept alone: its intermediates, given with it, are not kept."
+    keep_file: "Uploading a new file replaces it; otherwise the content in place is kept"
+    paste: or paste the PEM content
+    cert: Certificate and its intermediates
+    cert_hint: "The certificate and its intermediates, given together: several PEM files chosen at once, in any order, or pasted one after the other. Signed by a private authority? Register its root among the authentication authorities first."
+    paste_cert: or paste the certificate
+    key: Private key
+    key_hint: "The private key of the certificate; it is never shown again"
+    paste_key: or paste the key
+    legacy_hint: "Nothing to enter: this means states that the authentication follows the historic market convention for R66 certificates."
+    pre_hint: "What the gateway sends to the partner before the PeSIT connection, when it expects it: an optional login and password, at most eight ASCII characters each."
+    pre_login: Pre-connection login
+    pre_login_hint: "Empty: no login is sent"
+    pre_password: Pre-connection password
+    pre_password_hint: "Empty: no password is sent; stored encrypted, never shown again"
+    pre_password_keep: leave empty to keep it as it is
+    refused: The authentication means was not saved.
+    refused_text: "Correct the fields flagged below; a file uploaded is to be chosen again, its public content is kept in the paste field."
+    needs: The content required is to be uploaded or pasted before saving.
+    error:
+      required: Give the content of the authentication means.
+      type: Choose a kind the protocol allows.
+      unique: "A means of this kind already exists; edit or delete it first."
+      name_taken: Another means already has this name. Choose another one.
+      invalid: "The content was not accepted: {reason}"
+      unrelated: "The certificate “{name}” does not belong to this chain: remove it."
+      no_leaf: "Every certificate given signs another one: the certificate itself is missing."
+      issuer_unknown: "“{subject}” is signed by “{issuer}”, which the gateway does not know. Give the intermediate certificate of “{issuer}” with it, or register “{issuer}” among the authentication authorities if it is the root."
+      root_unknown: "The root “{root}” given with the chain is not registered among the authentication authorities: register it first, then give the certificate and its intermediates again."
+      key_is_cert: "The content given as the private key is a certificate: give the private key of the certificate, a “PRIVATE KEY” block."
+      key_mismatch: "The private key is not the one of the certificate given: give the key of this certificate."
+      key_unreadable: "The content given as the private key is not a readable PEM key."
+  # What the form did with the certificates given beyond the chain, said after the save.
+  note:
+    root_dropped: "The root “{root}” given with the chain is not kept: a root is declared among the authentication authorities."
+    trusted_leaf_only: "The trust bears on the certificate alone; the other certificates given are not kept. To trust its authority, register it among the authentication authorities."
+  detail:
+    title: "Means “{name}”"
+    card: "{type} for {owner}"
+    state: Status
+    subject: Subject
+    issuer: Issuer
+    self_signed: Self-signed
+    validity: Validity
+    validity_text: "from {from} to {to}"
+    fingerprint: SHA-256 fingerprint
+    key_type: Key type
+    private_key: Private key
+    content: Content
+    never_shown: Set, never shown
+    legacy: "No value: the kind is enough"
+    pre_login: Pre-connection login
+    pre_no_login: None
+    pre_password: Pre-connection password
+    pre_no_password: None
+    pem: Certificate (PEM)
+    chain: Certificate chain
+    chain_pem: Certificate chain (PEM)
+    chain_note: "The chain saved, in the order the gateway presents it: the certificate, then its intermediates. The root is not presented; it is declared among the authentication authorities."
+    chain_role:
+      leaf: Certificate
+      intermediate: Intermediate
+    chain_col:
+      role: Role
+      subject: Subject
+      issuer: Issuer
+      validity: Validity
+      state: State
+    public_key: Public key
+    public_note: "Public part only: it can be given to the partner."
+  delete:
+    title: "Delete the means “{name}”?"
+    server: Partners that check this identity of the server will no longer be able to connect.
+    partner: "The gateway will no longer check this identity of the partner; depending on the protocol, the connection will be refused."
+    remote_account: The gateway will no longer be able to authenticate with this means to the partner.
+    account: This partner will no longer be able to authenticate this way.
+    means: Means
+    type: Kind
+    owner: For
+    content: Content
+  empty:
+    title: No authentication means yet
+    server: "Add the identity this server presents to the partners: certificate, host key or password depending on the protocol."
+    partner: "Add what the gateway must check of the partner: trusted certificate, host key or password depending on the protocol."
+    remote_account: "This account cannot connect while it has no means: add a password, a certificate or a private key."
+    account: "This account cannot connect as long as it has no means: add a password, a certificate or a public key."
+  none_for_protocol:
+    title: This protocol asks no authentication means from the server
+    text: "Connections to this server are not authenticated by it: nothing to add here."
+    partner:
+      title: This protocol asks no check of the partner
+      text: "Connections to this partner do not check its identity: nothing to add here."
+  none:
+    title: "No means matches “{query}”"
+  not_found:
+    title: Authentication means not found
+    text: This authentication means does not exist or has been deleted.
+  toast:
+    created: "Means “{name}” added"
+    updated: "Means “{name}” saved"
+    deleted: "Means “{name}” deleted"
+# Local accounts of a server.
+accounts:
+  add: Add an account
+  search: Search an account by login
+  search_placeholder: Search by login
+  count: "{total} accounts"
+  count_one: 1 account
+  count_shown: "{total} accounts · {shown} shown"
+  count_shown_one: "{total} accounts · 1 shown"
+  caption: "Local accounts, page {page} of {pages}, sorted by {sort}"
+  pager: "Accounts {from} to {to} of {total}"
+  sort:
+    name: login
+    auth: authentication
+  col:
+    login: Local account
+    auth: Authentication
+  auth_none: "No means: cannot connect"
+  action:
+    detail: View the account
+    edit: Edit the account
+    delete: Delete the account
+    transfers: View the transfers
+  new:
+    title: New account
+  edit:
+    title: "Edit “{login}”"
+  form:
+    card: "Account on the server “{name}”"
+    login: Login
+    login_hint: "Unique on this server; the login the partner presents"
+    ips: Allowed IP addresses
+    ips_hint: "One address per line, IPv4 or IPv6, no range; empty: every address is accepted"
+    first_means: First authentication means
+    first_means_hint: "The partner will authenticate this way; you can add others in the sheet of the account."
+    first_means_none: None for now
+    means_name: Name of the means
+    means_name_hint: "Empty: the name of the kind is used"
+    means_type: Kind
+    means_type_hint: Kinds allowed for an account of this protocol
+    refused: The account was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      login: Enter the login of the account.
+      taken: Another account of this server already has this login.
+      ip: "“{value}” is not an IP address."
+  delete:
+    title: "Delete the account “{login}”?"
+    text: "Its authentication means will be deleted with it; this partner will no longer be able to connect to the server “{name}”."
+    blocked_title: This account cannot be deleted.
+    blocked_text: "Running transfers use it. Cancel them or wait for them to finish, then come back here."
+    blocked_link: See the running transfers
+  empty:
+    title: No local account yet
+    text: "A local account is the login a partner uses to connect to this server; it holds its own authentication means."
+  none:
+    title: "No account matches “{query}”"
+  not_found:
+    title: Account not found
+    text: This account does not exist or has been deleted.
+  toast:
+    created: "Account “{login}” created"
+    updated: "Account “{login}” saved"
+    deleted: "Account “{login}” deleted"
+# Home page: one card per section, one card per screen the user may read, one sentence per screen (definitions
+# of the glossary of the objects, on trial).
+home:
+  title: Home
+  desc:
+    servers: Listening endpoints, one per protocol
+    clients: Outgoing identities towards the partners
+    partners: Remote servers and their accounts
+    rules: Direction, paths and processing
+    watchers: Partner folders polled at a regular interval
+    keys: Encryption and signature for the tasks
+    smtp: Sending accounts of the EMAIL task
+    email_templates: Message templates of the EMAIL task
+    dashboard: Node services, today's transfers and errors to handle
+    services: State of the services, servers and clients
+    transfers: Running and past transfers
+    users: Access accounts and their rights
+    authorities: Trusted certificate authorities
+    clouds: Remote storages, origin or destination
+    snmp: SNMP agent and alerts
+    overrides: Values specific to one node of a cluster
+    config: Back up and restore the configuration
+# "About" (dialog of the account menu and its fallback page): the sentences of the product; the frame and its
+# labels come from the kit (about.title, about.version…).
+about:
+  support_text: "provides professional support and services for {product}."
+  license_text: "{product} is licensed under the terms of the GPLv3 License."
+  link_download: "Download {product}"
+  link_doc: Documentation
+  link_forums: Forums
+  link_contact: "Contact: {email}"
+# Rights of a user by domain: the table shared by "My account" and the "Users" screen.
+rights:
+  meta_all: Every right
+  meta_one: 1 right
+  meta: "{n} rights"
+  meta_none: No right
+  col:
+    read: Read
+    write: Write
+    delete: Delete
+  # What a user may do in a domain, in words, from the notation (r, w, d).
+  granted:
+    r: Read
+    w: Write
+    d: Delete
+    rw: Read and write
+    rd: Read and delete
+    wd: Write and delete
+    rwd: Read, write and delete
+    none: No right
+  domain:
+    transfers: Transfers
+    servers: Local servers and clients
+    partners: Remote partners
+    rules: Transfer rules
+    users: Users
+    admin: Administration
+# "My account" page (account menu): the signed-in user, their rights in reading, the change of their password.
+me:
+  title: My account
+  identity: Identity
+  username: Login
+  instance: Instance
+  rights: Rights
+  rights_caption: "Your rights, by domain: read, write, delete"
+  rights_hint: "Your rights are set by an administrator, in “Users”."
+  password:
+    title: Change my password
+    current: Current password
+    new: New password
+    new_hint: "Stored hashed; nobody can read it back."
+    confirm: New password, once more
+    refused: The password was not changed.
+    refused_text: Correct the fields flagged below.
+  error:
+    current: The current password is not the right one.
+    required: Enter the new password.
+    mismatch: The two entries of the new password differ.
+  toast:
+    password: Password changed
+    account: Account saved
+# Sign-in page: the title is the label of the button too; one refusal, whether the account exists or not and
+# whether it is locked or not; the end of a session said by the address (?reason=).
+login:
+  title: Sign in
+  username: Username
+  password: Password
+  refused: Incorrect username or password. Check what you typed, then try again.
+  unavailable: The sign-in could not be checked. Try again in a moment.
+  expired: Your session has ended. Sign in again to continue.
+  signed_out: You are signed out.
+# "Remote partners" screen (Connections): list, tabbed sheet, form, deletion.
+partners:
+  title: Remote partners
+  add: Add a partner
+  search: Search a partner by its name
+  search_placeholder: Search by name
+  filters: Protocols
+  count: "{total} partners"
+  count_one: 1 partner
+  count_shown: "{total} partners · {shown} shown"
+  count_shown_one: "{total} partners · 1 shown"
+  caption: "Remote partners, page {page} of {pages}, sorted by {sort}"
+  pager: "Partners {from} to {to} of {total}"
+  back: Back to the list
+  back_partner: Back to the partner
+  accounts_none: None
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    protocol: protocol
+    address: address
+    accounts: accounts
+  col:
+    name: Remote partner
+    protocol: Protocol
+    address: Address
+    accounts: Accounts
+    actions: Actions
+  action:
+    detail: View the sheet
+    edit: Edit the partner
+    delete: Delete the partner
+    transfers: View the transfers
+  tabs: Tabs of the sheet
+  tab:
+    details: Details
+    auth: Authentication
+    accounts: Remote accounts
+  detail:
+    title: "Partner \"{name}\""
+    card: Partner
+    protocol: Protocol
+    address: Address
+    accounts: Remote accounts
+    rules_title: Authorized transfer rules
+    rules_reserved_none: No rule is reserved to it.
+    rules_open: "It may also use the {n} rules without any restriction, as any partner."
+    rules_open_one: "It may also use the rule without any restriction, as any partner."
+    rules_open_all: "Every rule of the gateway ({n}) is without restriction: it may use them, as any partner."
+    rules_open_none: No rule without restriction.
+    rules_meta: "{reserved} reserved · {open} unrestricted"
+    rules_hint: "The accesses to the rules are managed on the transfer rules screen."
+    rules_link: See the transfer rules
+    rule_via_partner: granted to the partner
+    rule_via_account: "granted to the account “{login}”"
+    rule_send: send
+    rule_receive: receive
+  client:
+    title: Client used
+    meta_none: None
+    meta_many: "{n} clients"
+    one: "Transfers to this partner go through the client \"{name}\"."
+    many: "{n} {protocol} clients exist: each transfer to this partner must name its own."
+    none: "No {protocol} client: the gateway will create one, named \"{name}\", on the first transfer."
+    add: Add a client
+  new:
+    title: New partner
+  edit:
+    title: "Edit \"{name}\""
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique on the gateway; the name rules and transfers refer to"
+    protocol_hint: "Changing the protocol voids the authentication means and the accounts that no longer match it."
+    address: Address
+    address_required: To be given
+    address_hint: "The address the gateway connects to."
+    host: Host
+    host_hint: "Host name or IP address of the partner server"
+    port: Port
+    port_hint: "TCP port, from 1 to 65535"
+    refused: The partner was not saved.
+    refused_text: Correct the fields marked below.
+    error:
+      required: This field is required.
+      name_taken: Another partner already has this name. Choose another one.
+      host: Give the host.
+      port: Give a port from 1 to 65535.
+      address: "Give a valid host name or IP address."
+      async_mdn: "Give the address of the asynchronous MDNs to handle them."
+  delete:
+    title: "Delete the partner \"{name}\"?"
+    text: "Its {n} remote accounts and their authentication means will be deleted with it, as well as its accesses to the transfer rules; transfers to this partner can no longer be created."
+    blocked_title: This partner cannot be deleted.
+    blocked_transfers: Running transfers use one of its accounts. Cancel them or wait for them to end.
+    blocked_watchers: A folder watcher uses one of its accounts. Remove it first.
+    blocked_link: See the running transfers
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Partner \"{name}\" created"
+    updated: "Partner \"{name}\" saved"
+    deleted: "Partner \"{name}\" deleted"
+  empty:
+    title: No remote partner yet
+    text: "A remote partner is a third-party server the gateway connects to, to deposit or retrieve files; it holds its accounts and its authentication means."
+  none:
+    title: "No partner matches \"{query}\""
+    filters: No partner matches the filters
+  not_found:
+    title: Partner not found
+    text: This partner does not exist or has been deleted.
+  error:
+    title: The list of the partners could not be loaded.
+    text: "An internal error occurred; the detail is in the log of the gateway."
+# Remote accounts of a partner: the identity the gateway presents to it.
+remote_accounts:
+  add: Add an account
+  search: Search an account by login
+  search_placeholder: Search by login
+  count: "{total} accounts"
+  count_one: 1 account
+  count_shown: "{total} accounts · {shown} shown"
+  count_shown_one: "{total} accounts · 1 shown"
+  caption: "Remote accounts, page {page} of {pages}, sorted by {sort}"
+  pager: "Accounts {from} to {to} of {total}"
+  sort:
+    name: login
+    auth: authentication
+  col:
+    login: Remote account
+    auth: Authentication
+  auth_none: "No means: cannot connect"
+  action:
+    detail: View the account
+    edit: Edit the account
+    delete: Delete the account
+    transfers: View the transfers
+  new:
+    title: New remote account
+  edit:
+    title: "Edit “{login}”"
+  form:
+    card: "Account on the partner “{name}”"
+    login: Login
+    login_hint: "Unique on this partner; the login the gateway presents"
+    first_means: First authentication means
+    first_means_hint: "The gateway will authenticate this way; you can add others in the sheet of the account."
+    refused: The account was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      login: Enter the login of the account.
+      taken: Another account of this partner already has this login.
+  delete:
+    title: "Delete the account “{login}”?"
+    text: "Its authentication means will be deleted with it; transfers to “{name}” that name it can no longer be created."
+    blocked_title: This account cannot be deleted.
+    blocked_transfers: Running transfers use it. Cancel them or wait for them to finish.
+    blocked_watchers: A folder watcher uses it. Remove it first.
+    blocked_link: See the running transfers
+  empty:
+    title: No remote account yet
+    text: "A remote account is the identity the gateway presents to this partner; a transfer always names one."
+  none:
+    title: "No account matches “{query}”"
+  not_found:
+    title: Remote account not found
+    text: This account does not exist or has been deleted.
+  toast:
+    created: "Account “{login}” created"
+    updated: "Account “{login}” saved"
+    deleted: "Account “{login}” deleted"
+# Sheet of a remote account.
+remote_account:
+  title: "Account “{login}”"
+  card: Remote account
+  tab:
+    details: Details
+    auth: Authentication
+  detail:
+    partner: Partner
+    login: Login
+    auth: Authentication means
+    auth_none: None
+    note: "A transfer to this partner always names one of its accounts; the gateway presents itself with the means of the Authentication tab."
+# Local clients: the list, the details (with the partners the client can reach), the action pages.
+clients:
+  title: Local clients
+  add: Add a client
+  search: Search a client by name
+  search_placeholder: Search by name
+  filters: Protocols
+  count: "{total} clients"
+  count_one: 1 client
+  count_shown: "{total} clients · {shown} shown"
+  count_shown_one: "{total} clients · 1 shown"
+  caption: "Local clients, page {page} of {pages}, sorted by {sort}"
+  pager: "Clients {from} to {to} of {total}"
+  back: Back to the list
+  back_client: Back to the client
+  address_auto: Automatic
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    state: status
+    protocol: protocol
+    address: address
+  col:
+    name: Local client
+    state: Status
+    protocol: Protocol
+    address: Local address
+    actions: Actions
+  action:
+    detail: View details
+    start: Start the client
+    stop: Stop the client
+    edit: Edit the client
+    delete: Delete the client
+    transfers: View the transfers
+  detail:
+    title: "Client “{name}”"
+    card: Client
+    state: Status
+    protocol: Protocol
+    address: Local address
+    autostart: Automatic start
+    autostart_yes: "Yes"
+    autostart_no: "No"
+    retries: Transfer retries
+    retries_none: No automatic retry
+    partners: Partners this client can reach
+    partners_hint: "The remote partners of its protocol; a transfer to one of them goes through this client, unless another one is named."
+    partners_none: No partner of this protocol yet.
+    retries_meta_one: 1 attempt
+    retries_meta: "{n} attempts"
+    partners_meta_none: None
+    partners_meta_one: 1 partner
+    partners_meta: "{n} partners"
+  retries:
+    attempts: Automatic retries after a failure
+    attempts_hint: "0: no retry; 127 at most"
+    delay: Delay before the first retry
+    delay_hint: "Empty: the gateway waits 1 s"
+    delay_none: No delay
+    delay_hours: "{n} h"
+    delay_minutes: "{n} min"
+    delay_seconds: "{n} s"
+    hours: hours
+    minutes: minutes
+    seconds: seconds
+    factor: Delay growth factor
+    factor_hint: "1: constant delay; 2: the delay doubles at each retry"
+    sentence_none: No automatic retry.
+    sentence_one: "1 attempt, {delay} after the failure."
+    sentence_constant: "{n} attempts, every {delay}: the last one {total} after the first failure."
+    sentence_growing: "{n} attempts: the last one {total} after the first failure, with waits from {first} to {last}."
+    sentence_empty_delay: "Empty delay: the gateway waits 1 s."
+    delay_days: "{n} d"
+    more_than_years: "more than {n} years"
+    failure: Failure
+    details: Details of the attempts
+    row: "After a {wait} wait, at {at} from the first failure."
+    note: "The timeline counts the wait between two attempts from the first failure; the duration of the attempts themselves adds to it."
+  new:
+    title: New client
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique on this gateway; letters, digits, dashes and dots"
+    no_autostart: Do not start automatically when the gateway starts
+    address: Local address
+    address_hint: "Optional: left empty, the system chooses the outgoing interface and port."
+    host: Host
+    host_hint: "Host name or IP address of the outgoing interface"
+    port: Port
+    port_hint: "Outgoing TCP port, 1 to 65535"
+    retries: Transfer retries
+    retries_hint: "When a transfer through this client fails, the gateway retries it on its own, as set here."
+    retries_summary: "{attempts} retries · {delay} · ×{factor}"
+    retries_summary_one: "1 retry · {delay} · ×{factor}"
+    refused: The client was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: This field is required.
+      name_taken: Another client already has this name. Choose another one.
+      address: Enter a valid host name or IP address.
+      port: Enter a port between 1 and 65535.
+      number: Enter a positive whole number.
+      attempts: Enter a number of retries between 0 and 127.
+      factor: Enter a factor above 0.
+  delete:
+    title: "Delete the client “{name}”?"
+    text: The transfer history keeps its name.
+    running: "It is running: it will be stopped."
+    blocked_title: This client cannot be deleted.
+    blocked_transfers: "Unfinished transfers use it: planned, running, paused, interrupted or failed. Cancel them or wait for them to end."
+    blocked_text: "Folder watchers use it. Delete them first, through the API or the command line."
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Client “{name}” created"
+    updated: "Client “{name}” saved"
+    deleted: "Client “{name}” deleted"
+    started: "Client “{name}” started"
+    stopped: "Client “{name}” stopped"
+    start_failed: "Client “{name}” did not start"
+    stop_failed: "Client “{name}” could not be stopped"
+  empty:
+    title: No local client yet
+    text: "A local client is the outgoing identity of the gateway for one protocol: it connects to the partners to drop or fetch files."
+  none:
+    title: "No client matches “{query}”"
+    filters: No client matches the filters
+  not_found:
+    title: Client not found
+    text: This client does not exist or has been deleted.
+  error:
+    title: The client list could not be loaded.
+    text: "An internal error occurred; the details are in the gateway log."
+# "Users" screen (Administration): list, sheet in reading, form, deletion.
+users:
+  title: Users
+  add: Add a user
+  search: Search a user by login
+  search_placeholder: Search by login
+  count: "{total} users"
+  count_one: 1 user
+  count_shown: "{total} users · {shown} shown"
+  count_shown_one: "{total} users · 1 shown"
+  caption: "Users, page {page} of {pages}, sorted by {sort}"
+  pager: "Users {from} to {to} of {total}"
+  legend: "r: read · w: write · d: delete"
+  you: You
+  last_admin: "Last administrator: the only one holding the write right on the users."
+  back: Back to the list
+  back_user: Back to the user
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: login
+    transfers: rights on the transfers
+    servers: rights on the servers
+    partners: rights on the partners
+    rules: rights on the rules
+    users: rights on the users
+    admin: rights on the administration
+  col:
+    name: User
+    transfers: Transfers
+    servers: Servers
+    partners: Partners
+    rules: Rules
+    users: Users
+    admin: Administration
+    actions: Actions
+  filter:
+    domain: Domain
+    right: Right
+    any_domain: Every domain
+    any_right: Every right
+    level:
+      read: Read
+      write: Write
+      delete: Delete
+      none: No right
+  action:
+    detail: View the sheet
+    edit: Edit the user
+    delete: Delete the user
+  detail:
+    title: "User “{name}”"
+    card: User
+    login: Login
+    rights: Rights
+    rights_caption: "Rights of “{name}”, by domain: read, write, delete"
+  new:
+    title: New user
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    rights: Rights
+    login: Login
+    login_hint: "Unique on this gateway; used by the interface, the API and the command line"
+    password: Password
+    password_hint: "Stored hashed; nobody can read it back. 72 characters at most."
+    password_keep: "Empty: unchanged. 72 characters at most."
+    confirm: Password, once more
+    rights_caption: "Rights to grant, by domain: read, write, delete"
+    transfers_delete: Transfers cannot be deleted.
+    self: "This is your own account: your rights apply as soon as it is saved."
+    self_last_admin: "You are the last administrator: if you drop your write right on the users, nobody will be able to manage the users any more."
+    refused: The user was not saved.
+    refused_text: Correct the fields flagged below.
+    error:
+      required: This field is required.
+      login_taken: Another user already has this login. Choose another one.
+      password_required: Enter the password.
+      mismatch: The two entries of the password differ.
+      too_long: 72 characters at most.
+  delete:
+    title: "Delete the user “{name}”?"
+    text: "They will no longer be able to sign in to the interface, the API or the command line; their current session will be closed at their next action."
+    blocked_title: This user cannot be deleted.
+    blocked:
+      last_admin: "They are the last one able to manage the users (write right on the users). Give that right to another user first."
+      self: "You cannot delete your own account. Ask another administrator to do it."
+  # Result of the previous action, as a notification.
+  toast:
+    created: "User “{name}” created"
+    updated: "User “{name}” saved"
+    deleted: "User “{name}” deleted"
+  empty:
+    title: No user yet
+    text: "A user is an access account to the administration of the gateway, with its rights by domain."
+  none:
+    title: "No user matches “{query}”"
+    filters: No user matches the filters
+  not_found:
+    title: User not found
+    text: This user does not exist or has been deleted.
+  error:
+    title: The list of users could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+# "Cloud instances" screen (Administration): list, sheet in reading, form by type, deletion.
+clouds:
+  title: Cloud instances
+  add: Add a cloud instance
+  search: Search an instance by name
+  search_placeholder: Search by name
+  filters: Types
+  count: "{total} instances"
+  count_one: 1 instance
+  count_shown: "{total} instances · {shown} shown"
+  count_shown_one: "{total} instances · 1 shown"
+  caption: "Cloud instances, page {page} of {pages}, sorted by {sort}"
+  pager: "Instances {from} to {to} of {total}"
+  back: Back to the list
+  back_cloud: Back to the instance
+  location_none: "—"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    type: type
+    location: location
+    auth: authentication
+  col:
+    name: Cloud instance
+    type: Type
+    location: Location
+    auth: Authentication
+    actions: Actions
+  # How the instance authenticates.
+  auth:
+    key: Key given
+    env: Environment variables
+    none: None
+  # The five storage types, named as the reference documentation names them.
+  type:
+    s3: Amazon S3
+    azblob: Azure Blob
+    azfiles: Azure Files
+    gcs: Google Cloud Storage
+    onedrive: OneDrive
+  type_hint:
+    s3: An Amazon S3 bucket, or one of a compatible service.
+    azblob: "An Azure object container; the container is named in the path."
+    azfiles: An Azure file share.
+    gcs: A Google Cloud Storage bucket.
+    onedrive: A OneDrive drive or a SharePoint library.
+  type_stored: "{label} ({key})"
+  action:
+    detail: View the sheet
+    edit: Edit the instance
+    delete: Delete the instance
+  detail:
+    title: "Cloud instance “{name}”"
+    card: Instance
+    type: Type
+    path: Path to use
+    path_example: folder/file
+    path_hint: "A rule, a server or a transfer names the instance this way, instead of a local folder."
+    access: Access
+    secret: Secret
+    secret_set: Set
+    secret_unset: Not set
+    env_auth: Credentials from the environment variables
+    "yes": "Yes"
+    "no": "No"
+    options: Options
+    options_none: No option.
+    options_meta_none: None
+    options_meta_one: 1 option
+    options_meta: "{n} options"
+    access_meta_env: From the environment
+    access_meta_secret: Secret set
+    access_meta_none: No secret
+    usage_meta_none: Unused
+    usage_meta_rules_one: 1 rule
+    usage_meta_rules: "{n} rules"
+    usage_meta_servers_one: 1 server
+    usage_meta_servers: "{n} servers"
+    usage_meta_transfers_one: 1 transfer
+    usage_meta_transfers: "{n} transfers"
+    default: Default value of the gateway
+    unset: Not set
+    masked: Hidden
+    other: Other options
+    used_by: Used by
+    used_none: No object names this instance yet.
+    used_rules: Transfer rules
+    used_servers: Local servers
+    used_transfers: Transfers
+    used_transfers_count: "{n} transfers name this instance in their local path"
+  new:
+    title: New cloud instance
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity: Identity
+    name: Name
+    name_hint: "Unique; it prefixes the paths: name:folder/file. “file” is reserved for the local disk."
+    type: Type
+    type_choose: Choose a type
+    type_hint: "Changing the type clears the options of the previous type."
+    access: Access
+    key:
+      any: Key
+      s3: Access key
+      azure: Account name
+      gcs: Credentials file
+      onedrive: Application ID
+    key_hint: "Optional when the credentials come from the environment variables."
+    secret:
+      any: Secret
+    secret_hint: "Stored encrypted; never shown again."
+    secret_keep: "Empty: unchanged. Stored encrypted; never shown again."
+    access_note:
+      s3: "Amazon S3: the key is the access key, the secret the secret key."
+      azblob: "Azure Blob: the key is the name of the storage account, the secret the account key."
+      azfiles: "Azure Files: the key is the name of the storage account, the secret the account key."
+      gcs: "Google Cloud Storage: the key is the path, on the gateway, of the credentials file of the service account; the secret, the JSON content of those credentials when the file is not on the gateway."
+      onedrive: "OneDrive: the key is the ID of the application registered on the Azure portal (Files.ReadWrite.All application permission), the secret its application secret; the gateway requests the token itself."
+    env_auth: Credentials given by the environment variables of the gateway
+    env_hint: "Variables read:"
+    env:
+      s3: "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY; the region and the endpoint may come from AWS_REGION and AWS_ENDPOINT_URL."
+      azblob: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID and AZURE_CLIENT_ID."
+      azfiles: "AZURE_STORAGE_ACCOUNT, AZURE_CLIENT_SECRET, AZURE_TENANT_ID and AZURE_CLIENT_ID."
+      gcs: "GOOGLE_APPLICATION_CREDENTIALS."
+    options: "{type} options"
+    options_required: To be given
+    other: Other options
+    other_label: Settings of the storage library
+    other_hint: "One option per line, as key=value, among the accepted options suggested below; no credential, no secret."
+    other_none: None
+    other_some: Set
+    accepted: "Options {type} accepts ({n})"
+    accepted_add: Add an option
+    accepted_default: "default: {value}"
+    accepted_values: "values: {values}"
+    refused: The instance was not saved.
+    refused_text: Correct the fields flagged below.
+    refused_by_backend: "The storage refused this configuration: {cause} The details are in the log of the gateway."
+    error:
+      required: This field is required.
+      name_file: "“file” is reserved for the local disk."
+      name_taken: Another instance already has this name. Choose another one.
+      type: Choose a type.
+      option: "Enter one option per line, as key=value."
+      other_field: "“{key}” is set in its field, above."
+      other_secret: "“{key}” is a sensitive option: it would be kept and shown in clear; credentials go through the key and the secret, or the environment variables."
+      other_unknown: "{type} does not know the option “{key}”: it would have no effect."
+  # The options of the storages: label, then hints (the product default is injected in {default}).
+  opt:
+    bucket:
+      label: Bucket
+      hint: The bucket the gateway reads and writes in.
+    region:
+      label: Region
+      hint_s3: "Empty: the one of the endpoint or of AWS_REGION."
+      hint_onedrive: "Empty: {default}."
+    endpoint:
+      label: Endpoint
+      hint_s3: "Empty: amazonaws.com; set it for an S3-compatible service."
+      hint_azblob: "Empty: https://<account>.blob.core.windows.net, the account being the key."
+      hint_azfiles: "Empty: https://<account>.file.core.windows.net, the account being the key."
+    chunk_size:
+      label: Size of the uploaded chunks
+      hint: "Empty: {default}; a size with its unit, for example 8MiB."
+    copy_cutoff:
+      label: Chunked copy threshold
+      hint: "Empty: {default}."
+    list_chunk:
+      label: Objects read per listing request
+      hint: "Empty: {default}."
+    share_name:
+      label: Share
+      hint: The Azure Files share the gateway reads and writes in.
+    project_number:
+      label: Project number
+      hint: The number of the Google Cloud project.
+    bucket_policy_only:
+      label: The bucket enforces uniform access
+    tenant:
+      label: Directory (tenant)
+      hint: The identifier of the Azure directory of the application.
+    drive_id:
+      label: Drive ID
+      hint: "The OneDrive drive or the SharePoint library, as the Graph API names it."
+    drive_type:
+      label: Drive type
+      business: Business
+      personal: Personal
+      documentLibrary: Document library
+  delete:
+    title: "Delete the cloud instance “{name}”?"
+    text: "The paths that name it will stop working: the rules, servers and transfers below will no longer read or write in this storage."
+    text_none: "No object names this instance; paths that would name it later would not work."
+  # Result of the previous action, as a notification.
+  toast:
+    created: "Cloud instance “{name}” created"
+    updated: "Cloud instance “{name}” saved"
+    deleted: "Cloud instance “{name}” deleted"
+  empty:
+    title: No cloud instance yet
+    text: "A cloud instance is a remote storage the gateway uses instead of the local disk, named in the paths as name:folder/file."
+  none:
+    title: "No instance matches “{query}”"
+    filters: No instance matches the filters
+  not_found:
+    title: Cloud instance not found
+    text: This instance does not exist or has been deleted.
+  error:
+    title: The list of cloud instances could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Authentication authorities" screen.
+authorities:
+  title: Authentication authorities
+  add: Add an authority
+  search: Search an authority by name
+  search_placeholder: Search by name
+  filters_type: Types
+  filters_validity: Validity of the certificate
+  count: "{total} authorities"
+  count_one: 1 authority
+  count_shown: "{total} authorities · {shown} shown"
+  count_shown_one: "{total} authorities · 1 shown"
+  caption: "Authentication authorities, page {page} of {pages}, sorted by {sort}"
+  pager: "Authorities {from} to {to} of {total}"
+  back: Back to the list
+  back_authority: Back to the authority
+  none_value: "—"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    type: type
+    validity: validity
+    hosts: allowed hosts
+  col:
+    name: Authority
+    type: Type
+    identity: Certificate or key
+    validity: Validity
+    hosts: Allowed hosts
+    actions: Actions
+  # The two types, named as the reference documentation names them; the short form for the list.
+  type:
+    tls_authority: TLS certificate authority
+    ssh_cert_authority: SSH certificate authority
+  type_short:
+    tls: TLS
+    ssh: SSH
+  type_hint:
+    tls_authority: "The certificates it signs are accepted on TLS connections without being registered first."
+    ssh_cert_authority: "The SSH certificates it signs are accepted on SFTP connections: those of the users who connect to the gateway, those of the servers of the partners."
+  # Filter on the validity of the certificate.
+  validity:
+    ok: Valid
+    warn: Expires within 30 days
+    ko: Expired
+  identity:
+    unreadable: Unreadable
+    meta_expires: "expires on {date}"
+  signed:
+    meta_none: None
+    meta_one: 1 certificate
+    meta: "{n} certificates"
+  hosts:
+    all: Any host
+    meta_one: 1 host
+    meta: "{n} hosts"
+    more: "{hosts} and {n} more"
+    more_one: "{hosts} and 1 more"
+  # Who holds a registered certificate the authority signs.
+  owner:
+    server: "Local server “{name}”"
+    server_account: "Account “{login}” of the server “{name}”"
+    partner: "Partner “{name}”"
+    partner_account: "Account “{login}” of the partner “{name}”"
+  action:
+    detail: View the sheet
+    edit: Edit the authority
+    delete: Delete the authority
+  detail:
+    title: "Authority “{name}”"
+    card: Authority
+    type: Type
+    role: Role
+    identity: Public identity
+    unreadable: "The stored public identity cannot be read; give a new one by editing the authority."
+    show_certificate: Show the certificate
+    show_key: Show the public key
+    hosts: Allowed hosts
+    hosts_hint:
+      tls_authority: "Compared with the host name of the server, without port: the one of the address of the partner, or of the local server whose certificate is registered. A restricted authority does not apply to the certificates of the accounts."
+      ssh_cert_authority: "Compared with the address of the SFTP server of the partner, with its port (sftp.example.com:22). The certificates of the users who connect to the gateway are accepted whatever the hosts."
+    signed: Signed certificates
+    signed_none: No certificate registered in the gateway is signed by this authority.
+  new:
+    title: New authentication authority
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity_card: Identity
+    name: Name
+    name_hint: Unique.
+    type: Type
+    type_choose: Choose a type
+    type_hint: "Changing the type asks for the public identity of the new type."
+    identity:
+      tls_authority: Certificate of the authority
+      ssh_cert_authority: Public key of the authority
+    identity_hint:
+      tls_authority: "The certificate of the certification authority, in PEM format (.pem, .crt or .cer file): the root alone, or the root and its intermediates together, for the partners that present their certificate alone."
+      ssh_cert_authority: "The public key of the authority, in authorized_keys format (a .pub file)."
+    identity_example:
+      tls_authority: "-----BEGIN CERTIFICATE-----"
+      ssh_cert_authority: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA…"
+    paste:
+      tls_authority: or paste the certificate
+      ssh_cert_authority: or paste the public key
+    to_give: To be given
+    hosts: One host per line
+    hosts_hint:
+      tls_authority: "The host name or address of the server, without port, as in the address of the partner; empty: any host."
+      ssh_cert_authority: "The address of the SFTP server of the partner, with its port (sftp.example.com:22); empty: any host."
+    hosts_one: 1 host
+    hosts_count: "{n} hosts"
+    refused: The authority was not saved.
+    refused_text: Correct the fields marked below.
+    error:
+      required: This field is required.
+      name_taken: Another authority already has this name. Choose another one.
+      type: Choose a type.
+      unreadable:
+        tls_authority: "This content is not a readable certificate in PEM format."
+        ssh_cert_authority: "This content is not a readable public key in authorized_keys format."
+      not_ca: This certificate is not the one of a certificate authority.
+      not_verified: "This certificate cannot be verified: {cause}"
+  delete:
+    title: "Delete the authority “{name}”?"
+    text: "The certificates it signs will no longer be accepted, unless they are registered in the gateway or signed by a system authority."
+  toast:
+    created: "Authority “{name}” created"
+    updated: "Authority “{name}” saved"
+    deleted: "Authority “{name}” deleted"
+  empty:
+    title: No authentication authority yet
+    text: "The gateway only trusts the system authorities and the registered certificates."
+  none:
+    title: "No authority starts with “{query}”"
+    filters: No authority matches the filters.
+  not_found:
+    title: Authority not found
+    text: This authority does not exist or has been deleted.
+  error:
+    title: The list of authentication authorities could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# "SNMP" screen: the monitors (the monitoring tools the gateway notifies) and the SNMP agent.
+snmp:
+  title: SNMP
+  add: Add a monitor
+  send_test: Test the sending to every monitor
+  test_not_running: "The SNMP service of the gateway is not running."
+  # The two ways of SNMP: the alerts the gateway sends, the questions the monitoring tools ask it.
+  monitors:
+    title: Alerts sent by the gateway
+    text: "When a transfer fails or a service breaks down, the gateway sends an alert to each of these monitoring tools, called monitors."
+  caption: "SNMP monitors, page {page} of {pages}, sorted by {sort}"
+  pager: "Monitors {from} to {to} of {total}"
+  back: Back to SNMP
+  back_monitor: Back to the monitor
+  none_value: "—"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    address: address
+  col:
+    name: Monitor
+    version: Version
+    address: Address
+    security: Security
+    actions: Actions
+  # How a monitor is secured: its community in SNMPv2c, its level in SNMPv3.
+  security:
+    community: Community
+    noAuthNoPriv: No authentication
+    authNoPriv: Authentication
+    authPriv: Authentication and encryption
+  action:
+    detail: View the sheet
+    edit: Edit the monitor
+    delete: Delete the monitor
+    disable: Disable the agent
+  agent:
+    title: SNMP agent
+    section: Queries from the monitoring tools
+    text: "Once configured, the SNMP agent of the gateway answers the monitoring tools that query it: transfers by state and by error, memory, connections."
+    disable_note: "Disabling the agent stops this listening; the alerts keep going."
+    state: State of the SNMP service
+    address: Listening address
+    none: "The gateway does not answer SNMP requests."
+    action:
+      configure: Configure the agent
+      edit: Edit the agent
+    versions:
+      label: Accepted versions
+      all: SNMPv2c and SNMPv3
+      v3: SNMPv3 only
+    form:
+      new_title: Configure the SNMP agent
+      edit_title: Edit the SNMP agent
+    listen_card: Listening
+    address_hint: "The UDP address and port where the gateway receives the requests, as host:port."
+    v3_only: Accept SNMPv3 only
+    v3_only_hint: "The SNMPv2c requests are then refused."
+    user_hint: "The user a monitoring tool queries the gateway with in SNMPv3."
+    priv_hint: "Encryption requires authentication."
+    restart_hint: "Saving restarts the SNMP service of the gateway."
+    delete:
+      title: "Disable the SNMP agent?"
+      text: "The gateway will no longer answer SNMP requests; the notifications go on."
+      action: Disable
+  detail:
+    title: "Monitor “{name}”"
+    card: Monitor
+    community: Community
+    community_default: "public, the default value"
+    set: Set
+    unset: Not set
+    none: None
+    protocol_set: "{name}, passphrase set"
+    protocol_unset: "{name}, no passphrase"
+    level: Security level
+    user: SNMPv3 user
+    engine: Authentication engine ID
+    auth: Authentication
+    priv: Encryption
+  new:
+    title: New SNMP monitor
+  edit:
+    title: "Edit “{name}”"
+  form:
+    identity_card: Identity
+    name: Name
+    name_hint: Unique.
+    version_choose: Choose a version
+    address_hint: "The UDP address and port of the monitoring tool, as host:port."
+    community_hint: "Empty: public, the default value."
+    secret_keep: "Leave empty to keep the value in place."
+    user_hint: "Required with SNMPv3, even without authentication."
+    engine_hint: "In hexadecimal, prefixed with 0x."
+    auth_protocol: Authentication protocol
+    auth_pass: Authentication passphrase
+    priv_protocol: Encryption protocol
+    priv_pass: Encryption passphrase
+    protocol_choose: Choose a protocol
+    historic: "{name} (legacy)"
+    context_card: SNMPv3 context
+    context_name: Context name
+    context_engine: Context engine ID
+    context_set: Set
+    context_none: No context
+    refused: The configuration was not saved.
+    refused_text: Correct the fields marked below.
+    error:
+      required: This field is required.
+      address_form: "Give an address as host:port, with a port from 1 to 65535."
+      address: "This address does not resolve: {cause}"
+      version: Choose a version.
+      security: Choose a security level.
+      user: "Give the SNMPv3 user."
+      engine: "Give an ID in hexadecimal prefixed with 0x, or a decimal number."
+      protocol: Choose a protocol of the list.
+      name_taken: Another monitor already has this name. Choose another one.
+      priv_without_auth: "Choose an authentication protocol first: encryption requires it."
+  delete:
+    title: "Delete the monitor “{name}”?"
+    text: "This monitor will no longer receive the notifications of the gateway."
+  toast:
+    created: "Monitor “{name}” created"
+    updated: "Monitor “{name}” saved"
+    deleted: "Monitor “{name}” deleted"
+    agent_saved: SNMP agent saved; the SNMP service restarted
+    agent_disabled: SNMP agent disabled
+    tested: Test notification sent to the monitors
+    test_failed: "The test notification could not be sent."
+    reload_failed: "The configuration is saved, but the SNMP service did not take it."
+  empty:
+    title: No SNMP monitor yet
+    text: "The gateway sends no notification to any monitoring tool."
+  not_found:
+    title: Monitor not found
+    text: This monitor does not exist or has been deleted.
+  error:
+    title: The SNMP configuration could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Configuration overrides" screen: the addresses replaced on a node of a cluster.
+overrides:
+  title: Configuration overrides
+  node: Node
+  add: Add an address
+  intro: "On this node of the cluster, these addresses replace those of the shared configuration: to listen (administration, local servers) and to connect to the partners."
+  caption: "Replaced addresses, page {page} of {pages}, sorted by {sort}"
+  pager: "Addresses {from} to {to} of {total}"
+  back: Back to the overrides
+  timing: "Taken into account: at the next start of the local servers concerned; at once for the connections to the partners; at the next start of the gateway for the administration."
+  admin_warning: "At the next start of the gateway, the API and the web interface will listen on the address of this node."
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    target: configured address
+  col:
+    target: Configured address
+    real: Address on this node
+    scope: Scope
+    uses: Concerns
+    actions: Actions
+  scope:
+    port: Host and port
+    host: Host only, port kept
+  # What a rule replaces in the shared configuration.
+  uses:
+    none: Nothing yet
+    server: "Server “{name}”"
+    servers: "{n} local servers"
+    partner: "Partner “{name}”"
+    partners: "{n} partners"
+    admin: Administration
+  action:
+    edit: Edit the rule
+    delete: Delete the rule
+  new:
+    title: New replaced address
+  edit:
+    title: "Edit the replaced address “{name}”"
+  form:
+    card: Rule
+    configured_hint: "As in the shared configuration: a host, or a host and its port."
+    replacement_hint: "Same form: with a port if the configured address has one, without a port otherwise."
+    refused: The rule was not saved.
+    refused_text: Correct the fields marked below.
+    error:
+      required: This field is required.
+      address: "Give a host name or an IP address, followed by :port if needed (an IPv6 address in brackets)."
+      port: Give a port from 1 to 65535.
+      form: "Both addresses must have the same form: both with a port, or both without."
+      exists: "This address is already replaced: edit its rule."
+  delete:
+    title: "Delete the rule “{name}”?"
+    text: "On this node, the configured address will be used as is again: at the next start of the local servers concerned, at once for the connections to the partners, at the next start of the gateway for the administration."
+  toast:
+    created: "Address “{name}” replaced"
+    updated: "Rule “{name}” saved"
+    deleted: "Rule “{name}” deleted"
+  empty:
+    title: No address replaced on this node
+    text: "This node uses the addresses of the shared configuration as they are."
+  disabled:
+    title: This instance does not run in a cluster
+    text: "The overrides belong to a node of a cluster: they require starting the gateway with an instance name and a file of that name next to the configuration file."
+  not_found:
+    title: Rule not found
+    text: "This rule does not exist or has been deleted, or this instance does not run in a cluster."
+  error:
+    title: The overrides could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Cryptographic keys" screen: the keys of the encryption and signature tasks.
+# "Partner watchers" screen (Treatments).
+watchers:
+  title: Partner watchers
+  add: Add a watcher
+  search: Search a watcher by its name
+  search_placeholder: Search by name
+  filters_partner: Partners
+  filters_state: States
+  count: "{total} watchers"
+  count_one: 1 watcher
+  count_shown: "{total} watchers · {shown} shown"
+  count_shown_one: "{total} watchers · 1 shown"
+  caption: "Partner watchers, page {page} of {pages}, sorted by {sort}"
+  pager: "Watchers {from} to {to} of {total}"
+  back: Back to the list
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    partner: partner
+    rule: rule
+  col:
+    name: Watcher
+    partner: Partner · account
+    client: Client
+    rule: Rule
+    pattern: Pattern
+    interval: Interval
+    state: State
+    actions: Actions
+  # The state of the service of the watcher, in the list and in the filter.
+  state:
+    running: Running
+    stopped: Stopped
+    error: Error
+  # The interval in days, hours and minutes ("1 h 30 min").
+  interval:
+    never: Never
+    days: "{n} d"
+    hours: "{n} h"
+    minutes: "{n} min"
+  action:
+    detail: View the sheet
+    start: Start
+    stop: Stop
+    fire: Run once
+    edit: Edit
+    delete: Delete
+  detail:
+    title: "Watcher “{name}”"
+    card: Watcher
+    state: State of the service
+    partner: Partner · account
+    client: Client
+    rule: Receive rule
+    pattern: Pattern
+    interval: Interval
+    skip: Files already transferred skipped
+    enabled: Started with the gateway
+    yes: "Yes"
+    "no": "No"
+    files: Files received
+    files_count: "{n} files"
+    files_count_one: 1 file
+    files_none_short: None
+    files_text: "The last {n} receive transfers of this rule for this partner and this account, the latest first."
+    files_none: No file received yet.
+    files_link: See every transfer
+    col:
+      file: File
+      date: Date
+      time: Time
+      state: State
+  none:
+    title: "No watcher matches “{query}”"
+    filters: No watcher matches the filters
+  empty:
+    title: No watcher yet
+    text: A watcher polls a folder of a partner at a regular interval and creates a receive transfer for each file found.
+  error:
+    title: The list of the watchers could not be loaded.
+    text: "Try again in a moment; if the error persists, see the log of the gateway."
+  not_found:
+    title: Watcher not found
+    text: This watcher does not exist or has been deleted.
+  new:
+    title: New partner watcher
+  edit:
+    title: "Edit “{name}”"
+  form:
+    card_identity: Watcher
+    card_partner: Partner
+    card_rule: Rule
+    name: Name
+    name_hint: "Unique; the name designates the watcher in the list, the log and the API."
+    pattern: Pattern
+    pattern_hint: "The files of the folder whose name matches the pattern, with * and ? as wildcards; empty, every file."
+    interval: Interval
+    interval_hint: The time between two polls of the folder, one minute at least.
+    unit: Unit of the interval
+    unit_minutes: minutes
+    unit_hours: hours
+    skip: Skip the files already transferred
+    enabled: Start with the gateway
+    enabled_hint: "Unticked, the watcher is saved stopped; it starts from the list."
+    protocol: Protocol
+    protocol_hint: "The protocols that know how to list a folder at the partner. PeSIT, HTTP and AS2 do not: their partners cannot be watched."
+    no_accounts_proto: "No {protocol} partner has a remote account. Add the partner and its account first."
+    no_clients_proto: "No {protocol} client. Add a client of that protocol first."
+    account: Remote account
+    account_hint: "The account the gateway connects with at the partner, by partner."
+    client: Local client
+    client_hint: The client of the gateway, of the protocol of the partner.
+    rule: Receive rule
+    rule_hint: The rule under which each file found is received.
+    choose: Choose
+    no_accounts_title: No partner can be watched
+    no_accounts_text: "A watcher needs a remote account at a partner whose protocol lists folders (SFTP, FTP, R66, WebDAV). Add that partner and its account first."
+    edit_note: A running watcher starts again on its new configuration as soon as it is saved.
+    refused: The watcher has not been saved.
+    refused_text: Correct the fields reported below.
+    error:
+      required: This field is required.
+      name_taken: Another watcher already has this name. Choose another one.
+      interval: Give an interval of one minute at least, as a whole number.
+      pattern: "This pattern is not valid: use * and ? as wildcards, [ ] for a set of characters."
+      protocol: Choose a protocol that knows how to list a folder.
+      account: Choose a remote account.
+      account_protocol: The account must be one of a partner of the chosen protocol.
+      client: Choose a client whose protocol lists folders.
+      client_protocol: The client must be of the protocol of the partner.
+      rule: Choose a receive rule.
+  delete:
+    title: "Delete the watcher “{name}”?"
+    text: The watcher stops and leaves the list.
+    consequence: "The transfers already created stay; none will be created for this folder any more."
+  toast:
+    created: "Watcher “{name}” created"
+    updated: "Watcher “{name}” saved"
+    deleted: "Watcher “{name}” deleted"
+    started: "Watcher “{name}” started"
+    stopped: "Watcher “{name}” stopped"
+    fired: "Run of “{name}” done: {count} transfers created"
+    fired_one: "Run of “{name}” done: 1 transfer created"
+    fired_none: "Run of “{name}” done: no new file"
+    fire_failed: "The run of “{name}” failed."
+
+keys:
+  title: Cryptographic keys
+  add: Add a key
+  search: Search a key by name
+  search_placeholder: Search by name
+  filters_type: Types
+  count: "{total} keys"
+  count_one: 1 key
+  count_shown: "{total} keys · {shown} shown"
+  count_shown_one: "{total} keys · 1 shown"
+  caption: "Cryptographic keys, page {page} of {pages}, sorted by {sort}"
+  pager: "Keys {from} to {to} of {total}"
+  back: Back to the list
+  back_key: Back to the key
+  secret_set: Set, never shown
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    type: type
+  col:
+    name: Key
+    type: Type
+    detail: Detail
+    state: State
+    uses: Used by
+    actions: Actions
+  # The four types, under the keys of the product.
+  type:
+    AES: AES
+    HMAC: HMAC
+    PGP-PUBLIC: PGP public
+    PGP-PRIVATE: PGP private
+  # What the key does, in one sentence, on its sheet.
+  role:
+    AES: "Encrypts and decrypts the files; both partners use the same key."
+    HMAC: "Signs the files and verifies their signature; both partners share the same secret."
+    PGP-PUBLIC: "Encrypts the files meant for its holder and verifies the signatures it makes."
+    PGP-PRIVATE: "Decrypts the files received and signs the files sent; it also encrypts and verifies, as its public key does."
+  state:
+    ok: Usable
+    warn: "Expires on {date}"
+    expired: "Expired on {date}"
+    revoked: Revoked
+    unusable: "Unusable: {cause}"
+  # Why the tasks cannot use a stored key.
+  cause:
+    aes: "the value is not an AES key in base64"
+    hmac: "the value is not an HMAC secret in base64"
+    pgp: "the value is not a readable PGP key"
+    not_private: "the value is not a private key"
+    not_public: "the value is not a public key"
+    locked: "private key protected by a passphrase"
+    empty: "no value"
+    type: "unknown type"
+  action:
+    detail: View the sheet
+    edit: Edit the key
+    delete: Delete the key
+  detail:
+    title: "Key “{name}”"
+    card: Key
+    type: Type
+    role: Role
+    value: Value
+    state: State
+    size: Size
+    bits: "{n} bits"
+    secret: Secret set
+    unreadable: Unreadable
+    identities: Identities
+    identities_none: None
+    fingerprint: Fingerprint
+    key_id: Key ID
+    algorithm: Algorithm
+    created: Created on
+    expires: Expiry
+    never: None
+    show_public: Show the public key
+    uses: Used by
+    uses_caption: Rules whose tasks use the key
+    uses_none: No rule uses it.
+  new:
+    title: New cryptographic key
+  edit:
+    title: "Edit “{name}”"
+  form:
+    name: Name
+    name_hint: "Unique; the tasks name the key by it."
+    type: Type
+    type_choose: Choose a type
+    type_hint: "The type says which tasks can use the key."
+    type_hint_edit: "Changing the type asks for the value of the new type."
+    to_give: To fill in
+    locked: "Used by {rules}: the name and the type are kept, the tasks name them."
+    value:
+      aes: AES key
+      hmac: HMAC secret
+      pgp_public: PGP public key
+      pgp_private: PGP private key
+    paste:
+      pgp_public: or paste the public key
+      pgp_private: or paste the private key
+    example:
+      pgp_public: "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+      pgp_private: "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+    hint:
+      aes: "The key in base64: 24 characters for AES-128, 32 for AES-192, 44 for AES-256."
+      hmac: "The secret shared with the partner, in base64."
+      pgp_public: "The key exported in ASCII armour (.asc file)."
+      pgp_private: "The key exported in ASCII armour (.asc file), without a passphrase."
+    keep:
+      aes: Leave empty to keep the key in place.
+      hmac: Leave empty to keep the secret in place.
+      pgp_public: "Uploading or pasting a new key replaces it; otherwise the key in place is kept."
+      pgp_private: "Uploading or pasting a new key replaces it; otherwise the key in place is kept."
+    refused: The key was not saved.
+    refused_text: "Correct the fields marked below; the secrets must be typed again."
+    error:
+      required: This field is required.
+      name_taken: Another key already has this name. Choose another one.
+      type: Choose a type.
+      aes: "Give the key in base64: 24 characters for AES-128, 32 for AES-192, 44 for AES-256."
+      hmac: Give the secret in base64.
+      pgp: "This content is not a PGP key readable in ASCII armour."
+      not_private: "This is a public key; choose the “PGP public” type or give the private key."
+      not_public: "This is a private key; choose the “PGP private” type or give the public key."
+      locked: "This private key is protected by a passphrase: the gateway cannot use it. Export it without a passphrase."
+  delete:
+    title: "Delete the key “{name}”?"
+    text: No rule uses it. It will be deleted for good.
+    used_title: This key cannot be deleted.
+    used: "It is used by {rules}: first change the key of their tasks, or they would fail at the next transfer."
+  toast:
+    created: "Key “{name}” created"
+    updated: "Key “{name}” saved"
+    deleted: "Key “{name}” deleted"
+  empty:
+    title: No cryptographic key yet
+    text: "The encryption, decryption, signature and verification tasks of the rules use these keys."
+  none:
+    title: "No key starts with “{query}”"
+    filters: No key matches the filters.
+  not_found:
+    title: Key not found
+    text: This key does not exist or has been deleted.
+  error:
+    title: The list of the cryptographic keys could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Transfer rules" screen: the list, the sheet (Details tab) and the action pages; the Tasks and Access tabs
+# lead to the current pages until their own screens.
+rules:
+  title: Transfer rules
+  add: Add a rule
+  search: Search a rule by its name or its path
+  search_placeholder: Search by name or path
+  filters_direction: Direction
+  count: "{total} rules"
+  count_one: 1 rule
+  count_shown: "{total} rules · {shown} shown"
+  count_shown_one: "{total} rules · 1 shown"
+  caption: "Transfer rules, page {page} of {pages}, sorted by {sort}"
+  pager: "Rules {from} to {to} of {total}"
+  back: Back to the list
+  back_rule: Back to the rule
+  tasks_tip: "Before the transfer: {pre} · after the transfer: {post} · on error: {error}"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    direction: direction
+    path: path
+  col:
+    name: Rule
+    direction: Direction
+    path: Path
+    tasks: Tasks
+    tasks_tip: "Number of tasks before the transfer · after the transfer · on error"
+    access: Access
+    comment: Comment
+    actions: Actions
+  # The two directions; the lower-case form completes "Another … rule".
+  direction:
+    send: Send
+    receive: Receive
+    send_lower: sending
+    receive_lower: receiving
+  access:
+    open: Open to all
+    restricted: "Restricted: {n}"
+    add_in: Add a server or a local account
+    add_out: Add a partner or a remote account
+    back: Back to the access
+    state: State
+    open_text: any server, partner or account can use the rule.
+    restricted_title: Restricted
+    restricted_text: only the servers, partners and accounts below can use it; every other one is refused, on both sides.
+    one_sided_title: The rule is restricted on one side only.
+    one_sided_in: "Only servers or local accounts have access: the gateway can no longer use this rule when it connects to a partner."
+    one_sided_out: "Only partners or remote accounts have access: no partner can use this rule any longer when it connects to the gateway."
+    open_action: Open to all again
+    in: When a partner connects
+    in_text: The servers and the local accounts through which a partner can use the rule.
+    in_none: No server and no local account.
+    out: When the gateway connects
+    out_text: The partners and the remote accounts towards which the gateway can use the rule.
+    out_none: No partner and no remote account.
+    side_open: "No access on this side: the rule is open to all."
+    count: "{n} granted"
+    count_none: none granted
+    col:
+      kind: Type
+      target: Target
+    # The four kinds of access, under the names of the address.
+    kind:
+      server: Server
+      local_account: Local account
+      partner: Partner
+      remote_account: Remote account
+    of_server: "{login} (server {server})"
+    of_partner: "{login} (partner {partner})"
+    unknown: "Object no. {id} of another gateway"
+    remove: Remove the access
+    new_title: "New access to “{name}”"
+    first_title: The rule is open to all.
+    first_note: "From this first access on, it is closed to every other server, partner and account, on both sides."
+    target_choose: Type or choose a target
+    target_hint: The name of a server or a partner finds its accounts too.
+    # The groups of the list of targets, one per kind of access.
+    group:
+      server: Servers
+      local_account: Local accounts
+      partner: Partners
+      remote_account: Remote accounts
+    none_left: All of them already have access to the rule.
+    refused: The access was not added.
+    error:
+      target: Choose the target.
+      granted: This target already has access to the rule.
+    remove_title: "Remove the access of “{name}”?"
+    remove_text: It will no longer be able to use the rule.
+    last_title: This is the last access of the rule.
+    last_text: "Once removed, the rule is open to all servers, partners and accounts again."
+    open_title: "Open the rule “{name}” to all again?"
+    open_confirm: "Its access ({n}) is removed: any server, partner or account can use it again."
+    not_found:
+      title: Access not found
+      text: This rule does not give this access.
+  action:
+    detail: View the sheet
+    edit: Edit the rule
+    tasks: View the tasks
+    access: View the access
+    transfers: View the transfers
+    delete: Delete the rule
+  tab:
+    label: Tabs of the rule
+    details: Details
+    tasks: Tasks
+    access: Access
+  dir:
+    local: Local directory
+    remote: Remote directory
+    tmp: Temporary receive directory
+    local_empty: "Not set: the server's, otherwise the gateway's."
+    remote_empty: "Not set: the partner receives the file under its name alone."
+    tmp_empty: "Not set: a directory the gateway chooses (the rule's or the server's)."
+  detail:
+    title_send: "Send rule “{name}”"
+    title_receive: "Receive rule “{name}”"
+    card: Rule
+    folders: Directories
+    folders_meta_none: Default directories
+    folders_meta_one: 1 directory set
+    folders_meta: "{n} directories set"
+    no_comment: No comment
+    path_hint: "SFTP, FTP, WebDAV, AS2 and standard PeSIT servers recognise the rule by this path; in R66, HTTP and non-standard PeSIT, the partner names it."
+    open_hint: Any server, partner or account can use it.
+  new:
+    title: New transfer rule
+  edit:
+    title: "Edit “{name}”"
+  form:
+    name: Name
+    name_hint: "Unique in a direction, without “/”; the history names the rule by it."
+    path: Path
+    path_hint: "What SFTP, FTP, WebDAV, AS2 and standard PeSIT servers recognise the rule by. Empty: the name of the rule."
+    direction_hint: The direction no longer changes once the rule exists.
+    direction_kept: "The direction does not change: the tasks and the access of the rule depend on it. For the other direction, create a rule."
+    direction_text:
+      send: "The gateway sends the file: a client sends it to a partner, or a partner fetches it from a server."
+      receive: "The gateway receives the file: a partner drops it on a server, or a client fetches it."
+    local_hint: "Where the file is read (send) or dropped (receive): an absolute path, a path relative to the directory of the server or of the gateway, or a cloud instance."
+    remote_hint: "Where the file goes at the partner's, for a transfer the gateway starts. Towards a Gateway in SFTP or FTP: the path of its receiving rule."
+    tmp_hint: Where the file waits for the end of its reception; a local directory.
+    refused: The rule was not saved.
+    refused_text: Correct the fields marked below.
+    history_title: The history names this rule by its name.
+    history_text: "After a rename, the transfers made under the name “{name}” can no longer be restarted."
+    history_confirm: Save again to rename the rule.
+    error:
+      required: This field is required.
+      slash: "The name cannot hold “/”: the API could no longer reach the rule."
+      too_long: "{n} characters at most."
+      direction: Choose a direction.
+      name_taken: "Another {direction} rule already has this name."
+      path_taken: "Another {direction} rule already has this path."
+      path_under: "This path lies under the path of another {direction} rule: choose a path of its own."
+      path_above: "Another {direction} rule has a path under this one: choose a path of its own."
+      tmp_local: "The temporary receive directory must be local, not a cloud instance."
+  delete:
+    title: "Delete the rule “{name}”?"
+    gone: "Its tasks ({tasks}) and its access ({access}) are deleted with it. The history of its transfers stays, under its name."
+    held_title: This rule cannot be deleted.
+    held_text: "Transfers or file watchers still name it: cancel or finish these transfers, change or delete these file watchers, then come back."
+    transfers: "Transfers that still name it: {n} (running, planned, paused or failed)."
+    transfers_link: View these transfers
+    watcher: "File watcher “{name}” (command line or API)."
+    refused: The rule was not deleted.
+  tasks:
+    add: Add a task
+    back: Back to the tasks
+    none: No task.
+    count_none: no task
+    count_one: 1 task
+    count: "{n} tasks"
+    chain:
+      pre: Before the transfer
+      post: After the transfer
+      error: On error
+    # "New task after the transfer": the chain in lower case.
+    chain_lower:
+      pre: before the transfer
+      post: after the transfer
+      error: on error
+    order_hint: "The tasks of a chain run in order; the first one that fails stops the chain. Before and after the transfer, it also fails the transfer."
+    col:
+      type: Task
+      args: Parameters
+    action:
+      edit: Edit the task
+      up: Move up
+      down: Move down
+      delete: Delete the task
+    ticked: "Yes"
+    no_limit: No limit
+    unknown_type: "Type unknown to this screen"
+    tip: "{label}: {text}"
+    explain: "Explanation: {name}"
+    missing: "{name} (not found)"
+    missing_status: Not found
+    new_title: "New task ({chain})"
+    edit_title: "Edit task no. {n} ({chain})"
+    delete_title: "Delete task no. {n} ({chain})?"
+    delete_text: "It is removed from the chain; the next tasks move up one rank."
+    type: Task type
+    type_choose: Choose a type
+    type_hint: "Its parameters show as soon as the type is chosen."
+    type_kept: "The type does not change; for another type, delete the task and add one."
+    continue: Continue
+    no_args: This task has no parameter.
+    fixed: the only value possible
+    info_copy: Copy the information of the transfer under way
+    info_copy_hint: Those of the list add to them or replace them.
+    setinfo_hint: "Each row sets an information on the transfer under way; an empty value removes it."
+    option_none: None
+    keep_unknown: "Parameters kept as they are, which this screen does not know: {names}."
+    refused: The task was not saved.
+    refused_text: Correct the fields marked below.
+    refused_product: "The gateway refuses the task: {cause}"
+    error:
+      required: This field is required.
+      json: "Give a JSON object, for instance {\"batch\": \"A\"}."
+      markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
+      info_self: "The value of “{name}” refers to the information “{ref}”, which this task sets: the variables are replaced before the task, with the values from before."
+      info_reserved: "The name “{name}” is reserved by the SETINFO task (former key/value spelling): give the key of the information itself."
+      type: Choose a type.
+      sens: Choose a direction.
+      icap: "Enter the address of the ICAP server, for example icap://antivirus.example.com:1344/avscan."
+      seconds: Give a number of seconds.
+    not_found:
+      title: Task not found
+      text: This chain has no task at this rank.
+  toast:
+    created: "Rule “{name}” created"
+    updated: "Rule “{name}” saved"
+    deleted: "Rule “{name}” deleted"
+    access_added: "Access added: {name}"
+    access_removed: "Access removed: {name}"
+    access_opened: "Rule “{name}” open to all"
+    task_added: "Task added: {name}"
+    task_updated: "Task saved: {name}"
+    task_deleted: "Task deleted: {name}"
+    task_moved: "Task moved: {name}"
+    tasks_ordered: "Order of the tasks saved ({name})"
+    task_stale: "Nothing was saved"
+    task_stale_text: "The chain changed since the page showed it: here is its current state."
+  empty:
+    title: No transfer rule yet
+    text: "A rule says in which direction a file is exchanged, between which directories, with which processing and for whom."
+  none:
+    title: "No rule matches “{query}”"
+    filters: No rule matches the filters.
+  not_found:
+    title: Rule not found
+    text: This rule does not exist or was deleted.
+  error:
+    title: The list of the transfer rules could not be loaded.
+    text: "An internal error occurred; the detail is in the log of the gateway."
+
+# Tasks tab of the rules: the task types, their families and their arguments, after the tasks module of
+# the current tasks page (labels and help texts corrected); a short title per type, its code as help.
+task_types:
+  family:
+    fileOperations: "File operations"
+    executables: "Executables"
+    transfer: "Transfer"
+    fileAlterations: "File alterations"
+    archiving: "Archiving and compression"
+    network: "Network"
+    crypto: "Cryptography"
+  hint:
+    duration: "A duration: 30s, 5m, 1h30m."
+    json: "For instance {\"batch\": \"A\"}."
+    octal: "In octal, for instance 640."
+  choice:
+    send: "Send"
+    receive: "Receive"
+    icap_nothing: "Do nothing"
+    icap_delete: "Delete the file"
+    icap_move: "Move the file"
+    choose: "Choose"
+    async: "Asynchronous"
+    sync: "Synchronous"
+  group:
+    file: "File"
+    exchange: "Exchange"
+    retries: "Retries on error"
+    execution: "Execution"
+    program: "Program"
+    target: "Target"
+    rule_account: "Rule and account"
+    validity: "Validity"
+    files: "Files"
+    archive: "Archive created"
+    icap_server: "ICAP server"
+    refused: "Refused file"
+    sending: "Sending"
+    recipients: "Recipients"
+    recipient: "Recipient"
+    message: "Message"
+    encryption: "Encryption"
+    decryption: "Decryption"
+    signature: "Signature"
+    verification: "Verification"
+    method_keys: "Method and keys"
+    produced: "File produced"
+    encoding: "Encoding"
+    source_file: "Source file"
+    converted_file: "Converted file"
+  copy:
+    label: "Copy the file"
+    text: "Make a copy of the transfer file to another folder. The new file's name will remain identical to the original file."
+    arg:
+      path:
+        label: "Destination folder"
+        hint: "The destination folder of the copied file."
+  copyrename:
+    label: "Copy the file under another name"
+    text: "Make a copy of the transfer file."
+    arg:
+      path:
+        label: "Destination path"
+        hint: "The destination path of the copied file."
+  move:
+    label: "Move the file"
+    text: "Move the transfer file to another folder. The file's name will remain unchanged."
+    arg:
+      path:
+        label: "Destination folder"
+        hint: "The destination folder of the file."
+  moverename:
+    label: "Move and rename the file"
+    text: "Move the transfer file to another folder."
+    arg:
+      path:
+        label: "Destination path"
+        hint: "The destination path of the file."
+  delete:
+    label: "Delete the file"
+    text: "Delete the transfer file."
+  remotedelete:
+    label: "Delete at the partner's"
+    text: "Delete a file or folder on a remote server."
+    arg:
+      path:
+        label: "Path"
+        hint: "The path of the file or folder to delete."
+      recursive:
+        label: "Recursive"
+        hint: "Specifies whether to delete the folder's contents recursively. Note: if this option is false, the server might refuse to delete the folder if it is not empty."
+      timeout:
+        label: "Timeout"
+        hint: "The timeout for the task. If the task takes longer than this duration, it will be considered a failure. By default, there is no timeout."
+  chmod:
+    label: "Change the permissions"
+    text: "Change permissions on the transfer file."
+    arg:
+      perms:
+        label: "Permissions"
+        hint: "The permissions (in octal format) to apply to the transfer file."
+  exec:
+    label: "Run a program"
+    text: "Execute an external program."
+    arg:
+      path:
+        label: "Executable path"
+        hint: "The path of the executable to run. If the executable is in your $PATH, you can just type its name."
+      args:
+        label: "Program arguments"
+        hint: "The program's raw arguments, given as they would be typed in a terminal."
+      delay:
+        label: "Maximum running time"
+        hint: "Past it, the program is interrupted and the transfer fails. Empty: no limit."
+  execmove:
+    label: "Run a program that moves the file"
+    text: "Execute an external program. The program must move the transfer file during its execution, and must output its new path to the standard output."
+    arg:
+      path:
+        label: "Executable path"
+        hint: "The path of the executable to run. If the executable is in your $PATH, you can just type its name."
+      args:
+        label: "Program arguments"
+        hint: "The program's raw arguments, given as they would be typed in a terminal."
+      delay:
+        label: "Maximum running time"
+        hint: "Past it, the program is interrupted and the transfer fails. Empty: no limit."
+  execoutput:
+    label: "Run a program and read its output"
+    text: "Execute an external program. If any error occurs during the execution, the program's standard output will be taken as the error message. The program can also move the transfer file. If it does, the last line written by the program to the standard output must start with \"NEWFILENAME:\" followed by the new file's path."
+    arg:
+      path:
+        label: "Executable path"
+        hint: "The path of the executable to run. If the executable is in your $PATH, you can just type its name."
+      args:
+        label: "Program arguments"
+        hint: "The program's raw arguments, given as they would be typed in a terminal."
+      delay:
+        label: "Maximum running time"
+        hint: "Past it, the program is interrupted and the transfer fails. Empty: no limit."
+  updateconf:
+    label: "Import a configuration"
+    text: "Imports the Waarp Manager generated configuration files from a ZIP archive."
+    arg:
+      zipFile:
+        label: "ZIP archive"
+        hint: "The path of the archive to extract and import. By default, it will be the transfer file."
+  rename:
+    label: "Change the file of the transfer"
+    text: "Change the transfer's target file."
+    arg:
+      path:
+        label: "New transfer file"
+        hint: "The path of the new transfer file."
+  transfer:
+    label: "Start a transfer"
+    text: "Program a new client transfer with the given parameters."
+    sens_label: "Direction"
+    sens_hint: "Send: the gateway drops the file at the partner. Receive: it fetches it there."
+    rule_none: "Choose the direction first"
+    rule_send: "Choose a send rule"
+    rule_receive: "Choose a receive rule"
+    arg:
+      synchronous:
+        label: "Mode"
+        hint: "Asynchronous: the task schedules the transfer and moves on. Synchronous: it waits for its end and fails with it."
+      file:
+        label: "File"
+        hint: "To send, the path of the file, relative to the send folder of the rule; to receive, the name of the file to ask for. The variables of the transfer under way are accepted (#TRUEFULLPATH#…)."
+      output:
+        label: "Name at the destination"
+        hint: "Empty: the same name."
+      to:
+        label: "To the partner (send)"
+        hint: "The partner to send the file to; empty for a reception."
+      from:
+        label: "From the partner (receive)"
+        hint: "The partner to fetch the file from; empty for a sending."
+      as:
+        label: "Account"
+        hint: "The login of the account to use for the transfer."
+      using:
+        label: "Client"
+        hint: "A client of the protocol of the partner; the list follows the chosen account."
+      rule:
+        label: "Rule"
+        hint: "The new transfer follows its folders and runs its tasks."
+      info:
+        label: "Transfer info"
+        hint: "Metadata about the transfer as a JSON object."
+      copyInfo:
+        label: "Copy the information of the transfer under way"
+        hint: "Those of the list add to them or replace them."
+      nbOfAttempts:
+        label: "Retries"
+        hint: "The number of times the transfer will be attempted automatically."
+      firstRetryDelay:
+        label: "First delay (s)"
+        hint: "The delay before the first retry, in seconds."
+      retryIncrementFactor:
+        label: "Delay growth factor"
+        hint: "1: constant delay; 2: the delay doubles at each retry"
+      timeout:
+        label: "Time limit (s)"
+        hint: "Beyond it, the transfer is interrupted and the task fails. Empty: no limit."
+  preregister:
+    label: "Preregister a transfer"
+    text: "Preregister a new server transfer with the given parameters."
+    arg:
+      file:
+        label: "File"
+        hint: "The path of the file to transfer."
+      isSend:
+        label: "Direction"
+        hint: "The transfer's direction."
+      rule:
+        label: "Rule"
+        hint: "The rule to use for the transfer."
+      server:
+        label: "Server"
+        hint: "The server which will receive the transfer request."
+      account:
+        label: "Account"
+        hint: "The local account which will make the transfer request."
+      validFor:
+        label: "Valid for"
+        hint: "The transfer's validity period. Past this duration, the transfer will be in error. By default, the transfer is valid for an unlimited period."
+      info:
+        label: "Transfer info"
+        hint: "Metadata about the transfer as a JSON object."
+      copyInfo:
+        label: "Copy the information of the transfer under way"
+        hint: "Those of the list add to them or replace them."
+  setinfo:
+    label: "Set transfer information"
+    text: "Set or modify TransferInfo keys. Use this to inject metadata before a transfer (encoding, business ID, reply address, etc.). If a value is empty, the key will be deleted if present. Supports variable substitution (#TRUEFILENAME#, #TI_...#, etc.)."
+    arg:
+      pairs:
+        label: "Transfer information"
+        hint: "One line per information, as key=value; an empty value deletes the key. Variables are substituted."
+  transcode:
+    label: "Change the encoding"
+    text: "Change the transfer file's encoding."
+    arg:
+      fromCharset:
+        label: "From"
+        hint: "The current (source) charset of the file."
+      toCharset:
+        label: "To"
+        hint: "The desired (destination) charset of the file."
+      substitute:
+        label: "Replace missing characters"
+        hint: "Writes the substitution character of the target encoding in place of a character it cannot represent. Otherwise, the task fails and the file stays as it was."
+    # The values of the record arguments.
+    records_none: "Whole file"
+    records:
+      lines: "Lines"
+      fixed: "Fixed length"
+      rdw: "Variable length"
+      articles: "Articles"
+    output_same: "As the source file"
+    output:
+      none: "No separator"
+      lines: "Lines"
+      fixed: "Fixed length"
+      rdw: "Variable length"
+    separator_lf: "LF"
+    separator:
+      crlf: "CRLF"
+      nel: "EBCDIC NL"
+    # The direction of the conversion, asked first; it is not stored.
+    direction_label: "Direction"
+    direction_hint: "ASCII: the encodings of open systems, UTF-8 included. EBCDIC: the code pages of IBM systems (z/OS, IBM i)."
+    direction_first: "Choose the direction first"
+    direction:
+      ascii_ebcdic: "ASCII to EBCDIC"
+      ebcdic_ascii: "EBCDIC to ASCII"
+      ascii_ascii: "ASCII to ASCII"
+      ebcdic_ebcdic: "EBCDIC to EBCDIC"
+    # The group of an EBCDIC page in the single list of REFORMAT.
+    ebcdic_group: "EBCDIC — {group}"
+    charset_group:
+      unicode: "Unicode"
+      iso8859: "ISO 8859"
+      windows: "Windows"
+      pc: "PC (DOS), Mac and others"
+      asian: "Asian languages (multi-byte)"
+      ebcdic_latin: "Latin alphabet"
+      ebcdic_other: "Other alphabets"
+    # What each character set is for, after its name.
+    charset:
+      utf_8: "Unicode, 8-bit"
+      utf_8_bom: "Unicode, 8-bit, with BOM"
+      utf_16be: "Unicode, 16-bit, big-endian"
+      utf_16le: "Unicode, 16-bit, little-endian"
+      utf_16be_bom: "Unicode, 16-bit, big-endian, with BOM"
+      utf_16le_bom: "Unicode, 16-bit, little-endian, with BOM"
+      utf_32be: "Unicode, 32-bit, big-endian"
+      utf_32le: "Unicode, 32-bit, little-endian"
+      utf_32be_bom: "Unicode, 32-bit, big-endian, with BOM"
+      utf_32le_bom: "Unicode, 32-bit, little-endian, with BOM"
+      ibm_code_page_437: "PC (DOS), United States"
+      ibm_code_page_850: "PC (DOS), Western Europe (Latin-1)"
+      ibm_code_page_852: "PC (DOS), Central Europe (Latin-2)"
+      ibm_code_page_855: "PC (DOS), Cyrillic"
+      windows_code_page_858: "PC (DOS), Latin-1, with euro"
+      ibm_code_page_860: "PC (DOS), Portugal"
+      ibm_code_page_862: "PC (DOS), Hebrew"
+      ibm_code_page_863: "PC (DOS), Canada"
+      ibm_code_page_865: "PC (DOS), Denmark, Norway"
+      ibm_code_page_866: "PC (DOS), Cyrillic"
+      iso_8859_1: "Western Europe (Latin-1)"
+      iso_8859_2: "Central Europe (Latin-2)"
+      iso_8859_3: "Southern Europe (Latin-3)"
+      iso_8859_4: "Northern Europe (Latin-4)"
+      iso_8859_5: "Cyrillic"
+      iso_8859_6: "Arabic"
+      iso_8859_6e: "Arabic, explicit text direction"
+      iso_8859_6i: "Arabic, implicit text direction"
+      iso_8859_7: "Greek"
+      iso_8859_8: "Hebrew"
+      iso_8859_8e: "Hebrew, explicit text direction"
+      iso_8859_8i: "Hebrew, implicit text direction"
+      iso_8859_9: "Turkish (Latin-5)"
+      iso_8859_10: "Nordic languages (Latin-6)"
+      iso_8859_13: "Baltic countries (Latin-7)"
+      iso_8859_14: "Celtic languages (Latin-8)"
+      iso_8859_15: "Western Europe, with euro (Latin-9)"
+      iso_8859_16: "South-Eastern Europe (Latin-10)"
+      koi8_r: "Cyrillic, Russian"
+      koi8_u: "Cyrillic, Ukrainian"
+      macintosh: "Mac OS, Western Europe"
+      macintosh_cyrillic: "Mac OS, Cyrillic"
+      windows_874: "Windows, Thai"
+      windows_1250: "Windows, Central Europe"
+      windows_1251: "Windows, Cyrillic"
+      windows_1252: "Windows, Western Europe"
+      windows_1253: "Windows, Greek"
+      windows_1254: "Windows, Turkish"
+      windows_1255: "Windows, Hebrew"
+      windows_1256: "Windows, Arabic"
+      windows_1257: "Windows, Baltic countries"
+      windows_1258: "Windows, Vietnamese"
+      x_user_defined: "Deprecated, kept for existing tasks"
+      ibm_code_page_037: "United States, Canada"
+      ibm_code_page_038: "International, no accented letters"
+      ibm_code_page_256: "Netherlands"
+      ibm_code_page_273: "Germany, Austria"
+      ibm_code_page_274: "Belgium"
+      ibm_code_page_275: "Brazil"
+      ibm_code_page_277: "Denmark, Norway"
+      ibm_code_page_278: "Finland, Sweden"
+      ibm_code_page_280: "Italy"
+      ibm_code_page_281: "Japan, Latin alphabet"
+      ibm_code_page_284: "Spain, Latin America"
+      ibm_code_page_285: "United Kingdom"
+      ibm_code_page_290: "Japanese, katakana"
+      ibm_code_page_297: "France"
+      ibm_code_page_420: "Arabic"
+      ibm_code_page_423: "Greece, with accented Latin letters"
+      ibm_code_page_424: "Hebrew"
+      ibm_code_page_500: "International (Belgium, Switzerland)"
+      ibm_code_page_803: "Hebrew, reduced set"
+      ibm_code_page_870: "Central Europe (Latin-2)"
+      ibm_code_page_871: "Iceland"
+      ibm_code_page_875: "Greece"
+      ibm_code_page_880: "Cyrillic multilingual, reduced set"
+      ibm_code_page_905: "Turkish (Latin-3)"
+      ibm_code_page_918: "Urdu"
+      ibm_code_page_1025: "Cyrillic multilingual"
+      ibm_code_page_1026: "Turkish (Latin-5)"
+      ibm_code_page_1047: "Latin-1, open systems (z/OS UNIX)"
+      ibm_code_page_1097: "Persian (Farsi)"
+      ibm_code_page_1112: "Baltic countries"
+      ibm_code_page_1122: "Estonia"
+      ibm_code_page_1123: "Cyrillic, Ukraine"
+      ibm_code_page_1130: "Vietnamese"
+      ibm_code_page_1132: "Lao"
+      ibm_code_page_1137: "Devanagari (Hindi)"
+      ibm_code_page_1140: "United States, Canada, with euro"
+      ibm_code_page_1141: "Germany, Austria, with euro"
+      ibm_code_page_1142: "Denmark, Norway, with euro"
+      ibm_code_page_1143: "Finland, Sweden, with euro"
+      ibm_code_page_1144: "Italy, with euro"
+      ibm_code_page_1145: "Spain, Latin America, with euro"
+      ibm_code_page_1146: "United Kingdom, with euro"
+      ibm_code_page_1147: "France, with euro"
+      ibm_code_page_1148: "International, with euro"
+      ibm_code_page_1149: "Iceland, with euro"
+      ibm_code_page_1153: "Central Europe (Latin-2), with euro"
+      ibm_code_page_1154: "Cyrillic multilingual, with euro"
+      ibm_code_page_1155: "Turkish (Latin-5), with euro"
+      ibm_code_page_1156: "Baltic countries, with euro"
+      ibm_code_page_1157: "Estonia, with euro"
+      ibm_code_page_1158: "Cyrillic, Ukraine, with euro"
+      ibm_code_page_1160: "Thai, with euro"
+      ibm_code_page_1164: "Vietnamese, with euro"
+      ibm_code_page_1166: "Cyrillic, Kazakhstan, with euro"
+      ibm_code_page_4517: "Arabic, with accented Latin letters"
+      ibm_code_page_4899: "Hebrew, reduced set, with euro"
+      ibm_code_page_4971: "Greece, with euro"
+      ibm_code_page_9030: "Thai, extended"
+      ibm_code_page_12712: "Hebrew, with euro"
+      ibm_code_page_16804: "Arabic, with euro"
+      euc_jp: "Japanese (Unix)"
+      iso_2022_jp: "Japanese (email)"
+      shift_jis: "Japanese (Windows)"
+      euc_kr: "Korean"
+      gb18030: "Chinese (full national standard)"
+      gbk: "Simplified Chinese"
+      hz_gb2312: "Simplified Chinese (email)"
+      big5: "Traditional Chinese"
+  transcode_reformat:
+    label: "Change the encoding and the record layout"
+    text: "Changes the encoding of the transfer file and its record layout, in lines or records, in a single reading of the file."
+    arg:
+      fromCharset:
+        label: "From"
+        hint: "The current (source) charset of the file."
+      toCharset:
+        label: "To"
+        hint: "The desired (destination) charset of the file."
+      substitute:
+        label: "Replace missing characters"
+        hint: "Writes the substitution character of the target encoding in place of a character it cannot represent. Otherwise, the task fails and the file stays as it was."
+      records:
+        label: "Splitting"
+        hint: "Whole file: the file is converted in one piece, as the TRANSCODE task does. Lines: only the content of each line is converted. Variable length: each record is preceded by its length (RDW), as z/OS writes it. Articles: the file is cut at the article lengths that the transfer info gives (set by a PeSIT reception or by SETINFO)."
+      recordLength:
+        label: "Record length"
+        hint: "In bytes, from 1 to 32,760."
+      trimPadding:
+        label: "Remove trailing spaces"
+        hint: "Removes the spaces that pad each record before converting it."
+      outputRecords:
+        label: "Layout"
+        hint: "As the source file: each line keeps its line end, byte for byte, a fixed-length record keeps its length, and articles stay end to end. No separator: the records follow each other with nothing between them."
+      outputSeparator:
+        label: "Line end"
+        hint: "LF and CRLF are written as 0x0A and 0x0D 0x0A, in EBCDIC too: the PeSIT module of the Gateway cuts the articles there. EBCDIC NL: 0x15, for an EBCDIC file only."
+      outputLength:
+        label: "Record length"
+        hint: "In bytes, from 1 to 32,760; a shorter record is padded with spaces."
+      truncate:
+        label: "Cut records that are too long"
+        hint: "Otherwise, the task fails on the first record that is too long and the file stays as it was."
+  reformat:
+    label: "Change the record layout"
+    text: "Changes the record layout of the transfer file, in lines or records, without touching its content."
+    arg:
+      charset:
+        label: "File encoding"
+        hint: "It gives the bytes of the line ends and of the spaces (0x25 and 0x40 in EBCDIC). The content of the records is copied byte for byte, neither checked nor converted."
+      records:
+        label: "Splitting"
+        hint: "Variable length: each record is preceded by its length (RDW), as z/OS writes it. Articles: the file is cut at the article lengths that the transfer info gives (set by a PeSIT reception or by SETINFO)."
+      recordLength:
+        label: "Record length"
+        hint: "In bytes, from 1 to 32,760."
+      trimPadding:
+        label: "Remove trailing spaces"
+        hint: "Removes the spaces that pad each record."
+      outputRecords:
+        label: "Layout"
+        hint: "No separator: the records follow each other with nothing between them."
+      outputSeparator:
+        label: "Line end"
+        hint: "LF and CRLF are written as 0x0A and 0x0D 0x0A, in EBCDIC too: the PeSIT module of the Gateway cuts the articles there. EBCDIC NL: 0x15, for an EBCDIC file only."
+      outputLength:
+        label: "Record length"
+        hint: "In bytes, from 1 to 32,760; a shorter record is padded with spaces."
+      truncate:
+        label: "Cut records that are too long"
+        hint: "The cut falls between two characters; it is refused for Asian multi-byte encodings. Otherwise, the task fails on the first record that is too long and the file stays as it was."
+  chnewline:
+    label: "Change the line endings"
+    text: "Change the newline character used in the transfer file."
+    arg:
+      from:
+        label: "From"
+        hint: "The current newline character of the file."
+      to:
+        label: "To"
+        hint: "The desired newline character for the file."
+  archive:
+    label: "Make an archive"
+    text: "Make an archive with the provided files."
+    arg:
+      files:
+        label: "Files"
+        hint: "The comma-separated list of the files to add to the archive."
+      compressionLevel:
+        label: "Compression level"
+        hint: "The compression level on a scale from 0 (no compression) to 9 (maximum compression)."
+      outputPath:
+        label: "Output path"
+        hint: "The path of the archive; its extension sets its format ({extensions})."
+  extract:
+    label: "Extract an archive"
+    text: "Extract the files from an archive."
+    arg:
+      archive:
+        label: "Archive"
+        hint: "The path of the archive to extract. By default, the transfer file will be used."
+      outputDir:
+        label: "Output directory"
+        hint: "The path of the directory to which the files should be extracted."
+  icap:
+    label: "Submit to an ICAP server"
+    text: "Sends the transfer file to an ICAP server, an antivirus scan for instance; the server accepts it, refuses it or modifies it."
+    arg:
+      uploadURL:
+        label: "Upload URL"
+        hint: "The ICAP URL to which the transfer file is uploaded."
+      useTLS:
+        label: "Use TLS"
+        hint: "Connect to the ICAP server over TLS."
+      timeout:
+        label: "Timeout"
+        hint: "The maximum allowed duration for the task."
+      allowFileModifications:
+        label: "Allow file modifications"
+        hint: "Specifies if the ICAP server is allowed to modify the file uploaded to it."
+      onError:
+        label: "On error"
+        hint: "What to do with the file in case the ICAP server refuses the file."
+      onErrorMovePath:
+        label: "Quarantine path"
+        hint: "The path to which the file should be moved if refused by the server."
+  email:
+    label: "Send an email"
+    text: "Send an email to the given recipients, from the given sender, with the given email template."
+    arg:
+      sender:
+        label: "Sender"
+        hint: "The address of the sender; its SMTP credentials must have been saved first."
+      recipients:
+        label: "Recipients"
+        hint: "The addresses of the recipients, separated by commas."
+      template:
+        label: "Template"
+        hint: "The email template; it must have been saved first."
+  sendmessage:
+    label: "Send a PeSIT message"
+    text: "Sends a PeSIT F.MESSAGE to a remote partner, mostly for Store-and-Forward acknowledgments."
+    arg:
+      partner:
+        label: "Partner"
+        hint: "The remote PeSIT partner to send the message to."
+      account:
+        label: "Account"
+        hint: "The remote account the gateway authenticates with at this partner."
+      client:
+        label: "Client"
+        hint: "The PeSIT client through which the gateway sends the message."
+      message:
+        label: "Message"
+        hint: "The content of the F.MESSAGE to send. Supports variable substitution (e.g. #TRUEFILENAME#, #TRANSFERID#). Max 4096 characters."
+  encrypt:
+    label: "Encrypt"
+    text: "Encrypt the transfer file using the provided key."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the encrypted data. By default, it will be the same path as the original file, with the \".crypt\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original plain file or not. By default, the plain file is deleted after encryption."
+      method:
+        label: "Encryption method"
+        hint: "The encryption method to use."
+      keyName:
+        label: "Encryption key"
+        hint: "The key to use for encrypting. Must have been previously registered."
+  decrypt:
+    label: "Decrypt"
+    text: "Decrypt the transfer file using the provided key."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the decrypted data. By default, it will be the same path as the encrypted file, with the \".plain\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original encrypted file or not. By default, the encrypted file is deleted after decryption."
+      method:
+        label: "Decryption method"
+        hint: "The decryption method to use."
+      keyName:
+        label: "Decryption key"
+        hint: "The key to use for decrypting. Must have been previously registered."
+  sign:
+    label: "Sign"
+    text: "Make a cryptographic signature of the transfer file using the provided key."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The file to which the signature will be written."
+      method:
+        label: "Signature method"
+        hint: "The signature method to use."
+      keyName:
+        label: "Signature key"
+        hint: "The key to use for signing. Must have been previously registered."
+  verify:
+    label: "Verify a signature"
+    text: "Verifies the cryptographic signature of the transfer file with the given key."
+    arg:
+      signatureFile:
+        label: "Signature file"
+        hint: "The file containing the signature to verify."
+      method:
+        label: "Signature method"
+        hint: "The signature method used."
+      keyName:
+        label: "Verification key"
+        hint: "The key to use for verifying the signature. Must have been previously registered."
+  encrypt_sign:
+    label: "Encrypt and sign"
+    text: "Encrypt and sign the transfer file using the provided keys."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the encrypted data and signature. By default, it will be the same path as the original file, with the \".crypt\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original plain file or not. By default, the plain file is deleted after encryption."
+      method:
+        label: "Encryption/signature method"
+        hint: "The encryption/signature method to use."
+      encryptKeyName:
+        label: "Encryption key"
+        hint: "The key to use for encrypting. Must have been previously registered."
+      signKeyName:
+        label: "Signature key"
+        hint: "The key to use for signing. Must have been previously registered."
+  decrypt_verify:
+    label: "Decrypt and verify"
+    text: "Decrypt and verify the signature of the transfer file using the provided keys."
+    arg:
+      outputFile:
+        label: "Output file"
+        hint: "The output file for the decrypted data. By default, it will be the same path as the encrypted file, with the \".plain\" extension added."
+      keepOriginal:
+        label: "Keep original file"
+        hint: "Specifies whether to keep the original encrypted file or not. By default, the encrypted file is deleted after decryption."
+      method:
+        label: "Decryption/verification method"
+        hint: "The decryption/verification method to use."
+      decryptKeyName:
+        label: "Decryption key"
+        hint: "The key to use for decrypting. Must have been previously registered."
+      verifyKeyName:
+        label: "Verification key"
+        hint: "The key to use for verifying the signature. Must have been previously registered."
+
+
+# Rules whose tasks name an object by its name (cryptographic keys, SMTP credentials).
+rule_uses:
+  count:
+    none: No rule
+    one: 1 rule
+    many: "{n} rules"
+  direction:
+    send: Send
+    receive: Receive
+
+# "SMTP credentials" screen: the accounts the EMAIL task sends with.
+smtp:
+  title: SMTP credentials
+  add: Add a credential
+  search: Search a credential by sender
+  search_placeholder: Search by sender
+  count: "{total} credentials"
+  count_one: 1 credential
+  count_shown: "{total} credentials · {shown} shown"
+  count_shown_one: "{total} credentials · 1 shown"
+  caption: "SMTP credentials, page {page} of {pages}, sorted by {sort}"
+  pager: "Credentials {from} to {to} of {total}"
+  back: Back to the list
+  back_credential: Back to the credential
+  none_value: "—"
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    sender: sender
+    server: server
+  col:
+    sender: Sender
+    server: SMTP server
+    auth: Authentication
+    uses: Used by
+    actions: Actions
+  auth:
+    none: None
+  # The encryption the port implies.
+  tls:
+    implicit: TLS from the start
+    starttls: STARTTLS when the server offers it
+  password:
+    set: Set, never shown
+    none: None
+  action:
+    detail: View the sheet
+    edit: Edit the credential
+    delete: Delete the credential
+  detail:
+    title: "SMTP credential “{name}”"
+    sender: Sender
+    address: Address
+    role: Role
+    role_text: "The address the e-mails are sent from; the EMAIL tasks name the credential by it."
+    server: SMTP server
+    incomplete: The address of the server is incomplete.
+    incomplete_text: "It lacks the host or the port: the EMAIL tasks could not connect. Edit the credential to complete it."
+    connection: Connection
+    auth_none: No authentication
+    login: Login
+    uses: Used by
+    uses_caption: Rules whose EMAIL tasks use the credential
+    uses_none: No rule uses it.
+  new:
+    title: New SMTP credential
+  edit:
+    title: "Edit “{name}”"
+  form:
+    sender: Sender address
+    sender_hint: "Unique; the EMAIL tasks name the credential by this address."
+    host: Host
+    host_hint: Host name or IP address of the SMTP server.
+    port: Port
+    port_hint: "465: TLS from the start; 587 or 25: STARTTLS when the server offers it."
+    login: Login
+    login_hint: "The account on the SMTP server; empty: no authentication."
+    password: Password
+    password_hint: The password of the account on the SMTP server.
+    password_keep: Leave empty to keep the password in place.
+    locked: "Used by {rules}: the address is kept, the EMAIL tasks name it."
+    refused: The credential was not saved.
+    refused_text: "Correct the fields marked below; the password must be typed again."
+    error:
+      required: This field is required.
+      sender: "Give an e-mail address alone, without a display name: alerts@example.org."
+      sender_taken: Another credential already uses this address. Choose another one.
+      host: Give the host.
+      port: Give a port between 1 and 65535.
+      password_without_login: Give the login, or leave the password empty.
+  delete:
+    title: "Delete the credential “{name}”?"
+    text: No rule uses it. It will be deleted for good.
+    used_title: This credential cannot be deleted.
+    used: "It is used by {rules}: first change the sender of their EMAIL tasks, or they would fail at the next transfer."
+  toast:
+    created: "Credential “{name}” created"
+    updated: "Credential “{name}” saved"
+    deleted: "Credential “{name}” deleted"
+  empty:
+    title: No SMTP credential yet
+    text: "The EMAIL tasks of the rules send their e-mails with these accounts."
+  none:
+    title: "No credential starts with “{query}”"
+  not_found:
+    title: Credential not found
+    text: This credential does not exist or has been deleted.
+  error:
+    title: The list of the SMTP credentials could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# "Email templates" screen: the messages of the EMAIL task.
+email_templates:
+  title: Email templates
+  add: Add a template
+  search: Search a template by its name
+  search_placeholder: Search by name
+  count: "{total} templates"
+  count_one: 1 template
+  count_shown: "{total} templates · {shown} shown"
+  count_shown_one: "{total} templates · 1 shown"
+  caption: "Email templates, page {page} of {pages}, sorted by {sort}"
+  pager: "Templates {from} to {to} of {total}"
+  back: Back to the list
+  back_template: Back to the template
+  # Name of the sorted column, in the caption of the table.
+  sort:
+    name: name
+    subject: subject
+  col:
+    name: Template
+    subject: Subject
+    format: Format
+    attachments: Attachments
+    uses: Used by
+    actions: Actions
+  format:
+    text: Text
+    html: HTML
+  attachments:
+    none: None
+    one: 1 attachment
+    many: "{n} attachments"
+  action:
+    detail: View the sheet
+    edit: Edit the template
+    delete: Delete the template
+  detail:
+    title: "Email template “{name}”"
+    message: Message
+    attachments: Attachments
+    uses: Used by
+    uses_caption: Rules whose EMAIL tasks use the template
+    uses_none: No rule uses it.
+  # The preview: the message as the EMAIL task sends it.
+  preview:
+    title: Preview
+    values: Values of the variables
+    mark: Highlight the variables
+    show: Show
+    example: Example values
+    transfer: "Transfer {id} · {rule} · {date}"
+    transfer_error: "Transfer {id} · {rule} · {date} (failed)"
+    # Go layout of the date of a transfer in the list of the values.
+    date_layout: "2006-01-02 15:04"
+    note_transfer: "Values of the chosen transfer, as the EMAIL task reads them."
+    note_none: "Example values: no transfer has used this template yet. Once the template is used, choose one of its latest transfers to see the message it produced."
+    note_example: "Example values; choose one of the latest transfers of the rules that use the template to see the message it produced."
+    failed: The EMAIL task would fail with this template.
+    from: From
+    from_text: The SMTP credential of the EMAIL task
+    to: To
+    to_text: The recipients of the EMAIL task
+    body: Preview of the body of the message
+  # The example values, when no transfer has used the template.
+  example:
+    file: invoices-2026-10.csv
+    partner: example-partner
+    rule: example-rule
+    client: example-client
+    account: example-account
+    error: "The partner refused the file: not enough disk space"
+  new:
+    title: New email template
+  edit:
+    title: "Edit “{name}”"
+  form:
+    template: Template
+    name: Name
+    name_hint: Unique; the EMAIL tasks name the template by it.
+    format_hint: "HTML: formatting and links; Text: a plain message."
+    subject: Subject
+    subject_hint: "Type # to insert a variable, the file name for instance."
+    body: Body
+    body_html_hint: "Type # where you want it: the list of the variables opens, typing filters it, Enter inserts."
+    body_text_hint: "Type # to insert a variable."
+    body_file: Load the body from a file
+    body_file_hint: "An HTML (.html, .htm) or text (.txt) file, in UTF-8, of 1 MB at most: its content replaces the body, and the format follows its extension."
+    body_file_loaded: "“{name}” is loaded in the body: review it before saving."
+    body_file_refused: "“{name}” is not loaded: choose an .html, .htm or .txt file, in UTF-8, of 1 MB at most."
+    attachments: One path per line
+    attachments_hint: "The file must exist when the email is sent; type # to insert a variable, the path of the transferred file for instance."
+    locked: "Used by {rules}: the name stays, the EMAIL tasks name the template by it."
+    refused: The template was not saved.
+    refused_text: Correct the fields shown below.
+    error:
+      required: This field is required.
+      format: Choose the Text or HTML format.
+      markers: "Variables the tasks do not know: {markers}. Type # to choose one from the list."
+      name_taken: Another template already has this name. Choose another one.
+      body_file_type: Choose an .html, .htm or .txt file.
+      body_file_size: The file is larger than 1 MB. Choose a smaller one.
+      body_file_encoding: "The file is not in UTF-8: save it in UTF-8, then load it again."
+      body_file_read: The file could not be read. Load it again.
+  delete:
+    title: "Delete the template “{name}”?"
+    text: No rule uses it. It will be deleted for good.
+    used_title: This template cannot be deleted.
+    used: "It is used by {rules}: change the template of their EMAIL tasks first, or they would fail at the next transfer."
+  toast:
+    created: "Template “{name}” created"
+    updated: "Template “{name}” saved"
+    deleted: "Template “{name}” deleted"
+  empty:
+    title: No email template yet
+    text: The EMAIL tasks of the rules send these messages, their variables replaced by the values of the transfer.
+  none:
+    title: "No template starts with “{query}”"
+  not_found:
+    title: Template not found
+    text: This template does not exist or was deleted.
+  error:
+    title: The list of the email templates could not be loaded.
+    text: "An internal error occurred; the details are in the log of the gateway."
+
+# The variables the tasks substitute, offered by the variables list (email templates, tasks of the rules).
+vars:
+  # The groups of the list of the variables.
+  group:
+    file: File
+    transfer: Transfer
+    partners: Partners
+    dates: Dates
+    error: Error (error tasks)
+    paths: Paths
+    info: Transfer info
+    info_pesit: PeSIT information
+    info_ack: Acknowledgements
+    info_r66: R66 information
+    info_file: Original file
+  # The variables, by the name of their marker in lower case.
+  var:
+    truefilename: Name of the file
+    basefilename: Name of the file without its extension
+    fileextension: Extension of the file, dot included
+    filesize: Size of the file
+    originalfilename: Original name of the file
+    truefullpath: Path of the file on the disk
+    originalfullpath: Original path of the file
+    rule: Rule of the transfer
+    transferid: Identifier of the transfer
+    remotetransferid: Identifier of the transfer in the protocol
+    remotehost: Remote partner
+    localhost: Local partner
+    requesterhost: Partner that requested the transfer
+    requestedhost: Partner that received the request
+    date: Date of the task (YYYYMMDD)
+    hour: Time of the task (HHMMSS)
+    timestamp: Timestamp of the task, in the chosen format
+    starttimestamp: Timestamp of the start of the transfer, in the chosen format
+    originalfilebtime: Creation date of the original file, in the chosen format
+    originalfilemtime: Last modification date of the original file, in the chosen format
+    originalfileatime: Last access date of the original file, in the chosen format
+    errormsg: Error message
+    errorcode: Error code
+    homepath: Root folder of the gateway
+    inpath: Receive folder
+    outpath: Send folder
+    workpath: Temporary receive folder
+    ti: "Information attached to the transfer: replace “key” with its name"
+    ti_param: key
+  # The reserved keys of the transfer information (pkg/model), by their name in lower case.
+  info:
+    follow_id: Follow ID (R66), which also links a transfer and its acknowledgement
+    user_content: User content (R66)
+    sync_transfer_id: Parent of a synchronised transfer
+    sync_transfer_rank: Rank of a synchronised transfer
+    client_conn_freetext: Free text of the client at the connection
+    client_trans_freetext: Free text of the client at the selection of the file
+    client_trans_freetext_raw: Free text of the client as received (PI 99, legacy profile)
+    server_conn_freetext: Free text of the server at the connection
+    server_trans_freetext: Free text of the server at the selection of the file
+    file_encoding: Encoding of the file (PI 16)
+    file_type: Type of the file (PI 11)
+    organization: Organisation of the file (PI 33)
+    customer_id: Customer ID (PI 61)
+    bank_id: Bank ID (PI 62)
+    articles_format: Format of the articles, fixed or variable (PI 31)
+    articles_lengths: Lengths of the articles
+    articles_separator: Separator of the records sent one per article (LF or CRLF)
+    ack_expected: Acknowledgement expected
+    ack_wait_timeout: How long to wait for the acknowledgement
+    ack_wait_since: Waiting for the acknowledgement since
+    ack_received: Acknowledgement received
+    ack_received_on: When the acknowledgement was received
+    ack_sent: Acknowledgement sent
+    ack_sent_on: When the acknowledgement was sent
+    ack_sent_to: Partner the acknowledgement was sent to
+    ack_sent_as: Account the acknowledgement was sent as
+    file_b_time: Creation date of the original file
+    file_m_time: Last modification date of the original file
+    file_a_time: Last access date of the original file
+    file_caller_id: Caller ID announced for the file (PI 3)
+    file_server_id: Server ID announced for the file (PI 4)
+    priority: Priority of the transfer (PI 17)
+    key_length: Length of the key of an indexed file (PI 38)
+    key_offset: Position of the key of an indexed file (PI 39)
+    reserved_space: Space to reserve for the file (PI 42)
+    reserved_space_unit: Unit of the space to reserve, KB or article (PI 41)
+    file_time_zone: Time zone of the file dates received without one
+  # The elements of the format of a timestamp.
+  token:
+    year: year
+    year_short: year, two digits
+    month_name: month in full
+    month_abbr: month, abbreviated
+    month: month, two digits
+    month_short: month
+    day: day, two digits
+    day_short: day
+    weekday: day of the week
+    weekday_abbr: day of the week, abbreviated
+    hour: hour, 00 to 23
+    hour12: hour, 01 to 12
+    hour12_short: hour, 1 to 12
+    ampm: AM or PM
+    ampm_lower: am or pm
+    minute: minutes, two digits
+    minute_short: minutes
+    second: seconds, two digits
+    second_short: seconds
+    zone: time zone
+    offset: "time offset (+02:00)"
+    offset_short: "time offset (+0200)"
+
+# "Transfer monitoring" screen (Supervision): the transfers and the history together, the sheet of a transfer, its
+# actions and the pages that add and preregister a transfer.
+transfers:
+  title: Transfer monitoring
+  live: "Refreshed at {time}"
+  refreshing: Refreshing…
+  add: Add a transfer
+  search: Search a transfer by its file, its number or one of its IDs
+  search_placeholder: File, No. or ID
+  search_hint: "File name or path, matched anywhere, case aside, or else the exact number of the transfer, follow ID or remote ID; * stands for any text, ? for one character, ^ and $ anchor the search at the beginning or at the end"
+  refresh_error:
+    title: The monitoring could not be refreshed
+    text: "Last successful read at {time}. The transfers shown date from that read; a new attempt is made every {seconds} s."
+  load_error:
+    title: The list of the transfers could not be loaded
+    text: The database did not answer. Try again in a moment.
+  empty:
+    title: No transfer yet
+    text: A transfer is the exchange of a file according to a rule, with a partner or for a partner.
+  none:
+    query: "No transfer matches “{query}”"
+    state: "No “{state}” transfer"
+    all_states: Show every transfer
+    filters: No transfer matches the filters
+  count_one: 1 transfer
+  count: "{total} transfers"
+  caption: "Transfers, page {page} of {pages}, sorted by {sort}"
+  sort:
+    id: number
+    start: start
+    file: file
+    state: status
+    rule: rule
+    stop: end
+  pager: "Transfers {from} to {to} of {total}"
+  # A status per transfer, then the row of the statuses (plural).
+  state:
+    running: In progress
+    error: Failed
+    planned: Planned
+    paused: Paused
+    interrupted: Interrupted
+    available: Expected
+    done: Done
+    cancelled: Cancelled
+  states:
+    label: Transfer statuses
+    all: All
+    running: In progress
+    error: Failed
+    planned: Planned
+    paused: Paused
+    interrupted: Interrupted
+    available: Expected
+    done: Done
+    cancelled: Cancelled
+  # What each status means, as a tooltip of the row of the statuses.
+  hint:
+    all: Every transfer, to come, running and past
+    running: The transfer is running
+    error: The transfer failed; it may be tried again, resumed or retried
+    planned: The gateway will start the transfer itself at the planned time
+    paused: The transfer was paused by a user
+    interrupted: The transfer was interrupted unexpectedly, by a shutdown of the gateway for example
+    available: "Preregistered transfer: the gateway waits for the partner to connect and exchange it, until the due date"
+    done: The transfer ended without error, tasks included
+    cancelled: The transfer was cancelled by a user
+  filter:
+    rule: Rule
+    rule_all: Every rule
+    direction: Direction
+    direction_all: Send and receive
+    role: Role of the gateway
+    role_all: Client and server
+    role_client: Client
+    role_server: Server
+    partner: Partner or server
+    partner_all: Every partner and server
+    partners: Remote partners
+    servers: Local servers
+    account: Account
+    account_all: Every account
+    client: Client
+    client_all: Every client
+    protocol: Protocol
+    protocol_all: Every protocol
+    from: Start from
+    to: Start until
+    ack: Acknowledgement
+    ack_all: Every transfer
+  dir:
+    send: Send
+    receive: Receive
+  role:
+    client: client
+    server: server
+  col:
+    id: No.
+    file: File
+    state: Status
+    direction: Direction
+    rule: Rule
+    partner: Partner
+    progress: Progress
+    size: Size
+    start: Start
+    stop: End
+    ack: ACK
+    actions: Actions
+  error_tip: "{cause}: {message}"
+  # The direction and the role of the gateway, in the words of the historic screen.
+  dir_tip:
+    client_send: Sending from client to server
+    client_receive: Reception on the client from the server
+    server_send: Sending from server to client
+    server_receive: Reception on the server from the client
+  partner_tip: "{partner} · account {account}"
+  due_title: "Expected until {date}"
+  next_title: "Next attempt on {date}"
+  no_stop: Not over yet
+  no_progress: No progress
+  no_size: Size unknown
+  # The acknowledgement of each transfer: one word in the ACK column, the detail in the tooltip.
+  ack:
+    expected: Expected
+    received: Received
+    missed: Not received
+    sent: Sent
+    none: No acknowledgement
+  ack_tip:
+    expected: "The gateway will wait for the partner's acknowledgement up to {limit} after the transfer"
+    waiting: "Partner's acknowledgement expected until {until}: limit {limit}, waiting since {since}"
+    received: "Partner's acknowledgement received on {at}"
+    missed: "No acknowledgement received from the partner, limit {limit}"
+    missed_since: "No acknowledgement from the partner within {limit}, waited since {since}"
+    sent: "Acknowledgement sent on {at} to {partner}, as {account}"
+    sent_on: "Acknowledgement sent on {at}"
+  percent: "{pct}%"
+  progress_label: "Progress {pct}%"
+  # Dates and numbers (Go layout for the date).
+  date: 2006-01-02
+  date_time: "{date} {time}"
+  # A moment of the list: the date and the time to the second, on every line.
+  date_cell: "{date} {time}"
+  # Label of each error code of the product; the technical code stays as a hint.
+  code:
+    TeUnknown: Unknown error
+    TeInternal: Internal error of the gateway
+    TeUnimplemented: Feature the partner does not support
+    TeConnection: Connection impossible
+    TeConnectionReset: Connection broken
+    TeUnknownRemote: Unknown or failing partner
+    TeExceededLimit: Limit reached
+    TeBadAuthentication: Authentication refused
+    TeDataTransfer: Error while transferring the data
+    TeIntegrity: Integrity check failed
+    TeFinalization: Error at the finalization
+    TeExternalOperation: Error of a task
+    TeWarning: Warning of a task
+    TeStopped: Transfer stopped
+    TeCanceled: Transfer cancelled
+    TeFileNotFound: File not found
+    TeForbidden: Access denied
+    TeBadSize: File size refused
+    TeShuttingDown: Gateway or partner shutting down
+    TeExpired: Due date passed
+  step:
+    StepSetup: Setting up the transfer
+    StepPreTasks: Tasks before the transfer
+    StepData: Transferring the data
+    StepPostTasks: Tasks after the transfer
+    StepErrorTasks: Error tasks
+    StepFinalization: Finalization
+  action:
+    detail: View the transfer
+    pause: Pause
+    resume: Resume
+    retry: Retry
+    cancel: Cancel the transfer
+  back: Back to the list
+  toast:
+    paused: "Transfer “{name}” paused"
+    resumed: "Transfer “{name}” resumed"
+    cancelled: "Transfer “{name}” cancelled"
+    retried: "New transfer No. {name} planned"
+    added: "Transfer No. {name} planned"
+    preregistered: "Transfer No. {name} preregistered"
+  not_found:
+    title: Transfer not found
+    text: This transfer does not exist, or no longer. Go back to the list to find it by its file.
+  detail:
+    number: "Transfer No. {id}"
+    error: Error
+    cause: Cause
+    message: Message
+    error_step: Step
+    transfer: Transfer
+    file: File
+    run: Run
+    retries: Retries
+    infos: Transfer information
+    infos_none: No transfer information.
+    infos_meta_none: None
+    infos_meta_one: 1 entry
+    infos_meta: "{n} entries"
+    retries_meta_none: No retry left
+    retries_meta_one: 1 retry left
+    retries_meta: "{n} retries left"
+    progress: Progress
+    rule: Rule
+    direction: Direction
+    partner: Partner
+    server: Server
+    account: Account
+    client: Client
+    protocol: Protocol
+    remote_id: Remote ID
+    follow_id: Follow ID
+    src: Name at the source
+    dest: Name at the destination
+    local_path: Path on the gateway
+    remote_path: Path at the partner
+    expected_local: Expected path on the gateway
+    expected_remote: Expected path at the partner
+    size: Size
+    size_unknown: Unknown
+    size_bytes: "{bytes} bytes ({size})"
+    start: Start
+    start_planned: Planned start
+    due: Due date
+    stop: End
+    step: Step
+    task: Current task
+  retries:
+    attempts: Attempts
+    remaining: Attempts left
+    none: None
+    next: Next attempt
+    delay: Delay before the next one
+    seconds: "{n} s"
+    factor: Delay growth factor
+    factor_hint: "1: constant delay; 2: the delay doubles at each retry"
+  refused:
+    title: Action impossible
+    elsewhere: This transfer runs on another node of the cluster. Act from the interface of that node.
+    pause_title: "“{name}” cannot be paused"
+    pause: "Only a transfer in progress, or planned by the gateway, can be paused. Status of the transfer: {state}."
+    resume_title: "“{name}” cannot resume"
+    resume: "Only a paused, interrupted or failed transfer resumes. Status of the transfer: {state}."
+    resume_server: A server transfer resumes when the partner connects again.
+    resume_sync: "This transfer is part of transfer No. {parent}: resume that one."
+    cancel_title: "“{name}” cannot be cancelled"
+    cancel: "A done or cancelled transfer can no longer be cancelled. Status of the transfer: {state}."
+    retry_title: "“{name}” cannot be retried"
+    retry: "A planned, available or running transfer cannot be retried. Status of the transfer: {state}."
+    retry_server: A server transfer is retried by the partner.
+  cancel:
+    title: "Cancel the transfer “{name}”?"
+    text: The transfer goes to the history, cancelled; it will not be tried again. To do it again, retry it.
+    text_running: The running transfer is stopped, then goes to the history, cancelled. To do it again, retry it.
+  retry:
+    title: "Retry “{name}”"
+    text: "A new transfer is created, with the same rule, partner, account and file. {number} stays as it is. To continue a transfer where it stopped, use “Resume” instead."
+    date: Start
+    refused: The retry was not created
+    gone: The rule, the partner, the account or the client of this transfer no longer exists.
+  set:
+    objects: transfers
+    row: "transfer No. {id}"
+    resume: Resume the transfers
+    retry: Retry the transfers
+    cancel: Cancel the transfers
+    empty: No transfer selected
+    search: Search
+    period: Start period
+    period_both: "from {from} to {to}"
+    period_from: "from {from}"
+    period_to: "until {to}"
+    except: Except
+    count: Count
+    changed_title: The set changed since the page was shown
+    changed: "The count went from {expected} to {n}. Check the set before you confirm."
+    resume_title: "Resume {n} transfers?"
+    resume_title_one: "Resume 1 transfer?"
+    resume_text: "The transfers resume where they stopped; their next attempt is now. Those their status or their nature keeps from resuming stay as they are."
+    retry_title: "Retry {n} transfers"
+    retry_title_one: Retry 1 transfer
+    retry_text: "A new transfer is created for each one, with the same rule, partner, account and file; the transfers of origin stay as they are."
+    cancel_title: "Cancel {n} transfers?"
+    cancel_title_one: "Cancel 1 transfer?"
+    cancel_text: "The transfers go to the history, cancelled; they will not be tried again. To do them again, retry them. A running transfer is stopped first."
+    will_resume: Will be resumed
+    will_retry: Will be retried
+    will_cancel: Will be cancelled
+    running: Of which running, stopped
+    aside:
+      server: Server transfers, up to the partner
+      sync: Children of a synchronous transfer, which resume through their parent
+      state: Transfers whose status does not allow this gesture
+      missing: Transfers that no longer exist
+      gone: Transfers whose rule, partner, account or client no longer exists
+      elsewhere: Transfers running on another node of the cluster
+      busy: Running transfers that did not stop in time
+    resumed: "{n} transfers resumed"
+    resumed_one: 1 transfer resumed
+    retried: "{n} transfers retried"
+    retried_one: 1 transfer retried
+    cancelled: "{n} transfers cancelled"
+    cancelled_one: 1 transfer cancelled
+    left_resumed: "{n} not resumed"
+    left_resumed_one: 1 not resumed
+    left_retried: "{n} not retried"
+    left_retried_one: 1 not retried
+    left_cancelled: "{n} not cancelled"
+    left_cancelled_one: 1 not cancelled
+    left_sep: ": "
+    reason_sep: ": "
+  new:
+    title: New transfer
+  preregister:
+    title: Preregister a transfer
+    text: The transfer waits for the partner to connect to the server to exchange it, until the due date; it shows as “Expected”.
+  form:
+    refused: The transfer was not created
+    refused_text: Correct the fields shown.
+    exchange: Exchange
+    file: File
+    file_hint: "To send, the path of the file, relative to the send folder of the rule; to receive, the name of the file to ask for."
+    file_server_hint: The name of the file the partner will send or ask for.
+    output: Name at the destination
+    output_hint: "Empty: the same name."
+    rules_send: Send
+    rules_receive: Receive
+    choose_rule: Choose a rule
+    rule_hint: "The rule sets the direction: send or receive."
+    remote_account: Partner and account
+    remote_account_hint: The account the gateway connects to the partner with.
+    local_account: Server and account
+    local_account_hint: The account the partner will connect to the server with.
+    choose_account: Choose an account
+    account_allowed: "{n} accounts authorized by this rule"
+    account_allowed_one: One account authorized by this rule
+    account_allowed_none: No account authorized by this rule
+    account_cleared: "The account “{login}” is not authorized by this rule."
+    rule_access: See the access of the rule
+    choose_client: Choose a client
+    client_hint: "A client of the protocol of the partner; the list follows the chosen account."
+    start: Start
+    start_hint: "Time of the gateway; empty: now."
+    due_hint: Time of the gateway. After it, the partner can no longer exchange the file.
+    info_name: Name
+    info_value: Value
+    info_name_n: "Name of the information {n}"
+    info_value_n: "Value of the information {n}"
+    info_remove_n: "Remove the information {n}"
+    info_n: "the information {n}"
+    info_vars: Insert a variable
+    info_remove: Remove the information
+    info_add: Add an information
+    info_hint: Optional. The tasks of the rule can read them.
+    info_family:
+      pesit: PeSIT
+      ack: Acknowledgement
+      r66: R66
+      file: Original file
+    retries: Retries on error
+    retries_hint: "Empty: those of the client."
+    delay: First delay (s)
+    error:
+      required: Enter a value.
+      choose: Choose a value from the list.
+      not_allowed: "The rule “{rule}” does not authorize this account. Choose an authorized account, or change the access of the rule."
+      date: "Enter a date and a time. Expected format: 2026-10-21 18:00"
+      due_past: Enter a due date to come.
+      info_name: "Enter the name of the information {n}."
+      info_twice: "The information “{name}” is given twice."
+      tries: "Enter a number from 0 to {max}."
+      delay: Enter a number of seconds, 0 or more.
+      client_protocol: "The partner is on {partner} and this client on {client}: choose a {partner} client."
+  # Names of the reserved transfer information of the product; a key without an entry keeps its technical name.
+  info_key:
+    __followID__: Follow ID
+    __syncTransferID__: Parent synchronous transfer
+    __syncTransferRank__: Rank in the synchronous transfer
+    __ackExpected__: Acknowledgement expected
+    __ackSent__: Acknowledgement sent
+    __ackSentTo__: Acknowledgement sent to
+    __ackSentAs__: Acknowledgement sent as
+    __ackSentOn__: Acknowledgement sent on
+    __ackWaitSince__: Waiting for the acknowledgement since
+    __ackWaitTimeout__: Acknowledgement timeout
+    __ackReceived__: Acknowledgement received
+    __ackReceivedOn__: Acknowledgement received on
+    __fileEncoding__: Data encoding
+    __fileType__: File type
+    __organization__: File organization
+    __customerID__: Customer ID
+    __bankID__: Bank ID
+    __clientConnFreetext__: Connection free text of the client
+    __clientTransFreetext__: Transfer free text of the client
+    __serverConnFreetext__: Connection free text of the server
+    __serverTransFreetext__: Transfer free text of the server
+    __articlesLengths__: Record lengths
+    __articlesFormat__: Record format
+    __articlesSeparator__: Record separator
+
+# "Configuration import and export" screen (Administration): two cards, the export and the import.
+config:
+  title: Configuration import and export
+  categories_legend: Categories
+  categories_hint: "For the export as for the import; on import, the categories the file does not carry are ignored"
+  categories_none: Choose at least one category
+  categories:
+    servers: Local servers, with their accounts and authentication
+    partners: Remote partners, with their accounts and authentication
+    clients: Local clients
+    rules: Transfer rules
+    users: Users
+    clouds: Cloud instances
+    snmp: SNMP
+    authorities: Authentication authorities
+    keys: Cryptographic keys
+    email: Email, SMTP credentials and templates
+    filewatchers: Partner watchers
+  export:
+    title: Export the configuration
+    format: Format
+    json: JSON
+    yaml: YAML
+    secrets_title: The file carries the secrets in clear.
+    secrets: " Account passwords, private keys, cloud secrets and SMTP passwords; the passwords of the users are hashed only."
+    same_format: Same format as the waarp-gatewayd export and import commands, and as the waarp-gateway updateconf command line.
+    redact: Replace the secrets and the certificates by markers
+    redact_hint: "For a file that travels: passwords and secrets become __PWD__, private keys __KEY__, certificates and public keys __PEM__, with the object and the field; the filling tools complete them before the import. The hashes of the users' passwords stay."
+    action: Export the configuration
+    failed: "The configuration could not be exported; the detail is in the log of the gateway."
+  import:
+    title: Import a configuration
+    file: Configuration file
+    file_hint: JSON or YAML, in the format of the export, 64 MB at most
+    file_missing: Choose the file to import
+    file_type: Choose a .json, .yaml or .yml file
+    file_size: The file exceeds 64 MB
+    file_read: The file could not be read
+    unreadable: The file is not a valid JSON or YAML.
+    markers: "The file still carries markers of secrets (__PWD__, __KEY__, __PEM__): fill them before the import"
+    all_or_nothing: "The import is all or nothing: the first error cancels the whole."
+    options: Options
+    restart: Restart the services concerned (local servers, clients, watchers)
+    reset: Empty these categories before the import
+    reset_warning_title: The current objects of these categories are deleted before the import.
+    reset_warning: " And what depends on them with them: the accounts and authentication of a server or a partner, the accesses of a rule."
+    reset_confirm: I confirm the deletion
+    confirm_required: Confirm the deletion to empty the categories
+    simulate: Simulate the import
+    action: Import
+    reset_action: Empty and import
+    simulated: "The file is valid: the import would go through ({categories})."
+    imported: Configuration imported ({categories}).
+    restarted: The services concerned have been restarted.
+    refused: The import was refused.
+    no_write: The import needs the write right on the administration.
+# Numbers and sizes, written as the language reads them, for every screen (package handlers/format).
+format:
+  thousands: ","
+  decimal: "."
+  size:
+    byte: "{n} byte"
+    bytes: "{n} bytes"
+    kb: "{n} KB"
+    mb: "{n} MB"
+    gb: "{n} GB"
+    tb: "{n} TB"
+
+# Return link to the page of origin: one label per screen of origin.
+origin:
+  dashboard: "Back to the dashboard"
+  home: "Back to the home page"
+  about: "Back to the About page"
+  services: "Back to the service status"
+  transfers: "Back to the transfer monitoring"
+  transfer: "Back to the transfer"
+  servers: "Back to the local servers"
+  server: "Back to the server"
+  account: "Back to the account"
+  clients: "Back to the local clients"
+  client: "Back to the client"
+  partners: "Back to the remote partners"
+  partner: "Back to the partner"
+  rules: "Back to the transfer rules"
+  rule: "Back to the rule"
+  watchers: "Back to the partner watchers"
+  watcher: "Back to the watcher"
+  keys: "Back to the cryptographic keys"
+  key: "Back to the key"
+  smtp: "Back to the SMTP credentials"
+  smtp_credential: "Back to the SMTP credential"
+  email_templates: "Back to the email templates"
+  email_template: "Back to the email template"
+  users: "Back to the users"
+  user: "Back to the user"
+  authorities: "Back to the authentication authorities"
+  authority: "Back to the authority"
+  clouds: "Back to the cloud instances"
+  cloud: "Back to the cloud instance"
+  snmp: "Back to the SNMP page"
+  monitor: "Back to the SNMP monitor"
+  overrides: "Back to the configuration overrides"
+  config: "Back to the import and export"
+  credential: "Back to the authentication means"

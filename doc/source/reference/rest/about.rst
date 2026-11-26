@@ -15,6 +15,11 @@ Statut de Gateway
    :resheader Date: L'heure UTC actuelle en format :rfc:`HTTP-Date <7231#section-7.1.1.1>`
       standard.
    :resheader Waarp-Gateway-Date: L'heure locale de Gateway en format :rfc:`1123`.
+   :resheader Waarp-Gateway-Environment: Le libellé d'environnement de l'instance
+      (option ``EnvironmentLabel`` de la configuration), encodé en pourcent comme
+      dans un chemin d'URL (:rfc:`3986`). L'en-tête est absent quand aucun libellé
+      n'est défini. Comme les deux précédents, il accompagne toutes les réponses
+      de l'API.
 
    :resjson array coreServices: La liste des services de base de Gateway.
 

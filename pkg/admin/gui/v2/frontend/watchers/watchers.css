@@ -1,0 +1,23 @@
+/* Partner watchers screen: what the kit does not decide (column widths of the list, the account next to the partner,
+   the state that wraps with its reason, the interval field with its unit, spacing of the list foot, of the banners, of
+   the notes and of the action pages). Tokens only. */
+.wt-col-name { width: 18%; }
+.wt-col-partner { width: 18%; }
+.wt-col-pattern { width: 10%; }
+.wt-col-interval { width: 9%; }
+.wt-col-state { width: 11%; }
+.wt-col-actions { width: 72px; }
+.wt-account { color: var(--ts); font-size: var(--fs-sm); }
+.wt-state .w-status { white-space: normal; }
+.wt-reason { display: block; margin-top: var(--sp-1); color: var(--ts); font-size: var(--fs-sm); }
+.wt-pager { margin-top: var(--sp-3); }
+.wt-banner { margin-bottom: var(--sp-4); }
+.wt-lead { margin: 0 0 var(--sp-4); }
+.wt-note { margin: var(--sp-3) 0 0; color: var(--ts); font-size: var(--fs-sm); }
+.wt-hint { margin: var(--sp-1) 0 0 1.9rem; color: var(--g600); font-size: var(--fs-sm); }
+.wt-check { display: flex; margin: var(--sp-2) 0; }
+.wt-form-actions { margin-top: var(--sp-5); }
+/* The interval: the number and its unit on one row. */
+.wt-interval__row { display: flex; gap: var(--sp-2); }
+.wt-interval__number { width: 7rem; }
+.wt-interval__unit { width: auto; }

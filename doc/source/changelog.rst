@@ -3,6 +3,579 @@
 Historique des versions
 =======================
 
+* :feature:`713` La liste des variables de l'interface web propose les dates du
+  fichier d'origine (création, modification, dernier accès) et les attributs
+  du fichier annoncés par un partenaire PeSIT, avec leurs libellés.
+* :bug:`903` Le suivi des transferts de l'interface web retrouve aussi un
+  transfert par son numéro (colonne « N° ») ou par son identifiant distant,
+  saisis en entier dans la recherche.
+* :feature:`713` Dans l'interface web refondue, chaque champ de recherche a
+  son bouton d'effacement. Quand la session a pris fin, une action sur une
+  liste mène à la page de connexion, au lieu d'un bandeau d'erreur.
+* :feature:`705` Une nouvelle option ``EnvironmentLabel`` de la section
+  ``[admin]`` donne à l'instance un libellé d'environnement (« Production »,
+  « Recette »…). L'interface Web l'affiche dans son en-tête, à côté du nom de
+  l'instance ; l'API REST le fournit dans l'en-tête
+  ``Waarp-Gateway-Environment`` et la commande ``status`` l'affiche.
+* :feature:`874` Le suivi des transferts dit l'acquittement de chaque transfert
+  dans une colonne « ACK » (attendu, reçu, non reçu, envoyé ; le détail au
+  survol) et se filtre par acquittement (voir :ref:`le guide
+  <user-webui-transfers>`).
+* :bug:`805` Sur l'écran d'import et d'export de la configuration, les
+  catégories dont le libellé tient sur une ligne viennent en premier, les
+  serveurs locaux et les partenaires distants, aux libellés longs, en dernier ;
+  les notifications nomment les catégories dans le même ordre.
+* :bug:`804` Sur l'écran d'import et d'export de la configuration, les cartes
+  Exporter et Importer, côte à côte, ont désormais la même hauteur, leurs
+  boutons alignés en bas.
+* :bug:`803` À l'import d'une configuration par l'interface web, les repères
+  de secrets (``__PWD__``, ``__KEY__``, ``__PEM__``) ne sont plus cherchés que
+  dans les valeurs du fichier : un commentaire YAML qui en cite un ne fait
+  plus refuser le fichier. Ils y sont cherchés avant toute lecture par
+  l'import, quel que soit l'objet qui les porte.
+  Un fichier dont l'extension est en majuscules est lu dans son format.
+* :feature:`802` Sur l'écran d'import et d'export de la configuration, la page
+  s'ouvre en YAML, l'option de remplacement des secrets et des certificats par
+  des repères cochée ; un export demandé sans format est en YAML. Après un
+  import refusé, la page garde le format et l'option tels qu'ils ont été
+  choisis. Les repères remplacent aussi le mot de passe de serveur d'une
+  configuration R66 et les options secrètes d'une instance cloud.
+* :bug:`815` Dans la référence de l'API REST, les points qui listent et créent
+  les clients sont documentés à leur vrai chemin, ``GET /api/clients`` et
+  ``POST /api/clients``, et non plus ``/api/clients/{nom}``.
+* :bug:`806` Dans l'interface web refondue, une liste ouverte depuis la
+  navigation revient telle qu'on l'a laissée, recherche, filtres, tri et
+  nombre de lignes par page compris, mais toujours en page 1 : la page n'est
+  plus retenue pour la session, elle ne revient que par le retour d'une page
+  d'action. Un filtre, un tri ou un nombre de lignes changé en place, sans
+  rechargement, est retenu lui aussi.
+* :support:`842` La page « Surveillances de partenaires » du guide de
+  l'interface web retrouve une décoration de titre de la longueur du titre
+  (la construction de la documentation ne signale plus cette page).
+* :support:`797` Les pages de l'ancienne interface web sont retirées, avec
+  leurs gabarits, leurs scripts, Bootstrap et leurs traductions. Leurs
+  adresses mènent à l'écran qui les remplace, et à l'objet qu'elles
+  désignaient (serveur, partenaire, compte, règle) quand il existe encore :
+  les favoris restent valides (voir :ref:`le guide de l'interface web
+  <user-guide-webui>`).
+* :feature:`758` L'écran des règles de transfert gagne l'onglet *Accès* (voir
+  :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
+  des droits d'usage : l'état de la règle, ouverte à tous ou réservée, dit en
+  clair ; ses accès en deux blocs, quand un partenaire se connecte (serveurs et
+  comptes locaux) et quand la passerelle se connecte (partenaires et comptes
+  distants) ; un signalement quand la règle n'est réservée que d'un côté, l'autre
+  étant fermé ; chaque accès en carte, son type au-dessus de sa cible ; les
+  pages d'ajout d'un accès (la cible se tape ou se choisit dans une liste groupée
+  par type, celles qui l'ont déjà sont écartées), de retrait (le dernier rouvre
+  la règle à tous) et de réouverture à tous.
+* :feature:`757` L'interface web propose un nouvel écran des règles de transfert
+  (voir :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace
+  l'ancienne page dans la navigation : la liste des règles avec leur sens,
+  leur chemin, le nombre de tâches de chaque chaîne et l'état de leurs accès,
+  recherche par nom ou chemin, filtre par sens, tri et pagination ; la fiche
+  d'une règle avec ses dossiers et ce que la Gateway emploie quand l'un est
+  vide, et des onglets vers ses tâches et ses accès ; les pages d'ajout, de
+  modification et de suppression. Le sens d'une règle ne change plus après sa
+  création, un nom ne peut plus contenir « / », le renommage d'une règle que
+  l'historique emploie est signalé, et la suppression d'une règle que des
+  transferts ou des dossiers surveillés désignent encore est expliquée.
+* :feature:`745` L'interface web propose un nouvel écran de suivi des transferts
+  (voir :ref:`le guide de l'interface web <user-webui-transfers>`), qui remplace
+  l'ancienne page dans la navigation : les transferts et l'historique ensemble,
+  le nom du fichier en tête ; une rangée compacte donne le nombre de transferts
+  de chaque statut et filtre la liste d'un clic ; recherche par fichier ou par
+  identifiant de suivi, filtres par règle, sens, partenaire ou serveur, compte,
+  protocole et période, tri (les derniers transferts en tête) et pagination,
+  le tout conservé dans l'adresse ; ouverture immédiate, la rangée des statuts et
+  la liste arrivant ensuite en parallèle, pages voisines lues d'avance et retour
+  à la liste immédiat, même sur un historique de plus d'un million de
+  transferts ; actualisation toutes les 5 secondes sans recharger la page, qui
+  reprend après un échec. La fiche d'un transfert donne la cause d'une erreur
+  par un libellé lisible, avec le code technique et le message, et montre les
+  informations de transfert. Les actions sont contrôlées selon l'état par le serveur : mise en
+  pause, reprise, annulation après confirmation, relance maintenant ou à une
+  date ; un transfert en cours sur un autre nœud d'une grappe n'est ni mis en
+  pause ni annulé depuis ce nœud. Les pages d'ajout d'un transfert client et de
+  pré-enregistrement d'un transfert serveur complètent l'écran.
+* :feature:`719` L'écran des instances cloud de l'interface web est refondu sur
+  le kit (voir :ref:`le guide de l'interface web <user-webui-clouds>`) et
+  propose les cinq types de stockage de la Gateway (S3, Azure Blob, Azure
+  Files, Google Cloud Storage, OneDrive), alors que l'ancienne page ne
+  proposait que S3 : les options de chaque type sont des champs nommés, les
+  obligatoires marquées et les valeurs par défaut dites, les identifiants
+  peuvent venir des variables d'environnement, et une zone libre reçoit les
+  autres réglages de la bibliothèque de stockage, dont elle propose les
+  options acceptées à la saisie (l'option choisie s'inscrit dans la zone) et
+  refuse les options inconnues, imposées par la Gateway ou sensibles. La liste montre le type,
+  l'emplacement et l'authentification de chaque instance ; la fiche dit le
+  chemin à employer et les règles, serveurs et transferts qui nomment
+  l'instance ; la page de suppression les liste. Le secret n'est plus jamais
+  réaffiché (l'ancienne page le montrait en clair dans sa fenêtre de
+  modification). L'écran remplace l'ancienne page dans la navigation.
+* :feature:`718` L'écran des utilisateurs de l'interface web est refondu sur
+  le kit (voir :ref:`le guide de l'interface web <user-webui-users>`) : liste
+  triée par colonne et filtrée par domaine et par droit, avec les droits de
+  chaque utilisateur dans la notation de l'API (``rwd``) ; fiche en lecture
+  avec les droits en toutes lettres, une carte par domaine comme sur « Mon
+  compte » ;
+  pages de création, de modification et de suppression, le mot de passe saisi
+  deux fois et vérifié par le serveur, jamais réaffiché. La suppression du
+  dernier administrateur et celle de son propre compte sont refusées dans la
+  page, comme par l'API. L'écran remplace l'ancienne page dans la navigation.
+* :feature:`714` L'écran des partenaires distants de l'interface web est
+  refondu sur le kit : liste triée par colonne et filtrée (recherche, familles
+  de protocole, avec ou sans TLS), avec le nombre de comptes de chaque
+  partenaire ; fiche à onglets (détails, authentification, comptes distants)
+  qui dit par quel client passent les transferts et quelles règles le
+  partenaire peut utiliser ; pages de création, de modification et de
+  suppression, celle-ci refusée tant que des transferts en cours ou une
+  surveillance de dossiers utilisent un de ses comptes. L'onglet des comptes
+  distants liste les comptes du partenaire avec leurs moyens
+  d'authentification, crée un compte avec son premier moyen (mot de passe,
+  certificat et clé, clé privée SSH ou pré-connexion PeSIT selon le
+  protocole) et refuse de supprimer un compte qu'un transfert en cours ou une
+  surveillance de dossiers utilise. Les options PeSIT
+  « reprise » et « points de synchronisation » se règlent comme le produit les
+  lit (comme le client, activées, désactivées) ; le délai d'acquittement
+  PeSIT, l'algorithme du hachage final R66, le mot de passe d'un partenaire
+  PeSIT et celui d'un compte sur un partenaire PeSIT chiffré par TLS, que
+  l'ancien écran ne montrait pas, sont exposés (:ref:`user-webui-partners`).
+* :feature:`711` L'écran des clients locaux de l'interface web est refondu sur
+  le kit : liste triée par colonne et filtrée (recherche, familles de
+  protocole, avec ou sans TLS), fiche en lecture (état, adresse locale,
+  reprise des transferts, options du protocole, partenaires joignables par le
+  client), pages de création, de modification et de suppression, démarrage
+  et arrêt. L'algorithme du hachage final d'un client R66, que l'ancien écran
+  ne montrait pas, est exposé. Sur cet écran et sur celui des serveurs
+  locaux, le protocole se choisit par sa famille (R66, HTTP, SFTP, FTP,
+  PeSIT, WebDAV, AS2) et TLS par une case à cocher ; les listes montrent la
+  famille et un badge *TLS* ; les clés enregistrées, l'API et la ligne de
+  commande ne changent pas (:ref:`user-webui-clients`).
+* :feature:`709` La fiche d'un serveur local, dans l'interface web, regroupe
+  en onglets ses détails, son authentification (l'identité qu'il présente aux
+  partenaires) et ses comptes locaux ; chaque compte a sa propre fiche
+  (détails, adresses IP autorisées, moyens d'authentification). Les secrets ne
+  sont plus affichés : un certificat montre son sujet, sa validité et son
+  empreinte, une clé son type et son empreinte. Un certificat ou une clé se
+  dépose depuis le poste ou se colle au format PEM ; un compte se crée avec son
+  premier moyen d'authentification. Le guide de l'interface web décrit la
+  fiche (:ref:`user-webui-server-sheet`).
+* :feature:`708` L'écran « Serveurs locaux » de l'interface web est refondu :
+  liste triable par colonne, recherche et filtres par protocole appliqués
+  immédiatement, nombre de lignes par page, actions regroupées dans un menu par
+  ligne, page de détail en lecture, pages de création, de modification et de
+  suppression (une carte par bloc, options du protocole choisi, listes
+  d'algorithmes en deux colonnes). Il remplace l'ancien écran dans la navigation
+  et sur la page d'accueil. Le guide de l'interface web décrit l'écran
+  (:ref:`user-webui-servers`).
+* :feature:`706` L'écran « État des services » de l'interface web est
+  refondu : nouvelle présentation (une tuile de synthèse par groupe, qui
+  sélectionne le tableau affiché), états lisibles sans la couleur, message
+  persistant en cas d'échec de l'actualisation automatique. Il remplace l'ancien écran dans
+  la navigation et sur la page d'accueil. Un premier guide de l'interface web
+  accompagne cet écran
+  (:ref:`user-guide-webui`).
+* :bug:`785` Les options d'acquittement d'un partenaire PeSIT disent qui attend
+  l'acquittement de qui : « Attendre l'acquittement du partenaire après chaque
+  transfert », dans le formulaire et la fiche du partenaire comme dans la
+  référence des options et le code ; l'aide du délai d'attente dit que, sans
+  acquittement dans ce délai, le transfert passe en erreur, et que le délai vaut
+  10 minutes quand il est vide (la fiche disait « Sans limite »). L'option
+  ``ackTimeout`` entre dans la référence des options PeSIT.
+* :bug:`852` Dans l'interface Web, le client d'un transfert est obligatoire,
+  sur la page d'ajout d'un transfert comme dans la tâche ``TRANSFER`` d'une
+  règle, et il est du protocole du partenaire du compte choisi : la liste des
+  clients suit le compte, et un client d'un autre protocole est refusé sous
+  le champ, dans la langue de l'utilisateur, avant que le modèle ne le refuse
+  dans la sienne. Une tâche ``TRANSFER`` enregistrée sans client continue de
+  s'exécuter avec le client de ce protocole ; son formulaire demande un client
+  à sa prochaine modification.
+* :bug:`851` Dans l'interface Web, le facteur de progression du délai de
+  reprise se saisit dans un champ numérique, dans la tâche ``TRANSFER`` comme
+  dans la page d'ajout d'un transfert : le champ porte ses bornes et son pas,
+  le navigateur vérifie la valeur avant l'envoi et la Gateway garde le dernier
+  mot, avec les mêmes bornes. Les deux champs portent le même libellé et le
+  même message ; la virgule décimale est acceptée aux deux endroits, une valeur
+  négative refusée aux deux endroits. Les nombres entiers des tâches annoncent
+  de même leurs bornes dans leur message.
+* :bug:`838` Dans le Suivi des transferts, le bouton « Filtres » compte les
+  filtres actifs dès qu'un filtre change sur place, sans rechargement de la
+  page, comme sur les autres listes.
+* :feature:`840` Chaque écran atteint depuis un autre écran offre le retour à
+  celui-ci, sur la ligne du fil d'Ariane, à droite (« Retour au tableau de
+  bord », « Retour au transfert ») ; le retour se chaîne du tableau de bord à
+  la liste puis à la fiche, et une fiche atteinte sans origine revient à sa
+  liste. Les boutons de retour des en-têtes de page disparaissent au profit
+  de ce lien, au même endroit sur toutes les pages.
+* :feature:`837` Le Suivi des transferts se filtre par le rôle de la passerelle
+  dans le transfert, client ou serveur ; les deux chiffres du pied de la tuile
+  « Transferts en erreur » du tableau de bord mènent au suivi filtré sur leur
+  rôle.
+* :feature:`836` La bande de santé du tableau de bord compte les certificats
+  du nœud expirés ou à échéance sous trente jours (serveurs, partenaires,
+  comptes, autorités), nommés avec leur date au survol.
+* :feature:`835` Les tuiles du tableau de bord disent ce que leur chiffre
+  cache : les transferts en erreur côté client et côté serveur, ceux en cours
+  depuis plus d'une heure, les planifiés en retard, l'heure du dernier
+  transfert terminé.
+* :feature:`834` Le tableau de bord ouvre sur la santé du nœud : une bande de
+  cases (disponibilité, services, base de données, mémoire, connexions
+  ouvertes, surveillances de partenaires), chacune avec son
+  état, à la place des trois tuiles de services.
+* :feature:`833` Le tableau de bord occupe toute la largeur de l'écran, comme
+  le Suivi des transferts.
+* :feature:`832` Le tableau de bord distingue hier d'aujourd'hui dans
+  l'activité des 24 dernières heures : un trait à minuit et le jour sous ses
+  heures ; les valeurs par heure vont de la plus récente à la plus ancienne,
+  groupées par jour.
+* :bug:`824` Chaque ligne d'information d'une tâche porte son menu « ⋯ »
+  (insérer une variable, retirer l'information) : le bouton « Variables » ne
+  déborde plus de la ligne, et une ligne ajoutée propose aussi les variables.
+* :feature:`821` Le formulaire d'une tâche refuse une information dont la
+  valeur fait référence à une information que la même tâche pose : les
+  variables sont remplacées avant la tâche, avec les valeurs d'avant.
+* :feature:`820` Le formulaire d'une tâche ``SETINFO`` saisit ses informations
+  en lignes (nom, valeur), comme les tâches ``TRANSFER`` et ``PREREGISTER`` ;
+  sur toutes ces lignes, une clé réservée se propose avec sa famille et son
+  sens.
+* :feature:`818` Le tableau de bord reprend en un clic les transferts en
+  erreur, par le bouton de son en-tête qui dit combien reprendront ; la page
+  y revient avec la notification.
+* :feature:`792` Le Suivi des transferts agit sur un ensemble : les transferts
+  des filtres, moins les lignes décochées, ou les lignes cochées seules, se
+  reprennent, se relancent ou s'annulent en une fois ; la notification compte
+  ce qui a été fait et ce qui a été laissé de côté, avec la raison.
+* :feature:`816` Les clés réservées des informations de transfert (textes
+  libres et attributs PeSIT, acquittements, identifiant de flux…) sont tenues
+  dans un registre unique du produit, décrit par une page de référence ; la
+  liste des variables les propose par famille et le nom d'une information les
+  suggère.
+* :feature:`812` Dans le formulaire d'une tâche, chaque champ que la Gateway
+  substitue (textes, paires de ``SETINFO``, informations de transfert)
+  propose la liste des variables, par ``#`` ou le bouton *Variables* ; une
+  variable inconnue des traitements est refusée.
+* :feature:`810` Les cartes des fiches de l'interface web refondue, sauf la
+  première, sont pliées par défaut et résumées dans leur en-tête ; le
+  navigateur retient l'état déplié. Les blocs facultatifs vides des
+  formulaires se plient de même.
+* :support:`810` Le kit d'interface 0.26.0 est épinglé : l'éditeur du corps des
+  modèles d'e-mail insère un tableau simple, rendu par les clients de
+  messagerie, dont une barre gère les lignes et les colonnes.
+* :bug:`807` Dans l'interface web refondue, les cartes des écrans livrés
+  avant la règle du 25 octobre se replient à leur tour : sur la page Mon
+  compte, les fiches et les formulaires des identifiants SMTP, des clés
+  cryptographiques, des modèles d'e-mail, des utilisateurs et des transferts,
+  chaque carte après la première se replie et se déplie, ouverte par défaut,
+  son état retenu par le navigateur ; une carte qui porte une erreur de
+  saisie s'ouvre d'office.
+* :feature:`809` Le Suivi des transferts et l'onglet Tâches d'une règle occupent
+  toute la largeur de l'écran, par le gabarit de page large du kit, qui
+  remplace l'exception de style du Suivi.
+* :feature:`811` Sur la page d'ajout d'une tâche, la liste des types montre
+  le nom de la tâche (COPY, EXEC, TRANSFER…) avant son libellé et trie les
+  types par nom dans leur famille.
+* :support:`800` Dans la barre latérale repliée de l'interface web refondue,
+  les icônes passent de 14 à 20 pixels, sans que la barre s'allonge.
+  L'infobulle s'ouvre plus vite (150 ms au lieu de 300) et, pour une icône
+  empilée (entrées de la barre, colonne étroite d'icônes), s'affiche à côté
+  d'elle : elle ne masque plus l'entrée suivante et n'en capte plus le clic.
+* :feature:`794` Les pages qui ajoutent ou pré-enregistrent un transfert ne
+  proposent, pour la règle choisie, que les comptes qu'elle autorise : une
+  règle qui restreint ses accès masque les autres comptes, l'aide du champ
+  dit combien sont proposés et mène aux accès de la règle, et un compte déjà
+  choisi que la règle n'autorise pas est retiré. Un compte non autorisé
+  envoyé malgré tout est refusé sous son champ.
+* :feature:`789` Ajout de l'écran Tableau de bord de l'interface web
+  (section Supervision) : les services du nœud, les transferts en cours et
+  en erreur, l'activité des 24 dernières heures heure par heure, les cinq
+  dernières erreurs avec leurs actions ; chaque chiffre mène à l'écran qui le
+  détaille, filtré ; la page s'actualise toutes les 30 secondes et garde ses
+  derniers chiffres, datés, quand la base de données ne répond plus (voir
+  :ref:`le guide de l'interface web <user-webui-dashboard>`).
+* :bug:`796` Sur la fiche d'un partenaire distant, les règles de transfert qui
+  lui sont réservées sont présentées en liste dans leur carte, chacune avec
+  son sens et à qui l'accès est accordé, et non plus en tableau.
+* :bug:`795` Hors connexion, une page de l'interface web refondue placée sous
+  un sous-chemin (fiche d'un serveur, ajout d'un transfert, onglet d'une
+  règle) menait à une page de connexion inexistante, l'adresse de la
+  connexion étant résolue par le navigateur dans le dossier de la page
+  demandée. La garde, la déconnexion et la connexion mènent désormais au
+  chemin absolu de la page de connexion et de l'accueil.
+* :support:`791` La barre latérale de l'interface web refondue est rendue par
+  le serveur dans l'état choisi par l'exploitant (repliée ou non, groupes
+  fermés), lu dans deux cookies : plus de glissement ni de repli au chargement
+  d'une page. Un navigateur qui avait replié la barre la retrouve ouverte une
+  fois, le choix étant désormais conservé dans un cookie.
+* :feature:`787` La page de connexion est refondue sur le kit de l'interface
+  web, sans changer sa composition : la bannière, une carte à coins arrondis
+  avec l'identifiant, le mot de passe et le bouton qui l'affiche, le bouton de
+  connexion, le choix de la langue en haut à droite. À 390 px de large, les
+  champs gardent leur largeur ; l'icône du mot de passe s'affiche ; la page
+  déclare sa langue. Un refus garde l'identifiant saisi ; une session qui a
+  pris fin et une déconnexion sont dites sur la page ; changer de langue garde
+  la page demandée, et la connexion n'y ramène que si elle est une page de
+  l'interface (voir :ref:`le guide de l'interface web <user-webui-login>`).
+* :feature:`784` La durée maximale d'exécution des tâches EXEC, EXECMOVE et
+  EXECOUTPUT se saisit comme une durée (« 30s », « 5m », « 1h30m ») et s'affiche
+  en clair, « Sans limite » quand elle est absente ; l'aide dit qu'un programme
+  qui la dépasse est interrompu et que le transfert passe alors en erreur. La
+  ligne repliée d'une tâche EXEC nomme son programme et sa limite.
+* :feature:`782` Les fiches des partenaires distants, des serveurs locaux,
+  des clients locaux et de leurs comptes mènent au suivi des transferts filtré
+  sur l'objet (menu « ⋯ », avec le droit de lecture des transferts) ; le suivi
+  gagne un filtre sur le client local.
+* :feature:`783` Sur la fiche d'un transfert, la règle, le partenaire ou le
+  serveur, le compte et le client mènent à leur fiche tant qu'ils existent ;
+  un objet supprimé depuis garde son nom, sans lien.
+* :bug:`786` Les fiches des serveurs locaux et des partenaires distants
+  affichent les tailles de leurs options avec leur unité : « 10 Mo
+  (10 485 760 octets) » pour l'intervalle entre deux points de synchronisation
+  PeSIT, « 32 700 octets » pour la taille maximale d'un message, de même pour la
+  taille maximale d'un fichier AS2 ; elles s'affichaient en nombre nu.
+* :bug:`781` Dans le suivi des transferts, la colonne Partenaire reste visible
+  quelle que soit la largeur de l'écran : sous 1 500 px d'écran, c'est la taille
+  qui se replie dans l'infobulle de la progression. Elle disparaissait dès
+  1 880 px de fenêtre, le seuil ayant été mesuré sur la liste et non sur l'écran.
+* :feature:`776` Les formulaires d'authentification de l'interface web
+  reçoivent un certificat avec ses intermédiaires, déposés ensemble, en un ou
+  plusieurs fichiers choisis en une fois, dans n'importe quel ordre : la chaîne est remise dans l'ordre
+  attendu, une racine déposée par erreur est écartée et dite, un certificat
+  étranger est refusé et nommé ; quand la chaîne n'atteint aucune autorité
+  connue, le refus nomme le certificat qui la termine et son signataire, et
+  dit quoi faire (si la racine a été déposée avec la chaîne, qu'elle n'est pas
+  enregistrée). Une clé privée qui n'est pas celle du certificat, un certificat
+  déposé à la place de la clé ou une clé illisible sont dits en clair, sur le
+  champ de la clé. Un certificat de confiance garde le certificat seul. La
+  fiche d'un moyen montre chaque certificat de la chaîne et porte l'échéance
+  la plus proche ; la liste dit « chaîne de n certificats ». Ni l'API ni le
+  modèle ne changent : la valeur enregistrée est le PEM attendu par la ligne
+  de commande.
+* :bug:`775` La fiche d'un partenaire distant ne liste plus que les règles de
+  transfert qui lui sont réservées (un accès au partenaire ou à l'un de ses
+  comptes, dit lequel), chacune menant à sa fiche, et résume en une phrase
+  les règles sans restriction, que tout partenaire peut utiliser : avec des
+  centaines de règles, la liste ne s'allonge plus de celles qui ne lui sont
+  pas propres. Les cartes de la fiche se replient, sauf la première.
+* :feature:`774` Un écran *Surveillances de partenaires* dans la section
+  Traitements de l'interface web : la liste des surveillances avec l'état de
+  leur service, la recherche, les filtres par partenaire et par état, le tri
+  et la pagination ; la création et la modification en une page (compte
+  distant par partenaire, client du même protocole, règle de réception,
+  motif, intervalle en minutes ou en heures) ; la suppression ; le
+  démarrage, l'arrêt et le lancement d'un passage depuis la liste, la
+  notification disant combien de transferts le passage a créés. Mêmes droits
+  que l'API REST ``/api/filewatchers`` (ceux des serveurs) et que la ligne de
+  commande (voir :ref:`le guide de l'interface web <user-webui-watchers>`).
+* :feature:`773` Un écran *Import et export de la configuration* dans la
+  section Administration de l'interface web : l'export télécharge tout ou
+  partie de la configuration en JSON ou en YAML, les secrets en clair (le
+  fichier le dit, le journal aussi) ou remplacés par les repères des outils de
+  remplissage (``__PWD__``, ``__KEY__``, ``__PEM__``) ; l'import lit un tel
+  fichier, le simule ou l'applique, en une seule transaction, avec le choix
+  des catégories, le redémarrage des services concernés et, sur confirmation,
+  le vidage des catégories avant l'import ; un fichier qui porte encore des
+  repères est refusé. Chaque export et chaque import sont consignés dans le
+  journal avec leur utilisateur. Mêmes droits et même format que l'API REST
+  ``/api/updateconf`` et que la ligne de commande (voir :ref:`le guide de
+  l'interface web <user-webui-config>`). Le paquet ``backup`` sépare
+  l'extraction (``Collect``) de l'écriture (``Serialize``), sans changement
+  pour ``Export``.
+* :feature:`772` La barre latérale de l'interface web, repliée, garde les
+  icônes de ses écrans en une colonne étroite : le libellé s'affiche au
+  survol et au focus, l'écran courant reste marqué, le contenu prend la
+  largeur. Chaque écran a son icône : les identifiants SMTP, l'état des
+  services et SNMP en changent.
+* :bug:`768` Dans le suivi des transferts, l'heure *Actualisé à* suit chaque
+  lecture de la liste ; elle restait à celle de la première. Les lectures
+  périodiques ne sont plus suspendues quand le focus est sur le bouton
+  *Filtres* ou un autre contrôle de la barre d'outils, seulement pendant une
+  saisie dans un champ de texte.
+* :bug:`767` Le champ *Page* du pied des listes de l'interface web s'élargit
+  avec le nombre de pages : un numéro de quatre chiffres ou plus s'affiche en
+  entier, il était tronqué au-delà de 999 pages.
+* :feature:`770` La recherche des listes de l'interface web suit une seule
+  règle : le texte est cherché n'importe où dans le nom (ou l'identifiant,
+  l'adresse, le nom de fichier selon la liste), majuscules, minuscules et
+  accents confondus ; ``*`` remplace un texte, ``?`` un caractère, ``^`` et
+  ``$`` calent la recherche au début ou à la fin. Treize listes ne cherchaient
+  qu'au début du nom. Le suivi des transferts applique la même règle au nom
+  et au chemin du fichier, tels que la liste les affiche, majuscules et
+  minuscules confondues, et garde l'identifiant de suivi exact. L'info-bulle de chaque champ de recherche rappelle la règle
+  (voir :ref:`le guide de l'interface web <user-webui-search>`).
+* :bug:`771` Dans le suivi des transferts, le pied de liste répété au-dessus
+  du tableau reste sur la ligne de la recherche et du bouton *Filtres* quand
+  le panneau des filtres s'ouvre ; le panneau s'ouvre sous les deux.
+* :bug:`769` Dans la ligne des états du suivi des transferts, *En erreur* ne
+  porte plus le losange du statut d'erreur : chaque état s'affiche de la même
+  façon, son libellé et son nombre. Le losange reste sur le statut de chaque
+  transfert dans la liste et sur sa fiche.
+* :feature:`766` Les filtres et la recherche des listes de l'interface web
+  s'appliquent sans recharger la page : serveurs locaux, clients locaux,
+  partenaires distants, comptes locaux d'un serveur, comptes distants d'un
+  partenaire, moyens d'authentification, règles de transfert, clés
+  cryptographiques, identifiants SMTP, modèles d'e-mail, suivi des transferts,
+  utilisateurs, autorités d'authentification et instances cloud. La liste, son
+  compteur et le nombre de filtres se mettent à jour en place (en fondu sur les
+  navigateurs qui le permettent), l'adresse suit, le panneau des filtres, la
+  position de défilement et le focus ne bougent pas ; plusieurs changements
+  rapprochés ne font qu'une lecture. Le tri et la pagination de ces listes
+  passent de même en place. Sans JavaScript, les formulaires s'envoient comme
+  avant.
+* :feature:`765` Le corps d'un modèle d'e-mail se charge depuis un fichier
+  HTML (.html, .htm) ou texte (.txt), en UTF-8, de 1 Mo au plus : son contenu
+  remplace le corps, le format suit son extension, et le corps se relit avant
+  validation ; sans JavaScript, le fichier part avec le formulaire. Un fichier
+  d'un autre type, trop gros ou d'un autre encodage est refusé, avec sa raison
+  (voir :ref:`le guide de l'interface web <user-webui-email-templates>`).
+* :feature:`764` Les filtres des listes des serveurs locaux, des clients
+  locaux et des partenaires distants tiennent sur une ligne : les familles de
+  protocole en boutons joints, dont plusieurs peuvent être choisis, puis
+  *Tous*, *Avec TLS* ou *Sans TLS* ; un bouton choisi se reconnaît à sa
+  bordure, au gras et à sa coche. Les critères envoyés ne changent pas.
+* :feature:`763` Dans les listes des serveurs locaux, des clients locaux et des
+  partenaires distants, un cadenas remplace le badge *TLS* à côté de la famille
+  du protocole ; son info-bulle et son nom accessible disent « Chiffré par
+  TLS ».
+* :feature:`762` L'interface web ouvre la documentation dans un nouvel onglet,
+  sans quitter l'application. Une page de création ou de modification dont le
+  formulaire a changé sans être validé demande confirmation avant d'être
+  quittée : un lien de l'interface ouvre la fenêtre *Quitter sans
+  enregistrer ?* (rester sur la page, ou la quitter sans enregistrer), la
+  fermeture de l'onglet, le retour et le rechargement celle du navigateur ; rien
+  n'est demandé sans modification, à la validation, ni sur *Annuler*, et un
+  formulaire refusé compte comme modifié (voir :ref:`le guide de l'interface
+  web <user-guide-webui>`).
+* :feature:`717` Le formulaire d'un client local de l'interface web refondue
+  dit combien de temps prennent les reprises automatiques : sous les trois
+  réglages (tentatives, délai, facteur), une phrase (« 5 tentatives : la
+  dernière 15 min 30 s après le premier échec, avec des attentes de 30 s à
+  8 min »), une frise qui place chaque tentative au prorata du temps écoulé,
+  et le détail des tentatives en liste, recalculés à chaque saisie ; la
+  fiche du client porte la même phrase. Le calcul est celui du moteur de
+  transfert (délai multiplié par le facteur à chaque reprise, tronqué à la
+  seconde), désormais partagé ; un délai vide signifie une attente d'une
+  seconde, ce que l'aide du champ dit maintenant.
+* :feature:`759` L'écran des règles de transfert gagne l'onglet *Tâches* (voir
+  :ref:`le guide de l'interface web <user-webui-rules>`), qui remplace la page
+  des tâches : les trois chaînes (avant le transfert, après, en cas d'erreur)
+  côte à côte, chaque tâche pliée sur son type, ce qu'elle fait en info-bulle,
+  le chevron dépliant ses paramètres en clair ; un objet que la Gateway n'a plus
+  (clé, identifiant SMTP, modèle d'e-mail) y est signalé, dès la tâche pliée ;
+  la page d'ajout d'une tâche, en une seule page (le type par famille, et ses
+  paramètres aussitôt, une carte repliable par groupe, pour les 28 types de
+  tâches ; la tâche ``TRANSFER`` à l'image de la page qui ajoute un transfert ;
+  les paramètres typés, adresses e-mail, durées, droits et adresse ICAP,
+  vérifiés dès la saisie), ses pages de modification et de
+  suppression ; l'ordre d'une chaîne par glisser-déposer ou par les actions
+  *Monter* et *Descendre*. Chaque changement réécrit la chaîne en une
+  transaction, comme l'API REST, et une modification, un déplacement, un nouvel
+  ordre ou une suppression lancés depuis une page qui ne montre plus l'état de
+  la chaîne sont refusés, sans rien enregistrer ; les cases
+  à cocher (une case enregistrée à ``false`` le reste) et les tâches de
+  chiffrement s'enregistrent telles que saisies, la
+  tâche ``SENDMESSAGE`` demande son partenaire, son compte et son client, que
+  la Gateway exige, et les paramètres que l'écran ne connaît pas sont
+  conservés. Les liens « Utilisée par » des clés, des identifiants SMTP et des
+  modèles d'e-mail mènent à cet onglet, comme l'adresse de l'ancienne page des
+  tâches, dont le module est retiré.
+* :feature:`744` L'interface web propose un écran des modèles d'e-mail (voir
+  :ref:`le guide de l'interface web <user-webui-email-templates>`), qui n'existait
+  jusqu'ici que par l'API REST et la ligne de commande : liste triée par nom et
+  par objet, avec le format, les pièces jointes et le nombre de règles qui
+  emploient chaque modèle ; fiche en lecture avec un aperçu du message tel que le
+  traitement EMAIL l'envoie, ses marqueurs remplacés par les valeurs de l'un des
+  derniers transferts des règles qui l'emploient ou par des valeurs d'exemple ;
+  pages de création, de modification et de suppression, avec un éditeur HTML
+  et la liste des variables qui s'ouvre en tapant ``#``. Le formulaire refuse un
+  marqueur que les traitements ne connaissent pas ou ne prennent pas en charge ;
+  le nom d'un modèle employé ne se modifie pas, et sa suppression est remplacée
+  par la liste des règles à modifier d'abord. L'ancienne page, qui renvoyait à la
+  ligne de commande, mène désormais à l'écran.
+* :feature:`741` L'interface web propose un écran des identifiants SMTP (voir
+  :ref:`le guide de l'interface web <user-webui-smtp>`), qui n'existait jusqu'ici
+  que par l'API REST et la ligne de commande : liste triée par expéditeur et par
+  serveur, avec l'authentification et le nombre de règles qui emploient chaque
+  identifiant ; fiche en lecture avec la connexion que le port implique (TLS dès
+  la connexion sur le port 465, STARTTLS si le serveur le propose sinon) et les
+  règles dont les traitements EMAIL le désignent, chacune menant à ses
+  traitements ; pages de création, de modification et de suppression, l'hôte et
+  le port en deux champs. Le mot de passe n'est jamais réaffiché et reste
+  inchangé quand on le laisse vide. L'adresse d'un identifiant employé ne se
+  modifie pas, et sa suppression est remplacée par la liste des règles à
+  modifier d'abord. L'ancienne page, qui renvoyait à la ligne de commande, mène
+  désormais à l'écran.
+* :feature:`735` L'interface web propose un écran des clés cryptographiques
+  (voir :ref:`le guide de l'interface web <user-webui-keys>`), qui n'existait
+  jusqu'ici que par l'API REST et la ligne de commande : liste triée par nom et
+  par type et filtrée par type, avec la taille d'une clé AES, l'identité d'une
+  clé PGP, son état (utilisable, échéance dans les 30 jours, expirée,
+  inutilisable avec la cause) et le nombre de règles qui l'emploient ; fiche en
+  lecture avec le résumé d'une clé PGP et les règles dont les traitements la
+  désignent, chacune menant à ses traitements ; pages de création, de
+  modification et de suppression, la clé PGP déposée en fichier ou collée. Les
+  valeurs secrètes ne sont jamais réaffichées et restent inchangées quand on
+  les laisse vides. Le formulaire refuse une clé que les traitements ne
+  pourraient pas lire (clé AES hors base64 de 16, 24 ou 32 octets, secret HMAC
+  hors base64, clé PGP privée
+  protégée par une phrase secrète) ; le nom et le type d'une clé employée ne se
+  modifient pas, et sa suppression est remplacée par la liste des règles à
+  modifier d'abord. L'ancienne page, qui renvoyait à la ligne de commande, mène
+  désormais à l'écran.
+* :feature:`730` L'interface web propose un écran des surcharges de
+  configuration (voir :ref:`le guide de l'interface web <user-webui-overrides>`),
+  qui n'existait jusqu'ici que par l'API REST et la ligne de commande : la liste
+  des adresses remplacées sur le nœud de grappe qui sert la page, avec la portée
+  de chaque règle (hôte et port, ou hôte seul) et ce qu'elle concerne dans la
+  configuration commune (serveurs locaux, partenaires, administration, cette
+  dernière avec une mise en garde) ; pages d'ajout, de modification et de
+  suppression, qui disent quand une règle s'applique et refusent une adresse
+  qui rendrait le fichier du nœud illisible ou qui est déjà remplacée. Sur une
+  instance démarrée sans nom d'instance, l'écran l'explique. L'ancienne page,
+  qui renvoyait à la ligne de commande, mène désormais à l'écran.
+* :feature:`723` L'interface web propose un écran SNMP (voir :ref:`le guide de
+  l'interface web <user-webui-snmp>`), qui n'existait jusqu'ici que par l'API
+  REST et la ligne de commande : une page avec les moniteurs (version, adresse,
+  sécurité) et l'agent SNMP (état du service, adresse d'écoute, versions
+  acceptées, utilisateur SNMPv3) ; fiche d'un moniteur ; pages de création, de
+  modification et de suppression d'un moniteur, SNMPv2c ou SNMPv3, avec les
+  seuls champs du niveau de sécurité choisi ; pages de configuration et de
+  désactivation de l'agent ; bouton d'envoi de la notification de test, dont la
+  page donne le résultat. Les phrases secrètes et les communautés ne sont
+  jamais réaffichées et restent inchangées quand on les laisse vides.
+  L'ancienne page, qui renvoyait à la ligne de commande, mène désormais à
+  l'écran.
+* :feature:`722` L'interface web propose un écran des autorités
+  d'authentification (voir :ref:`le guide de l'interface web
+  <user-webui-authorities>`), qui n'existait jusqu'ici que par l'API REST et
+  la ligne de commande : liste triée par colonne et filtrée par type et par
+  validité du certificat, avec le sujet du certificat ou le type de la clé,
+  l'état du certificat (valide, expire dans les 30 jours, expiré) et les hôtes
+  autorisés ; fiche en lecture avec l'identité publique (sujet, émetteur,
+  validité, empreinte, valeur à copier) et, pour une autorité TLS, les
+  certificats enregistrés dans la Gateway qu'elle signe ; pages de création,
+  de modification et de suppression, l'identité publique déposée en fichier
+  ou collée, vérifiée avant l'enregistrement, et les hôtes autorisés saisis un
+  par ligne, avec la règle de comparaison de chaque type. L'ancienne page, qui
+  renvoyait à la ligne de commande, mène désormais à l'écran.
+* :feature:`716` Dans les formulaires de l'interface web refondue, les listes
+  d'algorithmes SSH (échange de clés, chiffrement, intégrité) et de suites de
+  chiffrement TLS se composent en étiquettes : les algorithmes retenus
+  s'affichent numérotés dans l'ordre de préférence, les autres sont proposés
+  par un champ à complétion (taper filtre, Entrée ajoute), une étiquette se
+  déplace en la glissant ou au clavier. Les suites TLS gardent leur code
+  décimal ; les algorithmes SSH fondés sur SHA-1 sont dits historiques, ceux
+  que le module n'active plus par défaut le disent aussi. Kit graphique en
+  version 0.8.0.
+* :feature:`710` La page d'accueil de l'interface web est refondue sur le kit :
+  une carte par section et une tuile par écran, avec une phrase qui dit ce que
+  l'écran contient ; seuls les écrans que l'utilisateur a le droit de lire sont
+  proposés (l'ancienne page montrait des écrans refusés ensuite). Le menu du
+  compte gagne « Mon compte » (identifiant, droits en lecture, changement de
+  son propre mot de passe, page ``/webui/account``) et retrouve « À propos »
+  (version, révision, support, licence, liens utiles), en fenêtre ou en page
+  ``/webui/about`` ; le bouton « Documentation » mène à la dernière
+  documentation publiée. L'ancienne page d'accueil est retirée, à la même
+  adresse (:ref:`user-webui-home`).
 * :feature:`863` Les attributs du fichier annoncés par un partenaire PeSIT
   (identifiants, priorité, clé, espace réservé, dates) sont conservés dans les infos
   de transfert ; trois marqueurs mettent les dates en forme (voir :ref:`le guide
@@ -21,7 +594,6 @@ Historique des versions
   une base volumineuse : la vue ``normalized_transfers`` réunit les transferts
   en cours et l'historique par ``UNION ALL``, sans le dédoublonnage de ``UNION``
   qui n'écartait aucune ligne.
-
 * :feature:`850` Les tâches TRANSCODE&REFORMAT et REFORMAT découpent un fichier
   aux longueurs d'articles des informations de transfert (``records: articles``),
   posées par une réception PeSIT ou par SETINFO, puis y décrivent le fichier
@@ -39,6 +611,7 @@ Historique des versions
   recopié octet pour octet.
 * :bug:`845` Avec les pages IBM 500 et 1148, la tâche TRANSCODE convertit
   désormais correctement les caractères ``[ ] ! ^ ¢ ¬ |``, dans les deux sens.
+
 * :release:`0.17.2 <2026-11-13>`
 * :bug:`871` Une tâche ``SETINFO`` qui emploie ``key`` ou ``value`` autrement que
   dans son ancienne forme seule est refusée à l'enregistrement, au lieu de ne

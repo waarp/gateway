@@ -1,0 +1,5 @@
+/* Local servers screen: the column widths of the list. The rules shared by the pages of a sheet (tabs, banners,
+   action pages) are in sheet/sheet.css. Tokens only. */
+.servers-col-name { width: 24%; }
+.servers-col-state { width: 34%; }
+.servers-col-protocol { width: 16%; }

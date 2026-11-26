@@ -16,6 +16,20 @@ var (
 const (
 	WebuiPrefix  = "/webui"
 	StaticPrefix = "/static_v2/"
+	// KitStaticPrefix is where the files of the GUI kit (styles, scripts,
+	// fonts, icons) are served, under WebuiPrefix.
+	KitStaticPrefix = "/static/gui/"
+	// DashboardPath is the page of the dashboard under WebuiPrefix, where
+	// an action of the transfers asked from it comes back.
+	DashboardPath = "/dashboard"
+
+	// LanguageParam is the query parameter that selects the language of the
+	// interface; the language middleware then stores it in a cookie.
+	LanguageParam = "language"
+	// FragmentParam is the query parameter that asks a screen for one of its
+	// blocks alone, for an update without reload. Such a request is made by
+	// the page itself, not by the user: it does not extend the session.
+	FragmentParam = "fragment"
 )
 
 //nolint:staticcheck //remove once the doc has been translated
@@ -30,11 +44,16 @@ func DocLink(language string) string {
 	return DocLinkHome + path.Join(num, language) + "/"
 }
 
+// DocPage returns the URL of a page of the documentation, given relative to
+// the guide ("user/webui/etat-des-services"), in the form the documentation
+// site serves (a directory, with a trailing slash).
 func DocPage(language, page string) string {
-	url := path.Join(DocLink(language), page)
-	if !strings.HasSuffix(url, "/") {
-		url += "/"
-	}
+	return DocLink(language) + strings.Trim(page, "/") + "/"
+}
 
-	return url
+// DocLatest is the home of the latest published documentation, whatever the
+// version of the gateway: where the header of the web interface leads,
+// in the only language the documentation exists in.
+func DocLatest() string {
+	return DocLinkHome + "latest/fr/"
 }

@@ -62,7 +62,7 @@ func TestSecurityHeaders(t *testing.T) {
 		status     int
 	}{
 		{name: "a page", path: "/webui/login", status: http.StatusOK},
-		{name: "a static file", path: "/webui/static/css/button.css", status: http.StatusOK},
+		{name: "a static file", path: "/webui/static/gui/waarp-banner.png", status: http.StatusOK},
 		{name: "an API answer", path: "/api/users", status: http.StatusOK},
 		{name: "an API refusal", path: "/api/nowhere", status: http.StatusNotFound},
 		{name: "an unknown path", path: "/nowhere", status: http.StatusNotFound},

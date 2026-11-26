@@ -61,6 +61,14 @@ Glossaire
       un partenaire ou bien un compte. Lorsqu'il est attaché à un compte,
       un certificat peut également servir à l'authentification.
 
+   chaîne de certification
+   (*certificate chain*)
+      Le certificat d'un serveur ou d'un client, suivi des certificats des
+      autorités intermédiaires qui l'ont signé, jusqu'à la racine, que le
+      correspondant connaît de son côté. L'ordre compte : le certificat
+      d'abord. La racine ne se présente pas : elle se déclare parmi les
+      autorités d'authentification.
+
    contrôleur
    (*controller*)
       Le contrôleur est le service en charge du lancement des transferts programmés.
@@ -83,8 +91,9 @@ Glossaire
       voyagent toujours dans le sens de la connexion (depuis le client vers le
       serveur) et jamais dans l'autre sens.
 
-      À noter que Waarp-Gateway réserve 2 nom de clé pour les informations de
-      transfert : ``__userContent__`` qui sert pour la rétro-compatibilité avec
+      À noter que Waarp-Gateway réserve des noms de clé pour les informations de
+      transfert (liste complète : :ref:`reference-transfer-info`), dont
+      ``__userContent__`` qui sert pour la rétro-compatibilité avec
       Waarp-R66, et ``__followID__`` qui contient l'ID de flux utilisé par
       Waarp-Manager.
 
@@ -133,9 +142,11 @@ Glossaire
       contenir soit une clé privée, soit une clé publique (voir même parfois les
       deux). Le format de la clé dépend également du type de la clé.
 
+   surveillance de partenaire
    filewatcher
-   (*filewatcher*)
-      Un *filewatcher* est un service de Gateway dont la mission est de surveiller
-      un dossier. Lorsqu'un fichier est déposé dans ce dossier, si ce fichier
-      match le paterne du filewatcher, alors un transfert sera automatiquement
-      créé pour ce fichier.
+   (*partner watcher*)
+      Une surveillance de partenaire (*filewatcher* dans l'API et la ligne de
+      commande) est un service de Gateway qui interroge, à intervalle
+      régulier, un dossier chez un partenaire distant. Pour chaque fichier
+      trouvé dont le nom correspond au motif de la surveillance, un transfert
+      de réception est créé automatiquement, sous la règle de la surveillance.

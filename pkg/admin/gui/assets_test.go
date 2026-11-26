@@ -26,10 +26,7 @@ var (
 func TestStylesheetsReferenceEmbeddedFiles(t *testing.T) {
 	t.Parallel()
 
-	historic, err := fs.Sub(webFS, "front-end")
-	require.NoError(t, err)
-
-	for name, fsys := range map[string]fs.FS{"historic": historic, "v2": frontend.EmbedFS} {
+	for name, fsys := range map[string]fs.FS{"v2": frontend.EmbedFS} {
 		require.NoError(t, fs.WalkDir(fsys, ".", func(file string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() || path.Ext(file) != ".css" {
 				return err

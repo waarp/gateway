@@ -1,0 +1,10 @@
+/* The document of the body in the preview of an email template, shown in an isolated frame: the font an e-mail
+   client shows by default, the colours of the kit (tokens.css, linked by the document). A file of its own: the
+   content security policy refuses a stylesheet written in the document. */
+body { margin: 0; padding: 12px 16px; font: 14px/1.5 Arial, Helvetica, sans-serif; color: var(--tp); }
+p { margin: 0 0 .7em; }
+h2 { font-size: 18px; margin: .6em 0 .3em; }
+.plain { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A value of a variable: a badge (border, bold, tinted background), seen at once even without the colour. */
+mark { padding: 0 4px; border: 1px solid var(--wo-aa); border-radius: var(--r-xs); background: var(--wo-bg);
+       color: var(--wo-aa); font-weight: 700; }

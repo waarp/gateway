@@ -54,11 +54,11 @@ func TestLoginThrottle(t *testing.T) {
 	}
 
 	for range 3 {
-		assert.Equal(t, http.StatusOK, login("10.0.0.1:1234", "wrong"), "login page shown again")
+		assert.Equal(t, http.StatusUnprocessableEntity, login("10.0.0.1:1234", "wrong"), "login page shown again")
 	}
 
-	assert.Equal(t, http.StatusOK, login("10.0.0.1:1234", password),
+	assert.Equal(t, http.StatusUnprocessableEntity, login("10.0.0.1:1234", password),
 		"valid credentials refused while the address is locked")
-	assert.Equal(t, http.StatusFound, login("10.0.0.2:1234", password),
+	assert.Equal(t, http.StatusSeeOther, login("10.0.0.2:1234", password),
 		"valid credentials accepted from another address")
 }

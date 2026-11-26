@@ -21,7 +21,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router) {
 	router.Use(
 		AuthenticationMiddleware(logger, db),
 		LoggingMiddleware(logger),
-		ServerInfoMiddleware(),
+		ServerInfoMiddleware(db.Config.Admin.EnvironmentLabel),
 	)
 	router.UseEncodedPath()
 

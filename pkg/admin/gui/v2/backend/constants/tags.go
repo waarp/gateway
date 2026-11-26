@@ -9,11 +9,13 @@ const (
 
 	SidebarSectionTreatments  = "treatments"
 	SidebarMenuRules          = "rules"
+	SidebarMenuWatchers       = "watchers"
 	SidebarMenuCryptoKeys     = "crypto_keys"
 	SidebarMenuSMTPCreds      = "smtp_creds"
 	SidebarMenuEmailTemplates = "email_templates"
 
 	SidebarSectionMonitoring = "monitoring"
+	SidebarMenuDashboard     = "dashboard"
 	SidebarMenuStatus        = "status"
 	SidebarMenuTransfers     = "transfers"
 	SidebarMenuSNMP          = "snmp"
@@ -22,4 +24,5 @@ const (
 	SidebarMenuUsers             = "users"
 	SidebarMenuAuthorities       = "authorities"
 	SidebarMenuOverrides         = "overrides"
+	SidebarMenuConfig            = "config"
 )

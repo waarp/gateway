@@ -52,6 +52,7 @@ Le guide utilisateur décrit le fonctionnement de Waarp Gateway :
    :caption: Guide utilisateur
    :maxdepth: 1
 
+   user/webui/index
    user/cli/index
 
 La section suivante contient plusieurs page ayant trait à l'administration et à
@@ -83,6 +84,7 @@ de l'application.
    reference/proto_config/index
    reference/auth_methods
    reference/tasks/index
+   reference/transfer_info
    reference/cloud/index
    reference/errorcodes
    reference/backup

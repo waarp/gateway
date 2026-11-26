@@ -1,0 +1,1931 @@
+//go:build e2e
+
+package admin_test
+
+import (
+	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"database/sql"
+	"encoding/base64"
+	"encoding/pem"
+	"fmt"
+	"math/big"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	pgp "github.com/ProtonMail/gopenpgp/v3/crypto"
+	"github.com/mxschmitt/playwright-go"
+	"github.com/rclone/rclone/fs/object"
+	"github.com/rclone/rclone/vfs"
+	"github.com/rclone/rclone/vfs/vfscommon"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/dbtest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	_ "code.waarp.fr/apps/gateway/gateway/pkg/fs/backends" // the description of the storages: the cloud form lists their options
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
+	"code.waarp.fr/apps/gateway/gateway/pkg/snmp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
+)
+
+// Timings of the smoke test. A screen counts as settled once no request has
+// been in flight for e2eQuiet; the state refresh of the service status
+// screen is awaited explicitly, its period being longer than that.
+const (
+	e2eQuiet         = time.Second
+	e2eSettleTimeout = 30 * time.Second
+	e2ePollInterval  = 50 * time.Millisecond
+	e2eTimeoutMs     = 60_000.0
+	e2eRefreshMs     = 15_000.0
+
+	e2eUsername = "smoke"
+	e2ePassword = "smoke_password"
+)
+
+// e2eScreen is a screen of the reworked web interface, with the number of
+// tables and of tile tabs it must render and the query of the fragment it
+// refreshes on its own (empty when it has none). The smoke user holds the
+// rights on the servers, which the local servers screens require.
+type e2eScreen struct {
+	path     string
+	tables   int
+	tabs     int
+	fragment string
+	outside  bool // the screen has no entry in the sidebar (the home page)
+	// refresh is the button that asks the fragment, for a screen whose period
+	// exceeds the wait (the dashboard, every 30 seconds).
+	refresh string
+}
+
+func e2eScreens() []e2eScreen {
+	return []e2eScreen{
+		{path: "/webui/home", outside: true},
+		{path: "/webui/about", outside: true},
+		{path: "/webui/account", outside: true},
+		// The dashboard: the values of the chart and the latest errors (the
+		// failed transfer), refreshed on the button.
+		{path: "/webui/dashboard", tables: 2, fragment: "fragment=body", refresh: "#tdb-refresh"},
+		{path: "/webui/services", tables: 3, tabs: 3, fragment: "fragment=state"},
+		{path: "/webui/servers", tables: 1},
+		{path: "/webui/servers/1"},
+		{path: "/webui/servers/new"},
+		{path: "/webui/servers/1/edit"},
+		{path: "/webui/servers/1/delete"},
+		// The sheet of the SFTP server: its host key, its accounts, the
+		// sheet of the partner account and its means, the pages that add
+		// a means and an account; the certificate of the HTTPS server.
+		{path: "/webui/servers/1/auth", tables: 1},
+		{path: "/webui/servers/1/auth/1"},
+		{path: "/webui/servers/1/auth/new"},
+		{path: "/webui/servers/1/accounts", tables: 1},
+		{path: "/webui/servers/1/accounts/new"},
+		{path: "/webui/servers/1/accounts/1"},
+		{path: "/webui/servers/1/accounts/1/edit"},
+		{path: "/webui/servers/1/accounts/1/delete"},
+		{path: "/webui/servers/1/accounts/1/auth", tables: 1},
+		{path: "/webui/servers/1/accounts/1/auth/2"},
+		{path: "/webui/servers/1/accounts/1/auth/3/edit"},
+		{path: "/webui/servers/1/accounts/1/auth/2/delete"},
+		{path: "/webui/servers/1/accounts/1/auth/new"},
+		{path: "/webui/servers/3/auth", tables: 1},
+		{path: "/webui/servers/3/auth/4"},
+		// The local clients: the list, the details of the SFTP client (the
+		// SFTP partner it reaches: a table), the pages that add, edit and
+		// delete one.
+		{path: "/webui/clients", tables: 1},
+		{path: "/webui/clients/1"},
+		{path: "/webui/clients/new"},
+		{path: "/webui/clients/1/edit"},
+		{path: "/webui/clients/1/delete"},
+		// The remote partners: the list, the sheet of the SFTP
+		// partner (its details, the host key the gateway checks, the pages
+		// that add a means), the sheet of the R66 over TLS partner (no
+		// means yet), the pages that add, edit and delete a partner.
+		{path: "/webui/partners", tables: 1},
+		{path: "/webui/partners/1"},
+		{path: "/webui/partners/new"},
+		{path: "/webui/partners/1/edit"},
+		{path: "/webui/partners/1/delete"},
+		{path: "/webui/partners/1/auth", tables: 1},
+		{path: "/webui/partners/1/auth/5"},
+		{path: "/webui/partners/1/auth/5/edit"},
+		{path: "/webui/partners/1/auth/5/delete"},
+		{path: "/webui/partners/1/auth/new"},
+		{path: "/webui/partners/2"},
+		{path: "/webui/partners/2/auth"},
+		// The remote account of the SFTP partner: the accounts tab, the
+		// sheet of the account and its password (means 6), the pages that
+		// add, edit and delete an account and a means.
+		{path: "/webui/partners/1/accounts", tables: 1},
+		{path: "/webui/partners/1/accounts/new"},
+		{path: "/webui/partners/1/accounts/1"},
+		{path: "/webui/partners/1/accounts/1/edit"},
+		{path: "/webui/partners/1/accounts/1/delete"},
+		{path: "/webui/partners/1/accounts/1/auth", tables: 1},
+		{path: "/webui/partners/1/accounts/1/auth/6"},
+		{path: "/webui/partners/1/accounts/1/auth/6/edit"},
+		{path: "/webui/partners/1/accounts/1/auth/6/delete"},
+		{path: "/webui/partners/1/accounts/1/auth/new"},
+		// The users: the list, the sheet of the smoke user (user 2: the
+		// cards of their rights), the pages that add, edit and delete the
+		// viewer (user 3), the refused deletion of the smoke user's own
+		// account.
+		{path: "/webui/users", tables: 1},
+		{path: "/webui/users/2"},
+		{path: "/webui/users/new"},
+		{path: "/webui/users/3/edit"},
+		{path: "/webui/users/3/delete"},
+		{path: "/webui/users/2/delete"},
+		// The cloud instances: the list, the sheet of the S3 instance
+		// (named by a rule), the pages that add, edit and delete it, the
+		// sheet of the OneDrive instance (its token never shown).
+		{path: "/webui/clouds", tables: 1},
+		{path: "/webui/clouds/1"},
+		{path: "/webui/clouds/new"},
+		{path: "/webui/clouds/1/edit"},
+		{path: "/webui/clouds/1/delete"},
+		{path: "/webui/clouds/2"},
+		// The authentication authorities: the list, the sheet of the
+		// TLS authority (with the partner certificate it signs), the sheet of
+		// the SSH authority, the pages that add, edit and delete one.
+		{path: "/webui/authorities", tables: 1},
+		{path: "/webui/authorities/1"},
+		{path: "/webui/authorities/2"},
+		{path: "/webui/authorities/new"},
+		{path: "/webui/authorities/1/edit"},
+		{path: "/webui/authorities/2/delete"},
+		// SNMP: the page of the monitors and of the agent, the sheets
+		// of the SNMPv2c and SNMPv3 monitors, the pages that add, edit and
+		// delete a monitor, the pages that configure and disable the agent.
+		{path: "/webui/snmp", tables: 1},
+		{path: "/webui/snmp/monitors/1"},
+		{path: "/webui/snmp/monitors/2"},
+		{path: "/webui/snmp/monitors/new"},
+		{path: "/webui/snmp/monitors/2/edit"},
+		{path: "/webui/snmp/monitors/1/delete"},
+		{path: "/webui/snmp/agent/edit"},
+		{path: "/webui/snmp/agent/delete"},
+		// The configuration overrides: the gateway runs as a node of
+		// a cluster with one rule (the host of the servers and partners of
+		// the smoke test); the list, the pages that add, edit and delete a
+		// rule.
+		{path: "/webui/overrides", tables: 1},
+		{path: "/webui/overrides/new"},
+		{path: "/webui/overrides/edit?target=127.0.0.1"},
+		{path: "/webui/overrides/delete?target=127.0.0.1"},
+		{path: "/webui/config"},
+		// The transfer rules: the list, the sheet of the rule whose
+		// tasks encrypt (its tabs lead to the tasks and access pages), of the
+		// rule that reads a cloud instance, the pages that add and edit one,
+		// the deletion refused for the rule the transfers name and confirmed
+		// for the other one.
+		{path: "/webui/rules", tables: 1},
+		{path: "/webui/rules/2"},
+		{path: "/webui/rules/1"},
+		{path: "/webui/rules/new"},
+		{path: "/webui/rules/2/edit"},
+		{path: "/webui/rules/4/delete"},
+		{path: "/webui/rules/1/delete"},
+		// Its Access tab, open to all, and the page that adds one.
+		{path: "/webui/rules/2/access"},
+		{path: "/webui/rules/2/access/new"},
+		{path: "/webui/rules/2/access/new?side=out"},
+		// Its Tasks tab: the chains of the rule whose task encrypts
+		// and of the one whose task sends an email (cards, no table), the page
+		// of a new task, with the parameters of a TRANSFER task (the partners,
+		// accounts, clients and rules of the gateway), the pages that edit and
+		// delete the encrypting task (the methods and the keys).
+		{path: "/webui/rules/2/tasks"},
+		{path: "/webui/rules/3/tasks"},
+		{path: "/webui/rules/2/tasks/post/new"},
+		{path: "/webui/rules/2/tasks/post/new?type=TRANSFER"},
+		{path: "/webui/rules/2/tasks/pre/0/edit"},
+		{path: "/webui/rules/2/tasks/pre/0/delete"},
+		// The partner watchers: the list (the state of the service of each
+		// one), the sheet of the watcher of the SFTP partner (no file received
+		// yet), the pages that add, edit and delete it.
+		{path: "/webui/watchers", tables: 1},
+		{path: "/webui/watchers/1"},
+		{path: "/webui/watchers/new"},
+		{path: "/webui/watchers/1/edit"},
+		{path: "/webui/watchers/1/delete"},
+		// The cryptographic keys: the list, the sheet of the AES key
+		// (the rule whose tasks use it: a table), the sheet of the PGP public
+		// key, the pages that add and edit one, the deletion refused for the
+		// AES key (the rules to change first) and confirmed for the PGP one.
+		{path: "/webui/keys", tables: 1},
+		{path: "/webui/keys/1"},
+		{path: "/webui/keys/2"},
+		{path: "/webui/keys/new"},
+		{path: "/webui/keys/1/edit"},
+		{path: "/webui/keys/1/delete"},
+		{path: "/webui/keys/2/delete"},
+		// The SMTP credentials: the list, the sheet of the credential
+		// a rule uses (the rule: a table), the sheet of the one no rule uses,
+		// the pages that add and edit one, the deletion refused for the first
+		// (the rules to change first) and confirmed for the second.
+		{path: "/webui/smtp", tables: 1},
+		{path: "/webui/smtp/1"},
+		{path: "/webui/smtp/2"},
+		{path: "/webui/smtp/new"},
+		{path: "/webui/smtp/1/edit"},
+		{path: "/webui/smtp/1/delete"},
+		{path: "/webui/smtp/2/delete"},
+		// The email templates: the list, the sheet of the template a
+		// rule uses (the rule: a table) with its preview, the sheet of the one
+		// no rule uses, the pages that add and edit one (the rich text field
+		// and the variables of the kit), the deletion refused for the first
+		// (the rules to change first) and confirmed for the second.
+		{path: "/webui/email-templates", tables: 1},
+		{path: "/webui/email-templates/1"},
+		{path: "/webui/email-templates/2"},
+		{path: "/webui/email-templates/new"},
+		{path: "/webui/email-templates/1/edit"},
+		{path: "/webui/email-templates/1/delete"},
+		{path: "/webui/email-templates/2/delete"},
+		// The transfer monitoring: the list, refreshed on its own; the
+		// sheet of the failed transfer (its information: a table), of the
+		// done one; the pages that add and preregister a transfer, cancel
+		// the failed one and retry the done one.
+		{path: "/webui/transfers", tables: 1, fragment: "fragment=rows"},
+		{path: "/webui/transfers/1"},
+		{path: "/webui/transfers/1001"},
+		{path: "/webui/transfers/new"},
+		{path: "/webui/transfers/preregister"},
+		{path: "/webui/transfers/1/cancel"},
+		{path: "/webui/transfers/1001/retry"},
+		// The pages of the grouped actions: the cancellation of the
+		// failed transfers, the retry of the whole filter.
+		{path: "/webui/transfers/cancel?all=1&state=error"},
+		{path: "/webui/transfers/retry?all=1&state=error"},
+	}
+}
+
+// insertE2ETransfers inserts, for a sending rule of the SFTP partner, a
+// failed transfer with its transfer information, a running one and a planned
+// one, and a done entry of the history. The screens are visited by
+// identifier.
+// insertE2EWatchers inserts a watcher of the SFTP partner: its account
+// "releves" of its own partner, the SFTP client, the receive rule
+// "pull-archive", every hour. Its service is not started: the list shows it
+// stopped; a run from the list reaches the partner, which refuses the
+// connection at once: a loopback address the cluster indirection of the test
+// (127.0.0.1 to 10.0.0.5) leaves alone, on a port nobody listens to (a dial of
+// 10.0.0.5 timed out after a minute on the runner). The screens are visited by
+// identifier.
+func insertE2EWatchers(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	partner := &model.RemoteAgent{Name: "part-sftp-ferme", Protocol: "sftp", Address: types.Addr("127.0.0.4", 9)}
+	require.NoError(t, db.Insert(partner).Run())
+
+	account := model.RemoteAccount{RemoteAgentID: partner.ID, Login: "releves"}
+	require.NoError(t, db.Insert(&account).Run())
+
+	var client model.Client
+	require.NoError(t, db.Get(&client, "name=?", "cli-sftp").Run())
+
+	var rule model.Rule
+	require.NoError(t, db.Get(&rule, "name=? AND is_send=?", "pull-archive", false).Run())
+
+	watcher := &model.FileWatcher{
+		Flow: "releves-banque", Pattern: "*.csv", Interval: time.Hour,
+		RemoteAccount: account, Client: client, Rule: rule,
+	}
+	require.NoError(t, db.Insert(watcher).Run())
+	require.EqualValues(t, 1, watcher.ID, "the screens are visited by identifier")
+}
+
+func insertE2ETransfers(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	rule := &model.Rule{Name: "releves", IsSend: true, Path: "releves"}
+	require.NoError(t, db.Insert(rule).Run())
+
+	// The rule lists the partner of the first remote account and the first
+	// local account alone: the forms of a transfer offer, once it is chosen,
+	// the accounts of that partner and that local account alone.
+	var first model.RemoteAccount
+	require.NoError(t, db.Get(&first, "id=?", 1).Run())
+	require.NoError(t, db.Insert(&model.RuleAccess{
+		RuleID: rule.ID, RemoteAgentID: sql.NullInt64{Int64: first.RemoteAgentID, Valid: true},
+	}).Run())
+	require.NoError(t, db.Insert(&model.RuleAccess{
+		RuleID: rule.ID, LocalAccountID: sql.NullInt64{Int64: 1, Valid: true},
+	}).Run())
+
+	start := time.Now().Add(-time.Hour)
+
+	for i, trans := range []*model.Transfer{
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "releve-20102026.pdf", DestFilename: "releve-20102026.pdf", Start: start, Status: types.StatusError,
+			Step: types.StepSetup, ErrCode: types.TeForbidden, ErrDetails: "failed to make transfer request: FICHIER DEJA RECU",
+			RemainingTries: 2, Filesize: 302114, TransferInfo: map[string]any{"lot": "2026-10-20-B"},
+		},
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "paie-octobre.xml", DestFilename: "paie-octobre.xml", Start: start.Add(time.Minute),
+			Status: types.StatusRunning, Step: types.StepData, Filesize: 1228800, Progress: 786432,
+		},
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "rapport-mensuel.pdf", DestFilename: "rapport-mensuel.pdf", Start: start.Add(2 * time.Hour),
+			Status: types.StatusPlanned, Filesize: model.UnknownSize,
+		},
+		// A second failed transfer: the one a selection resumes.
+		{
+			RuleID: rule.ID, ClientID: sql.NullInt64{Int64: 1, Valid: true}, RemoteAccountID: sql.NullInt64{Int64: 1, Valid: true},
+			SrcFilename: "releve-21102026.pdf", DestFilename: "releve-21102026.pdf", Start: start.Add(2 * time.Minute),
+			Status: types.StatusError, Step: types.StepSetup, ErrCode: types.TeConnection,
+			ErrDetails: "failed to connect to the partner", RemainingTries: 1, Filesize: 204800,
+		},
+	} {
+		require.NoError(t, db.Insert(trans).Run())
+		require.EqualValues(t, i+1, trans.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.HistoryEntry{
+		Identifier: model.ID(1001), RemoteTransferID: "e2e-1001", IsSend: true, Rule: "releves", Account: "gateway-prod",
+		Agent: "part-sftp-01", Client: "cli-sftp", Protocol: "sftp", SrcFilename: "accuse-0456.xml",
+		DestFilename: "accuse-0456.xml", Filesize: 2048, Progress: 2048, Start: start.Add(-time.Hour),
+		Stop: start.Add(-time.Hour + time.Second), Status: types.StatusDone,
+	}).Run())
+
+	// Eight more entries of the history, so that the list exceeds one page
+	// and shows its pager.
+	for i := range int64(8) {
+		file := fmt.Sprintf("accuse-%04d.xml", 457+i)
+		done := start.Add(-2*time.Hour - time.Duration(i)*time.Minute)
+		require.NoError(t, db.Insert(&model.HistoryEntry{
+			Identifier: model.ID(1002 + i), RemoteTransferID: fmt.Sprintf("e2e-%d", 1002+i), IsSend: true, Rule: "releves",
+			Account: "gateway-prod", Agent: "part-sftp-01", Client: "cli-sftp", Protocol: "sftp", SrcFilename: file,
+			DestFilename: file, Filesize: 2048, Progress: 2048, Start: done, Stop: done.Add(time.Second), Status: types.StatusDone,
+		}).Run())
+	}
+}
+
+// insertE2EEmailTemplates inserts an HTML template with attachments, used by
+// no rule, next to the text one insertE2ESMTP inserts for its rule. The
+// screens are visited by identifier.
+func insertE2EEmailTemplates(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	tpl := &model.EmailTemplate{
+		Name: "rapport-quotidien", Subject: "Rapport du #DATE#", MIMEType: "text/html",
+		Body:        "<p>Le fichier <b>#TRUEFILENAME#</b> de la règle #RULE# est arrivé.</p>",
+		Attachments: []string{"#TRUEFULLPATH#"},
+	}
+	require.NoError(t, db.Insert(tpl).Run())
+	require.EqualValues(t, 2, tpl.ID, "the screens are visited by identifier")
+}
+
+// insertE2ESMTP inserts an SMTP credential with authentication, which the
+// EMAIL task of a sending rule uses, and one on port 465 without
+// authentication, used by no rule. The screens are visited by identifier.
+func insertE2ESMTP(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	for i, cred := range []*model.SMTPCredential{
+		{EmailAddress: "alertes@passerelle.example", ServerAddress: types.Addr("smtp.example.org", 587),
+			Login: "alertes", Password: "smtp-password-never-shown"},
+		{EmailAddress: "rapports@passerelle.example", ServerAddress: types.Addr("smtp.example.org", 465)},
+	} {
+		require.NoError(t, db.Insert(cred).Run())
+		require.EqualValues(t, i+1, cred.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.EmailTemplate{Name: "fin-de-transfert", Subject: "Fin", Body: "Fichier reçu."}).Run())
+
+	rule := &model.Rule{Name: "push-alertes", IsSend: true, Path: "push-alertes"}
+	require.NoError(t, db.Insert(rule).Run())
+	require.NoError(t, db.Insert(&model.Task{
+		RuleID: rule.ID, Chain: model.ChainPost, Type: "EMAIL",
+		Args: map[string]string{
+			"sender": "alertes@passerelle.example", "recipients": "exploitation@client.example", "template": "fin-de-transfert",
+		},
+	}).Run())
+}
+
+// insertE2EKeys inserts an AES-128 key, which the tasks of a sending rule
+// use to encrypt, and the PGP public key of a partner, used by no rule. The
+// screens are visited by identifier.
+func insertE2EKeys(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	key, err := pgp.PGP().KeyGeneration().AddUserId("Partenaire", "partenaire@example.org").New().GenerateKey()
+	require.NoError(t, err)
+
+	public, err := key.GetArmoredPublicKey()
+	require.NoError(t, err)
+
+	for i, k := range []*model.CryptoKey{
+		{Name: "aes-paie", Type: model.CryptoKeyTypeAES, Key: base64.StdEncoding.EncodeToString(make([]byte, 16))},
+		{Name: "pgp-partenaire", Type: model.CryptoKeyTypePGPPublic, Key: public},
+	} {
+		require.NoError(t, db.Insert(k).Run())
+		require.EqualValues(t, i+1, k.ID, "the screens are visited by identifier")
+	}
+
+	rule := &model.Rule{Name: "push-paie", IsSend: true, Path: "push-paie"}
+	require.NoError(t, db.Insert(rule).Run())
+	require.NoError(t, db.Insert(&model.Task{
+		RuleID: rule.ID, Chain: model.ChainPre, Type: "ENCRYPT",
+		Args: map[string]string{"keyName": "aes-paie", "method": "AES-CFB"},
+	}).Run())
+}
+
+// insertE2ESNMP inserts an SNMPv2c monitor, an SNMPv3 monitor with
+// authentication and encryption, and the configuration of the agent. The
+// screens are visited by identifier.
+func insertE2ESNMP(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	for i, monitor := range []*snmp.MonitorConfig{
+		{Name: "supervision-v2", Version: snmp.Version2, UDPAddress: "127.0.0.1:16162", Community: "smoke-community"},
+		{
+			Name: "supervision-v3", Version: snmp.Version3, UDPAddress: "127.0.0.1:16163",
+			SNMPv3Security: snmp.V3SecurityAuthPriv, AuthEngineID: "0x80001f8880e9630000d61ff449",
+			AuthUsername: "gw", AuthProtocol: snmp.AuthSHA256, AuthPassphrase: "smoke-auth-pass",
+			PrivProtocol: snmp.PrivAES, PrivPassphrase: "smoke-priv-pass",
+		},
+	} {
+		require.NoError(t, db.Insert(monitor).Run())
+		require.EqualValues(t, i+1, monitor.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&snmp.ServerConfig{LocalUDPAddress: "127.0.0.1:16161", SNMPv3Username: "agent"}).Run())
+}
+
+// insertE2EAuthorities inserts a TLS authority made for the test, valid two
+// years, with an HTTPS partner whose certificate it signs (the R66 over TLS
+// partner stays without means), and an SSH authority restricted to one SFTP
+// server. The screens are visited by identifier.
+func insertE2EAuthorities(t *testing.T, db *database.DB) {
+	t.Helper()
+
+	partner := &model.RemoteAgent{Name: "part-https", Protocol: "https", Address: types.Addr("127.0.0.3", 8443)}
+	require.NoError(t, db.Insert(partner).Run())
+
+	encode := func(der []byte) string {
+		return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
+	}
+
+	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	caTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "Partners CA", Organization: []string{"Example"}},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().AddDate(2, 0, 0),
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign,
+	}
+	caDER, err := x509.CreateCertificate(rand.Reader, caTmpl, caTmpl, &caKey.PublicKey, caKey)
+	require.NoError(t, err)
+
+	leafKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	leafTmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: "part-https"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().AddDate(1, 0, 0),
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses: []net.IP{net.ParseIP(partner.Address.Host)}, // the model checks the address of the partner
+	}
+	leafDER, err := x509.CreateCertificate(rand.Reader, leafTmpl, caTmpl, &leafKey.PublicKey, caKey)
+	require.NoError(t, err)
+
+	sshPub, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+
+	sshKey, err := ssh.NewPublicKey(sshPub)
+	require.NoError(t, err)
+
+	for i, authority := range []*model.Authority{
+		{Name: "ca-partenaires", Type: "tls_authority", PublicIdentity: encode(caDER)},
+		{
+			Name: "ca-ssh-utilisateurs", Type: "ssh_cert_authority", PublicIdentity: string(ssh.MarshalAuthorizedKey(sshKey)),
+			ValidHosts: []string{"sftp.example.org:22"},
+		},
+	} {
+		require.NoError(t, db.Insert(authority).Run())
+		require.EqualValues(t, i+1, authority.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.Credential{
+		RemoteAgentID: partner.NullableID(), Name: "cert-partenaire", Type: "trusted_tls_certificate", Value: encode(leafDER),
+	}).Run())
+}
+
+// registerE2EStorages registers, under the type keys of two cloud
+// instances, storages that never reach the network: the screens show the
+// instances, the product instantiates the storage when one is saved.
+func registerE2EStorages(t *testing.T) {
+	t.Helper()
+
+	for _, kind := range []string{"s3", "onedrive"} {
+		// The backend keeps the options of its storage library; only the
+		// function that builds the file system is replaced.
+		backend, _ := fs.GetBackend(kind)
+		backend.Make = func(_, _, _ string, opts map[string]string) (fs.FS, error) {
+			if kind == "onedrive" {
+				opts["token"] = "e2e-token-never-shown"
+			}
+
+			return &fs.VFS{VFS: vfs.New(context.Background(), object.MemoryFs, &vfscommon.Options{})}, nil
+		}
+		fs.Register(kind, backend)
+		t.Cleanup(func() { fs.Unregister(kind) })
+	}
+}
+
+// e2eService is a stub registered in the service lists of the gateway, so
+// that the screens show rows without opening any port.
+type e2eService struct {
+	name   string
+	state  utils.StateCode
+	reason string
+}
+
+func (s *e2eService) Name() string                     { return s.name }
+func (s *e2eService) Start() error                     { return nil }
+func (s *e2eService) Stop(context.Context) error       { return nil }
+func (s *e2eService) State() (utils.StateCode, string) { return s.state, s.reason }
+
+func (s *e2eService) InitTransfer(*pipeline.Pipeline) (protocol.TransferClient, *pipeline.Error) {
+	return nil, pipeline.NewError(0, "stub client: no transfer")
+}
+
+// registerE2EServices fills the service lists with every state the service
+// status screen renders, and empties them afterwards.
+func registerE2EServices(t *testing.T) {
+	t.Helper()
+
+	services.Core.Add(&e2eService{name: "Database", state: utils.StateRunning})
+	services.Core.Add(&e2eService{name: "Controller", state: utils.StateRunning})
+	services.Servers.Add(&model.LocalAgent{Identifier: model.Identifier{ID: 1}},
+		&e2eService{name: "srv-sftp-01", state: utils.StateRunning})
+	services.Servers.Add(&model.LocalAgent{Identifier: model.Identifier{ID: 2}},
+		&e2eService{name: "srv-r66-01", state: utils.StateError, reason: "listen tcp: address already in use"})
+	services.Servers.Add(&model.LocalAgent{Identifier: model.Identifier{ID: 3}},
+		&e2eService{name: "srv-https-01", state: utils.StateOffline})
+	services.Clients.Add(&model.Client{Identifier: model.Identifier{ID: 1}},
+		&e2eService{name: "cli-sftp", state: utils.StateRunning})
+
+	t.Cleanup(func() {
+		services.Core = nil
+		services.Servers.Reset()
+		services.Clients.Reset()
+	})
+}
+
+// e2eTracker counts the requests in flight and records the failed ones by
+// screen. Playwright calls its handlers on its own dispatch goroutine.
+type e2eTracker struct {
+	mu       sync.Mutex
+	baseURL  string
+	screen   string
+	inFlight map[playwright.Request]struct{}
+	opener   playwright.Request // the navigation of the main frame whose document is not committed yet
+	last     time.Time
+	failures map[string][]string
+}
+
+func trackRequests(page playwright.Page, baseURL string) *e2eTracker {
+	tracker := &e2eTracker{
+		mu:       sync.Mutex{},
+		baseURL:  baseURL,
+		screen:   "",
+		inFlight: make(map[playwright.Request]struct{}),
+		opener:   nil,
+		last:     time.Time{},
+		failures: make(map[string][]string),
+	}
+
+	page.OnRequest(tracker.onRequest)
+	page.OnResponse(tracker.onResponse)
+	page.OnRequestFinished(tracker.onDone)
+	page.OnRequestFailed(tracker.onFailed)
+	page.OnFrameNavigated(tracker.onNavigated)
+	page.OnConsole(tracker.onConsole)
+
+	return tracker
+}
+
+// e2eViolationMark opens the console message that reports a violation of the
+// content security policy (e2eViolationScript).
+const e2eViolationMark = "content security policy: "
+
+// e2eBrowserRefusal is in every message the browser writes to the console
+// when it refuses something for the content security policy.
+const e2eBrowserRefusal = "Content Security Policy directive"
+
+// e2eViolationScript reports every violation of the content security policy
+// to the console, in each document of the page, its frames included: the
+// directive, what was refused, and where in the page. The browser runs it
+// before the scripts of the document; the policy does not apply to it.
+const e2eViolationScript = `document.addEventListener("securitypolicyviolation", (e) => {
+	console.error("` + e2eViolationMark + `" + e.effectiveDirective + " (" + e.disposition + ") refuses " + (e.blockedURI || "inline") +
+		" in " + e.documentURI + (e.sourceFile ? " (" + e.sourceFile + ":" + e.lineNumber + ")" : "") +
+		(e.sample ? " [" + e.sample + "]" : ""));
+});`
+
+// onConsole records a violation of the content security policy under the
+// current screen, with its failed requests: one fails the screen.
+func (tr *e2eTracker) onConsole(message playwright.ConsoleMessage) {
+	// The browser also writes its own refusal, which is the only trace of a
+	// frame that runs no script (the preview of an email template).
+	text := message.Text()
+	if !strings.HasPrefix(text, e2eViolationMark) && !strings.Contains(text, e2eBrowserRefusal) {
+		return
+	}
+
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	tr.failures[tr.screen] = append(tr.failures[tr.screen], text)
+}
+
+func (tr *e2eTracker) isOurs(req playwright.Request) bool {
+	return strings.HasPrefix(req.URL(), tr.baseURL)
+}
+
+func (tr *e2eTracker) onRequest(req playwright.Request) {
+	if !tr.isOurs(req) {
+		return
+	}
+
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if req.IsNavigationRequest() && isMainFrame(req.Frame()) {
+		tr.opener = req
+	}
+
+	tr.inFlight[req] = struct{}{}
+	tr.last = time.Now()
+}
+
+// onNavigated forgets, once the main frame has committed the document a
+// navigation of its own opened, every request in flight: they belong to the
+// documents it left (the page left goes on loading until then), and the
+// browser cancels them without always reporting their end (a
+// page left before it had loaded held the next screen 30 s on its
+// stylesheets). A navigation within the document, as the address the kit
+// keeps in step with a list, has no request and forgets nothing.
+func (tr *e2eTracker) onNavigated(frame playwright.Frame) {
+	if !isMainFrame(frame) {
+		return
+	}
+
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if tr.opener == nil {
+		return
+	}
+
+	tr.opener = nil
+	clear(tr.inFlight)
+}
+
+// isMainFrame says whether frame is the main frame of the page, not one of
+// its inner frames.
+func isMainFrame(frame playwright.Frame) bool {
+	return frame != nil && frame.ParentFrame() == nil
+}
+
+// onResponse records every response of the backend that is an error, pages
+// and static files included.
+func (tr *e2eTracker) onResponse(res playwright.Response) {
+	if res.Status() < http.StatusBadRequest || !tr.isOurs(res.Request()) {
+		return
+	}
+
+	tr.record(res.Request(), fmt.Sprintf("status %d", res.Status()))
+}
+
+func (tr *e2eTracker) onFailed(req playwright.Request) {
+	if !tr.isOurs(req) {
+		return
+	}
+
+	tr.record(req, fmt.Sprintf("failed: %v", req.Failure()))
+	tr.onDone(req)
+
+	// A navigation that fails, as a download, opens no document.
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if req == tr.opener {
+		tr.opener = nil
+	}
+}
+
+func (tr *e2eTracker) onDone(req playwright.Request) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if _, ok := tr.inFlight[req]; ok {
+		delete(tr.inFlight, req)
+		tr.last = time.Now()
+	}
+}
+
+// record keeps a failure under the current screen: settle runs before every
+// screen change, so no request outlives its screen.
+func (tr *e2eTracker) record(req playwright.Request, reason string) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	tr.failures[tr.screen] = append(tr.failures[tr.screen],
+		fmt.Sprintf("%s %s: %s", req.Method(), req.URL(), reason))
+}
+
+// enter makes screen the current screen.
+func (tr *e2eTracker) enter(screen string) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	tr.screen = screen
+}
+
+func (tr *e2eTracker) settled() (bool, []string) {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	pending := make([]string, 0, len(tr.inFlight))
+	for req := range tr.inFlight {
+		pending = append(pending, req.URL())
+	}
+
+	return len(pending) == 0 && time.Since(tr.last) >= e2eQuiet, pending
+}
+
+// settle waits until no request has been in flight for e2eQuiet, counted
+// from the call at the earliest.
+func (tr *e2eTracker) settle() error {
+	start := time.Now()
+
+	tr.mu.Lock()
+	tr.last = start
+	tr.mu.Unlock()
+
+	deadline := start.Add(e2eSettleTimeout)
+
+	for {
+		done, pending := tr.settled()
+		if done {
+			return nil
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("requests still in flight: %v", pending) //nolint:err113 // test message
+		}
+
+		time.Sleep(e2ePollInterval)
+	}
+}
+
+// failuresOf returns the failures recorded for screen.
+func (tr *e2eTracker) failuresOf(screen string) []string {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	return slices.Clone(tr.failures[screen])
+}
+
+// startE2EServer serves the administration interface (REST API and web
+// interface) on a fresh database holding one user with the rights on the
+// servers and the three servers whose services registerE2EServices stubs.
+func startE2EServer(t *testing.T) string {
+	t.Helper()
+
+	db := dbtest.TestDatabase(t)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(e2ePassword), bcrypt.MinCost)
+	require.NoError(t, err)
+
+	// After the default administrator of a fresh database (user 1): the
+	// smoke user (user 2) and a viewer (user 3) the users screens show, edit
+	// and delete; the screens are visited by identifier.
+	for i, user := range []*model.User{
+		{
+			Username: e2eUsername, PasswordHash: string(hash),
+			Permissions: model.PermServersRead | model.PermServersWrite | model.PermServersDelete |
+				model.PermPartnersRead | model.PermPartnersWrite | model.PermPartnersDelete |
+				model.PermUsersRead | model.PermUsersWrite | model.PermUsersDelete |
+				model.PermAdminRead | model.PermAdminWrite | model.PermAdminDelete |
+				model.PermRulesRead | model.PermRulesWrite | model.PermRulesDelete | // the SMTP credentials, the email templates
+				model.PermTransfersRead | model.PermTransfersWrite, // the transfer monitoring
+		},
+		{Username: "viewer", PasswordHash: string(hash), Permissions: model.PermServersRead | model.PermPartnersRead},
+	} {
+		require.NoError(t, db.Insert(user).Run())
+		require.EqualValues(t, i+2, user.ID, "the screens are visited by identifier")
+	}
+
+	servers := []*model.LocalAgent{
+		{Name: "srv-sftp-01", Protocol: "sftp", Address: types.Addr("127.0.0.1", 10022)},
+		{Name: "srv-r66-01", Protocol: "r66", Address: types.Addr("127.0.0.1", 6666)},
+		{Name: "srv-https-01", Protocol: "https", Address: types.Addr("127.0.0.1", 8443)},
+	}
+
+	for i, server := range servers {
+		require.NoError(t, db.Insert(server).Run())
+		require.EqualValues(t, i+1, server.ID, "the stub services are registered by identifier")
+	}
+
+	// The SFTP client whose service registerE2EServices stubs.
+	client := &model.Client{Name: "cli-sftp", Protocol: "sftp", NbOfAttempts: 3, FirstRetryDelay: 30, RetryIncrementFactor: 2}
+	require.NoError(t, db.Insert(client).Run())
+	require.EqualValues(t, 1, client.ID, "the stub service is registered by identifier")
+
+	// The sheet of the SFTP server: its host key (means 1), an account with
+	// a public key and a password (means 2 and 3) and an account without
+	// any means; the certificate of the HTTPS server (means 4). The screens
+	// are visited by identifier.
+	partner := &model.LocalAccount{LocalAgentID: servers[0].ID, Login: "partner", IPAddresses: types.IPList{"10.20.30.4"}}
+	require.NoError(t, db.Insert(partner).Run())
+	require.NoError(t, db.Insert(&model.LocalAccount{LocalAgentID: servers[0].ID, Login: "nobody"}).Run())
+
+	for i, cred := range []*model.Credential{
+		{LocalAgentID: servers[0].NullableID(), Name: "cle-hote", Type: "ssh_private_key", Value: testhelpers.RSAPk},
+		{LocalAccountID: partner.NullableID(), Name: "cle-partner", Type: "ssh_public_key", Value: testhelpers.SSHPbk},
+		{LocalAccountID: partner.NullableID(), Name: "mot-de-passe", Type: "password", Value: e2ePassword},
+		{LocalAgentID: servers[2].NullableID(), Name: "cert-localhost", Type: "tls_certificate",
+			Value: testhelpers.LocalhostCert, Value2: testhelpers.LocalhostKey},
+	} {
+		require.NoError(t, db.Insert(cred).Run())
+		require.EqualValues(t, i+1, cred.ID, "the screens are visited by identifier")
+	}
+
+	// The remote partners: an SFTP partner with the host key the
+	// gateway checks (means 5) and a remote account with its password (means
+	// 6), an R66 over TLS partner without anything yet. The SFTP client then
+	// reaches a partner: its sheet shows the table.
+	partners := []*model.RemoteAgent{
+		{Name: "part-sftp-01", Protocol: "sftp", Address: types.Addr("127.0.0.1", 2222), ProtoConfig: map[string]any{"useStat": true}},
+		{Name: "part-r66-tls", Protocol: "r66-tls", Address: types.Addr("127.0.0.2", 6667), ProtoConfig: map[string]any{"serverLogin": "waarp"}},
+	}
+
+	for i, partner := range partners {
+		require.NoError(t, db.Insert(partner).Run())
+		require.EqualValues(t, i+1, partner.ID, "the screens are visited by identifier")
+	}
+
+	remote := &model.RemoteAccount{RemoteAgentID: partners[0].ID, Login: "gateway-prod"}
+	require.NoError(t, db.Insert(remote).Run())
+	require.EqualValues(t, 1, remote.ID)
+
+	for i, cred := range []*model.Credential{
+		{RemoteAgentID: partners[0].NullableID(), Name: "cle-hote-partenaire", Type: "ssh_public_key", Value: testhelpers.SSHPbk},
+		{RemoteAccountID: remote.NullableID(), Name: "mot-de-passe", Type: "password", Value: e2ePassword},
+	} {
+		require.NoError(t, db.Insert(cred).Run())
+		require.EqualValues(t, i+5, cred.ID, "the screens are visited by identifier")
+	}
+
+	// The cloud instances: an S3 bucket with a key and a secret, named
+	// by the local folder of a rule; a OneDrive drive whose storage writes
+	// its token in the options. The screens are visited by identifier.
+	registerE2EStorages(t)
+
+	for i, cloud := range []*model.CloudInstance{
+		{Name: "archive-s3", Type: "s3", Key: "AKIAEXAMPLE", Secret: "s3-secret-never-shown",
+			Options: map[string]string{"bucket": "archive", "region": "eu-west-3"}},
+		{Name: "od-drive", Type: "onedrive", Key: "app-id", Secret: "app-secret-never-shown",
+			Options: map[string]string{"tenant": "t-1", "drive_id": "d-1"}},
+	} {
+		require.NoError(t, db.Insert(cloud).Run())
+		require.EqualValues(t, i+1, cloud.ID, "the screens are visited by identifier")
+	}
+
+	require.NoError(t, db.Insert(&model.Rule{Name: "pull-archive", IsSend: false, Path: "pull-archive", LocalDir: "archive-s3:in"}).Run())
+
+	insertE2EAuthorities(t, db)
+	insertE2ESNMP(t, db)
+	insertE2EKeys(t, db)
+	insertE2ESMTP(t, db)
+	insertE2EEmailTemplates(t, db)
+	insertE2ETransfers(t, db)
+	insertE2EWatchers(t, db)
+
+	// The gateway runs as a node of a cluster, with its own override file
+	// and one address indirection.
+	db.Config.NodeID = "noeud-smoke"
+	db.Config.Overrides = conf.NewOverride(filepath.Join(t.TempDir(), "noeud-smoke.ini"))
+	require.NoError(t, db.Config.Overrides.AddIndirection("127.0.0.1", "10.0.0.5"))
+
+	registerE2EServices(t)
+
+	// The content security policy is enforced, not only reported: a screen
+	// that breaks it loses what the browser refuses, and fails here.
+	db.Config.Admin.ContentSecurityPolicy = conf.CSPEnforce
+
+	server := httptest.NewServer(admin.MakeHandler(testhelpers.GetTestLogger(t), db))
+	t.Cleanup(server.Close)
+
+	return server.URL
+}
+
+//nolint:ireturn // playwright.Page is the library's own interface type
+func newE2EPage(t *testing.T) playwright.Page {
+	t.Helper()
+
+	driver, err := playwright.Run()
+	require.NoError(t, err, "cannot start Playwright (see ./make.sh test e2e)")
+	t.Cleanup(func() { assert.NoError(t, driver.Stop()) })
+
+	browser, err := driver.Chromium.Launch()
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, browser.Close()) })
+
+	page, err := browser.NewPage()
+	require.NoError(t, err)
+
+	page.SetDefaultTimeout(e2eTimeoutMs)
+	page.SetDefaultNavigationTimeout(e2eTimeoutMs)
+
+	require.NoError(t, page.AddInitScript(playwright.Script{Content: playwright.String(e2eViolationScript)}))
+
+	return page
+}
+
+// expectURL waits for the page to land on exactly want.
+func expectURL(t *testing.T, page playwright.Page, want string) {
+	t.Helper()
+
+	pattern := regexp.MustCompile("^" + regexp.QuoteMeta(want) + "$")
+	err := playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(pattern)
+	require.NoError(t, err)
+}
+
+// e2eSession is a browser page on the web interface served at baseURL;
+// leaves counts the leave dialogs the browser opened, all accepted.
+type e2eSession struct {
+	page    playwright.Page
+	tracker *e2eTracker
+	baseURL string
+	leaves  atomic.Int32
+}
+
+// onDialog accepts the leave dialog of a changed form, so that the test goes
+// on to the next screen, and counts it; any other dialog is dismissed, as
+// Playwright does without a handler.
+func (s *e2eSession) onDialog(dialog playwright.Dialog) {
+	if dialog.Type() == "beforeunload" {
+		s.leaves.Add(1)
+		_ = dialog.Accept()
+
+		return
+	}
+
+	_ = dialog.Dismiss()
+}
+
+// followSidebar leaves the page by an entry of the sidebar and waits for the
+// screen it leads to.
+func (s *e2eSession) followSidebar(t *testing.T, entry string) {
+	t.Helper()
+
+	s.tracker.enter(entry)
+	require.NoError(t, s.page.Locator(`nav:not(.w-tabs) a[href="`+entry+`"]`).First().Click())
+	expectURL(t, s.page, s.baseURL+entry)
+	require.NoError(t, s.tracker.settle())
+}
+
+// visit opens path as the current screen and waits for it to settle.
+func (s *e2eSession) visit(t *testing.T, path string) {
+	t.Helper()
+
+	s.tracker.enter(path)
+
+	_, err := s.page.Goto(s.baseURL + path)
+	require.NoError(t, err)
+	require.NoError(t, s.tracker.settle())
+}
+
+func (s *e2eSession) login(t *testing.T) {
+	t.Helper()
+
+	s.visit(t, "/webui/login")
+
+	require.NoError(t, s.page.Locator("#username").Fill(e2eUsername))
+	require.NoError(t, s.page.Locator("#password").Fill(e2ePassword))
+	require.NoError(t, s.page.Locator("form button[type=submit]").Click())
+
+	expectURL(t, s.page, s.baseURL+"/webui/home")
+	require.NoError(t, s.tracker.settle())
+	assert.Empty(t, s.tracker.failuresOf("/webui/login"), "failed requests of the sign-in page")
+}
+
+// checkSignIn checks the sign-in page before the session: the page
+// says its language and labels its fields, the focus starts in the username,
+// the button shows and hides the password, the fields keep their width at
+// 390 px, the language switcher keeps the page asked for, a refused sign-in
+// is said in place with the username kept; no serious accessibility violation.
+func (s *e2eSession) checkSignIn(t *testing.T) {
+	t.Helper()
+
+	const asked = "/webui/services"
+	s.visit(t, "/webui/login?redirect="+url.QueryEscape(asked))
+
+	lang, err := s.page.Evaluate(`document.documentElement.lang`)
+	require.NoError(t, err)
+	assert.Contains(t, []any{"fr", "en"}, lang, "the page says its language")
+	assert.Equal(t, 1, s.count(t, "main#contenu"), "main landmark")
+	assert.Equal(t, 1, s.count(t, "h1.w-plain__title"), "page title")
+	assert.Equal(t, 1, s.count(t, `label[for="username"]`), "the username is labelled")
+	assert.Equal(t, 1, s.count(t, `label[for="password"]`), "the password is labelled")
+	assert.Zero(t, s.count(t, "a.w-skip"), "nothing to skip on the sign-in page")
+
+	focused, err := s.page.Evaluate(`document.activeElement.id`)
+	require.NoError(t, err)
+	assert.Equal(t, "username", focused, "the focus starts in the username")
+
+	// The button shows the password, then hides it.
+	toggle := s.page.Locator("[data-password-toggle]")
+	require.NoError(t, toggle.Click())
+	assert.Equal(t, "text", attribute(t, s.page.Locator("#password"), "type"))
+	assert.Equal(t, "true", attribute(t, toggle, "aria-pressed"))
+	require.NoError(t, toggle.Click())
+	assert.Equal(t, "password", attribute(t, s.page.Locator("#password"), "type"))
+	assert.Equal(t, "false", attribute(t, toggle, "aria-pressed"))
+
+	// At 390 px the fields keep their width and nothing overflows.
+	require.NoError(t, s.page.SetViewportSize(390, 844))
+	narrow, err := s.page.Evaluate(`(() => {
+		const field = Math.round(document.querySelector("#username").getBoundingClientRect().width);
+		return { field: field, wide: field >= 300, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+	})()`)
+	require.NoError(t, err)
+	measures, ok := narrow.(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, true, measures["wide"], "the username field at 390 px: %v px", measures["field"])
+	assert.Equal(t, false, measures["overflow"], "no horizontal scrolling at 390 px")
+	require.NoError(t, s.page.SetViewportSize(1280, 720))
+
+	// Another language keeps the page asked for; then back to the first one.
+	require.NoError(t, s.page.Locator("summary.w-lang").Click())
+	require.NoError(t, s.page.Locator(`.w-menu__panel a[lang="en"]`).Click())
+	expectURL(t, s.page, s.baseURL+"/webui/login?language=en&redirect="+url.QueryEscape(asked))
+	require.NoError(t, s.tracker.settle())
+	assert.Equal(t, 1, s.count(t, `html[lang="en"]`), "the page follows the language chosen")
+	require.NoError(t, s.page.Locator("summary.w-lang").Click())
+	require.NoError(t, s.page.Locator(`.w-menu__panel a[lang="fr"]`).Click())
+	expectURL(t, s.page, s.baseURL+"/webui/login?language=fr&redirect="+url.QueryEscape(asked))
+	require.NoError(t, s.tracker.settle())
+
+	t.Run("axe-core", func(t *testing.T) { s.checkAccessibility(t) })
+
+	// A refused sign-in: the form again (422, the one failure expected), the
+	// refusal announced, the username kept, the password gone.
+	s.tracker.enter("/webui/login (refused)")
+	require.NoError(t, s.page.Locator("#username").Fill("nobody"))
+	require.NoError(t, s.page.Locator("#password").Fill("wrong"))
+	require.NoError(t, s.page.Locator("form button[type=submit]").Click())
+	require.NoError(t, s.page.Locator(`[role="alert"]`).WaitFor())
+	require.NoError(t, s.tracker.settle())
+
+	value, err := s.page.Locator("#username").InputValue()
+	require.NoError(t, err)
+	assert.Equal(t, "nobody", value, "the username is kept")
+
+	value, err = s.page.Locator("#password").InputValue()
+	require.NoError(t, err)
+	assert.Empty(t, value, "the password is not")
+
+	failures := s.tracker.failuresOf("/webui/login (refused)")
+	require.Len(t, failures, 1, "the refusal is the only failed request")
+	assert.Contains(t, failures[0], "status 422")
+	assert.Empty(t, s.tracker.failuresOf("/webui/login"), "failed requests of the sign-in page")
+}
+
+// count returns the number of elements matching selector.
+func (s *e2eSession) count(t *testing.T, selector string) int {
+	t.Helper()
+
+	n, err := s.page.Locator(selector).Count()
+	require.NoError(t, err)
+
+	return n
+}
+
+// attribute returns the value of an attribute of the element.
+func attribute(t *testing.T, element playwright.Locator, name string) string {
+	t.Helper()
+
+	value, err := element.GetAttribute(name)
+	require.NoError(t, err)
+
+	return value
+}
+
+func (s *e2eSession) check(t *testing.T, screen e2eScreen) {
+	t.Helper()
+
+	s.visit(t, screen.path)
+	expectURL(t, s.page, s.baseURL+screen.path)
+
+	// The kit chrome and the screen.
+	assert.Equal(t, 1, s.count(t, "a.w-skip"), "skip link")
+	assert.Equal(t, 1, s.count(t, "main#contenu"), "main landmark")
+	assert.Equal(t, 1, s.count(t, "h1.w-page-header__title"), "page title")
+	entries := 1
+	if screen.outside {
+		entries = 0
+	}
+
+	assert.Equal(t, entries, s.count(t, `nav:not(.w-tabs) a[aria-current="page"]`), "active sidebar entry")
+	assert.Equal(t, screen.tables, s.count(t, "table.w-table"), "tables")
+	// No table in a card: the items a card holds are cards or a
+	// list; a table stands on the page itself.
+	assert.Zero(t, s.count(t, ".w-card table"), "no table in a card")
+
+	// A sheet shows its tab strip, one tab being the page: a link, or a
+	// plain span on the form of an object not created yet.
+	if s.count(t, "nav.w-tabs") > 0 {
+		assert.Equal(t, 1, s.count(t, `nav.w-tabs [aria-current="page"]`), "current tab")
+	}
+
+	// The first Tab reaches the skip link.
+	require.NoError(t, s.page.Keyboard().Press("Tab"))
+	focused, err := s.page.Evaluate(`document.activeElement.classList.contains("w-skip")`)
+	require.NoError(t, err)
+	assert.Equal(t, true, focused, "the first Tab must reach the skip link")
+
+	// The tiles are tabs: the last one shows its panel alone, and that choice
+	// survives a refresh of the fragment.
+	if screen.tabs > 0 {
+		tabs := s.page.Locator(`[role="tablist"] [role="tab"]`)
+		require.Equal(t, screen.tabs, s.count(t, `[role="tablist"] [role="tab"]`), "tile tabs")
+		require.NoError(t, tabs.Last().Click())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible`), "one panel shown at a time")
+		assert.Equal(t, "true", attribute(t, tabs.Last(), "aria-selected"))
+	}
+
+	// One refresh of the screen's own fragment, served without error, that
+	// keeps the group shown.
+	if screen.fragment != "" {
+		response, err := s.page.ExpectResponse(func(res playwright.Response) bool {
+			return strings.Contains(res.URL(), screen.fragment)
+		}, func() error {
+			if screen.refresh == "" {
+				return nil
+			}
+
+			return s.page.Locator(screen.refresh).Click()
+		}, playwright.PageExpectResponseOptions{Timeout: playwright.Float(e2eRefreshMs)})
+		require.NoError(t, err, "the screen must refresh its fragment on its own")
+		assert.Equal(t, http.StatusOK, response.Status())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 0, s.count(t, "#etat .w-banner"), "no error message after a successful refresh")
+
+		if screen.tabs > 0 {
+			assert.Equal(t, "true", attribute(t, s.page.Locator(`[role="tablist"] [role="tab"]`).Last(), "aria-selected"),
+				"the group shown must survive the refresh")
+			assert.Equal(t, 1, s.count(t, `[role="tabpanel"]:visible`))
+		}
+	}
+
+	// The forms of a transfer offer, for the rule chosen, the accounts it
+	// authorizes alone: a rule that lists who may use it hides the other
+	// accounts and the hint says how many are offered, with a link to the
+	// access of the rule.
+	if s.count(t, "select[data-rule-filter]") > 0 && s.count(t, "#rule option[data-restricted]") > 0 {
+		offered := s.count(t, `#account option[value]:not([value=""])`)
+		require.Zero(t, s.count(t, "#account option[hidden]"), "every account offered before a rule is chosen")
+		restricted := attribute(t, s.page.Locator("#rule option[data-restricted]").First(), "value")
+		_, err := s.page.Locator("#rule").SelectOption(playwright.SelectOptionValues{Values: &[]string{restricted}})
+		require.NoError(t, err)
+		hidden := s.count(t, "#account option[hidden]")
+		assert.Positive(t, hidden, "the accounts the rule does not authorize are hidden")
+		assert.Less(t, hidden, offered, "the accounts the rule authorizes stay")
+		assert.Equal(t, 1, s.count(t, "#account-h a.w-link"), "the hint links to the access of the rule")
+	}
+
+	// A sortable column header, sorted ascending by default, sorts descending
+	// once clicked (through the fragment or a reload, served without error).
+	if headers := s.count(t, `th[aria-sort="ascending"] a:visible`); headers > 0 {
+		require.NoError(t, s.page.Locator(`th[aria-sort="ascending"] a:visible`).First().Click())
+		require.NoError(t, s.tracker.settle())
+		assert.Equal(t, 1, s.count(t, `th[aria-sort="descending"]:visible`), "sorted descending")
+	}
+
+	// The filters of a list apply as soon as one changes; the "⋯" menu of a
+	// row opens and closes from the keyboard.
+	if s.count(t, `form[data-autosubmit] details.w-disclose`) > 0 {
+		require.NoError(t, s.page.Locator(`form[data-autosubmit] details.w-disclose > summary`).Click())
+
+		// A filter is a checkbox (the protocol families, the storage types)
+		// or a select (the domain of the rights of a user): the first one is
+		// changed. A list whose filters apply in place keeps its page:
+		// a mark set on the window survives, and the address carries the
+		// filter.
+		inPlace, before := s.count(t, `form[data-autosubmit][data-live-filter]`) > 0, s.page.URL()
+		_, err := s.page.Evaluate(`window.wFilterMark = true`)
+		require.NoError(t, err)
+
+		if s.count(t, `form[data-autosubmit] .w-disclose__panel input[type="checkbox"]`) > 0 {
+			require.NoError(t, s.page.Locator(`form[data-autosubmit] .w-disclose__panel input[type="checkbox"]`).First().Check())
+			require.NoError(t, s.tracker.settle())
+			assert.Equal(t, 1, s.count(t, `form[data-autosubmit] .w-disclose__panel input[type="checkbox"]:checked`),
+				"the filter is kept after the reload")
+		} else {
+			_, err := s.page.Locator(`form[data-autosubmit] .w-disclose__panel select`).First().
+				SelectOption(playwright.SelectOptionValues{Indexes: playwright.IntSlice(1)})
+			require.NoError(t, err)
+			require.NoError(t, s.tracker.settle())
+			assert.Equal(t, 1, s.count(t, `form[data-autosubmit] .w-disclose__panel select option:nth-child(2):checked`),
+				"the filter is kept after the reload")
+		}
+
+		if inPlace {
+			kept, err := s.page.Evaluate(`window.wFilterMark === true`)
+			require.NoError(t, err)
+			assert.Equal(t, true, kept, "the filter applied in place, without reloading the page")
+			assert.NotEqual(t, before, s.page.URL(), "the address carries the filter")
+		}
+
+		// The button counts the filter, applied in place or after a reload.
+		label, err := s.page.Locator(`form[data-autosubmit] details.w-disclose > summary`).TextContent()
+		require.NoError(t, err)
+		assert.Regexp(t, `· 1$`, strings.TrimSpace(label), "the Filters button counts the filter applied")
+
+		assert.Equal(t, 1, s.count(t, `form[data-autosubmit] details.w-disclose[open]`), "the filters stay open while one is active")
+	} else if s.count(t, `form[data-live-filter] input[type="search"]`) > 0 {
+		// A list searched by name only (no filters panel), applied in place:
+		// a search without a match, sent by Enter, keeps the page,
+		// goes into the address and shows "no match"; cleared, the rows
+		// come back.
+		before, search := s.page.URL(), s.page.Locator(`form[data-live-filter] input[type="search"]`)
+		_, err := s.page.Evaluate(`window.wFilterMark = true`)
+		require.NoError(t, err)
+		require.NoError(t, search.Fill("zz-no-such-name"))
+		require.NoError(t, search.Press("Enter"))
+		require.NoError(t, s.tracker.settle())
+
+		kept, err := s.page.Evaluate(`window.wFilterMark === true`)
+		require.NoError(t, err)
+		assert.Equal(t, true, kept, "the search applied in place, without reloading the page")
+		assert.NotEqual(t, before, s.page.URL(), "the address carries the search")
+		assert.Equal(t, 1, s.count(t, `[data-live-part="list"] .w-empty`), "no match, in the live region")
+
+		require.NoError(t, search.Fill(""))
+		require.NoError(t, search.Press("Enter"))
+		require.NoError(t, s.tracker.settle())
+		assert.Zero(t, s.count(t, `[data-live-part="list"] .w-empty`), "the rows come back once the search is cleared")
+	}
+
+	// The first menu shown: a form keeps the menus of its rows in a block a
+	// switch hides until its case is chosen (the transfer information of a
+	// task), and a hidden button cannot take the focus.
+	if s.count(t, `button[popovertarget]:visible`) > 0 {
+		menu := s.page.Locator(`button[popovertarget]:visible`).First()
+		require.NoError(t, menu.Focus())
+		require.NoError(t, s.page.Keyboard().Press("Enter"))
+		assert.Equal(t, 1, s.count(t, `.w-actions:popover-open`), "the menu opens from the keyboard")
+		require.NoError(t, s.page.Keyboard().Press("Escape"))
+		assert.Equal(t, 0, s.count(t, `.w-actions:popover-open`), "and closes with Escape")
+	}
+
+	// An ordered list is a Tags field of the kit: with the SFTP family shown,
+	// typing in the field of the key exchanges filters the suggestions and
+	// Enter adds the match, which the hidden select then sends first.
+	if s.count(t, `#sftp_kex`) > 0 {
+		_, err := s.page.Locator(`select[data-switch]`).First().SelectOption(playwright.SelectOptionValues{Values: playwright.StringSlice("sftp")})
+		require.NoError(t, err)
+		// The card of the options folds when nothing is set: open it, as a user would.
+		_, err = s.page.Evaluate(`document.querySelector('details[data-case="sftp"]').open = true`)
+		require.NoError(t, err)
+		require.NoError(t, s.page.Locator(`#sftp_kex ~ .w-tags input`).Focus())
+		require.NoError(t, s.page.Keyboard().Type("curve"))
+		assert.Equal(t, 1, s.count(t, `#sftp_kex-menu [role="option"]`), "typing filters the suggestions")
+		require.NoError(t, s.page.Keyboard().Press("Enter"))
+		chosen, err := s.page.Evaluate(`[...document.querySelectorAll("#sftp_kex option:checked")].map(o => o.value)`)
+		require.NoError(t, err)
+		assert.Equal(t, []any{"curve25519-sha256@libssh.org"}, chosen, "Enter adds the match to the hidden select")
+	}
+
+	// The retries of a client are drawn live: the sentence and the marks of
+	// the timeline follow the three fields, and the script computes the
+	// waits exactly as the model does.
+	if s.count(t, `[data-retry]`) > 0 {
+		_, err := s.page.Evaluate(`document.querySelector('details.w-card--fold:has([data-retry])').open = true`)
+		require.NoError(t, err)
+		require.NoError(t, s.page.Locator(`#attempts`).Fill("5"))
+		require.NoError(t, s.page.Locator(`#delay_s`).Fill("30"))
+		require.NoError(t, s.page.Locator(`#factor`).Fill("2"))
+		assert.Equal(t, 5, s.count(t, `.w-retry__mark`), "one mark per attempt")
+		assert.Equal(t, 5, s.count(t, `.w-retry__rows li`), "one item per attempt")
+		sentence, err := s.page.Locator(`.w-retry__text`).TextContent()
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(sentence, "5 "), "the sentence counts the attempts: %q", sentence)
+
+		for _, c := range []struct {
+			attempts int8
+			delay    int32
+			factor   float32
+		}{{5, 30, 2}, {3, 0, 1}, {12, 30, 1.5}, {127, 30, 2}, {5, 10, 0.5}, {1, 7, 3}} {
+			// The browser returns whole numbers as int and the others as
+			// float64: everything is compared as int64.
+			got, err := s.page.Evaluate(fmt.Sprintf("window.wRetryWaits(%d, %d, %v)", c.attempts, c.delay, c.factor))
+			require.NoError(t, err)
+
+			values, ok := got.([]any)
+			require.True(t, ok, "the script returns the waits as a list (%+v): %v", c, got)
+
+			gotWaits := make([]int64, 0, len(values))
+			for _, v := range values {
+				switch n := v.(type) {
+				case int:
+					gotWaits = append(gotWaits, int64(n))
+				case float64:
+					gotWaits = append(gotWaits, int64(n))
+				default:
+					t.Fatalf("unexpected wait %v (%T)", v, v)
+				}
+			}
+
+			want := []int64{}
+			for _, w := range model.RetryWaits(c.attempts, c.delay, c.factor) {
+				want = append(want, int64(w))
+			}
+
+			assert.Equal(t, want, gotWaits, "the script computes the waits as the model does (%+v)", c)
+		}
+	}
+
+	// The form of an email template: typing "#" in the subject opens
+	// the list of the variables, typing filters it and Enter inserts the
+	// marker; the preview, computed by the server, follows the typing.
+	if s.count(t, `form[data-preview]`) > 0 {
+		subject := s.page.Locator(`#subject`)
+		require.NoError(t, subject.Fill("Transfert "))
+		require.NoError(t, subject.Press("End"))
+		require.NoError(t, s.page.Keyboard().Type("#transferi"))
+		first, err := s.page.Locator(`.w-vars [role="option"] .w-vars__code`).First().TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, "#TRANSFERID#", first, "typing filters the variables, the name that starts with it first")
+		require.NoError(t, s.page.Keyboard().Press("Enter"))
+
+		value, err := subject.InputValue()
+		require.NoError(t, err)
+		assert.Equal(t, "Transfert #TRANSFERID#", value, "Enter inserts the marker")
+
+		// The waits are functions, not expressions: the content security policy
+		// refuses the evaluation of a string, which an expression asks for.
+		_, err = s.page.WaitForFunction(`() => document.querySelector("#et-preview-out").textContent.includes("Transfert 1234")`,
+			nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)})
+		require.NoError(t, err, "the preview follows the typing, with the example values")
+
+		// A body file: an HTML file fills the body and the preview,
+		// then the file field empties, the body read being the one sent.
+		require.NoError(t, s.page.Locator(`#body_file`).SetInputFiles([]playwright.InputFile{{
+			Name: "message.html", MimeType: "text/html", Buffer: []byte("<p>Chargé depuis #TRUEFILENAME#.</p>"),
+		}}))
+		// The body shows in the sandboxed frame of the preview, its srcdoc.
+		_, err = s.page.WaitForFunction(`() => document.querySelector("#et-preview-out").innerHTML.includes("Chargé depuis")`,
+			nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)})
+		require.NoError(t, err, "the file fills the body and the preview")
+
+		files, err := s.page.Locator(`#body_file`).Evaluate("f => f.files.length", nil)
+		require.NoError(t, err)
+		assert.Equal(t, 0, files, "the file field empties once the file is loaded")
+	}
+
+	assert.Empty(t, s.tracker.failuresOf(screen.path), "failed requests and refusals of the content security policy")
+
+	t.Run("axe-core", func(t *testing.T) { s.checkAccessibility(t) })
+}
+
+// checkAccessibility runs the axe-core rules on the screen: no serious or
+// critical violation. The rules come from the file named by AXE_CORE_JS,
+// installed by helpers/playwright-bootstrap.sh.
+func (s *e2eSession) checkAccessibility(t *testing.T) {
+	t.Helper()
+
+	path := os.Getenv("AXE_CORE_JS")
+	if path == "" {
+		t.Skip("AXE_CORE_JS is not set: run ./helpers/playwright-bootstrap.sh and source .playwright/env.sh")
+	}
+
+	// The tooltip of the kit may be open when the rules run: under the pointer,
+	// left where the last click was, or on the focused element, where the focus
+	// came back from a menu closed with Escape (the pointer, already away, does
+	// not move then). The focus dropped and the pointer moved away, the tooltip
+	// closes before the rules run: fading in, its blended colours would fail the
+	// contrast rule.
+	_, err := s.page.Evaluate(`document.activeElement && document.activeElement.blur()`)
+	require.NoError(t, err)
+	require.NoError(t, s.page.Mouse().Move(0, 0))
+	require.NoError(t, s.page.Locator("#w-tip").WaitFor(playwright.LocatorWaitForOptions{
+		State: playwright.WaitForSelectorStateHidden, Timeout: playwright.Float(5000),
+	}))
+
+	// The rules are evaluated, not added as a script tag: the content
+	// security policy refuses a script written in the page.
+	rules, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	_, err = s.page.Evaluate(string(rules))
+	require.NoError(t, err)
+
+	violations, err := s.page.Evaluate(`async () => {
+		const result = await axe.run(document, { resultTypes: ["violations"] });
+		return result.violations
+			.filter((v) => v.impact === "serious" || v.impact === "critical")
+			.map((v) => v.id + " (" + v.impact + "): " + v.help + " [" + v.nodes.map((n) => n.target.join(" ")).join(", ") + "]");
+	}`)
+	require.NoError(t, err)
+	assert.Empty(t, violations, "serious or critical accessibility violations")
+}
+
+// TestE2ESmokeEveryScreen signs in as a user without any right and visits
+// every screen of the reworked web interface against the real backend: any
+// request answered with an error fails it.
+//
+//nolint:paralleltest // the test fills the global service lists of the gateway
+func TestE2ESmokeEveryScreen(t *testing.T) {
+	baseURL := startE2EServer(t)
+	page := newE2EPage(t)
+	session := &e2eSession{page: page, tracker: trackRequests(page, baseURL), baseURL: baseURL}
+	page.OnDialog(session.onDialog)
+
+	t.Run("/webui/login", func(t *testing.T) { session.checkSignIn(t) })
+
+	session.login(t)
+
+	for _, screen := range e2eScreens() {
+		t.Run(screen.path, func(t *testing.T) { session.check(t, screen) })
+	}
+
+	// A page left before it has loaded: the browser cancels its requests and
+	// does not always report their end; the next screen is not held for them.
+	t.Run("a page left before it has loaded", func(t *testing.T) {
+		for range 5 {
+			_, err := page.Goto(baseURL+"/webui/rules", playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateCommit})
+			require.NoError(t, err)
+
+			start := time.Now()
+			session.visit(t, "/webui/home")
+			assert.Less(t, time.Since(start), e2eSettleTimeout/2, "the requests of the page left do not hold the next one")
+		}
+	})
+
+	// The historic page of the authorities, which only pointed to the
+	// command line, leads to the screen.
+	// The list then restores the state it was left in.
+	t.Run("/webui/managing_authentication_authorities", func(t *testing.T) {
+		session.visit(t, "/webui/managing_authentication_authorities")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/authorities", landed.Path)
+	})
+
+	// So does the historic page of SNMP.
+	t.Run("/webui/snmp_management", func(t *testing.T) {
+		session.visit(t, "/webui/snmp_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/snmp", landed.Path)
+	})
+
+	// And the historic page of the configuration overrides.
+	t.Run("/webui/managing_configuration_overrides", func(t *testing.T) {
+		session.visit(t, "/webui/managing_configuration_overrides")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/overrides", landed.Path)
+	})
+
+	// And the historic page of the cryptographic keys.
+	t.Run("/webui/cryptographic_key_management", func(t *testing.T) {
+		session.visit(t, "/webui/cryptographic_key_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/keys", landed.Path)
+	})
+
+	// And the historic page of the SMTP credentials.
+	t.Run("/webui/smtp_credentials_management", func(t *testing.T) {
+		session.visit(t, "/webui/smtp_credentials_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/smtp", landed.Path)
+	})
+
+	// And the historic page of the email templates.
+	t.Run("/webui/email_templates_management", func(t *testing.T) {
+		session.visit(t, "/webui/email_templates_management")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/email-templates", landed.Path)
+	})
+
+	// And the former tasks page of a rule, which the historic rules page
+	// linked.
+	t.Run("/webui/tasks?ruleID=2", func(t *testing.T) {
+		session.visit(t, "/webui/tasks?ruleID=2")
+
+		landed, err := url.Parse(page.URL())
+		require.NoError(t, err)
+		assert.Equal(t, "/webui/rules/2/tasks", landed.Path)
+	})
+
+	// A changed form asks before it is left: a link of the page opens
+	// the dialog of the kit, where the operator stays or leaves without
+	// saving; reloading opens the dialog of the browser, the only one it
+	// allows; an untouched form and "Cancel" ask nothing.
+	t.Run("a changed form asks before it is left", func(t *testing.T) {
+		const form, list, other = "/webui/servers/new", "/webui/servers", "/webui/services"
+
+		dialog := page.Locator("#w-leave")
+		typeName := func(value string) {
+			require.NoError(t, page.Locator("#name").Click())
+			require.NoError(t, page.Keyboard().Type(value))
+		}
+		native := session.leaves.Load()
+
+		session.visit(t, form)
+		session.followSidebar(t, other)
+
+		session.visit(t, form)
+		typeName("srv-left")
+		require.NoError(t, page.Locator(`nav:not(.w-tabs) a[href="`+other+`"]`).First().Click())
+		require.NoError(t, dialog.WaitFor(playwright.LocatorWaitForOptions{State: playwright.WaitForSelectorStateVisible}),
+			"a link of the page opens the dialog of the kit")
+		require.NoError(t, dialog.Locator("[data-close]").Click())
+		require.NoError(t, dialog.WaitFor(playwright.LocatorWaitForOptions{State: playwright.WaitForSelectorStateHidden}))
+		expectURL(t, page, baseURL+form)
+
+		session.tracker.enter(other)
+		require.NoError(t, page.Locator(`nav:not(.w-tabs) a[href="`+other+`"]`).First().Click())
+		require.NoError(t, dialog.Locator("[data-leave-go]").Click(), "leave without saving")
+		expectURL(t, page, baseURL+other)
+		require.NoError(t, session.tracker.settle())
+		assert.Equal(t, native, session.leaves.Load(), "the links asked through the dialog of the kit only")
+
+		session.visit(t, form)
+		typeName("srv-reloaded")
+		_, err := page.Reload()
+		require.NoError(t, err)
+		assert.Equal(t, native+1, session.leaves.Load(), "reloading asks through the dialog of the browser")
+
+		session.visit(t, form)
+		typeName("srv-cancelled")
+
+		before := session.leaves.Load()
+		require.NoError(t, page.Locator("form.w-form [data-leave]").Click())
+
+		// The list, with the criteria the session keeps for it.
+		listURL := regexp.MustCompile("^" + regexp.QuoteMeta(baseURL+list) + `(\?.*)?$`)
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(listURL))
+		assert.Equal(t, before, session.leaves.Load(), "cancel")
+	})
+
+	// The documentation opens in a new tab, which its name says.
+	t.Run("the documentation opens in a new tab", func(t *testing.T) {
+		session.visit(t, "/webui/home")
+
+		doc := page.Locator(`header a[href*="doc.waarp.org"]`)
+		assert.Equal(t, "_blank", attribute(t, doc, "target"))
+		assert.Contains(t, attribute(t, doc, "rel"), "noopener")
+		assert.Contains(t, attribute(t, doc, "aria-label"), "(")
+	})
+
+	// The page field of the pager is sized to the digits of the number of
+	// pages: the kit says them on the field, the stylesheet widens it.
+	t.Run("the page field of the pager follows its digits", func(t *testing.T) {
+		session.visit(t, "/webui/transfers?size=10") // twelve rows: two pages
+
+		field := page.Locator("#transfers-pager-top .w-pager__page")
+		text, err := field.TextContent()
+		require.NoError(t, err)
+		pages := text[strings.LastIndex(strings.TrimSpace(text), " ")+1:] // "Page … sur 2"
+		assert.Equal(t, fmt.Sprint(len(strings.TrimSpace(pages))), attribute(t, field, "data-digits"), "the digits of the number of pages")
+
+		box, err := field.Locator("input").BoundingBox()
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, box.Width, 57.0, "3.6 rem at least")
+	})
+
+	// The time of the last reading of the transfer monitoring follows every
+	// reading: it changes within one period, the focus away from the
+	// toolbar.
+	t.Run("the time of the last reading follows the readings", func(t *testing.T) {
+		session.visit(t, "/webui/transfers")
+
+		live := page.Locator("#transfers-live")
+		before, err := live.TextContent()
+		require.NoError(t, err)
+		require.NotEmpty(t, strings.TrimSpace(before), "the time of the first reading")
+
+		_, err = page.WaitForFunction(`(t) => document.querySelector("#transfers-live").textContent !== t`,
+			before, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(15000)})
+		require.NoError(t, err, "the time changes after one period")
+	})
+
+	// The grouped actions of the transfer monitoring: a row checked
+	// shows the selection bar, which counts it; "Resume the transfers" resumes
+	// the set at once and the list, back as it was, says so.
+	t.Run("a selection of transfers resumes at once", func(t *testing.T) {
+		session.visit(t, "/webui/transfers?state=error")
+
+		row := page.Locator(`input[data-select-row][value="4"]`)
+		require.NoError(t, row.WaitFor())
+		require.NoError(t, row.Check())
+
+		count := page.Locator("#sel-transfers:not([hidden]) .w-selection__count")
+		require.NoError(t, count.WaitFor())
+		counted, err := count.TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, "1 sur cette page", strings.TrimSpace(counted))
+
+		session.tracker.enter("/webui/transfers/resume")
+		require.NoError(t, page.Locator(`#sel-transfers button[formaction$="/webui/transfers/resume"]`).Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/transfers?")+"done=set_resumed&name=1&state=error$")))
+		require.NoError(t, session.tracker.settle())
+		assert.Empty(t, session.tracker.failuresOf("/webui/transfers/resume"), "failed requests of the resumption")
+
+		toast, err := page.Locator(".w-toast--ok").First().TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, toast, "1 transfert repris")
+	})
+
+	// The dashboard resumes the failed transfers in one click: the
+	// primary button of its header, which says how many, posts the grouped
+	// resumption and comes back to the dashboard with the notification.
+	t.Run("the dashboard resumes the failed transfers in one click", func(t *testing.T) {
+		session.visit(t, "/webui/dashboard")
+
+		button := page.Locator("#tdb-resume button")
+		require.NoError(t, button.WaitFor())
+		label, err := button.TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, label, "Reprendre")
+
+		session.tracker.enter("/webui/transfers/resume")
+		require.NoError(t, button.Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/dashboard?")+`done=set_resumed&name=\d+$`)))
+		require.NoError(t, session.tracker.settle())
+		assert.Empty(t, session.tracker.failuresOf("/webui/transfers/resume"), "failed requests of the resumption")
+
+		toast, err := page.Locator(".w-toast--ok").First().TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, toast, "repris")
+		assert.Equal(t, 0, session.count(t, "#tdb-resume form"), "nothing left to resume: the button is gone")
+	})
+
+	// A screen reached from another screen offers the return to it:
+	// the dashboard leads to the running transfers (the tile, one transfer
+	// in the fixtures), the list to a sheet, and each page comes back to the
+	// previous one, the list as it was left.
+	t.Run("a screen reached from another offers the return to it", func(t *testing.T) {
+		session.visit(t, "/webui/dashboard")
+		require.NoError(t, page.Locator(`a.w-tile[href*="state=running"]`).Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/transfers?state=running&origin=%2Fwebui%2Fdashboard")+"$")))
+		require.NoError(t, session.tracker.settle())
+
+		back := page.Locator(".w-crumbs .w-return")
+		label, err := back.TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, label, "Retour au tableau de bord")
+		assert.Equal(t, "/webui/dashboard", attribute(t, back, "href"))
+
+		require.NoError(t, page.Locator(`tbody a[href^="/webui/transfers/"]`).First().Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/transfers/")+`\d+\?ret=`)))
+		require.NoError(t, session.tracker.settle())
+
+		label, err = back.TextContent()
+		require.NoError(t, err)
+		assert.Contains(t, label, "Retour à la liste", "a sheet reached from its list")
+		assert.Contains(t, attribute(t, back, "href"), "origin=%2Fwebui%2Fdashboard", "the list still knows its origin")
+
+		require.NoError(t, back.Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/transfers?")+`.*origin=%2Fwebui%2Fdashboard`)))
+		require.NoError(t, session.tracker.settle())
+
+		require.NoError(t, back.Click())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile(regexp.QuoteMeta(baseURL+"/webui/dashboard")+"$")))
+		require.NoError(t, session.tracker.settle())
+		assert.Equal(t, 0, session.count(t, ".w-return"), "the dashboard is an origin, not a page to come back from")
+	})
+
+	// A row of transfer information carries its "⋯" menu: on a row
+	// added in place, "Insert a variable" opens the list of the variables on
+	// the value, which the kit attaches to the rows put in place.
+	t.Run("a row of transfer information added in place offers the variables", func(t *testing.T) {
+		session.visit(t, "/webui/rules/2/tasks/post/new?type=TRANSFER")
+
+		require.NoError(t, page.Locator("[data-info-add]").Click())
+		row := page.Locator(".tf-info-row").Nth(1)
+		require.NoError(t, row.Locator("[popovertarget]").Click())
+		require.NoError(t, row.Locator(`[data-command="vars"]`).Click())
+		require.NoError(t, page.Locator(".w-vars:not([hidden])").WaitFor())
+		require.NoError(t, page.Keyboard().Type("transferi"))
+		first, err := page.Locator(`.w-vars [role="option"] .w-vars__code`).First().TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, "#TRANSFERID#", first, "the list filters as the value is typed")
+		require.NoError(t, page.Keyboard().Press("Enter"))
+
+		value, err := row.Locator("#info-value-2").InputValue()
+		require.NoError(t, err)
+		assert.Equal(t, "#TRANSFERID#", value, "the marker inserted into the value of the row added in place")
+		assert.Equal(t, 0, session.count(t, ".tf-info-row .w-vars-btn"), "no button inserted into the rows")
+	})
+
+	// Collapsed, the sidebar keeps the icons of its entries in a rail, each
+	// label as a tooltip; expanded again, the labels come back.
+	t.Run("the sidebar collapses to a rail", func(t *testing.T) {
+		session.visit(t, "/webui/home")
+		require.NoError(t, page.Locator(".w-nav-toggle").Click())
+		require.NoError(t, page.Locator(".w-shell.is-nav-collapsed").WaitFor())
+
+		_, err := page.WaitForFunction(`() => document.querySelector(".w-sidebar").getBoundingClientRect().width < 80`, nil,
+			playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)})
+		require.NoError(t, err, "a rail, once the 250 ms of its animation are over")
+		labelled, err := page.Evaluate(`[...document.querySelectorAll(".w-navgroup a")].every((a) =>
+			(a.getAttribute("title") || a.dataset.wTitle || "").trim() === a.querySelector("span").textContent.trim())`)
+		require.NoError(t, err)
+		assert.Equal(t, true, labelled, "every entry carries its label as a tooltip")
+
+		second := page.Locator(".w-navgroup a").Nth(1)
+		require.NoError(t, second.Hover())
+		require.NoError(t, page.Locator("#w-tip:not([hidden])").WaitFor())
+		label, err := second.Locator("span").TextContent()
+		require.NoError(t, err)
+		tip, err := page.Locator("#w-tip").TextContent()
+		require.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(label), strings.TrimSpace(tip), "the tooltip is the label")
+
+		require.NoError(t, page.Locator(".w-nav-toggle").Click())
+		require.NoError(t, page.Locator(".w-shell:not(.is-nav-collapsed)").WaitFor())
+		assert.Zero(t, session.count(t, ".w-navgroup a[title]"), "expanded, the labels read in place")
+	})
+
+	// The configuration import and export: the page opens on YAML with
+	// the secrets replaced by markers, so the first export is a file
+	// with markers, which the import refuses; exported in clear, the file of
+	// the instance comes back whole and the simulation of its import passes,
+	// in place of the page, with its notification.
+	t.Run("the configuration exports and its import simulates", func(t *testing.T) {
+		session.visit(t, "/webui/config")
+
+		marked, err := page.ExpectDownload(func() error { return page.Locator("#cfg-export-go").Click() })
+		require.NoError(t, err)
+		assert.Regexp(t, `^waarp-gateway-.+-markers\.yaml$`, marked.SuggestedFilename(), "YAML with markers by default")
+		// Saved under its name: Playwright keeps a download without an extension,
+		// and the screen reads the format on it.
+		markedPath := filepath.Join(t.TempDir(), marked.SuggestedFilename())
+		require.NoError(t, marked.SaveAs(markedPath))
+
+		require.NoError(t, page.Locator("#cfg-file").SetInputFiles(markedPath))
+		require.NoError(t, page.Locator("#cfg-simulate").Click())
+		require.NoError(t, page.Locator("#cfg-file-h.w-field__error").WaitFor(), "a file with markers is refused by its field")
+
+		// Exported in clear: the option unchecked, the file carries no marker.
+		require.NoError(t, page.Locator("#cfg-redact").Uncheck())
+		download, err := page.ExpectDownload(func() error { return page.Locator("#cfg-export-go").Click() })
+		require.NoError(t, err)
+		assert.Regexp(t, `^waarp-gateway-.+\d\.yaml$`, download.SuggestedFilename(), "YAML in clear, no -markers")
+		path := filepath.Join(t.TempDir(), download.SuggestedFilename())
+		require.NoError(t, download.SaveAs(path))
+
+		require.NoError(t, page.Locator("#cfg-file").SetInputFiles(path))
+		require.NoError(t, page.Locator("#cfg-simulate").Click())
+		// The screen loads again with the result, or the page comes back with the
+		// refusal of the product: said in the failure, so that the cause reads.
+		require.NoError(t, page.Locator(".w-toast--ok, .cfg-refused, .w-field__error").First().WaitFor())
+		if session.count(t, ".cfg-reason, .w-field__error") > 0 {
+			reason, _ := page.Locator(".cfg-reason, .w-field__error").First().TextContent()
+			require.Failf(t, "the simulation of the export was refused", "%s", reason)
+		}
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/config?")+".*done=simulated")))
+		require.NoError(t, session.tracker.settle())
+		toast, err := page.Locator(".w-toast--ok").TextContent()
+		require.NoError(t, err)
+		assert.Regexp(t, `(?i)\bvalide?\b`, toast, "the file is valid, in the language of the session")
+	})
+
+	// The partner watchers: a run from the row menu comes back to the list
+	// with its notification. The partner of the smoke test does not answer:
+	// the run fails and the notification says why; a run that passes (no
+	// new file) is reported too, not judged.
+	t.Run("a run of a partner watcher reports its result", func(t *testing.T) {
+		session.visit(t, "/webui/watchers")
+
+		require.NoError(t, page.Locator(`button[popovertarget="act-1"]`).Click())
+		require.NoError(t, page.Locator(`#act-1 form[action*="/fire"] button`).Click())
+		require.NoError(t, page.Locator(".w-toast--ok, .w-toast--ko").First().WaitFor())
+		require.NoError(t, playwright.NewPlaywrightAssertions(e2eTimeoutMs).Page(page).ToHaveURL(
+			regexp.MustCompile("^"+regexp.QuoteMeta(baseURL+"/webui/watchers?")+".*(done=fired|failed=fire)")))
+		require.NoError(t, session.tracker.settle())
+
+		toast, err := page.Locator(".w-toast--ok, .w-toast--ko").First().TextContent()
+		require.NoError(t, err)
+		t.Logf("run of the watcher: %s", strings.Join(strings.Fields(toast), " "))
+		assert.Contains(t, toast, "releves-banque", "the notification names the watcher")
+	})
+
+	// The witnesses of the screens above: a stylesheet written in the page,
+	// then one written in the document of a frame that runs no script, as
+	// the preview of an email template is. The content security policy
+	// refuses both, enforced and not only reported, and both are recorded.
+	// Without them, a screen that broke the policy would pass unnoticed.
+	t.Run("a violation of the content security policy is recorded", func(t *testing.T) {
+		const (
+			inPage  = "the witness of the content security policy, in the page"
+			inFrame = "the witness of the content security policy, in a frame without script"
+		)
+
+		session.visit(t, "/webui/home")
+		session.tracker.enter(inPage)
+
+		_, err := page.Evaluate(`() => {
+			const sheet = document.createElement("style");
+			sheet.textContent = "body { outline: 0 }";
+			document.head.append(sheet);
+		}`)
+		require.NoError(t, err)
+		require.NoError(t, session.tracker.settle())
+
+		recorded := strings.Join(session.tracker.failuresOf(inPage), "\n")
+		assert.Contains(t, recorded, e2eViolationMark+"style-src-elem (enforce) refuses inline", "by the page, the policy enforced")
+		assert.Contains(t, recorded, e2eBrowserRefusal, "and by the browser itself")
+
+		session.tracker.enter(inFrame)
+
+		_, err = page.Evaluate(`() => new Promise((loaded) => {
+			const frame = document.createElement("iframe");
+			frame.setAttribute("sandbox", "");
+			frame.addEventListener("load", loaded);
+			frame.srcdoc = "<!doctype html><html><head><style>body { outline: 0 }</style></head><body></body></html>";
+			document.body.append(frame);
+		})`)
+		require.NoError(t, err)
+		require.NoError(t, session.tracker.settle())
+
+		recorded = strings.Join(session.tracker.failuresOf(inFrame), "\n")
+		assert.Contains(t, recorded, e2eBrowserRefusal, "by the browser, the only trace of such a frame")
+		assert.NotContains(t, recorded, e2eViolationMark, "the frame runs no script: the page reports nothing")
+	})
+
+	// The sign-out: the account menu signs out with a form, the
+	// sign-in page says so, and the interface asks to sign in again (without
+	// a reason: the cookie is gone).
+	t.Run("the sign-out says so", func(t *testing.T) {
+		session.visit(t, "/webui/home")
+		session.tracker.enter("/webui/logout")
+		require.NoError(t, page.Locator(`header details.w-menu:has(form[action$="/webui/logout"]) > summary`).Click())
+		require.NoError(t, page.Locator(`header form[action$="/webui/logout"] button`).Click())
+		expectURL(t, page, baseURL+"/webui/login?reason=signed_out")
+		require.NoError(t, session.tracker.settle())
+		assert.Equal(t, 1, session.count(t, `.w-plain__card [role="status"]`), "the page says the user signed out")
+		assert.Empty(t, session.tracker.failuresOf("/webui/logout"), "failed requests of the sign-out")
+
+		session.visit(t, "/webui/home")
+		expectURL(t, page, baseURL+"/webui/login?redirect=%2Fwebui%2Fhome")
+	})
+}
